@@ -11,6 +11,349 @@ function Add-ValidationFailure {
     $failures.Add($Message)
 }
 
+function Get-SkillNameFromFrontmatter {
+    param([Parameter(Mandatory)][string]$Content)
+
+    $lines = [regex]::Split($Content, '\r\n|\n|\r')
+    if ($lines.Count -lt 3 -or $lines[0] -cne '---') {
+        return $null
+    }
+
+    $frontmatterEnd = -1
+    for ($index = 1; $index -lt $lines.Count; $index++) {
+        if ($lines[$index] -ceq '---') {
+            $frontmatterEnd = $index
+            break
+        }
+    }
+
+    if ($frontmatterEnd -lt 0) {
+        return $null
+    }
+
+    $namePattern = '^name:[ \t]*(?:(?<plain>[a-z0-9-]+)|''(?<single>[a-z0-9-]+)''|"(?<double>[a-z0-9-]+)")[ \t]*$'
+    for ($index = 1; $index -lt $frontmatterEnd; $index++) {
+        $nameMatch = [regex]::Match($lines[$index], $namePattern)
+        if (-not $nameMatch.Success) {
+            continue
+        }
+
+        foreach ($groupName in @('plain', 'single', 'double')) {
+            if ($nameMatch.Groups[$groupName].Success) {
+                return $nameMatch.Groups[$groupName].Value
+            }
+        }
+    }
+
+    return $null
+}
+
+function Test-MarkdownEscapableCharacter {
+    param([Parameter(Mandatory)][char]$Character)
+
+    $characterCode = [int]$Character
+    return ($characterCode -ge 0x21 -and $characterCode -le 0x2f) -or
+        ($characterCode -ge 0x3a -and $characterCode -le 0x40) -or
+        ($characterCode -ge 0x5b -and $characterCode -le 0x60) -or
+        ($characterCode -ge 0x7b -and $characterCode -le 0x7e)
+}
+
+function ConvertFrom-MarkdownEscapes {
+    param([Parameter(Mandatory)][string]$Text)
+
+    $result = [System.Text.StringBuilder]::new()
+    for ($index = 0; $index -lt $Text.Length; $index++) {
+        if ($Text[$index] -eq '\' -and
+            $index + 1 -lt $Text.Length -and
+            (Test-MarkdownEscapableCharacter $Text[$index + 1])) {
+            $index++
+        }
+
+        [void]$result.Append($Text[$index])
+    }
+
+    return $result.ToString()
+}
+
+function Get-MarkdownContentOutsideFences {
+    param([Parameter(Mandatory)][string]$Content)
+
+    $result = [System.Text.StringBuilder]::new()
+    $fenceCharacter = $null
+    $fenceLength = 0
+
+    foreach ($line in [regex]::Split($Content, '\r\n|\n|\r')) {
+        $fenceMatch = [regex]::Match($line, '^[ ]{0,3}(?<marker>`{3,}|~{3,})')
+        if ($fenceMatch.Success) {
+            $marker = $fenceMatch.Groups['marker'].Value
+            if ($null -eq $fenceCharacter) {
+                $fenceCharacter = $marker[0]
+                $fenceLength = $marker.Length
+                [void]$result.AppendLine()
+                continue
+            }
+
+            $remainder = $line.Substring($fenceMatch.Length)
+            if ($marker[0] -ceq $fenceCharacter -and
+                $marker.Length -ge $fenceLength -and
+                $remainder -match '^[ \t]*$') {
+                $fenceCharacter = $null
+                $fenceLength = 0
+                [void]$result.AppendLine()
+                continue
+            }
+        }
+
+        if ($null -eq $fenceCharacter) {
+            [void]$result.AppendLine($line)
+        }
+        else {
+            [void]$result.AppendLine()
+        }
+    }
+
+    return $result.ToString()
+}
+
+function Read-MarkdownDestination {
+    param(
+        [Parameter(Mandatory)][string]$Text,
+        [Parameter(Mandatory)][int]$StartIndex,
+        [switch]$RequireClosingParenthesis
+    )
+
+    $index = $StartIndex
+    while ($index -lt $Text.Length -and [char]::IsWhiteSpace($Text[$index])) {
+        $index++
+    }
+
+    $destination = [System.Text.StringBuilder]::new()
+    if ($index -lt $Text.Length -and $Text[$index] -eq '<') {
+        $index++
+        $closed = $false
+        while ($index -lt $Text.Length) {
+            if ($Text[$index] -eq '\' -and
+                $index + 1 -lt $Text.Length -and
+                (Test-MarkdownEscapableCharacter $Text[$index + 1])) {
+                [void]$destination.Append($Text[$index])
+                $index++
+                [void]$destination.Append($Text[$index])
+                $index++
+                continue
+            }
+
+            if ($Text[$index] -eq '>') {
+                $closed = $true
+                $index++
+                break
+            }
+
+            if ($Text[$index] -eq '<' -or $Text[$index] -eq "`r" -or $Text[$index] -eq "`n") {
+                return $null
+            }
+
+            [void]$destination.Append($Text[$index])
+            $index++
+        }
+
+        if (-not $closed) {
+            return $null
+        }
+    }
+    else {
+        $parenthesisDepth = 0
+        while ($index -lt $Text.Length) {
+            if ($Text[$index] -eq '\' -and
+                $index + 1 -lt $Text.Length -and
+                (Test-MarkdownEscapableCharacter $Text[$index + 1])) {
+                [void]$destination.Append($Text[$index])
+                $index++
+                [void]$destination.Append($Text[$index])
+                $index++
+                continue
+            }
+
+            if ($Text[$index] -eq '(') {
+                $parenthesisDepth++
+            }
+            elseif ($Text[$index] -eq ')') {
+                if ($parenthesisDepth -eq 0) {
+                    break
+                }
+
+                $parenthesisDepth--
+            }
+            elseif ([char]::IsWhiteSpace($Text[$index])) {
+                if ($parenthesisDepth -gt 0) {
+                    return $null
+                }
+
+                break
+            }
+            elseif ($Text[$index] -eq '<') {
+                return $null
+            }
+
+            [void]$destination.Append($Text[$index])
+            $index++
+        }
+
+        if ($parenthesisDepth -ne 0) {
+            return $null
+        }
+    }
+
+    $hadWhitespace = $false
+    while ($index -lt $Text.Length -and [char]::IsWhiteSpace($Text[$index])) {
+        $hadWhitespace = $true
+        $index++
+    }
+
+    if ($RequireClosingParenthesis -and $index -lt $Text.Length -and $Text[$index] -eq ')') {
+        return [pscustomobject]@{
+            Destination = ConvertFrom-MarkdownEscapes $destination.ToString()
+            EndIndex = $index
+        }
+    }
+
+    if (-not $RequireClosingParenthesis -and $index -eq $Text.Length) {
+        return [pscustomobject]@{
+            Destination = ConvertFrom-MarkdownEscapes $destination.ToString()
+            EndIndex = $index
+        }
+    }
+
+    if (-not $hadWhitespace -or $index -ge $Text.Length) {
+        return $null
+    }
+
+    $titleDelimiter = $Text[$index]
+    if ($titleDelimiter -eq '"' -or $titleDelimiter -eq "'") {
+        $titleTerminator = $titleDelimiter
+    }
+    elseif ($titleDelimiter -eq '(') {
+        $titleTerminator = ')'
+    }
+    else {
+        return $null
+    }
+
+    $index++
+    $titleClosed = $false
+    while ($index -lt $Text.Length) {
+        if ($Text[$index] -eq '\' -and
+            $index + 1 -lt $Text.Length -and
+            (Test-MarkdownEscapableCharacter $Text[$index + 1])) {
+            $index += 2
+            continue
+        }
+
+        if ($Text[$index] -eq $titleTerminator) {
+            $titleClosed = $true
+            $index++
+            break
+        }
+
+        if ($Text[$index] -eq "`r" -or $Text[$index] -eq "`n") {
+            return $null
+        }
+
+        $index++
+    }
+
+    if (-not $titleClosed) {
+        return $null
+    }
+
+    while ($index -lt $Text.Length -and [char]::IsWhiteSpace($Text[$index])) {
+        $index++
+    }
+
+    if ($RequireClosingParenthesis) {
+        if ($index -ge $Text.Length -or $Text[$index] -ne ')') {
+            return $null
+        }
+    }
+    elseif ($index -ne $Text.Length) {
+        return $null
+    }
+
+    return [pscustomobject]@{
+        Destination = ConvertFrom-MarkdownEscapes $destination.ToString()
+        EndIndex = $index
+    }
+}
+
+function Get-MarkdownLinkDestinations {
+    param([Parameter(Mandatory)][string]$Content)
+
+    $contentOutsideFences = Get-MarkdownContentOutsideFences $Content
+    $index = 0
+    while ($index -lt $contentOutsideFences.Length) {
+        if ($contentOutsideFences[$index] -eq '\' -and
+            $index + 1 -lt $contentOutsideFences.Length -and
+            (Test-MarkdownEscapableCharacter $contentOutsideFences[$index + 1])) {
+            $index += 2
+            continue
+        }
+
+        if ($contentOutsideFences[$index] -ne '[') {
+            $index++
+            continue
+        }
+
+        $labelDepth = 1
+        $labelEnd = $index + 1
+        while ($labelEnd -lt $contentOutsideFences.Length -and $labelDepth -gt 0) {
+            if ($contentOutsideFences[$labelEnd] -eq '\' -and
+                $labelEnd + 1 -lt $contentOutsideFences.Length -and
+                (Test-MarkdownEscapableCharacter $contentOutsideFences[$labelEnd + 1])) {
+                $labelEnd += 2
+                continue
+            }
+
+            if ($contentOutsideFences[$labelEnd] -eq '[') {
+                $labelDepth++
+            }
+            elseif ($contentOutsideFences[$labelEnd] -eq ']') {
+                $labelDepth--
+            }
+
+            $labelEnd++
+        }
+
+        if ($labelDepth -ne 0 -or
+            $labelEnd -ge $contentOutsideFences.Length -or
+            $contentOutsideFences[$labelEnd] -ne '(') {
+            $index++
+            continue
+        }
+
+        $link = Read-MarkdownDestination $contentOutsideFences ($labelEnd + 1) -RequireClosingParenthesis
+        if ($null -eq $link) {
+            $index = $labelEnd + 1
+            continue
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($link.Destination)) {
+            Write-Output $link.Destination
+        }
+        $index = $link.EndIndex + 1
+    }
+
+    foreach ($line in [regex]::Split($contentOutsideFences, '\r\n|\n|\r')) {
+        $definitionMatch = [regex]::Match($line, '^[ ]{0,3}\[(?:\\.|[^\]\\])+\]:[ \t]*')
+        if (-not $definitionMatch.Success) {
+            continue
+        }
+
+        $definition = Read-MarkdownDestination $line $definitionMatch.Length
+        if ($null -ne $definition -and -not [string]::IsNullOrWhiteSpace($definition.Destination)) {
+            Write-Output $definition.Destination
+        }
+    }
+}
+
 $requiredDirectories = @(
     '.github/agent-policy',
     '.github/agents',
@@ -68,16 +411,15 @@ if (Test-Path -LiteralPath $skillsRoot -PathType Container) {
         }
 
         $skillContent = Get-Content -LiteralPath $skillFile -Raw
-        $nameMatch = [regex]::Match($skillContent, '(?m)^name:\s*["'']?([a-z0-9-]+)["'']?\s*$')
-        if (-not $nameMatch.Success) {
+        $skillName = Get-SkillNameFromFrontmatter $skillContent
+        if ([string]::IsNullOrWhiteSpace($skillName)) {
             Add-ValidationFailure "Missing or invalid skill name: .github/skills/$($skillDirectory.Name)/SKILL.md"
         }
-        elseif ($nameMatch.Groups[1].Value -ne $skillDirectory.Name) {
+        elseif ($skillName -cne $skillDirectory.Name) {
             Add-ValidationFailure "Skill name does not match directory: $($skillDirectory.Name)"
         }
 
-        foreach ($linkMatch in [regex]::Matches($skillContent, '\[[^\]]+\]\(([^)]+)\)')) {
-            $target = $linkMatch.Groups[1].Value.Trim().Trim('<', '>')
+        foreach ($target in Get-MarkdownLinkDestinations $skillContent) {
             if ($target -match '^(?:https?://|mailto:|#)') {
                 continue
             }
@@ -159,8 +501,9 @@ else {
 
 if ($failures.Count -gt 0) {
     foreach ($failure in $failures) {
-        Write-Error $failure -ErrorAction Continue
+        Write-Output "ERROR: $failure"
     }
+    Write-Output "Repository setup validation failed with $($failures.Count) error(s)."
     exit 1
 }
 
