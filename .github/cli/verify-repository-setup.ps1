@@ -94,16 +94,209 @@ function Get-MarkdownContentOutsideFences {
     $fenceCharacter = $null
     $fenceLength = 0
     $inIndentedCodeBlock = $false
+    $listContainers = [System.Collections.Generic.List[object]]::new()
+
+    $getIndentWidth = {
+        param([Parameter(Mandatory)][AllowEmptyString()][string]$Text)
+
+        $width = 0
+        for ($index = 0; $index -lt $Text.Length; $index++) {
+            if ($Text[$index] -eq ' ') {
+                $width++
+            }
+            elseif ($Text[$index] -eq "`t") {
+                $width += 4 - ($width % 4)
+            }
+            else {
+                break
+            }
+        }
+
+        return $width
+    }
+
+    $getColumnWidth = {
+        param([Parameter(Mandatory)][AllowEmptyString()][string]$Text)
+
+        $width = 0
+        for ($index = 0; $index -lt $Text.Length; $index++) {
+            if ($Text[$index] -eq "`t") {
+                $width += 4 - ($width % 4)
+            }
+            else {
+                $width++
+            }
+        }
+
+        return $width
+    }
+
+    $removeIndent = {
+        param(
+            [Parameter(Mandatory)][AllowEmptyString()][string]$Text,
+            [Parameter(Mandatory)][int]$Width
+        )
+
+        if ($Width -le 0) {
+            return $Text
+        }
+
+        $index = 0
+        $currentWidth = 0
+        while ($index -lt $Text.Length -and $currentWidth -lt $Width) {
+            if ($Text[$index] -eq ' ') {
+                $nextWidth = $currentWidth + 1
+            }
+            elseif ($Text[$index] -eq "`t") {
+                $nextWidth = $currentWidth + 4 - ($currentWidth % 4)
+            }
+            else {
+                break
+            }
+
+            if ($nextWidth -gt $Width) {
+                return (' ' * ($nextWidth - $Width)) + $Text.Substring($index + 1)
+            }
+
+            $currentWidth = $nextWidth
+            $index++
+        }
+
+        if ($currentWidth -lt $Width) {
+            return $Text
+        }
+
+        return $Text.Substring($index)
+    }
+
+    $removeBlockquoteMarkers = {
+        param([Parameter(Mandatory)][AllowEmptyString()][string]$Text)
+
+        $remaining = $Text
+        $depth = 0
+        while ($true) {
+            $blockquoteMatch = [regex]::Match($remaining, '^[ ]{0,3}>[ ]?')
+            if (-not $blockquoteMatch.Success) {
+                break
+            }
+
+            $remaining = $remaining.Substring($blockquoteMatch.Length)
+            $depth++
+        }
+
+        return [pscustomobject]@{
+            Content = $remaining
+            Depth = $depth
+        }
+    }
 
     foreach ($line in [regex]::Split($Content, '\r\n|\n|\r')) {
+        $rawIndentWidth = & $getIndentWidth $line
+        $blockquoteLine = & $removeBlockquoteMarkers $line
+        $containerLine = $blockquoteLine.Content
+        $blockquoteDepth = $blockquoteLine.Depth
+        $structuralLine = $containerLine
+
+        if ($listContainers.Count -gt 0) {
+            $rootListContainer = $listContainers[0]
+            if ($blockquoteDepth -lt $rootListContainer.BlockquoteDepth -or
+                ($blockquoteDepth -gt $rootListContainer.BlockquoteDepth -and
+                    $rawIndentWidth -lt $rootListContainer.ContentIndent)) {
+                $listContainers.Clear()
+            }
+        }
+
+        if ($null -ne $fenceCharacter) {
+            $lineIndent = & $getIndentWidth $containerLine
+            for ($containerIndex = $listContainers.Count - 1; $containerIndex -ge 0; $containerIndex--) {
+                $listContainer = $listContainers[$containerIndex]
+                if ($blockquoteDepth -eq $listContainer.BlockquoteDepth -and
+                    $lineIndent -ge $listContainer.ContentIndent) {
+                    $structuralLine = & $removeIndent $containerLine $listContainer.ContentIndent
+                    break
+                }
+            }
+        }
+        else {
+            $listMatch = [regex]::Match(
+                $containerLine,
+                '^(?<indent>[ \t]*)(?<marker>(?:[-+*]|\d{1,9}[.)]))(?<spacing>[ \t]+)(?<content>.*)$'
+            )
+            $isListItem = $false
+            $markerIndent = 0
+            if ($listMatch.Success) {
+                $markerIndent = & $getIndentWidth $listMatch.Groups['indent'].Value
+                $isListItem = $markerIndent -le 3
+                if (-not $isListItem) {
+                    for ($containerIndex = $listContainers.Count - 1; $containerIndex -ge 0; $containerIndex--) {
+                        $listContainer = $listContainers[$containerIndex]
+                        $relativeIndent = $markerIndent - $listContainer.ContentIndent
+                        if ($blockquoteDepth -eq $listContainer.BlockquoteDepth -and
+                            $relativeIndent -ge 0 -and $relativeIndent -le 3) {
+                            $isListItem = $true
+                            break
+                        }
+                    }
+                }
+            }
+
+            if ($isListItem) {
+                while ($listContainers.Count -gt 0) {
+                    $lastListContainer = $listContainers[$listContainers.Count - 1]
+                    if ($lastListContainer.BlockquoteDepth -ne $blockquoteDepth -or
+                        $markerIndent -le $lastListContainer.MarkerIndent -or
+                        $markerIndent -lt $lastListContainer.ContentIndent) {
+                        $listContainers.RemoveAt($listContainers.Count - 1)
+                        continue
+                    }
+
+                    break
+                }
+
+                $contentStart = $listMatch.Groups['content'].Index
+                $contentIndent = & $getColumnWidth $containerLine.Substring(0, $contentStart)
+                [void]$listContainers.Add([pscustomobject]@{
+                    MarkerIndent = $markerIndent
+                    ContentIndent = $contentIndent
+                    BlockquoteDepth = $blockquoteDepth
+                })
+                $structuralLine = $listMatch.Groups['content'].Value
+            }
+            elseif (-not [string]::IsNullOrWhiteSpace($containerLine)) {
+                $lineIndent = & $getIndentWidth $containerLine
+                $matchingContainerIndex = -1
+                for ($containerIndex = $listContainers.Count - 1; $containerIndex -ge 0; $containerIndex--) {
+                    $listContainer = $listContainers[$containerIndex]
+                    if ($blockquoteDepth -eq $listContainer.BlockquoteDepth -and
+                        $lineIndent -ge $listContainer.ContentIndent) {
+                        $matchingContainerIndex = $containerIndex
+                        break
+                    }
+                }
+
+                if ($matchingContainerIndex -ge 0) {
+                    while ($listContainers.Count - 1 -gt $matchingContainerIndex) {
+                        $listContainers.RemoveAt($listContainers.Count - 1)
+                    }
+                    $structuralLine = & $removeIndent $containerLine $listContainers[$matchingContainerIndex].ContentIndent
+                }
+                else {
+                    $listContainers.Clear()
+                }
+            }
+        }
+
+        $nestedBlockquoteLine = & $removeBlockquoteMarkers $structuralLine
+        $structuralLine = $nestedBlockquoteLine.Content
+
         if ($null -eq $fenceCharacter) {
-            if ([string]::IsNullOrWhiteSpace($line)) {
+            if ([string]::IsNullOrWhiteSpace($structuralLine)) {
                 if ($inIndentedCodeBlock) {
                     [void]$result.AppendLine()
                     continue
                 }
             }
-            elseif ($line -match '^(?: {4}|\t)') {
+            elseif ($structuralLine -match '^(?: {4}|\t)') {
                 $inIndentedCodeBlock = $true
                 [void]$result.AppendLine()
                 continue
@@ -113,7 +306,7 @@ function Get-MarkdownContentOutsideFences {
             }
         }
 
-        $fenceMatch = [regex]::Match($line, '^[ ]{0,3}(?<marker>`{3,}|~{3,})(?<remainder>.*)$')
+        $fenceMatch = [regex]::Match($structuralLine, '^[ ]{0,3}(?<marker>`{3,}|~{3,})(?<remainder>.*)$')
         if ($fenceMatch.Success) {
             $marker = $fenceMatch.Groups['marker'].Value
             $remainder = $fenceMatch.Groups['remainder'].Value
@@ -136,7 +329,7 @@ function Get-MarkdownContentOutsideFences {
         }
 
         if ($null -eq $fenceCharacter) {
-            [void]$result.AppendLine($line)
+            [void]$result.AppendLine($structuralLine)
         }
         else {
             [void]$result.AppendLine()
