@@ -4,7 +4,7 @@
 
 **Goal:** Bundle Superpowers v6.3.0 and the approved repository folder structure so GitHub Copilot in VS Code and Copilot CLI use the same workflows from a normal clone.
 
-**Architecture:** GitHub Copilot discovers unchanged upstream skills from `.github/skills/`. Repository-owned bootstrap instructions activate the Superpowers selection workflow, while version metadata, an upstream license copy, folder READMEs, and a PowerShell verifier make the bundle reviewable and maintainable.
+**Architecture:** GitHub Copilot discovers unchanged upstream skills from `.github/skills/`. A small PowerShell setup validator checks the fixed repository contract, while a pinned SHA-256 manifest proves the exact vendored runtime file set and contents without parsing Markdown bodies or links. Repository-owned bootstrap instructions, version metadata, an upstream license copy, and folder READMEs make the bundle reviewable and maintainable.
 
 **Tech Stack:** GitHub Copilot Agent Skills, Markdown, PowerShell 5.1+, Git
 
@@ -17,44 +17,24 @@
 
 - [ ] **Step 1: Write the failing validation script**
 
-Create `.github/cli/verify-repository-setup.ps1` with this content:
+Create `.github/cli/verify-repository-setup.ps1` with this content. Use only Windows PowerShell/.NET built-ins; do not parse Markdown bodies or links:
 
 ```powershell
 [CmdletBinding()]
 param()
-
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $failures = [System.Collections.Generic.List[string]]::new()
-
 function Add-ValidationFailure {
     param([Parameter(Mandatory)][string]$Message)
-
     $failures.Add($Message)
 }
-
 $requiredDirectories = @(
-    '.github/agent-policy',
-    '.github/agents',
-    '.github/cli',
-    '.github/instructions',
-    '.github/issue-templates',
-    '.github/skills',
-    '.github/workflows',
-    'docs/adr',
-    'docs/archive',
-    'docs/brandkit',
-    'docs/business',
-    'docs/delegation',
-    'docs/ideas',
-    'docs/issues',
-    'docs/plans',
-    'docs/reviews',
-    'docs/specs',
-    'docs/sprints',
-    'docs/templates'
+    '.github/agent-policy', '.github/agents', '.github/cli', '.github/instructions',
+    '.github/issue-templates', '.github/skills', '.github/workflows', 'docs/adr',
+    'docs/archive', 'docs/brandkit', 'docs/business', 'docs/delegation', 'docs/ideas',
+    'docs/issues', 'docs/plans', 'docs/reviews', 'docs/specs', 'docs/sprints', 'docs/templates'
 )
-
 foreach ($relativeDirectory in $requiredDirectories) {
     $directory = Join-Path $repositoryRoot $relativeDirectory
     if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
@@ -72,54 +52,154 @@ foreach ($relativeDirectory in $requiredDirectories) {
         Add-ValidationFailure "Empty folder README: $relativeDirectory/README.md"
     }
 }
-
 foreach ($excludedDirectory in @('.github/ISSUE_TEMPLATE', 'docs/storyboard')) {
     if (Test-Path -LiteralPath (Join-Path $repositoryRoot $excludedDirectory)) {
         Add-ValidationFailure "Excluded directory exists: $excludedDirectory"
     }
 }
-
+$expectedSkillNames = @(
+    'brainstorming', 'dispatching-parallel-agents', 'executing-plans',
+    'finishing-a-development-branch', 'receiving-code-review', 'requesting-code-review',
+    'subagent-driven-development', 'systematic-debugging', 'test-driven-development',
+    'using-git-worktrees', 'using-superpowers', 'verification-before-completion',
+    'writing-plans', 'writing-skills'
+)
 $skillsRoot = Join-Path $repositoryRoot '.github/skills'
 if (Test-Path -LiteralPath $skillsRoot -PathType Container) {
-    $skillDirectories = Get-ChildItem -LiteralPath $skillsRoot -Directory
-    foreach ($skillDirectory in $skillDirectories) {
-        $skillFile = Join-Path $skillDirectory.FullName 'SKILL.md'
+    $actualSkillNames = @(Get-ChildItem -LiteralPath $skillsRoot -Directory | ForEach-Object Name)
+    foreach ($actualSkillName in $actualSkillNames) {
+        if ($expectedSkillNames -cnotcontains $actualSkillName) {
+            Add-ValidationFailure "Unexpected skill directory: $actualSkillName"
+        }
+    }
+    foreach ($skillName in $expectedSkillNames) {
+        if ($actualSkillNames -cnotcontains $skillName) {
+            Add-ValidationFailure "Missing skill directory: $skillName"
+            continue
+        }
+        $skillFile = Join-Path $skillsRoot "$skillName\SKILL.md"
         if (-not (Test-Path -LiteralPath $skillFile -PathType Leaf)) {
-            Add-ValidationFailure "Missing SKILL.md: .github/skills/$($skillDirectory.Name)"
+            Add-ValidationFailure "Missing SKILL.md: $skillName"
+            continue
+        }
+        $skillLines = @(Get-Content -LiteralPath $skillFile)
+        if ($skillLines.Count -eq 0 -or $skillLines[0] -cne '---') {
+            Add-ValidationFailure "SKILL.md must start with frontmatter: $skillName"
+            continue
+        }
+        $frontmatterEnd = -1
+        for ($index = 1; $index -lt $skillLines.Count; $index++) {
+            if ($skillLines[$index] -ceq '---') {
+                $frontmatterEnd = $index
+                break
+            }
+        }
+        if ($frontmatterEnd -lt 0) {
+            Add-ValidationFailure "SKILL.md frontmatter is not closed: $skillName"
             continue
         }
 
-        $skillContent = Get-Content -LiteralPath $skillFile -Raw
-        $nameMatch = [regex]::Match($skillContent, '(?m)^name:\s*["'']?([a-z0-9-]+)["'']?\s*$')
+        $nameLines = @()
+        for ($index = 1; $index -lt $frontmatterEnd; $index++) {
+            if ($skillLines[$index] -match '^name:') { $nameLines += $skillLines[$index] }
+        }
+        if ($nameLines.Count -ne 1) {
+            Add-ValidationFailure "Expected exactly one frontmatter name: $skillName"
+            continue
+        }
+        $nameMatch = [regex]::Match($nameLines[0], '^name:\s*(?:([a-z0-9-]+)|''([a-z0-9-]+)''|"([a-z0-9-]+)")\s*$')
         if (-not $nameMatch.Success) {
-            Add-ValidationFailure "Missing or invalid skill name: .github/skills/$($skillDirectory.Name)/SKILL.md"
+            Add-ValidationFailure "Invalid frontmatter name: $skillName"
+            continue
         }
-        elseif ($nameMatch.Groups[1].Value -ne $skillDirectory.Name) {
-            Add-ValidationFailure "Skill name does not match directory: $($skillDirectory.Name)"
-        }
-
-        foreach ($linkMatch in [regex]::Matches($skillContent, '\[[^\]]+\]\(([^)]+)\)')) {
-            $target = $linkMatch.Groups[1].Value.Trim().Trim('<', '>')
-            if ($target -match '^(?:https?://|mailto:|#)') {
-                continue
-            }
-
-            $targetPath = ($target -split '#', 2)[0]
-            if ([string]::IsNullOrWhiteSpace($targetPath)) {
-                continue
-            }
-
-            $resolvedTarget = Join-Path $skillDirectory.FullName ([Uri]::UnescapeDataString($targetPath))
-            if (-not (Test-Path -LiteralPath $resolvedTarget)) {
-                Add-ValidationFailure "Broken skill link in $($skillDirectory.Name)/SKILL.md: $target"
-            }
+        $declaredName = $nameMatch.Groups[1].Value
+        if (-not $declaredName) { $declaredName = $nameMatch.Groups[2].Value }
+        if (-not $declaredName) { $declaredName = $nameMatch.Groups[3].Value }
+        if ($declaredName -cne $skillName) {
+            Add-ValidationFailure "Skill name does not match directory: $skillName"
         }
     }
 }
 
-$usingSuperpowers = Join-Path $skillsRoot 'using-superpowers/SKILL.md'
-if (-not (Test-Path -LiteralPath $usingSuperpowers -PathType Leaf)) {
-    Add-ValidationFailure 'The using-superpowers entry skill is missing.'
+$manifestPath = Join-Path $skillsRoot 'SUPERPOWERS_SHA256SUMS'
+$manifestHashes = [System.Collections.Generic.Dictionary[string,string]]::new([System.StringComparer]::Ordinal)
+$manifestPaths = [System.Collections.Generic.List[string]]::new()
+if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+    Add-ValidationFailure 'Missing .github/skills/SUPERPOWERS_SHA256SUMS.'
+}
+else {
+    $manifestLines = @(Get-Content -LiteralPath $manifestPath)
+    if ($manifestLines.Count -eq 0) {
+        Add-ValidationFailure 'Runtime manifest is empty.'
+    }
+    for ($lineIndex = 0; $lineIndex -lt $manifestLines.Count; $lineIndex++) {
+        $entryMatch = [regex]::Match($manifestLines[$lineIndex], '^([0-9a-f]{64})  (.+)$')
+        if (-not $entryMatch.Success) {
+            Add-ValidationFailure "Invalid manifest entry at line $($lineIndex + 1)."
+            continue
+        }
+
+        $expectedHash = $entryMatch.Groups[1].Value
+        $relativePath = $entryMatch.Groups[2].Value
+        $segments = @($relativePath -split '/')
+        $unsafeSegment = @($segments | Where-Object { $_ -eq '' -or $_ -eq '.' -or $_ -eq '..' })
+        $unsafePath = $relativePath.Contains('\') -or $relativePath.StartsWith('/') -or $relativePath -match '^[a-zA-Z]:' -or $unsafeSegment.Count -gt 0
+        if ($unsafePath -or $expectedSkillNames -cnotcontains $segments[0]) {
+            Add-ValidationFailure "Unsafe manifest path: $relativePath"
+            continue
+        }
+
+        $skillsRootFull = [System.IO.Path]::GetFullPath($skillsRoot).TrimEnd('\')
+        $resolvedPath = [System.IO.Path]::GetFullPath((Join-Path $skillsRoot $relativePath))
+        $skillsPrefix = $skillsRootFull + [System.IO.Path]::DirectorySeparatorChar
+        if (-not $resolvedPath.StartsWith($skillsPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+            Add-ValidationFailure "Manifest path resolves outside .github/skills: $relativePath"
+            continue
+        }
+        if ($manifestHashes.ContainsKey($relativePath)) {
+            Add-ValidationFailure "Duplicate manifest path: $relativePath"
+            continue
+        }
+        $manifestHashes.Add($relativePath, $expectedHash)
+        $manifestPaths.Add($relativePath)
+    }
+
+    $sortedManifestPaths = $manifestPaths.ToArray()
+    [System.Array]::Sort($sortedManifestPaths, [System.StringComparer]::Ordinal)
+    for ($index = 0; $index -lt $manifestPaths.Count; $index++) {
+        if ($manifestPaths[$index] -cne $sortedManifestPaths[$index]) {
+            Add-ValidationFailure 'Runtime manifest paths are not sorted ordinally.'
+            break
+        }
+    }
+}
+
+$runtimeFiles = [System.Collections.Generic.Dictionary[string,System.IO.FileInfo]]::new([System.StringComparer]::Ordinal)
+if (Test-Path -LiteralPath $skillsRoot -PathType Container) {
+    $skillsRootFull = [System.IO.Path]::GetFullPath($skillsRoot).TrimEnd('\')
+    foreach ($skillName in $expectedSkillNames) {
+        $skillDirectory = Join-Path $skillsRoot $skillName
+        if (-not (Test-Path -LiteralPath $skillDirectory -PathType Container)) { continue }
+        foreach ($runtimeFile in Get-ChildItem -LiteralPath $skillDirectory -File -Recurse) {
+            $relativePath = $runtimeFile.FullName.Substring($skillsRootFull.Length + 1).Replace('\', '/')
+            $runtimeFiles[$relativePath] = $runtimeFile
+        }
+    }
+}
+foreach ($relativePath in $runtimeFiles.Keys) {
+    if (-not $manifestHashes.ContainsKey($relativePath)) {
+        Add-ValidationFailure "Runtime file is missing from manifest: $relativePath"
+        continue
+    }
+    $actualHash = (Get-FileHash -LiteralPath $runtimeFiles[$relativePath].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actualHash -cne $manifestHashes[$relativePath]) {
+        Add-ValidationFailure "Runtime hash mismatch: $relativePath"
+    }
+}
+foreach ($relativePath in $manifestHashes.Keys) {
+    if (-not $runtimeFiles.ContainsKey($relativePath)) {
+        Add-ValidationFailure "Manifest path is not a runtime file: $relativePath"
+    }
 }
 
 foreach ($bootstrapFile in @('AGENTS.md', '.github/copilot-instructions.md')) {
@@ -144,14 +224,14 @@ if (-not (Test-Path -LiteralPath $versionFile -PathType Leaf)) {
 }
 else {
     $versionContent = Get-Content -LiteralPath $versionFile -Raw
-    foreach ($requiredValue in @(
-        'https://github.com/obra/superpowers',
-        'v6.3.0',
-        'b36e0829c6d0140e93cfef2ca599b1b07d4a7797'
-    )) {
+    foreach ($requiredValue in @('https://github.com/obra/superpowers', 'v6.3.0', 'b36e0829c6d0140e93cfef2ca599b1b07d4a7797')) {
         if ($versionContent -notmatch [regex]::Escape($requiredValue)) {
             Add-ValidationFailure "Version metadata is missing: $requiredValue"
         }
+    }
+    $versionLines = @(Get-Content -LiteralPath $versionFile)
+    if ($versionLines -cnotcontains 'manifest=SUPERPOWERS_SHA256SUMS') {
+        Add-ValidationFailure 'Version metadata is missing: manifest=SUPERPOWERS_SHA256SUMS'
     }
 }
 
@@ -181,8 +261,9 @@ else {
 
 if ($failures.Count -gt 0) {
     foreach ($failure in $failures) {
-        Write-Error $failure -ErrorAction Continue
+        Write-Output "ERROR: $failure"
     }
+    Write-Output "Repository setup validation failed with $($failures.Count) error(s)."
     exit 1
 }
 
@@ -197,9 +278,143 @@ Run:
 powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-setup.ps1
 ```
 
-Expected: exit code `1` with missing directory, bootstrap, skill, version, and license failures.
+Expected: exit code `1` with concise `ERROR: ...` lines for missing setup artifacts, including the runtime manifest, followed by one `Repository setup validation failed with N error(s).` summary. There is no parser or runtime exception.
 
-- [ ] **Step 3: Commit the validation baseline**
+- [ ] **Step 3: Exercise focused frontmatter and manifest fixtures**
+
+Run this temporary fixture check from the repository root. It creates and removes only a unique directory under the system temporary folder.
+
+```powershell
+$validatorSource = (Resolve-Path '.github\cli\verify-repository-setup.ps1').Path
+$fixtureRoot = Join-Path ([System.IO.Path]::GetTempPath()) "repository-verifier-$([guid]::NewGuid())"
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+$requiredDirectories = @(
+    '.github/agent-policy', '.github/agents', '.github/cli', '.github/instructions',
+    '.github/issue-templates', '.github/skills', '.github/workflows', 'docs/adr',
+    'docs/archive', 'docs/brandkit', 'docs/business', 'docs/delegation', 'docs/ideas',
+    'docs/issues', 'docs/plans', 'docs/reviews', 'docs/specs', 'docs/sprints', 'docs/templates'
+)
+$skillNames = @(
+    'brainstorming', 'dispatching-parallel-agents', 'executing-plans',
+    'finishing-a-development-branch', 'receiving-code-review', 'requesting-code-review',
+    'subagent-driven-development', 'systematic-debugging', 'test-driven-development',
+    'using-git-worktrees', 'using-superpowers', 'verification-before-completion',
+    'writing-plans', 'writing-skills'
+)
+
+function Write-FixtureManifest {
+    $skillsRoot = Join-Path $fixtureRoot '.github\skills'
+    $hashes = [System.Collections.Generic.Dictionary[string,string]]::new([System.StringComparer]::Ordinal)
+    foreach ($skillName in $skillNames) {
+        foreach ($file in Get-ChildItem -LiteralPath (Join-Path $skillsRoot $skillName) -File -Recurse) {
+            $relativePath = $file.FullName.Substring($skillsRoot.Length + 1).Replace('\', '/')
+            $hashes[$relativePath] = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        }
+    }
+    $paths = [string[]]$hashes.Keys
+    [System.Array]::Sort($paths, [System.StringComparer]::Ordinal)
+    $content = (($paths | ForEach-Object { "$($hashes[$_])  $_" }) -join "`n") + "`n"
+    [System.IO.File]::WriteAllText((Join-Path $skillsRoot 'SUPERPOWERS_SHA256SUMS'), $content, $utf8NoBom)
+}
+
+function Initialize-Fixture {
+    if (Test-Path -LiteralPath $fixtureRoot) { Remove-Item -LiteralPath $fixtureRoot -Recurse -Force }
+    foreach ($relativeDirectory in $requiredDirectories) {
+        $directory = Join-Path $fixtureRoot $relativeDirectory
+        New-Item -ItemType Directory -Path $directory -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $directory 'README.md'), "fixture`n", $utf8NoBom)
+    }
+    Copy-Item -LiteralPath $validatorSource -Destination (Join-Path $fixtureRoot '.github\cli\verify-repository-setup.ps1')
+    foreach ($skillName in $skillNames) {
+        $skillDirectory = Join-Path $fixtureRoot ".github\skills\$skillName"
+        New-Item -ItemType Directory -Path $skillDirectory | Out-Null
+        [System.IO.File]::WriteAllText(
+            (Join-Path $skillDirectory 'SKILL.md'),
+            "---`nname: $skillName`n---`nfixture`n",
+            $utf8NoBom
+        )
+    }
+    Write-FixtureManifest
+    [System.IO.File]::WriteAllText((Join-Path $fixtureRoot 'AGENTS.md'), ".github/skills using-superpowers`n", $utf8NoBom)
+    [System.IO.File]::WriteAllText((Join-Path $fixtureRoot '.github\copilot-instructions.md'), ".github/skills using-superpowers`n", $utf8NoBom)
+    [System.IO.File]::WriteAllText(
+        (Join-Path $fixtureRoot '.github\skills\SUPERPOWERS_VERSION'),
+        "source=https://github.com/obra/superpowers`nrelease=v6.3.0`ncommit=b36e0829c6d0140e93cfef2ca599b1b07d4a7797`nmanifest=SUPERPOWERS_SHA256SUMS`n",
+        $utf8NoBom
+    )
+    [System.IO.File]::WriteAllText((Join-Path $fixtureRoot '.github\skills\LICENSE.superpowers'), "MIT License`nCopyright (c) 2025 Jesse Vincent`n", $utf8NoBom)
+    [System.IO.File]::WriteAllText((Join-Path $fixtureRoot 'README.md'), "Superpowers v6.3.0 .github/skills verify-repository-setup.ps1`n", $utf8NoBom)
+}
+
+function Invoke-FixtureVerifier {
+    $output = @(& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $fixtureRoot '.github\cli\verify-repository-setup.ps1') 2>&1 | ForEach-Object { $_.ToString() })
+    [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = $output }
+}
+
+function Assert-FixtureFailure {
+    param([Parameter(Mandatory)][string]$ExpectedError)
+
+    $result = Invoke-FixtureVerifier
+    if ($result.ExitCode -ne 1 -or $result.Output -notcontains "ERROR: $ExpectedError") {
+        throw "Expected fixture failure was not reported: $ExpectedError"
+    }
+}
+
+try {
+    Initialize-Fixture
+    $result = Invoke-FixtureVerifier
+    if ($result.ExitCode -ne 0 -or $result.Output.Count -ne 1 -or $result.Output[0] -cne 'Repository setup validation passed.') {
+        throw 'Baseline verifier fixture did not pass.'
+    }
+
+    $quotedSkill = Join-Path $fixtureRoot '.github\skills\brainstorming\SKILL.md'
+    [System.IO.File]::WriteAllText($quotedSkill, "---`nname: 'brainstorming'`n---`nfixture`n", $utf8NoBom)
+    $doubleQuotedSkill = Join-Path $fixtureRoot '.github\skills\writing-plans\SKILL.md'
+    [System.IO.File]::WriteAllText($doubleQuotedSkill, "---`nname: `"writing-plans`"`n---`nfixture`n", $utf8NoBom)
+    Write-FixtureManifest
+    $result = Invoke-FixtureVerifier
+    if ($result.ExitCode -ne 0) { throw 'Quoted frontmatter names were rejected.' }
+
+    Initialize-Fixture
+    [System.IO.File]::WriteAllText($quotedSkill, "---`nname: brainstorming`nname: writing-plans`n---`n", $utf8NoBom)
+    Write-FixtureManifest
+    Assert-FixtureFailure 'Expected exactly one frontmatter name: brainstorming'
+
+    Initialize-Fixture
+    $manifestPath = Join-Path $fixtureRoot '.github\skills\SUPERPOWERS_SHA256SUMS'
+    $manifestLines = @(Get-Content -LiteralPath $manifestPath)
+    $entryParts = $manifestLines[0] -split '  ', 2
+    $manifestLines[0] = ((('A' * 64) -join '') + '  ' + $entryParts[1])
+    [System.IO.File]::WriteAllLines($manifestPath, $manifestLines, $utf8NoBom)
+    Assert-FixtureFailure 'Invalid manifest entry at line 1.'
+
+    Initialize-Fixture
+    $manifestLines = @(Get-Content -LiteralPath $manifestPath)
+    $entryParts = $manifestLines[0] -split '  ', 2
+    $manifestLines[0] = "$($entryParts[0])  brainstorming/../escape.md"
+    [System.IO.File]::WriteAllLines($manifestPath, $manifestLines, $utf8NoBom)
+    Assert-FixtureFailure 'Unsafe manifest path: brainstorming/../escape.md'
+
+    Initialize-Fixture
+    $manifestLines = @(Get-Content -LiteralPath $manifestPath)
+    $entryParts = $manifestLines[0] -split '  ', 2
+    $manifestLines[0] = ((('0' * 64) -join '') + '  ' + $entryParts[1])
+    [System.IO.File]::WriteAllLines($manifestPath, $manifestLines, $utf8NoBom)
+    Assert-FixtureFailure "Runtime hash mismatch: $($entryParts[1])"
+
+    Initialize-Fixture
+    [System.IO.File]::WriteAllText((Join-Path $fixtureRoot '.github\skills\brainstorming\unlisted.txt'), "extra`n", $utf8NoBom)
+    Assert-FixtureFailure 'Runtime file is missing from manifest: brainstorming/unlisted.txt'
+}
+finally {
+    if (Test-Path -LiteralPath $fixtureRoot) { Remove-Item -LiteralPath $fixtureRoot -Recurse -Force }
+}
+Write-Output 'Verifier fixture checks passed.'
+```
+
+Expected: `Verifier fixture checks passed.` The baseline accepts plain and paired-quoted names. Focused mutations reject duplicate frontmatter names, malformed manifest format, unsafe paths, wrong hashes, and runtime files missing from the manifest.
+
+- [ ] **Step 4: Commit the validation baseline**
 
 ```powershell
 git add -- .github/cli/verify-repository-setup.ps1
@@ -479,6 +694,7 @@ git commit -m "docs: establish documentation folders" -- docs/adr/README.md docs
 - Create: `.github/skills/writing-plans/**`
 - Create: `.github/skills/writing-skills/**`
 - Create: `.github/skills/LICENSE.superpowers`
+- Create: `.github/skills/SUPERPOWERS_SHA256SUMS`
 - Create: `.github/skills/SUPERPOWERS_VERSION`
 
 - [ ] **Step 1: Fetch and copy only the pinned runtime payload**
@@ -487,6 +703,14 @@ Run this PowerShell block from the repository root:
 
 ```powershell
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) "superpowers-v6.3.0-$([guid]::NewGuid())"
+$skillNames = @(
+    'brainstorming', 'dispatching-parallel-agents', 'executing-plans',
+    'finishing-a-development-branch', 'receiving-code-review', 'requesting-code-review',
+    'subagent-driven-development', 'systematic-debugging', 'test-driven-development',
+    'using-git-worktrees', 'using-superpowers', 'verification-before-completion',
+    'writing-plans', 'writing-skills'
+)
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 try {
     git clone --quiet --depth 1 --branch v6.3.0 https://github.com/obra/superpowers.git $tempRoot
     if ($LASTEXITCODE -ne 0) { throw 'Unable to clone Superpowers v6.3.0.' }
@@ -495,21 +719,27 @@ try {
     if ($resolvedCommit -ne 'b36e0829c6d0140e93cfef2ca599b1b07d4a7797') {
         throw "Unexpected Superpowers commit: $resolvedCommit"
     }
-    Copy-Item -LiteralPath (Join-Path $tempRoot 'skills\brainstorming') -Destination '.github\skills' -Recurse
-    Copy-Item -LiteralPath (Join-Path $tempRoot 'skills\dispatching-parallel-agents') -Destination '.github\skills' -Recurse
-    Copy-Item -LiteralPath (Join-Path $tempRoot 'skills\executing-plans') -Destination '.github\skills' -Recurse
-    Copy-Item -LiteralPath (Join-Path $tempRoot 'skills\finishing-a-development-branch') -Destination '.github\skills' -Recurse
-    Copy-Item -LiteralPath (Join-Path $tempRoot 'skills\receiving-code-review') -Destination '.github\skills' -Recurse
-    Copy-Item -LiteralPath (Join-Path $tempRoot 'skills\requesting-code-review') -Destination '.github\skills' -Recurse
-    Copy-Item -LiteralPath (Join-Path $tempRoot 'skills\subagent-driven-development') -Destination '.github\skills' -Recurse
-    Copy-Item -LiteralPath (Join-Path $tempRoot 'skills\systematic-debugging') -Destination '.github\skills' -Recurse
-    Copy-Item -LiteralPath (Join-Path $tempRoot 'skills\test-driven-development') -Destination '.github\skills' -Recurse
-    Copy-Item -LiteralPath (Join-Path $tempRoot 'skills\using-git-worktrees') -Destination '.github\skills' -Recurse
-    Copy-Item -LiteralPath (Join-Path $tempRoot 'skills\using-superpowers') -Destination '.github\skills' -Recurse
-    Copy-Item -LiteralPath (Join-Path $tempRoot 'skills\verification-before-completion') -Destination '.github\skills' -Recurse
-    Copy-Item -LiteralPath (Join-Path $tempRoot 'skills\writing-plans') -Destination '.github\skills' -Recurse
-    Copy-Item -LiteralPath (Join-Path $tempRoot 'skills\writing-skills') -Destination '.github\skills' -Recurse
+    foreach ($skillName in $skillNames) {
+        Copy-Item -LiteralPath (Join-Path $tempRoot "skills\$skillName") -Destination '.github\skills' -Recurse
+    }
     Copy-Item -LiteralPath (Join-Path $tempRoot 'LICENSE') -Destination '.github\skills\LICENSE.superpowers'
+
+    $skillsRoot = (Resolve-Path '.github\skills').Path.TrimEnd('\')
+    $hashes = [System.Collections.Generic.Dictionary[string,string]]::new([System.StringComparer]::Ordinal)
+    foreach ($skillName in $skillNames) {
+        foreach ($file in Get-ChildItem -LiteralPath (Join-Path $skillsRoot $skillName) -File -Recurse) {
+            $relativePath = $file.FullName.Substring($skillsRoot.Length + 1).Replace('\', '/')
+            $hashes.Add($relativePath, (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant())
+        }
+    }
+    $manifestPaths = [string[]]$hashes.Keys
+    [System.Array]::Sort($manifestPaths, [System.StringComparer]::Ordinal)
+    $manifestContent = (($manifestPaths | ForEach-Object { "$($hashes[$_])  $_" }) -join "`n") + "`n"
+    [System.IO.File]::WriteAllText(
+        (Join-Path $skillsRoot 'SUPERPOWERS_SHA256SUMS'),
+        $manifestContent,
+        $utf8NoBom
+    )
 }
 finally {
     if (Test-Path -LiteralPath $tempRoot) {
@@ -518,7 +748,7 @@ finally {
 }
 ```
 
-Expected: `.github/skills/` contains the 14 listed upstream skill directories and no plugin manifests, hooks, upstream tests, or upstream documentation tree.
+Expected: `.github/skills/` contains the 14 listed upstream skill directories and a deterministic UTF-8-no-BOM `SUPERPOWERS_SHA256SUMS`; it contains no plugin manifests, hooks, upstream tests, or upstream documentation tree.
 
 - [ ] **Step 2: Record exact source and runtime metadata**
 
@@ -534,6 +764,7 @@ commit=b36e0829c6d0140e93cfef2ca599b1b07d4a7797
 vendored=2026-09-15
 upstream-path=skills/
 destination=.github/skills/
+manifest=SUPERPOWERS_SHA256SUMS
 included-skills=brainstorming,dispatching-parallel-agents,executing-plans,finishing-a-development-branch,receiving-code-review,requesting-code-review,subagent-driven-development,systematic-debugging,test-driven-development,using-git-worktrees,using-superpowers,verification-before-completion,writing-plans,writing-skills
 ```
 
@@ -551,16 +782,42 @@ $skillNames = @(
     'writing-plans', 'writing-skills'
 )
 $runtimeDifferences = [System.Collections.Generic.List[string]]::new()
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+$manifestMatches = $false
 try {
     git clone --quiet --depth 1 --branch v6.3.0 https://github.com/obra/superpowers.git $tempRoot
     if ($LASTEXITCODE -ne 0) { throw 'Unable to clone Superpowers v6.3.0.' }
 
+    $resolvedCommit = git -C $tempRoot rev-parse HEAD
+    if ($resolvedCommit -ne 'b36e0829c6d0140e93cfef2ca599b1b07d4a7797') {
+        throw "Unexpected Superpowers commit: $resolvedCommit"
+    }
+
+    $sourceSkillsRoot = (Resolve-Path (Join-Path $tempRoot 'skills')).Path.TrimEnd('\')
+    $expectedHashes = [System.Collections.Generic.Dictionary[string,string]]::new([System.StringComparer]::Ordinal)
+    foreach ($skillName in $skillNames) {
+        foreach ($file in Get-ChildItem -LiteralPath (Join-Path $sourceSkillsRoot $skillName) -File -Recurse) {
+            $relativePath = $file.FullName.Substring($sourceSkillsRoot.Length + 1).Replace('\', '/')
+            $expectedHashes.Add($relativePath, (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant())
+        }
+    }
+    $expectedPaths = [string[]]$expectedHashes.Keys
+    [System.Array]::Sort($expectedPaths, [System.StringComparer]::Ordinal)
+    $expectedContent = (($expectedPaths | ForEach-Object { "$($expectedHashes[$_])  $_" }) -join "`n") + "`n"
+    $expectedManifest = Join-Path $tempRoot 'SUPERPOWERS_SHA256SUMS.expected'
+    [System.IO.File]::WriteAllText($expectedManifest, $expectedContent, $utf8NoBom)
+    $expectedBytes = [System.IO.File]::ReadAllBytes($expectedManifest)
+    $actualBytes = [System.IO.File]::ReadAllBytes((Resolve-Path '.github\skills\SUPERPOWERS_SHA256SUMS').Path)
+    $manifestMatches = $expectedBytes.Length -eq $actualBytes.Length -and
+        [System.Convert]::ToBase64String($expectedBytes) -ceq [System.Convert]::ToBase64String($actualBytes)
+
     foreach ($skillName in $skillNames) {
         $difference = @(git diff --no-index -- (Join-Path $tempRoot "skills\$skillName") ".github\skills\$skillName" 2>&1)
-        if ($LASTEXITCODE -gt 1) {
+        $diffExitCode = $LASTEXITCODE
+        if ($diffExitCode -gt 1) {
             throw "Unable to compare vendored skill: $skillName"
         }
-        if ($LASTEXITCODE -eq 1) {
+        if ($diffExitCode -eq 1) {
             $runtimeDifferences.AddRange([string[]]$difference)
         }
     }
@@ -570,13 +827,16 @@ finally {
         Remove-Item -LiteralPath $tempRoot -Recurse -Force
     }
 }
+if (-not $manifestMatches) {
+    throw 'Runtime manifest differs from the pinned Superpowers v6.3.0 skills tree.'
+}
 if ($runtimeDifferences) {
     $runtimeDifferences
     throw 'Vendored runtime differs from Superpowers v6.3.0.'
 }
 ```
 
-Expected: no runtime differences for any of the 14 named skill directories. Repository-owned files at the `.github/skills/` root are outside the comparison.
+Expected: the independently generated upstream manifest matches `.github/skills/SUPERPOWERS_SHA256SUMS` byte-for-byte, and `git diff --no-index` reports no differences for any of the 14 named skill directories. Repository-owned files at the `.github/skills/` root are outside the runtime comparison.
 
 - [ ] **Step 4: Run repository validation**
 
@@ -584,7 +844,7 @@ Expected: no runtime differences for any of the 14 named skill directories. Repo
 powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-setup.ps1
 ```
 
-Expected: exit code `1`; skill, version, license, directory, and README checks pass. Only bootstrap and root README content failures remain.
+Expected: exit code `1`; manifest format, hash, exact file-set, skill, version, license, directory, and README checks pass. Only bootstrap and root README content failures remain.
 
 - [ ] **Step 5: Commit the pinned runtime**
 
@@ -655,7 +915,7 @@ From the repository root on Windows, run:
 powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-setup.ps1
 ```
 
-The command succeeds with `Repository setup validation passed.` when the folder structure, skill metadata, local skill links, bootstrap instructions, version metadata, and license are valid.
+The command succeeds with `Repository setup validation passed.` when the folder structure, skill metadata, exact runtime file set and SHA-256 hashes, bootstrap instructions, version metadata, and license are valid.
 
 In VS Code, open **Chat: Open Agent Customizations** and confirm the workspace skills appear without metadata errors. In Copilot CLI, start `copilot` from the repository root and invoke or ask it to use `using-superpowers`.
 
@@ -664,6 +924,7 @@ In VS Code, open **Chat: Open Agent Customizations** and confirm the workspace s
 The vendored runtime is pinned to upstream release v6.3.0 at commit `b36e0829c6d0140e93cfef2ca599b1b07d4a7797`.
 
 - Source metadata: [`.github/skills/SUPERPOWERS_VERSION`](.github/skills/SUPERPOWERS_VERSION)
+- Runtime SHA-256 manifest: [`.github/skills/SUPERPOWERS_SHA256SUMS`](.github/skills/SUPERPOWERS_SHA256SUMS)
 - Upstream MIT license: [`.github/skills/LICENSE.superpowers`](.github/skills/LICENSE.superpowers)
 
 ### Updating Superpowers
@@ -672,10 +933,11 @@ Updates are deliberate and reviewed. To update:
 
 1. Review the newer upstream release and release notes.
 2. Replace only the 14 vendored skill directories with the newer release's `skills/` content.
-3. Refresh `LICENSE.superpowers` if the upstream license changed.
-4. Update `SUPERPOWERS_VERSION` with the release, tag object, commit, date, and included skill list.
-5. Run the repository verifier and smoke-test discovery in VS Code and Copilot CLI.
-6. Commit the runtime replacement, metadata, and any required bootstrap compatibility changes together.
+3. Regenerate `SUPERPOWERS_SHA256SUMS` from every file in the 14 reviewed upstream runtime directories using forward-slash relative paths, ordinal path sorting, and lowercase SHA-256 hashes.
+4. Refresh `LICENSE.superpowers` if the upstream license changed.
+5. Update `SUPERPOWERS_VERSION` with the release, tag object, commit, date, manifest name, and included skill list.
+6. Run the repository verifier and smoke-test discovery in VS Code and Copilot CLI.
+7. Commit the runtime replacement, manifest, metadata, and any required bootstrap compatibility changes together.
 
 Do not track upstream `main`, use a submodule, or edit vendored skill files for repository-specific behavior.
 ```
@@ -722,17 +984,25 @@ $requiredReadmes = @(
     'docs/templates/README.md'
 )
 $missingReadmes = $requiredReadmes | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) }
-$skillCount = @(Get-ChildItem -LiteralPath '.github/skills' -Directory | Where-Object {
+$skillDirectories = @(Get-ChildItem -LiteralPath '.github/skills' -Directory | Where-Object {
     Test-Path -LiteralPath (Join-Path $_.FullName 'SKILL.md')
+})
+$skillCount = $skillDirectories.Count
+$runtimeFileCount = @($skillDirectories | ForEach-Object {
+    Get-ChildItem -LiteralPath $_.FullName -File -Recurse
 }).Count
+$manifestEntryCount = @(Get-Content -LiteralPath '.github/skills/SUPERPOWERS_SHA256SUMS').Count
 if ($missingReadmes.Count -ne 0) { throw "Missing README files: $($missingReadmes -join ', ')" }
 if ($skillCount -ne 14) { throw "Expected 14 skills, found $skillCount" }
+if ($manifestEntryCount -ne $runtimeFileCount) {
+    throw "Expected $runtimeFileCount manifest entries, found $manifestEntryCount"
+}
 if (Test-Path -LiteralPath '.github/ISSUE_TEMPLATE') { throw 'Excluded .github/ISSUE_TEMPLATE exists.' }
 if (Test-Path -LiteralPath 'docs/storyboard') { throw 'Excluded docs/storyboard exists.' }
-Write-Output 'Folder and skill count validation passed.'
+Write-Output 'Folder, skill, and manifest count validation passed.'
 ```
 
-Expected: `Folder and skill count validation passed.`
+Expected: `Folder, skill, and manifest count validation passed.` The manifest entry count equals the recursive file count beneath the 14 skill directories; Step 1's main verifier validates every manifest hash and the exact runtime file set.
 
 - [ ] **Step 3: Smoke-test VS Code discovery**
 
