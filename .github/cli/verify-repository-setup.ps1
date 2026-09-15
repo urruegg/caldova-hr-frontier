@@ -93,8 +93,26 @@ function Get-MarkdownContentOutsideFences {
     $result = [System.Text.StringBuilder]::new()
     $fenceCharacter = $null
     $fenceLength = 0
+    $inIndentedCodeBlock = $false
 
     foreach ($line in [regex]::Split($Content, '\r\n|\n|\r')) {
+        if ($null -eq $fenceCharacter) {
+            if ([string]::IsNullOrWhiteSpace($line)) {
+                if ($inIndentedCodeBlock) {
+                    [void]$result.AppendLine()
+                    continue
+                }
+            }
+            elseif ($line -match '^(?: {4}|\t)') {
+                $inIndentedCodeBlock = $true
+                [void]$result.AppendLine()
+                continue
+            }
+            else {
+                $inIndentedCodeBlock = $false
+            }
+        }
+
         $fenceMatch = [regex]::Match($line, '^[ ]{0,3}(?<marker>`{3,}|~{3,})(?<remainder>.*)$')
         if ($fenceMatch.Success) {
             $marker = $fenceMatch.Groups['marker'].Value
