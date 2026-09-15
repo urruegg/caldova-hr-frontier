@@ -80,7 +80,7 @@ $expectedSkills = [Collections.Generic.HashSet[string]]::new([StringComparer]::O
 $actualSkills = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 foreach ($skillName in $skillNames) { [void]$expectedSkills.Add($skillName) }
 if (Test-Path -LiteralPath $skillsRoot -PathType Container) {
-    foreach ($directory in @(Get-ChildItem -LiteralPath $skillsRoot -Directory)) {
+    foreach ($directory in @(Get-ChildItem -LiteralPath $skillsRoot -Directory -Force)) {
         [void]$actualSkills.Add($directory.Name)
         if (-not $expectedSkills.Contains($directory.Name)) {
             Add-Failure "Unexpected skill directory: $($directory.Name)"
@@ -200,7 +200,7 @@ else {
 $runtimeFiles = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
 foreach ($skillName in $skillNames) {
     if (-not $actualSkills.Contains($skillName)) { continue }
-    try { $files = @(Get-ChildItem -LiteralPath (Join-Path $skillsRoot $skillName) -File -Recurse) }
+    try { $files = @(Get-ChildItem -LiteralPath (Join-Path $skillsRoot $skillName) -File -Recurse -Force) }
     catch { Add-Failure "Cannot enumerate runtime files for skill: $skillName"; continue }
     foreach ($file in $files) {
         $relativePath = $file.FullName.Substring($skillsPrefix.Length).Replace('\', '/')
@@ -211,7 +211,7 @@ foreach ($skillName in $skillNames) {
 [Array]::Sort($runtimePaths, [StringComparer]::Ordinal)
 foreach ($relativePath in $runtimePaths) {
     if (-not $manifestEntries.ContainsKey($relativePath)) {
-        Add-Failure "Runtime file missing from manifest: $relativePath"
+        Add-Failure "Runtime file is missing from manifest: $relativePath"
         continue
     }
     try { $actualHash = (Get-FileHash -LiteralPath $runtimeFiles[$relativePath] -Algorithm SHA256).Hash.ToLowerInvariant() }
