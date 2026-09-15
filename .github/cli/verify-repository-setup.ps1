@@ -100,7 +100,7 @@ function Get-MarkdownContentOutsideFences {
             $marker = $fenceMatch.Groups['marker'].Value
             $remainder = $fenceMatch.Groups['remainder'].Value
             if ($null -eq $fenceCharacter) {
-                if ($remainder.IndexOf($marker[0]) -lt 0) {
+                if ($marker[0] -ceq '~' -or $remainder.IndexOf('`') -lt 0) {
                     $fenceCharacter = $marker[0]
                     $fenceLength = $marker.Length
                     [void]$result.AppendLine()
@@ -290,6 +290,9 @@ function Read-MarkdownDestination {
         }
     }
 
+    $parsedDestination = ConvertFrom-MarkdownEscapes $destination.ToString()
+    $destinationEndIndex = $index
+
     $hadWhitespace = $false
     while ($index -lt $Text.Length -and [char]::IsWhiteSpace($Text[$index])) {
         $hadWhitespace = $true
@@ -298,14 +301,14 @@ function Read-MarkdownDestination {
 
     if ($RequireClosingParenthesis -and $index -lt $Text.Length -and $Text[$index] -eq ')') {
         return [pscustomobject]@{
-            Destination = ConvertFrom-MarkdownEscapes $destination.ToString()
+            Destination = $parsedDestination
             EndIndex = $index
         }
     }
 
     if (-not $RequireClosingParenthesis -and $index -eq $Text.Length) {
         return [pscustomobject]@{
-            Destination = ConvertFrom-MarkdownEscapes $destination.ToString()
+            Destination = $parsedDestination
             EndIndex = $index
         }
     }
@@ -327,6 +330,7 @@ function Read-MarkdownDestination {
 
     $index++
     $titleClosed = $false
+    $titleHadLineEnding = $false
     while ($index -lt $Text.Length) {
         if ($Text[$index] -eq '\' -and
             $index + 1 -lt $Text.Length -and
@@ -342,13 +346,44 @@ function Read-MarkdownDestination {
         }
 
         if ($Text[$index] -eq "`r" -or $Text[$index] -eq "`n") {
-            return $null
+            $titleHadLineEnding = $true
+            if ($Text[$index] -eq "`r" -and
+                $index + 1 -lt $Text.Length -and
+                $Text[$index + 1] -eq "`n") {
+                $index += 2
+            }
+            else {
+                $index++
+            }
+
+            $nextLineIndex = $index
+            while ($nextLineIndex -lt $Text.Length -and
+                ($Text[$nextLineIndex] -eq ' ' -or $Text[$nextLineIndex] -eq "`t")) {
+                $nextLineIndex++
+            }
+
+            if ($nextLineIndex -lt $Text.Length -and
+                ($Text[$nextLineIndex] -eq "`r" -or $Text[$nextLineIndex] -eq "`n")) {
+                return [pscustomobject]@{
+                    Destination = $parsedDestination
+                    EndIndex = $destinationEndIndex
+                }
+            }
+
+            continue
         }
 
         $index++
     }
 
     if (-not $titleClosed) {
+        if ($titleHadLineEnding) {
+            return [pscustomobject]@{
+                Destination = $parsedDestination
+                EndIndex = $destinationEndIndex
+            }
+        }
+
         return $null
     }
 
@@ -366,7 +401,7 @@ function Read-MarkdownDestination {
     }
 
     return [pscustomobject]@{
-        Destination = ConvertFrom-MarkdownEscapes $destination.ToString()
+        Destination = $parsedDestination
         EndIndex = $index
     }
 }
@@ -442,6 +477,7 @@ function Get-MarkdownLinkDestinations {
         }
 
         $definitionText = $line.Substring($definitionMatch.Length)
+        $definitionTextLineIndex = $lineIndex
         if ([string]::IsNullOrWhiteSpace($definitionText)) {
             if ($lineIndex + 1 -ge $lines.Count) {
                 continue
@@ -453,9 +489,20 @@ function Get-MarkdownLinkDestinations {
             }
 
             $definitionText = $continuationMatch.Groups['destination'].Value
+            $definitionTextLineIndex = $lineIndex + 1
         }
 
         $definition = Read-MarkdownDestination $definitionText 0
+        $continuationLineIndex = $definitionTextLineIndex
+        while ($null -eq $definition -and $continuationLineIndex + 1 -lt $lines.Count) {
+            $continuationLineIndex++
+            $definitionText += [Environment]::NewLine + $lines[$continuationLineIndex]
+            $definition = Read-MarkdownDestination $definitionText 0
+            if ([string]::IsNullOrWhiteSpace($lines[$continuationLineIndex])) {
+                break
+            }
+        }
+
         if ($null -ne $definition -and -not [string]::IsNullOrWhiteSpace($definition.Destination)) {
             Write-Output $definition.Destination
         }
@@ -475,7 +522,7 @@ function Test-SkillLinkTarget {
     }
 
     $schemeMatch = [regex]::Match($Target, '^(?<scheme>[A-Za-z][A-Za-z0-9+.-]*):')
-    $hasWindowsDrivePrefix = $schemeMatch.Success -and $schemeMatch.Groups['scheme'].Value.Length -eq 1
+    $hasWindowsDrivePrefix = $schemeMatch.Success -and $Target -match '^[A-Za-z]:[\\/]'
     $hasFileScheme = $schemeMatch.Success -and
         [string]::Equals($schemeMatch.Groups['scheme'].Value, 'file', [System.StringComparison]::OrdinalIgnoreCase)
     if ($schemeMatch.Success -and -not $hasWindowsDrivePrefix -and -not $hasFileScheme) {
