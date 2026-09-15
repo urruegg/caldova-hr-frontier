@@ -12,7 +12,11 @@ function Add-ValidationFailure {
 }
 
 function Get-SkillNameFromFrontmatter {
-    param([Parameter(Mandatory)][string]$Content)
+    param([Parameter(Mandatory)][AllowNull()][AllowEmptyString()][string]$Content)
+
+    if ([string]::IsNullOrEmpty($Content)) {
+        return $null
+    }
 
     $lines = [regex]::Split($Content, '\r\n|\n|\r')
     if ($lines.Count -lt 3 -or $lines[0] -cne '---') {
@@ -59,7 +63,11 @@ function Test-MarkdownEscapableCharacter {
 }
 
 function ConvertFrom-MarkdownEscapes {
-    param([Parameter(Mandatory)][string]$Text)
+    param([Parameter(Mandatory)][AllowNull()][AllowEmptyString()][string]$Text)
+
+    if ([string]::IsNullOrEmpty($Text)) {
+        return [string]::Empty
+    }
 
     $result = [System.Text.StringBuilder]::new()
     for ($index = 0; $index -lt $Text.Length; $index++) {
@@ -76,25 +84,30 @@ function ConvertFrom-MarkdownEscapes {
 }
 
 function Get-MarkdownContentOutsideFences {
-    param([Parameter(Mandatory)][string]$Content)
+    param([Parameter(Mandatory)][AllowNull()][AllowEmptyString()][string]$Content)
+
+    if ([string]::IsNullOrEmpty($Content)) {
+        return [string]::Empty
+    }
 
     $result = [System.Text.StringBuilder]::new()
     $fenceCharacter = $null
     $fenceLength = 0
 
     foreach ($line in [regex]::Split($Content, '\r\n|\n|\r')) {
-        $fenceMatch = [regex]::Match($line, '^[ ]{0,3}(?<marker>`{3,}|~{3,})')
+        $fenceMatch = [regex]::Match($line, '^[ ]{0,3}(?<marker>`{3,}|~{3,})(?<remainder>.*)$')
         if ($fenceMatch.Success) {
             $marker = $fenceMatch.Groups['marker'].Value
+            $remainder = $fenceMatch.Groups['remainder'].Value
             if ($null -eq $fenceCharacter) {
-                $fenceCharacter = $marker[0]
-                $fenceLength = $marker.Length
-                [void]$result.AppendLine()
-                continue
+                if ($remainder.IndexOf($marker[0]) -lt 0) {
+                    $fenceCharacter = $marker[0]
+                    $fenceLength = $marker.Length
+                    [void]$result.AppendLine()
+                    continue
+                }
             }
-
-            $remainder = $line.Substring($fenceMatch.Length)
-            if ($marker[0] -ceq $fenceCharacter -and
+            elseif ($marker[0] -ceq $fenceCharacter -and
                 $marker.Length -ge $fenceLength -and
                 $remainder -match '^[ \t]*$') {
                 $fenceCharacter = $null
@@ -115,12 +128,86 @@ function Get-MarkdownContentOutsideFences {
     return $result.ToString()
 }
 
+function Remove-MarkdownInlineCodeSpans {
+    param([Parameter(Mandatory)][AllowNull()][AllowEmptyString()][string]$Content)
+
+    if ([string]::IsNullOrEmpty($Content)) {
+        return [string]::Empty
+    }
+
+    $result = [System.Text.StringBuilder]::new()
+    $index = 0
+    while ($index -lt $Content.Length) {
+        if ($Content[$index] -eq '\' -and
+            $index + 1 -lt $Content.Length -and
+            (Test-MarkdownEscapableCharacter $Content[$index + 1])) {
+            [void]$result.Append($Content[$index])
+            $index++
+            [void]$result.Append($Content[$index])
+            $index++
+            continue
+        }
+
+        if ($Content[$index] -ne '`') {
+            [void]$result.Append($Content[$index])
+            $index++
+            continue
+        }
+
+        $openingStart = $index
+        while ($index -lt $Content.Length -and $Content[$index] -eq '`') {
+            $index++
+        }
+        $delimiterLength = $index - $openingStart
+
+        $closingEnd = -1
+        $searchIndex = $index
+        while ($searchIndex -lt $Content.Length) {
+            if ($Content[$searchIndex] -ne '`') {
+                $searchIndex++
+                continue
+            }
+
+            $closingStart = $searchIndex
+            while ($searchIndex -lt $Content.Length -and $Content[$searchIndex] -eq '`') {
+                $searchIndex++
+            }
+
+            if ($searchIndex - $closingStart -eq $delimiterLength) {
+                $closingEnd = $searchIndex
+                break
+            }
+        }
+
+        if ($closingEnd -lt 0) {
+            [void]$result.Append($Content.Substring($openingStart, $delimiterLength))
+            continue
+        }
+
+        for ($codeIndex = $openingStart; $codeIndex -lt $closingEnd; $codeIndex++) {
+            if ($Content[$codeIndex] -eq "`r" -or $Content[$codeIndex] -eq "`n") {
+                [void]$result.Append($Content[$codeIndex])
+            }
+            else {
+                [void]$result.Append(' ')
+            }
+        }
+        $index = $closingEnd
+    }
+
+    return $result.ToString()
+}
+
 function Read-MarkdownDestination {
     param(
-        [Parameter(Mandatory)][string]$Text,
+        [Parameter(Mandatory)][AllowNull()][AllowEmptyString()][string]$Text,
         [Parameter(Mandatory)][int]$StartIndex,
         [switch]$RequireClosingParenthesis
     )
+
+    if ($null -eq $Text) {
+        $Text = [string]::Empty
+    }
 
     $index = $StartIndex
     while ($index -lt $Text.Length -and [char]::IsWhiteSpace($Text[$index])) {
@@ -285,37 +372,42 @@ function Read-MarkdownDestination {
 }
 
 function Get-MarkdownLinkDestinations {
-    param([Parameter(Mandatory)][string]$Content)
+    param([Parameter(Mandatory)][AllowNull()][AllowEmptyString()][string]$Content)
+
+    if ([string]::IsNullOrEmpty($Content)) {
+        return
+    }
 
     $contentOutsideFences = Get-MarkdownContentOutsideFences $Content
+    $contentOutsideCode = Remove-MarkdownInlineCodeSpans $contentOutsideFences
     $index = 0
-    while ($index -lt $contentOutsideFences.Length) {
-        if ($contentOutsideFences[$index] -eq '\' -and
-            $index + 1 -lt $contentOutsideFences.Length -and
-            (Test-MarkdownEscapableCharacter $contentOutsideFences[$index + 1])) {
+    while ($index -lt $contentOutsideCode.Length) {
+        if ($contentOutsideCode[$index] -eq '\' -and
+            $index + 1 -lt $contentOutsideCode.Length -and
+            (Test-MarkdownEscapableCharacter $contentOutsideCode[$index + 1])) {
             $index += 2
             continue
         }
 
-        if ($contentOutsideFences[$index] -ne '[') {
+        if ($contentOutsideCode[$index] -ne '[') {
             $index++
             continue
         }
 
         $labelDepth = 1
         $labelEnd = $index + 1
-        while ($labelEnd -lt $contentOutsideFences.Length -and $labelDepth -gt 0) {
-            if ($contentOutsideFences[$labelEnd] -eq '\' -and
-                $labelEnd + 1 -lt $contentOutsideFences.Length -and
-                (Test-MarkdownEscapableCharacter $contentOutsideFences[$labelEnd + 1])) {
+        while ($labelEnd -lt $contentOutsideCode.Length -and $labelDepth -gt 0) {
+            if ($contentOutsideCode[$labelEnd] -eq '\' -and
+                $labelEnd + 1 -lt $contentOutsideCode.Length -and
+                (Test-MarkdownEscapableCharacter $contentOutsideCode[$labelEnd + 1])) {
                 $labelEnd += 2
                 continue
             }
 
-            if ($contentOutsideFences[$labelEnd] -eq '[') {
+            if ($contentOutsideCode[$labelEnd] -eq '[') {
                 $labelDepth++
             }
-            elseif ($contentOutsideFences[$labelEnd] -eq ']') {
+            elseif ($contentOutsideCode[$labelEnd] -eq ']') {
                 $labelDepth--
             }
 
@@ -323,13 +415,13 @@ function Get-MarkdownLinkDestinations {
         }
 
         if ($labelDepth -ne 0 -or
-            $labelEnd -ge $contentOutsideFences.Length -or
-            $contentOutsideFences[$labelEnd] -ne '(') {
+            $labelEnd -ge $contentOutsideCode.Length -or
+            $contentOutsideCode[$labelEnd] -ne '(') {
             $index++
             continue
         }
 
-        $link = Read-MarkdownDestination $contentOutsideFences ($labelEnd + 1) -RequireClosingParenthesis
+        $link = Read-MarkdownDestination $contentOutsideCode ($labelEnd + 1) -RequireClosingParenthesis
         if ($null -eq $link) {
             $index = $labelEnd + 1
             continue
@@ -341,16 +433,113 @@ function Get-MarkdownLinkDestinations {
         $index = $link.EndIndex + 1
     }
 
-    foreach ($line in [regex]::Split($contentOutsideFences, '\r\n|\n|\r')) {
+    $lines = [regex]::Split($contentOutsideCode, '\r\n|\n|\r')
+    for ($lineIndex = 0; $lineIndex -lt $lines.Count; $lineIndex++) {
+        $line = $lines[$lineIndex]
         $definitionMatch = [regex]::Match($line, '^[ ]{0,3}\[(?:\\.|[^\]\\])+\]:[ \t]*')
         if (-not $definitionMatch.Success) {
             continue
         }
 
-        $definition = Read-MarkdownDestination $line $definitionMatch.Length
+        $definitionText = $line.Substring($definitionMatch.Length)
+        if ([string]::IsNullOrWhiteSpace($definitionText)) {
+            if ($lineIndex + 1 -ge $lines.Count) {
+                continue
+            }
+
+            $continuationMatch = [regex]::Match($lines[$lineIndex + 1], '^[ ]{0,3}(?<destination>\S.*)$')
+            if (-not $continuationMatch.Success) {
+                continue
+            }
+
+            $definitionText = $continuationMatch.Groups['destination'].Value
+        }
+
+        $definition = Read-MarkdownDestination $definitionText 0
         if ($null -ne $definition -and -not [string]::IsNullOrWhiteSpace($definition.Destination)) {
             Write-Output $definition.Destination
         }
+    }
+}
+
+function Test-SkillLinkTarget {
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)][AllowNull()][AllowEmptyString()][string]$Target,
+        [Parameter(Mandatory)][string]$BaseDirectory,
+        [Parameter(Mandatory)][string]$RepositoryRoot
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Target)) {
+        return $true
+    }
+
+    $schemeMatch = [regex]::Match($Target, '^(?<scheme>[A-Za-z][A-Za-z0-9+.-]*):')
+    $hasWindowsDrivePrefix = $schemeMatch.Success -and $schemeMatch.Groups['scheme'].Value.Length -eq 1
+    $hasFileScheme = $schemeMatch.Success -and
+        [string]::Equals($schemeMatch.Groups['scheme'].Value, 'file', [System.StringComparison]::OrdinalIgnoreCase)
+    if ($schemeMatch.Success -and -not $hasWindowsDrivePrefix -and -not $hasFileScheme) {
+        return $true
+    }
+
+    if (-not $schemeMatch.Success -and $Target -match '^//') {
+        return $true
+    }
+
+    $pathEnd = $Target.IndexOfAny([char[]]@('?', '#'))
+    $targetPath = if ($pathEnd -ge 0) { $Target.Substring(0, $pathEnd) } else { $Target }
+    if ([string]::IsNullOrWhiteSpace($targetPath)) {
+        return $true
+    }
+
+    try {
+        if ($hasFileScheme) {
+            $fileUri = [Uri]::new($targetPath, [UriKind]::Absolute)
+            if (-not $fileUri.IsFile) {
+                return $false
+            }
+            $decodedPath = $fileUri.LocalPath
+        }
+        else {
+            $decodedPath = [Uri]::UnescapeDataString($targetPath)
+        }
+
+        if ([string]::IsNullOrWhiteSpace($decodedPath) -or $decodedPath.IndexOf([char]0) -ge 0) {
+            return $false
+        }
+
+        $candidatePath = if ([System.IO.Path]::IsPathRooted($decodedPath)) {
+            $decodedPath
+        }
+        else {
+            Join-Path $BaseDirectory $decodedPath
+        }
+
+        $canonicalTarget = [System.IO.Path]::GetFullPath($candidatePath)
+        $canonicalRepositoryRoot = [System.IO.Path]::GetFullPath($RepositoryRoot)
+        $directorySeparators = [char[]]@(
+            [System.IO.Path]::DirectorySeparatorChar,
+            [System.IO.Path]::AltDirectorySeparatorChar
+        )
+        $repositoryRootWithoutSeparator = $canonicalRepositoryRoot.TrimEnd($directorySeparators)
+        $repositoryBoundary = $repositoryRootWithoutSeparator + [System.IO.Path]::DirectorySeparatorChar
+        $targetIsRepositoryRoot = [string]::Equals(
+            $canonicalTarget.TrimEnd($directorySeparators),
+            $repositoryRootWithoutSeparator,
+            [System.StringComparison]::OrdinalIgnoreCase
+        )
+        $targetIsInsideRepository = $canonicalTarget.StartsWith(
+            $repositoryBoundary,
+            [System.StringComparison]::OrdinalIgnoreCase
+        )
+        if (-not $targetIsRepositoryRoot -and -not $targetIsInsideRepository) {
+            return $false
+        }
+
+        return Test-Path -LiteralPath $canonicalTarget -ErrorAction Stop
+    }
+    catch {
+        return $false
     }
 }
 
@@ -420,17 +609,7 @@ if (Test-Path -LiteralPath $skillsRoot -PathType Container) {
         }
 
         foreach ($target in Get-MarkdownLinkDestinations $skillContent) {
-            if ($target -match '^(?:https?://|mailto:|#)') {
-                continue
-            }
-
-            $targetPath = ($target -split '#', 2)[0]
-            if ([string]::IsNullOrWhiteSpace($targetPath)) {
-                continue
-            }
-
-            $resolvedTarget = Join-Path $skillDirectory.FullName ([Uri]::UnescapeDataString($targetPath))
-            if (-not (Test-Path -LiteralPath $resolvedTarget)) {
+            if (-not (Test-SkillLinkTarget -Target $target -BaseDirectory $skillDirectory.FullName -RepositoryRoot $repositoryRoot)) {
                 Add-ValidationFailure "Broken skill link in $($skillDirectory.Name)/SKILL.md: $target"
             }
         }
