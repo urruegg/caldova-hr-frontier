@@ -1,6 +1,5 @@
 [CmdletBinding()]
 param()
-
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $skillsRoot = Join-Path $repositoryRoot '.github\skills'
@@ -11,10 +10,16 @@ function Add-Failure {
     param([string]$Message)
     [void]$failures.Add($Message)
 }
-
+$skillsRootTrusted = $true
+if (Test-Path -LiteralPath $skillsRoot) {
+    try { $skillsRootItem = Get-Item -LiteralPath $skillsRoot -Force }
+    catch { Add-Failure 'Cannot inspect directory: .github/skills'; $skillsRootTrusted = $false }
+    if ($skillsRootTrusted -and ($skillsRootItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) { Add-Failure 'Reparse point is not allowed: .github/skills'; $skillsRootTrusted = $false }
+}
 function Test-RequiredContent {
     param([string]$RelativePath, [string[]]$Terms, [string[]]$ExactLines = @())
 
+    if (-not $skillsRootTrusted -and $RelativePath.StartsWith('.github/skills/', [StringComparison]::Ordinal)) { return }
     $path = Join-Path $repositoryRoot ($RelativePath.Replace('/', '\'))
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         Add-Failure "Missing file: $RelativePath"
@@ -47,6 +52,7 @@ $baseFolders = @(
     'docs/issues', 'docs/plans', 'docs/reviews', 'docs/specs', 'docs/sprints', 'docs/templates'
 )
 foreach ($relativeFolder in $baseFolders) {
+    if ($relativeFolder -ceq '.github/skills' -and -not $skillsRootTrusted) { continue }
     $folder = Join-Path $repositoryRoot ($relativeFolder.Replace('/', '\'))
     if (-not (Test-Path -LiteralPath $folder -PathType Container)) {
         Add-Failure "Missing directory: $relativeFolder"
@@ -79,7 +85,17 @@ $skillNames = @(
 $expectedSkills = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $actualSkills = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 foreach ($skillName in $skillNames) { [void]$expectedSkills.Add($skillName) }
-if (Test-Path -LiteralPath $skillsRoot -PathType Container) {
+$reportedReparsePaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+if ($skillsRootTrusted -and (Test-Path -LiteralPath $skillsRoot -PathType Container)) {
+    try { $skillEntries = @(Get-ChildItem -LiteralPath $skillsRoot -Force -Recurse) }
+    catch { Add-Failure 'Cannot enumerate entries under .github/skills.'; $skillsRootTrusted = $false; $skillEntries = @() }
+    foreach ($entry in $skillEntries) {
+        if (-not ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint)) { continue }
+        $relativePath = $entry.FullName.Substring($skillsPrefix.Length).Replace('\', '/')
+        if ($reportedReparsePaths.Add($relativePath)) { Add-Failure "Reparse point is not allowed under .github/skills: $relativePath" }
+    }
+}
+if ($skillsRootTrusted -and (Test-Path -LiteralPath $skillsRoot -PathType Container)) {
     foreach ($directory in @(Get-ChildItem -LiteralPath $skillsRoot -Directory -Force)) {
         [void]$actualSkills.Add($directory.Name)
         if (-not $expectedSkills.Contains($directory.Name)) {
@@ -88,7 +104,7 @@ if (Test-Path -LiteralPath $skillsRoot -PathType Container) {
     }
 }
 foreach ($skillName in $skillNames) {
-    if (-not $actualSkills.Contains($skillName)) {
+    if ($skillsRootTrusted -and -not $actualSkills.Contains($skillName)) {
         Add-Failure "Missing skill directory: $skillName"
     }
 }
@@ -167,10 +183,10 @@ function Test-SafeManifestPath {
 $manifestFile = Join-Path $skillsRoot 'SUPERPOWERS_SHA256SUMS'
 $manifestEntries = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
 $seenManifestPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-if (-not (Test-Path -LiteralPath $manifestFile -PathType Leaf)) {
+if ($skillsRootTrusted -and -not (Test-Path -LiteralPath $manifestFile -PathType Leaf)) {
     Add-Failure 'Missing file: .github/skills/SUPERPOWERS_SHA256SUMS'
 }
-else {
+elseif ($skillsRootTrusted) {
     try { [string[]]$manifestLines = @(Get-Content -LiteralPath $manifestFile) }
     catch { Add-Failure 'Cannot read file: .github/skills/SUPERPOWERS_SHA256SUMS'; $manifestLines = @() }
     if ($manifestLines.Count -eq 0) { Add-Failure 'Manifest must not be empty.' }
