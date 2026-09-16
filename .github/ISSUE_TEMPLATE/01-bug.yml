@@ -1,0 +1,72 @@
+name: Bug report
+description: Report a reproducible problem in Caldova HR Frontier.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping us improve Caldova HR Frontier.
+        This form is public. Do not include secrets, personal data, or security vulnerability details.
+  - type: checkboxes
+    id: existing_issue
+    attributes:
+      label: Existing issue check
+      description: Search open and closed issues before submitting.
+      options:
+        - label: I searched for an existing issue that describes this problem.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the problem and its impact.
+      placeholder: What happened, and who or what is affected?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest reliable sequence that reproduces the problem.
+      placeholder: |
+        1. Go to ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected behavior
+      description: Describe what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: Actual behavior
+      description: Describe what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Provide the environment details needed to reproduce the problem.
+      placeholder: |
+        - Operating system:
+        - Browser or runtime:
+        - Version or commit:
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Remove secrets and personal data before pasting relevant log output.
+      render: shell
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add screenshots, links, or other context that may help the investigation.

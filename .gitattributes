@@ -17,3 +17,5 @@
 # Pin integrity metadata to the same byte representation on every platform.
 /.github/skills/LICENSE.superpowers -text
 /.github/skills/SUPERPOWERS_SHA256SUMS -text
+
+/.github/ISSUE_TEMPLATE/*.yml -text

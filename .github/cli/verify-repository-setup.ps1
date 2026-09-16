@@ -72,9 +72,255 @@ foreach ($relativeFolder in $baseFolders) {
         Add-Failure "Empty README.md: $relativeFolder/README.md"
     }
 }
-foreach ($legacyPath in @('.github/ISSUE_TEMPLATE', 'docs/storyboard')) {
-    if (Test-Path -LiteralPath (Join-Path $repositoryRoot ($legacyPath.Replace('/', '\')))) {
-        Add-Failure "Legacy path must not exist: $legacyPath"
+$storyboardPath = Join-Path $repositoryRoot 'docs\storyboard'
+if (Test-Path -LiteralPath $storyboardPath) {
+    Add-Failure 'Legacy path must not exist: docs/storyboard'
+}
+
+$issueTemplateRelativeRoot = '.github/ISSUE_TEMPLATE'
+$githubRoot = Join-Path $repositoryRoot '.github'
+$issueTemplateRoot = Join-Path $repositoryRoot '.github\ISSUE_TEMPLATE'
+$issueTemplateFileNames = @('01-bug.yml', '02-feature.yml', 'config.yml')
+$issueTemplateGitPrefix = '.github/ISSUE_TEMPLATE/'
+$expectedIssueTemplateGitPaths = @($issueTemplateFileNames | ForEach-Object { "${issueTemplateGitPrefix}$_" })
+$expectedIssueTemplateHashes = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
+$expectedIssueTemplateHashes.Add('01-bug.yml', '8f2c31b169477b86d85e60f9d1c91eed349fae829f1071b8b42dc93624d8879a')
+$expectedIssueTemplateHashes.Add('02-feature.yml', '748e69155e9e60acd16f5cbb93b6398fd5853905951829080a9c440ed5c0e7a4')
+$expectedIssueTemplateHashes.Add('config.yml', '1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb')
+$actualIssueTemplateFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$reparseIssueTemplateEntries = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$ordinaryIssueTemplateFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$issueTemplateRootTrusted = $true
+
+if (Test-Path -LiteralPath $githubRoot -PathType Container) {
+    try {
+        $issueTemplateDirectoryCandidates = @(Get-ChildItem -LiteralPath $githubRoot -Directory -Force | Where-Object {
+            [string]::Equals($_.Name, 'ISSUE_TEMPLATE', [StringComparison]::OrdinalIgnoreCase)
+        })
+        foreach ($candidate in $issueTemplateDirectoryCandidates) {
+            if ($candidate.Name -cne 'ISSUE_TEMPLATE') {
+                Add-Failure "Active issue-template directory must use exact filesystem casing: .github/$($candidate.Name)"
+            }
+        }
+        if ($issueTemplateDirectoryCandidates.Count -gt 1) {
+            Add-Failure 'Multiple case variants of the active issue-template directory exist under .github'
+        }
+    }
+    catch {
+        Add-Failure 'Cannot inspect active issue-template directory casing under .github'
+    }
+}
+
+if (-not (Test-Path -LiteralPath $issueTemplateRoot -PathType Container)) {
+    Add-Failure "Missing directory: $issueTemplateRelativeRoot"
+    $issueTemplateRootTrusted = $false
+}
+else {
+    try { $issueTemplateRootItem = Get-Item -LiteralPath $issueTemplateRoot -Force }
+    catch { Add-Failure "Cannot inspect directory: $issueTemplateRelativeRoot"; $issueTemplateRootTrusted = $false }
+    if ($issueTemplateRootTrusted -and ($issueTemplateRootItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        Add-Failure "Reparse point is not allowed: $issueTemplateRelativeRoot"
+        $issueTemplateRootTrusted = $false
+    }
+}
+
+if ($issueTemplateRootTrusted) {
+    try { $issueTemplateEntries = @(Get-ChildItem -LiteralPath $issueTemplateRoot -Force) }
+    catch { Add-Failure "Cannot enumerate entries under $issueTemplateRelativeRoot"; $issueTemplateEntries = @() }
+    foreach ($entry in $issueTemplateEntries) {
+        if ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            Add-Failure "Reparse point is not allowed under ${issueTemplateRelativeRoot}: $($entry.Name)"
+            [void]$reparseIssueTemplateEntries.Add($entry.Name)
+        }
+        if ($issueTemplateFileNames -cnotcontains $entry.Name) {
+            Add-Failure "Unexpected active issue-template entry: $($entry.Name)"
+            continue
+        }
+        [void]$actualIssueTemplateFiles.Add($entry.Name)
+    }
+}
+
+foreach ($fileName in $issueTemplateFileNames) {
+    $relativePath = "$issueTemplateRelativeRoot/$fileName"
+    if (-not $actualIssueTemplateFiles.Contains($fileName)) {
+        Add-Failure "Missing active issue-template file: $relativePath"
+        continue
+    }
+    if ($reparseIssueTemplateEntries.Contains($fileName)) { continue }
+    $filePath = Join-Path $issueTemplateRoot $fileName
+    if (-not (Test-Path -LiteralPath $filePath -PathType Leaf)) {
+        Add-Failure "Active issue-template entry is not a file: $relativePath"
+        continue
+    }
+    [void]$ordinaryIssueTemplateFiles.Add($fileName)
+}
+
+$gitCommand = Get-Command git -CommandType Application -ErrorAction SilentlyContinue
+$gitIndexLines = @()
+$gitIndexReadable = $false
+if ($null -eq $gitCommand) {
+    Add-Failure 'Cannot inspect Git index for active issue-template paths: git is unavailable'
+}
+else {
+    try {
+        $gitIndexLines = @(& $gitCommand.Source -C $repositoryRoot -c core.quotePath=false ls-files --stage 2>&1 |
+            ForEach-Object { $_.ToString() })
+        $gitIndexExitCode = $LASTEXITCODE
+        if ($gitIndexExitCode -ne 0) {
+            Add-Failure 'Cannot inspect Git index for active issue-template paths'
+        }
+        else {
+            $gitIndexReadable = $true
+        }
+    }
+    catch {
+        Add-Failure 'Cannot inspect Git index for active issue-template paths'
+    }
+}
+
+if ($gitIndexReadable) {
+    $issueTemplateGitRecords = [Collections.Generic.List[object]]::new()
+    foreach ($line in $gitIndexLines) {
+        if ($line -notmatch '^([0-7]{6}) ([0-9a-fA-F]{40,64}) ([0-3])\t(.*)$') {
+            Add-Failure "Cannot parse Git index record: $line"
+            continue
+        }
+        $record = [pscustomobject]@{
+            Mode = $Matches[1]
+            ObjectId = $Matches[2]
+            Stage = $Matches[3]
+            Path = $Matches[4]
+        }
+        if (-not $record.Path.StartsWith($issueTemplateGitPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+            continue
+        }
+        [void]$issueTemplateGitRecords.Add($record)
+        $caseInsensitiveExpectedPath = @($expectedIssueTemplateGitPaths | Where-Object {
+            [string]::Equals($_, $record.Path, [StringComparison]::OrdinalIgnoreCase)
+        })
+        if (-not $record.Path.StartsWith($issueTemplateGitPrefix, [StringComparison]::Ordinal) -or
+            ($caseInsensitiveExpectedPath.Count -eq 1 -and $record.Path -cne $caseInsensitiveExpectedPath[0])) {
+            Add-Failure "Active issue-template path must use exact Git casing: $($record.Path)"
+            continue
+        }
+        if ($expectedIssueTemplateGitPaths -cnotcontains $record.Path) {
+            Add-Failure "Unexpected tracked active issue-template path: $($record.Path)"
+        }
+    }
+
+    foreach ($expectedPath in $expectedIssueTemplateGitPaths) {
+        $matchingRecords = @($issueTemplateGitRecords | Where-Object { $_.Path -ceq $expectedPath })
+        if ($matchingRecords.Count -eq 0) {
+            Add-Failure "Active issue-template file is not tracked at exact Git path: $expectedPath"
+            continue
+        }
+        if ($matchingRecords.Count -ne 1) {
+            Add-Failure "Ambiguous Git index entries for active issue-template path: $expectedPath"
+            continue
+        }
+        if ($matchingRecords[0].Stage -cne '0' -or $matchingRecords[0].Mode -cne '100644') {
+            Add-Failure "Active issue-template Git entry must be stage-0 mode 100644: $expectedPath"
+        }
+    }
+}
+
+$gitattributesRelativePath = '.gitattributes'
+$gitattributesPath = Join-Path $repositoryRoot $gitattributesRelativePath
+$issueTemplateByteStabilityRule = '/.github/ISSUE_TEMPLATE/*.yml -text'
+$gitattributesLines = @()
+$gitattributesReadable = $false
+try {
+    if (-not (Test-Path -LiteralPath $gitattributesPath -PathType Leaf)) {
+        Add-Failure '.gitattributes must be an ordinary readable file.'
+    }
+    else {
+        $gitattributesItem = Get-Item -LiteralPath $gitattributesPath -Force -ErrorAction Stop
+        if ($gitattributesItem.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            Add-Failure '.gitattributes must be an ordinary readable file.'
+        }
+        else {
+            $gitattributesLines = @(Get-Content -LiteralPath $gitattributesPath -ErrorAction Stop)
+            $gitattributesReadable = $true
+        }
+    }
+}
+catch {
+    Add-Failure '.gitattributes must be an ordinary readable file.'
+}
+
+if ($gitattributesReadable) {
+    $byteStabilityRuleCount = @($gitattributesLines | Where-Object {
+        $_ -ceq $issueTemplateByteStabilityRule
+    }).Count
+    if ($byteStabilityRuleCount -ne 1) {
+        Add-Failure '.gitattributes must contain exactly one issue-form byte-stability rule.'
+    }
+}
+
+$gitAttributeLines = @()
+$gitAttributesReadable = $false
+if ($null -eq $gitCommand) {
+    Add-Failure 'Cannot inspect Git text attributes for active issue-template paths: git is unavailable'
+}
+else {
+    try {
+        $gitAttributeLines = @(& $gitCommand.Source -C $repositoryRoot -c core.quotePath=false check-attr text -- $expectedIssueTemplateGitPaths 2>&1 |
+            ForEach-Object { $_.ToString() })
+        $gitAttributeExitCode = $LASTEXITCODE
+        if ($gitAttributeExitCode -ne 0) {
+            Add-Failure 'Cannot inspect Git text attributes for active issue-template paths'
+        }
+        else {
+            $gitAttributesReadable = $true
+        }
+    }
+    catch {
+        Add-Failure 'Cannot inspect Git text attributes for active issue-template paths'
+    }
+}
+
+if ($gitAttributesReadable) {
+    if ($gitAttributeLines.Count -ne $expectedIssueTemplateGitPaths.Count) {
+        Add-Failure "Expected 3 Git text attribute records, found $($gitAttributeLines.Count)"
+    }
+    $gitAttributeRecords = [Collections.Generic.List[object]]::new()
+    foreach ($line in $gitAttributeLines) {
+        $attributeMatch = [regex]::Match($line, '^(.*): text: (.*)$')
+        if (-not $attributeMatch.Success) {
+            Add-Failure "Cannot parse Git text attribute record: $line"
+            continue
+        }
+        $reportedPath = $attributeMatch.Groups[1].Value
+        $normalizedReportedPath = $reportedPath.Replace('\', '/')
+        if ($expectedIssueTemplateGitPaths -cnotcontains $normalizedReportedPath) {
+            Add-Failure "Unexpected Git text attribute path: $reportedPath"
+            continue
+        }
+        [void]$gitAttributeRecords.Add([pscustomobject]@{
+            Path = $normalizedReportedPath
+            Value = $attributeMatch.Groups[2].Value
+        })
+    }
+    foreach ($expectedPath in $expectedIssueTemplateGitPaths) {
+        $matchingAttributeRecords = @($gitAttributeRecords | Where-Object { $_.Path -ceq $expectedPath })
+        if ($matchingAttributeRecords.Count -ne 1) {
+            Add-Failure "Ambiguous Git text attribute result: $expectedPath"
+            continue
+        }
+        if ($matchingAttributeRecords[0].Value -cne 'unset') {
+            Add-Failure "Issue-form Git text attribute is not unset: $expectedPath"
+        }
+    }
+}
+
+foreach ($fileName in $issueTemplateFileNames) {
+    if (-not $ordinaryIssueTemplateFiles.Contains($fileName)) { continue }
+    $relativePath = "$issueTemplateRelativeRoot/$fileName"
+    $filePath = Join-Path $issueTemplateRoot $fileName
+    try { $actualHash = (Get-FileHash -LiteralPath $filePath -Algorithm SHA256).Hash.ToLowerInvariant() }
+    catch { Add-Failure "Cannot hash active issue-template file: $relativePath"; continue }
+    if ($actualHash -cne $expectedIssueTemplateHashes[$fileName]) {
+        Add-Failure "Hash mismatch for active issue-template file: $relativePath"
     }
 }
 

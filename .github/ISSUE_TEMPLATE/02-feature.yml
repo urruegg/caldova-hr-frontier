@@ -1,0 +1,51 @@
+name: Feature request
+description: Propose an outcome or capability for Caldova HR Frontier.
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for proposing an improvement. Focus on the problem and desired outcome before implementation details.
+  - type: checkboxes
+    id: existing_request
+    attributes:
+      label: Existing request check
+      description: Search open and closed issues before submitting.
+      options:
+        - label: I searched for an existing request that addresses this need.
+          required: true
+  - type: textarea
+    id: problem_value
+    attributes:
+      label: Problem and value
+      description: Describe the problem, who experiences it, and why solving it matters.
+      placeholder: What outcome is difficult today, and what value would improve?
+    validations:
+      required: true
+  - type: textarea
+    id: desired_outcome
+    attributes:
+      label: Desired outcome
+      description: Describe the observable result rather than prescribing an implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe current workarounds or other approaches you considered.
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance criteria
+      description: List measurable conditions that would demonstrate the requested outcome.
+      placeholder: |
+        - [ ] The user can ...
+        - [ ] The system reports ...
+    validations:
+      required: true
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add examples, links, sketches, or constraints that may help evaluate the request.
