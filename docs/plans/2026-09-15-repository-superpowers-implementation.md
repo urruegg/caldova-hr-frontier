@@ -10,9 +10,10 @@
 
 ---
 
-### Task 1: Add the Repository Setup Verifier
+## Task 1: Add the Repository Setup Verifier
 
 **Files:**
+
 - Create: `.github/cli/verify-repository-setup.ps1`
 
 - [ ] **Step 1: Write the failing validation script**
@@ -421,9 +422,10 @@ git add -- .github/cli/verify-repository-setup.ps1
 git commit -m "test: add repository setup verifier" -- .github/cli/verify-repository-setup.ps1
 ```
 
-### Task 2: Establish the GitHub Collaboration Folders
+## Task 2: Establish the GitHub Collaboration Folders
 
 **Files:**
+
 - Create: `.github/agent-policy/README.md`
 - Create: `.github/agents/README.md`
 - Create: `.github/cli/README.md`
@@ -521,9 +523,10 @@ git add -- .github/agent-policy/README.md .github/agents/README.md .github/cli/R
 git commit -m "docs: establish GitHub collaboration folders" -- .github/agent-policy/README.md .github/agents/README.md .github/cli/README.md .github/instructions/README.md .github/issue-templates/README.md .github/skills/README.md .github/workflows/README.md
 ```
 
-### Task 3: Establish the Documentation Folders
+## Task 3: Establish the Documentation Folders
 
 **Files:**
+
 - Create: `docs/adr/README.md`
 - Create: `docs/archive/README.md`
 - Create: `docs/brandkit/README.md`
@@ -676,9 +679,10 @@ git add -- docs/adr/README.md docs/archive/README.md docs/brandkit/README.md doc
 git commit -m "docs: establish documentation folders" -- docs/adr/README.md docs/archive/README.md docs/brandkit/README.md docs/business/README.md docs/delegation/README.md docs/ideas/README.md docs/issues/README.md docs/plans/README.md docs/reviews/README.md docs/specs/README.md docs/sprints/README.md docs/templates/README.md
 ```
 
-### Task 4: Vendor Superpowers v6.3.0
+## Task 4: Vendor Superpowers v6.3.0
 
 **Files:**
+
 - Create: `.github/skills/brainstorming/**`
 - Create: `.github/skills/dispatching-parallel-agents/**`
 - Create: `.github/skills/executing-plans/**`
@@ -853,9 +857,10 @@ git add -- .github/skills
 git commit -m "build: vendor Superpowers v6.3.0" -- .github/skills
 ```
 
-### Task 5: Bootstrap Copilot and Document Contributor Use
+## Task 5: Bootstrap Copilot and Document Contributor Use
 
 **Files:**
+
 - Create: `AGENTS.md`
 - Create: `.github/copilot-instructions.md`
 - Modify: `README.md`
@@ -893,7 +898,7 @@ Before any response or action, load `using-superpowers` from `.github/skills/usi
 
 Replace `README.md` with:
 
-```markdown
+````markdown
 # caldova-hr-frontier
 
 ## Repository Agent Workflow
@@ -940,7 +945,7 @@ Updates are deliberate and reviewed. To update:
 7. Commit the runtime replacement, manifest, metadata, and any required bootstrap compatibility changes together.
 
 Do not track upstream `main`, use a submodule, or edit vendored skill files for repository-specific behavior.
-```
+````
 
 - [ ] **Step 4: Run the verifier to green**
 
@@ -957,9 +962,10 @@ git add -- AGENTS.md .github/copilot-instructions.md README.md
 git commit -m "docs: activate bundled Superpowers for Copilot" -- AGENTS.md .github/copilot-instructions.md README.md
 ```
 
-### Task 6: Perform Final Repository and Host Validation
+## Task 6: Perform Final Repository and Host Validation
 
 **Files:**
+
 - Verify: all files introduced by Tasks 1-5
 
 - [ ] **Step 1: Run automated repository validation from a clean shell**
