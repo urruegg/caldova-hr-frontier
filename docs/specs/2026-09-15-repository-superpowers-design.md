@@ -12,6 +12,7 @@ Bundle Superpowers directly in this repository so every contributor can use the 
 - Record the upstream source, release, and MIT license attribution.
 - Create the approved `.github` and `docs` base folders.
 - Add a `README.md` to every approved base folder describing its purpose and expected content.
+- Add active GitHub issue forms for reproducible bugs and outcome-focused feature requests, with blank issues disabled.
 - Document deliberate upgrade and verification procedures.
 
 The requested folder README requirement applies to the approved base folders listed below. Vendored Superpowers skill directories remain unchanged from upstream and retain their own `SKILL.md` and referenced resources.
@@ -31,6 +32,10 @@ The requested folder README requirement applies to the approved base folders lis
 |   |   `-- README.md
 |   |-- instructions/
 |   |   `-- README.md
+|   |-- ISSUE_TEMPLATE/
+|   |   |-- 01-bug.yml
+|   |   |-- 02-feature.yml
+|   |   `-- config.yml
 |   |-- issue-templates/
 |   |   `-- README.md
 |   |-- skills/
@@ -68,7 +73,7 @@ The requested folder README requirement applies to the approved base folders lis
         `-- README.md
 ```
 
-The design intentionally excludes `.github/ISSUE_TEMPLATE/` and `docs/storyboard/`. The lowercase `.github/issue-templates/` folder is a project content area, not GitHub's active issue-template directory; its README will state that distinction.
+The uppercase `.github/ISSUE_TEMPLATE/` directory contains the GitHub-active issue forms and chooser configuration. The lowercase `.github/issue-templates/` folder remains a project-owned content area for drafts, shared wording, planning material, and promotion guidance. The only explicitly excluded folder is `docs/storyboard/`.
 
 ## Copilot Integration
 
@@ -99,6 +104,8 @@ Each approved base folder gets a concise `README.md` covering:
 - content that does not belong there where ambiguity is likely;
 - naming or lifecycle guidance relevant to that folder.
 
+Active issue forms live in `.github/ISSUE_TEMPLATE/`. Supporting source material remains in `.github/issue-templates/`, where changes can be reviewed before promotion to the active forms and corresponding validator contract.
+
 The root `README.md` will explain that Superpowers is bundled, identify the pinned version, describe automatic discovery in VS Code and Copilot CLI, show how to confirm skill availability, and link to the source and license.
 
 ## Attribution and Integrity
@@ -112,17 +119,20 @@ Vendored skill content is not rewritten for project preferences. Repository-spec
 Implementation is complete when all of these checks pass:
 
 1. Every approved base folder exists and contains a non-empty `README.md`.
-2. The two explicitly excluded folders do not exist.
-3. Every vendored skill has a `SKILL.md` whose `name` matches its parent directory.
-4. Files referenced by vendored `SKILL.md` documents exist in the copied runtime.
-5. `using-superpowers` is discoverable under `.github/skills/`.
-6. `AGENTS.md` and `.github/copilot-instructions.md` point Copilot to the project skills and do not require a machine-level installation.
-7. Version metadata identifies v6.3.0 and its exact upstream commit.
-8. The upstream MIT license text is present.
-9. Git reports no malformed patches or whitespace errors.
-10. VS Code customization diagnostics show the repository skills without metadata errors; Copilot CLI lists or invokes `using-superpowers` from the repository checkout.
+2. `.github/ISSUE_TEMPLATE/` exists and contains exactly `01-bug.yml`, `02-feature.yml`, and `config.yml` as ordinary files.
+3. Both issue forms are valid YAML with top-level `name`, `description`, and `body` keys, unique body IDs, and the required core fields for duplicate checks, bug reproduction and behavior, environment details, feature value and outcome, and acceptance criteria.
+4. The chooser configuration is valid, sets `blank_issues_enabled: false`, and the active files contain no fake labels, assignees, or contact links.
+5. The explicitly excluded `docs/storyboard/` folder does not exist.
+6. Every vendored skill has a `SKILL.md` whose `name` matches its parent directory.
+7. Files referenced by vendored `SKILL.md` documents exist in the copied runtime.
+8. `using-superpowers` is discoverable under `.github/skills/`.
+9. `AGENTS.md` and `.github/copilot-instructions.md` point Copilot to the project skills and do not require a machine-level installation.
+10. Version metadata identifies v6.3.0 and its exact upstream commit.
+11. The upstream MIT license text is present.
+12. Git reports no malformed patches or whitespace errors.
+13. VS Code customization diagnostics show the repository skills without metadata errors; Copilot CLI lists or invokes `using-superpowers` from the repository checkout.
 
-The first nine checks are repository-automated or command-line verifiable. The final check is an integration smoke test in the two target Copilot hosts.
+The repository structure, issue-form contract, integrity, and Git checks are automated or command-line verifiable. The final host-discovery check is an integration smoke test in the two target Copilot hosts.
 
 ## Non-Goals
 

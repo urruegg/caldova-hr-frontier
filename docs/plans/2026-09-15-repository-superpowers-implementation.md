@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Bundle Superpowers v6.3.0 and the approved repository folder structure so GitHub Copilot in VS Code and Copilot CLI use the same workflows from a normal clone.
+**Goal:** Bundle Superpowers v6.3.0, the approved repository folder structure, and structured GitHub issue forms so contributors and GitHub Copilot use consistent project workflows from a normal clone.
 
-**Architecture:** GitHub Copilot discovers unchanged upstream skills from `.github/skills/`. A small PowerShell setup validator checks the fixed repository contract, while a pinned SHA-256 manifest proves the exact vendored runtime file set and contents without parsing Markdown bodies or links. Repository-owned bootstrap instructions, version metadata, an upstream license copy, and folder READMEs make the bundle reviewable and maintainable.
+**Architecture:** GitHub Copilot discovers unchanged upstream skills from `.github/skills/`. A small PowerShell setup validator checks the fixed repository contract, while pinned SHA-256 values prove the exact vendored runtime and active issue-form contents without parsing Markdown bodies, links, or YAML. Repository-owned bootstrap instructions, version metadata, an upstream license copy, and folder READMEs make the bundle reviewable and maintainable.
 
 **Tech Stack:** GitHub Copilot Agent Skills, Markdown, PowerShell 5.1+, Git
 
@@ -483,7 +483,7 @@ Create `.github/issue-templates/README.md`:
 
 This folder contains project-owned drafts, shared wording, and planning material for issue templates.
 
-This lowercase folder is not GitHub's active `.github/ISSUE_TEMPLATE/` directory. Do not expect files placed here to appear automatically in the GitHub issue creation interface.
+Active GitHub issue forms live in `.github/ISSUE_TEMPLATE/`. Review changes here before promoting them to the active forms, and update the repository validator when the active form contract changes.
 ```
 
 Create `.github/skills/README.md`:
@@ -920,9 +920,11 @@ From the repository root on Windows, run:
 powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-setup.ps1
 ```
 
-The command succeeds with `Repository setup validation passed.` when the folder structure, skill metadata, exact runtime file set and SHA-256 hashes, bootstrap instructions, version metadata, and license are valid.
+The command succeeds with `Repository setup validation passed.` when the folder structure, skill metadata, exact runtime file set and SHA-256 hashes, executable Git modes, bootstrap instructions, version metadata, and license are valid.
 
-In VS Code, open **Chat: Open Agent Customizations** and confirm the workspace skills appear without metadata errors. In Copilot CLI, start `copilot` from the repository root and invoke or ask it to use `using-superpowers`.
+In VS Code, open **Chat: Open Customizations** and confirm the workspace skills appear without metadata errors. Confirm `using-superpowers` shows its source/path as `.github/skills/using-superpowers/SKILL.md` so repository provenance is checked.
+
+In Copilot CLI, from the repository root run `copilot --no-auto-update -C . skill list --json` and confirm `using-superpowers` has `source` equal to `project`, `enabled` equal to `true`, and a `path` ending in this repository's `.github/skills/using-superpowers`, regardless of whether the host displays `/` or `\` path separators. Then start `copilot` and invoke `/using-superpowers` for the behavior smoke test.
 
 ### Pinned Version and License
 
@@ -938,11 +940,13 @@ Updates are deliberate and reviewed. To update:
 
 1. Review the newer upstream release and release notes.
 2. Replace only the 14 vendored skill directories with the newer release's `skills/` content.
-3. Regenerate `SUPERPOWERS_SHA256SUMS` from every file in the 14 reviewed upstream runtime directories using forward-slash relative paths, ordinal path sorting, and lowercase SHA-256 hashes.
-4. Refresh `LICENSE.superpowers` if the upstream license changed.
-5. Update `SUPERPOWERS_VERSION` with the release, tag object, commit, date, manifest name, and included skill list.
-6. Run the repository verifier and smoke-test discovery in VS Code and Copilot CLI.
-7. Commit the runtime replacement, manifest, metadata, and any required bootstrap compatibility changes together.
+3. Review and update `.github/cli/verify-repository-setup.ps1` fixed contracts for the new upstream release: the expected 14-skill inventory, seven-path executable mode inventory, source release/version/tag/commit, manifest name and metadata, and license attribution checks.
+4. Regenerate `SUPERPOWERS_SHA256SUMS` from every file in the 14 reviewed upstream runtime directories using forward-slash relative paths, ordinal path sorting, and lowercase SHA-256 hashes.
+5. Preserve the upstream executable Git modes for the reviewed runtime paths.
+6. Refresh `LICENSE.superpowers` if the upstream license changed.
+7. Update `SUPERPOWERS_VERSION` with the release, tag object, commit, date, manifest name, and included skill list.
+8. Run the repository verifier and complete the VS Code and Copilot CLI smoke tests under **Verify the Bundle**.
+9. Commit the runtime replacement, manifest, metadata, validator contracts, and any required bootstrap compatibility changes together.
 
 Do not track upstream `main`, use a submodule, or edit vendored skill files for repository-specific behavior.
 ````
@@ -962,22 +966,569 @@ git add -- AGENTS.md .github/copilot-instructions.md README.md
 git commit -m "docs: activate bundled Superpowers for Copilot" -- AGENTS.md .github/copilot-instructions.md README.md
 ```
 
-## Task 6: Perform Final Repository and Host Validation
+## Task 6: Add Structured GitHub Issue Forms
 
 **Files:**
 
-- Verify: all files introduced by Tasks 1-5
+- Create: `.github/ISSUE_TEMPLATE/01-bug.yml`
+- Create: `.github/ISSUE_TEMPLATE/02-feature.yml`
+- Create: `.github/ISSUE_TEMPLATE/config.yml`
+- Modify: `.github/cli/verify-repository-setup.ps1`
+
+The lowercase `.github/issue-templates/README.md`, design specification, and this plan are updated and committed separately before this task. The implementation commit in this task contains only the three active issue-form files and the repository validator.
+
+- [ ] **Step 1: Run a RED check against the current legacy-path contract**
+
+Run this from the repository root before changing the validator. It creates and removes an empty active issue-template directory solely to prove the current validator rejects that path:
+
+```powershell
+$activeIssueTemplatePath = '.github\ISSUE_TEMPLATE'
+if (Test-Path -LiteralPath $activeIssueTemplatePath) {
+    throw '.github/ISSUE_TEMPLATE must not exist before the RED check.'
+}
+New-Item -ItemType Directory -Path $activeIssueTemplatePath | Out-Null
+try {
+    $output = @(& powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-setup.ps1 2>&1 | ForEach-Object { $_.ToString() })
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 1 -or $output -notcontains 'ERROR: Legacy path must not exist: .github/ISSUE_TEMPLATE') {
+        $output
+        throw 'Current validator did not reject .github/ISSUE_TEMPLATE as a legacy path.'
+    }
+}
+finally {
+    Remove-Item -LiteralPath $activeIssueTemplatePath -Force
+}
+Write-Output 'RED confirmed: current validator rejects .github/ISSUE_TEMPLATE.'
+```
+
+Expected: `RED confirmed: current validator rejects .github/ISSUE_TEMPLATE.` The validator implementation has not changed yet.
+
+- [ ] **Step 2: Create the exact active issue forms**
+
+Create `.github/ISSUE_TEMPLATE/01-bug.yml` with UTF-8 encoding without a BOM, LF line endings, and exactly one final LF:
+
+```yaml
+name: Bug report
+description: Report a reproducible problem in Caldova HR Frontier.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping us improve Caldova HR Frontier.
+        Do not disclose security vulnerabilities in this public form. Use the repository Security tab for private reporting when available.
+  - type: checkboxes
+    id: existing_issue
+    attributes:
+      label: Existing issue check
+      description: Search open and closed issues before submitting.
+      options:
+        - label: I searched for an existing issue that describes this problem.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the problem and its impact.
+      placeholder: What happened, and who or what is affected?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest reliable sequence that reproduces the problem.
+      placeholder: |
+        1. Go to ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected behavior
+      description: Describe what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: Actual behavior
+      description: Describe what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Provide the environment details needed to reproduce the problem.
+      placeholder: |
+        - Operating system:
+        - Browser or runtime:
+        - Version or commit:
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Remove secrets and personal data before pasting relevant log output.
+      render: shell
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add screenshots, links, or other context that may help the investigation.
+```
+
+Create `.github/ISSUE_TEMPLATE/02-feature.yml` with UTF-8 encoding without a BOM, LF line endings, and exactly one final LF:
+
+```yaml
+name: Feature request
+description: Propose an outcome or capability for Caldova HR Frontier.
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for proposing an improvement. Focus on the problem and desired outcome before implementation details.
+  - type: checkboxes
+    id: existing_request
+    attributes:
+      label: Existing request check
+      description: Search open and closed issues before submitting.
+      options:
+        - label: I searched for an existing request that addresses this need.
+          required: true
+  - type: textarea
+    id: problem_value
+    attributes:
+      label: Problem and value
+      description: Describe the problem, who experiences it, and why solving it matters.
+      placeholder: What outcome is difficult today, and what value would improve?
+    validations:
+      required: true
+  - type: textarea
+    id: desired_outcome
+    attributes:
+      label: Desired outcome
+      description: Describe the observable result rather than prescribing an implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe current workarounds or other approaches you considered.
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance criteria
+      description: List measurable conditions that would demonstrate the requested outcome.
+      placeholder: |
+        - [ ] The user can ...
+        - [ ] The system reports ...
+    validations:
+      required: true
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add examples, links, sketches, or constraints that may help evaluate the request.
+```
+
+Create `.github/ISSUE_TEMPLATE/config.yml` with UTF-8 encoding without a BOM, LF line endings, and exactly one final LF:
+
+```yaml
+blank_issues_enabled: false
+```
+
+The exact byte contracts are:
+
+```text
+c2bf726c1081a395d1124cead46e5f5dafc153c66913ddd5afe8b5c6bee39dcf  01-bug.yml
+748e69155e9e60acd16f5cbb93b6398fd5853905951829080a9c440ed5c0e7a4  02-feature.yml
+1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb  config.yml
+```
+
+- [ ] **Step 3: Replace the legacy-path rejection with the pinned active-form contract**
+
+In `.github/cli/verify-repository-setup.ps1`, replace the existing loop that rejects both legacy paths:
+
+```powershell
+foreach ($legacyPath in @('.github/ISSUE_TEMPLATE', 'docs/storyboard')) {
+    if (Test-Path -LiteralPath (Join-Path $repositoryRoot ($legacyPath.Replace('/', '\')))) {
+        Add-Failure "Legacy path must not exist: $legacyPath"
+    }
+}
+```
+
+with this exact validation block. The repository validator intentionally validates fixed names, ordinary files, reparse-point absence, and pinned SHA-256 hashes instead of adding or hand-writing a YAML parser:
+
+```powershell
+$storyboardPath = Join-Path $repositoryRoot 'docs\storyboard'
+if (Test-Path -LiteralPath $storyboardPath) {
+    Add-Failure 'Legacy path must not exist: docs/storyboard'
+}
+
+$issueTemplateRelativeRoot = '.github/ISSUE_TEMPLATE'
+$issueTemplateRoot = Join-Path $repositoryRoot '.github\ISSUE_TEMPLATE'
+$issueTemplateFileNames = @('01-bug.yml', '02-feature.yml', 'config.yml')
+$expectedIssueTemplateHashes = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
+$expectedIssueTemplateHashes.Add('01-bug.yml', 'c2bf726c1081a395d1124cead46e5f5dafc153c66913ddd5afe8b5c6bee39dcf')
+$expectedIssueTemplateHashes.Add('02-feature.yml', '748e69155e9e60acd16f5cbb93b6398fd5853905951829080a9c440ed5c0e7a4')
+$expectedIssueTemplateHashes.Add('config.yml', '1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb')
+$actualIssueTemplateFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$reparseIssueTemplateEntries = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$issueTemplateRootTrusted = $true
+
+if (-not (Test-Path -LiteralPath $issueTemplateRoot -PathType Container)) {
+    Add-Failure "Missing directory: $issueTemplateRelativeRoot"
+    $issueTemplateRootTrusted = $false
+}
+else {
+    try { $issueTemplateRootItem = Get-Item -LiteralPath $issueTemplateRoot -Force }
+    catch { Add-Failure "Cannot inspect directory: $issueTemplateRelativeRoot"; $issueTemplateRootTrusted = $false }
+    if ($issueTemplateRootTrusted -and ($issueTemplateRootItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        Add-Failure "Reparse point is not allowed: $issueTemplateRelativeRoot"
+        $issueTemplateRootTrusted = $false
+    }
+}
+
+if ($issueTemplateRootTrusted) {
+    try { $issueTemplateEntries = @(Get-ChildItem -LiteralPath $issueTemplateRoot -Force) }
+    catch { Add-Failure "Cannot enumerate entries under $issueTemplateRelativeRoot"; $issueTemplateEntries = @() }
+    foreach ($entry in $issueTemplateEntries) {
+        if ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            Add-Failure "Reparse point is not allowed under ${issueTemplateRelativeRoot}: $($entry.Name)"
+            [void]$reparseIssueTemplateEntries.Add($entry.Name)
+        }
+        if ($issueTemplateFileNames -cnotcontains $entry.Name) {
+            Add-Failure "Unexpected active issue-template entry: $($entry.Name)"
+            continue
+        }
+        [void]$actualIssueTemplateFiles.Add($entry.Name)
+    }
+}
+
+foreach ($fileName in $issueTemplateFileNames) {
+    $relativePath = "$issueTemplateRelativeRoot/$fileName"
+    if (-not $actualIssueTemplateFiles.Contains($fileName)) {
+        Add-Failure "Missing active issue-template file: $relativePath"
+        continue
+    }
+    if ($reparseIssueTemplateEntries.Contains($fileName)) { continue }
+    $filePath = Join-Path $issueTemplateRoot $fileName
+    if (-not (Test-Path -LiteralPath $filePath -PathType Leaf)) {
+        Add-Failure "Active issue-template entry is not a file: $relativePath"
+        continue
+    }
+    try { $actualHash = (Get-FileHash -LiteralPath $filePath -Algorithm SHA256).Hash.ToLowerInvariant() }
+    catch { Add-Failure "Cannot hash active issue-template file: $relativePath"; continue }
+    if ($actualHash -cne $expectedIssueTemplateHashes[$fileName]) {
+        Add-Failure "Hash mismatch for active issue-template file: $relativePath"
+    }
+}
+```
+
+- [ ] **Step 4: Exercise exact-set, hash, and reparse-point failures**
+
+Run this focused mutation check. Every mutation is restored in `finally`, and the last assertion requires the exact green validator output:
+
+```powershell
+function Invoke-RepositoryVerifier {
+    $output = @(& powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-setup.ps1 2>&1 | ForEach-Object { $_.ToString() })
+    [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = $output }
+}
+
+function Assert-RepositoryVerifierFailure {
+    param([Parameter(Mandatory)][string]$ExpectedError)
+
+    $result = Invoke-RepositoryVerifier
+    if ($result.ExitCode -ne 1 -or $result.Output -notcontains "ERROR: $ExpectedError") {
+        $result.Output
+        throw "Expected validator failure was not reported: $ExpectedError"
+    }
+}
+
+function Assert-RepositoryVerifierSuccess {
+    $result = Invoke-RepositoryVerifier
+    if ($result.ExitCode -ne 0 -or $result.Output.Count -ne 1 -or $result.Output[0] -cne 'Repository setup validation passed.') {
+        $result.Output
+        throw 'Repository validator did not return its exact success contract.'
+    }
+}
+
+$issueTemplateRoot = (Resolve-Path '.github\ISSUE_TEMPLATE').Path
+$bugPath = Join-Path $issueTemplateRoot '01-bug.yml'
+$bugBytes = [IO.File]::ReadAllBytes($bugPath)
+$missingBackup = Join-Path ([IO.Path]::GetTempPath()) "01-bug-$([guid]::NewGuid()).yml"
+try {
+    Move-Item -LiteralPath $bugPath -Destination $missingBackup
+    Assert-RepositoryVerifierFailure 'Missing active issue-template file: .github/ISSUE_TEMPLATE/01-bug.yml'
+}
+finally {
+    if (Test-Path -LiteralPath $missingBackup) {
+        Move-Item -LiteralPath $missingBackup -Destination $bugPath
+    }
+}
+
+$unexpectedPath = Join-Path $issueTemplateRoot 'unexpected.yml'
+try {
+    [IO.File]::WriteAllText($unexpectedPath, "unexpected`n", [Text.UTF8Encoding]::new($false))
+    Assert-RepositoryVerifierFailure 'Unexpected active issue-template entry: unexpected.yml'
+}
+finally {
+    if (Test-Path -LiteralPath $unexpectedPath) { Remove-Item -LiteralPath $unexpectedPath -Force }
+}
+
+try {
+    [IO.File]::WriteAllBytes($bugPath, [byte[]]($bugBytes + [byte]10))
+    Assert-RepositoryVerifierFailure 'Hash mismatch for active issue-template file: .github/ISSUE_TEMPLATE/01-bug.yml'
+}
+finally {
+    [IO.File]::WriteAllBytes($bugPath, $bugBytes)
+}
+
+$reparsePath = Join-Path $issueTemplateRoot 'reparse-probe'
+$reparseTarget = Join-Path ([IO.Path]::GetTempPath()) "issue-form-reparse-$([guid]::NewGuid())"
+New-Item -ItemType Directory -Path $reparseTarget | Out-Null
+try {
+    New-Item -ItemType Junction -Path $reparsePath -Target $reparseTarget | Out-Null
+    Assert-RepositoryVerifierFailure 'Reparse point is not allowed under .github/ISSUE_TEMPLATE: reparse-probe'
+}
+finally {
+    if (Test-Path -LiteralPath $reparsePath) { [IO.Directory]::Delete($reparsePath) }
+    if (Test-Path -LiteralPath $reparseTarget) { Remove-Item -LiteralPath $reparseTarget -Recurse -Force }
+}
+
+Assert-RepositoryVerifierSuccess
+Write-Output 'Active issue-form validator fixture checks passed.'
+```
+
+Expected: `Active issue-form validator fixture checks passed.` Missing, unexpected, reparse-point, and hash-mismatched active entries are each rejected, all temporary mutations are restored, and the repository validator finishes with its exact success line.
+
+- [ ] **Step 5: Validate YAML schemas and parsed issue-form semantics**
+
+In VS Code, call `get_errors` for all three active files:
+
+```text
+.github/ISSUE_TEMPLATE/01-bug.yml
+.github/ISSUE_TEMPLATE/02-feature.yml
+.github/ISSUE_TEMPLATE/config.yml
+```
+
+Expected: all three files have no YAML syntax or GitHub issue-form schema diagnostics.
+
+Then run this ephemeral semantic check. It uses `ConvertFrom-Yaml`, PyYAML, `yaml`, or `js-yaml` when one is already available, in that order, and never installs or adds a runtime dependency:
+
+```powershell
+$issueTemplatePaths = [ordered]@{
+    '01-bug.yml' = '.github\ISSUE_TEMPLATE\01-bug.yml'
+    '02-feature.yml' = '.github\ISSUE_TEMPLATE\02-feature.yml'
+    'config.yml' = '.github\ISSUE_TEMPLATE\config.yml'
+}
+$documents = $null
+$parserName = $null
+
+if (Get-Command ConvertFrom-Yaml -ErrorAction SilentlyContinue) {
+    $parsedDocuments = [ordered]@{}
+    foreach ($entry in $issueTemplatePaths.GetEnumerator()) {
+        $parsedDocuments[$entry.Key] = Get-Content -LiteralPath $entry.Value -Raw | ConvertFrom-Yaml
+    }
+    $documents = [pscustomobject]$parsedDocuments
+    $parserName = 'ConvertFrom-Yaml'
+}
+
+if ($null -eq $documents) {
+    $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
+    if ($pythonCommand) {
+        & $pythonCommand.Source -c 'import yaml' 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            $pythonScript = @'
+import json
+from pathlib import Path
+import yaml
+
+paths = {
+    "01-bug.yml": ".github/ISSUE_TEMPLATE/01-bug.yml",
+    "02-feature.yml": ".github/ISSUE_TEMPLATE/02-feature.yml",
+    "config.yml": ".github/ISSUE_TEMPLATE/config.yml",
+}
+print(json.dumps({name: yaml.safe_load(Path(path).read_text(encoding="utf-8")) for name, path in paths.items()}))
+'@
+            $json = @($pythonScript | & $pythonCommand.Source -)
+            if ($LASTEXITCODE -ne 0) { throw 'PyYAML parser check failed.' }
+            $documents = ($json -join "`n") | ConvertFrom-Json
+            $parserName = 'PyYAML'
+        }
+    }
+}
+
+if ($null -eq $documents) {
+    $nodeCommand = Get-Command node -ErrorAction SilentlyContinue
+    if ($nodeCommand) {
+        $yamlModule = $null
+        foreach ($candidate in @('yaml', 'js-yaml')) {
+            & $nodeCommand.Source -e "require.resolve('$candidate')" 2>$null
+            if ($LASTEXITCODE -eq 0) { $yamlModule = $candidate; break }
+        }
+        if ($yamlModule) {
+            $env:ISSUE_FORM_YAML_MODULE = $yamlModule
+            try {
+                $nodeScript = @'
+const fs = require("fs");
+const moduleName = process.env.ISSUE_FORM_YAML_MODULE;
+const yaml = require(moduleName);
+const parse = moduleName === "yaml" ? yaml.parse : yaml.load;
+const paths = {
+  "01-bug.yml": ".github/ISSUE_TEMPLATE/01-bug.yml",
+  "02-feature.yml": ".github/ISSUE_TEMPLATE/02-feature.yml",
+  "config.yml": ".github/ISSUE_TEMPLATE/config.yml",
+};
+const documents = Object.fromEntries(
+  Object.entries(paths).map(([name, path]) => [name, parse(fs.readFileSync(path, "utf8"))]),
+);
+process.stdout.write(JSON.stringify(documents));
+'@
+                $json = @($nodeScript | & $nodeCommand.Source -)
+                if ($LASTEXITCODE -ne 0) { throw "$yamlModule parser check failed." }
+                $documents = ($json -join "`n") | ConvertFrom-Json
+                $parserName = $yamlModule
+            }
+            finally {
+                Remove-Item Env:ISSUE_FORM_YAML_MODULE -ErrorAction SilentlyContinue
+            }
+        }
+    }
+}
+
+if ($null -eq $documents) {
+    Write-Output 'No environment YAML parser detected; parser check skipped without adding a dependency.'
+}
+else {
+    function Assert-IssueFormContract {
+        param(
+            [Parameter(Mandatory)]$Form,
+            [Parameter(Mandatory)][string]$FileName,
+            [Parameter(Mandatory)][string[]]$CoreIds,
+            [Parameter(Mandatory)][string]$CheckboxId
+        )
+
+        $propertyNames = @($Form.PSObject.Properties.Name)
+        foreach ($requiredProperty in @('name', 'description', 'body')) {
+            if ($propertyNames -cnotcontains $requiredProperty) {
+                throw "$FileName is missing top-level $requiredProperty."
+            }
+        }
+        if ([string]::IsNullOrWhiteSpace([string]$Form.name) -or
+            [string]::IsNullOrWhiteSpace([string]$Form.description) -or @($Form.body).Count -eq 0) {
+            throw "$FileName has an empty name, description, or body."
+        }
+        foreach ($forbiddenProperty in @('labels', 'assignees', 'contact_links')) {
+            if ($propertyNames -ccontains $forbiddenProperty) {
+                throw "$FileName must not define $forbiddenProperty."
+            }
+        }
+
+        $itemsById = @{}
+        $ids = [Collections.Generic.List[string]]::new()
+        foreach ($item in @($Form.body)) {
+            if ($item.PSObject.Properties.Name -cnotcontains 'id') { continue }
+            $id = [string]$item.id
+            if ($itemsById.ContainsKey($id)) { throw "$FileName contains duplicate body id: $id" }
+            $itemsById[$id] = $item
+            [void]$ids.Add($id)
+        }
+        if ($ids.Count -ne @($ids | Select-Object -Unique).Count) {
+            throw "$FileName body IDs are not unique."
+        }
+        foreach ($coreId in $CoreIds) {
+            if (-not $itemsById.ContainsKey($coreId)) { throw "$FileName is missing core field: $coreId" }
+            if ($coreId -cne $CheckboxId -and $itemsById[$coreId].validations.required -ne $true) {
+                throw "$FileName core field is not required: $coreId"
+            }
+        }
+        $checkbox = $itemsById[$CheckboxId]
+        if ($checkbox.type -cne 'checkboxes' -or @($checkbox.attributes.options | Where-Object { $_.required -eq $true }).Count -eq 0) {
+            throw "$FileName duplicate check is not required."
+        }
+    }
+
+    $bugForm = $documents.'01-bug.yml'
+    $featureForm = $documents.'02-feature.yml'
+    $chooserConfig = $documents.'config.yml'
+    Assert-IssueFormContract $bugForm '01-bug.yml' @(
+        'existing_issue', 'problem', 'reproduction', 'expected_behavior', 'actual_behavior', 'environment'
+    ) 'existing_issue'
+    Assert-IssueFormContract $featureForm '02-feature.yml' @(
+        'existing_request', 'problem_value', 'desired_outcome', 'acceptance_criteria'
+    ) 'existing_request'
+
+    $configProperties = @($chooserConfig.PSObject.Properties.Name)
+    if ($chooserConfig.blank_issues_enabled -ne $false) {
+        throw 'config.yml must set blank_issues_enabled to false.'
+    }
+    foreach ($forbiddenProperty in @('labels', 'assignees', 'contact_links')) {
+        if ($configProperties -ccontains $forbiddenProperty) {
+            throw "config.yml must not define $forbiddenProperty."
+        }
+    }
+    Write-Output "Issue-form semantic validation passed with $parserName."
+}
+```
+
+Expected: if an environment YAML parser exists, it reports `Issue-form semantic validation passed with <parser>.` after validating top-level `name`, `description`, and `body`, unique body IDs, required core fields, `blank_issues_enabled: false`, and the absence of labels, assignees, and contact links. If none exists, the command reports the explicit skip without installing a dependency; VS Code YAML diagnostics remain mandatory.
+
+- [ ] **Step 6: Run the GREEN validation gate**
+
+```powershell
+$validatorOutput = @(& powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-setup.ps1 2>&1 | ForEach-Object { $_.ToString() })
+if ($LASTEXITCODE -ne 0 -or $validatorOutput.Count -ne 1 -or $validatorOutput[0] -cne 'Repository setup validation passed.') {
+    $validatorOutput
+    throw 'Repository validator did not return its exact success contract.'
+}
+$validatorOutput
+git diff --check
+if ($LASTEXITCODE -ne 0) { throw 'git diff --check failed.' }
+```
+
+Expected: exactly `Repository setup validation passed.` from the validator, no output from `git diff --check`, and no diagnostics from the three-file VS Code `get_errors` check in Step 5.
+
+- [ ] **Step 7: Commit the active forms and validator**
+
+```powershell
+git add -- .github/ISSUE_TEMPLATE/01-bug.yml .github/ISSUE_TEMPLATE/02-feature.yml .github/ISSUE_TEMPLATE/config.yml .github/cli/verify-repository-setup.ps1
+git commit -m "feat: add structured GitHub issue forms" -- .github/ISSUE_TEMPLATE/01-bug.yml .github/ISSUE_TEMPLATE/02-feature.yml .github/ISSUE_TEMPLATE/config.yml .github/cli/verify-repository-setup.ps1
+```
+
+## Task 7: Perform Final Repository and Host Validation
+
+**Files:**
+
+- Verify: all files introduced by Tasks 1-6
 
 - [ ] **Step 1: Run automated repository validation from a clean shell**
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-setup.ps1
-git diff --check HEAD~4..HEAD
+$validatorOutput = @(& powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-setup.ps1 2>&1 | ForEach-Object { $_.ToString() })
+if ($LASTEXITCODE -ne 0 -or $validatorOutput.Count -ne 1 -or $validatorOutput[0] -cne 'Repository setup validation passed.') {
+    $validatorOutput
+    throw 'Repository validator did not return its exact success contract.'
+}
+$baseCommit = git merge-base HEAD main
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($baseCommit)) {
+    throw 'Unable to determine the branch base against main.'
+}
+git diff --check "$baseCommit..HEAD"
+if ($LASTEXITCODE -ne 0) { throw 'git diff --check failed.' }
+$validatorOutput
 ```
 
-Expected: validator exits `0` with `Repository setup validation passed.`; `git diff --check` produces no output.
+Expected: exactly `Repository setup validation passed.` from the validator; `git diff --check` produces no output for every branch commit since its merge base with `main`. The check does not assume a fixed commit count.
 
-- [ ] **Step 2: Verify folder and skill counts**
+- [ ] **Step 2: Verify folders, active forms, skills, and manifest counts**
 
 ```powershell
 $requiredReadmes = @(
@@ -990,6 +1541,18 @@ $requiredReadmes = @(
     'docs/templates/README.md'
 )
 $missingReadmes = $requiredReadmes | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) }
+$expectedIssueTemplateFiles = @('01-bug.yml', '02-feature.yml', 'config.yml')
+if (-not (Test-Path -LiteralPath '.github/ISSUE_TEMPLATE' -PathType Container)) {
+    throw 'Missing active .github/ISSUE_TEMPLATE directory.'
+}
+$issueTemplateEntries = @(Get-ChildItem -LiteralPath '.github/ISSUE_TEMPLATE' -Force)
+$missingIssueTemplateFiles = $expectedIssueTemplateFiles | Where-Object {
+    $name = $_
+    @($issueTemplateEntries | Where-Object { -not $_.PSIsContainer -and $_.Name -ceq $name }).Count -ne 1
+}
+$unexpectedIssueTemplateEntries = @($issueTemplateEntries | Where-Object {
+    $_.PSIsContainer -or $expectedIssueTemplateFiles -cnotcontains $_.Name
+})
 $skillDirectories = @(Get-ChildItem -LiteralPath '.github/skills' -Directory | Where-Object {
     Test-Path -LiteralPath (Join-Path $_.FullName 'SKILL.md')
 })
@@ -999,40 +1562,55 @@ $runtimeFileCount = @($skillDirectories | ForEach-Object {
 }).Count
 $manifestEntryCount = @(Get-Content -LiteralPath '.github/skills/SUPERPOWERS_SHA256SUMS').Count
 if ($missingReadmes.Count -ne 0) { throw "Missing README files: $($missingReadmes -join ', ')" }
+if ($missingIssueTemplateFiles.Count -ne 0) {
+    throw "Missing active issue-template files: $($missingIssueTemplateFiles -join ', ')"
+}
+if ($unexpectedIssueTemplateEntries.Count -ne 0) {
+    throw "Unexpected active issue-template entries: $($unexpectedIssueTemplateEntries.Name -join ', ')"
+}
+if ($issueTemplateEntries.Count -ne 3) { throw "Expected 3 active issue-template files, found $($issueTemplateEntries.Count)" }
 if ($skillCount -ne 14) { throw "Expected 14 skills, found $skillCount" }
 if ($manifestEntryCount -ne $runtimeFileCount) {
     throw "Expected $runtimeFileCount manifest entries, found $manifestEntryCount"
 }
-if (Test-Path -LiteralPath '.github/ISSUE_TEMPLATE') { throw 'Excluded .github/ISSUE_TEMPLATE exists.' }
 if (Test-Path -LiteralPath 'docs/storyboard') { throw 'Excluded docs/storyboard exists.' }
-Write-Output 'Folder, skill, and manifest count validation passed.'
+Write-Output 'Folder, active issue-form, skill, and manifest count validation passed.'
 ```
 
-Expected: `Folder, skill, and manifest count validation passed.` The manifest entry count equals the recursive file count beneath the 14 skill directories; Step 1's main verifier validates every manifest hash and the exact runtime file set.
+Expected: `Folder, active issue-form, skill, and manifest count validation passed.` The uppercase active directory contains exactly three ordinary files, `docs/storyboard/` remains excluded, and the manifest entry count equals the recursive file count beneath the 14 skill directories. Step 1's main verifier validates every pinned runtime and issue-form hash and both exact file sets.
 
 - [ ] **Step 3: Smoke-test VS Code discovery**
 
 In VS Code:
 
-1. Run **Chat: Open Agent Customizations**.
+1. Run **Chat: Open Customizations**.
 2. Open the **Skills** tab.
-3. Confirm all 14 repository skills appear and no metadata diagnostic is shown.
-4. Start a new chat in the repository and enter `Use using-superpowers and tell me which process applies before changing code.`
+3. Confirm all 14 repository skills appear without metadata diagnostics.
+4. Confirm `using-superpowers` shows `.github/skills/using-superpowers/SKILL.md` as its repository source/path.
+5. Start a new chat in the repository and enter `Use using-superpowers and tell me which process applies before changing code.`
 
-Expected: Copilot identifies and follows `using-superpowers` from `.github/skills/` without asking for a global install.
+Expected: Copilot identifies and follows the repository-owned `using-superpowers` skill without asking for a global install.
 
 - [ ] **Step 4: Smoke-test Copilot CLI discovery**
 
-From the repository root, start:
+From the repository root, inspect project-skill provenance:
 
 ```powershell
-copilot
+copilot --no-auto-update -C . skill list --json
+```
+
+Expected: `using-superpowers` has `source` equal to `project`, `enabled` equal to `true`, and a path ending in `.github/skills/using-superpowers` with either supported path separator.
+
+Start Copilot CLI from the repository root:
+
+```powershell
+copilot --no-auto-update -C .
 ```
 
 Then enter:
 
 ```text
-Use using-superpowers and tell me which process applies before changing code.
+/using-superpowers
 ```
 
 Expected: Copilot CLI loads the repository skill and does not ask for a plugin or machine-level installation.
@@ -1041,7 +1619,8 @@ Expected: Copilot CLI loads the repository skill and does not ask for a plugin o
 
 ```powershell
 git status --short
-git log --oneline -7
+$baseCommit = git merge-base HEAD main
+git log --oneline "$baseCommit..HEAD"
 ```
 
-Expected: working tree is clean and the design, implementation plan, and five implementation commits are present.
+Expected: the working tree is clean and the branch history contains the design, implementation plan, documentation, runtime, bootstrap, and active issue-form changes. The validation does not require a fixed number of commits.
