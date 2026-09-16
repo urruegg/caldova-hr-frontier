@@ -10,6 +10,28 @@ function Add-Failure {
     param([string]$Message)
     [void]$failures.Add($Message)
 }
+function Test-ExecutableGitMode {
+    param([string]$RelativePath)
+    try {
+        Push-Location -LiteralPath $repositoryRoot
+        try { [string[]]$records = @(& git ls-files --stage -- $RelativePath 2>$null); $gitExitCode = $LASTEXITCODE }
+        finally { Pop-Location }
+    }
+    catch { Add-Failure "Cannot inspect executable Git mode: $RelativePath"; return }
+    if ($gitExitCode -ne 0 -or $records.Count -ne 1) { Add-Failure "Cannot inspect executable Git mode: $RelativePath"; return }
+    $recordMatch = [regex]::Match($records[0], '^([0-9]{6}) [0-9a-f]+ ([0-3])\t(.+)$')
+    if (-not $recordMatch.Success -or $recordMatch.Groups[2].Value -cne '0' -or $recordMatch.Groups[3].Value -cne $RelativePath) { Add-Failure "Cannot inspect executable Git mode: $RelativePath"; return }
+    if ($recordMatch.Groups[1].Value -cne '100755') { Add-Failure "Expected executable Git mode 100755: $RelativePath" }
+}
+foreach ($relativePath in @(
+    '.github/skills/brainstorming/scripts/start-server.sh',
+    '.github/skills/brainstorming/scripts/stop-server.sh',
+    '.github/skills/subagent-driven-development/scripts/review-package',
+    '.github/skills/subagent-driven-development/scripts/sdd-workspace',
+    '.github/skills/subagent-driven-development/scripts/task-brief',
+    '.github/skills/systematic-debugging/find-polluter.sh',
+    '.github/skills/writing-skills/render-graphs.js'
+)) { Test-ExecutableGitMode $relativePath }
 $skillsRootTrusted = $true
 if (Test-Path -LiteralPath $skillsRoot) {
     try { $skillsRootItem = Get-Item -LiteralPath $skillsRoot -Force }
