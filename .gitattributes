@@ -1,0 +1,19 @@
+# Vendored Superpowers bytes are integrity-checked and must not be normalized.
+/.github/skills/brainstorming/** -text
+/.github/skills/dispatching-parallel-agents/** -text
+/.github/skills/executing-plans/** -text
+/.github/skills/finishing-a-development-branch/** -text
+/.github/skills/receiving-code-review/** -text
+/.github/skills/requesting-code-review/** -text
+/.github/skills/subagent-driven-development/** -text
+/.github/skills/systematic-debugging/** -text
+/.github/skills/test-driven-development/** -text
+/.github/skills/using-git-worktrees/** -text
+/.github/skills/using-superpowers/** -text
+/.github/skills/verification-before-completion/** -text
+/.github/skills/writing-plans/** -text
+/.github/skills/writing-skills/** -text
+
+# Pin integrity metadata to the same byte representation on every platform.
+/.github/skills/LICENSE.superpowers -text
+/.github/skills/SUPERPOWERS_SHA256SUMS -text
