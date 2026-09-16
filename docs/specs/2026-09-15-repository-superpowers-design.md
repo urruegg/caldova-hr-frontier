@@ -75,7 +75,7 @@ The requested folder README requirement applies to the approved base folders lis
         `-- README.md
 ```
 
-The uppercase `.github/ISSUE_TEMPLATE/` directory contains the GitHub-active issue forms and chooser configuration. The lowercase `.github/issue-templates/` folder remains a project-owned content area for drafts, shared wording, planning material, and promotion guidance. Root `.gitattributes` contains the exact rule `/.github/ISSUE_TEMPLATE/*.yml -text`, so Git does not convert the UTF-8-no-BOM LF bytes whose raw SHA-256 hashes define the active-form contract. The only explicitly excluded folder is `docs/storyboard/`.
+The uppercase `.github/ISSUE_TEMPLATE/` directory contains the GitHub-active issue forms and chooser configuration. Those three active files use exact case-sensitive Git paths and are ordinary stage-0 mode `100644` index entries; filesystem checks alone are not authoritative on case-insensitive platforms. The lowercase `.github/issue-templates/` folder remains a project-owned content area for drafts, shared wording, planning material, and promotion guidance. Root `.gitattributes` contains the exact rule `/.github/ISSUE_TEMPLATE/*.yml -text`, so Git does not convert the UTF-8-no-BOM LF bytes whose raw SHA-256 hashes define the active-form contract. The only explicitly excluded folder is `docs/storyboard/`.
 
 ## Copilot Integration
 
@@ -123,7 +123,7 @@ Vendored skill content is not rewritten for project preferences. Repository-spec
 Implementation is complete when all of these checks pass:
 
 1. Every approved base folder exists and contains a non-empty `README.md`.
-2. Root `.gitattributes` contains exactly `/.github/ISSUE_TEMPLATE/*.yml -text` for active-form EOL handling, and `.github/ISSUE_TEMPLATE/` contains exactly `01-bug.yml`, `02-feature.yml`, and `config.yml` as ordinary files.
+2. Root `.gitattributes` contains exactly `/.github/ISSUE_TEMPLATE/*.yml -text` for active-form EOL handling. The active forms are tracked at exactly `.github/ISSUE_TEMPLATE/01-bug.yml`, `.github/ISSUE_TEMPLATE/02-feature.yml`, and `.github/ISSUE_TEMPLATE/config.yml`, with ordinal path casing and exactly one stage-0 mode `100644` Git index record apiece; the filesystem directory contains those same three entries as ordinary files and no others.
 3. Both issue forms are valid YAML with top-level `name`, `description`, and `body` keys, unique body IDs, and the required core fields for duplicate checks, bug reproduction and behavior, environment details, feature value and outcome, and acceptance criteria.
 4. The chooser configuration is valid, sets `blank_issues_enabled: false`, and the active files contain no fake labels, assignees, or contact links. The security link omission remains intentional until a verified private reporting channel exists.
 5. The explicitly excluded `docs/storyboard/` folder does not exist.

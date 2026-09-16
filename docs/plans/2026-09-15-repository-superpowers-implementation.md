@@ -1222,8 +1222,11 @@ if (Test-Path -LiteralPath $storyboardPath) {
 }
 
 $issueTemplateRelativeRoot = '.github/ISSUE_TEMPLATE'
+$githubRoot = Join-Path $repositoryRoot '.github'
 $issueTemplateRoot = Join-Path $repositoryRoot '.github\ISSUE_TEMPLATE'
 $issueTemplateFileNames = @('01-bug.yml', '02-feature.yml', 'config.yml')
+$issueTemplateGitPrefix = '.github/ISSUE_TEMPLATE/'
+$expectedIssueTemplateGitPaths = @($issueTemplateFileNames | ForEach-Object { "${issueTemplateGitPrefix}$_" })
 $expectedIssueTemplateHashes = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
 $expectedIssueTemplateHashes.Add('01-bug.yml', '8f2c31b169477b86d85e60f9d1c91eed349fae829f1071b8b42dc93624d8879a')
 $expectedIssueTemplateHashes.Add('02-feature.yml', '748e69155e9e60acd16f5cbb93b6398fd5853905951829080a9c440ed5c0e7a4')
@@ -1231,6 +1234,25 @@ $expectedIssueTemplateHashes.Add('config.yml', '1f103c6a9dd07cd13a9a6f17ace6b813
 $actualIssueTemplateFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $reparseIssueTemplateEntries = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $issueTemplateRootTrusted = $true
+
+if (Test-Path -LiteralPath $githubRoot -PathType Container) {
+    try {
+        $issueTemplateDirectoryCandidates = @(Get-ChildItem -LiteralPath $githubRoot -Directory -Force | Where-Object {
+            [string]::Equals($_.Name, 'ISSUE_TEMPLATE', [StringComparison]::OrdinalIgnoreCase)
+        })
+        foreach ($candidate in $issueTemplateDirectoryCandidates) {
+            if ($candidate.Name -cne 'ISSUE_TEMPLATE') {
+                Add-Failure "Active issue-template directory must use exact filesystem casing: .github/$($candidate.Name)"
+            }
+        }
+        if ($issueTemplateDirectoryCandidates.Count -gt 1) {
+            Add-Failure 'Multiple case variants of the active issue-template directory exist under .github'
+        }
+    }
+    catch {
+        Add-Failure 'Cannot inspect active issue-template directory casing under .github'
+    }
+}
 
 if (-not (Test-Path -LiteralPath $issueTemplateRoot -PathType Container)) {
     Add-Failure "Missing directory: $issueTemplateRelativeRoot"
@@ -1279,11 +1301,80 @@ foreach ($fileName in $issueTemplateFileNames) {
         Add-Failure "Hash mismatch for active issue-template file: $relativePath"
     }
 }
+
+$gitCommand = Get-Command git -CommandType Application -ErrorAction SilentlyContinue
+$gitIndexLines = @()
+$gitIndexReadable = $false
+if ($null -eq $gitCommand) {
+    Add-Failure 'Cannot inspect Git index for active issue-template paths: git is unavailable'
+}
+else {
+    try {
+        $gitIndexLines = @(& $gitCommand.Source -C $repositoryRoot -c core.quotePath=false ls-files --stage 2>&1 |
+            ForEach-Object { $_.ToString() })
+        $gitIndexExitCode = $LASTEXITCODE
+        if ($gitIndexExitCode -ne 0) {
+            Add-Failure 'Cannot inspect Git index for active issue-template paths'
+        }
+        else {
+            $gitIndexReadable = $true
+        }
+    }
+    catch {
+        Add-Failure 'Cannot inspect Git index for active issue-template paths'
+    }
+}
+
+if ($gitIndexReadable) {
+    $issueTemplateGitRecords = [Collections.Generic.List[object]]::new()
+    foreach ($line in $gitIndexLines) {
+        if ($line -notmatch '^([0-7]{6}) ([0-9a-fA-F]{40,64}) ([0-3])\t(.*)$') {
+            Add-Failure "Cannot parse Git index record: $line"
+            continue
+        }
+        $record = [pscustomobject]@{
+            Mode = $Matches[1]
+            ObjectId = $Matches[2]
+            Stage = $Matches[3]
+            Path = $Matches[4]
+        }
+        if (-not $record.Path.StartsWith($issueTemplateGitPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+            continue
+        }
+        [void]$issueTemplateGitRecords.Add($record)
+        $caseInsensitiveExpectedPath = @($expectedIssueTemplateGitPaths | Where-Object {
+            [string]::Equals($_, $record.Path, [StringComparison]::OrdinalIgnoreCase)
+        })
+        if (-not $record.Path.StartsWith($issueTemplateGitPrefix, [StringComparison]::Ordinal) -or
+            ($caseInsensitiveExpectedPath.Count -eq 1 -and $record.Path -cne $caseInsensitiveExpectedPath[0])) {
+            Add-Failure "Active issue-template path must use exact Git casing: $($record.Path)"
+            continue
+        }
+        if ($expectedIssueTemplateGitPaths -cnotcontains $record.Path) {
+            Add-Failure "Unexpected tracked active issue-template path: $($record.Path)"
+        }
+    }
+
+    foreach ($expectedPath in $expectedIssueTemplateGitPaths) {
+        $matchingRecords = @($issueTemplateGitRecords | Where-Object { $_.Path -ceq $expectedPath })
+        if ($matchingRecords.Count -eq 0) {
+            Add-Failure "Active issue-template file is not tracked at exact Git path: $expectedPath"
+            continue
+        }
+        if ($matchingRecords.Count -ne 1) {
+            Add-Failure "Ambiguous Git index entries for active issue-template path: $expectedPath"
+            continue
+        }
+        if ($matchingRecords[0].Stage -cne '0' -or $matchingRecords[0].Mode -cne '100644') {
+            Add-Failure "Active issue-template Git entry must be stage-0 mode 100644: $expectedPath"
+        }
+    }
+}
 ```
 
-- [ ] **Step 5: Exercise exact-set, hash, and reparse-point failures**
+- [ ] **Step 5: Exercise exact-set, hash, reparse-point, and Git-casing failures**
 
-Run this focused mutation check. Every mutation is restored in `finally`, and the last assertion requires the exact green validator output:
+Run this focused mutation check. It first stages the three active forms so the real index represents the intended tracked-file contract; keep that deliberate staging through Step 8. Every temporary filesystem mutation is restored in `finally`, the wrong-case record exists only in an alternate temporary index, and the last assertion requires the exact green validator output against the restored real index:
 
 ```powershell
 function Invoke-RepositoryVerifier {
@@ -1308,6 +1399,14 @@ function Assert-RepositoryVerifierSuccess {
         throw 'Repository validator did not return its exact success contract.'
     }
 }
+
+$issueTemplateGitPaths = @(
+    '.github/ISSUE_TEMPLATE/01-bug.yml',
+    '.github/ISSUE_TEMPLATE/02-feature.yml',
+    '.github/ISSUE_TEMPLATE/config.yml'
+)
+git add -- $issueTemplateGitPaths
+if ($LASTEXITCODE -ne 0) { throw 'Unable to stage active issue-template fixture inputs.' }
 
 $issueTemplateRoot = (Resolve-Path '.github\ISSUE_TEMPLATE').Path
 $bugPath = Join-Path $issueTemplateRoot '01-bug.yml'
@@ -1352,11 +1451,41 @@ finally {
     if (Test-Path -LiteralPath $reparseTarget) { Remove-Item -LiteralPath $reparseTarget -Recurse -Force }
 }
 
+$gitIndexPath = @(git rev-parse --git-path index)
+if ($LASTEXITCODE -ne 0 -or $gitIndexPath.Count -ne 1) { throw 'Unable to locate the current Git index.' }
+$bugBlob = @(git hash-object -- .github/ISSUE_TEMPLATE/01-bug.yml)
+if ($LASTEXITCODE -ne 0 -or $bugBlob.Count -ne 1) { throw 'Unable to identify the bug-form blob.' }
+$temporaryIndex = Join-Path ([IO.Path]::GetTempPath()) "issue-form-index-$([guid]::NewGuid())"
+$previousGitIndexFile = [Environment]::GetEnvironmentVariable('GIT_INDEX_FILE', 'Process')
+Copy-Item -LiteralPath $gitIndexPath[0] -Destination $temporaryIndex
+try {
+    [Environment]::SetEnvironmentVariable('GIT_INDEX_FILE', $temporaryIndex, 'Process')
+    git update-index --force-remove -- .github/ISSUE_TEMPLATE/01-bug.yml
+    if ($LASTEXITCODE -ne 0) { throw 'Unable to remove the exact-case bug-form fixture entry.' }
+    $cacheInfo = "100644,$($bugBlob[0]),.github/issue_template/01-bug.yml"
+    git update-index --add --cacheinfo $cacheInfo
+    if ($LASTEXITCODE -ne 0) { throw 'Unable to add the lowercase bug-form fixture entry.' }
+
+    if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
+        if (-not (Test-Path -LiteralPath '.github\issue_template\01-bug.yml' -PathType Leaf)) {
+            throw 'The Windows fixture did not reproduce the case-insensitive filesystem lookup.'
+        }
+        Write-Output 'RED confirmed: the lowercase Git path still satisfies the old Windows filesystem lookup.'
+    }
+    Assert-RepositoryVerifierFailure 'Active issue-template path must use exact Git casing: .github/issue_template/01-bug.yml'
+}
+finally {
+    [Environment]::SetEnvironmentVariable('GIT_INDEX_FILE', $previousGitIndexFile, 'Process')
+    if (Test-Path -LiteralPath $temporaryIndex) { Remove-Item -LiteralPath $temporaryIndex -Force }
+    if (Test-Path -LiteralPath "$temporaryIndex.lock") { Remove-Item -LiteralPath "$temporaryIndex.lock" -Force }
+}
+
 Assert-RepositoryVerifierSuccess
+Write-Output 'GREEN confirmed: exact uppercase stage-0 mode 100644 Git paths pass.'
 Write-Output 'Active issue-form validator fixture checks passed.'
 ```
 
-Expected: `Active issue-form validator fixture checks passed.` Missing, unexpected, reparse-point, and hash-mismatched active entries are each rejected, all temporary mutations are restored, and the repository validator finishes with its exact success line.
+Expected: on Windows, the lowercase index fixture first reports `RED confirmed: the lowercase Git path still satisfies the old Windows filesystem lookup.` On every platform, the alternate index is rejected with `Active issue-template path must use exact Git casing: .github/issue_template/01-bug.yml`; restoring the real index reports `GREEN confirmed: exact uppercase stage-0 mode 100644 Git paths pass.` and `Active issue-form validator fixture checks passed.` Missing, unexpected, reparse-point, hash-mismatched, untracked, wrong-mode, wrong-stage, and wrong-case active entries are rejected. The three active forms remain deliberately staged; every temporary filesystem and alternate-index mutation is restored.
 
 - [ ] **Step 6: Validate YAML schemas and parsed issue-form semantics**
 
@@ -1453,6 +1582,66 @@ process.stdout.write(JSON.stringify(documents));
     }
 }
 
+if ($null -ne $documents) {
+    try {
+        $documents = $documents | ConvertTo-Json -Depth 100 | ConvertFrom-Json
+    }
+    catch {
+        throw "Issue-form semantic normalization failed after ${parserName}: $($_.Exception.Message)"
+    }
+}
+
+$hashtableFixtureDocuments = @{
+    'fixture.yml' = @{
+        name = 'Fixture form'
+        description = 'Exercises IDictionary normalization.'
+        body = @(
+            @{
+                type = 'checkboxes'
+                id = 'existing_issue'
+                attributes = @{ options = @(@{ label = 'Checked'; required = $true }) }
+            },
+            @{
+                type = 'textarea'
+                id = 'problem'
+                attributes = @{ label = 'Problem' }
+                validations = @{ required = $true }
+            }
+        )
+    }
+    'config.yml' = @{ blank_issues_enabled = $false }
+}
+try {
+    $normalizedHashtableFixture = $hashtableFixtureDocuments | ConvertTo-Json -Depth 100 | ConvertFrom-Json
+}
+catch {
+    throw "Hashtable semantic normalization fixture failed: $($_.Exception.Message)"
+}
+$fixtureForm = $normalizedHashtableFixture.'fixture.yml'
+$fixturePropertyNames = @($fixtureForm.PSObject.Properties.Name)
+foreach ($requiredProperty in @('name', 'description', 'body')) {
+    if ($fixturePropertyNames -cnotcontains $requiredProperty) {
+        throw "Hashtable semantic normalization fixture is missing top-level $requiredProperty."
+    }
+}
+if (@($fixtureForm.body).Count -ne 2) {
+    throw 'Hashtable semantic normalization fixture did not preserve the body array.'
+}
+$fixtureItemsById = @{}
+foreach ($item in @($fixtureForm.body)) { $fixtureItemsById[[string]$item.id] = $item }
+if ($fixtureItemsById['problem'].validations.required -ne $true) {
+    throw 'Hashtable semantic normalization fixture lost nested validation access.'
+}
+$fixtureOptions = @($fixtureItemsById['existing_issue'].attributes.options)
+if ($fixtureOptions.Count -ne 1 -or $fixtureOptions[0].required -ne $true) {
+    throw 'Hashtable semantic normalization fixture did not preserve checkbox options.'
+}
+$fixtureConfig = $normalizedHashtableFixture.'config.yml'
+if ($fixtureConfig.blank_issues_enabled -isnot [bool] -or $fixtureConfig.blank_issues_enabled -ne $false) {
+    throw 'Hashtable semantic normalization fixture did not preserve Boolean false.'
+}
+Write-Output 'Hashtable semantic normalization fixture passed.'
+
 if ($null -eq $documents) {
     Write-Output 'No environment YAML parser detected; parser check skipped without adding a dependency.'
 }
@@ -1528,7 +1717,7 @@ else {
 }
 ```
 
-Expected: if an environment YAML parser exists, it reports `Issue-form semantic validation passed with <parser>.` after validating top-level `name`, `description`, and `body`, unique body IDs, required core fields, `blank_issues_enabled: false`, and the absence of labels, assignees, and contact links. If none exists, the command reports the explicit skip without installing a dependency; VS Code YAML diagnostics remain mandatory.
+Expected: `Hashtable semantic normalization fixture passed.` proves that an `IDictionary` graph normalizes to uniform `PSCustomObject` values while preserving body and options arrays, nested validation access, and Boolean `false`. If an environment YAML parser exists, the command then reports `Issue-form semantic validation passed with <parser>.` after validating top-level `name`, `description`, and `body`, unique body IDs, required core fields, `blank_issues_enabled: false`, and the absence of labels, assignees, and contact links. If none exists, `$documents` remains `$null` and the command reports the explicit skip without installing a dependency; VS Code YAML diagnostics remain mandatory.
 
 - [ ] **Step 7: Run the GREEN validation gate and portable-checkout tests**
 
@@ -1689,9 +1878,23 @@ $requiredReadmes = @(
     'docs/templates/README.md'
 )
 $missingReadmes = $requiredReadmes | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) }
+$repositoryRoot = (Resolve-Path '.').Path
 $expectedIssueTemplateFiles = @('01-bug.yml', '02-feature.yml', 'config.yml')
+$issueTemplateGitPrefix = '.github/ISSUE_TEMPLATE/'
+$expectedIssueTemplateGitPaths = @(
+    '.github/ISSUE_TEMPLATE/01-bug.yml',
+    '.github/ISSUE_TEMPLATE/02-feature.yml',
+    '.github/ISSUE_TEMPLATE/config.yml'
+)
 if (-not (Test-Path -LiteralPath '.github/ISSUE_TEMPLATE' -PathType Container)) {
     throw 'Missing active .github/ISSUE_TEMPLATE directory.'
+}
+$issueTemplateDirectoryCandidates = @(Get-ChildItem -LiteralPath '.github' -Directory -Force | Where-Object {
+    [string]::Equals($_.Name, 'ISSUE_TEMPLATE', [StringComparison]::OrdinalIgnoreCase)
+})
+if ($issueTemplateDirectoryCandidates.Count -ne 1 -or
+    $issueTemplateDirectoryCandidates[0].Name -cne 'ISSUE_TEMPLATE') {
+    throw 'The active issue-template directory must be exactly .github/ISSUE_TEMPLATE.'
 }
 $issueTemplateEntries = @(Get-ChildItem -LiteralPath '.github/ISSUE_TEMPLATE' -Force)
 $missingIssueTemplateFiles = $expectedIssueTemplateFiles | Where-Object {
@@ -1701,6 +1904,49 @@ $missingIssueTemplateFiles = $expectedIssueTemplateFiles | Where-Object {
 $unexpectedIssueTemplateEntries = @($issueTemplateEntries | Where-Object {
     $_.PSIsContainer -or $expectedIssueTemplateFiles -cnotcontains $_.Name
 })
+$gitCommand = Get-Command git -CommandType Application -ErrorAction SilentlyContinue
+if ($null -eq $gitCommand) { throw 'Cannot inspect active issue-template paths because git is unavailable.' }
+$gitIndexLines = @(& $gitCommand.Source -C $repositoryRoot -c core.quotePath=false ls-files --stage 2>&1 |
+    ForEach-Object { $_.ToString() })
+if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect the Git index for active issue-template paths.' }
+$issueTemplateGitRecords = @()
+foreach ($line in $gitIndexLines) {
+    if ($line -notmatch '^([0-7]{6}) ([0-9a-fA-F]{40,64}) ([0-3])\t(.*)$') {
+        throw "Cannot parse Git index record: $line"
+    }
+    $record = [pscustomobject]@{
+        Mode = $Matches[1]
+        ObjectId = $Matches[2]
+        Stage = $Matches[3]
+        Path = $Matches[4]
+    }
+    if (-not $record.Path.StartsWith($issueTemplateGitPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+        continue
+    }
+    $issueTemplateGitRecords += $record
+    $caseInsensitiveExpectedPath = @($expectedIssueTemplateGitPaths | Where-Object {
+        [string]::Equals($_, $record.Path, [StringComparison]::OrdinalIgnoreCase)
+    })
+    if (-not $record.Path.StartsWith($issueTemplateGitPrefix, [StringComparison]::Ordinal) -or
+        ($caseInsensitiveExpectedPath.Count -eq 1 -and $record.Path -cne $caseInsensitiveExpectedPath[0])) {
+        throw "Active issue-template path must use exact Git casing: $($record.Path)"
+    }
+    if ($expectedIssueTemplateGitPaths -cnotcontains $record.Path) {
+        throw "Unexpected tracked active issue-template path: $($record.Path)"
+    }
+}
+if ($issueTemplateGitRecords.Count -ne 3) {
+    throw "Expected 3 tracked active issue-template paths, found $($issueTemplateGitRecords.Count)"
+}
+foreach ($expectedPath in $expectedIssueTemplateGitPaths) {
+    $matchingRecords = @($issueTemplateGitRecords | Where-Object { $_.Path -ceq $expectedPath })
+    if ($matchingRecords.Count -ne 1) {
+        throw "Expected exactly one Git index entry at active issue-template path: $expectedPath"
+    }
+    if ($matchingRecords[0].Stage -cne '0' -or $matchingRecords[0].Mode -cne '100644') {
+        throw "Active issue-template Git entry must be stage-0 mode 100644: $expectedPath"
+    }
+}
 $skillDirectories = @(Get-ChildItem -LiteralPath '.github/skills' -Directory | Where-Object {
     Test-Path -LiteralPath (Join-Path $_.FullName 'SKILL.md')
 })
@@ -1725,7 +1971,7 @@ if (Test-Path -LiteralPath 'docs/storyboard') { throw 'Excluded docs/storyboard 
 Write-Output 'Folder, active issue-form, skill, and manifest count validation passed.'
 ```
 
-Expected: `Folder, active issue-form, skill, and manifest count validation passed.` The uppercase active directory contains exactly three ordinary files, `docs/storyboard/` remains excluded, and the manifest entry count equals the recursive file count beneath the 14 skill directories. Step 1's main verifier validates every pinned runtime and issue-form hash and both exact file sets.
+Expected: `Folder, active issue-form, skill, and manifest count validation passed.` The active directory has exact ordinal filesystem casing, contains exactly three ordinary files, and the Git index contains exactly the three authoritative `.github/ISSUE_TEMPLATE/` paths as stage-0 mode `100644` records with no case variants. `docs/storyboard/` remains excluded, and the manifest entry count equals the recursive file count beneath the 14 skill directories. Step 1's main verifier validates every pinned runtime and issue-form hash and both exact file sets.
 
 - [ ] **Step 3: Smoke-test VS Code discovery**
 
