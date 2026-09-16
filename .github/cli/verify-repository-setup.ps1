@@ -10,28 +10,6 @@ function Add-Failure {
     param([string]$Message)
     [void]$failures.Add($Message)
 }
-function Test-ExecutableGitMode {
-    param([string]$RelativePath)
-    try {
-        Push-Location -LiteralPath $repositoryRoot
-        try { [string[]]$records = @(& git ls-files --stage -- $RelativePath 2>$null); $gitExitCode = $LASTEXITCODE }
-        finally { Pop-Location }
-    }
-    catch { Add-Failure "Cannot inspect executable Git mode: $RelativePath"; return }
-    if ($gitExitCode -ne 0 -or $records.Count -ne 1) { Add-Failure "Cannot inspect executable Git mode: $RelativePath"; return }
-    $recordMatch = [regex]::Match($records[0], '^([0-9]{6}) [0-9a-f]+ ([0-3])\t(.+)$')
-    if (-not $recordMatch.Success -or $recordMatch.Groups[2].Value -cne '0' -or $recordMatch.Groups[3].Value -cne $RelativePath) { Add-Failure "Cannot inspect executable Git mode: $RelativePath"; return }
-    if ($recordMatch.Groups[1].Value -cne '100755') { Add-Failure "Expected executable Git mode 100755: $RelativePath" }
-}
-foreach ($relativePath in @(
-    '.github/skills/brainstorming/scripts/start-server.sh',
-    '.github/skills/brainstorming/scripts/stop-server.sh',
-    '.github/skills/subagent-driven-development/scripts/review-package',
-    '.github/skills/subagent-driven-development/scripts/sdd-workspace',
-    '.github/skills/subagent-driven-development/scripts/task-brief',
-    '.github/skills/systematic-debugging/find-polluter.sh',
-    '.github/skills/writing-skills/render-graphs.js'
-)) { Test-ExecutableGitMode $relativePath }
 $skillsRootTrusted = $true
 if (Test-Path -LiteralPath $skillsRoot) {
     try { $skillsRootItem = Get-Item -LiteralPath $skillsRoot -Force }
@@ -39,7 +17,7 @@ if (Test-Path -LiteralPath $skillsRoot) {
     if ($skillsRootTrusted -and ($skillsRootItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) { Add-Failure 'Reparse point is not allowed: .github/skills'; $skillsRootTrusted = $false }
 }
 function Test-RequiredContent {
-    param([string]$RelativePath, [string[]]$Terms, [string[]]$ExactLines = @())
+    param([string]$RelativePath, [string[]]$Terms, [string[]]$ExpectedLines = @())
 
     if (-not $skillsRootTrusted -and $RelativePath.StartsWith('.github/skills/', [StringComparison]::Ordinal)) { return }
     $path = Join-Path $repositoryRoot ($RelativePath.Replace('/', '\'))
@@ -55,14 +33,17 @@ function Test-RequiredContent {
         Add-Failure "Cannot read file: $RelativePath"
         return
     }
+    if ($ExpectedLines.Count -gt 0) {
+        $matches = $lines.Count -eq $ExpectedLines.Count
+        for ($lineIndex = 0; $matches -and $lineIndex -lt $lines.Count; $lineIndex++) {
+            $matches = $lines[$lineIndex] -ceq $ExpectedLines[$lineIndex]
+        }
+        if (-not $matches) { Add-Failure "$RelativePath does not match the pinned metadata contract." }
+        return
+    }
     foreach ($term in $Terms) {
         if ($content.IndexOf($term, [StringComparison]::Ordinal) -lt 0) {
             Add-Failure "$RelativePath does not contain '$term'."
-        }
-    }
-    foreach ($exactLine in $ExactLines) {
-        if (-not ($lines -ccontains $exactLine)) {
-            Add-Failure "$RelativePath does not contain the exact line '$exactLine'."
         }
     }
 }
@@ -266,12 +247,61 @@ foreach ($relativePath in $manifestPaths) {
     }
 }
 
+$executableRuntimePaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+foreach ($relativePath in @(
+    'brainstorming/scripts/start-server.sh', 'brainstorming/scripts/stop-server.sh',
+    'subagent-driven-development/scripts/review-package', 'subagent-driven-development/scripts/sdd-workspace',
+    'subagent-driven-development/scripts/task-brief', 'systematic-debugging/find-polluter.sh',
+    'writing-skills/render-graphs.js'
+)) { [void]$executableRuntimePaths.Add($relativePath) }
+function Test-RuntimeGitMode {
+    param([string]$ManifestRelativePath)
+
+    $repositoryRelativePath = ".github/skills/$ManifestRelativePath"
+    $expectedMode = if ($executableRuntimePaths.Contains($ManifestRelativePath)) { '100755' } else { '100644' }
+    $valid = $false
+    try {
+        Push-Location -LiteralPath $repositoryRoot
+        try { [string[]]$records = @(& git ls-files --stage -- $repositoryRelativePath 2>$null); $gitExitCode = $LASTEXITCODE }
+        finally { Pop-Location }
+        if ($gitExitCode -eq 0 -and $records.Count -eq 1) {
+            $recordMatch = [regex]::Match($records[0], '^([0-9]{6}) [0-9a-f]+ ([0-3])\t(.+)$')
+            $valid = $recordMatch.Success -and $recordMatch.Groups[1].Value -ceq $expectedMode -and
+                $recordMatch.Groups[2].Value -ceq '0' -and $recordMatch.Groups[3].Value -ceq $repositoryRelativePath
+        }
+    }
+    catch {}
+    if (-not $valid) { Add-Failure "Expected Git mode ${expectedMode}: $repositoryRelativePath" }
+}
+foreach ($relativePath in $runtimePaths) { Test-RuntimeGitMode $relativePath }
+
 Test-RequiredContent 'AGENTS.md' @('.github/skills', 'using-superpowers')
 Test-RequiredContent '.github/copilot-instructions.md' @('.github/skills', 'using-superpowers')
-Test-RequiredContent '.github/skills/SUPERPOWERS_VERSION' @(
-    'https://github.com/obra/superpowers', 'v6.3.0', 'b36e0829c6d0140e93cfef2ca599b1b07d4a7797'
-) @('manifest=SUPERPOWERS_SHA256SUMS')
-Test-RequiredContent '.github/skills/LICENSE.superpowers' @('MIT License', 'Copyright (c) 2025 Jesse Vincent')
+Test-RequiredContent '.github/skills/SUPERPOWERS_VERSION' @() @(
+    'name=Superpowers',
+    'source=https://github.com/obra/superpowers',
+    'release=v6.3.0',
+    'version=6.3.0',
+    'tag-object=86babb696875227929e85420f287d6309374b93f',
+    'commit=b36e0829c6d0140e93cfef2ca599b1b07d4a7797',
+    'vendored=2026-09-15',
+    'upstream-path=skills/',
+    'destination=.github/skills/',
+    'manifest=SUPERPOWERS_SHA256SUMS',
+    'included-skills=brainstorming,dispatching-parallel-agents,executing-plans,finishing-a-development-branch,receiving-code-review,requesting-code-review,subagent-driven-development,systematic-debugging,test-driven-development,using-git-worktrees,using-superpowers,verification-before-completion,writing-plans,writing-skills'
+)
+if ($skillsRootTrusted) {
+    $licenseRelativePath = '.github/skills/LICENSE.superpowers'
+    $licensePath = Join-Path $repositoryRoot ($licenseRelativePath.Replace('/', '\'))
+    if (-not (Test-Path -LiteralPath $licensePath -PathType Leaf)) { Add-Failure "Missing file: $licenseRelativePath" }
+    else {
+        try { $licenseHash = (Get-FileHash -LiteralPath $licensePath -Algorithm SHA256).Hash.ToLowerInvariant() }
+        catch { Add-Failure "Cannot hash file: $licenseRelativePath"; $licenseHash = $null }
+        if ($licenseHash -and $licenseHash -cne 'a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400') {
+            Add-Failure "License hash mismatch: $licenseRelativePath"
+        }
+    }
+}
 Test-RequiredContent 'README.md' @('Superpowers', 'v6.3.0', '.github/skills', 'verify-repository-setup.ps1')
 
 if ($failures.Count -gt 0) {
