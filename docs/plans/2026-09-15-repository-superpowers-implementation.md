@@ -10,7 +10,13 @@
 
 ---
 
+## Execution Status
+
+Tasks 1-5 are completed historical context and are not a replay path into Task 6. Their embedded steps record how the branch reached its current state and may use historical names such as `Add-ValidationFailure`. The authoritative pre-Task-6 validator is the committed `.github/cli/verify-repository-setup.ps1` at commit `41a869dc3cb81522638bfd6df7dcf8557a4fb18c`; executors must read the current file before applying the self-contained Task 6, which uses the `Add-Failure` baseline.
+
 ## Task 1: Add the Repository Setup Verifier
+
+> **Historical snapshot:** The validator and fixture blocks in this task preserve the original implementation slice. Do not recreate the Task 6 baseline from these blocks or depend on their historical `Add-ValidationFailure` name. Subsequent review condensed the validator; Task 6 must read the committed file identified above, which uses `Add-Failure`.
 
 **Files:**
 
@@ -970,21 +976,30 @@ git commit -m "docs: activate bundled Superpowers for Copilot" -- AGENTS.md .git
 
 **Files:**
 
+- Modify: `.gitattributes`
 - Create: `.github/ISSUE_TEMPLATE/01-bug.yml`
 - Create: `.github/ISSUE_TEMPLATE/02-feature.yml`
 - Create: `.github/ISSUE_TEMPLATE/config.yml`
 - Modify: `.github/cli/verify-repository-setup.ps1`
 
-The lowercase `.github/issue-templates/README.md`, design specification, and this plan are updated and committed separately before this task. The implementation commit in this task contains only the three active issue-form files and the repository validator.
+The lowercase `.github/issue-templates/README.md`, design specification, and this plan are updated and committed separately before this task. The implementation commit in this task contains only root `.gitattributes`, the three active issue-form files, and the repository validator.
+
+Task 6 starts from the current committed validator at `41a869dc3cb81522638bfd6df7dcf8557a4fb18c`, not the historical Task 1 sample. Before replacing validator code, the executor must read the actual `.github/cli/verify-repository-setup.ps1` and confirm that it defines `Add-Failure` and contains the legacy-path loop quoted in Step 4.
 
 - [ ] **Step 1: Run a RED check against the current legacy-path contract**
 
-Run this from the repository root before changing the validator. It creates and removes an empty active issue-template directory solely to prove the current validator rejects that path:
+Run this from the repository root before changing the validator or adding `.gitattributes`. It first proves that Git has no active-form EOL override, then creates and removes an empty active issue-template directory solely to prove the current committed validator rejects that path:
 
 ```powershell
 $activeIssueTemplatePath = '.github\ISSUE_TEMPLATE'
 if (Test-Path -LiteralPath $activeIssueTemplatePath) {
     throw '.github/ISSUE_TEMPLATE must not exist before the RED check.'
+}
+$attributeOutput = @(git check-attr text -- .github/ISSUE_TEMPLATE/01-bug.yml)
+if ($LASTEXITCODE -ne 0 -or $attributeOutput.Count -ne 1 -or
+    $attributeOutput[0] -cne '.github/ISSUE_TEMPLATE/01-bug.yml: text: unspecified') {
+    $attributeOutput
+    throw 'Expected the active issue-form text attribute to be unspecified before implementation.'
 }
 New-Item -ItemType Directory -Path $activeIssueTemplatePath | Out-Null
 try {
@@ -1001,9 +1016,11 @@ finally {
 Write-Output 'RED confirmed: current validator rejects .github/ISSUE_TEMPLATE.'
 ```
 
-Expected: `RED confirmed: current validator rejects .github/ISSUE_TEMPLATE.` The validator implementation has not changed yet.
+Expected: `git check-attr` reports `.github/ISSUE_TEMPLATE/01-bug.yml: text: unspecified`, followed by `RED confirmed: current validator rejects .github/ISSUE_TEMPLATE.` The validator implementation has not changed yet. The exact legacy diagnostic assertion is intentionally tied to the committed pre-Task-6 validator, not Task 1's historical sample.
 
 - [ ] **Step 2: Create the exact active issue forms**
+
+All three active YAML files are raw-byte contracts: UTF-8 without a BOM, LF line endings, and exactly one final LF. The `-text` rule added in Step 3 disables Git EOL conversion for these paths, making their stated raw SHA-256 hashes portable across checkout settings.
 
 Create `.github/ISSUE_TEMPLATE/01-bug.yml` with UTF-8 encoding without a BOM, LF line endings, and exactly one final LF:
 
@@ -1016,7 +1033,7 @@ body:
     attributes:
       value: |
         Thank you for helping us improve Caldova HR Frontier.
-        Do not disclose security vulnerabilities in this public form. Use the repository Security tab for private reporting when available.
+        This form is public. Do not include secrets, personal data, or security vulnerability details.
   - type: checkboxes
     id: existing_issue
     attributes:
@@ -1147,14 +1164,46 @@ blank_issues_enabled: false
 The exact byte contracts are:
 
 ```text
-c2bf726c1081a395d1124cead46e5f5dafc153c66913ddd5afe8b5c6bee39dcf  01-bug.yml
+8f2c31b169477b86d85e60f9d1c91eed349fae829f1071b8b42dc93624d8879a  01-bug.yml
 748e69155e9e60acd16f5cbb93b6398fd5853905951829080a9c440ed5c0e7a4  02-feature.yml
 1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb  config.yml
 ```
 
-- [ ] **Step 3: Replace the legacy-path rejection with the pinned active-form contract**
+- [ ] **Step 3: Disable EOL conversion for active issue forms**
 
-In `.github/cli/verify-repository-setup.ps1`, replace the existing loop that rejects both legacy paths:
+Modify root `.gitattributes` by adding this exact line. Preserve its existing rules, use UTF-8 encoding without a BOM and LF line endings, and retain exactly one final LF:
+
+```gitattributes
+/.github/ISSUE_TEMPLATE/*.yml -text
+```
+
+Run the GREEN attribute check:
+
+```powershell
+$issueTemplatePaths = @(
+    '.github/ISSUE_TEMPLATE/01-bug.yml',
+    '.github/ISSUE_TEMPLATE/02-feature.yml',
+    '.github/ISSUE_TEMPLATE/config.yml'
+)
+$attributeOutput = @(git check-attr text -- $issueTemplatePaths)
+if ($LASTEXITCODE -ne 0 -or $attributeOutput.Count -ne $issueTemplatePaths.Count) {
+    $attributeOutput
+    throw 'Unable to inspect active issue-form text attributes.'
+}
+foreach ($path in $issueTemplatePaths) {
+    if ($attributeOutput -cnotcontains "${path}: text: unset") {
+        $attributeOutput
+        throw "Active issue-form EOL conversion is not disabled: $path"
+    }
+}
+$attributeOutput
+```
+
+Expected: one `<path>: text: unset` line for each active YAML file. The exact `-text` rule makes Git preserve the pinned UTF-8-no-BOM LF bytes instead of applying `core.autocrlf` conversion.
+
+- [ ] **Step 4: Replace the legacy-path rejection with the pinned active-form contract**
+
+Read the current committed `.github/cli/verify-repository-setup.ps1` before editing it. In the `41a869dc3cb81522638bfd6df7dcf8557a4fb18c` baseline, replace this exact `Add-Failure` loop that rejects both legacy paths:
 
 ```powershell
 foreach ($legacyPath in @('.github/ISSUE_TEMPLATE', 'docs/storyboard')) {
@@ -1176,7 +1225,7 @@ $issueTemplateRelativeRoot = '.github/ISSUE_TEMPLATE'
 $issueTemplateRoot = Join-Path $repositoryRoot '.github\ISSUE_TEMPLATE'
 $issueTemplateFileNames = @('01-bug.yml', '02-feature.yml', 'config.yml')
 $expectedIssueTemplateHashes = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
-$expectedIssueTemplateHashes.Add('01-bug.yml', 'c2bf726c1081a395d1124cead46e5f5dafc153c66913ddd5afe8b5c6bee39dcf')
+$expectedIssueTemplateHashes.Add('01-bug.yml', '8f2c31b169477b86d85e60f9d1c91eed349fae829f1071b8b42dc93624d8879a')
 $expectedIssueTemplateHashes.Add('02-feature.yml', '748e69155e9e60acd16f5cbb93b6398fd5853905951829080a9c440ed5c0e7a4')
 $expectedIssueTemplateHashes.Add('config.yml', '1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb')
 $actualIssueTemplateFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
@@ -1232,7 +1281,7 @@ foreach ($fileName in $issueTemplateFileNames) {
 }
 ```
 
-- [ ] **Step 4: Exercise exact-set, hash, and reparse-point failures**
+- [ ] **Step 5: Exercise exact-set, hash, and reparse-point failures**
 
 Run this focused mutation check. Every mutation is restored in `finally`, and the last assertion requires the exact green validator output:
 
@@ -1309,7 +1358,7 @@ Write-Output 'Active issue-form validator fixture checks passed.'
 
 Expected: `Active issue-form validator fixture checks passed.` Missing, unexpected, reparse-point, and hash-mismatched active entries are each rejected, all temporary mutations are restored, and the repository validator finishes with its exact success line.
 
-- [ ] **Step 5: Validate YAML schemas and parsed issue-form semantics**
+- [ ] **Step 6: Validate YAML schemas and parsed issue-form semantics**
 
 In VS Code, call `get_errors` for all three active files:
 
@@ -1481,7 +1530,7 @@ else {
 
 Expected: if an environment YAML parser exists, it reports `Issue-form semantic validation passed with <parser>.` after validating top-level `name`, `description`, and `body`, unique body IDs, required core fields, `blank_issues_enabled: false`, and the absence of labels, assignees, and contact links. If none exists, the command reports the explicit skip without installing a dependency; VS Code YAML diagnostics remain mandatory.
 
-- [ ] **Step 6: Run the GREEN validation gate**
+- [ ] **Step 7: Run the GREEN validation gate and portable-checkout tests**
 
 ```powershell
 $validatorOutput = @(& powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-setup.ps1 2>&1 | ForEach-Object { $_.ToString() })
@@ -1490,17 +1539,116 @@ if ($LASTEXITCODE -ne 0 -or $validatorOutput.Count -ne 1 -or $validatorOutput[0]
     throw 'Repository validator did not return its exact success contract.'
 }
 $validatorOutput
+$issueTemplatePaths = @(
+    '.github/ISSUE_TEMPLATE/01-bug.yml',
+    '.github/ISSUE_TEMPLATE/02-feature.yml',
+    '.github/ISSUE_TEMPLATE/config.yml'
+)
+$attributeOutput = @(git check-attr text -- $issueTemplatePaths)
+foreach ($path in $issueTemplatePaths) {
+    if ($attributeOutput -cnotcontains "${path}: text: unset") {
+        $attributeOutput
+        throw "Active issue-form EOL conversion is not disabled: $path"
+    }
+}
 git diff --check
 if ($LASTEXITCODE -ne 0) { throw 'git diff --check failed.' }
 ```
 
-Expected: exactly `Repository setup validation passed.` from the validator, no output from `git diff --check`, and no diagnostics from the three-file VS Code `get_errors` check in Step 5.
-
-- [ ] **Step 7: Commit the active forms and validator**
+Then stage only the Task 6 implementation paths, create an unreachable validation commit without moving the branch, and test clean temporary checkouts under both `core.autocrlf` settings:
 
 ```powershell
-git add -- .github/ISSUE_TEMPLATE/01-bug.yml .github/ISSUE_TEMPLATE/02-feature.yml .github/ISSUE_TEMPLATE/config.yml .github/cli/verify-repository-setup.ps1
-git commit -m "feat: add structured GitHub issue forms" -- .github/ISSUE_TEMPLATE/01-bug.yml .github/ISSUE_TEMPLATE/02-feature.yml .github/ISSUE_TEMPLATE/config.yml .github/cli/verify-repository-setup.ps1
+$task6Paths = @(
+    '.gitattributes',
+    '.github/ISSUE_TEMPLATE/01-bug.yml',
+    '.github/ISSUE_TEMPLATE/02-feature.yml',
+    '.github/ISSUE_TEMPLATE/config.yml',
+    '.github/cli/verify-repository-setup.ps1'
+)
+git add -- $task6Paths
+if ($LASTEXITCODE -ne 0) { throw 'Unable to stage Task 6 validation inputs.' }
+git diff --cached --check -- $task6Paths
+if ($LASTEXITCODE -ne 0) { throw 'Staged Task 6 diff check failed.' }
+
+$treeHash = @(git write-tree)
+if ($LASTEXITCODE -ne 0 -or $treeHash.Count -ne 1) { throw 'Unable to write the Task 6 validation tree.' }
+$validationCommit = @(git commit-tree $treeHash[0] -p HEAD -m 'Task 6 checkout validation')
+if ($LASTEXITCODE -ne 0 -or $validationCommit.Count -ne 1) { throw 'Unable to create the Task 6 validation commit.' }
+
+$expectedIssueTemplateHashes = [ordered]@{
+    '.github/ISSUE_TEMPLATE/01-bug.yml' = '8f2c31b169477b86d85e60f9d1c91eed349fae829f1071b8b42dc93624d8879a'
+    '.github/ISSUE_TEMPLATE/02-feature.yml' = '748e69155e9e60acd16f5cbb93b6398fd5853905951829080a9c440ed5c0e7a4'
+    '.github/ISSUE_TEMPLATE/config.yml' = '1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb'
+}
+$temporaryWorktrees = [Collections.Generic.List[string]]::new()
+try {
+    foreach ($autocrlf in @('true', 'false')) {
+        $checkoutRoot = Join-Path ([IO.Path]::GetTempPath()) "issue-forms-$autocrlf-$([guid]::NewGuid())"
+        [void]$temporaryWorktrees.Add($checkoutRoot)
+        git -c "core.autocrlf=$autocrlf" worktree add --detach $checkoutRoot $validationCommit[0] | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Unable to create core.autocrlf=$autocrlf checkout." }
+
+        $previousConfigCount = [Environment]::GetEnvironmentVariable('GIT_CONFIG_COUNT', 'Process')
+        $previousConfigKey = [Environment]::GetEnvironmentVariable('GIT_CONFIG_KEY_0', 'Process')
+        $previousConfigValue = [Environment]::GetEnvironmentVariable('GIT_CONFIG_VALUE_0', 'Process')
+        try {
+            [Environment]::SetEnvironmentVariable('GIT_CONFIG_COUNT', '1', 'Process')
+            [Environment]::SetEnvironmentVariable('GIT_CONFIG_KEY_0', 'core.autocrlf', 'Process')
+            [Environment]::SetEnvironmentVariable('GIT_CONFIG_VALUE_0', $autocrlf, 'Process')
+
+            $checkoutAttributes = @(git -C $checkoutRoot check-attr text -- $issueTemplatePaths)
+            foreach ($path in $issueTemplatePaths) {
+                if ($checkoutAttributes -cnotcontains "${path}: text: unset") {
+                    $checkoutAttributes
+                    throw "Clean checkout lost the -text contract with core.autocrlf=${autocrlf}: $path"
+                }
+            }
+            foreach ($entry in $expectedIssueTemplateHashes.GetEnumerator()) {
+                $checkoutPath = Join-Path $checkoutRoot ($entry.Key.Replace('/', '\'))
+                $actualHash = (Get-FileHash -LiteralPath $checkoutPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                if ($actualHash -cne $entry.Value) {
+                    throw "Clean checkout hash mismatch with core.autocrlf=${autocrlf}: $($entry.Key)"
+                }
+            }
+            $checkoutValidator = Join-Path $checkoutRoot '.github\cli\verify-repository-setup.ps1'
+            $checkoutValidatorOutput = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $checkoutValidator 2>&1 | ForEach-Object { $_.ToString() })
+            if ($LASTEXITCODE -ne 0 -or $checkoutValidatorOutput.Count -ne 1 -or
+                $checkoutValidatorOutput[0] -cne 'Repository setup validation passed.') {
+                $checkoutValidatorOutput
+                throw "Clean checkout validator failed with core.autocrlf=$autocrlf."
+            }
+            $checkoutStatus = @(git -C $checkoutRoot status --porcelain=v1)
+            if ($LASTEXITCODE -ne 0 -or $checkoutStatus.Count -ne 0) {
+                $checkoutStatus
+                throw "Temporary checkout is not clean with core.autocrlf=$autocrlf."
+            }
+            Write-Output "Clean checkout validation passed with core.autocrlf=$autocrlf."
+        }
+        finally {
+            [Environment]::SetEnvironmentVariable('GIT_CONFIG_COUNT', $previousConfigCount, 'Process')
+            [Environment]::SetEnvironmentVariable('GIT_CONFIG_KEY_0', $previousConfigKey, 'Process')
+            [Environment]::SetEnvironmentVariable('GIT_CONFIG_VALUE_0', $previousConfigValue, 'Process')
+        }
+    }
+}
+finally {
+    foreach ($temporaryWorktree in $temporaryWorktrees) {
+        if (Test-Path -LiteralPath $temporaryWorktree) {
+            git worktree remove --force $temporaryWorktree
+            if ($LASTEXITCODE -ne 0) { Write-Warning "Unable to remove temporary worktree: $temporaryWorktree" }
+        }
+    }
+    git worktree prune
+}
+```
+
+Expected: exactly `Repository setup validation passed.` from the working-tree validator, `text: unset` for all three active YAML paths, no output from either diff check, no diagnostics from the three-file VS Code `get_errors` check in Step 6, and one clean-checkout success line for each of `core.autocrlf=true` and `core.autocrlf=false`. In both temporary checkouts, the raw hashes remain exact and the repository validator returns its exact green line.
+
+- [ ] **Step 8: Commit the EOL rule, active forms, and validator**
+
+```powershell
+git add -- .gitattributes .github/ISSUE_TEMPLATE/01-bug.yml .github/ISSUE_TEMPLATE/02-feature.yml .github/ISSUE_TEMPLATE/config.yml .github/cli/verify-repository-setup.ps1
+git commit -m "feat: add structured GitHub issue forms" -- .gitattributes .github/ISSUE_TEMPLATE/01-bug.yml .github/ISSUE_TEMPLATE/02-feature.yml .github/ISSUE_TEMPLATE/config.yml .github/cli/verify-repository-setup.ps1
 ```
 
 ## Task 7: Perform Final Repository and Host Validation
@@ -1526,7 +1674,7 @@ if ($LASTEXITCODE -ne 0) { throw 'git diff --check failed.' }
 $validatorOutput
 ```
 
-Expected: exactly `Repository setup validation passed.` from the validator; `git diff --check` produces no output for every branch commit since its merge base with `main`. The check does not assume a fixed commit count.
+Expected: exactly `Repository setup validation passed.` from the validator; `git diff --check` produces no output for the aggregate branch diff from its merge base with `main` through `HEAD`. The check does not assume a fixed commit count.
 
 - [ ] **Step 2: Verify folders, active forms, skills, and manifest counts**
 

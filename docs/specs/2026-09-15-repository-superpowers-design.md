@@ -13,6 +13,7 @@ Bundle Superpowers directly in this repository so every contributor can use the 
 - Create the approved `.github` and `docs` base folders.
 - Add a `README.md` to every approved base folder describing its purpose and expected content.
 - Add active GitHub issue forms for reproducible bugs and outcome-focused feature requests, with blank issues disabled.
+- Preserve the active issue forms as portable, raw-byte contracts across Git EOL settings.
 - Document deliberate upgrade and verification procedures.
 
 The requested folder README requirement applies to the approved base folders listed below. Vendored Superpowers skill directories remain unchanged from upstream and retain their own `SKILL.md` and referenced resources.
@@ -22,6 +23,7 @@ The requested folder README requirement applies to the approved base folders lis
 ```text
 .
 |-- AGENTS.md
+|-- .gitattributes
 |-- .github/
 |   |-- copilot-instructions.md
 |   |-- agent-policy/
@@ -73,7 +75,7 @@ The requested folder README requirement applies to the approved base folders lis
         `-- README.md
 ```
 
-The uppercase `.github/ISSUE_TEMPLATE/` directory contains the GitHub-active issue forms and chooser configuration. The lowercase `.github/issue-templates/` folder remains a project-owned content area for drafts, shared wording, planning material, and promotion guidance. The only explicitly excluded folder is `docs/storyboard/`.
+The uppercase `.github/ISSUE_TEMPLATE/` directory contains the GitHub-active issue forms and chooser configuration. The lowercase `.github/issue-templates/` folder remains a project-owned content area for drafts, shared wording, planning material, and promotion guidance. Root `.gitattributes` contains the exact rule `/.github/ISSUE_TEMPLATE/*.yml -text`, so Git does not convert the UTF-8-no-BOM LF bytes whose raw SHA-256 hashes define the active-form contract. The only explicitly excluded folder is `docs/storyboard/`.
 
 ## Copilot Integration
 
@@ -106,6 +108,8 @@ Each approved base folder gets a concise `README.md` covering:
 
 Active issue forms live in `.github/ISSUE_TEMPLATE/`. Supporting source material remains in `.github/issue-templates/`, where changes can be reviewed before promotion to the active forms and corresponding validator contract.
 
+The public bug form warns contributors not to include secrets, personal data, or vulnerability details. The repository has no verified private reporting channel, so no private route is invented and `config.yml` intentionally omits security contact links. A security contact link can be added only after a verified private reporting channel exists.
+
 The root `README.md` will explain that Superpowers is bundled, identify the pinned version, describe automatic discovery in VS Code and Copilot CLI, show how to confirm skill availability, and link to the source and license.
 
 ## Attribution and Integrity
@@ -119,9 +123,9 @@ Vendored skill content is not rewritten for project preferences. Repository-spec
 Implementation is complete when all of these checks pass:
 
 1. Every approved base folder exists and contains a non-empty `README.md`.
-2. `.github/ISSUE_TEMPLATE/` exists and contains exactly `01-bug.yml`, `02-feature.yml`, and `config.yml` as ordinary files.
+2. Root `.gitattributes` contains exactly `/.github/ISSUE_TEMPLATE/*.yml -text` for active-form EOL handling, and `.github/ISSUE_TEMPLATE/` contains exactly `01-bug.yml`, `02-feature.yml`, and `config.yml` as ordinary files.
 3. Both issue forms are valid YAML with top-level `name`, `description`, and `body` keys, unique body IDs, and the required core fields for duplicate checks, bug reproduction and behavior, environment details, feature value and outcome, and acceptance criteria.
-4. The chooser configuration is valid, sets `blank_issues_enabled: false`, and the active files contain no fake labels, assignees, or contact links.
+4. The chooser configuration is valid, sets `blank_issues_enabled: false`, and the active files contain no fake labels, assignees, or contact links. The security link omission remains intentional until a verified private reporting channel exists.
 5. The explicitly excluded `docs/storyboard/` folder does not exist.
 6. Every vendored skill has a `SKILL.md` whose `name` matches its parent directory.
 7. Files referenced by vendored `SKILL.md` documents exist in the copied runtime.
@@ -130,7 +134,8 @@ Implementation is complete when all of these checks pass:
 10. Version metadata identifies v6.3.0 and its exact upstream commit.
 11. The upstream MIT license text is present.
 12. Git reports no malformed patches or whitespace errors.
-13. VS Code customization diagnostics show the repository skills without metadata errors; Copilot CLI lists or invokes `using-superpowers` from the repository checkout.
+13. Clean temporary checkouts with both `core.autocrlf=true` and `core.autocrlf=false` retain the exact active-form SHA-256 hashes, report `text: unset` from `git check-attr`, remain clean, and pass the repository validator.
+14. VS Code customization diagnostics show the repository skills without metadata errors; Copilot CLI lists or invokes `using-superpowers` from the repository checkout.
 
 The repository structure, issue-form contract, integrity, and Git checks are automated or command-line verifiable. The final host-discovery check is an integration smoke test in the two target Copilot hosts.
 
