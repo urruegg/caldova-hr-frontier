@@ -21,7 +21,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repositor
 
 The command succeeds with `Repository setup validation passed.` when the folder structure, skill metadata, exact runtime file set and SHA-256 hashes, executable Git modes, bootstrap instructions, version metadata, and license are valid.
 
-In VS Code, open **Chat: Open Agent Customizations** and confirm the workspace skills appear without metadata errors. In Copilot CLI, start `copilot` from the repository root and invoke or ask it to use `using-superpowers`.
+In VS Code, open **Chat: Open Customizations** and confirm the workspace skills appear without metadata errors. Confirm `using-superpowers` shows its source/path as `.github/skills/using-superpowers/SKILL.md` so repository provenance is checked.
+
+In Copilot CLI, from the repository root run `copilot`, use `/skills info using-superpowers`, and confirm the reported source/path is this repository's `.github/skills/using-superpowers/SKILL.md`. Then invoke `/using-superpowers`.
 
 ### Pinned Version and License
 
@@ -37,11 +39,12 @@ Updates are deliberate and reviewed. To update:
 
 1. Review the newer upstream release and release notes.
 2. Replace only the 14 vendored skill directories with the newer release's `skills/` content.
-3. Regenerate `SUPERPOWERS_SHA256SUMS` from every file in the 14 reviewed upstream runtime directories using forward-slash relative paths, ordinal path sorting, and lowercase SHA-256 hashes.
-4. Preserve the upstream executable Git modes and update the validator's fixed executable path contract if upstream changes it.
-5. Refresh `LICENSE.superpowers` if the upstream license changed.
-6. Update `SUPERPOWERS_VERSION` with the release, tag object, commit, date, manifest name, and included skill list.
-7. Run the repository verifier and smoke-test discovery in VS Code and Copilot CLI.
-8. Commit the runtime replacement, manifest, metadata, and any required bootstrap compatibility changes together.
+3. Review and update `.github/cli/verify-repository-setup.ps1` fixed contracts for the new upstream release: the expected 14-skill inventory, seven-path executable mode inventory, source release/version/tag/commit, manifest name and metadata, and license attribution checks.
+4. Regenerate `SUPERPOWERS_SHA256SUMS` from every file in the 14 reviewed upstream runtime directories using forward-slash relative paths, ordinal path sorting, and lowercase SHA-256 hashes.
+5. Preserve the upstream executable Git modes for the reviewed runtime paths.
+6. Refresh `LICENSE.superpowers` if the upstream license changed.
+7. Update `SUPERPOWERS_VERSION` with the release, tag object, commit, date, manifest name, and included skill list.
+8. Run the repository verifier and complete the VS Code and Copilot CLI smoke tests under **Verify the Bundle**.
+9. Commit the runtime replacement, manifest, metadata, validator contracts, and any required bootstrap compatibility changes together.
 
 Do not track upstream `main`, use a submodule, or edit vendored skill files for repository-specific behavior.
