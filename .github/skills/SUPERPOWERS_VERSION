@@ -1,0 +1,11 @@
+name=Superpowers
+source=https://github.com/obra/superpowers
+release=v6.3.0
+version=6.3.0
+tag-object=86babb696875227929e85420f287d6309374b93f
+commit=b36e0829c6d0140e93cfef2ca599b1b07d4a7797
+vendored=2026-09-15
+upstream-path=skills/
+destination=.github/skills/
+manifest=SUPERPOWERS_SHA256SUMS
+included-skills=brainstorming,dispatching-parallel-agents,executing-plans,finishing-a-development-branch,receiving-code-review,requesting-code-review,subagent-driven-development,systematic-debugging,test-driven-development,using-git-worktrees,using-superpowers,verification-before-completion,writing-plans,writing-skills
