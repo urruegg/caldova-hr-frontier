@@ -88,6 +88,7 @@ $issueTemplateRoot = Join-Path $repositoryRoot '.github\ISSUE_TEMPLATE'
 $issueTemplateFileNames = @('01-bug.yml', '02-feature.yml', 'config.yml')
 $issueTemplateGitPrefix = '.github/ISSUE_TEMPLATE/'
 $expectedIssueTemplateGitPaths = @($issueTemplateFileNames | ForEach-Object { "${issueTemplateGitPrefix}$_" })
+$gitattributesRelativePath = '.gitattributes'
 $expectedIssueTemplateHashes = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
 $expectedIssueTemplateHashes.Add('01-bug.yml', '8f2c31b169477b86d85e60f9d1c91eed349fae829f1071b8b42dc93624d8879a')
 $expectedIssueTemplateHashes.Add('02-feature.yml', '748e69155e9e60acd16f5cbb93b6398fd5853905951829080a9c440ed5c0e7a4')
@@ -184,9 +185,11 @@ else {
 }
 
 if ($gitIndexReadable) {
+    $gitIndexRecords = [Collections.Generic.List[object]]::new()
     $issueTemplateGitRecords = [Collections.Generic.List[object]]::new()
+    $protectedGitRecordsToCompare = [Collections.Generic.List[object]]::new()
     foreach ($line in $gitIndexLines) {
-        if ($line -notmatch '^([0-7]{6}) ([0-9a-fA-F]{40,64}) ([0-3])\t(.*)$') {
+        if ($line -notmatch '^([0-7]{6}) ((?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})) ([0-3])\t(.*)$') {
             Add-Failure "Cannot parse Git index record: $line"
             continue
         }
@@ -195,6 +198,12 @@ if ($gitIndexReadable) {
             ObjectId = $Matches[2]
             Stage = $Matches[3]
             Path = $Matches[4]
+        }
+        [void]$gitIndexRecords.Add($record)
+        if ([string]::Equals($record.Path, $gitattributesRelativePath, [StringComparison]::OrdinalIgnoreCase)) {
+            if ($record.Path -cne $gitattributesRelativePath) {
+                Add-Failure ".gitattributes must use exact Git casing: $($record.Path)"
+            }
         }
         if (-not $record.Path.StartsWith($issueTemplateGitPrefix, [StringComparison]::OrdinalIgnoreCase)) {
             continue
@@ -225,11 +234,57 @@ if ($gitIndexReadable) {
         }
         if ($matchingRecords[0].Stage -cne '0' -or $matchingRecords[0].Mode -cne '100644') {
             Add-Failure "Active issue-template Git entry must be stage-0 mode 100644: $expectedPath"
+            continue
+        }
+        [void]$protectedGitRecordsToCompare.Add($matchingRecords[0])
+    }
+
+    $matchingGitattributesRecords = @($gitIndexRecords | Where-Object { $_.Path -ceq $gitattributesRelativePath })
+    if ($matchingGitattributesRecords.Count -eq 0) {
+        Add-Failure ".gitattributes is not tracked at exact Git path: $gitattributesRelativePath"
+    }
+    elseif ($matchingGitattributesRecords.Count -ne 1) {
+        Add-Failure "Ambiguous Git index entries for path: $gitattributesRelativePath"
+    }
+    elseif ($matchingGitattributesRecords[0].Stage -cne '0' -or $matchingGitattributesRecords[0].Mode -cne '100644') {
+        Add-Failure ".gitattributes Git entry must be stage-0 mode 100644: $gitattributesRelativePath"
+    }
+    else {
+        [void]$protectedGitRecordsToCompare.Add($matchingGitattributesRecords[0])
+    }
+
+    foreach ($record in $protectedGitRecordsToCompare) {
+        try {
+            [string[]]$workingTreeObjectIdLines = @(& $gitCommand.Source -C $repositoryRoot hash-object --no-filters -- $record.Path 2>&1 |
+                ForEach-Object { $_.ToString() })
+            $hashObjectExitCode = $LASTEXITCODE
+            if ($hashObjectExitCode -ne 0 -or $workingTreeObjectIdLines.Count -ne 1 -or
+                $workingTreeObjectIdLines[0] -notmatch '^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$') {
+                Add-Failure "Cannot compare Git index content with working tree: $($record.Path)"
+                continue
+            }
+            $workingTreeObjectId = $workingTreeObjectIdLines[0].ToLowerInvariant()
+            $indexObjectId = $record.ObjectId.ToLowerInvariant()
+            if ($workingTreeObjectId -ceq $indexObjectId) { continue }
+            if ($record.Path -ceq $gitattributesRelativePath) {
+                [string[]]$gitNormalizedObjectIdLines = @(& $gitCommand.Source -C $repositoryRoot hash-object "--path=$($record.Path)" -- $record.Path 2>&1 |
+                    ForEach-Object { $_.ToString() })
+                $gitNormalizedHashExitCode = $LASTEXITCODE
+                if ($gitNormalizedHashExitCode -ne 0 -or $gitNormalizedObjectIdLines.Count -ne 1 -or
+                    $gitNormalizedObjectIdLines[0] -notmatch '^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$') {
+                    Add-Failure "Cannot compare Git index content with working tree: $($record.Path)"
+                    continue
+                }
+                if ($gitNormalizedObjectIdLines[0].ToLowerInvariant() -ceq $indexObjectId) { continue }
+            }
+            Add-Failure "Git index content differs from working tree: $($record.Path)"
+        }
+        catch {
+            Add-Failure "Cannot compare Git index content with working tree: $($record.Path)"
         }
     }
 }
 
-$gitattributesRelativePath = '.gitattributes'
 $gitattributesPath = Join-Path $repositoryRoot $gitattributesRelativePath
 $issueTemplateByteStabilityRule = '/.github/ISSUE_TEMPLATE/*.yml -text'
 $gitattributesLines = @()
