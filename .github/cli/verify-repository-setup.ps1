@@ -34,11 +34,16 @@ function Test-RequiredContent {
         return
     }
     if ($ExpectedLines.Count -gt 0) {
-        $exactLinesEqual = $lines.Count -eq $ExpectedLines.Count
-        for ($lineIndex = 0; $exactLinesEqual -and $lineIndex -lt $lines.Count; $lineIndex++) {
-            $exactLinesEqual = $lines[$lineIndex] -ceq $ExpectedLines[$lineIndex]
+        if ($lines.Count -ne $ExpectedLines.Count) {
+            Add-Failure "$RelativePath does not match the pinned metadata contract."
+            return
         }
-        if (-not $exactLinesEqual) { Add-Failure "$RelativePath does not match the pinned metadata contract." }
+        for ($lineIndex = 0; $lineIndex -lt $lines.Count; $lineIndex++) {
+            if ($lines[$lineIndex] -cne $ExpectedLines[$lineIndex]) {
+                Add-Failure "$RelativePath does not match the pinned metadata contract."
+                return
+            }
+        }
         return
     }
     foreach ($term in $Terms) {
