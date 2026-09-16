@@ -23,7 +23,7 @@ The command succeeds with `Repository setup validation passed.` when the folder 
 
 In VS Code, open **Chat: Open Customizations** and confirm the workspace skills appear without metadata errors. Confirm `using-superpowers` shows its source/path as `.github/skills/using-superpowers/SKILL.md` so repository provenance is checked.
 
-In Copilot CLI, from the repository root run `copilot`, use `/skills info using-superpowers`, and confirm the reported source/path is this repository's `.github/skills/using-superpowers/SKILL.md`. Then invoke `/using-superpowers`.
+In Copilot CLI, from the repository root run `copilot --no-auto-update -C . skill list --json` and confirm `using-superpowers` has `source` equal to `project`, `enabled` equal to `true`, and a `path` ending in this repository's `.github/skills/using-superpowers`, regardless of whether the host displays `/` or `\` path separators. Then start `copilot` and invoke `/using-superpowers` for the behavior smoke test.
 
 ### Pinned Version and License
 
