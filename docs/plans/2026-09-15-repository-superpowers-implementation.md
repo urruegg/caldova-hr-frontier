@@ -1233,6 +1233,7 @@ $expectedIssueTemplateHashes.Add('02-feature.yml', '748e69155e9e60acd16f5cbb93b6
 $expectedIssueTemplateHashes.Add('config.yml', '1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb')
 $actualIssueTemplateFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $reparseIssueTemplateEntries = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$ordinaryIssueTemplateFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $issueTemplateRootTrusted = $true
 
 if (Test-Path -LiteralPath $githubRoot -PathType Container) {
@@ -1295,11 +1296,7 @@ foreach ($fileName in $issueTemplateFileNames) {
         Add-Failure "Active issue-template entry is not a file: $relativePath"
         continue
     }
-    try { $actualHash = (Get-FileHash -LiteralPath $filePath -Algorithm SHA256).Hash.ToLowerInvariant() }
-    catch { Add-Failure "Cannot hash active issue-template file: $relativePath"; continue }
-    if ($actualHash -cne $expectedIssueTemplateHashes[$fileName]) {
-        Add-Failure "Hash mismatch for active issue-template file: $relativePath"
-    }
+    [void]$ordinaryIssueTemplateFiles.Add($fileName)
 }
 
 $gitCommand = Get-Command git -CommandType Application -ErrorAction SilentlyContinue
@@ -1370,30 +1367,144 @@ if ($gitIndexReadable) {
         }
     }
 }
+
+$gitattributesRelativePath = '.gitattributes'
+$gitattributesPath = Join-Path $repositoryRoot $gitattributesRelativePath
+$issueTemplateByteStabilityRule = '/.github/ISSUE_TEMPLATE/*.yml -text'
+$gitattributesLines = @()
+$gitattributesReadable = $false
+try {
+    if (-not (Test-Path -LiteralPath $gitattributesPath -PathType Leaf)) {
+        Add-Failure '.gitattributes must be an ordinary readable file.'
+    }
+    else {
+        $gitattributesItem = Get-Item -LiteralPath $gitattributesPath -Force -ErrorAction Stop
+        if ($gitattributesItem.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            Add-Failure '.gitattributes must be an ordinary readable file.'
+        }
+        else {
+            $gitattributesLines = @(Get-Content -LiteralPath $gitattributesPath -ErrorAction Stop)
+            $gitattributesReadable = $true
+        }
+    }
+}
+catch {
+    Add-Failure '.gitattributes must be an ordinary readable file.'
+}
+
+if ($gitattributesReadable) {
+    $byteStabilityRuleCount = @($gitattributesLines | Where-Object {
+        $_ -ceq $issueTemplateByteStabilityRule
+    }).Count
+    if ($byteStabilityRuleCount -ne 1) {
+        Add-Failure '.gitattributes must contain exactly one issue-form byte-stability rule.'
+    }
+}
+
+$gitAttributeLines = @()
+$gitAttributesReadable = $false
+if ($null -eq $gitCommand) {
+    Add-Failure 'Cannot inspect Git text attributes for active issue-template paths: git is unavailable'
+}
+else {
+    try {
+        $gitAttributeLines = @(& $gitCommand.Source -C $repositoryRoot -c core.quotePath=false check-attr text -- $expectedIssueTemplateGitPaths 2>&1 |
+            ForEach-Object { $_.ToString() })
+        $gitAttributeExitCode = $LASTEXITCODE
+        if ($gitAttributeExitCode -ne 0) {
+            Add-Failure 'Cannot inspect Git text attributes for active issue-template paths'
+        }
+        else {
+            $gitAttributesReadable = $true
+        }
+    }
+    catch {
+        Add-Failure 'Cannot inspect Git text attributes for active issue-template paths'
+    }
+}
+
+if ($gitAttributesReadable) {
+    if ($gitAttributeLines.Count -ne $expectedIssueTemplateGitPaths.Count) {
+        Add-Failure "Expected 3 Git text attribute records, found $($gitAttributeLines.Count)"
+    }
+    $gitAttributeRecords = [Collections.Generic.List[object]]::new()
+    foreach ($line in $gitAttributeLines) {
+        $attributeMatch = [regex]::Match($line, '^(.*): text: (.*)$')
+        if (-not $attributeMatch.Success) {
+            Add-Failure "Cannot parse Git text attribute record: $line"
+            continue
+        }
+        $reportedPath = $attributeMatch.Groups[1].Value
+        $normalizedReportedPath = $reportedPath.Replace('\', '/')
+        if ($expectedIssueTemplateGitPaths -cnotcontains $normalizedReportedPath) {
+            Add-Failure "Unexpected Git text attribute path: $reportedPath"
+            continue
+        }
+        [void]$gitAttributeRecords.Add([pscustomobject]@{
+            Path = $normalizedReportedPath
+            Value = $attributeMatch.Groups[2].Value
+        })
+    }
+    foreach ($expectedPath in $expectedIssueTemplateGitPaths) {
+        $matchingAttributeRecords = @($gitAttributeRecords | Where-Object { $_.Path -ceq $expectedPath })
+        if ($matchingAttributeRecords.Count -ne 1) {
+            Add-Failure "Ambiguous Git text attribute result: $expectedPath"
+            continue
+        }
+        if ($matchingAttributeRecords[0].Value -cne 'unset') {
+            Add-Failure "Issue-form Git text attribute is not unset: $expectedPath"
+        }
+    }
+}
+
+foreach ($fileName in $issueTemplateFileNames) {
+    if (-not $ordinaryIssueTemplateFiles.Contains($fileName)) { continue }
+    $relativePath = "$issueTemplateRelativeRoot/$fileName"
+    $filePath = Join-Path $issueTemplateRoot $fileName
+    try { $actualHash = (Get-FileHash -LiteralPath $filePath -Algorithm SHA256).Hash.ToLowerInvariant() }
+    catch { Add-Failure "Cannot hash active issue-template file: $relativePath"; continue }
+    if ($actualHash -cne $expectedIssueTemplateHashes[$fileName]) {
+        Add-Failure "Hash mismatch for active issue-template file: $relativePath"
+    }
+}
 ```
 
-- [ ] **Step 5: Exercise exact-set, hash, reparse-point, and Git-casing failures**
+- [ ] **Step 5: Exercise exact-set, attribute, hash, reparse-point, and Git-casing failures**
 
-Run this focused mutation check. It first stages the three active forms so the real index represents the intended tracked-file contract; keep that deliberate staging through Step 8. Every temporary filesystem mutation is restored in `finally`, the wrong-case record exists only in an alternate temporary index, and the last assertion requires the exact green validator output against the restored real index:
+Run this focused mutation check. It first stages the three active forms so the real index represents the intended tracked-file contract; keep that deliberate staging through Step 8. Every temporary filesystem mutation is restored in `finally`, the wrong-case record exists only in an alternate temporary index, and `.gitattributes` mutations occur only in a disposable linked worktree created from a temporary index snapshot. The last assertion requires the exact green validator output against the restored real index:
 
 ```powershell
 function Invoke-RepositoryVerifier {
-    $output = @(& powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-setup.ps1 2>&1 | ForEach-Object { $_.ToString() })
+    param([string]$RepositoryRoot = (Resolve-Path '.').Path)
+
+    $validatorPath = Join-Path $RepositoryRoot '.github\cli\verify-repository-setup.ps1'
+    $output = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $validatorPath 2>&1 | ForEach-Object { $_.ToString() })
     [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = $output }
 }
 
 function Assert-RepositoryVerifierFailure {
-    param([Parameter(Mandatory)][string]$ExpectedError)
+    param(
+        [Parameter(Mandatory)][string[]]$ExpectedErrors,
+        [string]$RepositoryRoot = (Resolve-Path '.').Path
+    )
 
-    $result = Invoke-RepositoryVerifier
-    if ($result.ExitCode -ne 1 -or $result.Output -notcontains "ERROR: $ExpectedError") {
+    $result = Invoke-RepositoryVerifier -RepositoryRoot $RepositoryRoot
+    if ($result.ExitCode -ne 1) {
         $result.Output
-        throw "Expected validator failure was not reported: $ExpectedError"
+        throw "Expected repository validator exit code 1, found $($result.ExitCode)."
+    }
+    foreach ($expectedError in $ExpectedErrors) {
+        if ($result.Output -notcontains "ERROR: $expectedError") {
+            $result.Output
+            throw "Expected validator failure was not reported: $expectedError"
+        }
     }
 }
 
 function Assert-RepositoryVerifierSuccess {
-    $result = Invoke-RepositoryVerifier
+    param([string]$RepositoryRoot = (Resolve-Path '.').Path)
+
+    $result = Invoke-RepositoryVerifier -RepositoryRoot $RepositoryRoot
     if ($result.ExitCode -ne 0 -or $result.Output.Count -ne 1 -or $result.Output[0] -cne 'Repository setup validation passed.') {
         $result.Output
         throw 'Repository validator did not return its exact success contract.'
@@ -1480,12 +1591,113 @@ finally {
     if (Test-Path -LiteralPath "$temporaryIndex.lock") { Remove-Item -LiteralPath "$temporaryIndex.lock" -Force }
 }
 
+$attributeFixtureIndex = Join-Path ([IO.Path]::GetTempPath()) "issue-form-attributes-index-$([guid]::NewGuid())"
+$previousGitIndexFile = [Environment]::GetEnvironmentVariable('GIT_INDEX_FILE', 'Process')
+Copy-Item -LiteralPath $gitIndexPath[0] -Destination $attributeFixtureIndex
+try {
+    [Environment]::SetEnvironmentVariable('GIT_INDEX_FILE', $attributeFixtureIndex, 'Process')
+    git add -- .gitattributes $issueTemplateGitPaths .github/cli/verify-repository-setup.ps1
+    if ($LASTEXITCODE -ne 0) { throw 'Unable to stage the attribute fixture snapshot.' }
+    git diff --cached --check -- .gitattributes $issueTemplateGitPaths .github/cli/verify-repository-setup.ps1
+    if ($LASTEXITCODE -ne 0) { throw 'Attribute fixture snapshot diff check failed.' }
+    $attributeFixtureTree = @(git write-tree)
+    if ($LASTEXITCODE -ne 0 -or $attributeFixtureTree.Count -ne 1) {
+        throw 'Unable to write the attribute fixture tree.'
+    }
+}
+finally {
+    [Environment]::SetEnvironmentVariable('GIT_INDEX_FILE', $previousGitIndexFile, 'Process')
+    if (Test-Path -LiteralPath $attributeFixtureIndex) { Remove-Item -LiteralPath $attributeFixtureIndex -Force }
+    if (Test-Path -LiteralPath "$attributeFixtureIndex.lock") { Remove-Item -LiteralPath "$attributeFixtureIndex.lock" -Force }
+}
+
+$attributeFixtureCommit = @(git commit-tree $attributeFixtureTree[0] -p HEAD -m 'Task 6 issue-form attribute fixture')
+if ($LASTEXITCODE -ne 0 -or $attributeFixtureCommit.Count -ne 1) {
+    throw 'Unable to create the attribute fixture commit.'
+}
+
+$attributeFixtureRoot = Join-Path ([IO.Path]::GetTempPath()) "issue-form-attributes-$([guid]::NewGuid())"
+try {
+    git worktree add --detach $attributeFixtureRoot $attributeFixtureCommit[0] | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Unable to create the disposable attribute fixture worktree.' }
+
+    $attributeFixturePath = Join-Path $attributeFixtureRoot '.gitattributes'
+    $attributeFixtureBytes = [IO.File]::ReadAllBytes($attributeFixturePath)
+    $attributeFixtureLines = @(Get-Content -LiteralPath $attributeFixturePath)
+    $byteStabilityRule = '/.github/ISSUE_TEMPLATE/*.yml -text'
+    $normalizedCleanAttributeOutput = @(git -C $attributeFixtureRoot -c core.quotePath=false check-attr text -- $issueTemplateGitPaths 2>&1 |
+        ForEach-Object { $_.ToString().Replace('\', '/') })
+    $cleanAttributeExitCode = $LASTEXITCODE
+    if ($cleanAttributeExitCode -ne 0 -or $normalizedCleanAttributeOutput.Count -ne $issueTemplateGitPaths.Count) {
+        $normalizedCleanAttributeOutput
+        throw 'Clean attribute fixture did not return exactly three Git attribute records.'
+    }
+    foreach ($path in $issueTemplateGitPaths) {
+        if (@($normalizedCleanAttributeOutput | Where-Object { $_ -ceq "${path}: text: unset" }).Count -ne 1) {
+            $normalizedCleanAttributeOutput
+            throw "Clean attribute fixture did not report text: unset: $path"
+        }
+    }
+    Assert-RepositoryVerifierSuccess -RepositoryRoot $attributeFixtureRoot
+    Write-Output 'GREEN confirmed: the exact byte-stability rule yields text: unset for all three forms.'
+
+    try {
+        $withoutByteStabilityRule = [string[]]@($attributeFixtureLines | Where-Object { $_ -cne $byteStabilityRule })
+        [IO.File]::WriteAllLines($attributeFixturePath, $withoutByteStabilityRule, [Text.UTF8Encoding]::new($false))
+        Assert-RepositoryVerifierFailure -ExpectedErrors @(
+            '.gitattributes must contain exactly one issue-form byte-stability rule.'
+            'Issue-form Git text attribute is not unset: .github/ISSUE_TEMPLATE/01-bug.yml'
+            'Issue-form Git text attribute is not unset: .github/ISSUE_TEMPLATE/02-feature.yml'
+            'Issue-form Git text attribute is not unset: .github/ISSUE_TEMPLATE/config.yml'
+        ) -RepositoryRoot $attributeFixtureRoot
+        Write-Output 'RED confirmed: deleting the rule fails before any issue-form bytes are converted.'
+    }
+    finally {
+        [IO.File]::WriteAllBytes($attributeFixturePath, $attributeFixtureBytes)
+    }
+
+    try {
+        $duplicateRuleLines = [string[]]@($attributeFixtureLines + $byteStabilityRule)
+        [IO.File]::WriteAllLines($attributeFixturePath, $duplicateRuleLines, [Text.UTF8Encoding]::new($false))
+        Assert-RepositoryVerifierFailure -ExpectedErrors @(
+            '.gitattributes must contain exactly one issue-form byte-stability rule.'
+        ) -RepositoryRoot $attributeFixtureRoot
+        Write-Output 'RED confirmed: duplicating the exact rule fails the exact-one contract.'
+    }
+    finally {
+        [IO.File]::WriteAllBytes($attributeFixturePath, $attributeFixtureBytes)
+    }
+
+    try {
+        $overrideRuleLines = [string[]]@($attributeFixtureLines + '/.github/ISSUE_TEMPLATE/*.yml text')
+        [IO.File]::WriteAllLines($attributeFixturePath, $overrideRuleLines, [Text.UTF8Encoding]::new($false))
+        Assert-RepositoryVerifierFailure -ExpectedErrors @(
+            'Issue-form Git text attribute is not unset: .github/ISSUE_TEMPLATE/01-bug.yml'
+            'Issue-form Git text attribute is not unset: .github/ISSUE_TEMPLATE/02-feature.yml'
+            'Issue-form Git text attribute is not unset: .github/ISSUE_TEMPLATE/config.yml'
+        ) -RepositoryRoot $attributeFixtureRoot
+        Write-Output 'RED confirmed: a later text override defeats effective -text and fails validation.'
+    }
+    finally {
+        [IO.File]::WriteAllBytes($attributeFixturePath, $attributeFixtureBytes)
+    }
+
+    Assert-RepositoryVerifierSuccess -RepositoryRoot $attributeFixtureRoot
+}
+finally {
+    if (Test-Path -LiteralPath $attributeFixtureRoot) {
+        git worktree remove --force $attributeFixtureRoot
+        if ($LASTEXITCODE -ne 0) { Write-Warning "Unable to remove attribute fixture worktree: $attributeFixtureRoot" }
+    }
+    git worktree prune
+}
+
 Assert-RepositoryVerifierSuccess
 Write-Output 'GREEN confirmed: exact uppercase stage-0 mode 100644 Git paths pass.'
 Write-Output 'Active issue-form validator fixture checks passed.'
 ```
 
-Expected: on Windows, the lowercase index fixture first reports `RED confirmed: the lowercase Git path still satisfies the old Windows filesystem lookup.` On every platform, the alternate index is rejected with `Active issue-template path must use exact Git casing: .github/issue_template/01-bug.yml`; restoring the real index reports `GREEN confirmed: exact uppercase stage-0 mode 100644 Git paths pass.` and `Active issue-form validator fixture checks passed.` Missing, unexpected, reparse-point, hash-mismatched, untracked, wrong-mode, wrong-stage, and wrong-case active entries are rejected. The three active forms remain deliberately staged; every temporary filesystem and alternate-index mutation is restored.
+Expected: on Windows, the lowercase index fixture first reports `RED confirmed: the lowercase Git path still satisfies the old Windows filesystem lookup.` On every platform, the alternate index is rejected with `Active issue-template path must use exact Git casing: .github/issue_template/01-bug.yml`. The disposable attribute worktree proves the clean exact rule yields `text: unset` for all three forms and exact validator success; deleting the rule fails both the exact-one rule and effective-attribute checks before any EOL conversion, duplicating it fails exact-one validation, and a later `text` rule fails all three effective-attribute checks while the required line remains. Restoring the real index reports `GREEN confirmed: exact uppercase stage-0 mode 100644 Git paths pass.` and `Active issue-form validator fixture checks passed.` Missing, unexpected, reparse-point, hash-mismatched, untracked, wrong-mode, wrong-stage, and wrong-case active entries are rejected. The three active forms remain deliberately staged; every temporary filesystem, index, and linked-worktree mutation is restored.
 
 - [ ] **Step 6: Validate YAML schemas and parsed issue-form semantics**
 
@@ -1854,6 +2066,38 @@ if ($LASTEXITCODE -ne 0 -or $validatorOutput.Count -ne 1 -or $validatorOutput[0]
     $validatorOutput
     throw 'Repository validator did not return its exact success contract.'
 }
+$repositoryRoot = (Resolve-Path '.').Path
+$issueTemplatePaths = @(
+    '.github/ISSUE_TEMPLATE/01-bug.yml',
+    '.github/ISSUE_TEMPLATE/02-feature.yml',
+    '.github/ISSUE_TEMPLATE/config.yml'
+)
+$byteStabilityRule = '/.github/ISSUE_TEMPLATE/*.yml -text'
+$gitattributesPath = Join-Path $repositoryRoot '.gitattributes'
+if (-not (Test-Path -LiteralPath $gitattributesPath -PathType Leaf)) {
+    throw '.gitattributes must be an ordinary readable file.'
+}
+$gitattributesItem = Get-Item -LiteralPath $gitattributesPath -Force
+if ($gitattributesItem.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+    throw '.gitattributes must be an ordinary readable file.'
+}
+$gitattributesLines = @(Get-Content -LiteralPath $gitattributesPath -ErrorAction Stop)
+if (@($gitattributesLines | Where-Object { $_ -ceq $byteStabilityRule }).Count -ne 1) {
+    throw '.gitattributes must contain exactly one issue-form byte-stability rule.'
+}
+$attributeOutput = @(git -C $repositoryRoot -c core.quotePath=false check-attr text -- $issueTemplatePaths 2>&1 |
+    ForEach-Object { $_.ToString().Replace('\', '/') })
+$attributeExitCode = $LASTEXITCODE
+if ($attributeExitCode -ne 0 -or $attributeOutput.Count -ne $issueTemplatePaths.Count) {
+    $attributeOutput
+    throw 'Unable to read exactly three issue-form Git text attributes.'
+}
+foreach ($path in $issueTemplatePaths) {
+    if (@($attributeOutput | Where-Object { $_ -ceq "${path}: text: unset" }).Count -ne 1) {
+        $attributeOutput
+        throw "Issue-form Git text attribute is not unset: $path"
+    }
+}
 $baseCommit = git merge-base HEAD main
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($baseCommit)) {
     throw 'Unable to determine the branch base against main.'
@@ -1861,9 +2105,86 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($baseCommit)) {
 git diff --check "$baseCommit..HEAD"
 if ($LASTEXITCODE -ne 0) { throw 'git diff --check failed.' }
 $validatorOutput
+
+$expectedIssueTemplateHashes = [ordered]@{
+    '.github/ISSUE_TEMPLATE/01-bug.yml' = '8f2c31b169477b86d85e60f9d1c91eed349fae829f1071b8b42dc93624d8879a'
+    '.github/ISSUE_TEMPLATE/02-feature.yml' = '748e69155e9e60acd16f5cbb93b6398fd5853905951829080a9c440ed5c0e7a4'
+    '.github/ISSUE_TEMPLATE/config.yml' = '1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb'
+}
+$temporaryWorktrees = [Collections.Generic.List[string]]::new()
+try {
+    foreach ($autocrlf in @('true', 'false')) {
+        $checkoutRoot = Join-Path ([IO.Path]::GetTempPath()) "final-issue-forms-$autocrlf-$([guid]::NewGuid())"
+        [void]$temporaryWorktrees.Add($checkoutRoot)
+        git -c "core.autocrlf=$autocrlf" worktree add --detach $checkoutRoot HEAD | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Unable to create final core.autocrlf=$autocrlf checkout." }
+
+        $previousConfigCount = [Environment]::GetEnvironmentVariable('GIT_CONFIG_COUNT', 'Process')
+        $previousConfigKey = [Environment]::GetEnvironmentVariable('GIT_CONFIG_KEY_0', 'Process')
+        $previousConfigValue = [Environment]::GetEnvironmentVariable('GIT_CONFIG_VALUE_0', 'Process')
+        try {
+            [Environment]::SetEnvironmentVariable('GIT_CONFIG_COUNT', '1', 'Process')
+            [Environment]::SetEnvironmentVariable('GIT_CONFIG_KEY_0', 'core.autocrlf', 'Process')
+            [Environment]::SetEnvironmentVariable('GIT_CONFIG_VALUE_0', $autocrlf, 'Process')
+
+            $checkoutAttributesPath = Join-Path $checkoutRoot '.gitattributes'
+            $checkoutAttributeLines = @(Get-Content -LiteralPath $checkoutAttributesPath -ErrorAction Stop)
+            if (@($checkoutAttributeLines | Where-Object { $_ -ceq $byteStabilityRule }).Count -ne 1) {
+                throw "Clean checkout lost the exact-one byte-stability rule with core.autocrlf=$autocrlf."
+            }
+            $checkoutAttributes = @(git -C $checkoutRoot -c core.quotePath=false check-attr text -- $issueTemplatePaths 2>&1 |
+                ForEach-Object { $_.ToString().Replace('\', '/') })
+            $checkoutAttributeExitCode = $LASTEXITCODE
+            if ($checkoutAttributeExitCode -ne 0 -or $checkoutAttributes.Count -ne $issueTemplatePaths.Count) {
+                $checkoutAttributes
+                throw "Clean checkout did not return exactly three Git attributes with core.autocrlf=$autocrlf."
+            }
+            foreach ($path in $issueTemplatePaths) {
+                if (@($checkoutAttributes | Where-Object { $_ -ceq "${path}: text: unset" }).Count -ne 1) {
+                    $checkoutAttributes
+                    throw "Clean checkout lost the -text contract with core.autocrlf=${autocrlf}: $path"
+                }
+            }
+            foreach ($entry in $expectedIssueTemplateHashes.GetEnumerator()) {
+                $checkoutPath = Join-Path $checkoutRoot ($entry.Key.Replace('/', '\'))
+                $actualHash = (Get-FileHash -LiteralPath $checkoutPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                if ($actualHash -cne $entry.Value) {
+                    throw "Clean checkout hash mismatch with core.autocrlf=${autocrlf}: $($entry.Key)"
+                }
+            }
+            $checkoutValidator = Join-Path $checkoutRoot '.github\cli\verify-repository-setup.ps1'
+            $checkoutValidatorOutput = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $checkoutValidator 2>&1 | ForEach-Object { $_.ToString() })
+            if ($LASTEXITCODE -ne 0 -or $checkoutValidatorOutput.Count -ne 1 -or
+                $checkoutValidatorOutput[0] -cne 'Repository setup validation passed.') {
+                $checkoutValidatorOutput
+                throw "Clean checkout validator failed with core.autocrlf=$autocrlf."
+            }
+            $checkoutStatus = @(git -C $checkoutRoot status --porcelain=v1)
+            if ($LASTEXITCODE -ne 0 -or $checkoutStatus.Count -ne 0) {
+                $checkoutStatus
+                throw "Temporary checkout is not clean with core.autocrlf=$autocrlf."
+            }
+            Write-Output "Final clean checkout validation passed with core.autocrlf=$autocrlf."
+        }
+        finally {
+            [Environment]::SetEnvironmentVariable('GIT_CONFIG_COUNT', $previousConfigCount, 'Process')
+            [Environment]::SetEnvironmentVariable('GIT_CONFIG_KEY_0', $previousConfigKey, 'Process')
+            [Environment]::SetEnvironmentVariable('GIT_CONFIG_VALUE_0', $previousConfigValue, 'Process')
+        }
+    }
+}
+finally {
+    foreach ($temporaryWorktree in $temporaryWorktrees) {
+        if (Test-Path -LiteralPath $temporaryWorktree) {
+            git worktree remove --force $temporaryWorktree
+            if ($LASTEXITCODE -ne 0) { Write-Warning "Unable to remove temporary worktree: $temporaryWorktree" }
+        }
+    }
+    git worktree prune
+}
 ```
 
-Expected: exactly `Repository setup validation passed.` from the validator; `git diff --check` produces no output for the aggregate branch diff from its merge base with `main` through `HEAD`. The check does not assume a fixed commit count.
+Expected: exactly `Repository setup validation passed.` from the validator; root `.gitattributes` is an ordinary file containing exactly one exact `/.github/ISSUE_TEMPLATE/*.yml -text` line; and `git check-attr text` returns exactly one `text: unset` record for each active form after output separators are normalized. `git diff --check` produces no output for the aggregate branch diff from its merge base with `main` through `HEAD`. Clean temporary checkouts under both `core.autocrlf=true` and `core.autocrlf=false` retain the exact-one rule, effective `text: unset` values, pinned hashes, exact validator success, and clean status. The check does not assume a fixed commit count.
 
 - [ ] **Step 2: Verify folders, active forms, skills, and manifest counts**
 
