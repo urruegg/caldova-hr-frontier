@@ -398,6 +398,9 @@ MSBuild_Logs/
 # Repository-local Git worktrees
 .wt/
 
+# Superpowers local runtime state
+/.superpowers/
+
 # BeatPulse healthcheck temp database
 healthchecksdb
 
