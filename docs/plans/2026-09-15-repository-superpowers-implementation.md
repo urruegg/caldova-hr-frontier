@@ -16,8 +16,9 @@ Tasks 1-6 are completed historical context. Their unchecked boxes, embedded comm
 
 ## Shipped Integrity Contract
 
-- **Superpowers runtime:** `.github/skills/` contains exactly 14 expected skill directories and 51 runtime files. `SUPERPOWERS_SHA256SUMS` has raw SHA-256 digest `be8b1626ea290a4cc0a99ccf0e4878fcf8c5ca7d238094be3d23b59563d28f1c` and is an exact-case stage-0 mode `100644` entry. Its exact ordinal path/hash set equals the forced working-file set.
-- **Complete runtime index:** every tracked path beneath `.github/skills/` is classified. Unknown nested skill directories, skill or file case variants, extra paths beneath expected directories, unexpected root files, and conflict stages are rejected. Outside the skill directories, only exact root files `README.md`, `LICENSE.superpowers`, `SUPERPOWERS_SHA256SUMS`, and `SUPERPOWERS_VERSION` are permitted.
+- **Superpowers runtime:** `.github/skills/` contains exactly 14 expected skill directories and 51 runtime files. The exact skill names, in alphabetical order, are: `brainstorming`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `receiving-code-review`, `requesting-code-review`, `subagent-driven-development`, `systematic-debugging`, `test-driven-development`, `using-git-worktrees`, `using-superpowers`, `verification-before-completion`, `writing-plans`, `writing-skills`. `SUPERPOWERS_SHA256SUMS` has raw SHA-256 digest `be8b1626ea290a4cc0a99ccf0e4878fcf8c5ca7d238094be3d23b59563d28f1c` and is an exact-case stage-0 mode `100644` entry. Its exact ordinal path/hash set equals the forced working-file set.
+- **Persistent validator boundary:** every tracked path beneath `.github/skills/` is classified. Unknown nested skill directories, skill or file case variants, extra paths beneath expected directories, unexpected root files, and conflict stages are rejected. Outside the skill directories, the validator permits only exact root paths `README.md`, `LICENSE.superpowers`, `SUPERPOWERS_SHA256SUMS`, and `SUPERPOWERS_VERSION`. It requires the manifest and all runtime paths as an exact index snapshot and validates the working version metadata and license content, but its root allowlist does not require all three auxiliary root records (`README.md`, `LICENSE.superpowers`, and `SUPERPOWERS_VERSION`) to be tracked.
+- **Task 7 complete root audit:** Task 7 Step 2 separately requires the exact complete tracked set beneath `.github/skills/`: root records `README.md`, `LICENSE.superpowers`, `SUPERPOWERS_SHA256SUMS`, and `SUPERPOWERS_VERSION`, plus the manifest-defined runtime records, with no omissions or extras.
 - **Runtime modes and coherence:** the 51 runtime records are exactly 44 stage-0 mode `100644` files and seven stage-0 mode `100755` files. Raw working-tree and index object IDs match for the manifest plus all runtime paths (`52/52`). Hidden entries and reparse points cannot evade enumeration.
 - **Pinned metadata:** `LICENSE.superpowers` has full-file SHA-256 digest `a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400`, and `SUPERPOWERS_VERSION` matches the exact ordered v6.3.0 metadata lines.
 - **Issue forms:** exactly `.github/ISSUE_TEMPLATE/01-bug.yml`, `.github/ISSUE_TEMPLATE/02-feature.yml`, and `.github/ISSUE_TEMPLATE/config.yml` exist and are tracked with exact uppercase casing as stage-0 mode `100644`. Their pinned hashes preserve the approved schema, required fields, public-data warning, security wording, and intentional absence of unverified contact links.
@@ -2470,17 +2471,18 @@ Write-Output 'Superpowers snapshot validation passed (14 dirs; 51 runtime; 44 mo
 Write-Output 'Issue-form snapshot validation passed (4/4 OID matches).'
 ```
 
-Expected: no form diagnostics and the three exact success lines reporting 19 READMEs, three forms, 14 directories, 51 runtime files, the 44/7 mode split, `52/52` runtime/manifest OID matches, and `4/4` form/attribute OID matches. The script independently checks the pinned manifest digest, full license hash, exact ordered version metadata, form hashes, exact index path set and four root exemptions, conflict-stage rejection, and raw OID coherence. The sole-green repository validator remains responsible for the same exact path/hash sets plus hidden-entry and reparse defenses.
+Expected: no form diagnostics and the three exact success lines reporting 19 READMEs, three forms, 14 directories, 51 runtime files, the 44/7 mode split, `52/52` runtime/manifest OID matches, and `4/4` form/attribute OID matches. The script independently checks the pinned manifest digest, full license hash, exact ordered version metadata, form hashes, the exact complete tracked root/runtime set beneath `.github/skills/`, conflict-stage rejection, and raw OID coherence. The sole-green repository validator separately rejects unexpected tracked root paths, requires the exact manifest/runtime index snapshot, validates working version metadata and license content, and provides hidden-entry and reparse defenses; Task 7 supplies the additional requirement that every permitted auxiliary root path has a tracked record.
 
 - [ ] **Step 3: Smoke-test VS Code discovery**
 
 In VS Code:
 
-1. Run **Chat: Open Customizations**.
-2. Open the **Skills** tab.
-3. Confirm exactly the 14 names in the **Shipped Integrity Contract** appear as repository skills, with no extra project skill and no metadata diagnostics.
-4. Manually confirm repository provenance for the entries and confirm `using-superpowers` shows `.github/skills/using-superpowers/SKILL.md` as its source/path in this checkout.
-5. Start a new chat in the repository and enter `Use using-superpowers and tell me which process applies before changing code.`
+1. Open this feature worktree/repository checkout as the workspace root. Testing the parent primary checkout before integration is invalid because it does not contain this branch's repository customizations.
+2. Run **Chat: Open Customizations**.
+3. Open the **Skills** tab.
+4. Confirm exactly the 14 names in the **Shipped Integrity Contract** appear as repository skills, with no extra project skill and no metadata diagnostics.
+5. Manually confirm repository provenance for the entries and confirm `using-superpowers` shows `.github/skills/using-superpowers/SKILL.md` as its source/path in this checkout.
+6. Start a new chat in the repository and enter `Use using-superpowers and tell me which process applies before changing code.`
 
 Expected: Copilot identifies and follows the repository-owned `using-superpowers` skill without asking for a global install.
 
