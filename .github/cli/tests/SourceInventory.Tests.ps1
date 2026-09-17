@@ -184,6 +184,147 @@ Describe 'Get-ArchitectureSourceInventory' {
 	}
 }
 
+Describe 'New-ArchitectureSourceInventory.ps1 internal helpers' {
+	BeforeAll {
+		$script:entryScriptPath = Join-Path $PSScriptRoot '..\New-ArchitectureSourceInventory.ps1'
+		$helperLoadSource = Join-Path $TestDrive 'helper-load-source'
+		$script:helperLoadOutputPath = Join-Path $TestDrive 'helper-load-output\inventory.json'
+		New-Item -ItemType Directory -Path $helperLoadSource -Force | Out-Null
+		[IO.File]::WriteAllText(
+			(Join-Path $helperLoadSource 'source.txt'),
+			'source-content',
+			[Text.UTF8Encoding]::new($false)
+		)
+
+		$script:helperLoadOutput = @(
+			. $script:entryScriptPath `
+				-SourceRoot $helperLoadSource `
+				-OutputPath $script:helperLoadOutputPath `
+				-GeneratedUtc '2026-09-17T12:00:00Z'
+		)
+	}
+
+	It 'loads the atomic writer without executing the CLI entry point' {
+		$script:helperLoadOutput | Should -BeNullOrEmpty
+		Test-Path -LiteralPath $script:helperLoadOutputPath | Should -BeFalse
+		Get-Command Write-AtomicInventoryFile -CommandType Function |
+			Should -Not -BeNullOrEmpty
+	}
+
+	It 'restores the destination when replacement moves it to backup and then fails' {
+		$outputDirectory = Join-Path $TestDrive 'atomic-restore-output'
+		$destinationPath = Join-Path $outputDirectory 'inventory.json'
+		$originalBytes = [byte[]]@(0x00, 0xFF, 0x41, 0x0A)
+		New-Item -ItemType Directory -Path $outputDirectory | Out-Null
+		[IO.File]::WriteAllBytes($destinationPath, $originalBytes)
+
+		$successOutput = [Collections.Generic.List[object]]::new()
+		$caughtError = $null
+		try {
+			Write-AtomicInventoryFile `
+				-DestinationPath $destinationPath `
+				-Content "replacement`n" `
+				-ReplacementOperation {
+					param($TemporaryPath, $DestinationPath, $BackupPath)
+
+					[IO.File]::Move($DestinationPath, $BackupPath)
+					throw 'Injected replacement failure.'
+				} | ForEach-Object { $successOutput.Add($_) }
+		}
+		catch {
+			$caughtError = $_
+		}
+
+		$caughtError | Should -Not -BeNullOrEmpty
+		$caughtError.Exception.Message |
+			Should -Match 'Failed to replace inventory destination.*Original destination restored.*Injected replacement failure'
+		$successOutput.Count | Should -Be 0
+		[Convert]::ToBase64String([IO.File]::ReadAllBytes($destinationPath)) |
+			Should -Be ([Convert]::ToBase64String($originalBytes))
+		$remainingFiles = @(Get-ChildItem -LiteralPath $outputDirectory -File -Force)
+		$remainingFiles.Count | Should -Be 1
+		$remainingFiles[0].FullName | Should -Be $destinationPath
+	}
+
+	It 'preserves a differing destination and backup when replacement fails' {
+		$outputDirectory = Join-Path $TestDrive 'atomic-preserve-output'
+		$destinationPath = Join-Path $outputDirectory 'inventory.json'
+		$originalBytes = [byte[]]@(0x10, 0x20, 0x30, 0x40)
+		$differingDestinationBytes = [byte[]]@(0x90, 0x80, 0x70)
+		New-Item -ItemType Directory -Path $outputDirectory | Out-Null
+		[IO.File]::WriteAllBytes($destinationPath, $originalBytes)
+		$script:preservedBackupPath = $null
+
+		$successOutput = [Collections.Generic.List[object]]::new()
+		$caughtError = $null
+		try {
+			Write-AtomicInventoryFile `
+				-DestinationPath $destinationPath `
+				-Content "replacement`n" `
+				-ReplacementOperation {
+					param($TemporaryPath, $DestinationPath, $BackupPath)
+
+					$script:preservedBackupPath = $BackupPath
+					[IO.File]::Move($DestinationPath, $BackupPath)
+					[IO.File]::WriteAllBytes(
+						$DestinationPath,
+						[byte[]]@(0x90, 0x80, 0x70)
+					)
+					throw 'Injected replacement failure with two files.'
+				} | ForEach-Object { $successOutput.Add($_) }
+		}
+		catch {
+			$caughtError = $_
+		}
+
+		$caughtError | Should -Not -BeNullOrEmpty
+		$script:preservedBackupPath | Should -Not -BeNullOrEmpty
+		$caughtError.Exception.Message |
+			Should -Match ([regex]::Escape($script:preservedBackupPath))
+		$caughtError.Exception.Message |
+			Should -Match 'destination and backup.*preserved'
+		$successOutput.Count | Should -Be 0
+		[Convert]::ToBase64String([IO.File]::ReadAllBytes($destinationPath)) |
+			Should -Be ([Convert]::ToBase64String($differingDestinationBytes))
+		[Convert]::ToBase64String([IO.File]::ReadAllBytes($script:preservedBackupPath)) |
+			Should -Be ([Convert]::ToBase64String($originalBytes))
+		$remainingFiles = @(Get-ChildItem -LiteralPath $outputDirectory -File -Force)
+		$remainingFiles.Count | Should -Be 2
+		$remainingFiles.FullName | Should -Contain $destinationPath
+		$remainingFiles.FullName | Should -Contain $script:preservedBackupPath
+	}
+
+	It 'accepts only the approved local server names without regard to case' {
+		$acceptedNames = @(
+			'.',
+			'LOCALHOST',
+			[Environment]::MachineName.ToLowerInvariant(),
+			[Net.Dns]::GetHostName().ToUpperInvariant()
+		)
+		foreach ($serverName in $acceptedNames) {
+			Test-IsLocalServerName -ServerName $serverName | Should -BeTrue
+		}
+
+		$rejectedNames = @(
+			'localhost.example.invalid',
+			([Environment]::MachineName + '-remote'),
+			([Net.Dns]::GetHostName() + '.example.invalid'),
+			'remote-server'
+		)
+		foreach ($serverName in $rejectedNames) {
+			Test-IsLocalServerName -ServerName $serverName | Should -BeFalse
+		}
+	}
+
+	It 'returns a remote final UNC path unchanged' {
+		$remoteFinalPath = '\\remote-server\share\nested\inventory.json'
+
+		Resolve-LocalShareFinalPath `
+			-FinalPath $remoteFinalPath `
+			-ExistingPath $TestDrive | Should -BeExactly $remoteFinalPath
+	}
+}
+
 Describe 'New-ArchitectureSourceInventory.ps1 output safety' {
 	BeforeAll {
 		$script:entryScriptPath = Join-Path $PSScriptRoot '..\New-ArchitectureSourceInventory.ps1'

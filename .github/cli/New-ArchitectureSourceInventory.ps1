@@ -356,6 +356,30 @@ function Get-PhysicalDirectoryIdentity {
 	}
 }
 
+function Test-IsLocalServerName {
+	[CmdletBinding()]
+	param(
+		[Parameter(Mandatory)]
+		[string]$ServerName
+	)
+
+	foreach ($localServerName in @(
+		'.',
+		'localhost',
+		[Environment]::MachineName,
+		[Net.Dns]::GetHostName()
+	)) {
+		if ($ServerName.Equals(
+			$localServerName,
+			[StringComparison]::OrdinalIgnoreCase
+		)) {
+			return $true
+		}
+	}
+
+	return $false
+}
+
 function Resolve-LocalShareFinalPath {
 	param(
 		[Parameter(Mandatory)]
@@ -376,6 +400,10 @@ function Resolve-LocalShareFinalPath {
 	}
 
 	$serverName = $uncRemainder.Substring(0, $serverSeparator)
+	if (-not (Test-IsLocalServerName -ServerName $serverName)) {
+		return $FinalPath
+	}
+
 	$shareAndPath = $uncRemainder.Substring($serverSeparator + 1)
 	$shareSeparator = $shareAndPath.IndexOf([IO.Path]::DirectorySeparatorChar)
 	if ($shareSeparator -lt 0) {
@@ -501,6 +529,107 @@ function Assert-NoReparsePointInPath {
 	}
 }
 
+function Write-AtomicInventoryFile {
+	[CmdletBinding()]
+	param(
+		[Parameter(Mandatory)]
+		[string]$DestinationPath,
+
+		[Parameter(Mandatory)]
+		[string]$Content,
+
+		[scriptblock]$ReplacementOperation = {
+			param($TemporaryPath, $DestinationPath, $BackupPath)
+
+			[IO.File]::Replace($TemporaryPath, $DestinationPath, $BackupPath)
+		}
+	)
+
+	$outputDirectory = [IO.Path]::GetDirectoryName($DestinationPath)
+	$temporaryOutput = Join-Path $outputDirectory (
+		'.{0}.{1}.tmp' -f
+			[IO.Path]::GetFileName($DestinationPath),
+			[Guid]::NewGuid().ToString('N')
+	)
+	$backupOutput = $temporaryOutput + '.backup'
+	$replacementSucceeded = $false
+
+	try {
+		[IO.File]::WriteAllText(
+			$temporaryOutput,
+			$Content,
+			[Text.UTF8Encoding]::new($false)
+		)
+
+		if ([IO.File]::Exists($DestinationPath)) {
+			try {
+				$null = & $ReplacementOperation `
+					$temporaryOutput `
+					$DestinationPath `
+					$backupOutput
+				if (-not [IO.File]::Exists($DestinationPath) -or
+					[IO.File]::Exists($temporaryOutput)) {
+					throw 'Replacement operation did not complete the destination swap.'
+				}
+
+				$replacementSucceeded = $true
+			}
+			catch {
+				$replacementError = $_
+				if ([IO.File]::Exists($backupOutput)) {
+					if (-not [IO.File]::Exists($DestinationPath)) {
+						try {
+							[IO.File]::Move($backupOutput, $DestinationPath)
+						}
+						catch {
+							throw (
+								"Failed to replace inventory destination '$DestinationPath'. " +
+								"The original remains at backup '$backupOutput' because restoration failed. " +
+								"Replacement error: $($replacementError.Exception.Message) " +
+								"Restoration error: $($_.Exception.Message)"
+							)
+						}
+
+						throw (
+							"Failed to replace inventory destination '$DestinationPath'. " +
+							"Original destination restored. $($replacementError.Exception.Message)"
+						)
+					}
+
+					throw (
+						"Failed to replace inventory destination '$DestinationPath'. " +
+						"The destination and backup were preserved. Backup: '$backupOutput'. " +
+						$replacementError.Exception.Message
+					)
+				}
+
+				throw (
+					"Failed to replace inventory destination '$DestinationPath'. " +
+					$replacementError.Exception.Message
+				)
+			}
+		}
+		else {
+			[IO.File]::Move($temporaryOutput, $DestinationPath)
+			$replacementSucceeded = [IO.File]::Exists($DestinationPath) -and
+				-not [IO.File]::Exists($temporaryOutput)
+		}
+	}
+	finally {
+		if ([IO.File]::Exists($temporaryOutput)) {
+			[IO.File]::Delete($temporaryOutput)
+		}
+
+		if ($replacementSucceeded -and [IO.File]::Exists($backupOutput)) {
+			[IO.File]::Delete($backupOutput)
+		}
+	}
+}
+
+if ($MyInvocation.InvocationName -eq '.') {
+	return
+}
+
 Import-Module (Join-Path $PSScriptRoot 'modules\SourceInventory.psm1') -Force
 
 $resolvedSourceRoot = Get-CanonicalFileSystemPath -Path (
@@ -538,33 +667,8 @@ if (-not (Test-Path -LiteralPath $outputDirectory)) {
 	New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
 }
 
-$temporaryOutput = Join-Path $outputDirectory (
-	'.{0}.{1}.tmp' -f [IO.Path]::GetFileName($absoluteOutput), [Guid]::NewGuid().ToString('N')
-)
-$backupOutput = $temporaryOutput + '.backup'
-
-try {
-	[IO.File]::WriteAllText(
-		$temporaryOutput,
-		$normalizedJson,
-		[Text.UTF8Encoding]::new($false)
-	)
-
-	if ([IO.File]::Exists($absoluteOutput)) {
-		[IO.File]::Replace($temporaryOutput, $absoluteOutput, $backupOutput)
-	}
-	else {
-		[IO.File]::Move($temporaryOutput, $absoluteOutput)
-	}
-}
-finally {
-	if ([IO.File]::Exists($temporaryOutput)) {
-		[IO.File]::Delete($temporaryOutput)
-	}
-
-	if ([IO.File]::Exists($backupOutput)) {
-		[IO.File]::Delete($backupOutput)
-	}
-}
+Write-AtomicInventoryFile `
+	-DestinationPath $absoluteOutput `
+	-Content $normalizedJson
 
 Write-Output "Wrote source inventory: $OutputPath"
