@@ -187,6 +187,57 @@ Describe 'Get-ArchitectureSourceInventory' {
 Describe 'New-ArchitectureSourceInventory.ps1 output safety' {
 	BeforeAll {
 		$script:entryScriptPath = Join-Path $PSScriptRoot '..\New-ArchitectureSourceInventory.ps1'
+
+		if (-not ('SourceInventoryTests.NativeMethods' -as [type])) {
+			Add-Type -TypeDefinition @'
+using System.Runtime.InteropServices;
+using System.Text;
+
+namespace SourceInventoryTests
+{
+    public static class NativeMethods
+    {
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern uint GetShortPathName(
+            string longPath,
+            StringBuilder shortPath,
+            uint shortPathLength);
+    }
+}
+'@
+		}
+
+		function Get-TestShortPathName {
+			param(
+				[Parameter(Mandatory)]
+				[string]$Path
+			)
+
+			$buffer = [Text.StringBuilder]::new(260)
+			$length = [SourceInventoryTests.NativeMethods]::GetShortPathName(
+				$Path,
+				$buffer,
+				[uint32]$buffer.Capacity
+			)
+
+			if ($length -eq 0) {
+				return $null
+			}
+
+			if ($length -ge $buffer.Capacity) {
+				$buffer = [Text.StringBuilder]::new([int]$length + 1)
+				$length = [SourceInventoryTests.NativeMethods]::GetShortPathName(
+					$Path,
+					$buffer,
+					[uint32]$buffer.Capacity
+				)
+				if ($length -eq 0) {
+					return $null
+				}
+			}
+
+			return $buffer.ToString()
+		}
 	}
 
 	BeforeEach {
@@ -210,6 +261,91 @@ Describe 'New-ArchitectureSourceInventory.ps1 output safety' {
 		} | Should -Throw '*OutputPath must be outside SourceRoot*'
 
 		[IO.File]::ReadAllText($sourceFile) | Should -Be 'source-content'
+	}
+
+	It 'rejects an administrative-share alias of an existing source file before writing' {
+		$sourceFile = [IO.Path]::GetFullPath((Join-Path $scriptSource 'source.txt'))
+		$sourceRoot = [IO.Path]::GetPathRoot($sourceFile)
+		if ($sourceRoot -notmatch '^[A-Za-z]:\\$') {
+			Set-ItResult -Skipped -Because 'The TestDrive source is not on a local drive.'
+			return
+		}
+
+		$driveLetter = $sourceRoot.Substring(0, 1)
+		$relativeSourceFile = $sourceFile.Substring($sourceRoot.Length)
+		$shareHosts = @('localhost')
+		if (-not [string]::IsNullOrWhiteSpace($env:COMPUTERNAME) -and
+			$env:COMPUTERNAME -notin $shareHosts) {
+			$shareHosts += $env:COMPUTERNAME
+		}
+
+		$aliasedSourceFile = $null
+		foreach ($shareHost in $shareHosts) {
+			$candidate = '\\{0}\{1}$\{2}' -f $shareHost, $driveLetter, $relativeSourceFile
+			if ([IO.File]::Exists($candidate)) {
+				$aliasedSourceFile = $candidate
+				break
+			}
+		}
+
+		if ([string]::IsNullOrEmpty($aliasedSourceFile)) {
+			Set-ItResult -Skipped -Because (
+				'Local administrative shares are unavailable or inaccessible for the TestDrive source.'
+			)
+			return
+		}
+
+		$sourceBytesBefore = [IO.File]::ReadAllBytes($sourceFile)
+		{
+			& $script:entryScriptPath `
+				-SourceRoot $scriptSource `
+				-OutputPath $aliasedSourceFile `
+				-GeneratedUtc '2026-09-17T12:00:00Z' | Out-Null
+		} | Should -Throw '*OutputPath must be outside SourceRoot*'
+
+		[Convert]::ToBase64String([IO.File]::ReadAllBytes($sourceFile)) |
+			Should -Be ([Convert]::ToBase64String($sourceBytesBefore))
+		$remainingFiles = @(Get-ChildItem -LiteralPath $scriptSource -File -Force)
+		$remainingFiles.Count | Should -Be 1
+		$remainingFiles[0].FullName | Should -Be $sourceFile
+	}
+
+	It 'rejects a new output path under an 8.3 alias of the source root' {
+		$longSourceDirectory = Join-Path $TestDrive (
+			'source-directory-with-a-long-name-{0}' -f [Guid]::NewGuid().ToString('N')
+		)
+		New-Item -ItemType Directory -Path $longSourceDirectory -Force | Out-Null
+		[IO.File]::WriteAllText(
+			(Join-Path $longSourceDirectory 'source.txt'),
+			'source-content',
+			[Text.UTF8Encoding]::new($false)
+		)
+
+		$longSourceDirectory = [IO.Path]::GetFullPath($longSourceDirectory)
+		$shortSourceDirectory = Get-TestShortPathName -Path $longSourceDirectory
+		if ([string]::IsNullOrEmpty($shortSourceDirectory) -or
+			$shortSourceDirectory.Equals(
+				$longSourceDirectory,
+				[StringComparison]::OrdinalIgnoreCase
+			)) {
+			Set-ItResult -Skipped -Because (
+				'8.3 naming is disabled or no distinct short alias was assigned to the source directory.'
+			)
+			return
+		}
+
+		$localOutputDirectory = Join-Path $longSourceDirectory 'generated'
+		$localOutputPath = Join-Path $localOutputDirectory 'inventory.json'
+		$aliasedOutputPath = Join-Path $shortSourceDirectory 'generated\inventory.json'
+		{
+			& $script:entryScriptPath `
+				-SourceRoot $longSourceDirectory `
+				-OutputPath $aliasedOutputPath `
+				-GeneratedUtc '2026-09-17T12:00:00Z' | Out-Null
+		} | Should -Throw '*OutputPath must be outside SourceRoot*'
+
+		Test-Path -LiteralPath $localOutputDirectory | Should -BeFalse
+		Test-Path -LiteralPath $localOutputPath -PathType Leaf | Should -BeFalse
 	}
 
 	It 'rejects the <Alias> alias of an existing source file before writing' -ForEach @(
