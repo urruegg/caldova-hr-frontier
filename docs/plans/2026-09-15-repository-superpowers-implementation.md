@@ -4,7 +4,7 @@
 
 **Goal:** Bundle Superpowers v6.3.0, the approved repository folder structure, and structured GitHub issue forms so contributors and GitHub Copilot use consistent project workflows from a normal clone.
 
-**Architecture:** GitHub Copilot discovers unchanged upstream skills from `.github/skills/`. A small PowerShell setup validator checks the fixed repository contract, while pinned SHA-256 values prove the exact vendored runtime and active issue-form contents without parsing Markdown bodies, links, or YAML. Repository-owned bootstrap instructions, version metadata, an upstream license copy, and folder READMEs make the bundle reviewable and maintainable.
+**Architecture:** GitHub Copilot discovers unchanged upstream skills from `.github/skills/`. A PowerShell setup validator checks the fixed repository contract, including the pinned manifest digest, exact runtime and issue-form inventories, complete Git index classification, required modes, and raw index/working-tree object-ID coherence. Pinned SHA-256 values protect the approved bytes without parsing Markdown bodies, links, or YAML. Repository-owned bootstrap instructions, exact version metadata, a pinned upstream license copy, and folder READMEs make the bundle reviewable and maintainable.
 
 **Tech Stack:** GitHub Copilot Agent Skills, Markdown, PowerShell 5.1+, Git
 
@@ -12,11 +12,23 @@
 
 ## Execution Status
 
-Tasks 1-5 are completed historical context and are not a replay path into Task 6. Their embedded steps record how the branch reached its current state and may use historical names such as `Add-ValidationFailure`. The authoritative pre-Task-6 validator is the committed `.github/cli/verify-repository-setup.ps1` at commit `41a869dc3cb81522638bfd6df7dcf8557a4fb18c`; executors must read the current file before applying the self-contained Task 6, which uses the `Add-Failure` baseline.
+Tasks 1-6 are completed historical context. Their unchecked boxes, embedded commands, and exact code blocks preserve the implementation sequence; they are not a replay path or the final validator contract. The authoritative shipped validator is the current `.github/cli/verify-repository-setup.ps1` at commit `cc3f74ce22ce98b1388cc02d956addabbb4ed7cb` (`cc3f74c`). Task 7 is the closeout verification against the current committed artifacts and does not assume a fixed commit count.
+
+## Shipped Integrity Contract
+
+- **Superpowers runtime:** `.github/skills/` contains exactly 14 expected skill directories and 51 runtime files. `SUPERPOWERS_SHA256SUMS` has raw SHA-256 digest `be8b1626ea290a4cc0a99ccf0e4878fcf8c5ca7d238094be3d23b59563d28f1c` and is an exact-case stage-0 mode `100644` entry. Its exact ordinal path/hash set equals the forced working-file set.
+- **Complete runtime index:** every tracked path beneath `.github/skills/` is classified. Unknown nested skill directories, skill or file case variants, extra paths beneath expected directories, unexpected root files, and conflict stages are rejected. Outside the skill directories, only exact root files `README.md`, `LICENSE.superpowers`, `SUPERPOWERS_SHA256SUMS`, and `SUPERPOWERS_VERSION` are permitted.
+- **Runtime modes and coherence:** the 51 runtime records are exactly 44 stage-0 mode `100644` files and seven stage-0 mode `100755` files. Raw working-tree and index object IDs match for the manifest plus all runtime paths (`52/52`). Hidden entries and reparse points cannot evade enumeration.
+- **Pinned metadata:** `LICENSE.superpowers` has full-file SHA-256 digest `a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400`, and `SUPERPOWERS_VERSION` matches the exact ordered v6.3.0 metadata lines.
+- **Issue forms:** exactly `.github/ISSUE_TEMPLATE/01-bug.yml`, `.github/ISSUE_TEMPLATE/02-feature.yml`, and `.github/ISSUE_TEMPLATE/config.yml` exist and are tracked with exact uppercase casing as stage-0 mode `100644`. Their pinned hashes preserve the approved schema, required fields, public-data warning, security wording, and intentional absence of unverified contact links.
+- **Attributes and form coherence:** `.gitattributes` contains exactly one `/.gitattributes -text` and exactly one `/.github/ISSUE_TEMPLATE/*.yml -text`; `git check-attr text` reports effective `unset` for `.gitattributes` and all three forms. Their exact path set has no extras or reparse points, and raw working-tree/index object IDs match for all four paths (`4/4`).
+- **Portability:** clean committed checkouts under both `core.autocrlf=true` and `core.autocrlf=false` retain the exact bytes, attributes, hashes, coherent snapshots, sole validator success line, and clean status.
+
+Post-Task-6 review hardened the validator from staged form-snapshot checking (`c168f9e`) and raw `.gitattributes` protection (`cda9393`) through the complete runtime snapshot (`46c1e53`), extra-runtime rejection (`904f7a8`), and final rogue-skill-path rejection (`cc3f74c`). The current validator and Task 7 are authoritative; the earlier embedded replacement blocks remain historical evidence only.
 
 ## Task 1: Add the Repository Setup Verifier
 
-> **Historical snapshot:** The validator and fixture blocks in this task preserve the original implementation slice. Do not recreate the Task 6 baseline from these blocks or depend on their historical `Add-ValidationFailure` name. Subsequent review condensed the validator; Task 6 must read the committed file identified above, which uses `Add-Failure`.
+> **Historical snapshot:** The validator and fixture blocks in this task preserve the original implementation slice. Do not recreate the Task 6 baseline from these blocks or depend on their historical `Add-ValidationFailure` name. In the historical sequence, Task 6 read the then-current `41a869dc3cb81522638bfd6df7dcf8557a4fb18c` baseline, which used `Add-Failure`; that baseline is not the shipped validator.
 
 **Files:**
 
@@ -974,6 +986,8 @@ git commit -m "docs: activate bundled Superpowers for Copilot" -- AGENTS.md .git
 
 ## Task 6: Add Structured GitHub Issue Forms
 
+> **Historical implementation record:** This task preserves the exact issue-form implementation slice and its approved YAML and hashes. Post-task review hardened the validator through `cc3f74c`; the current `.github/cli/verify-repository-setup.ps1`, the **Shipped Integrity Contract**, and Task 7 define the authoritative final behavior. Task 6's Step 4 replacement block and its fixture blocks are historical; they are not the final validator.
+
 **Files:**
 
 - Modify: `.gitattributes`
@@ -984,7 +998,7 @@ git commit -m "docs: activate bundled Superpowers for Copilot" -- AGENTS.md .git
 
 The lowercase `.github/issue-templates/README.md`, design specification, and this plan are updated and committed separately before this task. The implementation commit in this task contains only root `.gitattributes`, the three active issue-form files, and the repository validator.
 
-Task 6 starts from the current committed validator at `41a869dc3cb81522638bfd6df7dcf8557a4fb18c`, not the historical Task 1 sample. Before replacing validator code, the executor must read the actual `.github/cli/verify-repository-setup.ps1` and confirm that it defines `Add-Failure` and contains the legacy-path loop quoted in Step 4.
+Task 6 historically started from the then-current committed validator at `41a869dc3cb81522638bfd6df7dcf8557a4fb18c`, not the Task 1 sample. At that point, the executor had to read the actual `.github/cli/verify-repository-setup.ps1` and confirm that it defined `Add-Failure` and contained the legacy-path loop quoted in Step 4.
 
 - [ ] **Step 1: Run a RED check against the current legacy-path contract**
 
@@ -2072,7 +2086,9 @@ $issueTemplatePaths = @(
     '.github/ISSUE_TEMPLATE/02-feature.yml',
     '.github/ISSUE_TEMPLATE/config.yml'
 )
-$byteStabilityRule = '/.github/ISSUE_TEMPLATE/*.yml -text'
+$gitattributesSelfByteStabilityRule = '/.gitattributes -text'
+$issueTemplateByteStabilityRule = '/.github/ISSUE_TEMPLATE/*.yml -text'
+$protectedAttributePaths = @('.gitattributes') + $issueTemplatePaths
 $gitattributesPath = Join-Path $repositoryRoot '.gitattributes'
 if (-not (Test-Path -LiteralPath $gitattributesPath -PathType Leaf)) {
     throw '.gitattributes must be an ordinary readable file.'
@@ -2082,20 +2098,23 @@ if ($gitattributesItem.Attributes -band [IO.FileAttributes]::ReparsePoint) {
     throw '.gitattributes must be an ordinary readable file.'
 }
 $gitattributesLines = @(Get-Content -LiteralPath $gitattributesPath -ErrorAction Stop)
-if (@($gitattributesLines | Where-Object { $_ -ceq $byteStabilityRule }).Count -ne 1) {
+if (@($gitattributesLines | Where-Object { $_ -ceq $gitattributesSelfByteStabilityRule }).Count -ne 1) {
+    throw '.gitattributes must contain exactly one self byte-stability rule.'
+}
+if (@($gitattributesLines | Where-Object { $_ -ceq $issueTemplateByteStabilityRule }).Count -ne 1) {
     throw '.gitattributes must contain exactly one issue-form byte-stability rule.'
 }
-$attributeOutput = @(git -C $repositoryRoot -c core.quotePath=false check-attr text -- $issueTemplatePaths 2>&1 |
+$attributeOutput = @(git -C $repositoryRoot -c core.quotePath=false check-attr text -- $protectedAttributePaths 2>&1 |
     ForEach-Object { $_.ToString().Replace('\', '/') })
 $attributeExitCode = $LASTEXITCODE
-if ($attributeExitCode -ne 0 -or $attributeOutput.Count -ne $issueTemplatePaths.Count) {
+if ($attributeExitCode -ne 0 -or $attributeOutput.Count -ne $protectedAttributePaths.Count) {
     $attributeOutput
-    throw 'Unable to read exactly three issue-form Git text attributes.'
+    throw 'Unable to read exactly four protected Git text attributes.'
 }
-foreach ($path in $issueTemplatePaths) {
+foreach ($path in $protectedAttributePaths) {
     if (@($attributeOutput | Where-Object { $_ -ceq "${path}: text: unset" }).Count -ne 1) {
         $attributeOutput
-        throw "Issue-form Git text attribute is not unset: $path"
+        throw "Protected Git text attribute is not unset: $path"
     }
 }
 $baseCommit = git merge-base HEAD main
@@ -2129,17 +2148,18 @@ try {
 
             $checkoutAttributesPath = Join-Path $checkoutRoot '.gitattributes'
             $checkoutAttributeLines = @(Get-Content -LiteralPath $checkoutAttributesPath -ErrorAction Stop)
-            if (@($checkoutAttributeLines | Where-Object { $_ -ceq $byteStabilityRule }).Count -ne 1) {
-                throw "Clean checkout lost the exact-one byte-stability rule with core.autocrlf=$autocrlf."
+            if (@($checkoutAttributeLines | Where-Object { $_ -ceq $gitattributesSelfByteStabilityRule }).Count -ne 1 -or
+                @($checkoutAttributeLines | Where-Object { $_ -ceq $issueTemplateByteStabilityRule }).Count -ne 1) {
+                throw "Clean checkout lost an exact-one byte-stability rule with core.autocrlf=$autocrlf."
             }
-            $checkoutAttributes = @(git -C $checkoutRoot -c core.quotePath=false check-attr text -- $issueTemplatePaths 2>&1 |
+            $checkoutAttributes = @(git -C $checkoutRoot -c core.quotePath=false check-attr text -- $protectedAttributePaths 2>&1 |
                 ForEach-Object { $_.ToString().Replace('\', '/') })
             $checkoutAttributeExitCode = $LASTEXITCODE
-            if ($checkoutAttributeExitCode -ne 0 -or $checkoutAttributes.Count -ne $issueTemplatePaths.Count) {
+            if ($checkoutAttributeExitCode -ne 0 -or $checkoutAttributes.Count -ne $protectedAttributePaths.Count) {
                 $checkoutAttributes
-                throw "Clean checkout did not return exactly three Git attributes with core.autocrlf=$autocrlf."
+                throw "Clean checkout did not return exactly four Git attributes with core.autocrlf=$autocrlf."
             }
-            foreach ($path in $issueTemplatePaths) {
+            foreach ($path in $protectedAttributePaths) {
                 if (@($checkoutAttributes | Where-Object { $_ -ceq "${path}: text: unset" }).Count -ne 1) {
                     $checkoutAttributes
                     throw "Clean checkout lost the -text contract with core.autocrlf=${autocrlf}: $path"
@@ -2184,11 +2204,20 @@ finally {
 }
 ```
 
-Expected: exactly `Repository setup validation passed.` from the validator; root `.gitattributes` is an ordinary file containing exactly one exact `/.github/ISSUE_TEMPLATE/*.yml -text` line; and `git check-attr text` returns exactly one `text: unset` record for each active form after output separators are normalized. `git diff --check` produces no output for the aggregate branch diff from its merge base with `main` through `HEAD`. Clean temporary checkouts under both `core.autocrlf=true` and `core.autocrlf=false` retain the exact-one rule, effective `text: unset` values, pinned hashes, exact validator success, and clean status. The check does not assume a fixed commit count.
+Expected: exactly one `Repository setup validation passed.` line from the validator; root `.gitattributes` is ordinary and contains exactly one `/.gitattributes -text` plus exactly one `/.github/ISSUE_TEMPLATE/*.yml -text`; and `git check-attr text` returns exactly four effective `text: unset` records. `git diff --check` produces no output for the aggregate branch diff from its merge base with `main` through `HEAD`. Clean temporary checkouts under both `core.autocrlf=true` and `core.autocrlf=false` retain both exact-one rules, all four unset attributes, pinned hashes, exact sole validator success, and clean status. The current validator also rechecks the complete runtime and issue-form snapshots in each clone. The check does not assume a fixed commit count.
 
-- [ ] **Step 2: Verify folders, active forms, skills, and manifest counts**
+- [ ] **Step 2: Verify exact inventories and coherent Git snapshots**
+
+First call `get_errors` for `.github/ISSUE_TEMPLATE/01-bug.yml`, `.github/ISSUE_TEMPLATE/02-feature.yml`, and `.github/ISSUE_TEMPLATE/config.yml`. Require no YAML or GitHub issue-form schema diagnostics. Their exact hashes below pin the approved fields and security wording.
 
 ```powershell
+$skillNames = @(
+    'brainstorming', 'dispatching-parallel-agents', 'executing-plans',
+    'finishing-a-development-branch', 'receiving-code-review', 'requesting-code-review',
+    'subagent-driven-development', 'systematic-debugging', 'test-driven-development',
+    'using-git-worktrees', 'using-superpowers', 'verification-before-completion',
+    'writing-plans', 'writing-skills'
+)
 $requiredReadmes = @(
     '.github/agent-policy/README.md', '.github/agents/README.md', '.github/cli/README.md',
     '.github/instructions/README.md', '.github/issue-templates/README.md', '.github/skills/README.md',
@@ -2207,6 +2236,11 @@ $expectedIssueTemplateGitPaths = @(
     '.github/ISSUE_TEMPLATE/02-feature.yml',
     '.github/ISSUE_TEMPLATE/config.yml'
 )
+$expectedIssueTemplateHashes = [ordered]@{
+    '.github/ISSUE_TEMPLATE/01-bug.yml' = '8f2c31b169477b86d85e60f9d1c91eed349fae829f1071b8b42dc93624d8879a'
+    '.github/ISSUE_TEMPLATE/02-feature.yml' = '748e69155e9e60acd16f5cbb93b6398fd5853905951829080a9c440ed5c0e7a4'
+    '.github/ISSUE_TEMPLATE/config.yml' = '1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb'
+}
 if (-not (Test-Path -LiteralPath '.github/ISSUE_TEMPLATE' -PathType Container)) {
     throw 'Missing active .github/ISSUE_TEMPLATE directory.'
 }
@@ -2223,16 +2257,18 @@ $missingIssueTemplateFiles = $expectedIssueTemplateFiles | Where-Object {
     @($issueTemplateEntries | Where-Object { -not $_.PSIsContainer -and $_.Name -ceq $name }).Count -ne 1
 }
 $unexpectedIssueTemplateEntries = @($issueTemplateEntries | Where-Object {
-    $_.PSIsContainer -or $expectedIssueTemplateFiles -cnotcontains $_.Name
+    $_.PSIsContainer -or ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -or
+        $expectedIssueTemplateFiles -cnotcontains $_.Name
 })
 $gitCommand = Get-Command git -CommandType Application -ErrorAction SilentlyContinue
 if ($null -eq $gitCommand) { throw 'Cannot inspect active issue-template paths because git is unavailable.' }
 $gitIndexLines = @(& $gitCommand.Source -C $repositoryRoot -c core.quotePath=false ls-files --stage 2>&1 |
     ForEach-Object { $_.ToString() })
 if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect the Git index for active issue-template paths.' }
+$gitIndexRecords = @()
 $issueTemplateGitRecords = @()
 foreach ($line in $gitIndexLines) {
-    if ($line -notmatch '^([0-7]{6}) ([0-9a-fA-F]{40,64}) ([0-3])\t(.*)$') {
+    if ($line -notmatch '^([0-7]{6}) ((?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})) ([0-3])\t(.*)$') {
         throw "Cannot parse Git index record: $line"
     }
     $record = [pscustomobject]@{
@@ -2241,6 +2277,7 @@ foreach ($line in $gitIndexLines) {
         Stage = $Matches[3]
         Path = $Matches[4]
     }
+    $gitIndexRecords += $record
     if (-not $record.Path.StartsWith($issueTemplateGitPrefix, [StringComparison]::OrdinalIgnoreCase)) {
         continue
     }
@@ -2268,15 +2305,8 @@ foreach ($expectedPath in $expectedIssueTemplateGitPaths) {
         throw "Active issue-template Git entry must be stage-0 mode 100644: $expectedPath"
     }
 }
-$skillDirectories = @(Get-ChildItem -LiteralPath '.github/skills' -Directory | Where-Object {
-    Test-Path -LiteralPath (Join-Path $_.FullName 'SKILL.md')
-})
-$skillCount = $skillDirectories.Count
-$runtimeFileCount = @($skillDirectories | ForEach-Object {
-    Get-ChildItem -LiteralPath $_.FullName -File -Recurse
-}).Count
-$manifestEntryCount = @(Get-Content -LiteralPath '.github/skills/SUPERPOWERS_SHA256SUMS').Count
 if ($missingReadmes.Count -ne 0) { throw "Missing README files: $($missingReadmes -join ', ')" }
+if ($requiredReadmes.Count -ne 19) { throw "Expected the 19-README contract, found $($requiredReadmes.Count) paths." }
 if ($missingIssueTemplateFiles.Count -ne 0) {
     throw "Missing active issue-template files: $($missingIssueTemplateFiles -join ', ')"
 }
@@ -2284,15 +2314,163 @@ if ($unexpectedIssueTemplateEntries.Count -ne 0) {
     throw "Unexpected active issue-template entries: $($unexpectedIssueTemplateEntries.Name -join ', ')"
 }
 if ($issueTemplateEntries.Count -ne 3) { throw "Expected 3 active issue-template files, found $($issueTemplateEntries.Count)" }
-if ($skillCount -ne 14) { throw "Expected 14 skills, found $skillCount" }
-if ($manifestEntryCount -ne $runtimeFileCount) {
-    throw "Expected $runtimeFileCount manifest entries, found $manifestEntryCount"
-}
 if (Test-Path -LiteralPath 'docs/storyboard') { throw 'Excluded docs/storyboard exists.' }
-Write-Output 'Folder, active issue-form, skill, and manifest count validation passed.'
+
+foreach ($entry in $expectedIssueTemplateHashes.GetEnumerator()) {
+    $actualHash = (Get-FileHash -LiteralPath $entry.Key -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actualHash -cne $entry.Value) { throw "Active issue-form hash mismatch: $($entry.Key)" }
+}
+
+$skillsRoot = (Resolve-Path '.github/skills').Path.TrimEnd('\')
+$actualSkillNames = @(Get-ChildItem -LiteralPath $skillsRoot -Directory -Force | ForEach-Object Name)
+if ($actualSkillNames.Count -ne 14) { throw "Expected 14 skill directories, found $($actualSkillNames.Count)." }
+foreach ($skillName in $skillNames) {
+    if ($actualSkillNames -cnotcontains $skillName) { throw "Missing exact skill directory: $skillName" }
+}
+foreach ($actualSkillName in $actualSkillNames) {
+    if ($skillNames -cnotcontains $actualSkillName) { throw "Unexpected or case-variant skill directory: $actualSkillName" }
+}
+
+$runtimeFiles = @($skillNames | ForEach-Object {
+    Get-ChildItem -LiteralPath (Join-Path $skillsRoot $_) -File -Recurse -Force
+})
+$runtimeRelativePaths = @($runtimeFiles | ForEach-Object {
+    $_.FullName.Substring($skillsRoot.Length + 1).Replace('\', '/')
+})
+$manifestPath = '.github/skills/SUPERPOWERS_SHA256SUMS'
+$manifestHash = (Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($manifestHash -cne 'be8b1626ea290a4cc0a99ccf0e4878fcf8c5ca7d238094be3d23b59563d28f1c') {
+    throw 'Pinned Superpowers manifest digest mismatch.'
+}
+$manifestLines = @(Get-Content -LiteralPath $manifestPath)
+$manifestRelativePaths = @(for ($lineIndex = 0; $lineIndex -lt $manifestLines.Count; $lineIndex++) {
+    $manifestMatch = [regex]::Match($manifestLines[$lineIndex], '^([0-9a-f]{64})  (.+)$')
+    if (-not $manifestMatch.Success) { throw "Malformed manifest line $($lineIndex + 1)." }
+    $manifestMatch.Groups[2].Value
+})
+if ($runtimeFiles.Count -ne 51 -or $manifestRelativePaths.Count -ne 51) {
+    throw "Expected 51 runtime files and 51 manifest paths; found $($runtimeFiles.Count) and $($manifestRelativePaths.Count)."
+}
+foreach ($relativePath in $runtimeRelativePaths) {
+    if ($manifestRelativePaths -cnotcontains $relativePath) { throw "Working runtime path is not pinned: $relativePath" }
+}
+foreach ($relativePath in $manifestRelativePaths) {
+    if ($runtimeRelativePaths -cnotcontains $relativePath) { throw "Pinned runtime path is missing: $relativePath" }
+}
+
+$expectedVersionLines = @(
+    'name=Superpowers',
+    'source=https://github.com/obra/superpowers',
+    'release=v6.3.0',
+    'version=6.3.0',
+    'tag-object=86babb696875227929e85420f287d6309374b93f',
+    'commit=b36e0829c6d0140e93cfef2ca599b1b07d4a7797',
+    'vendored=2026-09-15',
+    'upstream-path=skills/',
+    'destination=.github/skills/',
+    'manifest=SUPERPOWERS_SHA256SUMS',
+    'included-skills=brainstorming,dispatching-parallel-agents,executing-plans,finishing-a-development-branch,receiving-code-review,requesting-code-review,subagent-driven-development,systematic-debugging,test-driven-development,using-git-worktrees,using-superpowers,verification-before-completion,writing-plans,writing-skills'
+)
+$actualVersionLines = @(Get-Content -LiteralPath '.github/skills/SUPERPOWERS_VERSION')
+if ($actualVersionLines.Count -ne $expectedVersionLines.Count) { throw 'SUPERPOWERS_VERSION line count mismatch.' }
+for ($lineIndex = 0; $lineIndex -lt $expectedVersionLines.Count; $lineIndex++) {
+    if ($actualVersionLines[$lineIndex] -cne $expectedVersionLines[$lineIndex]) {
+        throw "SUPERPOWERS_VERSION mismatch at line $($lineIndex + 1)."
+    }
+}
+$licenseHash = (Get-FileHash -LiteralPath '.github/skills/LICENSE.superpowers' -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($licenseHash -cne 'a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400') {
+    throw 'Superpowers license hash mismatch.'
+}
+
+$allowedSkillRootGitPaths = @(
+    '.github/skills/README.md',
+    '.github/skills/LICENSE.superpowers',
+    '.github/skills/SUPERPOWERS_SHA256SUMS',
+    '.github/skills/SUPERPOWERS_VERSION'
+)
+$expectedRuntimeGitPaths = @($manifestRelativePaths | ForEach-Object { ".github/skills/$_" })
+$expectedSkillGitPaths = @($allowedSkillRootGitPaths + $expectedRuntimeGitPaths)
+$skillGitRecords = @($gitIndexRecords | Where-Object {
+    $_.Path.StartsWith('.github/skills/', [StringComparison]::OrdinalIgnoreCase)
+})
+if ($skillGitRecords.Count -ne $expectedSkillGitPaths.Count) {
+    throw "Expected $($expectedSkillGitPaths.Count) exact tracked paths under .github/skills, found $($skillGitRecords.Count)."
+}
+foreach ($record in $skillGitRecords) {
+    if ($expectedSkillGitPaths -cnotcontains $record.Path) {
+        throw "Rogue, case-variant, or extra tracked path under .github/skills: $($record.Path)"
+    }
+    if ($record.Stage -cne '0') { throw "Conflict stage is not allowed under .github/skills: $($record.Path)" }
+}
+
+function Get-ExactIndexRecord {
+    param([string]$Path, [string]$Mode)
+
+    $matchingRecords = @($gitIndexRecords | Where-Object { $_.Path -ceq $Path })
+    if ($matchingRecords.Count -ne 1 -or $matchingRecords[0].Stage -cne '0' -or
+        $matchingRecords[0].Mode -cne $Mode) {
+        throw "Expected one exact-case stage-0 mode $Mode Git record: $Path"
+    }
+    $matchingRecords[0]
+}
+
+function Assert-IndexWorkingTreeOidMatch {
+    param([object]$Record)
+
+    $workingOidOutput = @(& $gitCommand.Source -C $repositoryRoot hash-object --no-filters -- $Record.Path 2>&1 |
+        ForEach-Object { $_.ToString() })
+    $hashObjectExitCode = $LASTEXITCODE
+    if ($hashObjectExitCode -ne 0 -or $workingOidOutput.Count -ne 1 -or
+        $workingOidOutput[0] -notmatch '^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$') {
+        throw "Cannot compute raw working-tree OID: $($Record.Path)"
+    }
+    if ($workingOidOutput[0].ToLowerInvariant() -cne $Record.ObjectId.ToLowerInvariant()) {
+        throw "Raw index/working-tree OID mismatch: $($Record.Path)"
+    }
+}
+
+$executableRuntimePaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+foreach ($relativePath in @(
+    'brainstorming/scripts/start-server.sh', 'brainstorming/scripts/stop-server.sh',
+    'subagent-driven-development/scripts/review-package', 'subagent-driven-development/scripts/sdd-workspace',
+    'subagent-driven-development/scripts/task-brief', 'systematic-debugging/find-polluter.sh',
+    'writing-skills/render-graphs.js'
+)) { [void]$executableRuntimePaths.Add($relativePath) }
+
+$runtimeSnapshotRecords = @((Get-ExactIndexRecord $manifestPath '100644'))
+$mode100644Count = 0
+$mode100755Count = 0
+foreach ($relativePath in $manifestRelativePaths) {
+    $mode = if ($executableRuntimePaths.Contains($relativePath)) { '100755' } else { '100644' }
+    $runtimeSnapshotRecords += Get-ExactIndexRecord ".github/skills/$relativePath" $mode
+    if ($mode -ceq '100755') { $mode100755Count++ } else { $mode100644Count++ }
+}
+if ($mode100644Count -ne 44 -or $mode100755Count -ne 7) {
+    throw "Expected runtime modes 44/7, found $mode100644Count/$mode100755Count."
+}
+$runtimeOidMatchCount = 0
+foreach ($record in $runtimeSnapshotRecords) {
+    Assert-IndexWorkingTreeOidMatch $record
+    $runtimeOidMatchCount++
+}
+if ($runtimeOidMatchCount -ne 52) { throw "Expected 52/52 runtime OID matches, found $runtimeOidMatchCount/52." }
+
+$protectedFormGitPaths = @('.gitattributes') + $expectedIssueTemplateGitPaths
+$formOidMatchCount = 0
+foreach ($path in $protectedFormGitPaths) {
+    $record = Get-ExactIndexRecord $path '100644'
+    Assert-IndexWorkingTreeOidMatch $record
+    $formOidMatchCount++
+}
+if ($formOidMatchCount -ne 4) { throw "Expected 4/4 form/attribute OID matches, found $formOidMatchCount/4." }
+
+Write-Output 'README and exact-form inventory validation passed (19 READMEs; 3 forms).'
+Write-Output 'Superpowers snapshot validation passed (14 dirs; 51 runtime; 44 mode 100644; 7 mode 100755; 52/52 OID matches).'
+Write-Output 'Issue-form snapshot validation passed (4/4 OID matches).'
 ```
 
-Expected: `Folder, active issue-form, skill, and manifest count validation passed.` The active directory has exact ordinal filesystem casing, contains exactly three ordinary files, and the Git index contains exactly the three authoritative `.github/ISSUE_TEMPLATE/` paths as stage-0 mode `100644` records with no case variants. `docs/storyboard/` remains excluded, and the manifest entry count equals the recursive file count beneath the 14 skill directories. Step 1's main verifier validates every pinned runtime and issue-form hash and both exact file sets.
+Expected: no form diagnostics and the three exact success lines reporting 19 READMEs, three forms, 14 directories, 51 runtime files, the 44/7 mode split, `52/52` runtime/manifest OID matches, and `4/4` form/attribute OID matches. The script independently checks the pinned manifest digest, full license hash, exact ordered version metadata, form hashes, exact index path set and four root exemptions, conflict-stage rejection, and raw OID coherence. The sole-green repository validator remains responsible for the same exact path/hash sets plus hidden-entry and reparse defenses.
 
 - [ ] **Step 3: Smoke-test VS Code discovery**
 
@@ -2300,8 +2478,8 @@ In VS Code:
 
 1. Run **Chat: Open Customizations**.
 2. Open the **Skills** tab.
-3. Confirm all 14 repository skills appear without metadata diagnostics.
-4. Confirm `using-superpowers` shows `.github/skills/using-superpowers/SKILL.md` as its repository source/path.
+3. Confirm exactly the 14 names in the **Shipped Integrity Contract** appear as repository skills, with no extra project skill and no metadata diagnostics.
+4. Manually confirm repository provenance for the entries and confirm `using-superpowers` shows `.github/skills/using-superpowers/SKILL.md` as its source/path in this checkout.
 5. Start a new chat in the repository and enter `Use using-superpowers and tell me which process applies before changing code.`
 
 Expected: Copilot identifies and follows the repository-owned `using-superpowers` skill without asking for a global install.
@@ -2314,7 +2492,7 @@ From the repository root, inspect project-skill provenance:
 copilot --no-auto-update -C . skill list --json
 ```
 
-Expected: `using-superpowers` has `source` equal to `project`, `enabled` equal to `true`, and a path ending in `.github/skills/using-superpowers` with either supported path separator.
+Expected: the JSON contains exactly the 14 names in the **Shipped Integrity Contract** with `source` equal to `project`, `enabled` equal to `true`, and paths ending in this repository's corresponding `.github/skills/<name>` directories with either supported path separator. There are no missing or extra project skills.
 
 Start Copilot CLI from the repository root:
 
