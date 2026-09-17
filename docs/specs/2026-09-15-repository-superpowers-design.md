@@ -140,7 +140,7 @@ The shipped integration remains valid only while all of these checks pass:
 11. `AGENTS.md` and `.github/copilot-instructions.md` point Copilot to the project skills without requiring a machine-level installation, and `using-superpowers` remains part of the exact runtime snapshot.
 12. Git reports no malformed patches or whitespace errors in the aggregate branch diff from its merge base with `main`.
 13. Clean temporary checkouts with both `core.autocrlf=true` and `core.autocrlf=false` retain the two exact attribute rules, effective `text: unset`, pinned hashes, coherent index/working snapshots, exact sole validator success line, and clean status.
-14. Copilot CLI reports exactly the 14 expected enabled project skills with repository paths, while the VS Code **Skills** view manually confirms the same repository provenance without metadata diagnostics.
+14. Copilot CLI lists exactly the 14 expected enabled project skills with repository provenance and loads `using-superpowers` when explicitly requested in a prompt containing `/using-superpowers`, while the VS Code **Skills** view manually confirms the same repository provenance without metadata diagnostics.
 
 The repository structure, issue-form contract, integrity, and Git checks are automated or command-line verifiable. The final host-discovery check is an integration smoke test in the two target Copilot hosts.
 
