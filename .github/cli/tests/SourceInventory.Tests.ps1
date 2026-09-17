@@ -212,6 +212,25 @@ Describe 'New-ArchitectureSourceInventory.ps1 output safety' {
 		[IO.File]::ReadAllText($sourceFile) | Should -Be 'source-content'
 	}
 
+	It 'rejects an extended local-device alias of an existing source file before writing' {
+		$sourceFile = [IO.Path]::GetFullPath((Join-Path $scriptSource 'source.txt'))
+		$extendedSourceFile = '\\?\' + $sourceFile
+		$sourceBytesBefore = [IO.File]::ReadAllBytes($sourceFile)
+
+		{
+			& $script:entryScriptPath `
+				-SourceRoot $scriptSource `
+				-OutputPath $extendedSourceFile `
+				-GeneratedUtc '2026-09-17T12:00:00Z' | Out-Null
+		} | Should -Throw '*OutputPath must be outside SourceRoot*'
+
+		[Convert]::ToBase64String([IO.File]::ReadAllBytes($sourceFile)) |
+			Should -Be ([Convert]::ToBase64String($sourceBytesBefore))
+		$remainingFiles = @(Get-ChildItem -LiteralPath $scriptSource -File -Force)
+		$remainingFiles.Count | Should -Be 1
+		$remainingFiles[0].FullName | Should -Be $sourceFile
+	}
+
 	It 'rejects a regular file as SourceRoot without writing output' {
 		$sourceFile = Join-Path $TestDrive 'entry-source-root.txt'
 		$outputPath = Join-Path $TestDrive 'entry-source-root-output.json'

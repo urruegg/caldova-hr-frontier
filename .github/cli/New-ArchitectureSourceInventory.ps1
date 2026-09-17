@@ -15,17 +15,45 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-function Get-AbsolutePath {
+function Get-CanonicalFileSystemPath {
 	param(
 		[Parameter(Mandatory)]
 		[string]$Path
 	)
 
-	if ([IO.Path]::IsPathRooted($Path)) {
-		return [IO.Path]::GetFullPath($Path)
+	$extendedUncPrefix = '\\?\UNC\'
+	$extendedLocalPrefix = '\\?\'
+	$deviceNamespacePrefix = '\\.\'
+	$canonicalPath = $Path
+
+	if ($canonicalPath.StartsWith(
+		$deviceNamespacePrefix,
+		[StringComparison]::OrdinalIgnoreCase
+	)) {
+		throw "Unsupported device namespace in file system path: $Path"
 	}
 
-	return [IO.Path]::GetFullPath((Join-Path (Get-Location) $Path))
+	if ($canonicalPath.StartsWith(
+		$extendedUncPrefix,
+		[StringComparison]::OrdinalIgnoreCase
+	)) {
+		$canonicalPath = '\\' + $canonicalPath.Substring($extendedUncPrefix.Length)
+	}
+	elseif ($canonicalPath.StartsWith(
+		$extendedLocalPrefix,
+		[StringComparison]::OrdinalIgnoreCase
+	)) {
+		$canonicalPath = $canonicalPath.Substring($extendedLocalPrefix.Length)
+		if ($canonicalPath -notmatch '^[A-Za-z]:[\\/]') {
+			throw "Unsupported device namespace in file system path: $Path"
+		}
+	}
+
+	if ([IO.Path]::IsPathRooted($canonicalPath)) {
+		return [IO.Path]::GetFullPath($canonicalPath)
+	}
+
+	return [IO.Path]::GetFullPath((Join-Path (Get-Location) $canonicalPath))
 }
 
 function Test-PathIsAtOrBelow {
@@ -74,8 +102,10 @@ function Assert-NoReparsePointInPath {
 
 Import-Module (Join-Path $PSScriptRoot 'modules\SourceInventory.psm1') -Force
 
-$resolvedSourceRoot = (Resolve-Path -LiteralPath $SourceRoot -ErrorAction Stop).Path
-$absoluteOutput = Get-AbsolutePath -Path $OutputPath
+$resolvedSourceRoot = Get-CanonicalFileSystemPath -Path (
+	Resolve-Path -LiteralPath $SourceRoot -ErrorAction Stop
+).Path
+$absoluteOutput = Get-CanonicalFileSystemPath -Path $OutputPath
 $outputDirectory = [IO.Path]::GetDirectoryName($absoluteOutput)
 
 if ([string]::IsNullOrEmpty($outputDirectory)) {
