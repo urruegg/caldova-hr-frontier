@@ -212,17 +212,50 @@ Describe 'New-ArchitectureSourceInventory.ps1 output safety' {
 		[IO.File]::ReadAllText($sourceFile) | Should -Be 'source-content'
 	}
 
-	It 'rejects an extended local-device alias of an existing source file before writing' {
+	It 'rejects the <Alias> alias of an existing source file before writing' -ForEach @(
+		@{
+			Alias = '\\?\'
+			NamespacePrefix = '\\?\'
+			UseForwardSeparators = $false
+			ExpectedError = '*OutputPath must be outside SourceRoot*'
+		},
+		@{
+			Alias = '//?/'
+			NamespacePrefix = '//?/'
+			UseForwardSeparators = $true
+			ExpectedError = '*OutputPath must be outside SourceRoot*'
+		},
+		@{
+			Alias = '\\.\'
+			NamespacePrefix = '\\.\'
+			UseForwardSeparators = $false
+			ExpectedError = '*Unsupported device namespace*'
+		},
+		@{
+			Alias = '//./'
+			NamespacePrefix = '//./'
+			UseForwardSeparators = $true
+			ExpectedError = '*Unsupported device namespace*'
+		}
+	) {
+		param($NamespacePrefix, $UseForwardSeparators, $ExpectedError)
+
 		$sourceFile = [IO.Path]::GetFullPath((Join-Path $scriptSource 'source.txt'))
-		$extendedSourceFile = '\\?\' + $sourceFile
+		$pathBody = if ($UseForwardSeparators) {
+			$sourceFile.Replace('\', '/')
+		}
+		else {
+			$sourceFile
+		}
+		$aliasedSourceFile = $NamespacePrefix + $pathBody
 		$sourceBytesBefore = [IO.File]::ReadAllBytes($sourceFile)
 
 		{
 			& $script:entryScriptPath `
 				-SourceRoot $scriptSource `
-				-OutputPath $extendedSourceFile `
+				-OutputPath $aliasedSourceFile `
 				-GeneratedUtc '2026-09-17T12:00:00Z' | Out-Null
-		} | Should -Throw '*OutputPath must be outside SourceRoot*'
+		} | Should -Throw $ExpectedError
 
 		[Convert]::ToBase64String([IO.File]::ReadAllBytes($sourceFile)) |
 			Should -Be ([Convert]::ToBase64String($sourceBytesBefore))

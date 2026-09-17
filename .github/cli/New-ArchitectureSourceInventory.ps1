@@ -24,26 +24,33 @@ function Get-CanonicalFileSystemPath {
 	$extendedUncPrefix = '\\?\UNC\'
 	$extendedLocalPrefix = '\\?\'
 	$deviceNamespacePrefix = '\\.\'
+	$namespacePath = $Path
+	foreach ($separator in [char[]]@('\', '/')) {
+		$namespacePath = $namespacePath.Replace(
+			$separator,
+			[IO.Path]::DirectorySeparatorChar
+		)
+	}
 	$canonicalPath = $Path
 
-	if ($canonicalPath.StartsWith(
+	if ($namespacePath.StartsWith(
 		$deviceNamespacePrefix,
 		[StringComparison]::OrdinalIgnoreCase
 	)) {
 		throw "Unsupported device namespace in file system path: $Path"
 	}
 
-	if ($canonicalPath.StartsWith(
+	if ($namespacePath.StartsWith(
 		$extendedUncPrefix,
 		[StringComparison]::OrdinalIgnoreCase
 	)) {
-		$canonicalPath = '\\' + $canonicalPath.Substring($extendedUncPrefix.Length)
+		$canonicalPath = '\\' + $namespacePath.Substring($extendedUncPrefix.Length)
 	}
-	elseif ($canonicalPath.StartsWith(
+	elseif ($namespacePath.StartsWith(
 		$extendedLocalPrefix,
 		[StringComparison]::OrdinalIgnoreCase
 	)) {
-		$canonicalPath = $canonicalPath.Substring($extendedLocalPrefix.Length)
+		$canonicalPath = $namespacePath.Substring($extendedLocalPrefix.Length)
 		if ($canonicalPath -notmatch '^[A-Za-z]:[\\/]') {
 			throw "Unsupported device namespace in file system path: $Path"
 		}
