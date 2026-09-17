@@ -1,0 +1,234 @@
+{
+    "schemaVersion":  "1.0",
+    "generatedUtc":  "2026-09-17T00:00:00Z",
+    "sourceName":  "caldova-hr-frontier",
+    "totalCount":  45,
+    "totalBytes":  485126,
+    "files":  [
+                  {
+                      "relativePath":  ".github/CODEOWNERS",
+                      "bytes":  1275,
+                      "sha256":  "f34231d50fb8514af02c30704247c2623f31d3d5db9f827cded5656883429df6"
+                  },
+                  {
+                      "relativePath":  ".github/ISSUE_TEMPLATE/config.yml",
+                      "bytes":  441,
+                      "sha256":  "6913de0ee9863fce0c24df504fb706a88c38b090617a3071fe207fd8f9ec6cbb"
+                  },
+                  {
+                      "relativePath":  ".github/ISSUE_TEMPLATE/intake.yml",
+                      "bytes":  1555,
+                      "sha256":  "d2b5eb7227c3040f65e9787c7575ca27fcd8546750a2b4ccc8977b4cdd81d06e"
+                  },
+                  {
+                      "relativePath":  ".github/agent-policy/AGENT_WORKFLOW.md",
+                      "bytes":  6811,
+                      "sha256":  "a09a2530ea93166cb7f4b79c3ee6403ab3811e9369dd9003a4c642336890685b"
+                  },
+                  {
+                      "relativePath":  ".github/agent-policy/KPI_BASELINE.md",
+                      "bytes":  4612,
+                      "sha256":  "e88d86d810e99af8fcd6c20c7b5e00df56f9619da161f86e7dd20364a710d92a"
+                  },
+                  {
+                      "relativePath":  ".github/agent-policy/NON_DELEGABLE_WORK.md",
+                      "bytes":  4509,
+                      "sha256":  "5095e9b6693b8b8853af0372ccafe7ffcc7037176c10ccc6e43753e90d610481"
+                  },
+                  {
+                      "relativePath":  ".github/agents/README.md",
+                      "bytes":  6001,
+                      "sha256":  "11aecc7ae08aef9e4cb38112cd176cd6366c00b80172dd4b86fecdb002ff9bf9"
+                  },
+                  {
+                      "relativePath":  ".github/agents/cloud-solution-architect.agent.md",
+                      "bytes":  14442,
+                      "sha256":  "560dc12f27d11f6874b15229cc58f715546311650af9ba1bc6f305c94370a077"
+                  },
+                  {
+                      "relativePath":  ".github/agents/ux-designer.agent.md",
+                      "bytes":  23706,
+                      "sha256":  "3563f94a163414cb913459fd11acbb4f78c7c0d25ce769e52807083655a53ca1"
+                  },
+                  {
+                      "relativePath":  ".github/copilot-instructions.md",
+                      "bytes":  37990,
+                      "sha256":  "7c7e60f3c09c2d62c8964f8d95808cc67603976aea0b33ac88047b9e6e265a30"
+                  },
+                  {
+                      "relativePath":  ".github/dependabot.yml",
+                      "bytes":  118,
+                      "sha256":  "883b95e3be554fbadd92b315e4a8c6ea6ca688b64924e22dd61222b07f683507"
+                  },
+                  {
+                      "relativePath":  ".github/pull_request_template.md",
+                      "bytes":  1560,
+                      "sha256":  "4fe405603ae22e1ef7b1f38fa5d98485ac831b57ef6943f4e320913d9e100b19"
+                  },
+                  {
+                      "relativePath":  ".gitignore",
+                      "bytes":  373,
+                      "sha256":  "c42519142b36d54a524c8b21808edfdb36b687a7f0f39ea25700b00a29bc74f5"
+                  },
+                  {
+                      "relativePath":  "AGENTS.md",
+                      "bytes":  11611,
+                      "sha256":  "defb5c714379940cd7137e7a375da9142fa1a265ebb072fd6fb0c4c91fb1415a"
+                  },
+                  {
+                      "relativePath":  "README.md",
+                      "bytes":  12733,
+                      "sha256":  "5035ac2b1c59ce776de359ac9592483bf0b9e20572dd1bee8a5aae2638ab8605"
+                  },
+                  {
+                      "relativePath":  "data/README.md",
+                      "bytes":  1344,
+                      "sha256":  "610ab9bc996f3641b14e0832cc5cfced346f7c88b3f3d7c268bac47498d34c77"
+                  },
+                  {
+                      "relativePath":  "docs/90-microsoft-best-practice-evaluation.md",
+                      "bytes":  37263,
+                      "sha256":  "fb4d29d4cf75f7cb659c71b21f83e900a484257e8d2cc06e1a006ec40f1b6031"
+                  },
+                  {
+                      "relativePath":  "docs/adr/0001-azure-devops-as-engineering-control-plane.md",
+                      "bytes":  6399,
+                      "sha256":  "05ba58d6fb202bb0ac67d936e2cedcf8239a1fbb1c995d2f97035a4eebe02410"
+                  },
+                  {
+                      "relativePath":  "docs/adr/0002-github-first-bootstrap-and-the-role-of-azure-repos.md",
+                      "bytes":  7684,
+                      "sha256":  "515f8c2a3cad2558f8c266228ec33b3df15d9555c3a18aff92044087e2854f9b"
+                  },
+                  {
+                      "relativePath":  "docs/adr/0003-bicep-and-powershell-for-infrastructure-as-code.md",
+                      "bytes":  7176,
+                      "sha256":  "549aae2bbca2d792171dd0b947d9f63e1acdec86a93a8a541090b1ca04d03f4b"
+                  },
+                  {
+                      "relativePath":  "docs/adr/0004-domain-solution-architecture-and-publisher.md",
+                      "bytes":  8789,
+                      "sha256":  "c32161b150c9fd1be080456362e42a7f01c9e7d7de8d21674831dcf24fae7473"
+                  },
+                  {
+                      "relativePath":  "docs/operating-model/00-north-star.md",
+                      "bytes":  6413,
+                      "sha256":  "7be5151f04031f4f36e58b80d741ad40c8beb2b26a4dd5ddf8363f318fe9f025"
+                  },
+                  {
+                      "relativePath":  "docs/operating-model/01-prd.md",
+                      "bytes":  12038,
+                      "sha256":  "7fdc213f864cff3cd0e4755e073b0a23fbf797953132b8a94fab55e8548204a3"
+                  },
+                  {
+                      "relativePath":  "docs/operating-model/02-system-design.md",
+                      "bytes":  13286,
+                      "sha256":  "e0b6ff1c43ae0954bb51edf1993ddd9a6d81376834849a756335034bdd1d88e6"
+                  },
+                  {
+                      "relativePath":  "docs/operating-model/03-agent-operating-model.md",
+                      "bytes":  9527,
+                      "sha256":  "556efcd4af83d221fbe055bbea468d20585112e8d302a4b8ada28514867888a7"
+                  },
+                  {
+                      "relativePath":  "docs/operating-model/04-hitl-governance.md",
+                      "bytes":  8736,
+                      "sha256":  "8c98c9d1d839d92711b01d651b8277cdd67bf61bb81c29c1defb9a5d6eb1de2b"
+                  },
+                  {
+                      "relativePath":  "docs/operating-model/05-implementation-roadmap.md",
+                      "bytes":  21634,
+                      "sha256":  "8698e90d24f7f2809c7c4208769395e9296f39fe4323f8edbe33b4ec0fb2c509"
+                  },
+                  {
+                      "relativePath":  "hr/README.md",
+                      "bytes":  1800,
+                      "sha256":  "9ce61a8ae0e0722091bdbad7820591a4b1dade17edecc5cea3715b76fbcc5010"
+                  },
+                  {
+                      "relativePath":  "hr/docs/20-hr-employee-journey.md",
+                      "bytes":  11737,
+                      "sha256":  "49d6988c476b9866bc3ca6b70cae3d84b48a5e4c6e2918426c5b2b1614464bca"
+                  },
+                  {
+                      "relativePath":  "hr/src/solutions/.gitkeep",
+                      "bytes":  59,
+                      "sha256":  "b3f560ecbb33867e20f4481b6ed3f8a590f5500940c61b9975f806720b790122"
+                  },
+                  {
+                      "relativePath":  "infra/README.md",
+                      "bytes":  6161,
+                      "sha256":  "d801eb852feaa319ab4d77c08954a6486d03e16ab416e8adb96b4b86f127b35a"
+                  },
+                  {
+                      "relativePath":  "infra/docs/10-tenant-setup-and-configuration.md",
+                      "bytes":  21258,
+                      "sha256":  "f2346001a7a0f98633b9a00d7dc4c5a40845dfe61b02767d0297ecc705db05bd"
+                  },
+                  {
+                      "relativePath":  "infra/docs/11-identity-and-access.md",
+                      "bytes":  29887,
+                      "sha256":  "56466efda3ca2aabc3f1fc0e4fde8fc755511f5b3125b9606e5a3f8b9d55b30c"
+                  },
+                  {
+                      "relativePath":  "infra/docs/12-power-platform-environments-and-alm.md",
+                      "bytes":  21538,
+                      "sha256":  "2299472573fa2fbadaddb1b150ce04436ee3e3f6c27c9cf1992c3c4d229b98f4"
+                  },
+                  {
+                      "relativePath":  "infra/docs/13-azure-devops-engineering-control-plane.md",
+                      "bytes":  21105,
+                      "sha256":  "6d9ffc8c8d809af374a408bfaba9ee896f29e87b3c92b9779784e539a79423cd"
+                  },
+                  {
+                      "relativePath":  "infra/docs/14-github-repository-blueprint.md",
+                      "bytes":  26065,
+                      "sha256":  "60737982f4778f8a7bc55a277009d086472c325d3052715f28781cb0f878cd85"
+                  },
+                  {
+                      "relativePath":  "infra/docs/15-agent-workload-configuration.md",
+                      "bytes":  11593,
+                      "sha256":  "a62e2b5f464162c5de4bd02c02a149ff49862896333a0180ce55f26144b66d43"
+                  },
+                  {
+                      "relativePath":  "infra/docs/16-security-governance-and-compliance.md",
+                      "bytes":  20240,
+                      "sha256":  "df64b8e579cc55aafcbf8d9c9fe556f1e1f703e3d54f25aff3789e2e834d887d"
+                  },
+                  {
+                      "relativePath":  "infra/docs/17-bootstrap-and-provisioning.md",
+                      "bytes":  27545,
+                      "sha256":  "76ff7a5414873e4cc18b95abf11a140d9265a7cec6d8f87a5f174018d9233a24"
+                  },
+                  {
+                      "relativePath":  "infra/docs/18-multi-tenant-provisioning.md",
+                      "bytes":  17788,
+                      "sha256":  "55af81a81c502e0aa7d928dde4000e73e458ea4857625ccfc957991b74d73d5e"
+                  },
+                  {
+                      "relativePath":  "infra/src/bicep/.gitkeep",
+                      "bytes":  56,
+                      "sha256":  "309659e7051a8dde1cbfcc5a27403d0bd3b55d6a926547f55ac31ace0fa3ec23"
+                  },
+                  {
+                      "relativePath":  "infra/src/config/tenants/.gitkeep",
+                      "bytes":  101,
+                      "sha256":  "d712e885f4efda5dec517aaa8bd0f24ae10bf44a3dfe3b6afa693b7bb7543258"
+                  },
+                  {
+                      "relativePath":  "infra/src/scripts/.gitkeep",
+                      "bytes":  61,
+                      "sha256":  "b97ec3d3a393fa969666c541d486d6c432a33662b627a1820f5144fb500adc3f"
+                  },
+                  {
+                      "relativePath":  "infra/src/solutions/.gitkeep",
+                      "bytes":  62,
+                      "sha256":  "84e98d82dd87a7278e1a7ca46c0c9c51ebb10308eba84dbed1dedfa93d165279"
+                  },
+                  {
+                      "relativePath":  "infra/tests/.gitkeep",
+                      "bytes":  44,
+                      "sha256":  "d285946f97231022b4b0ce730c81b5449b72eae0ada549383130d6b7981df59f"
+                  }
+              ]
+}
