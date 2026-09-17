@@ -238,6 +238,23 @@ namespace SourceInventoryTests
 
 			return $buffer.ToString()
 		}
+
+		function Get-AvailableTestDriveLetter {
+			$fileSystemDriveNames = @(
+				Get-PSDrive -PSProvider FileSystem | ForEach-Object { $_.Name }
+			)
+			foreach ($driveLetter in @(
+				'Z', 'Y', 'X', 'W', 'V', 'U', 'T', 'S', 'R', 'Q', 'P', 'O',
+				'N', 'M', 'L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D'
+			)) {
+				if ($driveLetter -notin $fileSystemDriveNames -and
+					-not [IO.Directory]::Exists(('{0}:\' -f $driveLetter))) {
+					return $driveLetter
+				}
+			}
+
+			return $null
+		}
 	}
 
 	BeforeEach {
@@ -308,6 +325,176 @@ namespace SourceInventoryTests
 		$remainingFiles = @(Get-ChildItem -LiteralPath $scriptSource -File -Force)
 		$remainingFiles.Count | Should -Be 1
 		$remainingFiles[0].FullName | Should -Be $sourceFile
+	}
+
+	It 'rejects a new output below a SUBST alias rooted at a source child' {
+		$sourceChild = Join-Path $scriptSource 'child'
+		New-Item -ItemType Directory -Path $sourceChild | Out-Null
+		$driveLetter = Get-AvailableTestDriveLetter
+		if ([string]::IsNullOrEmpty($driveLetter)) {
+			Set-ItResult -Skipped -Because 'No unused drive letter is available for the SUBST descendant-root probe.'
+			return
+		}
+
+		$driveName = '{0}:' -f $driveLetter
+		$mappedRoot = '{0}\' -f $driveName
+		try {
+			$substOutput = @(& subst.exe $driveName $sourceChild 2>&1)
+			$substExitCode = $LASTEXITCODE
+			if ($substExitCode -ne 0 -or -not [IO.Directory]::Exists($mappedRoot)) {
+				$reason = if ($substOutput.Count -gt 0) {
+					$substOutput -join ' '
+				}
+				else {
+					'The mapped drive was not accessible after SUBST returned.'
+				}
+				Set-ItResult -Skipped -Because (
+					'SUBST descendant-root mapping is unavailable or denied (exit {0}): {1}' -f
+						$substExitCode,
+						$reason
+				)
+				return
+			}
+
+			$aliasedOutputPath = Join-Path $mappedRoot 'inventory.json'
+			$physicalOutputPath = Join-Path $sourceChild 'inventory.json'
+			{
+				& $script:entryScriptPath `
+					-SourceRoot $scriptSource `
+					-OutputPath $aliasedOutputPath `
+					-GeneratedUtc '2026-09-17T12:00:00Z' | Out-Null
+			} | Should -Throw '*OutputPath must be outside SourceRoot*'
+
+			Test-Path -LiteralPath $physicalOutputPath -PathType Leaf | Should -BeFalse
+		}
+		finally {
+			& subst.exe $driveName '/D' 2>&1 | Out-Null
+		}
+	}
+
+	It 'rejects a SUBST output with two missing suffix directories below the nearest existing ancestor' {
+		$sourceChild = Join-Path $scriptSource 'child'
+		New-Item -ItemType Directory -Path $sourceChild | Out-Null
+		$driveLetter = Get-AvailableTestDriveLetter
+		if ([string]::IsNullOrEmpty($driveLetter)) {
+			Set-ItResult -Skipped -Because 'No unused drive letter is available for the SUBST missing-suffix probe.'
+			return
+		}
+
+		$driveName = '{0}:' -f $driveLetter
+		$mappedRoot = '{0}\' -f $driveName
+		try {
+			$substOutput = @(& subst.exe $driveName $sourceChild 2>&1)
+			$substExitCode = $LASTEXITCODE
+			if ($substExitCode -ne 0 -or -not [IO.Directory]::Exists($mappedRoot)) {
+				$reason = if ($substOutput.Count -gt 0) {
+					$substOutput -join ' '
+				}
+				else {
+					'The mapped drive was not accessible after SUBST returned.'
+				}
+				Set-ItResult -Skipped -Because (
+					'SUBST missing-suffix mapping is unavailable or denied (exit {0}): {1}' -f
+						$substExitCode,
+						$reason
+				)
+				return
+			}
+
+			$relativeOutputPath = 'missing-one\missing-two\inventory.json'
+			$aliasedOutputPath = Join-Path $mappedRoot $relativeOutputPath
+			$physicalOutputPath = Join-Path $sourceChild $relativeOutputPath
+			{
+				& $script:entryScriptPath `
+					-SourceRoot $scriptSource `
+					-OutputPath $aliasedOutputPath `
+					-GeneratedUtc '2026-09-17T12:00:00Z' | Out-Null
+			} | Should -Throw '*OutputPath must be outside SourceRoot*'
+
+			Test-Path -LiteralPath $physicalOutputPath -PathType Leaf | Should -BeFalse
+			Test-Path -LiteralPath (Join-Path $sourceChild 'missing-one') | Should -BeFalse
+		}
+		finally {
+			& subst.exe $driveName '/D' 2>&1 | Out-Null
+		}
+	}
+
+	It 'rejects a new output below an administrative-share mapping rooted at a source child' {
+		$sourceChild = [IO.Path]::GetFullPath((Join-Path $scriptSource 'child'))
+		New-Item -ItemType Directory -Path $sourceChild | Out-Null
+		$sourceRoot = [IO.Path]::GetPathRoot($sourceChild)
+		if ($sourceRoot -notmatch '^[A-Za-z]:\\$') {
+			Set-ItResult -Skipped -Because 'The TestDrive source is not on a local drive, so no administrative-share alias can be formed.'
+			return
+		}
+
+		$localDriveLetter = $sourceRoot.Substring(0, 1)
+		$relativeSourceChild = $sourceChild.Substring($sourceRoot.Length)
+		$shareHosts = @('localhost')
+		if (-not [string]::IsNullOrWhiteSpace($env:COMPUTERNAME) -and
+			$env:COMPUTERNAME -notin $shareHosts) {
+			$shareHosts += $env:COMPUTERNAME
+		}
+
+		$administrativeShareRoot = $null
+		foreach ($shareHost in $shareHosts) {
+			$candidate = '\\{0}\{1}$\{2}' -f
+				$shareHost,
+				$localDriveLetter,
+				$relativeSourceChild
+			if ([IO.Directory]::Exists($candidate)) {
+				$administrativeShareRoot = $candidate
+				break
+			}
+		}
+
+		if ([string]::IsNullOrEmpty($administrativeShareRoot)) {
+			Set-ItResult -Skipped -Because 'Local administrative shares are unavailable or inaccessible for the descendant-root probe.'
+			return
+		}
+
+		$driveLetter = Get-AvailableTestDriveLetter
+		if ([string]::IsNullOrEmpty($driveLetter)) {
+			Set-ItResult -Skipped -Because 'No unused drive letter is available for the administrative-share descendant-root probe.'
+			return
+		}
+
+		$driveName = '{0}:' -f $driveLetter
+		$mappedRoot = '{0}\' -f $driveName
+		try {
+			$mappingOutput = @(
+				& net.exe use $driveName $administrativeShareRoot '/persistent:no' 2>&1
+			)
+			$mappingExitCode = $LASTEXITCODE
+			if ($mappingExitCode -ne 0 -or -not [IO.Directory]::Exists($mappedRoot)) {
+				$reason = if ($mappingOutput.Count -gt 0) {
+					$mappingOutput -join ' '
+				}
+				else {
+					'The mapped drive was not accessible after NET USE returned.'
+				}
+				Set-ItResult -Skipped -Because (
+					'Administrative-share descendant-root mapping is unavailable (exit {0}): {1}' -f
+						$mappingExitCode,
+						$reason
+				)
+				return
+			}
+
+			$aliasedOutputPath = Join-Path $mappedRoot 'inventory.json'
+			$physicalOutputPath = Join-Path $sourceChild 'inventory.json'
+			{
+				& $script:entryScriptPath `
+					-SourceRoot $scriptSource `
+					-OutputPath $aliasedOutputPath `
+					-GeneratedUtc '2026-09-17T12:00:00Z' | Out-Null
+			} | Should -Throw '*OutputPath must be outside SourceRoot*'
+
+			Test-Path -LiteralPath $physicalOutputPath -PathType Leaf | Should -BeFalse
+		}
+		finally {
+			& net.exe use $driveName '/delete' '/y' 2>&1 | Out-Null
+		}
 	}
 
 	It 'rejects a new output path under an 8.3 alias of the source root' {
