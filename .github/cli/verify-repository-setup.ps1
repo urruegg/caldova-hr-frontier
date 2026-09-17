@@ -612,6 +612,43 @@ foreach ($relativePath in $manifestPaths) {
     }
 }
 
+$runtimeGitPrefix = '.github/skills/'
+$expectedRuntimeGitPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$expectedRuntimeGitPathsByCaseInsensitivePath = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::OrdinalIgnoreCase)
+foreach ($relativePath in $manifestPaths) {
+    $repositoryRelativePath = "$runtimeGitPrefix$relativePath"
+    [void]$expectedRuntimeGitPaths.Add($repositoryRelativePath)
+    if (-not $expectedRuntimeGitPathsByCaseInsensitivePath.ContainsKey($repositoryRelativePath)) {
+        $expectedRuntimeGitPathsByCaseInsensitivePath.Add($repositoryRelativePath, $repositoryRelativePath)
+    }
+}
+$expectedSkillNamesByCaseInsensitiveName = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::OrdinalIgnoreCase)
+foreach ($skillName in $skillNames) { $expectedSkillNamesByCaseInsensitiveName.Add($skillName, $skillName) }
+$reportedRuntimeGitCasingPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$reportedUnexpectedRuntimeGitPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+foreach ($record in $gitIndexRecords) {
+    if (-not $record.Path.StartsWith($runtimeGitPrefix, [StringComparison]::OrdinalIgnoreCase)) { continue }
+    $runtimeRelativePath = $record.Path.Substring($runtimeGitPrefix.Length)
+    $skillSeparatorIndex = $runtimeRelativePath.IndexOf('/')
+    $runtimeSkillName = if ($skillSeparatorIndex -lt 0) { $runtimeRelativePath } else { $runtimeRelativePath.Substring(0, $skillSeparatorIndex) }
+    if (-not $expectedSkillNamesByCaseInsensitiveName.ContainsKey($runtimeSkillName)) { continue }
+    $expectedSkillName = $expectedSkillNamesByCaseInsensitiveName[$runtimeSkillName]
+    $expectedRuntimeGitPath = if ($expectedRuntimeGitPathsByCaseInsensitivePath.ContainsKey($record.Path)) {
+        $expectedRuntimeGitPathsByCaseInsensitivePath[$record.Path]
+    } else { $null }
+    if (-not $record.Path.StartsWith($runtimeGitPrefix, [StringComparison]::Ordinal) -or
+        $runtimeSkillName -cne $expectedSkillName -or
+        ($null -ne $expectedRuntimeGitPath -and $record.Path -cne $expectedRuntimeGitPath)) {
+        if ($reportedRuntimeGitCasingPaths.Add($record.Path)) {
+            Add-Failure "Tracked runtime path must use exact Git casing: $($record.Path)"
+        }
+        continue
+    }
+    if (-not $expectedRuntimeGitPaths.Contains($record.Path) -and $reportedUnexpectedRuntimeGitPaths.Add($record.Path)) {
+        Add-Failure "Unexpected tracked runtime path: $($record.Path)"
+    }
+}
+
 $executableRuntimePaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 foreach ($relativePath in @(
     'brainstorming/scripts/start-server.sh', 'brainstorming/scripts/stop-server.sh',
