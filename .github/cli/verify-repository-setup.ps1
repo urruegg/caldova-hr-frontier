@@ -266,17 +266,6 @@ if ($gitIndexReadable) {
             $workingTreeObjectId = $workingTreeObjectIdLines[0].ToLowerInvariant()
             $indexObjectId = $record.ObjectId.ToLowerInvariant()
             if ($workingTreeObjectId -ceq $indexObjectId) { continue }
-            if ($record.Path -ceq $gitattributesRelativePath) {
-                [string[]]$gitNormalizedObjectIdLines = @(& $gitCommand.Source -C $repositoryRoot hash-object "--path=$($record.Path)" -- $record.Path 2>&1 |
-                    ForEach-Object { $_.ToString() })
-                $gitNormalizedHashExitCode = $LASTEXITCODE
-                if ($gitNormalizedHashExitCode -ne 0 -or $gitNormalizedObjectIdLines.Count -ne 1 -or
-                    $gitNormalizedObjectIdLines[0] -notmatch '^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$') {
-                    Add-Failure "Cannot compare Git index content with working tree: $($record.Path)"
-                    continue
-                }
-                if ($gitNormalizedObjectIdLines[0].ToLowerInvariant() -ceq $indexObjectId) { continue }
-            }
             Add-Failure "Git index content differs from working tree: $($record.Path)"
         }
         catch {
@@ -286,9 +275,11 @@ if ($gitIndexReadable) {
 }
 
 $gitattributesPath = Join-Path $repositoryRoot $gitattributesRelativePath
+$gitattributesSelfByteStabilityRule = '/.gitattributes -text'
 $issueTemplateByteStabilityRule = '/.github/ISSUE_TEMPLATE/*.yml -text'
 $gitattributesLines = @()
 $gitattributesReadable = $false
+$gitattributesSelfByteStabilityRuleValid = $false
 try {
     if (-not (Test-Path -LiteralPath $gitattributesPath -PathType Leaf)) {
         Add-Failure '.gitattributes must be an ordinary readable file.'
@@ -309,39 +300,47 @@ catch {
 }
 
 if ($gitattributesReadable) {
-    $byteStabilityRuleCount = @($gitattributesLines | Where-Object {
+    $selfByteStabilityRuleCount = @($gitattributesLines | Where-Object {
+        $_ -ceq $gitattributesSelfByteStabilityRule
+    }).Count
+    $gitattributesSelfByteStabilityRuleValid = $selfByteStabilityRuleCount -eq 1
+    if (-not $gitattributesSelfByteStabilityRuleValid) {
+        Add-Failure '.gitattributes must contain exactly one self byte-stability rule.'
+    }
+    $issueTemplateByteStabilityRuleCount = @($gitattributesLines | Where-Object {
         $_ -ceq $issueTemplateByteStabilityRule
     }).Count
-    if ($byteStabilityRuleCount -ne 1) {
+    if ($issueTemplateByteStabilityRuleCount -ne 1) {
         Add-Failure '.gitattributes must contain exactly one issue-form byte-stability rule.'
     }
 }
 
+$expectedGitTextAttributePaths = @($gitattributesRelativePath) + @($expectedIssueTemplateGitPaths)
 $gitAttributeLines = @()
 $gitAttributesReadable = $false
 if ($null -eq $gitCommand) {
-    Add-Failure 'Cannot inspect Git text attributes for active issue-template paths: git is unavailable'
+    Add-Failure 'Cannot inspect Git text attributes for protected paths: git is unavailable'
 }
 else {
     try {
-        $gitAttributeLines = @(& $gitCommand.Source -C $repositoryRoot -c core.quotePath=false check-attr text -- $expectedIssueTemplateGitPaths 2>&1 |
+        $gitAttributeLines = @(& $gitCommand.Source -C $repositoryRoot -c core.quotePath=false check-attr text -- $expectedGitTextAttributePaths 2>&1 |
             ForEach-Object { $_.ToString() })
         $gitAttributeExitCode = $LASTEXITCODE
         if ($gitAttributeExitCode -ne 0) {
-            Add-Failure 'Cannot inspect Git text attributes for active issue-template paths'
+            Add-Failure 'Cannot inspect Git text attributes for protected paths'
         }
         else {
             $gitAttributesReadable = $true
         }
     }
     catch {
-        Add-Failure 'Cannot inspect Git text attributes for active issue-template paths'
+        Add-Failure 'Cannot inspect Git text attributes for protected paths'
     }
 }
 
 if ($gitAttributesReadable) {
-    if ($gitAttributeLines.Count -ne $expectedIssueTemplateGitPaths.Count) {
-        Add-Failure "Expected 3 Git text attribute records, found $($gitAttributeLines.Count)"
+    if ($gitAttributeLines.Count -ne $expectedGitTextAttributePaths.Count) {
+        Add-Failure "Expected $($expectedGitTextAttributePaths.Count) Git text attribute records, found $($gitAttributeLines.Count)"
     }
     $gitAttributeRecords = [Collections.Generic.List[object]]::new()
     foreach ($line in $gitAttributeLines) {
@@ -352,7 +351,7 @@ if ($gitAttributesReadable) {
         }
         $reportedPath = $attributeMatch.Groups[1].Value
         $normalizedReportedPath = $reportedPath.Replace('\', '/')
-        if ($expectedIssueTemplateGitPaths -cnotcontains $normalizedReportedPath) {
+        if ($expectedGitTextAttributePaths -cnotcontains $normalizedReportedPath) {
             Add-Failure "Unexpected Git text attribute path: $reportedPath"
             continue
         }
@@ -361,13 +360,19 @@ if ($gitAttributesReadable) {
             Value = $attributeMatch.Groups[2].Value
         })
     }
-    foreach ($expectedPath in $expectedIssueTemplateGitPaths) {
+    foreach ($expectedPath in $expectedGitTextAttributePaths) {
         $matchingAttributeRecords = @($gitAttributeRecords | Where-Object { $_.Path -ceq $expectedPath })
         if ($matchingAttributeRecords.Count -ne 1) {
             Add-Failure "Ambiguous Git text attribute result: $expectedPath"
             continue
         }
-        if ($matchingAttributeRecords[0].Value -cne 'unset') {
+        if ($matchingAttributeRecords[0].Value -ceq 'unset') { continue }
+        if ($expectedPath -ceq $gitattributesRelativePath) {
+            if ($gitattributesSelfByteStabilityRuleValid) {
+                Add-Failure ".gitattributes Git text attribute is not unset: $expectedPath"
+            }
+        }
+        else {
             Add-Failure "Issue-form Git text attribute is not unset: $expectedPath"
         }
     }
