@@ -613,6 +613,13 @@ foreach ($relativePath in $manifestPaths) {
 }
 
 $runtimeGitPrefix = '.github/skills/'
+$allowedSkillRootGitPathsByCaseInsensitivePath = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::OrdinalIgnoreCase)
+foreach ($repositoryRelativePath in @(
+    '.github/skills/README.md', '.github/skills/LICENSE.superpowers',
+    '.github/skills/SUPERPOWERS_SHA256SUMS', '.github/skills/SUPERPOWERS_VERSION'
+)) {
+    $allowedSkillRootGitPathsByCaseInsensitivePath.Add($repositoryRelativePath, $repositoryRelativePath)
+}
 $expectedRuntimeGitPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $expectedRuntimeGitPathsByCaseInsensitivePath = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::OrdinalIgnoreCase)
 foreach ($relativePath in $manifestPaths) {
@@ -624,14 +631,35 @@ foreach ($relativePath in $manifestPaths) {
 }
 $expectedSkillNamesByCaseInsensitiveName = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::OrdinalIgnoreCase)
 foreach ($skillName in $skillNames) { $expectedSkillNamesByCaseInsensitiveName.Add($skillName, $skillName) }
+$reportedSkillRootGitCasingPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$reportedUnexpectedSkillRootGitPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$reportedUnexpectedSkillGitPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $reportedRuntimeGitCasingPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $reportedUnexpectedRuntimeGitPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 foreach ($record in $gitIndexRecords) {
     if (-not $record.Path.StartsWith($runtimeGitPrefix, [StringComparison]::OrdinalIgnoreCase)) { continue }
     $runtimeRelativePath = $record.Path.Substring($runtimeGitPrefix.Length)
     $skillSeparatorIndex = $runtimeRelativePath.IndexOf('/')
-    $runtimeSkillName = if ($skillSeparatorIndex -lt 0) { $runtimeRelativePath } else { $runtimeRelativePath.Substring(0, $skillSeparatorIndex) }
-    if (-not $expectedSkillNamesByCaseInsensitiveName.ContainsKey($runtimeSkillName)) { continue }
+    if ($skillSeparatorIndex -lt 0) {
+        if (-not $allowedSkillRootGitPathsByCaseInsensitivePath.ContainsKey($record.Path)) {
+            if ($reportedUnexpectedSkillRootGitPaths.Add($record.Path)) {
+                Add-Failure "Unexpected tracked path under .github/skills: $($record.Path)"
+            }
+            continue
+        }
+        $expectedSkillRootGitPath = $allowedSkillRootGitPathsByCaseInsensitivePath[$record.Path]
+        if ($record.Path -cne $expectedSkillRootGitPath -and $reportedSkillRootGitCasingPaths.Add($record.Path)) {
+            Add-Failure "Tracked path under .github/skills must use exact Git casing: $($record.Path)"
+        }
+        continue
+    }
+    $runtimeSkillName = $runtimeRelativePath.Substring(0, $skillSeparatorIndex)
+    if (-not $expectedSkillNamesByCaseInsensitiveName.ContainsKey($runtimeSkillName)) {
+        if ($reportedUnexpectedSkillGitPaths.Add($record.Path)) {
+            Add-Failure "Unexpected tracked skill path: $($record.Path)"
+        }
+        continue
+    }
     $expectedSkillName = $expectedSkillNamesByCaseInsensitiveName[$runtimeSkillName]
     $expectedRuntimeGitPath = if ($expectedRuntimeGitPathsByCaseInsensitivePath.ContainsKey($record.Path)) {
         $expectedRuntimeGitPathsByCaseInsensitivePath[$record.Path]
