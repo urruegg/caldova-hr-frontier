@@ -164,6 +164,8 @@ foreach ($fileName in $issueTemplateFileNames) {
 $gitCommand = Get-Command git -CommandType Application -ErrorAction SilentlyContinue
 $gitIndexLines = @()
 $gitIndexReadable = $false
+$gitIndexRecords = [Collections.Generic.List[object]]::new()
+$gitIndexRecordsByCaseInsensitivePath = [Collections.Generic.Dictionary[string,object]]::new([StringComparer]::OrdinalIgnoreCase)
 if ($null -eq $gitCommand) {
     Add-Failure 'Cannot inspect Git index for active issue-template paths: git is unavailable'
 }
@@ -185,21 +187,26 @@ else {
 }
 
 if ($gitIndexReadable) {
-    $gitIndexRecords = [Collections.Generic.List[object]]::new()
     $issueTemplateGitRecords = [Collections.Generic.List[object]]::new()
     $protectedGitRecordsToCompare = [Collections.Generic.List[object]]::new()
     foreach ($line in $gitIndexLines) {
-        if ($line -notmatch '^([0-7]{6}) ((?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})) ([0-3])\t(.*)$') {
+        $indexRecordMatch = [regex]::Match($line, '^([0-7]{6}) ((?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})) ([0-3])\t(.*)$')
+        if (-not $indexRecordMatch.Success) {
             Add-Failure "Cannot parse Git index record: $line"
             continue
         }
         $record = [pscustomobject]@{
-            Mode = $Matches[1]
-            ObjectId = $Matches[2]
-            Stage = $Matches[3]
-            Path = $Matches[4]
+            Mode = $indexRecordMatch.Groups[1].Value
+            ObjectId = $indexRecordMatch.Groups[2].Value
+            Stage = $indexRecordMatch.Groups[3].Value
+            Path = $indexRecordMatch.Groups[4].Value
         }
         [void]$gitIndexRecords.Add($record)
+        if (-not $gitIndexRecordsByCaseInsensitivePath.ContainsKey($record.Path)) {
+            $gitIndexRecordsByCaseInsensitivePath.Add($record.Path, [Collections.Generic.List[object]]::new())
+        }
+        $caseInsensitivePathRecords = [Collections.Generic.List[object]]$gitIndexRecordsByCaseInsensitivePath[$record.Path]
+        [void]$caseInsensitivePathRecords.Add($record)
         if ([string]::Equals($record.Path, $gitattributesRelativePath, [StringComparison]::OrdinalIgnoreCase)) {
             if ($record.Path -cne $gitattributesRelativePath) {
                 Add-Failure ".gitattributes must use exact Git casing: $($record.Path)"
@@ -271,6 +278,46 @@ if ($gitIndexReadable) {
         catch {
             Add-Failure "Cannot compare Git index content with working tree: $($record.Path)"
         }
+    }
+}
+
+function Get-ExactGitIndexRecord {
+    param([string]$RelativePath, [string]$ExpectedMode, [string]$FailureMessage)
+
+    if (-not $gitIndexReadable) { return $null }
+    if (-not $gitIndexRecordsByCaseInsensitivePath.ContainsKey($RelativePath)) {
+        Add-Failure $FailureMessage
+        return $null
+    }
+    $matchingRecords = @($gitIndexRecordsByCaseInsensitivePath[$RelativePath])
+    if ($matchingRecords.Count -ne 1 -or $matchingRecords[0].Path -cne $RelativePath -or
+        $matchingRecords[0].Stage -cne '0' -or $matchingRecords[0].Mode -cne $ExpectedMode) {
+        Add-Failure $FailureMessage
+        return $null
+    }
+    return $matchingRecords[0]
+}
+
+function Test-GitIndexContentMatchesWorkingTree {
+    param([object]$Record)
+
+    try {
+        [string[]]$workingTreeObjectIdLines = @(& $gitCommand.Source -C $repositoryRoot hash-object --no-filters -- $Record.Path 2>&1 |
+            ForEach-Object { $_.ToString() })
+        $hashObjectExitCode = $LASTEXITCODE
+        if ($hashObjectExitCode -ne 0 -or $workingTreeObjectIdLines.Count -ne 1 -or
+            $workingTreeObjectIdLines[0] -notmatch '^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$') {
+            Add-Failure "Cannot compare Git index content with working tree: $($Record.Path)"
+            return
+        }
+        $workingTreeObjectId = $workingTreeObjectIdLines[0].ToLowerInvariant()
+        $indexObjectId = $Record.ObjectId.ToLowerInvariant()
+        if ($workingTreeObjectId -cne $indexObjectId) {
+            Add-Failure "Git index content differs from working tree: $($Record.Path)"
+        }
+    }
+    catch {
+        Add-Failure "Cannot compare Git index content with working tree: $($Record.Path)"
     }
 }
 
@@ -494,15 +541,22 @@ function Test-SafeManifestPath {
     return $true
 }
 
+$manifestRepositoryRelativePath = '.github/skills/SUPERPOWERS_SHA256SUMS'
 $manifestFile = Join-Path $skillsRoot 'SUPERPOWERS_SHA256SUMS'
+$expectedManifestHash = 'be8b1626ea290a4cc0a99ccf0e4878fcf8c5ca7d238094be3d23b59563d28f1c'
 $manifestEntries = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
 $seenManifestPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 if ($skillsRootTrusted -and -not (Test-Path -LiteralPath $manifestFile -PathType Leaf)) {
-    Add-Failure 'Missing file: .github/skills/SUPERPOWERS_SHA256SUMS'
+    Add-Failure "Missing file: $manifestRepositoryRelativePath"
 }
 elseif ($skillsRootTrusted) {
+    try { $actualManifestHash = (Get-FileHash -LiteralPath $manifestFile -Algorithm SHA256).Hash.ToLowerInvariant() }
+    catch { Add-Failure "Cannot hash pinned manifest: $manifestRepositoryRelativePath"; $actualManifestHash = $null }
+    if ($actualManifestHash -and $actualManifestHash -cne $expectedManifestHash) {
+        Add-Failure "Pinned manifest hash mismatch: $manifestRepositoryRelativePath"
+    }
     try { [string[]]$manifestLines = @(Get-Content -LiteralPath $manifestFile) }
-    catch { Add-Failure 'Cannot read file: .github/skills/SUPERPOWERS_SHA256SUMS'; $manifestLines = @() }
+    catch { Add-Failure "Cannot read file: $manifestRepositoryRelativePath"; $manifestLines = @() }
     if ($manifestLines.Count -eq 0) { Add-Failure 'Manifest must not be empty.' }
     $previousPath = $null
     $reportedUnsorted = $false
@@ -565,26 +619,22 @@ foreach ($relativePath in @(
     'subagent-driven-development/scripts/task-brief', 'systematic-debugging/find-polluter.sh',
     'writing-skills/render-graphs.js'
 )) { [void]$executableRuntimePaths.Add($relativePath) }
-function Test-RuntimeGitMode {
-    param([string]$ManifestRelativePath)
-
-    $repositoryRelativePath = ".github/skills/$ManifestRelativePath"
-    $expectedMode = if ($executableRuntimePaths.Contains($ManifestRelativePath)) { '100755' } else { '100644' }
-    $valid = $false
-    try {
-        Push-Location -LiteralPath $repositoryRoot
-        try { [string[]]$records = @(& git ls-files --stage -- $repositoryRelativePath 2>$null); $gitExitCode = $LASTEXITCODE }
-        finally { Pop-Location }
-        if ($gitExitCode -eq 0 -and $records.Count -eq 1) {
-            $recordMatch = [regex]::Match($records[0], '^([0-9]{6}) [0-9a-f]+ ([0-3])\t(.+)$')
-            $valid = $recordMatch.Success -and $recordMatch.Groups[1].Value -ceq $expectedMode -and
-                $recordMatch.Groups[2].Value -ceq '0' -and $recordMatch.Groups[3].Value -ceq $repositoryRelativePath
-        }
+$runtimeSnapshotGitRecords = [Collections.Generic.List[object]]::new()
+if ($gitIndexReadable) {
+    $manifestGitRecord = Get-ExactGitIndexRecord $manifestRepositoryRelativePath '100644' `
+        "Pinned manifest Git entry must be unique, exact-case, stage-0 mode 100644: $manifestRepositoryRelativePath"
+    if ($null -ne $manifestGitRecord) { [void]$runtimeSnapshotGitRecords.Add($manifestGitRecord) }
+    foreach ($relativePath in $manifestPaths) {
+        $repositoryRelativePath = ".github/skills/$relativePath"
+        $expectedMode = if ($executableRuntimePaths.Contains($relativePath)) { '100755' } else { '100644' }
+        $runtimeGitRecord = Get-ExactGitIndexRecord $repositoryRelativePath $expectedMode `
+            "Expected Git mode ${expectedMode}: $repositoryRelativePath"
+        if ($null -ne $runtimeGitRecord) { [void]$runtimeSnapshotGitRecords.Add($runtimeGitRecord) }
     }
-    catch {}
-    if (-not $valid) { Add-Failure "Expected Git mode ${expectedMode}: $repositoryRelativePath" }
+    foreach ($record in $runtimeSnapshotGitRecords) {
+        Test-GitIndexContentMatchesWorkingTree $record
+    }
 }
-foreach ($relativePath in $runtimePaths) { Test-RuntimeGitMode $relativePath }
 
 Test-RequiredContent 'AGENTS.md' @('.github/skills', 'using-superpowers')
 Test-RequiredContent '.github/copilot-instructions.md' @('.github/skills', 'using-superpowers')
