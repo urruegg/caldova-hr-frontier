@@ -847,13 +847,21 @@ Describe 'Source-aware documentation references' {
 			-DocumentRelativePath 'docs/plans/plan.md').Count | Should -Be 0
 	}
 
-	It 'rejects a plain parent reference that escapes the repository root' -Tag 'SourceAwareReferences' {
+	It 'rejects plain parent reference <References> from <DocumentRelativePath> when it escapes the repository root' `
+		-Tag 'SourceAwareReferences' `
+		-TestCases @(
+			@{ References = '[Escape](../secrets.md)'; DocumentRelativePath = 'README.md' }
+			@{ References = '[Escape](../../secrets.md)'; DocumentRelativePath = 'README.md' }
+			@{ References = '[Escape](../../../secrets.md)'; DocumentRelativePath = 'docs/plans/plan.md' }
+		) {
+		param($References, $DocumentRelativePath)
+
 		$content = New-ValidMetadataDocument `
-			-References '[Escape](../secrets.md)'
+			-References $References
 
 		@(Test-DocumentationMetadataContent `
 			-Content $content `
-			-DocumentRelativePath 'README.md') |
+			-DocumentRelativePath $DocumentRelativePath) |
 			Should -Contain 'References must be None or relative Markdown links only.'
 	}
 
