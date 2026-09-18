@@ -1,5 +1,15 @@
 # Repository Superpowers Integration Design
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-17 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Approved |
+| **Scope** | docs/specs |
+| **References** | [Approved Architecture Baseline Intake Design](2026-09-17-architecture-baseline-intake-design.md) |
+
+
 ## Objective
 
 Bundle Superpowers directly in this repository so every contributor can use the same pinned workflows with GitHub Copilot in VS Code and GitHub Copilot CLI after cloning the repository. The setup must not depend on a contributor's machine-level plugin installation.

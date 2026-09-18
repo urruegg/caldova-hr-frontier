@@ -1,0 +1,47 @@
+name: Frontier intake
+description: Propose a change. It will be triaged into Azure Boards.
+labels: ["status:needs-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Do not include personal data.** No names, employee identifiers, contact details,
+        health, absence, compensation, performance or disciplinary information.
+        This repository is public and permanent. See .github/agent-policy/NON_DELEGABLE_WORK.md.
+  - type: dropdown
+    id: journey_stage
+    attributes:
+      label: Employee journey stage
+      options: [Hire, Onboard, Enable, Change, Offboard, Cross-cutting]
+    validations: { required: true }
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      options: [Bug, Feature, Story, Process, Architecture, Governance]
+    validations: { required: true }
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is not working, or what is missing?
+    validations: { required: true }
+  - type: textarea
+    id: impact
+    attributes:
+      label: User impact
+      description: Who is affected, and how?
+    validations: { required: true }
+  - type: dropdown
+    id: data_classification
+    attributes:
+      label: Data classification of this report
+      options: [Public, Internal, Personal, Sensitive]
+    validations: { required: true }
+  - type: checkboxes
+    id: redaction
+    attributes:
+      label: Confirmation
+      options:
+        - label: I confirm this report contains no personal or special-category data.
+          required: true

@@ -1,5 +1,15 @@
 # Repository Superpowers Integration Implementation Plan
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-17 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Approved |
+| **Scope** | docs/plans |
+| **References** | [Approved Architecture Baseline Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md) |
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Bundle Superpowers v6.3.0, the approved repository folder structure, and structured GitHub issue forms so contributors and GitHub Copilot use consistent project workflows from a normal clone.

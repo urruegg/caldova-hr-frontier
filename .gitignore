@@ -433,3 +433,21 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Repository collaboration tooling and outputs
+dist/
+build/
+*.zip
+*.cdsproj.user
+.pac/
+*.tfstate
+*.tfstate.*
+.terraform/
+npm-debug.log*
+.idea/
+*.swp
+.DS_Store
+*.pem
+*.key
+.env.*
+local.settings.json

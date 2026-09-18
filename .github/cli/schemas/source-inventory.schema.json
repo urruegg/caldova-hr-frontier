@@ -1,0 +1,63 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/urruegg/caldova-hr-frontier/schemas/source-inventory.schema.json",
+    "title": "Architecture source inventory",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "schemaVersion",
+        "generatedUtc",
+        "sourceName",
+        "totalCount",
+        "totalBytes",
+        "files"
+    ],
+    "properties": {
+        "schemaVersion": {
+            "const": "1.0"
+        },
+        "generatedUtc": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "sourceName": {
+            "type": "string",
+            "minLength": 1
+        },
+        "totalCount": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "totalBytes": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "files": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "relativePath",
+                    "bytes",
+                    "sha256"
+                ],
+                "properties": {
+                    "relativePath": {
+                        "type": "string",
+                        "pattern": "^(?![A-Za-z]:)(?!/)(?!\\\\)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\]+$"
+                    },
+                    "bytes": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                    }
+                }
+            }
+        }
+    }
+}
