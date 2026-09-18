@@ -1,6 +1,15 @@
 BeforeAll {
     $script:repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
     $script:issueTemplateRoot = Join-Path $script:repositoryRoot '.github\ISSUE_TEMPLATE'
+    $script:governancePolicyRelativePath = '.github/agent-policy/NON_DELEGABLE_WORK.md'
+    $script:governancePolicyPath = Join-Path $script:repositoryRoot (
+        $script:governancePolicyRelativePath.Replace('/', '\')
+    )
+    $script:governancePolicyUrl = 'https://github.com/urruegg/caldova-hr-frontier/blob/main/.github/agent-policy/NON_DELEGABLE_WORK.md'
+    $script:absentGovernancePath = @('docs', 'operating-model', '04-hitl-governance.md') -join '/'
+    $script:governancePolicyRelativePattern = [regex]::Escape($script:governancePolicyRelativePath)
+    $script:governancePolicyUrlPattern = [regex]::Escape($script:governancePolicyUrl)
+    $script:absentGovernancePathPattern = [regex]::Escape($script:absentGovernancePath)
     $metadataModulePath = Join-Path $PSScriptRoot '..\modules\DocumentationMetadata.psm1'
     Import-Module $metadataModulePath -Force
 
@@ -43,12 +52,30 @@ Describe 'Active issue forms' {
         )
         $intake | Should -Match 'Do not include personal data'
         $intake | Should -Match 'Employee journey stage'
+        $intake | Should -Match $script:governancePolicyRelativePattern
+        $intake | Should -Not -Match $script:absentGovernancePathPattern
 
         $config = Get-FileContentIfPresent -Path (
             Join-Path $script:issueTemplateRoot 'config.yml'
         )
         $config | Should -Match 'https://dev.azure.com/caldova25156897'
-        $config | Should -Match 'docs/operating-model/04-hitl-governance.md'
+        $config | Should -Match $script:governancePolicyUrlPattern
+        $config | Should -Not -Match $script:absentGovernancePathPattern
+    }
+
+    It 'points the active governance guidance at a tracked repository policy file' {
+        $script:governancePolicyPath | Should -Exist
+        (Get-Item -LiteralPath $script:governancePolicyPath).PSIsContainer | Should -BeFalse
+
+        $intake = Get-FileContentIfPresent -Path (
+            Join-Path $script:issueTemplateRoot '03-frontier-intake.yml'
+        )
+        $config = Get-FileContentIfPresent -Path (
+            Join-Path $script:issueTemplateRoot 'config.yml'
+        )
+
+        $intake | Should -Match $script:governancePolicyRelativePattern
+        $config | Should -Match $script:governancePolicyUrlPattern
     }
 
     It 'keeps the reviewed personal and special-category data prohibition' {
@@ -79,7 +106,7 @@ Describe 'Active issue forms' {
             '    url: https://dev.azure.com/caldova25156897'
             '    about: Work is planned and tracked in Azure Boards. This repository is the build plane.'
             '  - name: Governance and data rules'
-            '    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/operating-model/04-hitl-governance.md'
+            '    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/.github/agent-policy/NON_DELEGABLE_WORK.md'
             '    about: Read before raising anything that might contain personal data.'
             ''
         ) -join "`n"

@@ -4,5 +4,5 @@ contact_links:
     url: https://dev.azure.com/caldova25156897
     about: Work is planned and tracked in Azure Boards. This repository is the build plane.
   - name: Governance and data rules
-    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/operating-model/04-hitl-governance.md
+    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/.github/agent-policy/NON_DELEGABLE_WORK.md
     about: Read before raising anything that might contain personal data.
