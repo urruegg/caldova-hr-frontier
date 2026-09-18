@@ -37,6 +37,35 @@ function ConvertTo-DocumentationLines {
 	))
 }
 
+function Get-LeadingIndentation {
+	param(
+		[Parameter(Mandatory)]
+		[AllowEmptyString()]
+		[string]$Line
+	)
+
+	$characterCount = 0
+	$columns = 0
+	while ($characterCount -lt $Line.Length) {
+		$character = $Line[$characterCount]
+		if ($character -eq [char]' ') {
+			$columns++
+		}
+		elseif ($character -eq [char]"`t") {
+			$columns += 4 - ($columns % 4)
+		}
+		else {
+			break
+		}
+		$characterCount++
+	}
+
+	return [pscustomobject]@{
+		CharacterCount = $characterCount
+		Columns = $columns
+	}
+}
+
 function Get-FenceDelimiter {
 	param(
 		[Parameter(Mandatory)]
@@ -44,69 +73,123 @@ function Get-FenceDelimiter {
 		[string]$Line
 	)
 
-	$trimmedLine = $Line.TrimStart()
-	$indentLength = $Line.Length - $trimmedLine.Length
-	if ($indentLength -gt 3 -or $trimmedLine.Length -lt 3) {
+	$indentation = Get-LeadingIndentation -Line $Line
+	if ($indentation.Columns -gt 3) {
 		return $null
 	}
 
-	$marker = $trimmedLine[0]
+	$content = $Line.Substring($indentation.CharacterCount)
+	if ($content.Length -lt 3) {
+		return $null
+	}
+
+	$marker = $content[0]
 	if ($marker -ne [char]'`' -and $marker -ne [char]'~') {
 		return $null
 	}
 
 	$length = 0
-	while ($length -lt $trimmedLine.Length -and
-		$trimmedLine[$length] -eq $marker) {
+	while ($length -lt $content.Length -and
+		$content[$length] -eq $marker) {
 		$length++
 	}
 	if ($length -lt 3) {
+		return $null
+	}
+	$remainder = $content.Substring($length)
+	$isClosing = [string]::IsNullOrWhiteSpace($remainder)
+	if (-not $isClosing -and
+		$marker -eq [char]'`' -and
+		$remainder.IndexOf([char]'`') -ge 0) {
 		return $null
 	}
 
 	return [pscustomobject]@{
 		Marker = $marker
 		Length = $length
-		IsClosing = [string]::IsNullOrWhiteSpace($trimmedLine.Substring($length))
+		IsClosing = $isClosing
 	}
 }
 
-function Test-IsRenderedAtxH1 {
+function Get-RenderedAtxHeading {
 	param(
 		[Parameter(Mandatory)]
 		[AllowEmptyString()]
 		[string]$Line
 	)
 
-	$markerIndex = 0
-	while ($markerIndex -lt $Line.Length -and
-		$Line[$markerIndex] -eq [char]' ') {
-		$markerIndex++
-	}
-	if ($markerIndex -gt 3 -or
-		$Line.Length -lt ($markerIndex + 3) -or
-		$Line[$markerIndex] -ne [char]'#') {
-		return $false
-	}
-	if (-not [char]::IsWhiteSpace($Line[$markerIndex + 1])) {
-		return $false
+	$indentation = Get-LeadingIndentation -Line $Line
+	if ($indentation.Columns -gt 3 -or
+		$indentation.CharacterCount -ge $Line.Length -or
+		$Line[$indentation.CharacterCount] -ne [char]'#') {
+		return $null
 	}
 
-	return -not [string]::IsNullOrWhiteSpace($Line.Substring($markerIndex + 2))
-}
+	$markerEnd = $indentation.CharacterCount
+	while ($markerEnd -lt $Line.Length -and
+		$Line[$markerEnd] -eq [char]'#') {
+		$markerEnd++
+	}
+	$level = $markerEnd - $indentation.CharacterCount
+	if ($level -gt 6) {
+		return $null
+	}
+	if ($markerEnd -lt $Line.Length -and
+		$Line[$markerEnd] -ne [char]' ' -and
+		$Line[$markerEnd] -ne [char]"`t") {
+		return $null
+	}
 
-function Test-IsRenderedSetextH1Underline {
-	param(
-		[Parameter(Mandatory)]
-		[AllowEmptyString()]
-		[string]$Line
-	)
-
-	return [regex]::IsMatch(
-		$Line,
-		'^ {0,3}=+ *$',
+	$title = if ($markerEnd -lt $Line.Length) {
+		$Line.Substring($markerEnd)
+	}
+	else {
+		''
+	}
+	$title = [regex]::Replace(
+		$title,
+		'[ \t]+#+[ \t]*$',
+		'',
 		[Text.RegularExpressions.RegexOptions]::CultureInvariant
+	).Trim([char[]]@(' ', "`t"))
+
+	return [pscustomobject]@{
+		Level = $level
+		HasUsableTitle = -not [string]::IsNullOrWhiteSpace($title)
+	}
+}
+
+function Test-IsRenderedSetextUnderline {
+	param(
+		[Parameter(Mandatory)]
+		[AllowEmptyString()]
+		[string]$Line,
+
+		[Parameter(Mandatory)]
+		[char]$Marker
 	)
+
+	$indentation = Get-LeadingIndentation -Line $Line
+	if ($indentation.Columns -gt 3 -or
+		$indentation.CharacterCount -ge $Line.Length -or
+		$Line[$indentation.CharacterCount] -ne $Marker) {
+		return $false
+	}
+
+	$characterIndex = $indentation.CharacterCount
+	while ($characterIndex -lt $Line.Length -and
+		$Line[$characterIndex] -eq $Marker) {
+		$characterIndex++
+	}
+	while ($characterIndex -lt $Line.Length) {
+		if ($Line[$characterIndex] -ne [char]' ' -and
+			$Line[$characterIndex] -ne [char]"`t") {
+			return $false
+		}
+		$characterIndex++
+	}
+
+	return $true
 }
 
 function Get-DocumentationStructure {
@@ -137,50 +220,87 @@ function Get-DocumentationStructure {
 	}
 
 	$renderedLines = [bool[]]::new($lines.Count)
-	$h1s = [Collections.Generic.List[object]]::new()
+	$h1Blocks = [Collections.Generic.List[object]]::new()
 	$insideFence = $false
 	$fenceMarker = [char]0
 	$fenceLength = 0
+	$paragraphStart = -1
 	for ($lineIndex = $contentStart; $lineIndex -lt $lines.Count; $lineIndex++) {
-		$delimiter = Get-FenceDelimiter -Line $lines[$lineIndex]
-		if ($null -ne $delimiter) {
-			if (-not $insideFence) {
-				$insideFence = $true
-				$fenceMarker = $delimiter.Marker
-				$fenceLength = $delimiter.Length
-				continue
-			}
-			if ($delimiter.IsClosing -and
+		$line = $lines[$lineIndex]
+		$delimiter = Get-FenceDelimiter -Line $line
+		if ($insideFence) {
+			if ($null -ne $delimiter -and
+				$delimiter.IsClosing -and
 				$delimiter.Marker -eq $fenceMarker -and
 				$delimiter.Length -ge $fenceLength) {
 				$insideFence = $false
 				$fenceMarker = [char]0
 				$fenceLength = 0
-				continue
 			}
+			$paragraphStart = -1
+			continue
 		}
-
-		if ($insideFence) {
+		if ($null -ne $delimiter) {
+			$insideFence = $true
+			$fenceMarker = $delimiter.Marker
+			$fenceLength = $delimiter.Length
+			$paragraphStart = -1
 			continue
 		}
 
 		$renderedLines[$lineIndex] = $true
-		if (Test-IsRenderedAtxH1 -Line $lines[$lineIndex]) {
-			$h1s.Add([pscustomobject]@{
-				StartIndex = $lineIndex
-				InsertionIndex = $lineIndex
-			})
+		if ([string]::IsNullOrWhiteSpace($line)) {
+			$paragraphStart = -1
+			continue
 		}
-		if ($lineIndex -gt $contentStart -and
-			(Test-IsRenderedSetextH1Underline -Line $lines[$lineIndex])) {
-			$titleIndex = $lineIndex - 1
-			if ($renderedLines[$titleIndex] -and
-				-not [string]::IsNullOrWhiteSpace($lines[$titleIndex])) {
-				$h1s.Add([pscustomobject]@{
-					StartIndex = $titleIndex
-					InsertionIndex = $lineIndex
+
+		$indentation = Get-LeadingIndentation -Line $line
+		if ($indentation.Columns -ge 4) {
+			$paragraphStart = -1
+			continue
+		}
+
+		$atxHeading = Get-RenderedAtxHeading -Line $line
+		if ($null -ne $atxHeading) {
+			if ($atxHeading.Level -eq 1) {
+				$h1Blocks.Add([pscustomobject]@{
+					StartIndex = $lineIndex
+					EndIndex = $lineIndex
+					Style = 'Atx'
+					HasUsableTitle = $atxHeading.HasUsableTitle
 				})
 			}
+			$paragraphStart = -1
+			continue
+		}
+
+		if (Test-IsRenderedSetextUnderline -Line $line -Marker ([char]'=')) {
+			if ($paragraphStart -ge 0) {
+				$hasUsableTitle = $false
+				for ($titleIndex = $paragraphStart; $titleIndex -lt $lineIndex; $titleIndex++) {
+					if (-not [string]::IsNullOrWhiteSpace($lines[$titleIndex])) {
+						$hasUsableTitle = $true
+						break
+					}
+				}
+				$h1Blocks.Add([pscustomobject]@{
+					StartIndex = $paragraphStart
+					EndIndex = $lineIndex
+					Style = 'Setext'
+					HasUsableTitle = $hasUsableTitle
+				})
+			}
+			$paragraphStart = -1
+			continue
+		}
+
+		if (Test-IsRenderedSetextUnderline -Line $line -Marker ([char]'-')) {
+			$paragraphStart = -1
+			continue
+		}
+
+		if ($paragraphStart -lt 0) {
+			$paragraphStart = $lineIndex
 		}
 	}
 
@@ -189,7 +309,7 @@ function Get-DocumentationStructure {
 		ContentStart = $contentStart
 		FrontmatterUnclosed = $frontmatterUnclosed
 		RenderedLines = $renderedLines
-		H1s = $h1s.ToArray()
+		H1Blocks = $h1Blocks.ToArray()
 	}
 }
 
@@ -205,11 +325,15 @@ function Get-DocumentationH1InsertionIndex {
 	if ($structure.FrontmatterUnclosed) {
 		throw 'YAML frontmatter is not closed.'
 	}
-	if ($structure.H1s.Count -ne 1) {
-		throw "Document must contain exactly one H1; found $($structure.H1s.Count)."
+	if ($structure.H1Blocks.Count -ne 1) {
+		throw "Document must contain exactly one H1; found $($structure.H1Blocks.Count)."
+	}
+	$h1 = $structure.H1Blocks[0]
+	if (-not $h1.HasUsableTitle) {
+		throw 'Document must contain a usable H1 title.'
 	}
 
-	return $structure.H1s[0].InsertionIndex
+	return $h1.EndIndex
 }
 
 function ConvertFrom-DocumentationMetadataRow {
@@ -576,15 +700,19 @@ function Test-DocumentationMetadataContent {
 		$failures.Add('YAML frontmatter is not closed.')
 		return $failures.ToArray()
 	}
-	if ($structure.H1s.Count -ne 1) {
+	if ($structure.H1Blocks.Count -ne 1) {
 		$failures.Add((
 			'Document must contain exactly one H1 outside frontmatter and fenced examples; found {0}.' -f
-				$structure.H1s.Count
+				$structure.H1Blocks.Count
 		))
 		return $failures.ToArray()
 	}
 
-	$h1 = $structure.H1s[0]
+	$h1 = $structure.H1Blocks[0]
+	if (-not $h1.HasUsableTitle) {
+		$failures.Add('Document must contain a usable H1 title.')
+		return $failures.ToArray()
+	}
 	for ($lineIndex = $structure.ContentStart; $lineIndex -lt $h1.StartIndex; $lineIndex++) {
 		if ($structure.RenderedLines[$lineIndex] -and
 			-not [string]::IsNullOrWhiteSpace($structure.Lines[$lineIndex])) {
@@ -593,7 +721,7 @@ function Test-DocumentationMetadataContent {
 		}
 	}
 
-	$tableStart = $h1.InsertionIndex + 1
+	$tableStart = $h1.EndIndex + 1
 	while ($tableStart -lt $structure.Lines.Count -and
 		[string]::IsNullOrWhiteSpace($structure.Lines[$tableStart])) {
 		$tableStart++

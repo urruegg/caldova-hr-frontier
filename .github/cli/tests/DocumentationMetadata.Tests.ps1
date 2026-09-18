@@ -16,6 +16,10 @@ else {
 		throw 'DocumentationMetadata.psm1 does not exist.'
 	}
 
+	function Get-DocumentationH1InsertionIndex {
+		throw 'DocumentationMetadata.psm1 does not exist.'
+	}
+
 	function New-DocumentationMetadataTable {
 		throw 'DocumentationMetadata.psm1 does not exist.'
 	}
@@ -146,6 +150,7 @@ Describe 'Test-DocumentationMetadataContent valid documents' {
 	}
 
 	It 'accepts an ATX H1 with <IndentCount> leading spaces' -TestCases @(
+		@{ IndentCount = 0 }
 		@{ IndentCount = 1 }
 		@{ IndentCount = 2 }
 		@{ IndentCount = 3 }
@@ -156,6 +161,15 @@ Describe 'Test-DocumentationMetadataContent valid documents' {
 		$content = (New-ValidMetadataDocument).Replace(
 			'# Architecture Baseline',
 			$heading
+		)
+
+		@(Test-DocumentationMetadataContent -Content $content).Count | Should -Be 0
+	}
+
+	It 'accepts an ATX H1 whose opening marker is followed by a tab' {
+		$content = (New-ValidMetadataDocument).Replace(
+			'# Architecture Baseline',
+			"#`tArchitecture Baseline"
 		)
 
 		@(Test-DocumentationMetadataContent -Content $content).Count | Should -Be 0
@@ -172,6 +186,15 @@ Describe 'Test-DocumentationMetadataContent valid documents' {
 		$content = (New-ValidMetadataDocument).Replace(
 			'# Architecture Baseline',
 			("Architecture Baseline`n{0}" -f $Underline)
+		)
+
+		@(Test-DocumentationMetadataContent -Content $content).Count | Should -Be 0
+	}
+
+	It 'accepts a multiline Setext H1 paragraph' {
+		$content = (New-ValidMetadataDocument).Replace(
+			'# Architecture Baseline',
+			"First title line`nSecond title line`n==="
 		)
 
 		@(Test-DocumentationMetadataContent -Content $content).Count | Should -Be 0
@@ -264,6 +287,35 @@ Describe 'Test-DocumentationMetadataContent valid documents' {
 }
 
 Describe 'Test-DocumentationMetadataContent invalid documents' {
+	It 'counts empty ATX H1 blocks when enforcing the one-H1 invariant' -TestCases @(
+		@{ EmptyHeading = '#' }
+		@{ EmptyHeading = '# ' }
+	) {
+		param($EmptyHeading)
+
+		$content = $EmptyHeading + "`n" + (New-ValidMetadataDocument)
+		$failures = @(Test-DocumentationMetadataContent -Content $content)
+
+		$failures | Should -Contain (
+			'Document must contain exactly one H1 outside frontmatter and fenced examples; found 2.'
+		)
+	}
+
+	It 'rejects a sole empty ATX H1 as lacking a usable title' -TestCases @(
+		@{ EmptyHeading = '#' }
+		@{ EmptyHeading = '# ' }
+	) {
+		param($EmptyHeading)
+
+		$content = (New-ValidMetadataDocument).Replace(
+			'# Architecture Baseline',
+			$EmptyHeading
+		)
+
+		@(Test-DocumentationMetadataContent -Content $content) |
+			Should -Contain 'Document must contain a usable H1 title.'
+	}
+
 	It 'rejects a document with no H1' {
 		$content = (New-ValidMetadataDocument).Replace(
 			'# Architecture Baseline',
@@ -524,6 +576,106 @@ Describe 'Test-DocumentationMetadataContent invalid documents' {
 	}
 }
 
+Describe 'Get-DocumentationH1InsertionIndex CommonMark parsing' {
+	It 'does not recognize malformed or non-H1 ATX opening sequences in <Case>' -TestCases @(
+		@{ Case = 'missing marker whitespace'; Line = '#Title' }
+		@{ Case = 'level-two heading'; Line = '## Title' }
+		@{ Case = 'tab-indented code'; Line = "`t# Title" }
+	) {
+		param($Line)
+
+		{ Get-DocumentationH1InsertionIndex -Content $Line } |
+			Should -Throw '*exactly one H1; found 0*'
+	}
+
+	It 'does not let a leading tab open a <FenceName>' -TestCases @(
+		@{ FenceName = 'backtick fence'; Fence = '```' }
+		@{ FenceName = 'tilde fence'; Fence = '~~~' }
+	) {
+		param($Fence)
+
+		$content = @(
+			"`t$Fence"
+			'# Visible Title'
+		) -join "`n"
+
+		Get-DocumentationH1InsertionIndex -Content $content | Should -Be 1
+	}
+
+	It 'opens a <FenceName> with <IndentCount> leading spaces and ignores its H1' -TestCases @(
+		@{ FenceName = 'backtick fence'; Fence = '```'; IndentCount = 0 }
+		@{ FenceName = 'backtick fence'; Fence = '```'; IndentCount = 1 }
+		@{ FenceName = 'backtick fence'; Fence = '```'; IndentCount = 2 }
+		@{ FenceName = 'backtick fence'; Fence = '```'; IndentCount = 3 }
+		@{ FenceName = 'tilde fence'; Fence = '~~~'; IndentCount = 0 }
+		@{ FenceName = 'tilde fence'; Fence = '~~~'; IndentCount = 1 }
+		@{ FenceName = 'tilde fence'; Fence = '~~~'; IndentCount = 2 }
+		@{ FenceName = 'tilde fence'; Fence = '~~~'; IndentCount = 3 }
+	) {
+		param($Fence, $IndentCount)
+
+		$content = @(
+			((' ' * $IndentCount) + $Fence)
+			'# Hidden Example'
+			$Fence
+			'# Visible Title'
+		) -join "`n"
+
+		Get-DocumentationH1InsertionIndex -Content $content | Should -Be 3
+	}
+
+	It 'does not open a four-space-indented <FenceName>' -TestCases @(
+		@{ FenceName = 'backtick fence'; Fence = '```' }
+		@{ FenceName = 'tilde fence'; Fence = '~~~' }
+	) {
+		param($Fence)
+
+		$content = @(
+			("    {0}" -f $Fence)
+			'# Visible Title'
+		) -join "`n"
+
+		Get-DocumentationH1InsertionIndex -Content $content | Should -Be 1
+	}
+
+	It 'uses the Setext underline as the insertion boundary for <Underline>' -TestCases @(
+		@{ Underline = '===' }
+		@{ Underline = ' ===' }
+		@{ Underline = '  ===' }
+		@{ Underline = '   ===' }
+	) {
+		param($Underline)
+
+		Get-DocumentationH1InsertionIndex -Content ("Title`n{0}" -f $Underline) |
+			Should -Be 1
+	}
+
+	It 'uses the underline after a multiline paragraph as the insertion boundary' {
+		$content = "First title line`nSecond title line`n==="
+
+		Get-DocumentationH1InsertionIndex -Content $content | Should -Be 2
+	}
+
+	It 'does not form a Setext H1 from <Case>' -TestCases @(
+		@{ Case = 'four-space-indented title code'; Content = "    Code title`n===" }
+		@{ Case = 'four-space-indented underline'; Content = "Title`n    ===" }
+		@{ Case = 'paragraph separated by a blank'; Content = "Title`n`n===" }
+		@{ Case = 'a fenced block closing line'; Content = "```text`nFenced title`n````n===" }
+		@{ Case = 'a level-two Setext underline'; Content = "Title`n---" }
+	) {
+		param($Content)
+
+		{ Get-DocumentationH1InsertionIndex -Content $Content } |
+			Should -Throw '*exactly one H1; found 0*'
+	}
+
+	It 'does not reinterpret an ATX heading as Setext paragraph content' {
+		$content = "# ATX Title`n==="
+
+		Get-DocumentationH1InsertionIndex -Content $content | Should -Be 0
+	}
+}
+
 Describe 'New-DocumentationMetadataTable' {
 	It 'returns the exact eight LF-separated lines without a trailing newline' {
 		$table = New-DocumentationMetadataTable `
@@ -741,6 +893,23 @@ Describe 'Set-DocumentationMetadata.ps1' {
 			Should -Be ([Convert]::ToBase64String($before))
 	}
 
+	It 'rejects a sole empty ATX H1 with a usable-title error without changing it' -TestCases @(
+		@{ EmptyHeading = '#'; RelativePath = 'empty-atx.md' }
+		@{ EmptyHeading = '# '; RelativePath = 'empty-atx-space.md' }
+	) {
+		param($EmptyHeading, $RelativePath)
+
+		$path = New-RepositoryTestFile `
+			-RelativePath $RelativePath `
+			-Content ($EmptyHeading + "`n`nBody line.`n")
+		$before = [IO.File]::ReadAllBytes($path)
+
+		{ Invoke-SetDocumentationMetadata -Path $path } |
+			Should -Throw '*usable H1 title*'
+		[Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) |
+			Should -Be ([Convert]::ToBase64String($before))
+	}
+
 	It 'inserts metadata after a Setext H1 underline' {
 		$path = New-RepositoryTestFile `
 			-RelativePath 'setext-h1.md' `
@@ -815,6 +984,77 @@ Describe 'Set-DocumentationMetadata.ps1' {
 			$bytes[1] -eq 0xBB -and
 			$bytes[2] -eq 0xBF) | Should -BeFalse
 		[IO.File]::ReadAllText($path).Contains("`r") | Should -BeFalse
+	}
+
+	It 'inserts metadata after a multiline Setext H1 and preserves its complete title' {
+		$sourceContent = @(
+			'First title line'
+			'Second title line'
+			'==='
+			''
+			'Existing body line.'
+			'Second body line.'
+		) -join "`r`n"
+		$path = New-RepositoryTestFile `
+			-RelativePath 'multiline-setext.md' `
+			-Content ($sourceContent + "`r`n") `
+			-Encoding ([Text.UTF8Encoding]::new($true))
+		$expected = @(
+			'First title line'
+			'Second title line'
+			'==='
+			''
+			'| Field | Value |'
+			'|---|---|'
+			'| **Version** | 2.4 |'
+			'| **Date** | 2026-09-18 |'
+			'| **Author** | Grace Hopper |'
+			'| **Status** | Approved |'
+			'| **Scope** | Infrastructure |'
+			'| **References** | [Architecture](docs/adr/README.md) |'
+			''
+			''
+			'Existing body line.'
+			'Second body line.'
+			''
+		) -join "`n"
+
+		Invoke-SetDocumentationMetadata -Path $path | Out-Null
+
+		[IO.File]::ReadAllText($path) | Should -BeExactly $expected
+		$bytes = [IO.File]::ReadAllBytes($path)
+		($bytes.Length -ge 3 -and
+			$bytes[0] -eq 0xEF -and
+			$bytes[1] -eq 0xBB -and
+			$bytes[2] -eq 0xBF) | Should -BeFalse
+		[IO.File]::ReadAllText($path).Contains("`r") | Should -BeFalse
+	}
+
+	It 'inserts after an ATX H1 without consuming a following equals line' {
+		$path = New-RepositoryTestFile `
+			-RelativePath 'atx-followed-by-equals.md' `
+			-Content "# ATX Title`r`n===`r`nBody line.`r`n" `
+			-Encoding ([Text.UTF8Encoding]::new($true))
+		$expected = @(
+			'# ATX Title'
+			''
+			'| Field | Value |'
+			'|---|---|'
+			'| **Version** | 2.4 |'
+			'| **Date** | 2026-09-18 |'
+			'| **Author** | Grace Hopper |'
+			'| **Status** | Approved |'
+			'| **Scope** | Infrastructure |'
+			'| **References** | [Architecture](docs/adr/README.md) |'
+			''
+			'==='
+			'Body line.'
+			''
+		) -join "`n"
+
+		Invoke-SetDocumentationMetadata -Path $path | Out-Null
+
+		[IO.File]::ReadAllText($path) | Should -BeExactly $expected
 	}
 
 	It 'ignores ATX and Setext headings in fences when migrating a Setext document' {
