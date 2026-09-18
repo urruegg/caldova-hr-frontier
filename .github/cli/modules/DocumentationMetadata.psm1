@@ -29,7 +29,6 @@ function ConvertTo-DocumentationLines {
 	if ($Content.Length -gt 0 -and $Content[0] -eq [char]0xFEFF) {
 		$Content = $Content.Substring(1)
 	}
-
 	$normalizedContent = $Content.Replace("`r`n", "`n").Replace("`r", "`n")
 	return ,([string[]]$normalizedContent.Split(
 		[string[]]@("`n"),
@@ -726,116 +725,131 @@ function Test-DocumentationMetadataContent {
 		[string]::IsNullOrWhiteSpace($structure.Lines[$tableStart])) {
 		$tableStart++
 	}
-	if ($tableStart -ge $structure.Lines.Count -or
-		-not $structure.Lines[$tableStart].Equals(
-			'| Field | Value |',
-			[StringComparison]::Ordinal
-		)) {
-		$metadataEvidenceFound = $false
-		for ($lineIndex = $structure.ContentStart; $lineIndex -lt $structure.Lines.Count; $lineIndex++) {
-			if ($structure.RenderedLines[$lineIndex] -and
-				(Test-LineHasMetadataEvidence -Line $structure.Lines[$lineIndex])) {
-				$metadataEvidenceFound = $true
-				break
-			}
-		}
-		if ($metadataEvidenceFound) {
-			$failures.Add('Existing documentation metadata is malformed or partial.')
-		}
-		else {
-			$failures.Add('Documentation metadata is missing.')
-		}
+	if ($tableStart -ge $structure.Lines.Count) {
+		$failures.Add('Documentation metadata is missing.')
 		return $failures.ToArray()
 	}
 
-	$separatorIndex = $tableStart + 1
-	if ($separatorIndex -ge $structure.Lines.Count -or
-		-not $structure.Lines[$separatorIndex].Equals(
-			'|---|---|',
-			[StringComparison]::Ordinal
-		)) {
-		$failures.Add('Metadata table separator must be exactly |---|---|.')
+	$tableEnd = $tableStart
+	while ($tableEnd -lt $structure.Lines.Count -and
+		-not [string]::IsNullOrWhiteSpace($structure.Lines[$tableEnd])) {
+		$tableEnd++
 	}
 
-	$values = @{}
-	$seenFields = [Collections.Generic.HashSet[string]]::new(
-		[StringComparer]::Ordinal
-	)
-	for ($fieldIndex = 0; $fieldIndex -lt $script:DocumentationMetadataFields.Count; $fieldIndex++) {
-		$expectedField = $script:DocumentationMetadataFields[$fieldIndex]
-		$rowIndex = $tableStart + 2 + $fieldIndex
-		if ($rowIndex -ge $structure.Lines.Count) {
-			$failures.Add("Metadata field '$expectedField' is missing.")
-			continue
-		}
-
-		$row = ConvertFrom-DocumentationMetadataRow -Line $structure.Lines[$rowIndex]
-		if ($null -eq $row) {
-			$failures.Add("Metadata row for '$expectedField' has invalid formatting.")
-			continue
-		}
-		if (-not $row.IsBold) {
-			$failures.Add("Metadata field '$($row.Label)' must be bolded.")
-		}
-		if (-not $seenFields.Add($row.Label)) {
-			$failures.Add("Metadata field '$($row.Label)' is duplicated.")
-		}
-		if (-not $row.Label.Equals($expectedField, [StringComparison]::Ordinal)) {
-			$failures.Add((
-				"Metadata fields are out of order: expected '$expectedField', found '$($row.Label)'."
-			))
-			continue
-		}
-
-		$values[$expectedField] = $row.Value
+	if (-not $structure.RenderedLines[$tableStart]) {
+		$failures.Add('Documentation metadata is missing.')
+		return $failures.ToArray()
 	}
 
-	foreach ($field in $script:DocumentationMetadataFields) {
-		if (-not $values.ContainsKey($field)) {
-			$failures.Add("Metadata field '$field' is missing.")
-		}
-	}
-
-	$lineAfterReferences = $tableStart + 8
-	if ($lineAfterReferences -ge $structure.Lines.Count -or
-		-not [string]::IsNullOrWhiteSpace($structure.Lines[$lineAfterReferences])) {
-		if ($lineAfterReferences -lt $structure.Lines.Count -and
-			$structure.Lines[$lineAfterReferences].StartsWith(
-				'|',
+	if ($structure.Lines[$tableStart].Equals(
+		'| Field | Value |',
+		[StringComparison]::Ordinal
+	)) {
+		$separatorIndex = $tableStart + 1
+		if ($separatorIndex -ge $tableEnd -or
+			-not $structure.Lines[$separatorIndex].Equals(
+				'|---|---|',
 				[StringComparison]::Ordinal
 			)) {
-			$failures.Add('Metadata table contains an extra row.')
+			$failures.Add('Metadata table separator must be exactly |---|---|.')
 		}
-		$failures.Add('A blank line must immediately follow References.')
+
+		$values = @{}
+		$seenFields = [Collections.Generic.HashSet[string]]::new(
+			[StringComparer]::Ordinal
+		)
+		for ($fieldIndex = 0; $fieldIndex -lt $script:DocumentationMetadataFields.Count; $fieldIndex++) {
+			$expectedField = $script:DocumentationMetadataFields[$fieldIndex]
+			$rowIndex = $tableStart + 2 + $fieldIndex
+			if ($rowIndex -ge $tableEnd) {
+				$failures.Add("Metadata field '$expectedField' is missing.")
+				continue
+			}
+
+			$row = ConvertFrom-DocumentationMetadataRow -Line $structure.Lines[$rowIndex]
+			if ($null -eq $row) {
+				$failures.Add("Metadata row for '$expectedField' has invalid formatting.")
+				continue
+			}
+			if (-not $row.IsBold) {
+				$failures.Add("Metadata field '$($row.Label)' must be bolded.")
+			}
+			if (-not $seenFields.Add($row.Label)) {
+				$failures.Add("Metadata field '$($row.Label)' is duplicated.")
+			}
+			if (-not $row.Label.Equals($expectedField, [StringComparison]::Ordinal)) {
+				$failures.Add((
+					"Metadata fields are out of order: expected '$expectedField', found '$($row.Label)'."
+				))
+				continue
+			}
+
+			$values[$expectedField] = $row.Value
+		}
+
+		foreach ($field in $script:DocumentationMetadataFields) {
+			if (-not $values.ContainsKey($field)) {
+				$failures.Add("Metadata field '$field' is missing.")
+			}
+		}
+
+		$lineAfterReferences = $tableStart + 8
+		if ($lineAfterReferences -ge $structure.Lines.Count -or
+			-not [string]::IsNullOrWhiteSpace($structure.Lines[$lineAfterReferences])) {
+			if ($lineAfterReferences -lt $structure.Lines.Count -and
+				$structure.Lines[$lineAfterReferences].StartsWith(
+					'|',
+					[StringComparison]::Ordinal
+				)) {
+				$failures.Add('Metadata table contains an extra row.')
+			}
+			$failures.Add('A blank line must immediately follow References.')
+		}
+
+		if ($values.ContainsKey('Version') -and
+			-not (Test-IsValidVersion -Value $values.Version)) {
+			$failures.Add('Version must use nonnegative major.minor form.')
+		}
+		if ($values.ContainsKey('Date') -and
+			-not (Test-IsValidDate -Value $values.Date)) {
+			$failures.Add('Date must be a real date in yyyy-MM-dd form.')
+		}
+		if ($values.ContainsKey('Author') -and
+			-not (Test-IsSafeMetadataText -Value $values.Author)) {
+			$failures.Add('Author must be trimmed, nonempty, and safe for a table cell.')
+		}
+		if ($values.ContainsKey('Status') -and
+			-not (Test-IsValidStatus -Value $values.Status)) {
+			$failures.Add('Status does not use an allowed prefix.')
+		}
+		if ($values.ContainsKey('Scope') -and
+			-not (Test-IsSafeMetadataText -Value $values.Scope)) {
+			$failures.Add('Scope must be trimmed, nonempty, and free of unsafe characters.')
+		}
+		if ($values.ContainsKey('References') -and
+			-not (Test-IsValidReferences -Value $values.References)) {
+			$failures.Add('References must be None or relative Markdown links only.')
+		}
+		if ($failures.Count -gt 0 -and
+			-not $failures.Contains('Existing documentation metadata is malformed or partial.')) {
+			$failures.Add('Existing documentation metadata is malformed or partial.')
+		}
+
+		return $failures.ToArray()
 	}
 
-	if ($values.ContainsKey('Version') -and
-		-not (Test-IsValidVersion -Value $values.Version)) {
-		$failures.Add('Version must use nonnegative major.minor form.')
+	$metadataEvidenceFound = $false
+	for ($lineIndex = $tableStart; $lineIndex -lt $tableEnd; $lineIndex++) {
+		if (Test-LineHasMetadataEvidence -Line $structure.Lines[$lineIndex]) {
+			$metadataEvidenceFound = $true
+			break
+		}
 	}
-	if ($values.ContainsKey('Date') -and
-		-not (Test-IsValidDate -Value $values.Date)) {
-		$failures.Add('Date must be a real date in yyyy-MM-dd form.')
-	}
-	if ($values.ContainsKey('Author') -and
-		-not (Test-IsSafeMetadataText -Value $values.Author)) {
-		$failures.Add('Author must be trimmed, nonempty, and safe for a table cell.')
-	}
-	if ($values.ContainsKey('Status') -and
-		-not (Test-IsValidStatus -Value $values.Status)) {
-		$failures.Add('Status does not use an allowed prefix.')
-	}
-	if ($values.ContainsKey('Scope') -and
-		-not (Test-IsSafeMetadataText -Value $values.Scope)) {
-		$failures.Add('Scope must be trimmed, nonempty, and free of unsafe characters.')
-	}
-	if ($values.ContainsKey('References') -and
-		-not (Test-IsValidReferences -Value $values.References)) {
-		$failures.Add('References must be None or relative Markdown links only.')
-	}
-	if ($failures.Count -gt 0 -and
-		-not $failures.Contains('Existing documentation metadata is malformed or partial.')) {
+	if ($metadataEvidenceFound) {
 		$failures.Add('Existing documentation metadata is malformed or partial.')
+	}
+	else {
+		$failures.Add('Documentation metadata is missing.')
 	}
 
 	return $failures.ToArray()

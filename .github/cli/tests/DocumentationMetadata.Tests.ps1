@@ -48,6 +48,26 @@ function New-ValidMetadataDocument {
 	) -join "`n"
 }
 
+function New-ExpectedMetadataInsertionContent {
+	param(
+		[string[]]$BodyLines
+	)
+
+	return (@(
+		'# Architecture Baseline'
+		''
+		'| Field | Value |'
+		'|---|---|'
+		'| **Version** | 2.4 |'
+		'| **Date** | 2026-09-18 |'
+		'| **Author** | Grace Hopper |'
+		'| **Status** | Approved |'
+		'| **Scope** | Infrastructure |'
+		'| **References** | [Architecture](docs/adr/README.md) |'
+		''
+	) + $BodyLines + @('')) -join "`n"
+}
+
 function New-RepositoryTestFile {
 	param(
 		[Parameter(Mandatory)]
@@ -283,6 +303,228 @@ Describe 'Test-DocumentationMetadataContent valid documents' {
 		) -join "`n")
 
 		@(Test-DocumentationMetadataContent -Content $content).Count | Should -Be 0
+	}
+}
+
+Describe 'Test-DocumentationMetadataContent metadata boundary detection' {
+	BeforeAll {
+		$script:repositoryRoot = [IO.Path]::GetFullPath((
+			Join-Path $PSScriptRoot '..\..\..'
+		))
+		$script:testRootName = '.documentation-metadata-boundary-tests-{0}' -f (
+			[Guid]::NewGuid().ToString('N')
+		)
+		$script:testRoot = Join-Path $script:repositoryRoot $script:testRootName
+		New-Item -ItemType Directory -Path $script:testRoot -Force | Out-Null
+	}
+
+	AfterAll {
+		if (Test-Path -LiteralPath $script:testRoot) {
+			Remove-Item -LiteralPath $script:testRoot -Recurse -Force
+		}
+	}
+
+	It 'treats later body tables with metadata-looking rows as ordinary body content' {
+		$content = @(
+			'# Architecture Baseline'
+			'Introductory body text.'
+			''
+			'The following example table is part of the body.'
+			''
+			'| Kind | Value |'
+			'|---|---|'
+			'| **Version** | 1.0 |'
+			'| **Scope** | Example |'
+		) -join "`n"
+		$path = New-RepositoryTestFile `
+			-RelativePath 'later-body-table.md' `
+			-Content ($content + "`n")
+
+		$failures = @(Test-DocumentationMetadataContent -Content $content)
+		$failures.Count | Should -Be 1
+		$failures[0] | Should -BeExactly 'Documentation metadata is missing.'
+
+		Invoke-SetDocumentationMetadata -Path $path | Out-Null
+		[IO.File]::ReadAllText($path) | Should -BeExactly (
+			New-ExpectedMetadataInsertionContent -BodyLines @(
+				'Introductory body text.'
+				''
+				'The following example table is part of the body.'
+				''
+				'| Kind | Value |'
+				'|---|---|'
+				'| **Version** | 1.0 |'
+				'| **Scope** | Example |'
+			)
+		)
+	}
+
+	It 'ignores a complete metadata-looking table inside a fenced code block' {
+		$content = @(
+			'# Architecture Baseline'
+			'Body paragraph.'
+			''
+			'```markdown'
+			'| Field | Value |'
+			'|---|---|'
+			'| **Version** | 1.0 |'
+			'| **Date** | 2026-09-18 |'
+			'| **Author** | Ada Lovelace |'
+			'| **Status** | Active |'
+			'| **Scope** | Example |'
+			'| **References** | None |'
+			'```'
+		) -join "`n"
+		$expectedBodyLines = @(
+			'Body paragraph.'
+			''
+			'```markdown'
+			'| Field | Value |'
+			'|---|---|'
+			'| **Version** | 1.0 |'
+			'| **Date** | 2026-09-18 |'
+			'| **Author** | Ada Lovelace |'
+			'| **Status** | Active |'
+			'| **Scope** | Example |'
+			'| **References** | None |'
+			'```'
+		)
+		$path = New-RepositoryTestFile `
+			-RelativePath 'fenced-metadata-example.md' `
+			-Content ($content + "`n")
+
+		$failures = @(Test-DocumentationMetadataContent -Content $content)
+		$failures.Count | Should -Be 1
+		$failures[0] | Should -BeExactly 'Documentation metadata is missing.'
+
+		Invoke-SetDocumentationMetadata -Path $path | Out-Null
+		[IO.File]::ReadAllText($path) | Should -BeExactly (
+			New-ExpectedMetadataInsertionContent -BodyLines $expectedBodyLines
+		)
+	}
+
+	It 'treats a later body table in a Setext document as ordinary body content' {
+		$content = @(
+			'Architecture Baseline'
+			'==='
+			'Body paragraph.'
+			''
+			'| Kind | Value |'
+			'|---|---|'
+			'| **Version** | 1.0 |'
+			'| **Scope** | Example |'
+		) -join "`n"
+		$path = New-RepositoryTestFile `
+			-RelativePath 'setext-later-body-table.md' `
+			-Content ($content + "`n")
+
+		$failures = @(Test-DocumentationMetadataContent -Content $content)
+		$failures.Count | Should -Be 1
+		$failures[0] | Should -BeExactly 'Documentation metadata is missing.'
+
+		Invoke-SetDocumentationMetadata -Path $path | Out-Null
+		$expected = @(
+			'Architecture Baseline'
+			'==='
+			''
+			'| Field | Value |'
+			'|---|---|'
+			'| **Version** | 2.4 |'
+			'| **Date** | 2026-09-18 |'
+			'| **Author** | Grace Hopper |'
+			'| **Status** | Approved |'
+			'| **Scope** | Infrastructure |'
+			'| **References** | [Architecture](docs/adr/README.md) |'
+			''
+			'Body paragraph.'
+			''
+			'| Kind | Value |'
+			'|---|---|'
+			'| **Version** | 1.0 |'
+			'| **Scope** | Example |'
+			''
+		) -join "`n"
+		[IO.File]::ReadAllText($path) | Should -BeExactly $expected
+	}
+
+	It 'rejects a partial metadata table immediately after H1 and refuses migration' {
+		$content = @(
+			'# Architecture Baseline'
+			''
+			'| Field | Value |'
+			'|---|---|'
+			'| **Version** | 1.0 |'
+			'| **Scope** | Example |'
+			''
+			'Body paragraph.'
+		) -join "`n"
+		$path = New-RepositoryTestFile `
+			-RelativePath 'partial-metadata-after-h1.md' `
+			-Content ($content + "`n")
+
+		$failures = @(Test-DocumentationMetadataContent -Content $content)
+		$failures | Should -Contain 'Existing documentation metadata is malformed or partial.'
+
+		{ Invoke-SetDocumentationMetadata -Path $path } |
+			Should -Throw '*malformed or partial metadata*'
+	}
+
+	It 'rejects a bad-separator metadata table immediately after H1' {
+		$content = @(
+			'# Architecture Baseline'
+			''
+			'| Field | Value |'
+			'| --- | --- |'
+			'| **Version** | 1.0 |'
+			'| **Date** | 2026-09-18 |'
+			'| **Author** | Ada Lovelace |'
+			'| **Status** | Active |'
+			'| **Scope** | Repository |'
+			'| **References** | None |'
+			''
+			'Body paragraph.'
+		) -join "`n"
+		$path = New-RepositoryTestFile `
+			-RelativePath 'bad-separator-after-h1.md' `
+			-Content ($content + "`n")
+
+		$failures = @(Test-DocumentationMetadataContent -Content $content)
+		$failures | Should -Contain 'Metadata table separator must be exactly |---|---|.'
+		$failures | Should -Contain 'Existing documentation metadata is malformed or partial.'
+
+		{ Invoke-SetDocumentationMetadata -Path $path } |
+			Should -Throw '*malformed or partial metadata*'
+	}
+
+	It 'treats a non-metadata body table immediately after H1 as ordinary body content' {
+		$content = @(
+			'# Architecture Baseline'
+			'Body paragraph.'
+			''
+			'| Kind | Value |'
+			'|---|---|'
+			'| Label | Example |'
+			'| Notes | Ordinary body table |'
+		) -join "`n"
+		$path = New-RepositoryTestFile `
+			-RelativePath 'body-table-after-h1.md' `
+			-Content ($content + "`n")
+
+		$failures = @(Test-DocumentationMetadataContent -Content $content)
+		$failures.Count | Should -Be 1
+		$failures[0] | Should -BeExactly 'Documentation metadata is missing.'
+
+		Invoke-SetDocumentationMetadata -Path $path | Out-Null
+		[IO.File]::ReadAllText($path) | Should -BeExactly (
+			New-ExpectedMetadataInsertionContent -BodyLines @(
+				'Body paragraph.'
+				''
+				'| Kind | Value |'
+				'|---|---|'
+				'| Label | Example |'
+				'| Notes | Ordinary body table |'
+			)
+		)
 	}
 }
 
