@@ -7,7 +7,7 @@ body:
       value: |
         **Do not include personal data.** No names, employee identifiers, contact details,
         health, absence, compensation, performance or disciplinary information.
-        This repository is public and permanent. See .github/agent-policy/NON_DELEGABLE_WORK.md.
+        This repository is public and permanent. See docs/operating-model/04-hitl-governance.md.
   - type: dropdown
     id: journey_stage
     attributes:
