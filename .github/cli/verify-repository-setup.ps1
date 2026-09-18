@@ -10,6 +10,20 @@ function Add-Failure {
     param([string]$Message)
     [void]$failures.Add($Message)
 }
+$documentationMetadataModulePath = Join-Path $PSScriptRoot 'modules\DocumentationMetadata.psm1'
+$documentationMetadataAvailable = $false
+if (-not (Test-Path -LiteralPath $documentationMetadataModulePath -PathType Leaf)) {
+    Add-Failure 'Missing documentation metadata module: .github/cli/modules/DocumentationMetadata.psm1'
+}
+else {
+    try {
+        Import-Module $documentationMetadataModulePath -Force -ErrorAction Stop
+        $documentationMetadataAvailable = $true
+    }
+    catch {
+        Add-Failure "Cannot import documentation metadata module: $($_.Exception.Message)"
+    }
+}
 $skillsRootTrusted = $true
 if (Test-Path -LiteralPath $skillsRoot) {
     try { $skillsRootItem = Get-Item -LiteralPath $skillsRoot -Force }
@@ -85,14 +99,15 @@ if (Test-Path -LiteralPath $storyboardPath) {
 $issueTemplateRelativeRoot = '.github/ISSUE_TEMPLATE'
 $githubRoot = Join-Path $repositoryRoot '.github'
 $issueTemplateRoot = Join-Path $repositoryRoot '.github\ISSUE_TEMPLATE'
-$issueTemplateFileNames = @('01-bug.yml', '02-feature.yml', 'config.yml')
+$issueTemplateFileNames = @('01-bug.yml', '02-feature.yml', '03-frontier-intake.yml', 'config.yml')
 $issueTemplateGitPrefix = '.github/ISSUE_TEMPLATE/'
 $expectedIssueTemplateGitPaths = @($issueTemplateFileNames | ForEach-Object { "${issueTemplateGitPrefix}$_" })
 $gitattributesRelativePath = '.gitattributes'
 $expectedIssueTemplateHashes = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
 $expectedIssueTemplateHashes.Add('01-bug.yml', '8f2c31b169477b86d85e60f9d1c91eed349fae829f1071b8b42dc93624d8879a')
 $expectedIssueTemplateHashes.Add('02-feature.yml', '748e69155e9e60acd16f5cbb93b6398fd5853905951829080a9c440ed5c0e7a4')
-$expectedIssueTemplateHashes.Add('config.yml', '1f103c6a9dd07cd13a9a6f17ace6b813f47747eb9cb7e00488cb2073caaf91bb')
+$expectedIssueTemplateHashes.Add('03-frontier-intake.yml', 'af13ab5a7c0aec18af59c10a257089b5b44ebf31208396b1c5903c56c394f840')
+$expectedIssueTemplateHashes.Add('config.yml', '6913de0ee9863fce0c24df504fb706a88c38b090617a3071fe207fd8f9ec6cbb')
 $actualIssueTemplateFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $reparseIssueTemplateEntries = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $ordinaryIssueTemplateFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
@@ -701,8 +716,8 @@ if ($gitIndexReadable) {
     }
 }
 
-Test-RequiredContent 'AGENTS.md' @('.github/skills', 'using-superpowers')
-Test-RequiredContent '.github/copilot-instructions.md' @('.github/skills', 'using-superpowers')
+Test-RequiredContent 'AGENTS.md' @('.github/skills', 'using-superpowers', '.github/agents/docs-agent.agent.md')
+Test-RequiredContent '.github/copilot-instructions.md' @('.github/skills', 'using-superpowers', '.github/agents/docs-agent.agent.md')
 Test-RequiredContent '.github/skills/SUPERPOWERS_VERSION' @() @(
     'name=Superpowers',
     'source=https://github.com/obra/superpowers',
@@ -729,6 +744,138 @@ if ($skillsRootTrusted) {
     }
 }
 Test-RequiredContent 'README.md' @('Superpowers', 'v6.3.0', '.github/skills', 'verify-repository-setup.ps1')
+Test-RequiredContent 'docs/README.md' @(
+    'All maintained repository documentation is written in English',
+    'standard six-field metadata table',
+    '.github/agents/docs-agent.agent.md'
+)
+Test-RequiredContent '.github/agents/docs-agent.agent.md' @(
+    'name: docs-agent',
+    'tools: [read, search, edit, todo]',
+    'standard six-field metadata header',
+    'written in English'
+)
+Test-RequiredContent 'docs/reviews/2026-09-17-architecture-baseline-source-inventory.json' @(
+    '"schemaVersion"',
+    '"sourceName"',
+    '"totalCount"',
+    '"sha256"'
+)
+Test-RequiredContent 'docs/reviews/2026-09-17-phase-1-governance-github-intake.md' @(
+    '# Phase 1 Governance and GitHub Intake Review',
+    'Proposed Baseline',
+    'Phase 1 Inventory Disposition'
+)
+Test-RequiredContent '.github/CODEOWNERS' @('* @urruegg', '/.github/ @urruegg', '/docs/ @urruegg')
+Test-RequiredContent '.github/pull_request_template.md' @(
+    '# Pull Request',
+    '### Governance',
+    '### Validation evidence'
+)
+Test-RequiredContent '.github/dependabot.yml' @('package-ecosystem: "github-actions"', 'interval: "weekly"')
+Test-RequiredContent '.github/workflows/validate-repository.yml' @(
+    'name: Validate repository',
+    'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683',
+    'Invoke-Pester .github/cli/tests -Output Detailed -CI'
+)
+
+if ($null -eq $gitCommand) {
+    Add-Failure 'Cannot enumerate tracked Markdown documentation: git is unavailable'
+}
+else {
+    try {
+        [string[]]$trackedMarkdownPaths = @(& $gitCommand.Source -C $repositoryRoot -c core.quotePath=false ls-files -- '*.md' 2>&1 |
+            ForEach-Object { $_.ToString() })
+        $trackedMarkdownExitCode = $LASTEXITCODE
+        if ($trackedMarkdownExitCode -ne 0) {
+            Add-Failure 'Cannot enumerate tracked Markdown documentation with git ls-files'
+        }
+        elseif ($documentationMetadataAvailable) {
+            foreach ($relativePath in $trackedMarkdownPaths) {
+                if (-not (Test-DocumentationMetadataEligibility -RelativePath $relativePath)) { continue }
+                $documentPath = Join-Path $repositoryRoot ($relativePath.Replace('/', '\'))
+                if (-not (Test-Path -LiteralPath $documentPath -PathType Leaf)) {
+                    Add-Failure "Tracked Markdown file is missing from the working tree: $relativePath"
+                    continue
+                }
+                try {
+                    $documentContent = [IO.File]::ReadAllText($documentPath)
+                    $metadataFailures = @(Test-DocumentationMetadataContent `
+                        -Content $documentContent `
+                        -DocumentRelativePath $relativePath)
+                    foreach ($metadataFailure in $metadataFailures) {
+                        Add-Failure "Documentation metadata invalid for ${relativePath}: $metadataFailure"
+                    }
+                }
+                catch {
+                    Add-Failure "Cannot validate documentation metadata for ${relativePath}: $($_.Exception.Message)"
+                }
+            }
+        }
+    }
+    catch {
+        Add-Failure "Cannot enumerate tracked Markdown documentation with git ls-files: $($_.Exception.Message)"
+    }
+}
+
+$requiredPesterVersion = [Version]'5.7.1'
+$pesterModule = @(Get-Module -ListAvailable -Name Pester | Where-Object {
+    $_.Version -eq $requiredPesterVersion
+} | Select-Object -First 1)
+if ($pesterModule.Count -ne 1) {
+    Add-Failure 'Required Pester version 5.7.1 is unavailable.'
+}
+else {
+    $pesterPowerShell = [PowerShell]::Create()
+    try {
+        [void]$pesterPowerShell.AddCommand('Import-Module').AddParameter(
+            'Name',
+            $pesterModule[0].Path
+        ).AddParameter('Force').AddParameter('ErrorAction', 'Stop')
+        [void]$pesterPowerShell.AddStatement()
+        [void]$pesterPowerShell.AddCommand('Pester\Invoke-Pester').AddParameter(
+            'Path',
+            (Join-Path $PSScriptRoot 'tests')
+        ).AddParameter('Output', 'None').AddParameter('PassThru')
+        $pesterOutput = @($pesterPowerShell.Invoke())
+        if ($pesterPowerShell.HadErrors) {
+            $pesterErrorSummary = @($pesterPowerShell.Streams.Error | ForEach-Object {
+                $_.Exception.Message
+            }) -join '; '
+            Add-Failure "Cannot run repository Pester suite under version 5.7.1: $pesterErrorSummary"
+        }
+        else {
+            $pesterResults = @($pesterOutput | Where-Object {
+                $null -ne $_ -and
+                $null -ne $_.PSObject.Properties['Result'] -and
+                $null -ne $_.PSObject.Properties['FailedCount']
+            })
+            $pesterResult = if ($pesterResults.Count -eq 1) { $pesterResults[0] } else { $null }
+            if ($pesterResults.Count -ne 1 -or
+                $pesterResult.Result.ToString() -cne 'Passed' -or
+                $pesterResult.FailedCount -ne 0) {
+                $resultSummary = if ($pesterResults.Count -ne 1) {
+                    "expected one result, found $($pesterResults.Count)"
+                }
+                else {
+                    'result={0}, total={1}, passed={2}, failed={3}, skipped={4}' -f
+                        $pesterResult.Result,
+                        $pesterResult.TotalCount,
+                        $pesterResult.PassedCount,
+                        $pesterResult.FailedCount,
+                        $pesterResult.SkippedCount
+                }
+                Add-Failure "Repository Pester suite did not pass under version 5.7.1: $resultSummary"
+            }
+        }
+    }
+    catch {
+        Add-Failure "Cannot run repository Pester suite under version 5.7.1: $($_.Exception.Message)"
+    }
+    finally {
+        $pesterPowerShell.Dispose()
+    }
+}
 
 if ($failures.Count -gt 0) {
     foreach ($failure in $failures) { Write-Output "ERROR: $failure" }
