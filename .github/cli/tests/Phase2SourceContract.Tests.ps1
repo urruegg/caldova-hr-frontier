@@ -2,6 +2,13 @@ BeforeAll {
 	$script:inventoryPath = Join-Path $PSScriptRoot '..\..\..\docs\reviews\2026-09-17-architecture-baseline-source-inventory.json'
 	$script:inventory = Get-Content -LiteralPath $script:inventoryPath -Raw | ConvertFrom-Json
 	$script:repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+	$script:expectedAdrCandidates = @(
+		'docs/adr/0001-azure-devops-as-engineering-control-plane.md'
+		'docs/adr/0002-github-first-bootstrap-and-the-role-of-azure-repos.md'
+		'docs/adr/0003-bicep-and-powershell-for-infrastructure-as-code.md'
+		'docs/adr/0004-domain-solution-architecture-and-publisher.md'
+	)
+	$script:expectedEvaluationPath = 'docs/90-microsoft-best-practice-evaluation.md'
 
 	$script:expected = [ordered]@{
 		'README.md' = '5035ac2b1c59ce776de359ac9592483bf0b9e20572dd1bee8a5aae2638ab8605'
@@ -39,5 +46,37 @@ Describe 'Phase 2 source contract' {
 
 	It 'has not imported the source placeholder target' {
 		Test-Path -LiteralPath (Join-Path $script:repositoryRoot 'hr\src\solutions\.gitkeep') | Should -BeFalse
+	}
+}
+
+Describe 'Imported authority status' {
+	It 'imports exactly the four proposed ADR candidates' {
+		foreach ($relativePath in $script:expectedAdrCandidates) {
+			$path = Join-Path $script:repositoryRoot $relativePath
+			Test-Path -LiteralPath $path -PathType Leaf | Should -BeTrue -Because "$relativePath must exist as a regular file"
+
+			$content = Get-Content -LiteralPath $path -Raw
+			$content | Should -Match '\| \*\*Status\*\* \| Proposed Baseline \|'
+			$content | Should -Not -Match '(?m)^- \*\*Status:\*\* Accepted$'
+			@([regex]::Matches($content, '(?m)^## Proposed Decision\s*$')).Count | Should -Be 1
+			$content | Should -Not -Match '(?m)^## Decision\s*$'
+		}
+
+		$discovered = Get-ChildItem -LiteralPath (Join-Path $script:repositoryRoot 'docs\adr') -File |
+			Where-Object { $_.Name -match '^000[1-4]-.*\.md$' } |
+			ForEach-Object { 'docs/adr/' + $_.Name } |
+			Sort-Object
+		$discovered | Should -Be ($script:expectedAdrCandidates | Sort-Object)
+	}
+
+	It 'imports the Microsoft evaluation as a proposed, source-derived assessment' {
+		$path = Join-Path $script:repositoryRoot $script:expectedEvaluationPath
+		Test-Path -LiteralPath $path -PathType Leaf | Should -BeTrue -Because "$script:expectedEvaluationPath must exist as a regular file"
+
+		$content = Get-Content -LiteralPath $path -Raw
+		$content | Should -Match '\| \*\*Status\*\* \| Proposed Baseline \|'
+		$content | Should -Match 'source-derived Proposed Baseline assessment'
+		$content | Should -Match 'documented design, not proof of deployed controls'
+		$content | Should -Match 'deployment/configuration claims remain planned or not yet verified'
 	}
 }
