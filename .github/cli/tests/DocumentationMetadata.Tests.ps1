@@ -145,6 +145,38 @@ Describe 'Test-DocumentationMetadataContent valid documents' {
 		@(Test-DocumentationMetadataContent -Content $content).Count | Should -Be 0
 	}
 
+	It 'accepts an ATX H1 with <IndentCount> leading spaces' -TestCases @(
+		@{ IndentCount = 1 }
+		@{ IndentCount = 2 }
+		@{ IndentCount = 3 }
+	) {
+		param($IndentCount)
+
+		$heading = (' ' * $IndentCount) + '# Architecture Baseline'
+		$content = (New-ValidMetadataDocument).Replace(
+			'# Architecture Baseline',
+			$heading
+		)
+
+		@(Test-DocumentationMetadataContent -Content $content).Count | Should -Be 0
+	}
+
+	It 'accepts a Setext H1 with underline <Underline>' -TestCases @(
+		@{ Underline = '===' }
+		@{ Underline = ' ====' }
+		@{ Underline = '  ===' }
+		@{ Underline = '   ====' }
+	) {
+		param($Underline)
+
+		$content = (New-ValidMetadataDocument).Replace(
+			'# Architecture Baseline',
+			("Architecture Baseline`n{0}" -f $Underline)
+		)
+
+		@(Test-DocumentationMetadataContent -Content $content).Count | Should -Be 0
+	}
+
 	It 'accepts literal None for References' {
 		$content = New-ValidMetadataDocument -References 'None'
 
@@ -158,9 +190,16 @@ Describe 'Test-DocumentationMetadataContent valid documents' {
 		@(Test-DocumentationMetadataContent -Content $content).Count | Should -Be 0
 	}
 
+	It 'accepts a percent-encoded space in a relative reference destination' {
+		$content = New-ValidMetadataDocument `
+			-References '[Design](docs/my%20file.md)'
+
+		@(Test-DocumentationMetadataContent -Content $content).Count | Should -Be 0
+	}
+
 	It 'accepts multiple comma-separated and semicolon-separated relative links' {
 		$content = New-ValidMetadataDocument -References (
-			'[Design](docs/specs/design.md), [Plan](../plans/plan.md#task-2); [Root](#metadata)'
+			'[Design](docs/specs/design.md), [Plan](docs/plans/plan.md#task-2); [Root](#metadata)'
 		)
 
 		@(Test-DocumentationMetadataContent -Content $content).Count | Should -Be 0
@@ -169,6 +208,21 @@ Describe 'Test-DocumentationMetadataContent valid documents' {
 	It 'accepts an allowed status prefix with a parenthesized qualifier' {
 		$content = New-ValidMetadataDocument `
 			-Status 'Active (consolidated from current state)'
+
+		@(Test-DocumentationMetadataContent -Content $content).Count | Should -Be 0
+	}
+
+	It 'accepts base status <Status>' -TestCases @(
+		@{ Status = 'Draft' }
+		@{ Status = 'Proposed Baseline' }
+		@{ Status = 'Active' }
+		@{ Status = 'Approved' }
+		@{ Status = 'Superseded' }
+		@{ Status = 'Archived' }
+	) {
+		param($Status)
+
+		$content = New-ValidMetadataDocument -Status $Status
 
 		@(Test-DocumentationMetadataContent -Content $content).Count | Should -Be 0
 	}
@@ -199,6 +253,9 @@ Describe 'Test-DocumentationMetadataContent valid documents' {
 			'```markdown'
 			'```text'
 			'# Example only'
+			'   # Indented example only'
+			'Setext example only'
+			'==='
 			'```'
 		) -join "`n")
 
@@ -211,6 +268,16 @@ Describe 'Test-DocumentationMetadataContent invalid documents' {
 		$content = (New-ValidMetadataDocument).Replace(
 			'# Architecture Baseline',
 			'Architecture Baseline'
+		)
+
+		@(Test-DocumentationMetadataContent -Content $content) |
+			Should -Not -BeNullOrEmpty
+	}
+
+	It 'rejects a four-space indented ATX heading' {
+		$content = (New-ValidMetadataDocument).Replace(
+			'# Architecture Baseline',
+			'    # Not a heading'
 		)
 
 		@(Test-DocumentationMetadataContent -Content $content) |
@@ -357,6 +424,12 @@ Describe 'Test-DocumentationMetadataContent invalid documents' {
 		@{ Status = 'In Review' }
 		@{ Status = 'Active now' }
 		@{ Status = 'Approved (' }
+		@{ Status = 'Active ()' }
+		@{ Status = 'Active ( )' }
+		@{ Status = 'Active (reviewed) trailing)' }
+		@{ Status = 'Active (reviewed (nested))' }
+		@{ Status = 'Active (reviewed))' }
+		@{ Status = 'Active ((reviewed)' }
 	) {
 		param($Status)
 
@@ -398,6 +471,13 @@ Describe 'Test-DocumentationMetadataContent invalid documents' {
 		@{ References = '[Broken](docs/specs/design.md' }
 		@{ References = '[](docs/specs/design.md)' }
 		@{ References = '[Rooted](/docs/specs/design.md)' }
+		@{ References = '[Raw space](docs/my file.md)' }
+		@{ References = "[Tab](docs/my`tfile.md)" }
+		@{ References = "[Control](docs/my$([char]1)file.md)" }
+		@{ References = '[Backslash](docs\specs\design.md)' }
+		@{ References = '[Drive](C:/docs/specs/design.md)' }
+		@{ References = '[Parent](../plans/plan.md)' }
+		@{ References = '[Encoded parent](docs/%2E%2E/secrets.md)' }
 		@{ References = '[Unsafe|Label](docs/specs/design.md)' }
 		@{ References = '[Broken[Label](docs/specs/design.md)' }
 	) {
@@ -431,6 +511,13 @@ Describe 'Test-DocumentationMetadataContent invalid documents' {
 
 	It 'rejects more than one rendered H1' {
 		$content = (New-ValidMetadataDocument) + "`n`n# Second Title"
+
+		@(Test-DocumentationMetadataContent -Content $content) |
+			Should -Not -BeNullOrEmpty
+	}
+
+	It 'rejects mixed ATX and Setext H1 styles' {
+		$content = (New-ValidMetadataDocument) + "`n`nSecond Title`n==="
 
 		@(Test-DocumentationMetadataContent -Content $content) |
 			Should -Not -BeNullOrEmpty
@@ -606,6 +693,172 @@ Describe 'Set-DocumentationMetadata.ps1' {
 			Should -Be ([Convert]::ToBase64String($sentinelBefore))
 		@(Get-ChildItem -LiteralPath (Split-Path -Parent $path) -File -Force).Count |
 			Should -Be 2
+	}
+
+	It 'inserts metadata after an ATX H1 with <IndentCount> leading spaces' -TestCases @(
+		@{ IndentCount = 1; RelativePath = 'indented-atx-1.md' }
+		@{ IndentCount = 2; RelativePath = 'indented-atx-2.md' }
+		@{ IndentCount = 3; RelativePath = 'indented-atx-3.md' }
+	) {
+		param($IndentCount, $RelativePath)
+
+		$heading = (' ' * $IndentCount) + '# Indented Title'
+		$path = New-RepositoryTestFile `
+			-RelativePath $RelativePath `
+			-Content ($heading + "`r`n`r`nBody line.`r`n") `
+			-Encoding ([Text.UTF8Encoding]::new($true))
+		$expected = @(
+			$heading
+			''
+			'| Field | Value |'
+			'|---|---|'
+			'| **Version** | 2.4 |'
+			'| **Date** | 2026-09-18 |'
+			'| **Author** | Grace Hopper |'
+			'| **Status** | Approved |'
+			'| **Scope** | Infrastructure |'
+			'| **References** | [Architecture](docs/adr/README.md) |'
+			''
+			''
+			'Body line.'
+			''
+		) -join "`n"
+
+		Invoke-SetDocumentationMetadata -Path $path | Out-Null
+
+		[IO.File]::ReadAllText($path) | Should -BeExactly $expected
+	}
+
+	It 'rejects a four-space indented ATX heading without changing the file' {
+		$path = New-RepositoryTestFile `
+			-RelativePath 'indented-atx-4.md' `
+			-Content "    # Not a heading`n`nBody line.`n"
+		$before = [IO.File]::ReadAllBytes($path)
+
+		{ Invoke-SetDocumentationMetadata -Path $path } |
+			Should -Throw '*exactly one H1*'
+		[Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) |
+			Should -Be ([Convert]::ToBase64String($before))
+	}
+
+	It 'inserts metadata after a Setext H1 underline' {
+		$path = New-RepositoryTestFile `
+			-RelativePath 'setext-h1.md' `
+			-Content "Setext Title`r`n===`r`n`r`nBody line.`r`n" `
+			-Encoding ([Text.UTF8Encoding]::new($true))
+		$expected = @(
+			'Setext Title'
+			'==='
+			''
+			'| Field | Value |'
+			'|---|---|'
+			'| **Version** | 2.4 |'
+			'| **Date** | 2026-09-18 |'
+			'| **Author** | Grace Hopper |'
+			'| **Status** | Approved |'
+			'| **Scope** | Infrastructure |'
+			'| **References** | [Architecture](docs/adr/README.md) |'
+			''
+			''
+			'Body line.'
+			''
+		) -join "`n"
+
+		Invoke-SetDocumentationMetadata -Path $path | Out-Null
+
+		[IO.File]::ReadAllText($path) | Should -BeExactly $expected
+	}
+
+	It 'keeps frontmatter before a Setext H1 and inserts after its indented underline' {
+		$sourceContent = @(
+			'---'
+			'name: docs-agent'
+			'description: Existing agent'
+			'---'
+			'Setext Agent'
+			'   ===='
+			''
+			'Body line.'
+		) -join "`r`n"
+		$path = New-RepositoryTestFile `
+			-RelativePath 'setext-frontmatter.agent.md' `
+			-Content ($sourceContent + "`r`n") `
+			-Encoding ([Text.UTF8Encoding]::new($true))
+		$expected = @(
+			'---'
+			'name: docs-agent'
+			'description: Existing agent'
+			'---'
+			'Setext Agent'
+			'   ===='
+			''
+			'| Field | Value |'
+			'|---|---|'
+			'| **Version** | 2.4 |'
+			'| **Date** | 2026-09-18 |'
+			'| **Author** | Grace Hopper |'
+			'| **Status** | Approved |'
+			'| **Scope** | Infrastructure |'
+			'| **References** | [Architecture](docs/adr/README.md) |'
+			''
+			''
+			'Body line.'
+			''
+		) -join "`n"
+
+		Invoke-SetDocumentationMetadata -Path $path | Out-Null
+
+		[IO.File]::ReadAllText($path) | Should -BeExactly $expected
+		$bytes = [IO.File]::ReadAllBytes($path)
+		($bytes.Length -ge 3 -and
+			$bytes[0] -eq 0xEF -and
+			$bytes[1] -eq 0xBB -and
+			$bytes[2] -eq 0xBF) | Should -BeFalse
+		[IO.File]::ReadAllText($path).Contains("`r") | Should -BeFalse
+	}
+
+	It 'ignores ATX and Setext headings in fences when migrating a Setext document' {
+		$sourceContent = @(
+			'```markdown'
+			'# Fenced ATX'
+			'Fenced Setext'
+			'==='
+			'```'
+			'Setext Title'
+			'===='
+			''
+			'Body line.'
+		) -join "`n"
+		$path = New-RepositoryTestFile `
+			-RelativePath 'setext-after-fence.md' `
+			-Content ($sourceContent + "`n")
+
+		Invoke-SetDocumentationMetadata -Path $path | Out-Null
+
+		$updated = [IO.File]::ReadAllText($path)
+		$updated | Should -Match "Setext Title`n====`n`n\| Field \| Value \|"
+		$updated | Should -Match 'Fenced Setext\n===\n```'
+	}
+
+	It 'rejects mixed ATX and Setext H1 styles without changing the file' {
+		$content = @(
+			'# First Title'
+			''
+			'Body line.'
+			''
+			'Second Title'
+			'==='
+			''
+		) -join "`n"
+		$path = New-RepositoryTestFile `
+			-RelativePath 'mixed-h1-styles.md' `
+			-Content $content
+		$before = [IO.File]::ReadAllBytes($path)
+
+		{ Invoke-SetDocumentationMetadata -Path $path } |
+			Should -Throw '*exactly one H1*'
+		[Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) |
+			Should -Be ([Convert]::ToBase64String($before))
 	}
 
 	It 'rejects malformed existing metadata instead of stacking another table' {

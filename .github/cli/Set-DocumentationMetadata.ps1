@@ -174,104 +174,6 @@ function ConvertTo-NormalizedDocumentationLines {
 	))
 }
 
-function Get-FenceDelimiter {
-	param(
-		[Parameter(Mandatory)]
-		[AllowEmptyString()]
-		[string]$Line
-	)
-
-	$trimmedLine = $Line.TrimStart()
-	$indentLength = $Line.Length - $trimmedLine.Length
-	if ($indentLength -gt 3 -or $trimmedLine.Length -lt 3) {
-		return $null
-	}
-
-	$marker = $trimmedLine[0]
-	if ($marker -ne [char]'`' -and $marker -ne [char]'~') {
-		return $null
-	}
-
-	$length = 0
-	while ($length -lt $trimmedLine.Length -and
-		$trimmedLine[$length] -eq $marker) {
-		$length++
-	}
-	if ($length -lt 3) {
-		return $null
-	}
-
-	return [pscustomobject]@{
-		Marker = $marker
-		Length = $length
-		IsClosing = [string]::IsNullOrWhiteSpace($trimmedLine.Substring($length))
-	}
-}
-
-function Test-IsRenderedH1 {
-	param(
-		[Parameter(Mandatory)]
-		[AllowEmptyString()]
-		[string]$Line
-	)
-
-	return $Line.Length -ge 3 -and
-		$Line[0] -eq [char]'#' -and
-		[char]::IsWhiteSpace($Line[1]) -and
-		-not [string]::IsNullOrWhiteSpace($Line.Substring(2))
-}
-
-function Get-RenderedH1Index {
-	param(
-		[Parameter(Mandatory)]
-		[AllowEmptyString()]
-		[string[]]$Lines
-	)
-
-	$contentStart = 0
-	if ($Lines.Count -gt 0 -and
-		$Lines[0].Equals('---', [StringComparison]::Ordinal)) {
-		for ($lineIndex = 1; $lineIndex -lt $Lines.Count; $lineIndex++) {
-			if ($Lines[$lineIndex].Equals('---', [StringComparison]::Ordinal)) {
-				$contentStart = $lineIndex + 1
-				break
-			}
-		}
-	}
-
-	$h1Indexes = [Collections.Generic.List[int]]::new()
-	$insideFence = $false
-	$fenceMarker = [char]0
-	$fenceLength = 0
-	for ($lineIndex = $contentStart; $lineIndex -lt $Lines.Count; $lineIndex++) {
-		$delimiter = Get-FenceDelimiter -Line $Lines[$lineIndex]
-		if ($null -ne $delimiter) {
-			if (-not $insideFence) {
-				$insideFence = $true
-				$fenceMarker = $delimiter.Marker
-				$fenceLength = $delimiter.Length
-				continue
-			}
-			if ($delimiter.IsClosing -and
-				$delimiter.Marker -eq $fenceMarker -and
-				$delimiter.Length -ge $fenceLength) {
-				$insideFence = $false
-				$fenceMarker = [char]0
-				$fenceLength = 0
-				continue
-			}
-		}
-		if (-not $insideFence -and (Test-IsRenderedH1 -Line $Lines[$lineIndex])) {
-			$h1Indexes.Add($lineIndex)
-		}
-	}
-
-	if ($h1Indexes.Count -ne 1) {
-		throw "Document must contain exactly one H1; found $($h1Indexes.Count)."
-	}
-	return $h1Indexes[0]
-}
-
 function Add-DocumentationMetadataTable {
 	param(
 		[Parameter(Mandatory)]
@@ -282,11 +184,11 @@ function Add-DocumentationMetadataTable {
 	)
 
 	$lines = ConvertTo-NormalizedDocumentationLines -Content $Content
-	$h1Index = Get-RenderedH1Index -Lines $lines
-	$bodyStart = $h1Index + 1
+	$h1InsertionIndex = Get-DocumentationH1InsertionIndex -Content $Content
+	$bodyStart = $h1InsertionIndex + 1
 
 	$outputLines = [Collections.Generic.List[string]]::new()
-	for ($lineIndex = 0; $lineIndex -le $h1Index; $lineIndex++) {
+	for ($lineIndex = 0; $lineIndex -le $h1InsertionIndex; $lineIndex++) {
 		$outputLines.Add($lines[$lineIndex])
 	}
 	$outputLines.Add('')

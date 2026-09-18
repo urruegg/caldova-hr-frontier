@@ -71,21 +71,42 @@ function Get-FenceDelimiter {
 	}
 }
 
-function Test-IsRenderedH1 {
+function Test-IsRenderedAtxH1 {
 	param(
 		[Parameter(Mandatory)]
 		[AllowEmptyString()]
 		[string]$Line
 	)
 
-	if ($Line.Length -lt 3 -or $Line[0] -ne [char]'#') {
+	$markerIndex = 0
+	while ($markerIndex -lt $Line.Length -and
+		$Line[$markerIndex] -eq [char]' ') {
+		$markerIndex++
+	}
+	if ($markerIndex -gt 3 -or
+		$Line.Length -lt ($markerIndex + 3) -or
+		$Line[$markerIndex] -ne [char]'#') {
 		return $false
 	}
-	if (-not [char]::IsWhiteSpace($Line[1])) {
+	if (-not [char]::IsWhiteSpace($Line[$markerIndex + 1])) {
 		return $false
 	}
 
-	return -not [string]::IsNullOrWhiteSpace($Line.Substring(2))
+	return -not [string]::IsNullOrWhiteSpace($Line.Substring($markerIndex + 2))
+}
+
+function Test-IsRenderedSetextH1Underline {
+	param(
+		[Parameter(Mandatory)]
+		[AllowEmptyString()]
+		[string]$Line
+	)
+
+	return [regex]::IsMatch(
+		$Line,
+		'^ {0,3}=+ *$',
+		[Text.RegularExpressions.RegexOptions]::CultureInvariant
+	)
 }
 
 function Get-DocumentationStructure {
@@ -116,7 +137,7 @@ function Get-DocumentationStructure {
 	}
 
 	$renderedLines = [bool[]]::new($lines.Count)
-	$h1Indexes = [Collections.Generic.List[int]]::new()
+	$h1s = [Collections.Generic.List[object]]::new()
 	$insideFence = $false
 	$fenceMarker = [char]0
 	$fenceLength = 0
@@ -144,8 +165,22 @@ function Get-DocumentationStructure {
 		}
 
 		$renderedLines[$lineIndex] = $true
-		if (Test-IsRenderedH1 -Line $lines[$lineIndex]) {
-			$h1Indexes.Add($lineIndex)
+		if (Test-IsRenderedAtxH1 -Line $lines[$lineIndex]) {
+			$h1s.Add([pscustomobject]@{
+				StartIndex = $lineIndex
+				InsertionIndex = $lineIndex
+			})
+		}
+		if ($lineIndex -gt $contentStart -and
+			(Test-IsRenderedSetextH1Underline -Line $lines[$lineIndex])) {
+			$titleIndex = $lineIndex - 1
+			if ($renderedLines[$titleIndex] -and
+				-not [string]::IsNullOrWhiteSpace($lines[$titleIndex])) {
+				$h1s.Add([pscustomobject]@{
+					StartIndex = $titleIndex
+					InsertionIndex = $lineIndex
+				})
+			}
 		}
 	}
 
@@ -154,8 +189,27 @@ function Get-DocumentationStructure {
 		ContentStart = $contentStart
 		FrontmatterUnclosed = $frontmatterUnclosed
 		RenderedLines = $renderedLines
-		H1Indexes = $h1Indexes.ToArray()
+		H1s = $h1s.ToArray()
 	}
+}
+
+function Get-DocumentationH1InsertionIndex {
+	[CmdletBinding()]
+	param(
+		[Parameter(Mandatory)]
+		[AllowEmptyString()]
+		[string]$Content
+	)
+
+	$structure = Get-DocumentationStructure -Content $Content
+	if ($structure.FrontmatterUnclosed) {
+		throw 'YAML frontmatter is not closed.'
+	}
+	if ($structure.H1s.Count -ne 1) {
+		throw "Document must contain exactly one H1; found $($structure.H1s.Count)."
+	}
+
+	return $structure.H1s[0].InsertionIndex
 }
 
 function ConvertFrom-DocumentationMetadataRow {
@@ -280,12 +334,19 @@ function Test-IsValidStatus {
 		return $false
 	}
 	foreach ($prefix in $script:DocumentationStatusPrefixes) {
-		if ($Value.Equals($prefix, [StringComparison]::Ordinal)) {
-			return $true
-		}
-		if ($Value.StartsWith($prefix + ' (', [StringComparison]::Ordinal) -and
-			$Value.EndsWith(')', [StringComparison]::Ordinal)) {
-			return $true
+		$pattern = '^' + [regex]::Escape($prefix) +
+			'(?: \((?<Qualifier>[^\p{Cc}()|]+)\))?$'
+		$statusMatch = [regex]::Match(
+			$Value,
+			$pattern,
+			[Text.RegularExpressions.RegexOptions]::CultureInvariant
+		)
+		if ($statusMatch.Success) {
+			$qualifier = $statusMatch.Groups['Qualifier']
+			return -not $qualifier.Success -or $qualifier.Value.Equals(
+				$qualifier.Value.Trim(),
+				[StringComparison]::Ordinal
+			)
 		}
 	}
 
@@ -298,9 +359,10 @@ function Test-IsValidReferenceTarget {
 		[string]$Target
 	)
 
-	if (-not (Test-IsSafeMetadataText -Value $Target) -or
+	if ([string]::IsNullOrEmpty($Target) -or
 		$Target.StartsWith('/', [StringComparison]::Ordinal) -or
 		$Target.StartsWith('\', [StringComparison]::Ordinal) -or
+		$Target.IndexOf([char]'\') -ge 0 -or
 		[regex]::IsMatch(
 			$Target,
 			'^[A-Za-z]:',
@@ -308,10 +370,53 @@ function Test-IsValidReferenceTarget {
 		)) {
 		return $false
 	}
+	foreach ($character in $Target.ToCharArray()) {
+		if ([char]::IsWhiteSpace($character) -or
+			[char]::IsControl($character) -or
+			$character -eq [char]'|') {
+			return $false
+		}
+	}
 
 	$absoluteUri = $null
 	if ([uri]::TryCreate($Target, [UriKind]::Absolute, [ref]$absoluteUri)) {
 		return $false
+	}
+
+	$pathEnd = $Target.Length
+	foreach ($separator in [char[]]@('?', '#')) {
+		$separatorIndex = $Target.IndexOf($separator)
+		if ($separatorIndex -ge 0 -and $separatorIndex -lt $pathEnd) {
+			$pathEnd = $separatorIndex
+		}
+	}
+	try {
+		$decodedPath = [uri]::UnescapeDataString($Target.Substring(0, $pathEnd))
+	}
+	catch {
+		return $false
+	}
+
+	$decodedAbsoluteUri = $null
+	if ($decodedPath.StartsWith('/', [StringComparison]::Ordinal) -or
+		$decodedPath.StartsWith('\', [StringComparison]::Ordinal) -or
+		$decodedPath.IndexOf([char]'\') -ge 0 -or
+		[regex]::IsMatch(
+			$decodedPath,
+			'^[A-Za-z]:',
+			[Text.RegularExpressions.RegexOptions]::CultureInvariant
+		) -or
+		[uri]::TryCreate(
+			$decodedPath,
+			[UriKind]::Absolute,
+			[ref]$decodedAbsoluteUri
+		)) {
+		return $false
+	}
+	foreach ($segment in $decodedPath.Split([char]'/')) {
+		if ($segment.Equals('..', [StringComparison]::Ordinal)) {
+			return $false
+		}
 	}
 
 	return $true
@@ -471,16 +576,16 @@ function Test-DocumentationMetadataContent {
 		$failures.Add('YAML frontmatter is not closed.')
 		return $failures.ToArray()
 	}
-	if ($structure.H1Indexes.Count -ne 1) {
+	if ($structure.H1s.Count -ne 1) {
 		$failures.Add((
 			'Document must contain exactly one H1 outside frontmatter and fenced examples; found {0}.' -f
-				$structure.H1Indexes.Count
+				$structure.H1s.Count
 		))
 		return $failures.ToArray()
 	}
 
-	$h1Index = $structure.H1Indexes[0]
-	for ($lineIndex = $structure.ContentStart; $lineIndex -lt $h1Index; $lineIndex++) {
+	$h1 = $structure.H1s[0]
+	for ($lineIndex = $structure.ContentStart; $lineIndex -lt $h1.StartIndex; $lineIndex++) {
 		if ($structure.RenderedLines[$lineIndex] -and
 			-not [string]::IsNullOrWhiteSpace($structure.Lines[$lineIndex])) {
 			$failures.Add('Only blank lines may appear before the rendered H1.')
@@ -488,7 +593,7 @@ function Test-DocumentationMetadataContent {
 		}
 	}
 
-	$tableStart = $h1Index + 1
+	$tableStart = $h1.InsertionIndex + 1
 	while ($tableStart -lt $structure.Lines.Count -and
 		[string]::IsNullOrWhiteSpace($structure.Lines[$tableStart])) {
 		$tableStart++
@@ -664,5 +769,6 @@ function New-DocumentationMetadataTable {
 Export-ModuleMember -Function @(
 	'Test-DocumentationMetadataEligibility',
 	'Test-DocumentationMetadataContent',
+	'Get-DocumentationH1InsertionIndex',
 	'New-DocumentationMetadataTable'
 )
