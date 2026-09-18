@@ -91,6 +91,8 @@ function Invoke-SetDocumentationMetadata {
 		[Parameter(Mandatory)]
 		[string]$Path,
 
+		[string]$References = '[Architecture](docs/adr/README.md)',
+
 		[switch]$WhatIf
 	)
 
@@ -105,7 +107,7 @@ function Invoke-SetDocumentationMetadata {
 		Author = 'Grace Hopper'
 		Status = 'Approved'
 		Scope = 'Infrastructure'
-		References = '[Architecture](docs/adr/README.md)'
+		References = $References
 	}
 	if ($WhatIf) {
 		$parameters.WhatIf = $true
@@ -818,6 +820,98 @@ Describe 'Test-DocumentationMetadataContent invalid documents' {
 	}
 }
 
+Describe 'Source-aware documentation references' {
+	BeforeAll {
+		$script:repositoryRoot = [IO.Path]::GetFullPath((
+			Join-Path $PSScriptRoot '..\..\..'
+		))
+		$script:testRootName = '.documentation-metadata-source-aware-tests-{0}' -f (
+			[Guid]::NewGuid().ToString('N')
+		)
+		$script:testRoot = Join-Path $script:repositoryRoot $script:testRootName
+		New-Item -ItemType Directory -Path $script:testRoot -Force | Out-Null
+	}
+
+	AfterAll {
+		if (Test-Path -LiteralPath $script:testRoot) {
+			Remove-Item -LiteralPath $script:testRoot -Recurse -Force
+		}
+	}
+
+	It 'accepts a bounded parent reference with document context' -Tag 'SourceAwareReferences' {
+		$content = New-ValidMetadataDocument `
+			-References '[Spec](../specs/design.md)'
+
+		@(Test-DocumentationMetadataContent `
+			-Content $content `
+			-DocumentRelativePath 'docs/plans/plan.md').Count | Should -Be 0
+	}
+
+	It 'rejects a plain parent reference that escapes the repository root' -Tag 'SourceAwareReferences' {
+		$content = New-ValidMetadataDocument `
+			-References '[Escape](../secrets.md)'
+
+		@(Test-DocumentationMetadataContent `
+			-Content $content `
+			-DocumentRelativePath 'README.md') |
+			Should -Contain 'References must be None or relative Markdown links only.'
+	}
+
+	It 'rejects a percent-encoded parent reference that escapes the repository root' -Tag 'SourceAwareReferences' {
+		$content = New-ValidMetadataDocument `
+			-References '[Escape](%2E%2E/secrets.md)'
+
+		@(Test-DocumentationMetadataContent `
+			-Content $content `
+			-DocumentRelativePath 'README.md') |
+			Should -Contain 'References must be None or relative Markdown links only.'
+	}
+
+	It 'rejects non-normalized document context <DocumentRelativePath>' `
+		-Tag 'SourceAwareReferences' `
+		-TestCases @(
+			@{ DocumentRelativePath = '/docs/plans/plan.md' }
+			@{ DocumentRelativePath = 'C:/repo/docs/plans/plan.md' }
+			@{ DocumentRelativePath = 'docs\plans\plan.md' }
+			@{ DocumentRelativePath = 'docs/./plans/plan.md' }
+			@{ DocumentRelativePath = 'docs/../plans/plan.md' }
+		) {
+		param($DocumentRelativePath)
+
+		$content = New-ValidMetadataDocument
+
+		@(Test-DocumentationMetadataContent `
+			-Content $content `
+			-DocumentRelativePath $DocumentRelativePath) |
+			Should -Contain 'References must be None or relative Markdown links only.'
+	}
+
+	It 'rejects parent traversal without document context' -Tag 'SourceAwareReferences' {
+		$content = New-ValidMetadataDocument `
+			-References '[Spec](../specs/design.md)'
+
+		@(Test-DocumentationMetadataContent -Content $content) |
+			Should -Contain 'References must be None or relative Markdown links only.'
+	}
+
+	It 'lets the setter migrate a bounded parent reference using the document path' -Tag 'SourceAwareReferences' {
+		$path = New-RepositoryTestFile `
+			-RelativePath 'docs\plans\plan.md' `
+			-Content "# Plan`n`nBody.`n"
+
+		Invoke-SetDocumentationMetadata `
+			-Path $path `
+			-References '[Spec](../specs/design.md)' | Out-Null
+
+		$relativePath = '{0}/docs/plans/plan.md' -f $script:testRootName
+		$content = [IO.File]::ReadAllText($path)
+		$content | Should -Match '\| \*\*References\*\* \| \[Spec\]\(\.\./specs/design\.md\) \|'
+		@(Test-DocumentationMetadataContent `
+			-Content $content `
+			-DocumentRelativePath $relativePath).Count | Should -Be 0
+	}
+}
+
 Describe 'Get-DocumentationH1InsertionIndex CommonMark parsing' {
 	It 'does not recognize malformed or non-H1 ATX opening sequences in <Case>' -TestCases @(
 		@{ Case = 'missing marker whitespace'; Line = '#Title' }
@@ -1411,5 +1505,28 @@ Describe 'Set-DocumentationMetadata.ps1' {
 				& cmd.exe /d /c "rmdir `"$junctionPath`"" | Out-Null
 			}
 		}
+	}
+}
+
+Describe 'Repository documentation inventory' {
+	It 'has valid metadata on every eligible tracked Markdown file' -Tag 'RepositoryInventory' {
+		$repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+		$gitOutput = @(& git -C $repositoryRoot ls-files -- '*.md' 2>&1)
+		$gitExitCode = $LASTEXITCODE
+		if ($gitExitCode -ne 0) {
+			throw "Unable to enumerate tracked Markdown with Git (exit $gitExitCode): $($gitOutput -join ' ')"
+		}
+		$paths = @($gitOutput | ForEach-Object { ([string]$_).Replace('\', '/') })
+		$failures = [Collections.Generic.List[string]]::new()
+		foreach ($relativePath in $paths) {
+			if (-not (Test-DocumentationMetadataEligibility -RelativePath $relativePath)) { continue }
+			$content = Get-Content -LiteralPath (Join-Path $repositoryRoot $relativePath) -Raw
+			foreach ($failure in @(Test-DocumentationMetadataContent `
+				-Content $content `
+				-DocumentRelativePath $relativePath)) {
+				$failures.Add("${relativePath}: $failure")
+			}
+		}
+		$failures | Should -BeNullOrEmpty
 	}
 }

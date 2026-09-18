@@ -1,5 +1,15 @@
 # Agent Instructions
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-17 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Active (consolidated from current state) |
+| **Scope** | Repository |
+| **References** | [Approved Architecture Baseline Intake Design](docs/specs/2026-09-17-architecture-baseline-intake-design.md) |
+
+
 ## Superpowers Workflow
 
 - This repository bundles agent skills in `.github/skills/`; no machine-level Superpowers installation is required.

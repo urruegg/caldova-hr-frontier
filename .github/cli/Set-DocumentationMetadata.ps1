@@ -320,7 +320,11 @@ $originalBytes = [IO.File]::ReadAllBytes($documentPath)
 $content = ConvertFrom-RepositoryUtf8 `
 	-Bytes $originalBytes `
 	-DocumentPath $relativePath
-$failures = @(Test-DocumentationMetadataContent -Content $content)
+$failures = @(
+	Test-DocumentationMetadataContent `
+		-Content $content `
+		-DocumentRelativePath $relativePath
+)
 if ($failures.Count -eq 0) {
 	Write-Output "Metadata already valid: $relativePath"
 	return
@@ -341,7 +345,8 @@ $metadataTable = New-DocumentationMetadataTable `
 	-Author $Author `
 	-Status $Status `
 	-Scope $Scope `
-	-References $References
+	-References $References `
+	-DocumentRelativePath $relativePath
 $updatedContent = Add-DocumentationMetadataTable `
 	-Content $content `
 	-MetadataTable $metadataTable

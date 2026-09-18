@@ -476,11 +476,63 @@ function Test-IsValidStatus {
 	return $false
 }
 
+function Test-IsValidDocumentRelativePath {
+	param(
+		[Parameter(Mandatory)]
+		[AllowEmptyString()]
+		[string]$DocumentRelativePath
+	)
+
+	if ([string]::IsNullOrWhiteSpace($DocumentRelativePath) -or
+		$DocumentRelativePath.StartsWith('/', [StringComparison]::Ordinal) -or
+		$DocumentRelativePath.StartsWith('\', [StringComparison]::Ordinal) -or
+		$DocumentRelativePath.IndexOf([char]'\') -ge 0 -or
+		[regex]::IsMatch(
+			$DocumentRelativePath,
+			'^[A-Za-z]:',
+			[Text.RegularExpressions.RegexOptions]::CultureInvariant
+		)) {
+		return $false
+	}
+
+	$absoluteUri = $null
+	if ([uri]::TryCreate(
+		$DocumentRelativePath,
+		[UriKind]::Absolute,
+		[ref]$absoluteUri
+	)) {
+		return $false
+	}
+	foreach ($character in $DocumentRelativePath.ToCharArray()) {
+		if ([char]::IsControl($character)) {
+			return $false
+		}
+	}
+	foreach ($segment in $DocumentRelativePath.Split([char]'/')) {
+		if ([string]::IsNullOrEmpty($segment) -or
+			$segment.Equals('.', [StringComparison]::Ordinal) -or
+			$segment.Equals('..', [StringComparison]::Ordinal)) {
+			return $false
+		}
+	}
+
+	return $true
+}
+
 function Test-IsValidReferenceTarget {
 	param(
 		[Parameter(Mandatory)]
-		[string]$Target
+		[string]$Target,
+
+		[string]$DocumentRelativePath
 	)
+
+	$hasDocumentContext = $PSBoundParameters.ContainsKey('DocumentRelativePath')
+	if ($hasDocumentContext -and
+		-not (Test-IsValidDocumentRelativePath `
+			-DocumentRelativePath $DocumentRelativePath)) {
+		return $false
+	}
 
 	if ([string]::IsNullOrEmpty($Target) -or
 		$Target.StartsWith('/', [StringComparison]::Ordinal) -or
@@ -536,9 +588,29 @@ function Test-IsValidReferenceTarget {
 		)) {
 		return $false
 	}
+	foreach ($character in $decodedPath.ToCharArray()) {
+		if ([char]::IsControl($character)) {
+			return $false
+		}
+	}
+
+	$normalizedSegments = [Collections.Generic.List[string]]::new()
+	if ($hasDocumentContext) {
+		$documentSegments = $DocumentRelativePath.Split([char]'/')
+		for ($segmentIndex = 0; $segmentIndex -lt $documentSegments.Count - 1; $segmentIndex++) {
+			$normalizedSegments.Add($documentSegments[$segmentIndex])
+		}
+	}
 	foreach ($segment in $decodedPath.Split([char]'/')) {
 		if ($segment.Equals('..', [StringComparison]::Ordinal)) {
-			return $false
+			if (-not $hasDocumentContext -or $normalizedSegments.Count -eq 0) {
+				return $false
+			}
+			$normalizedSegments.RemoveAt($normalizedSegments.Count - 1)
+		}
+		elseif (-not [string]::IsNullOrEmpty($segment) -and
+			-not $segment.Equals('.', [StringComparison]::Ordinal)) {
+			$normalizedSegments.Add($segment)
 		}
 	}
 
@@ -548,10 +620,18 @@ function Test-IsValidReferenceTarget {
 function Test-IsValidReferences {
 	param(
 		[AllowEmptyString()]
-		[string]$Value
+		[string]$Value,
+
+		[string]$DocumentRelativePath
 	)
 
 	if (-not (Test-IsSafeMetadataText -Value $Value)) {
+		return $false
+	}
+	$hasDocumentContext = $PSBoundParameters.ContainsKey('DocumentRelativePath')
+	if ($hasDocumentContext -and
+		-not (Test-IsValidDocumentRelativePath `
+			-DocumentRelativePath $DocumentRelativePath)) {
 		return $false
 	}
 	if ($Value.Equals('None', [StringComparison]::Ordinal)) {
@@ -587,7 +667,11 @@ function Test-IsValidReferences {
 			$targetStart + 1,
 			$targetEnd - $targetStart - 1
 		)
-		if (-not (Test-IsValidReferenceTarget -Target $target)) {
+		$targetParameters = @{ Target = $target }
+		if ($hasDocumentContext) {
+			$targetParameters.DocumentRelativePath = $DocumentRelativePath
+		}
+		if (-not (Test-IsValidReferenceTarget @targetParameters)) {
 			return $false
 		}
 
@@ -690,7 +774,9 @@ function Test-DocumentationMetadataContent {
 	param(
 		[Parameter(Mandatory)]
 		[AllowEmptyString()]
-		[string]$Content
+		[string]$Content,
+
+		[string]$DocumentRelativePath
 	)
 
 	$failures = [Collections.Generic.List[string]]::new()
@@ -826,8 +912,15 @@ function Test-DocumentationMetadataContent {
 			-not (Test-IsSafeMetadataText -Value $values.Scope)) {
 			$failures.Add('Scope must be trimmed, nonempty, and free of unsafe characters.')
 		}
+		$referenceParameters = @{}
+		if ($values.ContainsKey('References')) {
+			$referenceParameters.Value = $values.References
+		}
+		if ($PSBoundParameters.ContainsKey('DocumentRelativePath')) {
+			$referenceParameters.DocumentRelativePath = $DocumentRelativePath
+		}
 		if ($values.ContainsKey('References') -and
-			-not (Test-IsValidReferences -Value $values.References)) {
+			-not (Test-IsValidReferences @referenceParameters)) {
 			$failures.Add('References must be None or relative Markdown links only.')
 		}
 		if ($failures.Count -gt 0 -and
@@ -874,7 +967,9 @@ function New-DocumentationMetadataTable {
 		[string]$Scope,
 
 		[Parameter(Mandatory)]
-		[string]$References
+		[string]$References,
+
+		[string]$DocumentRelativePath
 	)
 
 	if (-not (Test-IsValidVersion -Value $Version)) {
@@ -892,7 +987,11 @@ function New-DocumentationMetadataTable {
 	if (-not (Test-IsSafeMetadataText -Value $Scope)) {
 		throw 'Scope must be trimmed, nonempty, and free of unsafe characters.'
 	}
-	if (-not (Test-IsValidReferences -Value $References)) {
+	$referenceParameters = @{ Value = $References }
+	if ($PSBoundParameters.ContainsKey('DocumentRelativePath')) {
+		$referenceParameters.DocumentRelativePath = $DocumentRelativePath
+	}
+	if (-not (Test-IsValidReferences @referenceParameters)) {
 		throw 'References must be None or relative Markdown links only.'
 	}
 
