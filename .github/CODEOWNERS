@@ -1,0 +1,12 @@
+# Default owner
+* @urruegg
+
+# Repository governance and documentation
+/.github/ @urruegg
+/AGENTS.md @urruegg
+/docs/ @urruegg
+
+# Scheduled solution domains
+/infra/ @urruegg
+/hr/ @urruegg
+/data/ @urruegg
