@@ -42,7 +42,7 @@ All 16 listed sources are accounted for. Phase 2 is complete as documentation in
 
 - Source pins: source `README.md` SHA-256 recomputed as `5035ac2b1c59ce776de359ac9592483bf0b9e20572dd1bee8a5aae2638ab8605`; `Phase2SourceContract.Tests.ps1` preserved all 16 source paths and hashes.
 - RED/GREEN root contract: `Invoke-Pester .github/cli/tests/Phase2SourceContract.Tests.ps1 -Output Detailed -CI` first failed because `README.md` lacked `Caldova HR Frontier`; after the semantic merge it passed 5/5.
-- Full Pester 5.7.1: `Invoke-Pester .github/cli/tests -Output Detailed` passed 226/226 tests with 0 failures. The exact `-CI` form also passed 226 tests before Pester 5.7.1 failed while exporting NUnit XML for an existing control-character test-case name in `DocumentationMetadata.Tests.ps1`; no production or Task 5 assertion failed.
+- Full Pester 5.7.1: `Invoke-Pester .github/cli/tests -Output Detailed` passed 226/226 tests with 0 failures. The exact workflow command `Invoke-Pester .github/cli/tests -Output Detailed -CI` also passed 226/226 and exited successfully; generated NUnit XML parsed successfully and contained neither byte `0x01` nor U+0001 text after XML-safe test-case labels were added in `75a9709`.
 - Repository validator: `powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-setup.ps1` exited 0 with exact stdout `Repository setup validation passed.` and zero stderr.
 - DocumentationLinks: `Invoke-Pester .github/cli/tests/DocumentationLinks.Tests.ps1 -Output Detailed -CI` passed 1/1.
 - No-payload check: tracked Phase 2 paths contain Markdown documentation only for the imported data, HR, operating-model, ADR, and evaluation surfaces; no seed JSON, `.gitkeep`, or Power Platform solution payload is tracked.
