@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "SchemaVersion",
+    "TenantAlias",
+    "DisplayName",
+    "TenantId",
+    "AdminUpn",
+    "SubscriptionId",
+    "PrimaryLocation",
+    "CompanyTla",
+    "WorkloadName",
+    "UniqueSuffix",
+    "NamingRoot",
+    "LifecycleState",
+    "GitHub",
+    "AzureDevOps",
+    "PowerPlatform",
+    "Components"
+  ],
+  "properties": {
+    "SchemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "TenantAlias": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+$"
+    },
+    "DisplayName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "TenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "AdminUpn": {
+      "type": "string",
+      "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+    },
+    "SubscriptionId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "PrimaryLocation": {
+      "type": "string",
+      "pattern": "^[a-z]+$"
+    },
+    "CompanyTla": {
+      "type": "string",
+      "pattern": "^[a-z]{3}$"
+    },
+    "WorkloadName": {
+      "type": "string",
+      "const": "hr-agentic"
+    },
+    "UniqueSuffix": {
+      "type": "string",
+      "pattern": "^[a-z0-9]{6}$"
+    },
+    "NamingRoot": {
+      "type": "string",
+      "pattern": "^[a-z]{3}-hr-agentic-[a-z0-9]{6}$"
+    },
+    "LifecycleState": {
+      "type": "string",
+      "enum": [
+        "DiscoveryRequired",
+        "IntentReviewed"
+      ]
+    },
+    "GitHub": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "Owner",
+        "OwnerId",
+        "Repository",
+        "RepositoryId",
+        "EnvironmentName"
+      ],
+      "properties": {
+        "Owner": {
+          "type": "string",
+          "const": "urruegg"
+        },
+        "OwnerId": {
+          "type": "string",
+          "const": "46865858"
+        },
+        "Repository": {
+          "type": "string",
+          "const": "caldova-hr-frontier"
+        },
+        "RepositoryId": {
+          "type": "string",
+          "const": "1371297722"
+        },
+        "EnvironmentName": {
+          "type": "string",
+          "pattern": "^bootstrap-[a-z0-9]+$"
+        }
+      }
+    },
+    "AzureDevOps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "OrganizationUrl",
+        "ProjectName"
+      ],
+      "properties": {
+        "OrganizationUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "ProjectName": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "PowerPlatform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "DevUrl",
+        "TestUrl",
+        "ProdUrl"
+      ],
+      "properties": {
+        "DevUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "TestUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "ProdUrl": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "Components": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z][A-Za-z0-9]*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Mode"
+          ],
+          "properties": {
+            "Mode": {
+              "type": "string",
+              "enum": [
+                "Existing",
+                "Create"
+              ]
+            },
+            "Id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}
