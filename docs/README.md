@@ -56,6 +56,25 @@ The operating-model set is imported as Proposed Baseline content: it describes t
 | [HITL Governance](operating-model/04-hitl-governance.md)               | Sets the human-in-the-loop approval, redaction, audit, escalation, and standing prohibition rules.                 |
 | [Implementation Roadmap](operating-model/05-implementation-roadmap.md) | Lays out the MVP and Horizon 2 phases, backlog, sequencing, and delivery constraints.                              |
 
+## Infrastructure Domain
+
+The Infrastructure domain is imported as source-derived Proposed Baseline documentation. It describes intended architecture, discovery, trust, validation, ALM, security, and recovery boundaries; it does not prove that tenant configuration, Azure resources, Azure DevOps objects, Power Platform environments, GitHub controls, pipelines, identities, or services currently exist. Task 1 disposition and pending approval are recorded in [Phase 3 Infrastructure and Tenant Bootstrap Intake](reviews/2026-09-17-phase-3-infrastructure-tenant-bootstrap-intake.md).
+
+| Document                                                                                                   | Purpose                                                                                                                  |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| [Infrastructure Domain](../infra/README.md)                                                                | Defines domain ownership, current no-payload boundary, planned layout, tool boundaries, and document map.                |
+| [Tenant Setup and Configuration](../infra/docs/10-tenant-setup-and-configuration.md)                       | Defines the reviewed tenant metadata, desired manifest, observed evidence, explicit intent, and terminology boundaries. |
+| [Identity and Access](../infra/docs/11-identity-and-access.md)                                             | Defines attended administration, per-tenant bootstrap identity, exact OIDC binding, and temporary privilege lifecycle.  |
+| [Power Platform Environments and ALM](../infra/docs/12-power-platform-environments-and-alm.md)             | Defines future DEV-to-TEST-to-PROD ALM, solution ordering, variables, connections, and evidence requirements.            |
+| [Azure DevOps Engineering Control Plane](../infra/docs/13-azure-devops-engineering-control-plane.md)       | Describes the proposed backlog and delivery split, discovery candidates, API constraints, and future pipeline boundary. |
+| [GitHub Repository Blueprint](../infra/docs/14-github-repository-blueprint.md)                             | Defines the shared-repository model, tenant Environments, proposed governance, public-repository safety, and read-back.  |
+| [Agent and Workload Configuration](../infra/docs/15-agent-workload-configuration.md)                       | Defines future agent, flow, app, grounding, packaging, release, and data-prohibition contracts.                          |
+| [Security, Governance and Compliance](../infra/docs/16-security-governance-and-compliance.md)              | Defines evidence-first security principles and proposed DLP, Dataverse, identity, audit, and compliance controls.       |
+| [Bootstrap and Provisioning](../infra/docs/17-bootstrap-and-provisioning.md)                               | Defines the evidence-gated state machine, attended trust, subscription `what-if`, and no-deployment boundary.           |
+| [Multi-Tenant Provisioning](../infra/docs/18-multi-tenant-provisioning.md)                                 | Defines isolation for exactly three independent tenants using one repository and one-tenant execution.                  |
+| [Bootstrap Recovery](../infra/docs/19-bootstrap-recovery.md)                                               | Defines attended recovery from nine failure states without bypassing validation, approvals, or least privilege.         |
+| [Infrastructure Solution Sources](../infra/src/solutions/README.md)                                        | Defines ownership and exclusions for future unpacked Infrastructure Power Platform solution source.                     |
+
 ## Data Domain
 
 The Data domain is imported as Proposed Baseline guidance for future synthetic demonstration data. No seed JSON is imported in Phase 2.
