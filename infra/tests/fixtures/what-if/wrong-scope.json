@@ -1,0 +1,33 @@
+{
+  "status": "Succeeded",
+  "properties": {
+    "changes": [
+      {
+        "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-foreign/providers/Microsoft.OperationalInsights/workspaces/log-cal-hr-agentic-bc8rbt",
+        "changeType": "Create",
+        "before": null,
+        "after": {
+          "apiVersion": "2023-09-01",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-foreign/providers/Microsoft.OperationalInsights/workspaces/log-cal-hr-agentic-bc8rbt",
+          "type": "Microsoft.OperationalInsights/workspaces",
+          "name": "log-cal-hr-agentic-bc8rbt",
+          "location": "switzerlandnorth",
+          "tags": {
+            "tenantAlias": "caldova25156897",
+            "namingRoot": "cal-hr-agentic-bc8rbt",
+            "baseline": "subscription-platform"
+          },
+          "properties": {
+            "sku": {
+              "name": "PerGB2018"
+            },
+            "retentionInDays": 30,
+            "publicNetworkAccessForIngestion": "Enabled",
+            "publicNetworkAccessForQuery": "Enabled"
+          }
+        }
+      }
+    ],
+    "diagnostics": []
+  }
+}

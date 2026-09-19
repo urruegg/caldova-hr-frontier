@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "SchemaVersion",
+    "RunId",
+    "TenantAlias",
+    "TenantId",
+    "SubscriptionId",
+    "PrincipalObjectId",
+    "Scope",
+    "CreatedUtc",
+    "Assignments"
+  ],
+  "properties": {
+    "SchemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "RunId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "TenantAlias": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+$"
+    },
+    "TenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "SubscriptionId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "PrincipalObjectId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "Scope": {
+      "type": "string",
+      "pattern": "^/subscriptions/[0-9a-fA-F-]{36}$"
+    },
+    "CreatedUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "Assignments": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "Id",
+          "RoleName",
+          "RoleDefinitionId",
+          "PrincipalObjectId",
+          "Scope",
+          "CreatedUtc"
+        ],
+        "properties": {
+          "Id": {
+            "type": "string",
+            "pattern": "^/subscriptions/[0-9a-fA-F-]{36}/providers/Microsoft\\.Authorization/roleAssignments/[0-9a-fA-F-]{36}$"
+          },
+          "RoleName": {
+            "type": "string",
+            "enum": [
+              "Contributor",
+              "Role Based Access Control Administrator"
+            ]
+          },
+          "RoleDefinitionId": {
+            "type": "string",
+            "pattern": "^/subscriptions/[0-9a-fA-F-]{36}/providers/Microsoft\\.Authorization/roleDefinitions/[0-9a-fA-F-]{36}$"
+          },
+          "PrincipalObjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "Scope": {
+            "type": "string",
+            "pattern": "^/subscriptions/[0-9a-fA-F-]{36}$"
+          },
+          "CreatedUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

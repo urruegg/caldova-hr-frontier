@@ -1,0 +1,28 @@
+{
+  "status": "Succeeded",
+  "properties": {
+    "changes": [
+      {
+        "resourceId": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/resourceGroups/rg-cal-hr-agentic-bc8rbt-platform/providers/Microsoft.Storage/storageAccounts/stcalhragenticbc8rbt",
+        "changeType": "Create",
+        "before": null,
+        "after": {
+          "apiVersion": "2023-05-01",
+          "id": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/resourceGroups/rg-cal-hr-agentic-bc8rbt-platform/providers/Microsoft.Storage/storageAccounts/stcalhragenticbc8rbt",
+          "type": "Microsoft.Storage/storageAccounts",
+          "name": "stcalhragenticbc8rbt",
+          "location": "switzerlandnorth",
+          "kind": "StorageV2",
+          "sku": {
+            "name": "Standard_LRS"
+          },
+          "properties": {
+            "supportsHttpsTrafficOnly": true,
+            "minimumTlsVersion": "TLS1_2"
+          }
+        }
+      }
+    ],
+    "diagnostics": []
+  }
+}

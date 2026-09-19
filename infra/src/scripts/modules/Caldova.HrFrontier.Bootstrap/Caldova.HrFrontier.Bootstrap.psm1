@@ -17,5 +17,6 @@ Export-ModuleMember -Function @(
     'Get-TenantResourceName',
     'Get-GitHubOidcSubject',
     'Test-DiscoveryEvidence',
-    'Test-TenantIntent'
+    'Test-TenantIntent',
+    'Remove-TemporaryRoleAssignments'
 )

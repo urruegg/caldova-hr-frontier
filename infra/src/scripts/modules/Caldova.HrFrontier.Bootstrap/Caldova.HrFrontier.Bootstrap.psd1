@@ -14,7 +14,8 @@
         'Get-TenantResourceName',
         'Get-GitHubOidcSubject',
         'Test-DiscoveryEvidence',
-        'Test-TenantIntent'
+        'Test-TenantIntent',
+        'Remove-TemporaryRoleAssignments'
     )
     CmdletsToExport = @()
     VariablesToExport = @()
