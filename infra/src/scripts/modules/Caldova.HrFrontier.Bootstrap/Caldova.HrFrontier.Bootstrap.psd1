@@ -8,10 +8,13 @@
     Description = 'Tenant bootstrap configuration helpers for Caldova HR Frontier.'
     PowerShellVersion = '5.1'
     FunctionsToExport = @(
+        'ConvertTo-DiscoveryEvidence',
         'Import-TenantConfiguration',
         'New-TenantSuffix',
         'Get-TenantResourceName',
-        'Get-GitHubOidcSubject'
+        'Get-GitHubOidcSubject',
+        'Test-DiscoveryEvidence',
+        'Test-TenantIntent'
     )
     CmdletsToExport = @()
     VariablesToExport = @()

@@ -3,7 +3,8 @@ function Get-TenantSchemaPath {
 }
 
 function Get-TenantSchema {
-    if (-not $script:TenantSchemaCache) {
+    $cacheVariable = Get-Variable -Scope Script -Name TenantSchemaCache -ErrorAction SilentlyContinue
+    if ($null -eq $cacheVariable -or $null -eq $cacheVariable.Value) {
         $schemaPath = Get-TenantSchemaPath
         $script:TenantSchemaCache = Get-Content -Raw -LiteralPath $schemaPath | ConvertFrom-Json
     }
@@ -153,7 +154,10 @@ function Assert-SchemaValue {
     $type = [string]$Schema.type
     if ($type -eq 'object') {
         $entries = Get-ObjectEntryTable $Value
-        $required = @($Schema.required | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+        $required = @()
+        if ($Schema.PSObject.Properties.Name -contains 'required' -and $null -ne $Schema.required) {
+            $required = @($Schema.required | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+        }
 
         foreach ($requiredProperty in $required) {
             if (-not $entries.Contains([string]$requiredProperty)) {
@@ -215,7 +219,7 @@ function Assert-TenantConfigurationContract {
         }
     }
 
-    if (($powerPlatformUrls | Select-Object -Unique).Count -ne $powerPlatformUrls.Count) {
+    if ((@($powerPlatformUrls | Select-Object -Unique)).Count -ne (@($powerPlatformUrls)).Count) {
         throw 'PowerPlatform URLs must be unique.'
     }
 
@@ -241,7 +245,7 @@ function Assert-TenantConfigurationContract {
             throw 'Bootstrap validation requires LifecycleState = IntentReviewed.'
         }
 
-        if ($components.Count -eq 0) {
+        if ((@($components.Keys)).Count -eq 0) {
             throw 'Bootstrap validation requires at least one reviewed component.'
         }
     }
@@ -257,7 +261,12 @@ function ConvertTo-ReadOnlyValue {
         return $null
     }
 
-    $isObject = $Value -is [System.Collections.IDictionary] -or $Value.PSObject.Properties.Count -gt 0 -and $Value -isnot [string]
+    $propertyCount = 0
+    if ($Value -isnot [string]) {
+        $propertyCount = @($Value.PSObject.Properties).Count
+    }
+
+    $isObject = $Value -is [System.Collections.IDictionary] -or $propertyCount -gt 0
     if (-not $isObject) {
         return $Value
     }

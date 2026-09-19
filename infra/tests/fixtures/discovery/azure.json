@@ -1,0 +1,15 @@
+{
+  "StatusCode": 200,
+  "Headers": {},
+  "Body": {
+    "subscription": {
+      "type": "AzureSubscription",
+      "id": "subscription-synthetic-edb45a24-408d-47c4-bbc7-685b9b3fc017",
+      "name": "Caldova HR Frontier Platform",
+      "url": "https://management.azure.com/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017",
+      "scope": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017"
+    },
+    "providerState": "Registered",
+    "authorizationHeader": "Bearer synthetic.azure.token"
+  }
+}
