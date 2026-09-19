@@ -745,13 +745,13 @@ Describe 'Test-DocumentationMetadataContent invalid documents' {
 			Should -Not -BeNullOrEmpty
 	}
 
-	It 'rejects unsafe scope <Scope>' -TestCases @(
-		@{ Scope = ' Data' }
-		@{ Scope = 'Data ' }
-		@{ Scope = 'Data|HR' }
-		@{ Scope = "Data$([char]1)Domain" }
+	It 'rejects unsafe scope <Case>' -TestCases @(
+		@{ Case = 'leading-space'; Scope = ' Data' }
+		@{ Case = 'trailing-space'; Scope = 'Data ' }
+		@{ Case = 'pipe-character'; Scope = 'Data|HR' }
+		@{ Case = 'control-char-1'; Scope = "Data$([char]1)Domain" }
 	) {
-		param($Scope)
+		param($Case, $Scope)
 
 		$content = New-ValidMetadataDocument -Scope $Scope
 
@@ -759,25 +759,25 @@ Describe 'Test-DocumentationMetadataContent invalid documents' {
 			Should -Not -BeNullOrEmpty
 	}
 
-	It 'rejects invalid References <References>' -TestCases @(
-		@{ References = '' }
-		@{ References = 'Architecture decision' }
-		@{ References = '[External](https://example.com/design)' }
-		@{ References = '[Mail](mailto:docs@example.com)' }
-		@{ References = '[Broken](docs/specs/design.md' }
-		@{ References = '[](docs/specs/design.md)' }
-		@{ References = '[Rooted](/docs/specs/design.md)' }
-		@{ References = '[Raw space](docs/my file.md)' }
-		@{ References = "[Tab](docs/my`tfile.md)" }
-		@{ References = "[Control](docs/my$([char]1)file.md)" }
-		@{ References = '[Backslash](docs\specs\design.md)' }
-		@{ References = '[Drive](C:/docs/specs/design.md)' }
-		@{ References = '[Parent](../plans/plan.md)' }
-		@{ References = '[Encoded parent](docs/%2E%2E/secrets.md)' }
-		@{ References = '[Unsafe|Label](docs/specs/design.md)' }
-		@{ References = '[Broken[Label](docs/specs/design.md)' }
+	It 'rejects invalid References <Case>' -TestCases @(
+		@{ Case = 'empty-string'; References = '' }
+		@{ Case = 'plain-text'; References = 'Architecture decision' }
+		@{ Case = 'https-link'; References = '[External](https://example.com/design)' }
+		@{ Case = 'mailto-link'; References = '[Mail](mailto:docs@example.com)' }
+		@{ Case = 'unclosed-link'; References = '[Broken](docs/specs/design.md' }
+		@{ Case = 'empty-label'; References = '[](docs/specs/design.md)' }
+		@{ Case = 'rooted-path'; References = '[Rooted](/docs/specs/design.md)' }
+		@{ Case = 'raw-space'; References = '[Raw space](docs/my file.md)' }
+		@{ Case = 'tab-character'; References = "[Tab](docs/my`tfile.md)" }
+		@{ Case = 'control-char-1'; References = "[Control](docs/my$([char]1)file.md)" }
+		@{ Case = 'backslash-path'; References = '[Backslash](docs\specs\design.md)' }
+		@{ Case = 'drive-letter'; References = '[Drive](C:/docs/specs/design.md)' }
+		@{ Case = 'parent-reference'; References = '[Parent](../plans/plan.md)' }
+		@{ Case = 'encoded-parent'; References = '[Encoded parent](docs/%2E%2E/secrets.md)' }
+		@{ Case = 'pipe-in-label'; References = '[Unsafe|Label](docs/specs/design.md)' }
+		@{ Case = 'broken-label-bracket'; References = '[Broken[Label](docs/specs/design.md)' }
 	) {
-		param($References)
+		param($Case, $References)
 
 		$content = New-ValidMetadataDocument -References $References
 
