@@ -267,11 +267,11 @@ Create `infra/src/config/schemas/tenant.schema.json` as Draft 2020-12 with `addi
 }
 ```
 
-The schema and importer reject `Auto`, duplicate URLs, an Environment name not derived from alias, and an inconsistent NamingRoot. `Import-TenantConfiguration -ValidationStage Discovery` permits `LifecycleState = 'DiscoveryRequired'` with an empty `Components` map. `-ValidationStage Bootstrap` requires `LifecycleState = 'IntentReviewed'`, explicit `Existing` or `Create` for every managed component, and a stable ID for each `Existing` entry.
+The schema and importer reject `Auto`, duplicate URLs, an Environment name not derived from alias, and an inconsistent NamingRoot. `Import-TenantConfiguration -ValidationStage Discovery` permits `LifecycleState = 'DiscoveryRequired'` with an empty `Components` map. `-ValidationStage Bootstrap` requires `LifecycleState = 'IntentReviewed'`, a non-empty reviewed component map, explicit `Existing` or `Create` for every entry, and a stable ID for each `Existing` entry. Discovery and the Task 9 intent review determine the component keys; Task 2 does not invent a fixed component universe before evidence exists.
 
 - [ ] **Step 4: Implement the focused module functions**
 
-`New-TenantSuffix` uses `RandomNumberGenerator.GetInt32(36)` six times over `abcdefghijklmnopqrstuvwxyz0123456789`.
+Windows PowerShell 5.1 on .NET Framework does not expose `RandomNumberGenerator.GetInt32`. `New-TenantSuffix` therefore uses `RandomNumberGenerator.Create().GetBytes` with unbiased rejection sampling: accept byte values below `252`, map each accepted byte modulo `36` over `abcdefghijklmnopqrstuvwxyz0123456789`, and stop after six characters. It disposes the generator and adds no dependency.
 
 `Get-TenantResourceName` accepts only the enum-like values `ResourceGroup`, `LogAnalytics`, and `DeploymentValidationRole`, returns the exact names in the tests, and validates Azure length/character constraints.
 

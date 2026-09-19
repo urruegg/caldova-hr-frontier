@@ -223,7 +223,7 @@ The schema includes:
 - `WorkloadName`;
 - `UniqueSuffix`;
 - `NamingRoot`;
-- `GitHub.EnvironmentName`;
+- `GitHub.Owner`, `GitHub.OwnerId`, `GitHub.Repository`, `GitHub.RepositoryId`, and `GitHub.EnvironmentName`;
 - `AzureDevOps.OrganizationUrl` and `AzureDevOps.ProjectName`;
 - `PowerPlatform.DevUrl`, `PowerPlatform.TestUrl`, and `PowerPlatform.ProdUrl`;
 - a `Components` map whose entries contain `Mode` and, for `Existing`, the stable identifier needed to validate the object.
@@ -240,6 +240,10 @@ Tenant 1 has the following reviewed non-secret metadata:
 |---|---|
 | Tenant alias | `caldova25156897` |
 | Display name | `Caldova25156897` |
+| GitHub owner | `urruegg` |
+| GitHub owner ID | `46865858` |
+| GitHub repository | `caldova-hr-frontier` |
+| GitHub repository ID | `1371297722` |
 | Tenant ID | `e2312862-df63-440c-8bcf-007a2c52859d` |
 | Admin UPN | `admin@Caldova25156897.onmicrosoft.com` |
 | Subscription ID | `edb45a24-408d-47c4-bbc7-685b9b3fc017` |
