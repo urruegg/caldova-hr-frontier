@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-19 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -306,7 +306,7 @@ Worth recording, because they affect how findings should be cited.
 | 5 | Code apps GA status | No explicit GA declaration in the documentation; the `pac code` CLI is deprecating |
 | 6 | Declarative agent `Dataverse` capability | Confirm regional and licensing availability |
 | 7 | Managed Environment licensing enforcement, February 2027 | Run the PPAC exposure report |
-| 8 | Repository creation date vs immutable OIDC subject format | Affects federated credential authoring |
+| 8 | Immutable OIDC subject format | Resolved 2026-09-19: repository API read-back confirmed `use_immutable_subject: true` and prefix `repo:urruegg@46865858/caldova-hr-frontier@1371297722`; federated credentials must append the exact Environment context to this prefix. |
 | 9 | Purview user-activity logging in Sandbox environments | Not captured. Audit demonstrations must run against PROD |
 | 10 | Intelligent application workload guidance | The `en-us` URLs redirect to the Copilot Studio guidance tree; content may be mid-migration. Re-check before citing |
 | 11 | CoE Starter Kit deprecation | Asserted by the community-curated hub. Verify against official documentation before relying on it |

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-19 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Infrastructure |
@@ -24,6 +24,7 @@
 - Complete and receive attended approval for Phases 1 and 2.
 - Run this plan from `sprint/architecture-baseline-intake` after rebasing or fast-forwarding from the reviewed Phase 2 tip.
 - Confirm interactive authentication as `admin@Caldova25156897.onmicrosoft.com` before Tenant 1 trust operations.
+- Before creating a federated credential, query the GitHub repository and OIDC customization APIs read-only and require the manifest owner/repository names and immutable IDs to match the returned `sub_claim_prefix`.
 - Never request, display, persist, or route a password, MFA response, access token, refresh token, client secret, certificate private key, PAT, connection string, or personal HR data through an agent.
 - Obtain explicit user approval immediately before every live Azure role-assignment deletion, including automatic cleanup. The approved design authorizes the cleanup mechanism; execution still pauses at the destructive-operation gate.
 - Do not run `az deployment sub create`, `New-AzSubscriptionDeployment`, or any equivalent Azure platform deployment command.
@@ -207,8 +208,13 @@ Describe 'Tenant naming' {
     }
 
     It 'derives the exact environment-bound OIDC subject' {
-        Get-GitHubOidcSubject -Owner urruegg -Repository caldova-hr-frontier -TenantAlias caldova25156897 |
-            Should -Be 'repo:urruegg/caldova-hr-frontier:environment:bootstrap-caldova25156897'
+      Get-GitHubOidcSubject `
+        -Owner urruegg `
+        -OwnerId '46865858' `
+        -Repository caldova-hr-frontier `
+        -RepositoryId '1371297722' `
+        -TenantAlias caldova25156897 |
+        Should -Be 'repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-caldova25156897'
     }
 }
 ```
@@ -243,7 +249,9 @@ Create `infra/src/config/schemas/tenant.schema.json` as Draft 2020-12 with `addi
   "LifecycleState": "DiscoveryRequired or IntentReviewed",
   "GitHub": {
     "Owner": "urruegg",
+    "OwnerId": "46865858",
     "Repository": "caldova-hr-frontier",
+    "RepositoryId": "1371297722",
     "EnvironmentName": "bootstrap-${tenantAlias}"
   },
   "AzureDevOps": {
@@ -267,7 +275,7 @@ The schema and importer reject `Auto`, duplicate URLs, an Environment name not d
 
 `Get-TenantResourceName` accepts only the enum-like values `ResourceGroup`, `LogAnalytics`, and `DeploymentValidationRole`, returns the exact names in the tests, and validates Azure length/character constraints.
 
-`Get-GitHubOidcSubject` lowercases neither owner nor repository and returns the exact case-sensitive subject from the test.
+`Get-GitHubOidcSubject` accepts reviewed owner and repository names plus positive decimal ID strings, lowercases neither name, and returns the exact case-sensitive immutable subject from the test.
 
 `Import-TenantConfiguration`:
 
@@ -286,7 +294,7 @@ Create `_template.psd1` using syntactically valid example values and a header co
 1. refuses to overwrite an existing tenant manifest;
 2. calls `New-TenantSuffix` exactly once;
 3. writes BOM-free UTF-8 using a fixed property order;
-4. writes Tenant 1's supplied IDs, UPN, region, Azure DevOps values, and Power Platform URLs;
+4. writes Tenant 1's supplied IDs, UPN, region, Azure DevOps values, Power Platform URLs, and the read-only verified GitHub owner and repository IDs;
 5. stores the Azure DevOps project name and Power Platform URLs as discovery hints, sets `LifecycleState = 'DiscoveryRequired'`, and leaves `Components` empty rather than claiming `Existing` before stable IDs are observed;
 6. validates the written file immediately and removes it if validation fails.
 
@@ -376,7 +384,7 @@ Expected: FAIL because discovery functions and schema do not exist.
 
 Each adapter accepts a tenant configuration and injected request scriptblock for testing. Production request paths are:
 
-- GitHub: `gh api repos/urruegg/caldova-hr-frontier`, rulesets, environments, variables, actions permissions, workflows, and collaborator permission; do not request secret values.
+- GitHub: `gh api repos/urruegg/caldova-hr-frontier`, the repository OIDC customization endpoint, rulesets, environments, variables, actions permissions, workflows, and collaborator permission; normalize the owner ID, repository ID, immutable-subject settings, and `sub_claim_prefix`, and do not request secret values.
 - Entra: Microsoft Graph v1.0 application, service-principal, and federated-identity-credential reads filtered by reviewed IDs.
 - Azure: Azure Resource Graph for resources plus Azure ARM reads for role assignments, policy assignments, diagnostic settings, provider state, and subscription identity.
 - Azure DevOps: organization connection data and Project `Caldova HR Frontier` through API `7.1`, plus repositories, service endpoints, environments, pipelines, checks, and effective permissions available to the principal.
@@ -420,7 +428,7 @@ Create `TenantTrust.Tests.ps1` with mocked `az` and `gh` command adapters. Asser
 1. a single-tenant app registration;
 2. its service principal;
 3. no password or certificate credential;
-4. one federated credential with issuer `https://token.actions.githubusercontent.com`, audience `api://AzureADTokenExchange`, and exact Environment subject;
+4. one federated credential with issuer `https://token.actions.githubusercontent.com`, audience `api://AzureADTokenExchange`, and exact immutable Environment subject derived from the reviewed GitHub owner and repository names and IDs;
 5. one `bootstrap-${tenantAlias}` GitHub Environment restricted to `main`;
 6. required reviewer `urruegg` with `prevent_self_review = false`;
 7. Dynamics CRM `user_impersonation` and Microsoft Graph `Application.Read.All` app permissions with attended admin consent;
@@ -444,7 +452,7 @@ Expected: FAIL because `Initialize-TenantTrust.ps1` does not exist.
 Create `Initialize-TenantTrust.ps1` with `SupportsShouldProcess`. It:
 
 1. imports the tenant configuration;
-2. verifies interactive Azure tenant/admin context and authenticated GitHub repository-admin permission;
+2. verifies interactive Azure tenant/admin context and authenticated GitHub repository-admin permission, then reads repository metadata and OIDC customization and requires the reviewed owner/repository names and IDs, `use_default: true`, `use_immutable_subject: true`, and exact `sub_claim_prefix`;
 3. finds an app by stable configured object ID or exact display name `$configuration.NamingRoot-github-bootstrap`;
 4. fails `Ambiguous` when multiple candidates exist;
 5. creates the single-tenant app with `az ad app create --sign-in-audience AzureADMyOrg` only when Mode is `Create`;
@@ -795,7 +803,7 @@ Extend the validator while preserving all Superpowers and issue-form byte/index 
 
 - Tenant 1 manifest schema and naming derivation;
 - five-service discovery schema and prohibited-data scan;
-- exact OIDC subject and Environment name;
+- exact immutable OIDC subject, reviewed GitHub owner/repository IDs, OIDC prefix, and Environment name;
 - Bicep resource-type allowlist and successful build;
 - workflow permission/action pins and no-deployment scan;
 - infrastructure documentation metadata and links;
@@ -875,7 +883,7 @@ Run:
 ./infra/src/scripts/Initialize-TenantTrust.ps1 -TenantAlias caldova25156897
 ```
 
-Expected: exact app/SP/FIC/Environment plan first, then create-or-validate output with no credential. Read-back must match the exact OIDC subject.
+Expected: exact app/SP/FIC/Environment plan first, then create-or-validate output with no credential. Read-back must match the exact immutable OIDC subject and GitHub-reported prefix.
 
 - [ ] **Step 5: Generate reviewed Bicep parameters**
 
