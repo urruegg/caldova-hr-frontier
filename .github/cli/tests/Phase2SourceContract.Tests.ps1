@@ -80,3 +80,46 @@ Describe 'Imported authority status' {
 		$content | Should -Match 'deployment/configuration claims remain planned or not yet verified'
 	}
 }
+
+Describe 'Root product and agent workflow map' {
+	BeforeAll {
+		$script:rootReadmePath = Join-Path $script:repositoryRoot 'README.md'
+		$script:rootReadmeContent = Get-Content -LiteralPath $script:rootReadmePath -Raw
+	}
+
+	It 'preserves the repository workflow and publishes the proposed product baseline map' {
+		$requiredConcepts = @(
+			'Superpowers'
+			'v6.3.0'
+			'.github/skills'
+			'verify-repository-setup.ps1'
+			'Caldova HR Frontier'
+			'Insight -> Decision -> Delivery -> Outcome -> Learning -> Insight'
+			'Proposed Baseline'
+			'docs/operating-model/00-north-star.md'
+			'docs/operating-model/01-prd.md'
+			'docs/operating-model/02-system-design.md'
+			'docs/operating-model/03-agent-operating-model.md'
+			'docs/operating-model/04-hitl-governance.md'
+			'docs/operating-model/05-implementation-roadmap.md'
+			'docs/adr/0001-azure-devops-as-engineering-control-plane.md'
+			'docs/adr/0002-github-first-bootstrap-and-the-role-of-azure-repos.md'
+			'docs/adr/0003-bicep-and-powershell-for-infrastructure-as-code.md'
+			'docs/adr/0004-domain-solution-architecture-and-publisher.md'
+			'docs/90-microsoft-best-practice-evaluation.md'
+			'data/README.md'
+			'hr/README.md'
+			'hr/docs/20-hr-employee-journey.md'
+			'hr/src/solutions/README.md'
+			'No personal data'
+			'No secrets'
+			'agents never decide employment matters'
+			'Phase 2 imported documentation only'
+			'no Azure resources, Power Platform solutions, pipelines, seed data, or tenant controls were deployed or provisioned'
+		)
+
+		foreach ($concept in $requiredConcepts) {
+			$script:rootReadmeContent | Should -Match ([regex]::Escape($concept))
+		}
+	}
+}
