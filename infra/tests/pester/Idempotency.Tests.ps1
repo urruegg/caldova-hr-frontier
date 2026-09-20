@@ -70,19 +70,20 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
         }
 
                 function script:New-EvidenceFile {
-                        param(
-                                [string]$EntraServicePrincipalId = '55555555-5555-5555-5555-555555555555',
-                        [string]$CompletedUtc = '2026-09-19T10:00:00.0000000Z'
-                        )
+                    param(
+                        [string]$EntraServicePrincipalId = '55555555-5555-5555-5555-555555555555',
+                        [string]$CompletedUtc = ([datetime]::UtcNow.ToString('o'))
+                    )
 
                         $hash = ('a' * 64)
+                    $startedUtc = ([datetime]::Parse($CompletedUtc).ToUniversalTime().AddMinutes(-1).ToString('o'))
                         $path = Join-Path $TestDrive ([guid]::NewGuid().ToString() + '-evidence.json')
                         $content = @"
 {
     "SchemaVersion": "1.0",
     "ToolVersion": "1.0.0",
     "RunId": "44444444-4444-4444-4444-444444444444",
-    "CollectionStartedUtc": "2026-09-19T09:00:00.0000000Z",
+    "CollectionStartedUtc": "$startedUtc",
     "CollectionCompletedUtc": "$CompletedUtc",
     "TenantAlias": "caldova25156897",
     "TenantId": "e2312862-df63-440c-8bcf-007a2c52859d",
