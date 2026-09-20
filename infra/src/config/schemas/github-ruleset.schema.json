@@ -274,12 +274,17 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
-                  "context"
+                  "context",
+                  "integrationId"
                 ],
                 "properties": {
                   "context": {
                     "type": "string",
                     "const": "Repository setup validation"
+                  },
+                  "integrationId": {
+                    "type": "integer",
+                    "const": 15368
                   }
                 }
               }

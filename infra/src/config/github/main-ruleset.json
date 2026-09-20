@@ -50,7 +50,8 @@
             "doNotEnforceOnCreate": false,
             "requiredStatusChecks": [
               {
-                "context": "Repository setup validation"
+                "context": "Repository setup validation",
+                "integrationId": 15368
               }
             ],
             "strictRequiredStatusChecksPolicy": true

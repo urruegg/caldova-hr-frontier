@@ -10,6 +10,9 @@ Describe 'Final GitHub governance activation' {
         $script:ValidatorRunId = [long]101
         $script:BootstrapRunId = [long]202
         $script:UserId = [long]46865858
+        $script:MainSha = '1111111111111111111111111111111111111111'
+        $script:TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
+        $script:ClientId = '44444444-4444-4444-4444-444444444444'
         $script:PrincipalObjectId = '55555555-5555-5555-5555-555555555555'
         $script:SubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
         $script:Scope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
@@ -39,6 +42,7 @@ Describe 'Final GitHub governance activation' {
             [ordered]@{
                 SchemaVersion = '1.0'
                 BootstrapRunId = $script:BootstrapRunId
+                HeadSha = $script:MainSha
                 TenantAlias = 'caldova25156897'
                 SubscriptionId = $script:SubscriptionId
                 PrincipalObjectId = $script:PrincipalObjectId
@@ -104,7 +108,10 @@ Describe 'Final GitHub governance activation' {
                         parameters = [ordered]@{
                             do_not_enforce_on_create = $false
                             required_status_checks = @(
-                                [ordered]@{ context = 'Repository setup validation' }
+                                [ordered]@{
+                                    context = 'Repository setup validation'
+                                    integration_id = 15368
+                                }
                             )
                             strict_required_status_checks_policy = $true
                         }
@@ -134,10 +141,24 @@ Describe 'Final GitHub governance activation' {
             [ordered]@{
                 UserIdText = [string]$script:UserId
                 AdminText = 'true'
+                MainSha = $script:MainSha
+                AzureAccount = [ordered]@{
+                    id = $script:SubscriptionId
+                    tenantId = $script:TenantId
+                }
+                ServicePrincipal = [ordered]@{
+                    id = $script:PrincipalObjectId
+                    appId = $script:ClientId
+                    servicePrincipalType = 'Application'
+                }
+                RoleAssignments = @()
                 Runs = [ordered]@{
                     '101' = [ordered]@{
                         id = $script:ValidatorRunId
+                        event = 'workflow_dispatch'
                         head_branch = 'main'
+                        head_sha = $script:MainSha
+                        head_repository = [ordered]@{ full_name = $script:Repository }
                         status = 'completed'
                         conclusion = 'success'
                         path = '.github/workflows/validate-repository.yml'
@@ -146,7 +167,10 @@ Describe 'Final GitHub governance activation' {
                     }
                     '202' = [ordered]@{
                         id = $script:BootstrapRunId
+                        event = 'workflow_dispatch'
                         head_branch = 'main'
+                        head_sha = $script:MainSha
+                        head_repository = [ordered]@{ full_name = $script:Repository }
                         status = 'completed'
                         conclusion = 'success'
                         path = '.github/workflows/bootstrap-tenant.yml'
@@ -191,8 +215,8 @@ Describe 'Final GitHub governance activation' {
                 EnvironmentVariables = [ordered]@{
                     total_count = 3
                     variables = @(
-                        [ordered]@{ name = 'AZURE_CLIENT_ID'; value = 'client-id' },
-                        [ordered]@{ name = 'AZURE_TENANT_ID'; value = 'tenant-id' },
+                        [ordered]@{ name = 'AZURE_CLIENT_ID'; value = $script:ClientId },
+                        [ordered]@{ name = 'AZURE_TENANT_ID'; value = $script:TenantId },
                         [ordered]@{ name = 'AZURE_SUBSCRIPTION_ID'; value = $script:SubscriptionId }
                     )
                 }
@@ -223,6 +247,8 @@ Describe 'Final GitHub governance activation' {
 
             $calls = [System.Collections.Generic.List[object]]::new()
             $testExactArguments = ${function:script:Test-ExactArguments}
+            $principalObjectId = $script:PrincipalObjectId
+            $scope = $script:Scope
 
             $runner = {
                 param(
@@ -249,6 +275,22 @@ Describe 'Final GitHub governance activation' {
 
                 $calls.Add([pscustomobject]$record) | Out-Null
 
+                if ($FilePath -ceq 'az') {
+                    if (& $testExactArguments -Actual $ArgumentList -Expected @('account', 'show', '--output', 'json', '--only-show-errors')) {
+                        return [pscustomobject]@{ ExitCode = 0; StdOut = ($State.AzureAccount | ConvertTo-Json -Depth 10 -Compress); StdErr = '' }
+                    }
+
+                    if ($ArgumentList.Count -eq 8 -and $ArgumentList[0] -ceq 'ad' -and $ArgumentList[1] -ceq 'sp' -and $ArgumentList[2] -ceq 'show' -and $ArgumentList[3] -ceq '--id' -and $ArgumentList[5] -ceq '--output' -and $ArgumentList[6] -ceq 'json' -and $ArgumentList[7] -ceq '--only-show-errors') {
+                        return [pscustomobject]@{ ExitCode = 0; StdOut = ($State.ServicePrincipal | ConvertTo-Json -Depth 10 -Compress); StdErr = '' }
+                    }
+
+                    if (& $testExactArguments -Actual $ArgumentList -Expected @('role', 'assignment', 'list', '--assignee-object-id', $principalObjectId, '--scope', $scope, '--all', '--output', 'json', '--only-show-errors')) {
+                        return [pscustomobject]@{ ExitCode = 0; StdOut = (ConvertTo-Json -InputObject @($State.RoleAssignments) -Depth 20 -Compress); StdErr = '' }
+                    }
+
+                    throw "Unexpected az argument array: $($ArgumentList | ConvertTo-Json -Compress)"
+                }
+
                 if ($FilePath -cne 'gh') {
                     throw "Unexpected native executable: $FilePath"
                 }
@@ -259,6 +301,10 @@ Describe 'Final GitHub governance activation' {
 
                 if (& $testExactArguments -Actual $ArgumentList -Expected @('api', 'repos/urruegg/caldova-hr-frontier/collaborators/urruegg/permission', '--jq', '.user.permissions.admin')) {
                     return [pscustomobject]@{ ExitCode = 0; StdOut = [string]$State.AdminText; StdErr = '' }
+                }
+
+                if (& $testExactArguments -Actual $ArgumentList -Expected @('api', 'repos/urruegg/caldova-hr-frontier/git/ref/heads/main')) {
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = ([ordered]@{ object = [ordered]@{ sha = [string]$State.MainSha } } | ConvertTo-Json -Depth 5 -Compress); StdErr = '' }
                 }
 
                 if ($ArgumentList.Count -eq 2 -and $ArgumentList[0] -ceq 'api' -and $ArgumentList[1] -match '^repos/urruegg/caldova-hr-frontier/actions/runs/([0-9]+)$') {
@@ -352,12 +398,27 @@ Describe 'Final GitHub governance activation' {
                 [switch]$WhatIf
             )
 
+            $tenantId = $script:TenantId
+            $subscriptionId = $script:SubscriptionId
+            $principalObjectId = $script:PrincipalObjectId
+            $tenantConfigurationLoader = {
+                [ordered]@{
+                    TenantAlias = 'caldova25156897'
+                    TenantId = $tenantId
+                    SubscriptionId = $subscriptionId
+                    GitHub = [ordered]@{ EnvironmentName = 'bootstrap-caldova25156897' }
+                    Components = [ordered]@{
+                        EntraServicePrincipal = [ordered]@{ Id = $principalObjectId }
+                    }
+                }
+            }.GetNewClosure()
             $parameters = @{
                 Repository = $Repository
                 ValidatorRunId = $ValidatorRunId
                 BootstrapRunId = $BootstrapRunId
                 BootstrapEvidencePath = $EvidencePath
                 DesiredStatePath = $DesiredStatePath
+                TenantConfigurationLoader = $tenantConfigurationLoader
                 NativeCommandRunner = $Harness.Runner
                 Confirm = $false
             }
@@ -447,6 +508,7 @@ Describe 'Final GitHub governance activation' {
         $ruleset.rules[2].parameters.requireLastPushApproval | Should -BeFalse
         $ruleset.rules[2].parameters.requiredReviewThreadResolution | Should -BeTrue
         $ruleset.rules[3].parameters.requiredStatusChecks[0].context | Should -BeExactly 'Repository setup validation'
+        $ruleset.rules[3].parameters.requiredStatusChecks[0].integrationId | Should -Be 15368
         $ruleset.rules[3].parameters.strictRequiredStatusChecksPolicy | Should -BeTrue
     }
 
@@ -465,12 +527,16 @@ Describe 'Final GitHub governance activation' {
         @($harness.Calls | ForEach-Object { $_.ArgumentList -join [char]31 }) | Should -Be @(
             (@('api', 'users/urruegg', '--jq', '.id') -join [char]31),
             (@('api', 'repos/urruegg/caldova-hr-frontier/collaborators/urruegg/permission', '--jq', '.user.permissions.admin') -join [char]31),
+            (@('api', 'repos/urruegg/caldova-hr-frontier/git/ref/heads/main') -join [char]31),
             (@('api', 'repos/urruegg/caldova-hr-frontier/actions/runs/101') -join [char]31),
             (@('api', 'repos/urruegg/caldova-hr-frontier/actions/runs/202') -join [char]31),
             (@('api', 'repos/urruegg/caldova-hr-frontier/rulesets?includes_parents=false') -join [char]31),
             (@('api', 'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897') -join [char]31),
             (@('api', 'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897/deployment-branch-policies') -join [char]31),
-            (@('api', 'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897/variables') -join [char]31)
+            (@('api', 'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897/variables') -join [char]31),
+            (@('account', 'show', '--output', 'json', '--only-show-errors') -join [char]31),
+            (@('ad', 'sp', 'show', '--id', $script:ClientId, '--output', 'json', '--only-show-errors') -join [char]31),
+            (@('role', 'assignment', 'list', '--assignee-object-id', $script:PrincipalObjectId, '--scope', $script:Scope, '--all', '--output', 'json', '--only-show-errors') -join [char]31)
         )
     }
 
@@ -533,6 +599,93 @@ Describe 'Final GitHub governance activation' {
 
         { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath } | Should -Throw '*ruleset read-back*'
         @(Get-MutationCalls -Harness $harness) | Should -HaveCount 1
+    }
+
+    It 'accepts Environment variables in any API response order' {
+        $state = New-TestGovernanceState
+        $state.EnvironmentVariables.variables = @($state.EnvironmentVariables.variables[2], $state.EnvironmentVariables.variables[0], $state.EnvironmentVariables.variables[1])
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        $result = Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf
+
+        $result.Action | Should -BeExactly 'Create'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects Environment variable value drift' -ForEach @(
+        @{ Name = 'client id'; VariableName = 'AZURE_CLIENT_ID'; Value = '66666666-6666-6666-6666-666666666666' },
+        @{ Name = 'tenant id'; VariableName = 'AZURE_TENANT_ID'; Value = '66666666-6666-6666-6666-666666666666' },
+        @{ Name = 'subscription id'; VariableName = 'AZURE_SUBSCRIPTION_ID'; Value = '66666666-6666-6666-6666-666666666666' }
+    ) {
+        $state = New-TestGovernanceState
+        ($state.EnvironmentVariables.variables | Where-Object name -CEQ $VariableName).value = $Value
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw '*Environment variable*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects an additional Environment protection rule' {
+        $state = New-TestGovernanceState
+        $state.Environment.protection_rules += [ordered]@{ id = 7002; type = 'wait_timer'; wait_timer = 5 }
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw '*protection*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects Azure account and service-principal identity drift' -ForEach @(
+        @{ Name = 'wrong account tenant'; Configure = { param($state) $state.AzureAccount.tenantId = '66666666-6666-6666-6666-666666666666' }; Error = '*Azure account tenant*' },
+        @{ Name = 'wrong account subscription'; Configure = { param($state) $state.AzureAccount.id = '66666666-6666-6666-6666-666666666666' }; Error = '*Azure account subscription*' },
+        @{ Name = 'wrong service principal object'; Configure = { param($state) $state.ServicePrincipal.id = '66666666-6666-6666-6666-666666666666' }; Error = '*service principal object*' },
+        @{ Name = 'wrong service principal client'; Configure = { param($state) $state.ServicePrincipal.appId = '66666666-6666-6666-6666-666666666666' }; Error = '*service principal client*' },
+        @{ Name = 'wrong service principal type'; Configure = { param($state) $state.ServicePrincipal.servicePrincipalType = 'ManagedIdentity' }; Error = '*service principal type*' }
+    ) {
+        $state = New-TestGovernanceState
+        & $Configure $state
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw $Error
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects cleanup evidence for a different service principal' {
+        $state = New-TestGovernanceState
+        $harness = New-NativeHarness -State $state
+        $evidence = New-TestBootstrapEvidence
+        $evidence.PrincipalObjectId = '66666666-6666-6666-6666-666666666666'
+        foreach ($assignment in $evidence.Assignments) {
+            $assignment.PrincipalObjectId = $evidence.PrincipalObjectId
+        }
+        $evidencePath = Write-TestJson -Value $evidence
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw '*service principal object*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects a live temporary role or an evidence assignment id that remains present' -ForEach @(
+        @{ Name = 'temporary role remains'; RoleName = 'Contributor'; RoleDefinitionId = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'; Id = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/cccccccc-cccc-cccc-cccc-cccccccccccc'; Error = '*temporary Azure role*' },
+        @{ Name = 'evidence assignment remains'; RoleName = 'Custom Validation'; RoleDefinitionId = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/cccccccc-cccc-cccc-cccc-cccccccccccc'; Id = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'; Error = '*evidence assignment*' }
+    ) {
+        $state = New-TestGovernanceState
+        $state.RoleAssignments = @(
+            [ordered]@{
+                id = $Id
+                principalId = $script:PrincipalObjectId
+                roleDefinitionName = $RoleName
+                roleDefinitionId = $RoleDefinitionId
+                scope = $script:Scope
+            }
+        )
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw $Error
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
     }
 
     It 'rejects a duplicate desired ruleset name before any native command' {
@@ -637,6 +790,34 @@ Describe 'Final GitHub governance activation' {
         @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
     }
 
+    It 'rejects workflow runs that are not tied to the current main commit' -ForEach @(
+        @{ Name = 'validator pull request event'; RunId = '101'; Property = 'event'; Value = 'pull_request'; Error = '*event*' },
+        @{ Name = 'bootstrap push event'; RunId = '202'; Property = 'event'; Value = 'push'; Error = '*event*' },
+        @{ Name = 'validator fork source'; RunId = '101'; Property = 'head_repository'; Value = ([ordered]@{ full_name = 'other/caldova-hr-frontier' }); Error = '*head repository*' },
+        @{ Name = 'bootstrap fork source'; RunId = '202'; Property = 'head_repository'; Value = ([ordered]@{ full_name = 'other/caldova-hr-frontier' }); Error = '*head repository*' },
+        @{ Name = 'validator stale sha'; RunId = '101'; Property = 'head_sha'; Value = '2222222222222222222222222222222222222222'; Error = '*current main*' },
+        @{ Name = 'bootstrap stale sha'; RunId = '202'; Property = 'head_sha'; Value = '2222222222222222222222222222222222222222'; Error = '*current main*' }
+    ) {
+        $state = New-TestGovernanceState
+        $state.Runs[$RunId][$Property] = $Value
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw $Error
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects bootstrap cleanup evidence from a different main commit' {
+        $state = New-TestGovernanceState
+        $harness = New-NativeHarness -State $state
+        $evidence = New-TestBootstrapEvidence
+        $evidence.HeadSha = '2222222222222222222222222222222222222222'
+        $evidencePath = Write-TestJson -Value $evidence
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw '*evidence HeadSha*current main*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
     It 'rejects each closed desired-state or allowlist mismatch before native calls' -ForEach @(
         @{ Name = 'unknown top property'; Configure = { param($value) $value | Add-Member -NotePropertyName unexpected -NotePropertyValue $true }; Error = '*unknown*property*' },
         @{ Name = 'unknown nested property'; Configure = { param($value) $value.rulesets[0].rules[2].parameters | Add-Member -NotePropertyName directPush -NotePropertyValue $true }; Error = '*unknown*property*' },
@@ -649,6 +830,7 @@ Describe 'Final GitHub governance activation' {
         @{ Name = 'always bypass'; Configure = { param($value) $value.rulesets[0].bypassActors[0].bypassMode = 'always' }; Error = '*bypass*' },
         @{ Name = 'exempt bypass'; Configure = { param($value) $value.rulesets[0].bypassActors[0].bypassMode = 'exempt' }; Error = '*bypass*' },
         @{ Name = 'wrong status context'; Configure = { param($value) $value.rulesets[0].rules[3].parameters.requiredStatusChecks[0].context = 'validate' }; Error = '*status*context*' },
+        @{ Name = 'wrong status integration'; Configure = { param($value) $value.rulesets[0].rules[3].parameters.requiredStatusChecks[0].integrationId = 1 }; Error = '*status*integration*' },
         @{ Name = 'string approval count'; Configure = { param($value) $value.rulesets[0].rules[2].parameters.requiredApprovingReviewCount = '1' }; Error = '*approval*count*' }
     ) {
         $desired = Get-Content -Raw -LiteralPath $script:DesiredStatePath | ConvertFrom-Json
@@ -701,7 +883,7 @@ Describe 'Final GitHub governance activation' {
         @{ Name = 'environment name'; Configure = { param($state) $state.Environment.name = 'bootstrap-other' }; Error = '*Environment name*' },
         @{ Name = 'protected branches enabled'; Configure = { param($state) $state.Environment.deployment_branch_policy.protected_branches = $true }; Error = '*branch policy*' },
         @{ Name = 'custom branches disabled'; Configure = { param($state) $state.Environment.deployment_branch_policy.custom_branch_policies = $false }; Error = '*branch policy*' },
-        @{ Name = 'missing reviewer rule'; Configure = { param($state) $state.Environment.protection_rules = @() }; Error = '*reviewer*' },
+        @{ Name = 'missing reviewer rule'; Configure = { param($state) $state.Environment.protection_rules = @() }; Error = '*protection*' },
         @{ Name = 'self review prevented'; Configure = { param($state) $state.Environment.protection_rules[0].prevent_self_review = $true }; Error = '*self-review*' },
         @{ Name = 'wrong reviewer type'; Configure = { param($state) $state.Environment.protection_rules[0].reviewers[0].type = 'Team' }; Error = '*reviewer*' },
         @{ Name = 'wrong reviewer id'; Configure = { param($state) $state.Environment.protection_rules[0].reviewers[0].reviewer.id = 999 }; Error = '*reviewer*' },

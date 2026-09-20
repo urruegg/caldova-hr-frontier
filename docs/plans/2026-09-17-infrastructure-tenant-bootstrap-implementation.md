@@ -1015,14 +1015,14 @@ Create a closed JSON schema and `main-ruleset.json` containing the exact setting
 
 - [ ] **Step 4: Implement fail-closed governance activation**
 
-`Enable-GitHubGovernance.ps1` accepts `-Repository`, `-ValidatorRunId`, `-BootstrapRunId`, and `-DesiredStatePath`. It:
+`Enable-GitHubGovernance.ps1` accepts `-Repository`, `-ValidatorRunId`, `-BootstrapRunId`, `-BootstrapEvidencePath`, and `-DesiredStatePath`. The cleanup evidence is a reviewed, out-of-repository JSON record containing the numeric bootstrap run ID, its exact `head_sha`, the reviewed Tenant 1 service-principal object ID and subscription scope, and both exact temporary assignment IDs with current `Absent` read-back results. It:
 
-1. verifies both run IDs belong to `main`, concluded `success`, and match the expected workflows;
-2. verifies temporary Azure roles are absent through supplied normalized bootstrap evidence;
+1. verifies both run IDs belong to the current `main` commit in this repository, use approved events, concluded `success`, and match the expected workflows;
+2. binds the normalized cleanup evidence to that bootstrap run and commit, reloads the reviewed Tenant 1 service-principal ID from the manifest, and independently verifies through read-only Azure calls that both exact assignment IDs and both temporary roles are absent;
 3. reads current rulesets and fails on ambiguity;
 4. displays the exact proposed GitHub mutation under `-WhatIf`;
 5. creates or updates the ruleset only under ShouldProcess;
-6. reads back the ruleset and all three configured bootstrap Environments;
+6. reads back the ruleset and the reviewed Tenant 1 bootstrap Environment; Tenant 2 and Tenant 3 remain absent until separately approved onboarding;
 7. compares every reviewed field and fails on drift;
 8. never enables direct-push bypass.
 
@@ -1052,15 +1052,17 @@ Run:
 ```powershell
 $validatorRunId = gh run list --workflow validate-repository.yml --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId'
 $bootstrapRunId = gh run list --workflow bootstrap-tenant.yml --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId'
+$bootstrapEvidencePath = "$env:TEMP\caldova25156897-cleanup-evidence.json"
 ./infra/src/scripts/Enable-GitHubGovernance.ps1 `
   -Repository 'urruegg/caldova-hr-frontier' `
   -ValidatorRunId $validatorRunId `
   -BootstrapRunId $bootstrapRunId `
+  -BootstrapEvidencePath $bootstrapEvidencePath `
   -DesiredStatePath 'infra/src/config/github/main-ruleset.json' `
   -WhatIf
 ```
 
-Copy both run IDs from GitHub Actions, not from agent output. Review the exact plan, then rerun without `-WhatIf` only after explicit user approval.
+Copy both run IDs from GitHub Actions, not from agent output. Before invocation, authenticate Azure CLI directly to Tenant 1 for the independent read-only account, service-principal, and role-assignment checks. Review the normalized cleanup evidence and exact plan, then rerun without `-WhatIf` only after explicit user approval.
 
 - [ ] **Step 8: Verify final GitHub state through API read-back**
 

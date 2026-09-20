@@ -16,6 +16,9 @@ param(
     [string]$DesiredStatePath,
 
     [Parameter(DontShow)]
+    [scriptblock]$TenantConfigurationLoader,
+
+    [Parameter(DontShow)]
     [scriptblock]$NativeCommandRunner
 )
 
@@ -24,6 +27,7 @@ $ErrorActionPreference = 'Stop'
 
 $expectedRepository = 'urruegg/caldova-hr-frontier'
 $expectedTenantAlias = 'caldova25156897'
+$expectedTenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
 $expectedSubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
 $expectedScope = "/subscriptions/$expectedSubscriptionId"
 $expectedEnvironmentName = 'bootstrap-caldova25156897'
@@ -298,8 +302,11 @@ function Assert-DesiredState {
     if ($statusChecks.Count -ne 1) {
         throw 'Desired ruleset must contain exactly one required status context.'
     }
-    Assert-ClosedObject -InputObject $statusChecks[0] -AllowedProperties @('context') -RequiredProperties @('context') -Context 'Required status check'
+    Assert-ClosedObject -InputObject $statusChecks[0] -AllowedProperties @('context', 'integrationId') -RequiredProperties @('context', 'integrationId') -Context 'Required status check'
     Assert-StringValue -Value $statusChecks[0].context -Expected 'Repository setup validation' -Context 'Required status context'
+    if (-not (Test-IntegerValue -Value $statusChecks[0].integrationId) -or [long]$statusChecks[0].integrationId -ne 15368) {
+        throw 'Required status integration must be the GitHub Actions application id 15368.'
+    }
 
     $ruleset
 }
@@ -354,10 +361,13 @@ function Assert-BootstrapEvidence {
         [Parameter(Mandatory)][long]$ExpectedBootstrapRunId
     )
 
-    Assert-ClosedObject -InputObject $Evidence -AllowedProperties @('SchemaVersion', 'BootstrapRunId', 'TenantAlias', 'SubscriptionId', 'PrincipalObjectId', 'Scope', 'VerifiedUtc', 'Assignments') -RequiredProperties @('SchemaVersion', 'BootstrapRunId', 'TenantAlias', 'SubscriptionId', 'PrincipalObjectId', 'Scope', 'VerifiedUtc', 'Assignments') -Context 'Bootstrap evidence'
+    Assert-ClosedObject -InputObject $Evidence -AllowedProperties @('SchemaVersion', 'BootstrapRunId', 'HeadSha', 'TenantAlias', 'SubscriptionId', 'PrincipalObjectId', 'Scope', 'VerifiedUtc', 'Assignments') -RequiredProperties @('SchemaVersion', 'BootstrapRunId', 'HeadSha', 'TenantAlias', 'SubscriptionId', 'PrincipalObjectId', 'Scope', 'VerifiedUtc', 'Assignments') -Context 'Bootstrap evidence'
     Assert-StringValue -Value $Evidence.SchemaVersion -Expected '1.0' -Context 'Bootstrap evidence SchemaVersion'
     if (-not (Test-IntegerValue -Value $Evidence.BootstrapRunId) -or [long]$Evidence.BootstrapRunId -ne $ExpectedBootstrapRunId) {
         throw 'Bootstrap evidence BootstrapRunId must be an integer equal to the supplied BootstrapRunId.'
+    }
+    if ($Evidence.HeadSha -isnot [string] -or [string]$Evidence.HeadSha -cnotmatch '^[0-9a-fA-F]{40}$') {
+        throw 'Bootstrap evidence HeadSha must be a commit SHA.'
     }
     Assert-StringValue -Value $Evidence.TenantAlias -Expected $expectedTenantAlias -Context 'Bootstrap evidence TenantAlias'
     Assert-StringValue -Value $Evidence.SubscriptionId -Expected $expectedSubscriptionId -Context 'Bootstrap evidence SubscriptionId'
@@ -411,13 +421,49 @@ function Assert-BootstrapEvidence {
     }
 }
 
+function Get-ReviewedPrincipalObjectId {
+    param(
+        [Parameter(Mandatory)][object]$Configuration
+    )
+
+    $configurationTable = ConvertTo-PropertyTable -InputObject $Configuration
+    foreach ($propertyName in @('TenantAlias', 'TenantId', 'SubscriptionId', 'GitHub', 'Components')) {
+        if (-not $configurationTable.ContainsKey($propertyName)) {
+            throw "Tenant configuration is missing required property '$propertyName'."
+        }
+    }
+
+    Assert-StringValue -Value $configurationTable.TenantAlias -Expected $expectedTenantAlias -Context 'Tenant configuration TenantAlias'
+    Assert-StringValue -Value $configurationTable.TenantId -Expected $expectedTenantId -Context 'Tenant configuration TenantId'
+    Assert-StringValue -Value $configurationTable.SubscriptionId -Expected $expectedSubscriptionId -Context 'Tenant configuration SubscriptionId'
+
+    $githubTable = ConvertTo-PropertyTable -InputObject $configurationTable.GitHub
+    if (-not $githubTable.ContainsKey('EnvironmentName')) {
+        throw 'Tenant configuration GitHub EnvironmentName is required.'
+    }
+    Assert-StringValue -Value $githubTable.EnvironmentName -Expected $expectedEnvironmentName -Context 'Tenant configuration GitHub EnvironmentName'
+
+    $componentsTable = ConvertTo-PropertyTable -InputObject $configurationTable.Components
+    if (-not $componentsTable.ContainsKey('EntraServicePrincipal')) {
+        throw 'Tenant configuration EntraServicePrincipal is required.'
+    }
+    $servicePrincipalTable = ConvertTo-PropertyTable -InputObject $componentsTable.EntraServicePrincipal
+    if (-not $servicePrincipalTable.ContainsKey('Id')) {
+        throw 'Tenant configuration EntraServicePrincipal Id is required.'
+    }
+    Assert-GuidString -Value $servicePrincipalTable.Id -Context 'Tenant configuration EntraServicePrincipal Id'
+
+    [string]$servicePrincipalTable.Id
+}
+
 function Invoke-NativeCommand {
     param(
         [Parameter(Mandatory)][scriptblock]$Runner,
+        [string]$FilePath = 'gh',
         [Parameter(Mandatory)][string[]]$ArgumentList
     )
 
-    $result = & $Runner -FilePath 'gh' -ArgumentList $ArgumentList
+    $result = & $Runner -FilePath $FilePath -ArgumentList $ArgumentList
     $resultTable = ConvertTo-PropertyTable -InputObject $result
     if (-not $resultTable.ContainsKey('ExitCode')) {
         throw 'NativeCommandRunner must return ExitCode.'
@@ -440,7 +486,27 @@ function Invoke-GhJson {
         [Parameter(Mandatory)][string]$Context
     )
 
-    $text = Invoke-NativeCommand -Runner $Runner -ArgumentList $ArgumentList
+    $text = Invoke-NativeCommand -Runner $Runner -FilePath 'gh' -ArgumentList $ArgumentList
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        throw "$Context returned no JSON."
+    }
+
+    try {
+        $text | ConvertFrom-Json
+    }
+    catch {
+        throw "$Context returned malformed JSON."
+    }
+}
+
+function Invoke-AzJson {
+    param(
+        [Parameter(Mandatory)][scriptblock]$Runner,
+        [Parameter(Mandatory)][string[]]$ArgumentList,
+        [Parameter(Mandatory)][string]$Context
+    )
+
+    $text = Invoke-NativeCommand -Runner $Runner -FilePath 'az' -ArgumentList $ArgumentList
     if ([string]::IsNullOrWhiteSpace($text)) {
         throw "$Context returned no JSON."
     }
@@ -459,6 +525,8 @@ function Assert-WorkflowRun {
         [Parameter(Mandatory)][long]$ExpectedRunId,
         [Parameter(Mandatory)][string]$ExpectedPath,
         [Parameter(Mandatory)][string]$ExpectedName,
+        [Parameter(Mandatory)][string[]]$ExpectedEvents,
+        [Parameter(Mandatory)][string]$ExpectedHeadSha,
         [Parameter(Mandatory)][string]$Context
     )
 
@@ -468,8 +536,17 @@ function Assert-WorkflowRun {
     if ([string]$Run.repository.full_name -cne $expectedRepository) {
         throw "$Context repository does not match the reviewed repository."
     }
+    if ([string]$Run.head_repository.full_name -cne $expectedRepository) {
+        throw "$Context head repository does not match the reviewed repository."
+    }
+    if ([string]$Run.event -cnotin $ExpectedEvents) {
+        throw "$Context event is not approved for governance activation."
+    }
     if ([string]$Run.head_branch -cne 'main') {
         throw "$Context must belong to main and not a pull-request ref."
+    }
+    if ([string]$Run.head_sha -cne $ExpectedHeadSha) {
+        throw "$Context must belong to the current main commit."
     }
     if ([string]$Run.status -cne 'completed') {
         throw "$Context status must be completed."
@@ -527,7 +604,10 @@ function New-RulesetPayload {
                 parameters = [pscustomobject]([ordered]@{
                     do_not_enforce_on_create = [bool]$DesiredRuleset.rules[3].parameters.doNotEnforceOnCreate
                     required_status_checks = @(
-                        [pscustomobject]([ordered]@{ context = [string]$DesiredRuleset.rules[3].parameters.requiredStatusChecks[0].context })
+                        [pscustomobject]([ordered]@{
+                            context = [string]$DesiredRuleset.rules[3].parameters.requiredStatusChecks[0].context
+                            integration_id = [long]$DesiredRuleset.rules[3].parameters.requiredStatusChecks[0].integrationId
+                        })
                     )
                     strict_required_status_checks_policy = [bool]$DesiredRuleset.rules[3].parameters.strictRequiredStatusChecksPolicy
                 })
@@ -595,7 +675,10 @@ function ConvertTo-ReviewedRulesetPayload {
                 parameters = [pscustomobject]([ordered]@{
                     do_not_enforce_on_create = $rules[3].parameters.do_not_enforce_on_create
                     required_status_checks = @(
-                        [pscustomobject]([ordered]@{ context = $statusChecks[0].context })
+                        [pscustomobject]([ordered]@{
+                            context = $statusChecks[0].context
+                            integration_id = $statusChecks[0].integration_id
+                        })
                     )
                     strict_required_status_checks_policy = $rules[3].parameters.strict_required_status_checks_policy
                 })
@@ -645,9 +728,10 @@ function Assert-EnvironmentReadBack {
         throw 'GitHub Environment branch policy does not match the reviewed state.'
     }
 
-    $reviewerRules = @($environment.protection_rules | Where-Object { [string]$_.type -ceq 'required_reviewers' })
-    if ($reviewerRules.Count -ne 1) {
-        throw 'GitHub Environment reviewer protection does not match the reviewed state.'
+    $protectionRules = @($environment.protection_rules)
+    $reviewerRules = @($protectionRules | Where-Object { [string]$_.type -ceq 'required_reviewers' })
+    if ($protectionRules.Count -ne 1 -or $reviewerRules.Count -ne 1) {
+        throw 'GitHub Environment protection rules do not match the exact reviewed state.'
     }
 
     if ($reviewerRules[0].prevent_self_review -isnot [bool] -or [bool]$reviewerRules[0].prevent_self_review) {
@@ -671,14 +755,98 @@ function Assert-EnvironmentReadBack {
     }
 
     $variables = Invoke-GhJson -Runner $Runner -ArgumentList @('api', "repos/$expectedRepository/environments/$expectedEnvironmentName/variables") -Context 'GitHub Environment variable read-back'
-    $variableNames = @($variables.variables | ForEach-Object { [string]$_.name })
+    $environmentVariables = @($variables.variables)
+    $variableNames = @($environmentVariables | ForEach-Object { [string]$_.name })
     if (-not (Test-IntegerValue -Value $variables.total_count) -or [long]$variables.total_count -ne 3 -or
         $variableNames.Count -ne 3 -or @($variableNames | Select-Object -Unique).Count -ne 3) {
         throw 'GitHub Environment variable names do not match the reviewed state.'
     }
-    for ($index = 0; $index -lt $expectedVariableNames.Count; $index++) {
-        if ($variableNames[$index] -cne $expectedVariableNames[$index]) {
+
+    $variablesByName = @{}
+    foreach ($variable in $environmentVariables) {
+        if ([string]$variable.name -cnotin $expectedVariableNames -or $variable.value -isnot [string]) {
             throw 'GitHub Environment variable names do not match the reviewed state.'
+        }
+        $variablesByName[[string]$variable.name] = [string]$variable.value
+    }
+    foreach ($expectedVariableName in $expectedVariableNames) {
+        if (-not $variablesByName.ContainsKey($expectedVariableName)) {
+            throw 'GitHub Environment variable names do not match the reviewed state.'
+        }
+    }
+
+    if ([string]$variablesByName.AZURE_TENANT_ID -cne $expectedTenantId) {
+        throw 'GitHub Environment variable AZURE_TENANT_ID does not match the reviewed Tenant 1 tenant id.'
+    }
+    if ([string]$variablesByName.AZURE_SUBSCRIPTION_ID -cne $expectedSubscriptionId) {
+        throw 'GitHub Environment variable AZURE_SUBSCRIPTION_ID does not match the reviewed Tenant 1 subscription id.'
+    }
+    Assert-GuidString -Value $variablesByName.AZURE_CLIENT_ID -Context 'GitHub Environment variable AZURE_CLIENT_ID'
+
+    [string]$variablesByName.AZURE_CLIENT_ID
+}
+
+function Assert-LiveAzureRoleAbsence {
+    param(
+        [Parameter(Mandatory)][scriptblock]$Runner,
+        [Parameter(Mandatory)][string]$ClientId,
+        [Parameter(Mandatory)][string]$ExpectedPrincipalObjectId,
+        [Parameter(Mandatory)][object]$Evidence
+    )
+
+    $account = Invoke-AzJson -Runner $Runner -ArgumentList @('account', 'show', '--output', 'json', '--only-show-errors') -Context 'Azure account read-back'
+    if ([string]$account.tenantId -cne $expectedTenantId) {
+        throw 'Azure account tenant does not match the reviewed Tenant 1 tenant.'
+    }
+    if ([string]$account.id -cne $expectedSubscriptionId) {
+        throw 'Azure account subscription does not match the reviewed Tenant 1 subscription.'
+    }
+
+    $servicePrincipal = Invoke-AzJson -Runner $Runner -ArgumentList @('ad', 'sp', 'show', '--id', $ClientId, '--output', 'json', '--only-show-errors') -Context 'Azure service principal read-back'
+    if ([string]$servicePrincipal.id -cne $ExpectedPrincipalObjectId) {
+        throw 'Azure service principal object does not match the reviewed Tenant 1 principal.'
+    }
+    if ([string]$servicePrincipal.appId -cne $ClientId) {
+        throw 'GitHub Environment variable AZURE_CLIENT_ID does not match the reviewed Azure service principal client id.'
+    }
+    if ([string]$servicePrincipal.servicePrincipalType -cne 'Application') {
+        throw 'Azure service principal type must be Application.'
+    }
+
+    $roleAssignmentResponse = Invoke-AzJson -Runner $Runner -ArgumentList @('role', 'assignment', 'list', '--assignee-object-id', $ExpectedPrincipalObjectId, '--scope', $expectedScope, '--all', '--output', 'json', '--only-show-errors') -Context 'Azure role assignment read-back'
+    $roleAssignments = if ($roleAssignmentResponse -is [System.Array]) {
+        @($roleAssignmentResponse | ForEach-Object { $_ })
+    }
+    elseif ($null -eq $roleAssignmentResponse) {
+        @()
+    }
+    else {
+        @($roleAssignmentResponse)
+    }
+    $evidenceAssignmentIds = @($Evidence.Assignments | ForEach-Object { [string]$_.Id })
+    $temporaryRoleDefinitionIds = @(
+        "$expectedScope/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c",
+        "$expectedScope/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168"
+    )
+    foreach ($roleAssignment in $roleAssignments) {
+        if ($null -eq $roleAssignment -or ($roleAssignment -is [System.Array] -and $roleAssignment.Count -eq 0)) {
+            continue
+        }
+
+        $roleAssignmentTable = ConvertTo-PropertyTable -InputObject $roleAssignment
+        foreach ($propertyName in @('id', 'principalId', 'roleDefinitionId', 'scope')) {
+            if (-not $roleAssignmentTable.ContainsKey($propertyName)) {
+                throw "Azure role assignment read-back is missing required property '$propertyName'."
+            }
+        }
+        if ([string]$roleAssignmentTable.principalId -cne $ExpectedPrincipalObjectId) {
+            throw 'Azure role assignment read-back returned an unexpected principal.'
+        }
+        if ([string]$roleAssignmentTable.id -cin $evidenceAssignmentIds) {
+            throw 'A bootstrap evidence assignment remains present in Azure.'
+        }
+        if ([string]$roleAssignmentTable.scope -ceq $expectedScope -and [string]$roleAssignmentTable.roleDefinitionId -cin $temporaryRoleDefinitionIds) {
+            throw 'A temporary Azure role remains present at the reviewed subscription scope.'
         }
     }
 }
@@ -698,6 +866,16 @@ $desiredRuleset = Assert-DesiredState -DesiredState $desiredStateDocument.Value
 $bootstrapEvidenceDocument = Read-JsonFile -Path $BootstrapEvidencePath -Context 'Bootstrap cleanup evidence'
 Assert-BootstrapEvidence -Evidence $bootstrapEvidenceDocument.Value -ExpectedBootstrapRunId $BootstrapRunId
 
+if (-not $TenantConfigurationLoader) {
+    $tenantConfigurationPath = Join-Path $PSScriptRoot '..\config\tenants\caldova25156897.psd1'
+    $TenantConfigurationLoader = { Import-PowerShellDataFile -LiteralPath $tenantConfigurationPath }.GetNewClosure()
+}
+$tenantConfiguration = & $TenantConfigurationLoader
+$reviewedPrincipalObjectId = Get-ReviewedPrincipalObjectId -Configuration $tenantConfiguration
+if ([string]$bootstrapEvidenceDocument.Value.PrincipalObjectId -cne $reviewedPrincipalObjectId) {
+    throw 'Bootstrap evidence PrincipalObjectId does not match the reviewed service principal object.'
+}
+
 if (-not $NativeCommandRunner) {
     $NativeCommandRunner = New-DefaultNativeCommandRunner
 }
@@ -713,11 +891,20 @@ if ($adminText -cne 'true') {
     throw 'GitHub collaborator urruegg must have repository administrator permission.'
 }
 
+$mainRef = Invoke-GhJson -Runner $NativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/git/ref/heads/main") -Context 'Current main ref'
+$currentMainSha = [string]$mainRef.object.sha
+if ($currentMainSha -cnotmatch '^[0-9a-fA-F]{40}$') {
+    throw 'Current main ref did not return a valid commit SHA.'
+}
+
 $validatorRun = Invoke-GhJson -Runner $NativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/actions/runs/$ValidatorRunId") -Context 'Validator workflow run'
-Assert-WorkflowRun -Run $validatorRun -ExpectedRunId $ValidatorRunId -ExpectedPath '.github/workflows/validate-repository.yml' -ExpectedName 'Validate repository' -Context 'Validator workflow run'
+Assert-WorkflowRun -Run $validatorRun -ExpectedRunId $ValidatorRunId -ExpectedPath '.github/workflows/validate-repository.yml' -ExpectedName 'Validate repository' -ExpectedEvents @('push', 'workflow_dispatch') -ExpectedHeadSha $currentMainSha -Context 'Validator workflow run'
 
 $bootstrapRun = Invoke-GhJson -Runner $NativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/actions/runs/$BootstrapRunId") -Context 'Bootstrap workflow run'
-Assert-WorkflowRun -Run $bootstrapRun -ExpectedRunId $BootstrapRunId -ExpectedPath '.github/workflows/bootstrap-tenant.yml' -ExpectedName 'Validate tenant bootstrap' -Context 'Bootstrap workflow run'
+Assert-WorkflowRun -Run $bootstrapRun -ExpectedRunId $BootstrapRunId -ExpectedPath '.github/workflows/bootstrap-tenant.yml' -ExpectedName 'Validate tenant bootstrap' -ExpectedEvents @('workflow_dispatch') -ExpectedHeadSha $currentMainSha -Context 'Bootstrap workflow run'
+if ([string]$bootstrapEvidenceDocument.Value.HeadSha -cne $currentMainSha) {
+    throw 'Bootstrap evidence HeadSha must match the current main commit.'
+}
 
 $payload = New-RulesetPayload -DesiredRuleset $desiredRuleset -ResolvedUserId $resolvedUserId
 $rulesetList = Invoke-GhJson -Runner $NativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/rulesets?includes_parents=false") -Context 'Repository ruleset list'
@@ -743,7 +930,8 @@ if ($nameMatches.Count -eq 1) {
     $existingRulesetExact = Test-RulesetReadBack -Ruleset $existingRuleset -ExpectedPayload $payload
 }
 
-Assert-EnvironmentReadBack -Runner $NativeCommandRunner -ResolvedUserId $resolvedUserId
+$environmentClientId = Assert-EnvironmentReadBack -Runner $NativeCommandRunner -ResolvedUserId $resolvedUserId
+Assert-LiveAzureRoleAbsence -Runner $NativeCommandRunner -ClientId $environmentClientId -ExpectedPrincipalObjectId $reviewedPrincipalObjectId -Evidence $bootstrapEvidenceDocument.Value
 
 $action = if ($null -eq $existingRulesetId) { 'Create' } elseif (-not $existingRulesetExact) { 'Update' } else { 'None' }
 $method = if ($action -ceq 'Create') { 'POST' } elseif ($action -ceq 'Update') { 'PUT' } else { $null }
