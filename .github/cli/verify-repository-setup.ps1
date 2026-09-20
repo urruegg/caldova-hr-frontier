@@ -779,6 +779,240 @@ Test-RequiredContent '.github/workflows/validate-repository.yml' @(
     'Invoke-Pester .github/cli/tests -Output Detailed -CI'
 )
 
+$phase3RequiredPaths = @(
+    '.github/cli/tests/Phase3SourceContract.Tests.ps1',
+    '.github/workflows/README.md',
+    '.github/workflows/bootstrap-tenant.yml',
+    '.github/workflows/discover-tenant.yml',
+    'docs/reviews/2026-09-17-phase-3-infrastructure-tenant-bootstrap-intake.md',
+    'infra/README.md',
+    'infra/docs/10-tenant-setup-and-configuration.md',
+    'infra/docs/11-identity-and-access.md',
+    'infra/docs/12-power-platform-environments-and-alm.md',
+    'infra/docs/13-azure-devops-engineering-control-plane.md',
+    'infra/docs/14-github-repository-blueprint.md',
+    'infra/docs/15-agent-workload-configuration.md',
+    'infra/docs/16-security-governance-and-compliance.md',
+    'infra/docs/17-bootstrap-and-provisioning.md',
+    'infra/docs/18-multi-tenant-provisioning.md',
+    'infra/docs/19-bootstrap-recovery.md',
+    'infra/src/bicep/bicepconfig.json',
+    'infra/src/bicep/main.bicep',
+    'infra/src/bicep/modules/activity-log-diagnostics.bicep',
+    'infra/src/bicep/modules/log-analytics-workspace.bicep',
+    'infra/src/bicep/modules/resource-group.bicep',
+    'infra/src/bicep/modules/subscription-policy-assignments.bicep',
+    'infra/src/bicep/modules/validation-role.bicep',
+    'infra/src/config/schemas/bootstrap-result.schema.json',
+    'infra/src/config/schemas/discovery.schema.json',
+    'infra/src/config/schemas/tenant.schema.json',
+    'infra/src/config/tenants/_template.psd1',
+    'infra/src/config/tenants/caldova25156897.psd1',
+    'infra/src/scripts/Get-TemporaryBootstrapRoleState.ps1',
+    'infra/src/scripts/Grant-TemporaryBootstrapRoles.ps1',
+    'infra/src/scripts/Initialize-TenantTrust.ps1',
+    'infra/src/scripts/Invoke-TenantBootstrap.ps1',
+    'infra/src/scripts/Invoke-TenantDiscovery.ps1',
+    'infra/src/scripts/New-TenantBicepParameters.ps1',
+    'infra/src/scripts/New-TenantManifest.ps1',
+    'infra/src/scripts/Test-WhatIfBoundary.ps1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Caldova.HrFrontier.Bootstrap.psd1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Caldova.HrFrontier.Bootstrap.psm1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-AzureDevOpsDiscovery.ps1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-AzureDiscovery.ps1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-EntraDiscovery.ps1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-GitHubDiscovery.ps1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-PowerPlatformDiscovery.ps1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Invoke-BoundedRetry.ps1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Test-ProhibitedData.ps1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/ConvertTo-DiscoveryEvidence.ps1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Get-GitHubOidcSubject.ps1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Get-TenantResourceName.ps1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Import-TenantConfiguration.ps1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/New-TenantSuffix.ps1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Remove-TemporaryRoleAssignments.ps1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Test-DiscoveryEvidence.ps1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Test-TenantIntent.ps1',
+    'infra/src/solutions/README.md',
+    'infra/tests/fixtures/discovery/azure-devops.json',
+    'infra/tests/fixtures/discovery/azure.json',
+    'infra/tests/fixtures/discovery/entra.json',
+    'infra/tests/fixtures/discovery/github.json',
+    'infra/tests/fixtures/discovery/power-platform.json',
+    'infra/tests/fixtures/what-if/allowed.json',
+    'infra/tests/fixtures/what-if/unexpected-type.json',
+    'infra/tests/fixtures/what-if/wrong-scope.json',
+    'infra/tests/pester/BicepComposition.Tests.ps1',
+    'infra/tests/pester/DiscoveryNormalization.Tests.ps1',
+    'infra/tests/pester/EvidenceGate.Tests.ps1',
+    'infra/tests/pester/EvidenceSecurity.Tests.ps1',
+    'infra/tests/pester/Idempotency.Tests.ps1',
+    'infra/tests/pester/IntentGate.Tests.ps1',
+    'infra/tests/pester/Naming.Tests.ps1',
+    'infra/tests/pester/TemporaryRoleCleanup.Tests.ps1',
+    'infra/tests/pester/TenantConfiguration.Tests.ps1',
+    'infra/tests/pester/TenantTrust.Tests.ps1',
+    'infra/tests/pester/WhatIfBoundary.Tests.ps1',
+    'infra/tests/pester/WorkflowContract.Tests.ps1'
+)
+foreach ($relativePath in $phase3RequiredPaths) {
+    Test-RequiredContent $relativePath @()
+    if ($gitIndexReadable) {
+        [void](Get-ExactGitIndexRecord $relativePath '100644' `
+            "Phase 3 path must be tracked at exact case as stage-0 mode 100644: $relativePath")
+    }
+}
+
+Test-RequiredContent 'infra/src/config/schemas/discovery.schema.json' @(
+    '"GitHub"', '"Entra"', '"Azure"', '"AzureDevOps"', '"PowerPlatform"'
+)
+Test-RequiredContent 'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Test-ProhibitedData.ps1' @(
+    'access[_-]?token', 'refresh[_-]?token', 'client[_-]?secret', 'authorization:\s*bearer',
+    'AccountKey=', 'SharedAccessSignature=', 'PRIVATE KEY', 'Principal.Upn'
+)
+Test-RequiredContent 'infra/tests/pester/BicepComposition.Tests.ps1' @(
+    'Microsoft.Resources/resourceGroups',
+    'Microsoft.OperationalInsights/workspaces',
+    'Microsoft.Insights/diagnosticSettings',
+    'Microsoft.Authorization/roleDefinitions',
+    'Microsoft.Authorization/roleAssignments',
+    'Microsoft.Authorization/policyAssignments'
+)
+foreach ($workflowPath in @('.github/workflows/bootstrap-tenant.yml', '.github/workflows/discover-tenant.yml')) {
+    Test-RequiredContent $workflowPath @(
+        'permissions:',
+        'contents: read',
+        'id-token: write',
+        'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683',
+        'azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5',
+        'environment: bootstrap-${{ inputs.tenantAlias }}'
+    )
+}
+
+$phase3TenantManifestRelativePath = 'infra/src/config/tenants/caldova25156897.psd1'
+$phase3TenantManifestPath = Join-Path $repositoryRoot ($phase3TenantManifestRelativePath.Replace('/', '\'))
+if (Test-Path -LiteralPath $phase3TenantManifestPath -PathType Leaf) {
+    try {
+        $tenantConfiguration = Import-PowerShellDataFile -LiteralPath $phase3TenantManifestPath
+        $expectedNamingRoot = '{0}-{1}-{2}' -f
+            $tenantConfiguration.CompanyTla,
+            $tenantConfiguration.WorkloadName,
+            $tenantConfiguration.UniqueSuffix
+        if ($tenantConfiguration.NamingRoot -cne $expectedNamingRoot -or
+            $tenantConfiguration.NamingRoot -cne 'cal-hr-agentic-bc8rbt') {
+            Add-Failure 'Tenant 1 NamingRoot does not match its reviewed derivation.'
+        }
+        if ($tenantConfiguration.GitHub.Owner -cne 'urruegg' -or
+            $tenantConfiguration.GitHub.OwnerId -cne '46865858' -or
+            $tenantConfiguration.GitHub.Repository -cne 'caldova-hr-frontier' -or
+            $tenantConfiguration.GitHub.RepositoryId -cne '1371297722' -or
+            $tenantConfiguration.GitHub.EnvironmentName -cne 'bootstrap-caldova25156897') {
+            Add-Failure 'Tenant 1 GitHub identity does not match the reviewed immutable IDs and Environment.'
+        }
+        $oidcSubject = 'repo:{0}@{1}/{2}@{3}:environment:{4}' -f
+            $tenantConfiguration.GitHub.Owner,
+            $tenantConfiguration.GitHub.OwnerId,
+            $tenantConfiguration.GitHub.Repository,
+            $tenantConfiguration.GitHub.RepositoryId,
+            $tenantConfiguration.GitHub.EnvironmentName
+        if ($oidcSubject -cne 'repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-caldova25156897') {
+            Add-Failure 'Tenant 1 immutable OIDC subject does not match the reviewed prefix and Environment.'
+        }
+    }
+    catch {
+        Add-Failure "Cannot validate the Tenant 1 manifest contract: $($_.Exception.Message)"
+    }
+}
+
+$infraRoot = Join-Path $repositoryRoot 'infra'
+if (Test-Path -LiteralPath $infraRoot -PathType Container) {
+    foreach ($placeholder in @(Get-ChildItem -LiteralPath $infraRoot -Filter '.gitkeep' -File -Recurse -Force)) {
+        $relativePlaceholder = $placeholder.FullName.Substring($repositoryRoot.Length).TrimStart('\').Replace('\', '/')
+        Add-Failure "Rejected infrastructure placeholder remains: $relativePlaceholder"
+    }
+}
+
+$tenantManifestRoot = Join-Path $repositoryRoot 'infra\src\config\tenants'
+if (Test-Path -LiteralPath $tenantManifestRoot -PathType Container) {
+    $allowedTenantManifestNames = @('_template.psd1', 'caldova25156897.psd1')
+    foreach ($tenantManifest in @(Get-ChildItem -LiteralPath $tenantManifestRoot -Filter '*.psd1' -File -Force)) {
+        if ($allowedTenantManifestNames -cnotcontains $tenantManifest.Name) {
+            Add-Failure "Tenant 2 or Tenant 3 manifest is not allowed in this phase: infra/src/config/tenants/$($tenantManifest.Name)"
+        }
+    }
+}
+
+$prohibitedBootstrapPattern = 'az\s+deployment\s+sub\s+create|New-AzSubscriptionDeployment|client[_-]?secret|AZURE_CLIENT_SECRET|--password'
+$phase3ExecutablePaths = [Collections.Generic.List[string]]::new()
+if (Test-Path -LiteralPath (Join-Path $repositoryRoot 'infra\src\scripts') -PathType Container) {
+    foreach ($scriptFile in @(Get-ChildItem -LiteralPath (Join-Path $repositoryRoot 'infra\src\scripts') -File -Recurse -Force | Where-Object {
+        $_.Extension -in @('.ps1', '.psm1')
+    })) {
+        [void]$phase3ExecutablePaths.Add($scriptFile.FullName)
+    }
+}
+foreach ($workflowPath in @('.github/workflows/bootstrap-tenant.yml', '.github/workflows/discover-tenant.yml')) {
+    $absoluteWorkflowPath = Join-Path $repositoryRoot ($workflowPath.Replace('/', '\'))
+    if (Test-Path -LiteralPath $absoluteWorkflowPath -PathType Leaf) {
+        [void]$phase3ExecutablePaths.Add($absoluteWorkflowPath)
+    }
+}
+foreach ($executablePath in $phase3ExecutablePaths) {
+    try { $executableContent = [IO.File]::ReadAllText($executablePath) }
+    catch { Add-Failure "Cannot scan executable Phase 3 file: $executablePath"; continue }
+    if ($executableContent -match $prohibitedBootstrapPattern) {
+        $relativeExecutablePath = $executablePath.Substring($repositoryRoot.Length).TrimStart('\').Replace('\', '/')
+        Add-Failure "Prohibited bootstrap command or credential pattern found: $relativeExecutablePath"
+    }
+}
+
+$phase3ReviewRelativePath = 'docs/reviews/2026-09-17-phase-3-infrastructure-tenant-bootstrap-intake.md'
+Test-RequiredContent $phase3ReviewRelativePath @(
+    '**Status** | Approved',
+    'implementation-intake approval',
+    'Task 1 documentation target: `18b3977`',
+    'Task 2 configuration target: `5cde70b`',
+    'Task 3 discovery target: `41dc36a`',
+    'Task 4 trust target: `89a316a`',
+    'Task 5 Bicep target: `82b6ef9`',
+    'Task 6 bootstrap safety target: `7cde772`',
+    'Task 7 workflow target: `c0bf369`',
+    'All five source placeholders are absent and replaced',
+    'does not prove or authorize live trust creation',
+    'role mutation',
+    'what-if completion',
+    'deployment',
+    'Power Platform mutation',
+    'Tenant 2 or Tenant 3 provisioning',
+    'final governance activation'
+)
+$phase3ReviewPath = Join-Path $repositoryRoot ($phase3ReviewRelativePath.Replace('/', '\'))
+if (Test-Path -LiteralPath $phase3ReviewPath -PathType Leaf) {
+    try { $phase3ReviewContent = [IO.File]::ReadAllText($phase3ReviewPath) }
+    catch { Add-Failure "Cannot read file: $phase3ReviewRelativePath"; $phase3ReviewContent = '' }
+    if ($phase3ReviewContent -match '(?i)commit(?: ID)? pending|scheduled') {
+        Add-Failure "$phase3ReviewRelativePath retains a pending or scheduled inventory status."
+    }
+}
+
+Test-RequiredContent 'README.md' @(
+    '### Phase 3 Infrastructure Map',
+    '[Phase 3 Infrastructure and Tenant Bootstrap Intake](docs/reviews/2026-09-17-phase-3-infrastructure-tenant-bootstrap-intake.md)',
+    '`infra/src/config/tenants/caldova25156897.psd1`',
+    '`infra/src/scripts/Invoke-TenantDiscovery.ps1`',
+    '`infra/src/scripts/Initialize-TenantTrust.ps1`',
+    '`infra/src/scripts/Invoke-TenantBootstrap.ps1`',
+    'No live deployment is authorized by this repository state.'
+)
+Test-RequiredContent '.github/cli/README.md' @(
+    'Git',
+    'Pester 5.7.1',
+    'Azure CLI with the Bicep command',
+    'Invoke-Pester .github/cli/tests,infra/tests/pester -Output Detailed -CI',
+    'az bicep build --file infra/src/bicep/main.bicep --stdout',
+    'does not authenticate or call Azure services'
+)
+
 if ($null -eq $gitCommand) {
     Add-Failure 'Cannot enumerate tracked Markdown documentation: git is unavailable'
 }
@@ -826,54 +1060,128 @@ if ($pesterModule.Count -ne 1) {
     Add-Failure 'Required Pester version 5.7.1 is unavailable.'
 }
 else {
-    $pesterPowerShell = [PowerShell]::Create()
+    $validationSuitePaths = @(
+        (Join-Path $PSScriptRoot 'tests'),
+        (Join-Path $repositoryRoot 'infra\tests\pester')
+    )
+    $powershellCommand = Get-Command powershell.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($null -eq $powershellCommand) {
+        Add-Failure 'Cannot run integrated repository and infrastructure Pester suites: powershell.exe is unavailable.'
+    }
+    $escapedPesterModulePath = $pesterModule[0].Path.Replace("'", "''")
+    $escapedValidationSuitePaths = @($validationSuitePaths | ForEach-Object {
+        "'$($_.Replace("'", "''"))'"
+    }) -join ', '
+    $pesterCommand = @"
+`$ErrorActionPreference = 'Stop'
+`$pesterPowerShell = [PowerShell]::Create()
+`$pesterOutput = @()
+`$invocationFailed = `$false
+try {
+    [void]`$pesterPowerShell.AddCommand('Import-Module').AddParameter('Name', '$escapedPesterModulePath').AddParameter('Force').AddParameter('ErrorAction', 'Stop')
+    [void]`$pesterPowerShell.AddStatement()
+    [void]`$pesterPowerShell.AddCommand('Pester\Invoke-Pester').AddParameter('Path', @($escapedValidationSuitePaths)).AddParameter('Output', 'None').AddParameter('PassThru')
+    `$pesterOutput = @(`$pesterPowerShell.Invoke())
+}
+catch {
+    `$invocationFailed = `$true
+}
+`$pesterResults = @(`$pesterOutput | Where-Object {
+    `$null -ne `$_ -and
+    `$null -ne `$_.PSObject.Properties['Result'] -and
+    `$null -ne `$_.PSObject.Properties['FailedCount']
+})
+`$result = if (`$pesterResults.Count -eq 1) { `$pesterResults[0] } else { `$null }
+`$summary = [ordered]@{
+    Result = if (`$null -ne `$result) { `$result.Result.ToString() } else { 'Missing' }
+    TotalCount = if (`$null -ne `$result) { `$result.TotalCount } else { 0 }
+    PassedCount = if (`$null -ne `$result) { `$result.PassedCount } else { 0 }
+    FailedCount = if (`$null -ne `$result) { `$result.FailedCount } else { 0 }
+    SkippedCount = if (`$null -ne `$result) { `$result.SkippedCount } else { 0 }
+    HadErrors = (`$invocationFailed -or `$pesterPowerShell.HadErrors)
+    ErrorCount = @(`$pesterPowerShell.Streams.Error).Count
+}
+Write-Output ('__PESTER_RESULT__' + (`$summary | ConvertTo-Json -Compress))
+`$pesterPowerShell.Dispose()
+if (`$pesterResults.Count -ne 1 -or `$summary.HadErrors -or `$summary.Result -cne 'Passed' -or `$summary.FailedCount -ne 0) { exit 1 }
+"@
+    $pesterProcess = $null
     try {
-        [void]$pesterPowerShell.AddCommand('Import-Module').AddParameter(
-            'Name',
-            $pesterModule[0].Path
-        ).AddParameter('Force').AddParameter('ErrorAction', 'Stop')
-        [void]$pesterPowerShell.AddStatement()
-        [void]$pesterPowerShell.AddCommand('Pester\Invoke-Pester').AddParameter(
-            'Path',
-            (Join-Path $PSScriptRoot 'tests')
-        ).AddParameter('Output', 'None').AddParameter('PassThru')
-        $pesterOutput = @($pesterPowerShell.Invoke())
-        if ($pesterPowerShell.HadErrors) {
-            $pesterErrorSummary = @($pesterPowerShell.Streams.Error | ForEach-Object {
-                $_.Exception.Message
-            }) -join '; '
-            Add-Failure "Cannot run repository Pester suite under version 5.7.1: $pesterErrorSummary"
+        if ($null -eq $powershellCommand) { throw 'powershell.exe is unavailable.' }
+        $pesterProcessStartInfo = [Diagnostics.ProcessStartInfo]::new()
+        $pesterProcessStartInfo.FileName = $powershellCommand.Source
+        $pesterProcessStartInfo.Arguments = '-NoProfile -ExecutionPolicy Bypass -EncodedCommand {0}' -f `
+            [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($pesterCommand))
+        $pesterProcessStartInfo.WorkingDirectory = $repositoryRoot
+        $pesterProcessStartInfo.UseShellExecute = $false
+        $pesterProcessStartInfo.CreateNoWindow = $true
+        $pesterProcessStartInfo.RedirectStandardOutput = $true
+        $pesterProcessStartInfo.RedirectStandardError = $true
+        $pesterProcess = [Diagnostics.Process]::new()
+        $pesterProcess.StartInfo = $pesterProcessStartInfo
+        [void]$pesterProcess.Start()
+        $pesterStandardOutputTask = $pesterProcess.StandardOutput.ReadToEndAsync()
+        $pesterStandardErrorTask = $pesterProcess.StandardError.ReadToEndAsync()
+        $pesterProcess.WaitForExit()
+        $pesterStandardOutput = $pesterStandardOutputTask.Result
+        $pesterStandardError = $pesterStandardErrorTask.Result
+        $pesterResultLines = @($pesterStandardOutput -split "`r?`n" | Where-Object {
+            $_.StartsWith('__PESTER_RESULT__', [StringComparison]::Ordinal)
+        })
+        if ($pesterResultLines.Count -ne 1) {
+            $capturedError = if ([string]::IsNullOrWhiteSpace($pesterStandardError)) {
+                'no result summary was returned'
+            }
+            else {
+                $pesterStandardError.Trim()
+            }
+            Add-Failure "Cannot run integrated repository and infrastructure Pester suites under version 5.7.1: $capturedError"
         }
         else {
-            $pesterResults = @($pesterOutput | Where-Object {
-                $null -ne $_ -and
-                $null -ne $_.PSObject.Properties['Result'] -and
-                $null -ne $_.PSObject.Properties['FailedCount']
-            })
-            $pesterResult = if ($pesterResults.Count -eq 1) { $pesterResults[0] } else { $null }
-            if ($pesterResults.Count -ne 1 -or
-                $pesterResult.Result.ToString() -cne 'Passed' -or
+            $pesterResult = $pesterResultLines[0].Substring('__PESTER_RESULT__'.Length) | ConvertFrom-Json
+            if ($pesterProcess.ExitCode -ne 0 -or
+                $pesterResult.PSObject.Properties.Name -notcontains 'HadErrors' -or
+                $pesterResult.HadErrors -ne $false -or
+                $pesterResult.Result -cne 'Passed' -or
                 $pesterResult.FailedCount -ne 0) {
-                $resultSummary = if ($pesterResults.Count -ne 1) {
-                    "expected one result, found $($pesterResults.Count)"
-                }
-                else {
-                    'result={0}, total={1}, passed={2}, failed={3}, skipped={4}' -f
-                        $pesterResult.Result,
-                        $pesterResult.TotalCount,
-                        $pesterResult.PassedCount,
-                        $pesterResult.FailedCount,
-                        $pesterResult.SkippedCount
-                }
-                Add-Failure "Repository Pester suite did not pass under version 5.7.1: $resultSummary"
+                $resultSummary = 'result={0}, total={1}, passed={2}, failed={3}, skipped={4}, hadErrors={5}, errorCount={6}' -f
+                    $pesterResult.Result,
+                    $pesterResult.TotalCount,
+                    $pesterResult.PassedCount,
+                    $pesterResult.FailedCount,
+                    $pesterResult.SkippedCount,
+                    $pesterResult.HadErrors,
+                    $pesterResult.ErrorCount
+                Add-Failure "Integrated repository and infrastructure Pester suites did not pass under version 5.7.1: $resultSummary"
             }
         }
     }
     catch {
-        Add-Failure "Cannot run repository Pester suite under version 5.7.1: $($_.Exception.Message)"
+        Add-Failure "Cannot run integrated repository and infrastructure Pester suites under version 5.7.1: $($_.Exception.Message)"
     }
     finally {
-        $pesterPowerShell.Dispose()
+        if ($null -ne $pesterProcess) { $pesterProcess.Dispose() }
+    }
+}
+
+$azCommand = Get-Command az -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($null -eq $azCommand) {
+    Add-Failure 'Azure CLI with the Bicep command is unavailable.'
+}
+else {
+    $phase3BicepPath = Join-Path $repositoryRoot 'infra\src\bicep\main.bicep'
+    if (Test-Path -LiteralPath $phase3BicepPath -PathType Leaf) {
+        try {
+            [string[]]$bicepBuildOutput = @(& $azCommand.Source bicep build --file $phase3BicepPath --stdout 2>&1 |
+                ForEach-Object { $_.ToString() })
+            $bicepBuildExitCode = $LASTEXITCODE
+            if ($bicepBuildExitCode -ne 0 -or [string]::IsNullOrWhiteSpace(($bicepBuildOutput -join "`n"))) {
+                Add-Failure 'Local Phase 3 Bicep build failed.'
+            }
+        }
+        catch {
+            Add-Failure "Cannot run the local Phase 3 Bicep build: $($_.Exception.Message)"
+        }
     }
 }
 

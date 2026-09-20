@@ -30,7 +30,9 @@ Use `-WhatIf` with the setter to review the intended insertion without changing 
 
 ## Repository Validation
 
-[verify-repository-setup.ps1](verify-repository-setup.ps1) validates repository structure, the protected Superpowers runtime and manifest, the exact issue-form byte snapshot, Git index and working-tree coherence, documentation metadata, governance artifacts, and the repository Pester contracts. It requires Git and exact Pester 5.7.1.
+[verify-repository-setup.ps1](verify-repository-setup.ps1) validates repository structure, the protected Superpowers runtime and manifest, the exact issue-form byte snapshot, Git index and working-tree coherence, documentation metadata, governance artifacts, and the integrated repository and infrastructure Pester contracts. Its Phase 3 checks cover required infrastructure paths, the Tenant 1 manifest and naming contract, five-service discovery, prohibited data, immutable GitHub OIDC identity, the Bicep resource allowlist and local build, pinned workflow actions and permissions, documentation links, rejected placeholders, and the absence of Tenant 2 and Tenant 3 manifests.
+
+Run it from the repository root with Git, Windows PowerShell, exact Pester 5.7.1, and Azure CLI with the Bicep command installed locally. The validator does not authenticate or call Azure services.
 
 Success exits `0` and writes exactly one line: `Repository setup validation passed.` Failure writes `ERROR:` lines plus a summary and exits nonzero. The corresponding CI entry point is [validate-repository.yml](../workflows/validate-repository.yml).
 
@@ -40,7 +42,9 @@ Run the full suite from the repository root in Windows PowerShell with exact Pes
 
 ```powershell
 Import-Module Pester -RequiredVersion 5.7.1 -Force
-Invoke-Pester .github/cli/tests -Output Detailed -CI
+Invoke-Pester .github/cli/tests,infra/tests/pester -Output Detailed -CI
+powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-setup.ps1
+az bicep build --file infra/src/bicep/main.bicep --stdout
 ```
 
 `-CI` ensures that any failed contract test fails the calling step.
