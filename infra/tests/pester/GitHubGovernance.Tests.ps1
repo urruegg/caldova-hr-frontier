@@ -37,6 +37,28 @@ Describe 'Final GitHub governance activation' {
             $Value | ConvertTo-Json -Depth 30 | ConvertFrom-Json
         }
 
+        function script:New-TestTenantManifestText {
+            param(
+                [string]$PrincipalObjectId = $script:PrincipalObjectId
+            )
+
+            @"
+@{
+    TenantAlias = 'caldova25156897'
+    TenantId = '$($script:TenantId)'
+    SubscriptionId = '$($script:SubscriptionId)'
+    GitHub = @{
+        EnvironmentName = 'bootstrap-caldova25156897'
+    }
+    Components = @{
+        EntraServicePrincipal = @{
+            Id = '$PrincipalObjectId'
+        }
+    }
+}
+"@
+        }
+
         function script:New-TestBootstrapEvidence {
             $verifiedUtc = [datetime]::UtcNow.AddMinutes(-1).ToString('o')
             [ordered]@{
@@ -142,6 +164,9 @@ Describe 'Final GitHub governance activation' {
                 UserIdText = [string]$script:UserId
                 AdminText = 'true'
                 MainSha = $script:MainSha
+                MainRefReadCount = 0
+                BeforeSecondSnapshot = $null
+                TenantManifestText = New-TestTenantManifestText
                 AzureAccount = [ordered]@{
                     id = $script:SubscriptionId
                     tenantId = $script:TenantId
@@ -151,6 +176,7 @@ Describe 'Final GitHub governance activation' {
                     appId = $script:ClientId
                     servicePrincipalType = 'Application'
                 }
+                ExactRoleAssignments = [ordered]@{}
                 RoleAssignments = @()
                 Runs = [ordered]@{
                     '101' = [ordered]@{
@@ -179,9 +205,11 @@ Describe 'Final GitHub governance activation' {
                     }
                 }
                 Rulesets = @()
+                AdditionalRulesetPages = @()
                 RulesetDetails = [ordered]@{}
                 NextRulesetId = [long]321
                 PreserveRulesetReadBackDrift = $false
+                AfterMutation = $null
                 Environment = [ordered]@{
                     id = 91234
                     name = 'bootstrap-caldova25156897'
@@ -284,6 +312,15 @@ Describe 'Final GitHub governance activation' {
                         return [pscustomobject]@{ ExitCode = 0; StdOut = ($State.ServicePrincipal | ConvertTo-Json -Depth 10 -Compress); StdErr = '' }
                     }
 
+                    if ($ArgumentList.Count -eq 8 -and $ArgumentList[0] -ceq 'rest' -and $ArgumentList[1] -ceq '--method' -and $ArgumentList[2] -ceq 'get' -and $ArgumentList[3] -ceq '--url' -and $ArgumentList[4] -match '^(.+)\?api-version=2022-04-01$' -and $ArgumentList[5] -ceq '--output' -and $ArgumentList[6] -ceq 'json' -and $ArgumentList[7] -ceq '--only-show-errors') {
+                        $assignmentId = [string]$Matches[1]
+                        if ($State.ExactRoleAssignments.Contains($assignmentId)) {
+                            return [pscustomobject]@{ ExitCode = 0; StdOut = ($State.ExactRoleAssignments[$assignmentId] | ConvertTo-Json -Depth 10 -Compress); StdErr = ''; StatusCode = 200; ErrorCode = '' }
+                        }
+
+                        return [pscustomobject]@{ ExitCode = 1; StdOut = ''; StdErr = 'RoleAssignmentNotFound'; StatusCode = 404; ErrorCode = 'RoleAssignmentNotFound' }
+                    }
+
                     if (& $testExactArguments -Actual $ArgumentList -Expected @('role', 'assignment', 'list', '--assignee-object-id', $principalObjectId, '--scope', $scope, '--all', '--output', 'json', '--only-show-errors')) {
                         return [pscustomobject]@{ ExitCode = 0; StdOut = (ConvertTo-Json -InputObject @($State.RoleAssignments) -Depth 20 -Compress); StdErr = '' }
                     }
@@ -304,7 +341,26 @@ Describe 'Final GitHub governance activation' {
                 }
 
                 if (& $testExactArguments -Actual $ArgumentList -Expected @('api', 'repos/urruegg/caldova-hr-frontier/git/ref/heads/main')) {
+                    $State.MainRefReadCount = [int]$State.MainRefReadCount + 1
+                    if ($State.MainRefReadCount -eq 2 -and $State.BeforeSecondSnapshot) {
+                        & $State.BeforeSecondSnapshot $State
+                    }
                     return [pscustomobject]@{ ExitCode = 0; StdOut = ([ordered]@{ object = [ordered]@{ sha = [string]$State.MainSha } } | ConvertTo-Json -Depth 5 -Compress); StdErr = '' }
+                }
+
+                if (& $testExactArguments -Actual $ArgumentList -Expected @('api', "repos/urruegg/caldova-hr-frontier/contents/infra/src/config/tenants/caldova25156897.psd1?ref=$($State.MainSha)")) {
+                    $manifestBytes = [System.Text.Encoding]::UTF8.GetBytes([string]$State.TenantManifestText)
+                    return [pscustomobject]@{
+                        ExitCode = 0
+                        StdOut = ([ordered]@{
+                            type = 'file'
+                            path = 'infra/src/config/tenants/caldova25156897.psd1'
+                            encoding = 'base64'
+                            size = $manifestBytes.Length
+                            content = [Convert]::ToBase64String($manifestBytes)
+                        } | ConvertTo-Json -Depth 10 -Compress)
+                        StdErr = ''
+                    }
                 }
 
                 if ($ArgumentList.Count -eq 2 -and $ArgumentList[0] -ceq 'api' -and $ArgumentList[1] -match '^repos/urruegg/caldova-hr-frontier/actions/runs/([0-9]+)$') {
@@ -316,8 +372,13 @@ Describe 'Final GitHub governance activation' {
                     return [pscustomobject]@{ ExitCode = 0; StdOut = ($State.Runs[$runId] | ConvertTo-Json -Depth 20 -Compress); StdErr = '' }
                 }
 
-                if (& $testExactArguments -Actual $ArgumentList -Expected @('api', 'repos/urruegg/caldova-hr-frontier/rulesets?includes_parents=false')) {
-                    return [pscustomobject]@{ ExitCode = 0; StdOut = (ConvertTo-Json -InputObject @($State.Rulesets) -Depth 20 -Compress); StdErr = '' }
+                if (& $testExactArguments -Actual $ArgumentList -Expected @('api', '--paginate', '--slurp', 'repos/urruegg/caldova-hr-frontier/rulesets?includes_parents=false&per_page=100')) {
+                    $pageJson = [System.Collections.Generic.List[string]]::new()
+                    $pageJson.Add((ConvertTo-Json -InputObject @($State.Rulesets) -Depth 20 -Compress)) | Out-Null
+                    foreach ($page in @($State.AdditionalRulesetPages)) {
+                        $pageJson.Add((ConvertTo-Json -InputObject @($page) -Depth 20 -Compress)) | Out-Null
+                    }
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = '[' + ($pageJson -join ',') + ']'; StdErr = '' }
                 }
 
                 if ($ArgumentList.Count -eq 2 -and $ArgumentList[0] -ceq 'api' -and $ArgumentList[1] -match '^repos/urruegg/caldova-hr-frontier/rulesets/([0-9]+)$') {
@@ -362,6 +423,19 @@ Describe 'Final GitHub governance activation' {
                     }
 
                     $State.RulesetDetails[[string]$rulesetId] = $detail
+                    $summary = [ordered]@{
+                        id = $rulesetId
+                        name = [string]$payload.name
+                        target = [string]$payload.target
+                        source_type = 'Repository'
+                        source = 'urruegg/caldova-hr-frontier'
+                        enforcement = [string]$payload.enforcement
+                    }
+                    $otherSummaries = @($State.Rulesets | Where-Object { [long]$_.id -ne $rulesetId })
+                    $State.Rulesets = @($otherSummaries) + @($summary)
+                    if ($State.AfterMutation) {
+                        & $State.AfterMutation $State
+                    }
                     return [pscustomobject]@{ ExitCode = 0; StdOut = ([ordered]@{ id = $rulesetId } | ConvertTo-Json -Compress); StdErr = '' }
                 }
 
@@ -398,35 +472,61 @@ Describe 'Final GitHub governance activation' {
                 [switch]$WhatIf
             )
 
-            $tenantId = $script:TenantId
-            $subscriptionId = $script:SubscriptionId
-            $principalObjectId = $script:PrincipalObjectId
-            $tenantConfigurationLoader = {
-                [ordered]@{
-                    TenantAlias = 'caldova25156897'
-                    TenantId = $tenantId
-                    SubscriptionId = $subscriptionId
-                    GitHub = [ordered]@{ EnvironmentName = 'bootstrap-caldova25156897' }
-                    Components = [ordered]@{
-                        EntraServicePrincipal = [ordered]@{ Id = $principalObjectId }
-                    }
-                }
-            }.GetNewClosure()
             $parameters = @{
                 Repository = $Repository
                 ValidatorRunId = $ValidatorRunId
                 BootstrapRunId = $BootstrapRunId
                 BootstrapEvidencePath = $EvidencePath
                 DesiredStatePath = $DesiredStatePath
-                TenantConfigurationLoader = $tenantConfigurationLoader
-                NativeCommandRunner = $Harness.Runner
                 Confirm = $false
             }
             if ($WhatIf) {
                 $parameters.WhatIf = $true
             }
 
-            & $script:ScriptPath @parameters
+            $nativeRunner = $Harness.Runner
+            $ghShim = {
+                $result = & $nativeRunner -FilePath 'gh' -ArgumentList ([string[]]@($args))
+                $global:LASTEXITCODE = [int]$result.ExitCode
+                if (-not [string]::IsNullOrEmpty([string]$result.StdOut)) {
+                    Write-Output ([string]$result.StdOut)
+                }
+                if (-not [string]::IsNullOrEmpty([string]$result.StdErr)) {
+                    Write-Output ([string]$result.StdErr)
+                }
+            }.GetNewClosure()
+            $azShim = {
+                $result = & $nativeRunner -FilePath 'az' -ArgumentList ([string[]]@($args))
+                $global:LASTEXITCODE = [int]$result.ExitCode
+                if (-not [string]::IsNullOrEmpty([string]$result.StdOut)) {
+                    Write-Output ([string]$result.StdOut)
+                }
+                if (-not [string]::IsNullOrEmpty([string]$result.StdErr)) {
+                    Write-Output ([string]$result.StdErr)
+                }
+            }.GetNewClosure()
+
+            $existingGh = Get-Item -LiteralPath Function:\global:gh -ErrorAction SilentlyContinue
+            $existingAz = Get-Item -LiteralPath Function:\global:az -ErrorAction SilentlyContinue
+            try {
+                Set-Item -LiteralPath Function:\global:gh -Value $ghShim -Force
+                Set-Item -LiteralPath Function:\global:az -Value $azShim -Force
+                & $script:ScriptPath @parameters
+            }
+            finally {
+                if ($existingGh) {
+                    Set-Item -LiteralPath Function:\global:gh -Value $existingGh.ScriptBlock -Force
+                }
+                else {
+                    Remove-Item -LiteralPath Function:\global:gh -Force -ErrorAction SilentlyContinue
+                }
+                if ($existingAz) {
+                    Set-Item -LiteralPath Function:\global:az -Value $existingAz.ScriptBlock -Force
+                }
+                else {
+                    Remove-Item -LiteralPath Function:\global:az -Force -ErrorAction SilentlyContinue
+                }
+            }
         }
 
         function script:Set-ExactExistingRuleset {
@@ -528,16 +628,39 @@ Describe 'Final GitHub governance activation' {
             (@('api', 'users/urruegg', '--jq', '.id') -join [char]31),
             (@('api', 'repos/urruegg/caldova-hr-frontier/collaborators/urruegg/permission', '--jq', '.user.permissions.admin') -join [char]31),
             (@('api', 'repos/urruegg/caldova-hr-frontier/git/ref/heads/main') -join [char]31),
+            (@('api', "repos/urruegg/caldova-hr-frontier/contents/infra/src/config/tenants/caldova25156897.psd1?ref=$($script:MainSha)") -join [char]31),
             (@('api', 'repos/urruegg/caldova-hr-frontier/actions/runs/101') -join [char]31),
             (@('api', 'repos/urruegg/caldova-hr-frontier/actions/runs/202') -join [char]31),
-            (@('api', 'repos/urruegg/caldova-hr-frontier/rulesets?includes_parents=false') -join [char]31),
+            (@('api', '--paginate', '--slurp', 'repos/urruegg/caldova-hr-frontier/rulesets?includes_parents=false&per_page=100') -join [char]31),
             (@('api', 'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897') -join [char]31),
             (@('api', 'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897/deployment-branch-policies') -join [char]31),
             (@('api', 'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897/variables') -join [char]31),
             (@('account', 'show', '--output', 'json', '--only-show-errors') -join [char]31),
             (@('ad', 'sp', 'show', '--id', $script:ClientId, '--output', 'json', '--only-show-errors') -join [char]31),
+            (@('rest', '--method', 'get', '--url', "$($script:Scope)/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?api-version=2022-04-01", '--output', 'json', '--only-show-errors') -join [char]31),
+            (@('rest', '--method', 'get', '--url', "$($script:Scope)/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?api-version=2022-04-01", '--output', 'json', '--only-show-errors') -join [char]31),
             (@('role', 'assignment', 'list', '--assignee-object-id', $script:PrincipalObjectId, '--scope', $script:Scope, '--all', '--output', 'json', '--only-show-errors') -join [char]31)
         )
+    }
+
+    It 'removes the current-main manifest temporary file under WhatIf' {
+        $state = New-TestGovernanceState
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+        $originalTemp = $env:TEMP
+        $originalTmp = $env:TMP
+        try {
+            $env:TEMP = $TestDrive
+            $env:TMP = $TestDrive
+
+            $null = Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf
+
+            @(Get-ChildItem -LiteralPath $TestDrive -Filter '*.psd1' -File) | Should -HaveCount 0
+        }
+        finally {
+            $env:TEMP = $originalTemp
+            $env:TMP = $originalTmp
+        }
     }
 
     It 'creates the absent ruleset with one exact BOM-free POST body and verifies read-back' {
@@ -598,6 +721,22 @@ Describe 'Final GitHub governance activation' {
         $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
 
         { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath } | Should -Throw '*ruleset read-back*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 1
+    }
+
+    It 'fails after mutation when another active ruleset concurrently targets main' {
+        $state = New-TestGovernanceState
+        $conflict = New-ExactRulesetDetail -Id 654
+        $conflict.name = 'concurrent-main'
+        $state.AfterMutation = {
+            param($currentState)
+            $currentState.Rulesets += [ordered]@{ id = 654; name = 'concurrent-main'; target = 'branch'; source_type = 'Repository'; source = 'urruegg/caldova-hr-frontier'; enforcement = 'active' }
+            $currentState.RulesetDetails['654'] = $conflict
+        }.GetNewClosure()
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath } | Should -Throw '*additional active*main*'
         @(Get-MutationCalls -Harness $harness) | Should -HaveCount 1
     }
 
@@ -688,6 +827,25 @@ Describe 'Final GitHub governance activation' {
         @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
     }
 
+    It 'rejects an exact evidence assignment id reused for a different principal' {
+        $state = New-TestGovernanceState
+        $evidence = New-TestBootstrapEvidence
+        $assignmentId = [string]$evidence.Assignments[0].Id
+        $state.ExactRoleAssignments[$assignmentId] = [ordered]@{
+            id = $assignmentId
+            properties = [ordered]@{
+                principalId = '66666666-6666-6666-6666-666666666666'
+                roleDefinitionId = [string]$evidence.Assignments[0].RoleDefinitionId
+                scope = $script:Scope
+            }
+        }
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value $evidence
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw '*exact bootstrap evidence assignment*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
     It 'rejects a duplicate desired ruleset name before any native command' {
         $desired = Get-Content -Raw -LiteralPath $script:DesiredStatePath | ConvertFrom-Json
         $desired.rulesets = @($desired.rulesets[0], (Copy-TestData -Value $desired.rulesets[0]))
@@ -710,6 +868,38 @@ Describe 'Final GitHub governance activation' {
         $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
 
         { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw '*ambiguous*ruleset*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects a duplicate desired ruleset found on a later API page' {
+        $state = New-TestGovernanceState
+        $state.Rulesets = @(
+            [ordered]@{ id = 321; name = 'main'; target = 'branch'; source_type = 'Repository'; source = $script:Repository; enforcement = 'active' }
+        )
+        $state.AdditionalRulesetPages = @(
+            @([ordered]@{ id = 322; name = 'main'; target = 'branch'; source_type = 'Repository'; source = $script:Repository; enforcement = 'active' })
+        )
+        $state.RulesetDetails['321'] = New-ExactRulesetDetail -Id 321
+        $state.RulesetDetails['322'] = New-ExactRulesetDetail -Id 322
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw '*ambiguous*ruleset*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects a differently named active ruleset that also applies to main' {
+        $state = New-TestGovernanceState
+        $state.Rulesets = @(
+            [ordered]@{ id = 654; name = 'legacy-main'; target = 'branch'; source_type = 'Repository'; source = $script:Repository; enforcement = 'active' }
+        )
+        $conflictingRuleset = New-ExactRulesetDetail -Id 654
+        $conflictingRuleset.name = 'legacy-main'
+        $state.RulesetDetails['654'] = $conflictingRuleset
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw '*additional active*main*'
         @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
     }
 
@@ -815,6 +1005,100 @@ Describe 'Final GitHub governance activation' {
         $evidencePath = Write-TestJson -Value $evidence
 
         { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw '*evidence HeadSha*current main*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects a reviewed service principal mismatch in the exact current-main manifest' {
+        $state = New-TestGovernanceState
+        $state.TenantManifestText = New-TestTenantManifestText -PrincipalObjectId '66666666-6666-6666-6666-666666666666'
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw '*reviewed service principal object*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'never permits an injected native runner to reach a ruleset mutation' {
+        $state = New-TestGovernanceState
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        @((Get-Command -Name $script:ScriptPath).Parameters.Keys) | Should -Not -Contain 'NativeCommandRunner'
+        {
+            & $script:ScriptPath `
+                -Repository $script:Repository `
+                -ValidatorRunId $script:ValidatorRunId `
+                -BootstrapRunId $script:BootstrapRunId `
+                -BootstrapEvidencePath $evidencePath `
+                -DesiredStatePath $script:DesiredStatePath `
+                -NativeCommandRunner $harness.Runner `
+                -Confirm:$false
+        } | Should -Throw '*NativeCommandRunner*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects current-main movement during the approval window' {
+        $state = New-TestGovernanceState
+        $state.BeforeSecondSnapshot = {
+            param($currentState)
+            $currentState.MainSha = '2222222222222222222222222222222222222222'
+        }
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath } | Should -Throw '*current main*changed*approval*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects Environment drift during the approval window' {
+        $state = New-TestGovernanceState
+        $state.BeforeSecondSnapshot = {
+            param($currentState)
+            ($currentState.EnvironmentVariables.variables | Where-Object name -CEQ 'AZURE_CLIENT_ID').value = '66666666-6666-6666-6666-666666666666'
+        }
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath } | Should -Throw '*Environment client id changed*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects a temporary role re-grant during the approval window' {
+        $state = New-TestGovernanceState
+        $state.BeforeSecondSnapshot = {
+            param($currentState)
+            $currentState.RoleAssignments = @(
+                [ordered]@{
+                    id = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/cccccccc-cccc-cccc-cccc-cccccccccccc'
+                    principalId = '55555555-5555-5555-5555-555555555555'
+                    roleDefinitionName = 'Contributor'
+                    roleDefinitionId = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
+                    scope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
+                }
+            )
+        }
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath } | Should -Throw '*temporary Azure role*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects a conflicting main ruleset created during the approval window' {
+        $state = New-TestGovernanceState
+        $conflict = New-ExactRulesetDetail -Id 654
+        $conflict.name = 'concurrent-main'
+        $state.BeforeSecondSnapshot = {
+            param($currentState)
+            $currentState.Rulesets = @(
+                [ordered]@{ id = 654; name = 'concurrent-main'; target = 'branch'; source_type = 'Repository'; source = 'urruegg/caldova-hr-frontier'; enforcement = 'active' }
+            )
+            $currentState.RulesetDetails['654'] = $conflict
+        }.GetNewClosure()
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath } | Should -Throw '*additional active*main*'
         @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
     }
 

@@ -1018,13 +1018,14 @@ Create a closed JSON schema and `main-ruleset.json` containing the exact setting
 `Enable-GitHubGovernance.ps1` accepts `-Repository`, `-ValidatorRunId`, `-BootstrapRunId`, `-BootstrapEvidencePath`, and `-DesiredStatePath`. The cleanup evidence is a reviewed, out-of-repository JSON record containing the numeric bootstrap run ID, its exact `head_sha`, the reviewed Tenant 1 service-principal object ID and subscription scope, and both exact temporary assignment IDs with current `Absent` read-back results. It:
 
 1. verifies both run IDs belong to the current `main` commit in this repository, use approved events, concluded `success`, and match the expected workflows;
-2. binds the normalized cleanup evidence to that bootstrap run and commit, reloads the reviewed Tenant 1 service-principal ID from the manifest, and independently verifies through read-only Azure calls that both exact assignment IDs and both temporary roles are absent;
-3. reads current rulesets and fails on ambiguity;
+2. loads the Tenant 1 manifest from the exact current-`main` GitHub blob, binds the normalized cleanup evidence to that bootstrap run, commit, and reviewed service principal, then independently verifies through read-only Azure calls that both exact assignment resource IDs and both temporary roles are absent;
+3. paginates every repository ruleset, fails on duplicate desired names, and rejects any additional active branch ruleset that applies to `main`;
 4. displays the exact proposed GitHub mutation under `-WhatIf`;
-5. creates or updates the ruleset only under ShouldProcess;
-6. reads back the ruleset and the reviewed Tenant 1 bootstrap Environment; Tenant 2 and Tenant 3 remain absent until separately approved onboarding;
-7. compares every reviewed field and fails on drift;
-8. never enables direct-push bypass.
+5. after `ShouldProcess` approval, repeats every mutable GitHub, manifest, evidence, Environment, and Azure read and aborts on drift;
+6. creates or updates the ruleset only after that second validation pass;
+7. reads back the exact ruleset and paginated repository ruleset inventory, plus the reviewed Tenant 1 bootstrap Environment; Tenant 2 and Tenant 3 remain absent until separately approved onboarding;
+8. compares every reviewed field and fails on drift;
+9. never enables direct-push bypass and exposes no injectable command or manifest loader parameters.
 
 - [ ] **Step 5: Run governance tests to verify GREEN**
 

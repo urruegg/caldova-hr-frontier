@@ -13,13 +13,7 @@ param(
     [string]$BootstrapEvidencePath,
 
     [Parameter(Mandatory)]
-    [string]$DesiredStatePath,
-
-    [Parameter(DontShow)]
-    [scriptblock]$TenantConfigurationLoader,
-
-    [Parameter(DontShow)]
-    [scriptblock]$NativeCommandRunner
+    [string]$DesiredStatePath
 )
 
 Set-StrictMode -Version Latest
@@ -456,7 +450,49 @@ function Get-ReviewedPrincipalObjectId {
     [string]$servicePrincipalTable.Id
 }
 
-function Invoke-NativeCommand {
+function Import-CurrentMainTenantConfiguration {
+    param(
+        [Parameter(Mandatory)][scriptblock]$Runner,
+        [Parameter(Mandatory)][string]$MainSha
+    )
+
+    $manifestPath = 'infra/src/config/tenants/caldova25156897.psd1'
+    $manifestResponse = Invoke-GhJson -Runner $Runner -ArgumentList @('api', "repos/$expectedRepository/contents/$($manifestPath)?ref=$MainSha") -Context 'Current-main Tenant 1 manifest'
+    if ([string]$manifestResponse.type -cne 'file' -or
+        [string]$manifestResponse.path -cne $manifestPath -or
+        [string]$manifestResponse.encoding -cne 'base64' -or
+        [string]::IsNullOrWhiteSpace([string]$manifestResponse.content)) {
+        throw 'Current-main Tenant 1 manifest response does not identify the exact reviewed file.'
+    }
+
+    try {
+        $manifestBytes = [Convert]::FromBase64String(([string]$manifestResponse.content -replace '\s', ''))
+    }
+    catch {
+        throw 'Current-main Tenant 1 manifest content is not valid base64.'
+    }
+    if ($manifestBytes.Length -eq 0 -or
+        -not (Test-IntegerValue -Value $manifestResponse.size) -or
+        [long]$manifestResponse.size -ne $manifestBytes.Length) {
+        throw 'Current-main Tenant 1 manifest size does not match the reviewed file response.'
+    }
+
+    $temporaryPath = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString() + '.psd1')
+    try {
+        [System.IO.File]::WriteAllBytes($temporaryPath, $manifestBytes)
+        Import-PowerShellDataFile -LiteralPath $temporaryPath
+    }
+    catch {
+        throw 'Current-main Tenant 1 manifest is not a valid PowerShell data file.'
+    }
+    finally {
+        if (Test-Path -LiteralPath $temporaryPath) {
+            [System.IO.File]::Delete($temporaryPath)
+        }
+    }
+}
+
+function Invoke-NativeCommandResult {
     param(
         [Parameter(Mandatory)][scriptblock]$Runner,
         [string]$FilePath = 'gh',
@@ -469,14 +505,45 @@ function Invoke-NativeCommand {
         throw 'NativeCommandRunner must return ExitCode.'
     }
 
-    $exitCode = [int]$resultTable.ExitCode
-    $stdout = if ($resultTable.ContainsKey('StdOut')) { [string]$resultTable.StdOut } else { '' }
-    $stderr = if ($resultTable.ContainsKey('StdErr')) { [string]$resultTable.StdErr } else { '' }
-    if ($exitCode -ne 0) {
-        throw "gh command failed with exit code $exitCode. $stderr"
+    [pscustomobject]@{
+        ExitCode = [int]$resultTable.ExitCode
+        StdOut = if ($resultTable.ContainsKey('StdOut')) { [string]$resultTable.StdOut } else { '' }
+        StdErr = if ($resultTable.ContainsKey('StdErr')) { [string]$resultTable.StdErr } else { '' }
+        StatusCode = if ($resultTable.ContainsKey('StatusCode')) { $resultTable.StatusCode } else { $null }
+        ErrorCode = if ($resultTable.ContainsKey('ErrorCode')) { [string]$resultTable.ErrorCode } else { '' }
+    }
+}
+
+function Invoke-NativeCommand {
+    param(
+        [Parameter(Mandatory)][scriptblock]$Runner,
+        [string]$FilePath = 'gh',
+        [Parameter(Mandatory)][string[]]$ArgumentList
+    )
+
+    $result = Invoke-NativeCommandResult -Runner $Runner -FilePath $FilePath -ArgumentList $ArgumentList
+    if ($result.ExitCode -ne 0) {
+        throw "$FilePath command failed with exit code $($result.ExitCode). $($result.StdErr) $($result.StdOut)"
     }
 
-    $stdout
+    $result.StdOut
+}
+
+function Test-ExactRoleAssignmentAbsentResult {
+    param(
+        [Parameter(Mandatory)][object]$Result
+    )
+
+    if ($null -ne $Result.StatusCode -and [int]$Result.StatusCode -eq 404) {
+        return $true
+    }
+    if ([string]$Result.ErrorCode -in @('RoleAssignmentNotFound', 'ResourceNotFound')) {
+        return $true
+    }
+
+    $combinedOutput = "{0}`n{1}" -f [string]$Result.StdOut, [string]$Result.StdErr
+    $combinedOutput -match '(?:\(|"code"\s*:\s*")(?:RoleAssignmentNotFound|ResourceNotFound)(?:\)|")' -or
+        $combinedOutput.Trim() -in @('RoleAssignmentNotFound', 'ResourceNotFound')
 }
 
 function Invoke-GhJson {
@@ -497,6 +564,41 @@ function Invoke-GhJson {
     catch {
         throw "$Context returned malformed JSON."
     }
+}
+
+function Invoke-GhPagedJson {
+    param(
+        [Parameter(Mandatory)][scriptblock]$Runner,
+        [Parameter(Mandatory)][string]$Endpoint,
+        [Parameter(Mandatory)][string]$Context
+    )
+
+    $text = Invoke-NativeCommand -Runner $Runner -FilePath 'gh' -ArgumentList @('api', '--paginate', '--slurp', $Endpoint)
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        throw "$Context returned no JSON."
+    }
+
+    try {
+        $pages = $text | ConvertFrom-Json
+    }
+    catch {
+        throw "$Context returned malformed paginated JSON."
+    }
+    if ($pages -isnot [System.Array]) {
+        throw "$Context must return an array of pages."
+    }
+
+    $items = [System.Collections.Generic.List[object]]::new()
+    foreach ($page in @($pages)) {
+        if ($page -isnot [System.Array]) {
+            throw "$Context must return each page as an array."
+        }
+        foreach ($item in @($page)) {
+            $items.Add($item) | Out-Null
+        }
+    }
+
+    $items.ToArray()
 }
 
 function Invoke-AzJson {
@@ -711,6 +813,94 @@ function Test-RulesetReadBack {
     ($reviewedPayload | ConvertTo-Json -Depth 30 -Compress) -ceq ($ExpectedPayload | ConvertTo-Json -Depth 30 -Compress)
 }
 
+function Test-RefPatternMatchesMain {
+    param(
+        [Parameter(Mandatory)][string]$Pattern
+    )
+
+    if ($Pattern -ceq '~DEFAULT_BRANCH') {
+        return $true
+    }
+    if ($Pattern.StartsWith('~', [System.StringComparison]::Ordinal)) {
+        throw "Unsupported repository ruleset ref pattern '$Pattern'."
+    }
+
+    'refs/heads/main' -clike $Pattern
+}
+
+function Test-RulesetAppliesToMain {
+    param(
+        [Parameter(Mandatory)][object]$Ruleset
+    )
+
+    if ([string]$Ruleset.target -cne 'branch') {
+        return $false
+    }
+
+    $include = @($Ruleset.conditions.ref_name.include)
+    $exclude = @($Ruleset.conditions.ref_name.exclude)
+    if ($include.Count -eq 0) {
+        throw 'Active repository branch ruleset has no included ref patterns.'
+    }
+
+    $included = @($include | Where-Object { Test-RefPatternMatchesMain -Pattern ([string]$_) }).Count -gt 0
+    $excluded = @($exclude | Where-Object { Test-RefPatternMatchesMain -Pattern ([string]$_) }).Count -gt 0
+    $included -and -not $excluded
+}
+
+function Get-RepositoryRulesetState {
+    param(
+        [Parameter(Mandatory)][scriptblock]$Runner,
+        [Parameter(Mandatory)][object]$DesiredRuleset,
+        [Parameter(Mandatory)][object]$ExpectedPayload
+    )
+
+    $rulesets = @(Invoke-GhPagedJson -Runner $Runner -Endpoint "repos/$expectedRepository/rulesets?includes_parents=false&per_page=100" -Context 'Repository ruleset list')
+    $nameMatches = @($rulesets | Where-Object { [string]$_.name -ceq [string]$DesiredRuleset.name })
+    foreach ($nameMatch in $nameMatches) {
+        if ([string]$nameMatch.source_type -cne 'Repository' -or [string]$nameMatch.source -cne $expectedRepository) {
+            throw 'Desired ruleset name matched an unexpected non-repository source.'
+        }
+    }
+    if ($nameMatches.Count -gt 1) {
+        throw 'Repository ruleset lookup is ambiguous for the desired ruleset name and repository source.'
+    }
+
+    $existingRulesetId = $null
+    $existingRulesetExact = $false
+    foreach ($rulesetSummary in $rulesets) {
+        if ([string]$rulesetSummary.source_type -cne 'Repository' -or [string]$rulesetSummary.source -cne $expectedRepository) {
+            throw 'Repository ruleset list returned an unexpected non-repository source.'
+        }
+        if (-not (Test-IntegerValue -Value $rulesetSummary.id) -or [long]$rulesetSummary.id -le 0) {
+            throw 'Repository ruleset list returned an invalid id.'
+        }
+
+        $isDesiredName = [string]$rulesetSummary.name -ceq [string]$DesiredRuleset.name
+        $isActiveBranchRuleset = [string]$rulesetSummary.target -ceq 'branch' -and [string]$rulesetSummary.enforcement -ceq 'active'
+        if (-not $isDesiredName -and -not $isActiveBranchRuleset) {
+            continue
+        }
+
+        $rulesetId = [long]$rulesetSummary.id
+        $rulesetDetail = Invoke-GhJson -Runner $Runner -ArgumentList @('api', "repos/$expectedRepository/rulesets/$rulesetId") -Context "Repository ruleset detail $rulesetId"
+        if ($isDesiredName) {
+            $existingRulesetId = $rulesetId
+            $existingRulesetExact = Test-RulesetReadBack -Ruleset $rulesetDetail -ExpectedPayload $ExpectedPayload
+            continue
+        }
+
+        if (Test-RulesetAppliesToMain -Ruleset $rulesetDetail) {
+            throw "An additional active repository ruleset applies to main: $([string]$rulesetDetail.name)."
+        }
+    }
+
+    [pscustomobject]@{
+        ExistingRulesetId = $existingRulesetId
+        ExistingRulesetExact = $existingRulesetExact
+    }
+}
+
 function Assert-EnvironmentReadBack {
     param(
         [Parameter(Mandatory)][scriptblock]$Runner,
@@ -813,6 +1003,23 @@ function Assert-LiveAzureRoleAbsence {
         throw 'Azure service principal type must be Application.'
     }
 
+    $evidenceAssignmentIds = @($Evidence.Assignments | ForEach-Object { [string]$_.Id })
+    foreach ($assignmentId in $evidenceAssignmentIds) {
+        $exactRead = Invoke-NativeCommandResult -Runner $Runner -FilePath 'az' -ArgumentList @(
+            'rest',
+            '--method', 'get',
+            '--url', "$($assignmentId)?api-version=2022-04-01",
+            '--output', 'json',
+            '--only-show-errors'
+        )
+        if ($exactRead.ExitCode -eq 0) {
+            throw "The exact bootstrap evidence assignment remains present in Azure: $assignmentId"
+        }
+        if (-not (Test-ExactRoleAssignmentAbsentResult -Result $exactRead)) {
+            throw "Exact bootstrap evidence assignment absence could not be verified for $assignmentId. $($exactRead.StdErr) $($exactRead.StdOut)"
+        }
+    }
+
     $roleAssignmentResponse = Invoke-AzJson -Runner $Runner -ArgumentList @('role', 'assignment', 'list', '--assignee-object-id', $ExpectedPrincipalObjectId, '--scope', $expectedScope, '--all', '--output', 'json', '--only-show-errors') -Context 'Azure role assignment read-back'
     $roleAssignments = if ($roleAssignmentResponse -is [System.Array]) {
         @($roleAssignmentResponse | ForEach-Object { $_ })
@@ -823,7 +1030,6 @@ function Assert-LiveAzureRoleAbsence {
     else {
         @($roleAssignmentResponse)
     }
-    $evidenceAssignmentIds = @($Evidence.Assignments | ForEach-Object { [string]$_.Id })
     $temporaryRoleDefinitionIds = @(
         "$expectedScope/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c",
         "$expectedScope/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168"
@@ -866,72 +1072,47 @@ $desiredRuleset = Assert-DesiredState -DesiredState $desiredStateDocument.Value
 $bootstrapEvidenceDocument = Read-JsonFile -Path $BootstrapEvidencePath -Context 'Bootstrap cleanup evidence'
 Assert-BootstrapEvidence -Evidence $bootstrapEvidenceDocument.Value -ExpectedBootstrapRunId $BootstrapRunId
 
-if (-not $TenantConfigurationLoader) {
-    $tenantConfigurationPath = Join-Path $PSScriptRoot '..\config\tenants\caldova25156897.psd1'
-    $TenantConfigurationLoader = { Import-PowerShellDataFile -LiteralPath $tenantConfigurationPath }.GetNewClosure()
-}
-$tenantConfiguration = & $TenantConfigurationLoader
-$reviewedPrincipalObjectId = Get-ReviewedPrincipalObjectId -Configuration $tenantConfiguration
-if ([string]$bootstrapEvidenceDocument.Value.PrincipalObjectId -cne $reviewedPrincipalObjectId) {
-    throw 'Bootstrap evidence PrincipalObjectId does not match the reviewed service principal object.'
-}
+$nativeCommandRunner = New-DefaultNativeCommandRunner
 
-if (-not $NativeCommandRunner) {
-    $NativeCommandRunner = New-DefaultNativeCommandRunner
-}
-
-$userIdText = (Invoke-NativeCommand -Runner $NativeCommandRunner -ArgumentList @('api', 'users/urruegg', '--jq', '.id')).Trim()
+$userIdText = (Invoke-NativeCommand -Runner $nativeCommandRunner -ArgumentList @('api', 'users/urruegg', '--jq', '.id')).Trim()
 $resolvedUserId = [long]0
 if (-not [long]::TryParse($userIdText, [ref]$resolvedUserId) -or $resolvedUserId -le 0) {
     throw 'GitHub user id resolution failed for urruegg.'
 }
 
-$adminText = (Invoke-NativeCommand -Runner $NativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/collaborators/urruegg/permission", '--jq', '.user.permissions.admin')).Trim()
+$adminText = (Invoke-NativeCommand -Runner $nativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/collaborators/urruegg/permission", '--jq', '.user.permissions.admin')).Trim()
 if ($adminText -cne 'true') {
     throw 'GitHub collaborator urruegg must have repository administrator permission.'
 }
 
-$mainRef = Invoke-GhJson -Runner $NativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/git/ref/heads/main") -Context 'Current main ref'
+$mainRef = Invoke-GhJson -Runner $nativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/git/ref/heads/main") -Context 'Current main ref'
 $currentMainSha = [string]$mainRef.object.sha
 if ($currentMainSha -cnotmatch '^[0-9a-fA-F]{40}$') {
     throw 'Current main ref did not return a valid commit SHA.'
 }
 
-$validatorRun = Invoke-GhJson -Runner $NativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/actions/runs/$ValidatorRunId") -Context 'Validator workflow run'
+$tenantConfiguration = Import-CurrentMainTenantConfiguration -Runner $nativeCommandRunner -MainSha $currentMainSha
+$reviewedPrincipalObjectId = Get-ReviewedPrincipalObjectId -Configuration $tenantConfiguration
+if ([string]$bootstrapEvidenceDocument.Value.PrincipalObjectId -cne $reviewedPrincipalObjectId) {
+    throw 'Bootstrap evidence PrincipalObjectId does not match the reviewed service principal object.'
+}
+
+$validatorRun = Invoke-GhJson -Runner $nativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/actions/runs/$ValidatorRunId") -Context 'Validator workflow run'
 Assert-WorkflowRun -Run $validatorRun -ExpectedRunId $ValidatorRunId -ExpectedPath '.github/workflows/validate-repository.yml' -ExpectedName 'Validate repository' -ExpectedEvents @('push', 'workflow_dispatch') -ExpectedHeadSha $currentMainSha -Context 'Validator workflow run'
 
-$bootstrapRun = Invoke-GhJson -Runner $NativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/actions/runs/$BootstrapRunId") -Context 'Bootstrap workflow run'
+$bootstrapRun = Invoke-GhJson -Runner $nativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/actions/runs/$BootstrapRunId") -Context 'Bootstrap workflow run'
 Assert-WorkflowRun -Run $bootstrapRun -ExpectedRunId $BootstrapRunId -ExpectedPath '.github/workflows/bootstrap-tenant.yml' -ExpectedName 'Validate tenant bootstrap' -ExpectedEvents @('workflow_dispatch') -ExpectedHeadSha $currentMainSha -Context 'Bootstrap workflow run'
 if ([string]$bootstrapEvidenceDocument.Value.HeadSha -cne $currentMainSha) {
     throw 'Bootstrap evidence HeadSha must match the current main commit.'
 }
 
 $payload = New-RulesetPayload -DesiredRuleset $desiredRuleset -ResolvedUserId $resolvedUserId
-$rulesetList = Invoke-GhJson -Runner $NativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/rulesets?includes_parents=false") -Context 'Repository ruleset list'
-$rulesets = @($rulesetList | ForEach-Object { $_ })
-$nameMatches = @($rulesets | Where-Object { [string]$_.name -ceq [string]$desiredRuleset.name })
-foreach ($nameMatch in $nameMatches) {
-    if ([string]$nameMatch.source_type -cne 'Repository' -or [string]$nameMatch.source -cne $expectedRepository) {
-        throw 'Desired ruleset name matched an unexpected non-repository source.'
-    }
-}
-if ($nameMatches.Count -gt 1) {
-    throw 'Repository ruleset lookup is ambiguous for the desired ruleset name and repository source.'
-}
+$rulesetState = Get-RepositoryRulesetState -Runner $nativeCommandRunner -DesiredRuleset $desiredRuleset -ExpectedPayload $payload
+$existingRulesetId = $rulesetState.ExistingRulesetId
+$existingRulesetExact = [bool]$rulesetState.ExistingRulesetExact
 
-$existingRulesetId = $null
-$existingRulesetExact = $false
-if ($nameMatches.Count -eq 1) {
-    if (-not (Test-IntegerValue -Value $nameMatches[0].id) -or [long]$nameMatches[0].id -le 0) {
-        throw 'Repository ruleset match returned an invalid id.'
-    }
-    $existingRulesetId = [long]$nameMatches[0].id
-    $existingRuleset = Invoke-GhJson -Runner $NativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/rulesets/$existingRulesetId") -Context 'Repository ruleset detail'
-    $existingRulesetExact = Test-RulesetReadBack -Ruleset $existingRuleset -ExpectedPayload $payload
-}
-
-$environmentClientId = Assert-EnvironmentReadBack -Runner $NativeCommandRunner -ResolvedUserId $resolvedUserId
-Assert-LiveAzureRoleAbsence -Runner $NativeCommandRunner -ClientId $environmentClientId -ExpectedPrincipalObjectId $reviewedPrincipalObjectId -Evidence $bootstrapEvidenceDocument.Value
+$environmentClientId = Assert-EnvironmentReadBack -Runner $nativeCommandRunner -ResolvedUserId $resolvedUserId
+Assert-LiveAzureRoleAbsence -Runner $nativeCommandRunner -ClientId $environmentClientId -ExpectedPrincipalObjectId $reviewedPrincipalObjectId -Evidence $bootstrapEvidenceDocument.Value
 
 $action = if ($null -eq $existingRulesetId) { 'Create' } elseif (-not $existingRulesetExact) { 'Update' } else { 'None' }
 $method = if ($action -ceq 'Create') { 'POST' } elseif ($action -ceq 'Update') { 'PUT' } else { $null }
@@ -960,11 +1141,60 @@ if (-not $PSCmdlet.ShouldProcess($target, "$method $endpoint")) {
     throw 'GitHub ruleset mutation was declined; governance was not activated.'
 }
 
+$approvalUserIdText = (Invoke-NativeCommand -Runner $nativeCommandRunner -ArgumentList @('api', 'users/urruegg', '--jq', '.id')).Trim()
+$approvalUserId = [long]0
+if (-not [long]::TryParse($approvalUserIdText, [ref]$approvalUserId) -or $approvalUserId -ne $resolvedUserId) {
+    throw 'GitHub owner identity changed during the approval window.'
+}
+$approvalAdminText = (Invoke-NativeCommand -Runner $nativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/collaborators/urruegg/permission", '--jq', '.user.permissions.admin')).Trim()
+if ($approvalAdminText -cne 'true') {
+    throw 'GitHub administrator permission changed during the approval window.'
+}
+
+$approvalMainRef = Invoke-GhJson -Runner $nativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/git/ref/heads/main") -Context 'Post-approval current main ref'
+$approvalMainSha = [string]$approvalMainRef.object.sha
+if ($approvalMainSha -cne $currentMainSha) {
+    throw 'The current main commit changed during the approval window.'
+}
+
+$approvalTenantConfiguration = Import-CurrentMainTenantConfiguration -Runner $nativeCommandRunner -MainSha $approvalMainSha
+$approvalPrincipalObjectId = Get-ReviewedPrincipalObjectId -Configuration $approvalTenantConfiguration
+if ($approvalPrincipalObjectId -cne $reviewedPrincipalObjectId) {
+    throw 'The reviewed service principal changed during the approval window.'
+}
+
+$approvalEvidenceDocument = Read-JsonFile -Path $BootstrapEvidencePath -Context 'Post-approval bootstrap cleanup evidence'
+Assert-BootstrapEvidence -Evidence $approvalEvidenceDocument.Value -ExpectedBootstrapRunId $BootstrapRunId
+if (($approvalEvidenceDocument.Value | ConvertTo-Json -Depth 30 -Compress) -cne ($bootstrapEvidenceDocument.Value | ConvertTo-Json -Depth 30 -Compress)) {
+    throw 'Bootstrap cleanup evidence changed during the approval window.'
+}
+if ([string]$approvalEvidenceDocument.Value.HeadSha -cne $approvalMainSha -or
+    [string]$approvalEvidenceDocument.Value.PrincipalObjectId -cne $approvalPrincipalObjectId) {
+    throw 'Post-approval bootstrap cleanup evidence does not match current main and the reviewed service principal.'
+}
+
+$approvalValidatorRun = Invoke-GhJson -Runner $nativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/actions/runs/$ValidatorRunId") -Context 'Post-approval validator workflow run'
+Assert-WorkflowRun -Run $approvalValidatorRun -ExpectedRunId $ValidatorRunId -ExpectedPath '.github/workflows/validate-repository.yml' -ExpectedName 'Validate repository' -ExpectedEvents @('push', 'workflow_dispatch') -ExpectedHeadSha $approvalMainSha -Context 'Post-approval validator workflow run'
+$approvalBootstrapRun = Invoke-GhJson -Runner $nativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/actions/runs/$BootstrapRunId") -Context 'Post-approval bootstrap workflow run'
+Assert-WorkflowRun -Run $approvalBootstrapRun -ExpectedRunId $BootstrapRunId -ExpectedPath '.github/workflows/bootstrap-tenant.yml' -ExpectedName 'Validate tenant bootstrap' -ExpectedEvents @('workflow_dispatch') -ExpectedHeadSha $approvalMainSha -Context 'Post-approval bootstrap workflow run'
+
+$approvalRulesetState = Get-RepositoryRulesetState -Runner $nativeCommandRunner -DesiredRuleset $desiredRuleset -ExpectedPayload $payload
+$approvalAction = if ($null -eq $approvalRulesetState.ExistingRulesetId) { 'Create' } elseif (-not [bool]$approvalRulesetState.ExistingRulesetExact) { 'Update' } else { 'None' }
+if ($approvalAction -cne $action -or $approvalRulesetState.ExistingRulesetId -ne $existingRulesetId) {
+    throw 'Repository ruleset target state changed during the approval window.'
+}
+
+$approvalEnvironmentClientId = Assert-EnvironmentReadBack -Runner $nativeCommandRunner -ResolvedUserId $approvalUserId
+if ($approvalEnvironmentClientId -cne $environmentClientId) {
+    throw 'GitHub Environment client id changed during the approval window.'
+}
+Assert-LiveAzureRoleAbsence -Runner $nativeCommandRunner -ClientId $approvalEnvironmentClientId -ExpectedPrincipalObjectId $approvalPrincipalObjectId -Evidence $approvalEvidenceDocument.Value
+
 $tempPath = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString() + '.json')
 try {
     $payloadJson = $payload | ConvertTo-Json -Depth 30 -Compress
     [System.IO.File]::WriteAllText($tempPath, $payloadJson, [System.Text.UTF8Encoding]::new($false))
-    $mutationResult = Invoke-GhJson -Runner $NativeCommandRunner -ArgumentList @('api', '--method', $method, $endpoint, '--input', $tempPath) -Context 'GitHub ruleset mutation'
+    $mutationResult = Invoke-GhJson -Runner $nativeCommandRunner -ArgumentList @('api', '--method', $method, $endpoint, '--input', $tempPath) -Context 'GitHub ruleset mutation'
 }
 finally {
     if (Test-Path -LiteralPath $tempPath) {
@@ -980,12 +1210,17 @@ if ($action -ceq 'Update' -and $mutatedRulesetId -ne $existingRulesetId) {
     throw 'GitHub ruleset update returned an unexpected ruleset id.'
 }
 
-$rulesetReadBack = Invoke-GhJson -Runner $NativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/rulesets/$mutatedRulesetId") -Context 'GitHub ruleset read-back'
+$rulesetReadBack = Invoke-GhJson -Runner $nativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/rulesets/$mutatedRulesetId") -Context 'GitHub ruleset read-back'
 if (-not (Test-RulesetReadBack -Ruleset $rulesetReadBack -ExpectedPayload $payload)) {
     $observedPayload = ConvertTo-ReviewedRulesetPayload -Ruleset $rulesetReadBack
     $observedJson = if ($null -eq $observedPayload) { 'null' } else { $observedPayload | ConvertTo-Json -Depth 30 -Compress }
     $expectedJson = $payload | ConvertTo-Json -Depth 30 -Compress
     throw "GitHub ruleset read-back does not match every reviewed field. Expected: $expectedJson Observed: $observedJson"
+}
+
+$postMutationRulesetState = Get-RepositoryRulesetState -Runner $nativeCommandRunner -DesiredRuleset $desiredRuleset -ExpectedPayload $payload
+if ($postMutationRulesetState.ExistingRulesetId -ne $mutatedRulesetId -or -not [bool]$postMutationRulesetState.ExistingRulesetExact) {
+    throw 'Post-mutation repository ruleset inventory does not contain exactly the reviewed main ruleset.'
 }
 
 $proposal.Status = 'Verified'
