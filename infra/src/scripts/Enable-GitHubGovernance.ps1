@@ -38,11 +38,31 @@ function New-DefaultNativeCommandRunner {
             [string[]]$ArgumentList
         )
 
-        $output = & $FilePath @ArgumentList 2>&1
-        [pscustomobject]@{
-            ExitCode = $LASTEXITCODE
-            StdOut = ($output | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
-            StdErr = ''
+        $command = Get-Command -Name $FilePath -ErrorAction Stop
+        if ($command.CommandType -in @('Function', 'Filter')) {
+            $output = & $FilePath @ArgumentList
+            return [pscustomobject]@{
+                ExitCode = $LASTEXITCODE
+                StdOut = ($output | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+                StdErr = ''
+            }
+        }
+
+        $stderrPath = [System.IO.Path]::GetTempFileName()
+        $originalErrorActionPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            $output = & $command.Source @ArgumentList 2> $stderrPath
+            $exitCode = $LASTEXITCODE
+            [pscustomobject]@{
+                ExitCode = $exitCode
+                StdOut = ($output | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+                StdErr = [System.IO.File]::ReadAllText($stderrPath)
+            }
+        }
+        finally {
+            $ErrorActionPreference = $originalErrorActionPreference
+            [System.IO.File]::Delete($stderrPath)
         }
     }
 }
@@ -529,21 +549,43 @@ function Invoke-NativeCommand {
     $result.StdOut
 }
 
-function Test-ExactRoleAssignmentAbsentResult {
+function Get-ArmResourceStatusCode {
     param(
-        [Parameter(Mandatory)][object]$Result
+        [Parameter(Mandatory)][string]$ResourceId,
+        [Parameter(Mandatory)][string]$AccessToken
     )
 
-    if ($null -ne $Result.StatusCode -and [int]$Result.StatusCode -eq 404) {
-        return $true
+    $uri = [uri]("https://management.azure.com{0}?api-version=2022-04-01" -f $ResourceId)
+    $statusCode = 0
+    try {
+        $response = Invoke-WebRequest `
+            -Uri $uri `
+            -Method Get `
+            -Headers @{ Authorization = "Bearer $AccessToken" } `
+            -UseBasicParsing `
+            -ErrorAction Stop
+        $statusCode = [int]$response.StatusCode
     }
-    if ([string]$Result.ErrorCode -in @('RoleAssignmentNotFound', 'ResourceNotFound')) {
-        return $true
+    catch {
+        $errorResponse = $_.Exception.Response
+        if ($null -eq $errorResponse) {
+            throw "ARM resource read failed without an HTTP response for $ResourceId."
+        }
+
+        try {
+            $statusCode = [int]$errorResponse.StatusCode
+        }
+        finally {
+            if ($errorResponse -is [System.IDisposable]) {
+                $errorResponse.Dispose()
+            }
+            elseif ($errorResponse.PSObject.Methods.Name -contains 'Close') {
+                $errorResponse.Close()
+            }
+        }
     }
 
-    $combinedOutput = "{0}`n{1}" -f [string]$Result.StdOut, [string]$Result.StdErr
-    $combinedOutput -match '(?:\(|"code"\s*:\s*")(?:RoleAssignmentNotFound|ResourceNotFound)(?:\)|")' -or
-        $combinedOutput.Trim() -in @('RoleAssignmentNotFound', 'ResourceNotFound')
+    $statusCode
 }
 
 function Invoke-GhJson {
@@ -815,22 +857,146 @@ function Test-RulesetReadBack {
 
 function Test-RefPatternMatchesMain {
     param(
-        [Parameter(Mandatory)][string]$Pattern
+        [Parameter(Mandatory)][string]$Pattern,
+        [Parameter(Mandatory)][string]$DefaultBranch
     )
 
-    if ($Pattern -ceq '~DEFAULT_BRANCH') {
+    if ($Pattern -ceq '~ALL') {
         return $true
+    }
+    if ($Pattern -ceq '~DEFAULT_BRANCH') {
+        return $DefaultBranch -ceq 'main'
     }
     if ($Pattern.StartsWith('~', [System.StringComparison]::Ordinal)) {
         throw "Unsupported repository ruleset ref pattern '$Pattern'."
     }
+    if ($Pattern.IndexOfAny([char[]]'{}') -ge 0) {
+        throw "Unsupported repository ruleset ref pattern '$Pattern'."
+    }
 
-    'refs/heads/main' -clike $Pattern
+    $regex = [System.Text.StringBuilder]::new('^')
+    for ($index = 0; $index -lt $Pattern.Length; $index++) {
+        $character = $Pattern[$index]
+        switch ($character) {
+            '\' {
+                if ($index + 1 -ge $Pattern.Length) {
+                    throw "Unsupported repository ruleset ref pattern '$Pattern'."
+                }
+                $index++
+                [void]$regex.Append([regex]::Escape([string]$Pattern[$index]))
+            }
+            '*' {
+                $runEnd = $index
+                while ($runEnd + 1 -lt $Pattern.Length -and $Pattern[$runEnd + 1] -eq '*') {
+                    $runEnd++
+                }
+                $isGlobstar = $runEnd -gt $index -and
+                    ($index -eq 0 -or $Pattern[$index - 1] -eq '/') -and
+                    ($runEnd + 1 -eq $Pattern.Length -or $Pattern[$runEnd + 1] -eq '/')
+                $index = $runEnd
+                if ($isGlobstar) {
+                    if ($index + 1 -lt $Pattern.Length -and $Pattern[$index + 1] -eq '/') {
+                        $index++
+                        [void]$regex.Append('(?:.*/)?')
+                    }
+                    else {
+                        [void]$regex.Append('.*')
+                    }
+                }
+                else {
+                    [void]$regex.Append('[^/]*')
+                }
+            }
+            '?' {
+                [void]$regex.Append('[^/]')
+            }
+            '[' {
+                $closingIndex = -1
+                $escaped = $false
+                for ($candidateIndex = $index + 1; $candidateIndex -lt $Pattern.Length; $candidateIndex++) {
+                    if ($escaped) {
+                        $escaped = $false
+                        continue
+                    }
+                    if ($Pattern[$candidateIndex] -eq '\') {
+                        $escaped = $true
+                        continue
+                    }
+                    if ($Pattern[$candidateIndex] -eq ']') {
+                        $closingIndex = $candidateIndex
+                        break
+                    }
+                }
+                if ($closingIndex -lt 0 -or $closingIndex -eq $index + 1) {
+                    throw "Unsupported repository ruleset ref pattern '$Pattern'."
+                }
+
+                $classText = $Pattern.Substring($index + 1, $closingIndex - $index - 1)
+                $negated = $classText.StartsWith('!', [System.StringComparison]::Ordinal) -or $classText.StartsWith('^', [System.StringComparison]::Ordinal)
+                if ($negated) {
+                    $classText = $classText.Substring(1)
+                }
+                if ([string]::IsNullOrEmpty($classText) -or $classText.Contains('/')) {
+                    throw "Unsupported repository ruleset ref pattern '$Pattern'."
+                }
+
+                $classRegex = [System.Text.StringBuilder]::new()
+                for ($classIndex = 0; $classIndex -lt $classText.Length; $classIndex++) {
+                    $classCharacter = $classText[$classIndex]
+                    if ($classCharacter -eq '\') {
+                        if ($classIndex + 1 -ge $classText.Length) {
+                            throw "Unsupported repository ruleset ref pattern '$Pattern'."
+                        }
+                        $classIndex++
+                        $escapedClassCharacter = $classText[$classIndex]
+                        switch ($escapedClassCharacter) {
+                            ']' { [void]$classRegex.Append('\]') }
+                            '[' { [void]$classRegex.Append('\[') }
+                            '\' { [void]$classRegex.Append('\\') }
+                            '-' { [void]$classRegex.Append('\-') }
+                            '^' { [void]$classRegex.Append('\^') }
+                            default { [void]$classRegex.Append([regex]::Escape([string]$escapedClassCharacter)) }
+                        }
+                    }
+                    elseif ($classCharacter -eq '[') {
+                        throw "Unsupported repository ruleset ref pattern '$Pattern'."
+                    }
+                    elseif ($classCharacter -eq '^') {
+                        [void]$classRegex.Append('\^')
+                    }
+                    elseif ($classCharacter -eq '-' -and ($classIndex -eq 0 -or $classIndex -eq $classText.Length - 1)) {
+                        [void]$classRegex.Append('\-')
+                    }
+                    else {
+                        [void]$classRegex.Append($classCharacter)
+                    }
+                }
+
+                if ($negated) {
+                    [void]$regex.Append("[^/$classRegex]")
+                }
+                else {
+                    [void]$regex.Append("[$classRegex]")
+                }
+                $index = $closingIndex
+            }
+            ']' {
+                throw "Unsupported repository ruleset ref pattern '$Pattern'."
+            }
+            default {
+                [void]$regex.Append([regex]::Escape([string]$character))
+            }
+        }
+    }
+    [void]$regex.Append('$')
+
+    [regex]::IsMatch('refs/heads/main', $regex.ToString(), [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)
 }
 
 function Test-RulesetAppliesToMain {
     param(
-        [Parameter(Mandatory)][object]$Ruleset
+        [Parameter(Mandatory)][object]$Ruleset,
+        [Parameter(Mandatory)][string]$DefaultBranch
     )
 
     if ([string]$Ruleset.target -cne 'branch') {
@@ -843,19 +1009,59 @@ function Test-RulesetAppliesToMain {
         throw 'Active repository branch ruleset has no included ref patterns.'
     }
 
-    $included = @($include | Where-Object { Test-RefPatternMatchesMain -Pattern ([string]$_) }).Count -gt 0
-    $excluded = @($exclude | Where-Object { Test-RefPatternMatchesMain -Pattern ([string]$_) }).Count -gt 0
+    $included = @($include | Where-Object { Test-RefPatternMatchesMain -Pattern ([string]$_) -DefaultBranch $DefaultBranch }).Count -gt 0
+    $excluded = @($exclude | Where-Object { Test-RefPatternMatchesMain -Pattern ([string]$_) -DefaultBranch $DefaultBranch }).Count -gt 0
     $included -and -not $excluded
+}
+
+function ConvertTo-CanonicalJson {
+    param(
+        [AllowNull()][object]$Value
+    )
+
+    if ($null -eq $Value) {
+        return 'null'
+    }
+    if ($Value -is [string] -or $Value -is [ValueType]) {
+        return ConvertTo-Json -InputObject $Value -Compress
+    }
+    if ($Value -is [System.Array] -or $Value -is [System.Collections.IList]) {
+        $elements = @($Value | ForEach-Object { ConvertTo-CanonicalJson -Value $_ })
+        return '[' + ($elements -join ',') + ']'
+    }
+
+    $table = ConvertTo-PropertyTable -InputObject $Value
+    $names = [string[]]@($table.Keys | ForEach-Object { [string]$_ })
+    [array]::Sort($names, [System.StringComparer]::Ordinal)
+    $properties = foreach ($name in $names) {
+        (ConvertTo-Json -InputObject $name -Compress) + ':' + (ConvertTo-CanonicalJson -Value $table[$name])
+    }
+    '{' + ($properties -join ',') + '}'
+}
+
+function Get-RepositoryDefaultBranch {
+    param(
+        [Parameter(Mandatory)][scriptblock]$Runner
+    )
+
+    $repository = Invoke-GhJson -Runner $Runner -ArgumentList @('api', "repos/$expectedRepository") -Context 'Repository metadata'
+    if ($repository.default_branch -isnot [string] -or [string]$repository.default_branch -cnotmatch '^[A-Za-z0-9._/-]+$') {
+        throw 'Repository default branch is missing or malformed.'
+    }
+
+    [string]$repository.default_branch
 }
 
 function Get-RepositoryRulesetState {
     param(
         [Parameter(Mandatory)][scriptblock]$Runner,
         [Parameter(Mandatory)][object]$DesiredRuleset,
-        [Parameter(Mandatory)][object]$ExpectedPayload
+        [Parameter(Mandatory)][object]$ExpectedPayload,
+        [Parameter(Mandatory)][string]$DefaultBranch
     )
 
     $rulesets = @(Invoke-GhPagedJson -Runner $Runner -Endpoint "repos/$expectedRepository/rulesets?includes_parents=false&per_page=100" -Context 'Repository ruleset list')
+    $sortedRulesets = @($rulesets | Sort-Object { [long]$_.id })
     $nameMatches = @($rulesets | Where-Object { [string]$_.name -ceq [string]$DesiredRuleset.name })
     foreach ($nameMatch in $nameMatches) {
         if ([string]$nameMatch.source_type -cne 'Repository' -or [string]$nameMatch.source -cne $expectedRepository) {
@@ -868,7 +1074,8 @@ function Get-RepositoryRulesetState {
 
     $existingRulesetId = $null
     $existingRulesetExact = $false
-    foreach ($rulesetSummary in $rulesets) {
+    $detailSnapshots = [System.Collections.Generic.List[object]]::new()
+    foreach ($rulesetSummary in $sortedRulesets) {
         if ([string]$rulesetSummary.source_type -cne 'Repository' -or [string]$rulesetSummary.source -cne $expectedRepository) {
             throw 'Repository ruleset list returned an unexpected non-repository source.'
         }
@@ -884,20 +1091,49 @@ function Get-RepositoryRulesetState {
 
         $rulesetId = [long]$rulesetSummary.id
         $rulesetDetail = Invoke-GhJson -Runner $Runner -ArgumentList @('api', "repos/$expectedRepository/rulesets/$rulesetId") -Context "Repository ruleset detail $rulesetId"
+        $detailSnapshots.Add([pscustomobject]([ordered]@{
+            id = $rulesetId
+            name = [string]$rulesetDetail.name
+            target = [string]$rulesetDetail.target
+            source_type = [string]$rulesetDetail.source_type
+            source = [string]$rulesetDetail.source
+            enforcement = [string]$rulesetDetail.enforcement
+            bypass_actors = @($rulesetDetail.bypass_actors)
+            conditions = $rulesetDetail.conditions
+            rules = @($rulesetDetail.rules)
+        })) | Out-Null
         if ($isDesiredName) {
             $existingRulesetId = $rulesetId
             $existingRulesetExact = Test-RulesetReadBack -Ruleset $rulesetDetail -ExpectedPayload $ExpectedPayload
             continue
         }
 
-        if (Test-RulesetAppliesToMain -Ruleset $rulesetDetail) {
+        if (Test-RulesetAppliesToMain -Ruleset $rulesetDetail -DefaultBranch $DefaultBranch) {
             throw "An additional active repository ruleset applies to main: $([string]$rulesetDetail.name)."
         }
     }
 
+    $summarySnapshots = @(
+        $sortedRulesets | ForEach-Object {
+            [pscustomobject]([ordered]@{
+                id = [long]$_.id
+                name = [string]$_.name
+                target = [string]$_.target
+                source_type = [string]$_.source_type
+                source = [string]$_.source
+                enforcement = [string]$_.enforcement
+            })
+        }
+    )
+    $snapshot = [pscustomobject]([ordered]@{
+        summaries = $summarySnapshots
+        inspected_details = @($detailSnapshots.ToArray() | Sort-Object id)
+    })
+
     [pscustomobject]@{
         ExistingRulesetId = $existingRulesetId
         ExistingRulesetExact = $existingRulesetExact
+        SnapshotJson = ConvertTo-CanonicalJson -Value $snapshot
     }
 }
 
@@ -1003,20 +1239,23 @@ function Assert-LiveAzureRoleAbsence {
         throw 'Azure service principal type must be Application.'
     }
 
+    $accessTokenResult = Invoke-NativeCommandResult -Runner $Runner -FilePath 'az' -ArgumentList @('account', 'get-access-token', '--resource', 'https://management.azure.com/', '--query', 'accessToken', '--output', 'tsv', '--only-show-errors')
+    if ($accessTokenResult.ExitCode -ne 0) {
+        throw "Azure Resource Manager access token command failed with exit code $($accessTokenResult.ExitCode)."
+    }
+    $accessToken = ([string]$accessTokenResult.StdOut).Trim()
+    if ([string]::IsNullOrWhiteSpace($accessToken)) {
+        throw 'Azure Resource Manager access token resolution returned an empty value.'
+    }
+
     $evidenceAssignmentIds = @($Evidence.Assignments | ForEach-Object { [string]$_.Id })
     foreach ($assignmentId in $evidenceAssignmentIds) {
-        $exactRead = Invoke-NativeCommandResult -Runner $Runner -FilePath 'az' -ArgumentList @(
-            'rest',
-            '--method', 'get',
-            '--url', "$($assignmentId)?api-version=2022-04-01",
-            '--output', 'json',
-            '--only-show-errors'
-        )
-        if ($exactRead.ExitCode -eq 0) {
+        $statusCode = Get-ArmResourceStatusCode -ResourceId $assignmentId -AccessToken $accessToken
+        if ($statusCode -ge 200 -and $statusCode -lt 300) {
             throw "The exact bootstrap evidence assignment remains present in Azure: $assignmentId"
         }
-        if (-not (Test-ExactRoleAssignmentAbsentResult -Result $exactRead)) {
-            throw "Exact bootstrap evidence assignment absence could not be verified for $assignmentId. $($exactRead.StdErr) $($exactRead.StdOut)"
+        if ($statusCode -ne 404) {
+            throw "Exact bootstrap evidence assignment read returned HTTP status $statusCode for $assignmentId."
         }
     }
 
@@ -1084,6 +1323,7 @@ $adminText = (Invoke-NativeCommand -Runner $nativeCommandRunner -ArgumentList @(
 if ($adminText -cne 'true') {
     throw 'GitHub collaborator urruegg must have repository administrator permission.'
 }
+$defaultBranch = Get-RepositoryDefaultBranch -Runner $nativeCommandRunner
 
 $mainRef = Invoke-GhJson -Runner $nativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/git/ref/heads/main") -Context 'Current main ref'
 $currentMainSha = [string]$mainRef.object.sha
@@ -1107,7 +1347,7 @@ if ([string]$bootstrapEvidenceDocument.Value.HeadSha -cne $currentMainSha) {
 }
 
 $payload = New-RulesetPayload -DesiredRuleset $desiredRuleset -ResolvedUserId $resolvedUserId
-$rulesetState = Get-RepositoryRulesetState -Runner $nativeCommandRunner -DesiredRuleset $desiredRuleset -ExpectedPayload $payload
+$rulesetState = Get-RepositoryRulesetState -Runner $nativeCommandRunner -DesiredRuleset $desiredRuleset -ExpectedPayload $payload -DefaultBranch $defaultBranch
 $existingRulesetId = $rulesetState.ExistingRulesetId
 $existingRulesetExact = [bool]$rulesetState.ExistingRulesetExact
 
@@ -1150,6 +1390,10 @@ $approvalAdminText = (Invoke-NativeCommand -Runner $nativeCommandRunner -Argumen
 if ($approvalAdminText -cne 'true') {
     throw 'GitHub administrator permission changed during the approval window.'
 }
+$approvalDefaultBranch = Get-RepositoryDefaultBranch -Runner $nativeCommandRunner
+if ($approvalDefaultBranch -cne $defaultBranch) {
+    throw 'Repository default branch changed during the approval window.'
+}
 
 $approvalMainRef = Invoke-GhJson -Runner $nativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/git/ref/heads/main") -Context 'Post-approval current main ref'
 $approvalMainSha = [string]$approvalMainRef.object.sha
@@ -1178,9 +1422,11 @@ Assert-WorkflowRun -Run $approvalValidatorRun -ExpectedRunId $ValidatorRunId -Ex
 $approvalBootstrapRun = Invoke-GhJson -Runner $nativeCommandRunner -ArgumentList @('api', "repos/$expectedRepository/actions/runs/$BootstrapRunId") -Context 'Post-approval bootstrap workflow run'
 Assert-WorkflowRun -Run $approvalBootstrapRun -ExpectedRunId $BootstrapRunId -ExpectedPath '.github/workflows/bootstrap-tenant.yml' -ExpectedName 'Validate tenant bootstrap' -ExpectedEvents @('workflow_dispatch') -ExpectedHeadSha $approvalMainSha -Context 'Post-approval bootstrap workflow run'
 
-$approvalRulesetState = Get-RepositoryRulesetState -Runner $nativeCommandRunner -DesiredRuleset $desiredRuleset -ExpectedPayload $payload
+$approvalRulesetState = Get-RepositoryRulesetState -Runner $nativeCommandRunner -DesiredRuleset $desiredRuleset -ExpectedPayload $payload -DefaultBranch $approvalDefaultBranch
 $approvalAction = if ($null -eq $approvalRulesetState.ExistingRulesetId) { 'Create' } elseif (-not [bool]$approvalRulesetState.ExistingRulesetExact) { 'Update' } else { 'None' }
-if ($approvalAction -cne $action -or $approvalRulesetState.ExistingRulesetId -ne $existingRulesetId) {
+if ($approvalAction -cne $action -or
+    $approvalRulesetState.ExistingRulesetId -ne $existingRulesetId -or
+    [string]$approvalRulesetState.SnapshotJson -cne [string]$rulesetState.SnapshotJson) {
     throw 'Repository ruleset target state changed during the approval window.'
 }
 
@@ -1218,7 +1464,11 @@ if (-not (Test-RulesetReadBack -Ruleset $rulesetReadBack -ExpectedPayload $paylo
     throw "GitHub ruleset read-back does not match every reviewed field. Expected: $expectedJson Observed: $observedJson"
 }
 
-$postMutationRulesetState = Get-RepositoryRulesetState -Runner $nativeCommandRunner -DesiredRuleset $desiredRuleset -ExpectedPayload $payload
+$postMutationDefaultBranch = Get-RepositoryDefaultBranch -Runner $nativeCommandRunner
+if ($postMutationDefaultBranch -cne $approvalDefaultBranch) {
+    throw 'Repository default branch changed during ruleset mutation.'
+}
+$postMutationRulesetState = Get-RepositoryRulesetState -Runner $nativeCommandRunner -DesiredRuleset $desiredRuleset -ExpectedPayload $payload -DefaultBranch $postMutationDefaultBranch
 if ($postMutationRulesetState.ExistingRulesetId -ne $mutatedRulesetId -or -not [bool]$postMutationRulesetState.ExistingRulesetExact) {
     throw 'Post-mutation repository ruleset inventory does not contain exactly the reviewed main ruleset.'
 }

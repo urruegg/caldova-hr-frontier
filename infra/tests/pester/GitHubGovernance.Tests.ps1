@@ -164,6 +164,7 @@ Describe 'Final GitHub governance activation' {
                 UserIdText = [string]$script:UserId
                 AdminText = 'true'
                 MainSha = $script:MainSha
+                DefaultBranch = 'main'
                 MainRefReadCount = 0
                 BeforeSecondSnapshot = $null
                 TenantManifestText = New-TestTenantManifestText
@@ -176,7 +177,11 @@ Describe 'Final GitHub governance activation' {
                     appId = $script:ClientId
                     servicePrincipalType = 'Application'
                 }
+                AccessTokenExitCode = 0
+                AccessTokenText = 'test-access-token'
+                AccessTokenError = ''
                 ExactRoleAssignments = [ordered]@{}
+                ExactRoleAssignmentStatusCodes = [ordered]@{}
                 RoleAssignments = @()
                 Runs = [ordered]@{
                     '101' = [ordered]@{
@@ -312,13 +317,8 @@ Describe 'Final GitHub governance activation' {
                         return [pscustomobject]@{ ExitCode = 0; StdOut = ($State.ServicePrincipal | ConvertTo-Json -Depth 10 -Compress); StdErr = '' }
                     }
 
-                    if ($ArgumentList.Count -eq 8 -and $ArgumentList[0] -ceq 'rest' -and $ArgumentList[1] -ceq '--method' -and $ArgumentList[2] -ceq 'get' -and $ArgumentList[3] -ceq '--url' -and $ArgumentList[4] -match '^(.+)\?api-version=2022-04-01$' -and $ArgumentList[5] -ceq '--output' -and $ArgumentList[6] -ceq 'json' -and $ArgumentList[7] -ceq '--only-show-errors') {
-                        $assignmentId = [string]$Matches[1]
-                        if ($State.ExactRoleAssignments.Contains($assignmentId)) {
-                            return [pscustomobject]@{ ExitCode = 0; StdOut = ($State.ExactRoleAssignments[$assignmentId] | ConvertTo-Json -Depth 10 -Compress); StdErr = ''; StatusCode = 200; ErrorCode = '' }
-                        }
-
-                        return [pscustomobject]@{ ExitCode = 1; StdOut = ''; StdErr = 'RoleAssignmentNotFound'; StatusCode = 404; ErrorCode = 'RoleAssignmentNotFound' }
+                    if (& $testExactArguments -Actual $ArgumentList -Expected @('account', 'get-access-token', '--resource', 'https://management.azure.com/', '--query', 'accessToken', '--output', 'tsv', '--only-show-errors')) {
+                        return [pscustomobject]@{ ExitCode = [int]$State.AccessTokenExitCode; StdOut = [string]$State.AccessTokenText; StdErr = [string]$State.AccessTokenError }
                     }
 
                     if (& $testExactArguments -Actual $ArgumentList -Expected @('role', 'assignment', 'list', '--assignee-object-id', $principalObjectId, '--scope', $scope, '--all', '--output', 'json', '--only-show-errors')) {
@@ -338,6 +338,10 @@ Describe 'Final GitHub governance activation' {
 
                 if (& $testExactArguments -Actual $ArgumentList -Expected @('api', 'repos/urruegg/caldova-hr-frontier/collaborators/urruegg/permission', '--jq', '.user.permissions.admin')) {
                     return [pscustomobject]@{ ExitCode = 0; StdOut = [string]$State.AdminText; StdErr = '' }
+                }
+
+                if (& $testExactArguments -Actual $ArgumentList -Expected @('api', 'repos/urruegg/caldova-hr-frontier')) {
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = ([ordered]@{ default_branch = [string]$State.DefaultBranch } | ConvertTo-Json -Compress); StdErr = '' }
                 }
 
                 if (& $testExactArguments -Actual $ArgumentList -Expected @('api', 'repos/urruegg/caldova-hr-frontier/git/ref/heads/main')) {
@@ -445,6 +449,7 @@ Describe 'Final GitHub governance activation' {
             [pscustomobject]@{
                 Calls = $calls
                 Runner = $runner
+                State = $State
             }
         }
 
@@ -485,6 +490,7 @@ Describe 'Final GitHub governance activation' {
             }
 
             $nativeRunner = $Harness.Runner
+            $state = $Harness.State
             $ghShim = {
                 $result = & $nativeRunner -FilePath 'gh' -ArgumentList ([string[]]@($args))
                 $global:LASTEXITCODE = [int]$result.ExitCode
@@ -505,12 +511,47 @@ Describe 'Final GitHub governance activation' {
                     Write-Output ([string]$result.StdErr)
                 }
             }.GetNewClosure()
+            $webRequestShim = {
+                [CmdletBinding()]
+                param(
+                    [Parameter(Mandatory)][uri]$Uri,
+                    [Parameter(Mandatory)][string]$Method,
+                    [Parameter(Mandatory)][hashtable]$Headers,
+                    [switch]$UseBasicParsing
+                )
+
+                if ($Method -cne 'Get' -or [string]$Headers.Authorization -cne 'Bearer test-access-token') {
+                    throw 'Unexpected ARM request authentication or method.'
+                }
+
+                $assignmentId = [string]$Uri.GetLeftPart([System.UriPartial]::Path)
+                $assignmentId = $assignmentId -replace '^https://management\.azure\.com', ''
+                $statusCode = if ($state.ExactRoleAssignmentStatusCodes.Contains($assignmentId)) {
+                    [int]$state.ExactRoleAssignmentStatusCodes[$assignmentId]
+                }
+                elseif ($state.ExactRoleAssignments.Contains($assignmentId)) {
+                    200
+                }
+                else {
+                    404
+                }
+
+                if ($statusCode -ge 200 -and $statusCode -lt 300) {
+                    return [pscustomobject]@{ StatusCode = $statusCode }
+                }
+
+                $exception = [System.Exception]::new("HTTP $statusCode")
+                $exception | Add-Member -NotePropertyName Response -NotePropertyValue ([pscustomobject]@{ StatusCode = $statusCode })
+                throw $exception
+            }.GetNewClosure()
 
             $existingGh = Get-Item -LiteralPath Function:\global:gh -ErrorAction SilentlyContinue
             $existingAz = Get-Item -LiteralPath Function:\global:az -ErrorAction SilentlyContinue
+            $existingInvokeWebRequest = Get-Item -LiteralPath Function:\global:Invoke-WebRequest -ErrorAction SilentlyContinue
             try {
                 Set-Item -LiteralPath Function:\global:gh -Value $ghShim -Force
                 Set-Item -LiteralPath Function:\global:az -Value $azShim -Force
+                Set-Item -LiteralPath Function:\global:Invoke-WebRequest -Value $webRequestShim -Force
                 & $script:ScriptPath @parameters
             }
             finally {
@@ -525,6 +566,12 @@ Describe 'Final GitHub governance activation' {
                 }
                 else {
                     Remove-Item -LiteralPath Function:\global:az -Force -ErrorAction SilentlyContinue
+                }
+                if ($existingInvokeWebRequest) {
+                    Set-Item -LiteralPath Function:\global:Invoke-WebRequest -Value $existingInvokeWebRequest.ScriptBlock -Force
+                }
+                else {
+                    Remove-Item -LiteralPath Function:\global:Invoke-WebRequest -Force -ErrorAction SilentlyContinue
                 }
             }
         }
@@ -543,6 +590,23 @@ Describe 'Final GitHub governance activation' {
                 }
             )
             $State.RulesetDetails['321'] = New-ExactRulesetDetail -Id 321
+        }
+
+        function script:Set-ConflictingRulesetPattern {
+            param(
+                [Parameter(Mandatory)][System.Collections.IDictionary]$State,
+                [Parameter(Mandatory)][string[]]$Include,
+                [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$Exclude
+            )
+
+            $State.Rulesets = @(
+                [ordered]@{ id = 654; name = 'pattern-conflict'; target = 'branch'; source_type = 'Repository'; source = $script:Repository; enforcement = 'active' }
+            )
+            $detail = New-ExactRulesetDetail -Id 654
+            $detail.name = 'pattern-conflict'
+            $detail.conditions.ref_name.include = $Include
+            $detail.conditions.ref_name.exclude = $Exclude
+            $State.RulesetDetails['654'] = $detail
         }
 
         function script:Assert-ClosedSchemaNode {
@@ -612,6 +676,31 @@ Describe 'Final GitHub governance activation' {
         $ruleset.rules[3].parameters.strictRequiredStatusChecksPolicy | Should -BeTrue
     }
 
+    It 'captures real native stderr and exit code under Stop semantics' {
+        $tokens = $null
+        $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile($script:ScriptPath, [ref]$tokens, [ref]$errors)
+        $errors | Should -HaveCount 0
+        $runnerFunction = @($ast.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq 'New-DefaultNativeCommandRunner'
+        }, $true))
+        $runnerFunction | Should -HaveCount 1
+        Invoke-Expression $runnerFunction[0].Extent.Text
+
+        $commandPath = Join-Path $TestDrive 'native-stderr.cmd'
+        [System.IO.File]::WriteAllText($commandPath, "@echo off`r`necho native-stderr 1>&2`r`nexit /b 7`r`n", [System.Text.Encoding]::ASCII)
+        $runner = New-DefaultNativeCommandRunner
+        $originalErrorActionPreference = $ErrorActionPreference
+
+        $result = & $runner -FilePath $commandPath -ArgumentList @('probe')
+
+        $result.ExitCode | Should -Be 7
+        $result.StdOut | Should -BeExactly ''
+        $result.StdErr | Should -Match 'native-stderr'
+        $ErrorActionPreference | Should -BeExactly $originalErrorActionPreference
+    }
+
     It 'returns the exact create proposal under WhatIf and performs zero mutation calls' {
         $state = New-TestGovernanceState
         $harness = New-NativeHarness -State $state
@@ -627,6 +716,7 @@ Describe 'Final GitHub governance activation' {
         @($harness.Calls | ForEach-Object { $_.ArgumentList -join [char]31 }) | Should -Be @(
             (@('api', 'users/urruegg', '--jq', '.id') -join [char]31),
             (@('api', 'repos/urruegg/caldova-hr-frontier/collaborators/urruegg/permission', '--jq', '.user.permissions.admin') -join [char]31),
+            (@('api', 'repos/urruegg/caldova-hr-frontier') -join [char]31),
             (@('api', 'repos/urruegg/caldova-hr-frontier/git/ref/heads/main') -join [char]31),
             (@('api', "repos/urruegg/caldova-hr-frontier/contents/infra/src/config/tenants/caldova25156897.psd1?ref=$($script:MainSha)") -join [char]31),
             (@('api', 'repos/urruegg/caldova-hr-frontier/actions/runs/101') -join [char]31),
@@ -637,8 +727,7 @@ Describe 'Final GitHub governance activation' {
             (@('api', 'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897/variables') -join [char]31),
             (@('account', 'show', '--output', 'json', '--only-show-errors') -join [char]31),
             (@('ad', 'sp', 'show', '--id', $script:ClientId, '--output', 'json', '--only-show-errors') -join [char]31),
-            (@('rest', '--method', 'get', '--url', "$($script:Scope)/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?api-version=2022-04-01", '--output', 'json', '--only-show-errors') -join [char]31),
-            (@('rest', '--method', 'get', '--url', "$($script:Scope)/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?api-version=2022-04-01", '--output', 'json', '--only-show-errors') -join [char]31),
+            (@('account', 'get-access-token', '--resource', 'https://management.azure.com/', '--query', 'accessToken', '--output', 'tsv', '--only-show-errors') -join [char]31),
             (@('role', 'assignment', 'list', '--assignee-object-id', $script:PrincipalObjectId, '--scope', $script:Scope, '--all', '--output', 'json', '--only-show-errors') -join [char]31)
         )
     }
@@ -792,6 +881,27 @@ Describe 'Final GitHub governance activation' {
         @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
     }
 
+    It 'does not disclose access-token output when token acquisition fails' {
+        $state = New-TestGovernanceState
+        $state.AccessTokenExitCode = 1
+        $state.AccessTokenText = 'sentinel-secret-token'
+        $state.AccessTokenError = 'authentication failed'
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+        $message = ''
+
+        try {
+            $null = Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf
+        }
+        catch {
+            $message = $_.Exception.Message
+        }
+
+        $message | Should -Match 'access token command failed'
+        $message | Should -Not -Match 'sentinel-secret-token'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
     It 'rejects cleanup evidence for a different service principal' {
         $state = New-TestGovernanceState
         $harness = New-NativeHarness -State $state
@@ -843,6 +953,21 @@ Describe 'Final GitHub governance activation' {
         $evidencePath = Write-TestJson -Value $evidence
 
         { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw '*exact bootstrap evidence assignment*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects an exact assignment HTTP response other than 404' -ForEach @(
+        @{ Name = 'forbidden'; StatusCode = 403 },
+        @{ Name = 'server error'; StatusCode = 500 }
+    ) {
+        $state = New-TestGovernanceState
+        $evidence = New-TestBootstrapEvidence
+        $assignmentId = [string]$evidence.Assignments[0].Id
+        $state.ExactRoleAssignmentStatusCodes[$assignmentId] = $StatusCode
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value $evidence
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw "*HTTP status $StatusCode*"
         @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
     }
 
@@ -900,6 +1025,85 @@ Describe 'Final GitHub governance activation' {
         $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
 
         { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw '*additional active*main*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'recognizes every supported GitHub fnmatch form that targets main' -ForEach @(
+        @{ Name = 'single star'; Pattern = 'refs/heads/m*' },
+        @{ Name = 'double star'; Pattern = 'refs/**/main' },
+        @{ Name = 'single character'; Pattern = 'refs/heads/mai?' },
+        @{ Name = 'inclusive class'; Pattern = 'refs/heads/[m]ain' },
+        @{ Name = 'bang-negated class'; Pattern = 'refs/heads/[!x]ain' },
+        @{ Name = 'caret-negated class'; Pattern = 'refs/heads/[^x]ain' },
+        @{ Name = 'escaped ordinary character'; Pattern = 'refs/heads/ma\in' },
+        @{ Name = 'class with escaped closing bracket'; Pattern = 'refs/heads/[m\]]ain' },
+        @{ Name = 'class with escaped opening bracket'; Pattern = 'refs/heads/[m\[]ain' },
+        @{ Name = 'class with escaped hyphen'; Pattern = 'refs/heads/[m\-]ain' },
+        @{ Name = 'class with escaped backslash'; Pattern = 'refs/heads/[m\\]ain' },
+        @{ Name = 'all special token'; Pattern = '~ALL' },
+        @{ Name = 'default branch special token'; Pattern = '~DEFAULT_BRANCH' }
+    ) {
+        $state = New-TestGovernanceState
+        Set-ConflictingRulesetPattern -State $state -Include @($Pattern) -Exclude @()
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw '*additional active*main*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'honors GitHub fnmatch exclusions and pathname boundaries' -ForEach @(
+        @{ Name = 'exact exclusion'; Include = @('~ALL'); Exclude = @('refs/heads/main') },
+        @{ Name = 'class exclusion'; Include = @('~ALL'); Exclude = @('refs/heads/[!x]ain') },
+        @{ Name = 'single star does not cross slash'; Include = @('refs/heads/*/*'); Exclude = @() }
+    ) {
+        $state = New-TestGovernanceState
+        Set-ConflictingRulesetPattern -State $state -Include $Include -Exclude $Exclude
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        $result = Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf
+
+        $result.Action | Should -BeExactly 'Create'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'does not let a non-component globstar exclusion hide a main-applicable ruleset' {
+        $state = New-TestGovernanceState
+        Set-ConflictingRulesetPattern -State $state -Include @('~ALL') -Exclude @('refs/**main')
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw '*additional active*main*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'binds the default-branch special token to exact live repository metadata' {
+        $state = New-TestGovernanceState
+        $state.DefaultBranch = 'develop'
+        Set-ConflictingRulesetPattern -State $state -Include @('~DEFAULT_BRANCH') -Exclude @()
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        $result = Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf
+
+        $result.Action | Should -BeExactly 'Create'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'fails closed on malformed or unsupported GitHub fnmatch syntax' -ForEach @(
+        @{ Name = 'unclosed class'; Pattern = 'refs/heads/[main' },
+        @{ Name = 'brace expansion'; Pattern = 'refs/heads/{main,dev}' },
+        @{ Name = 'unknown special token'; Pattern = '~UNKNOWN' },
+        @{ Name = 'wrong-case all token'; Pattern = '~all' },
+        @{ Name = 'wrong-case default token'; Pattern = '~default_branch' }
+    ) {
+        $state = New-TestGovernanceState
+        Set-ConflictingRulesetPattern -State $state -Include @($Pattern) -Exclude @()
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath -WhatIf } | Should -Throw '*unsupported*ref pattern*'
         @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
     }
 
@@ -1100,6 +1304,48 @@ Describe 'Final GitHub governance activation' {
 
         { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath } | Should -Throw '*additional active*main*'
         @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects same-id ruleset detail drift during the approval window' {
+        $state = New-TestGovernanceState
+        $state.Rulesets = @(
+            [ordered]@{ id = 321; name = 'main'; target = 'branch'; source_type = 'Repository'; source = $script:Repository; enforcement = 'active' }
+        )
+        $state.RulesetDetails['321'] = New-ExactRulesetDetail -Id 321
+        $state.RulesetDetails['321'].rules[2].parameters.required_approving_review_count = 2
+        $state.BeforeSecondSnapshot = {
+            param($currentState)
+            $currentState.RulesetDetails['321'].rules[2].parameters.required_approving_review_count = 3
+        }
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath } | Should -Throw '*ruleset target state changed*approval*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'accepts equivalent ruleset detail property order after approval' {
+        $state = New-TestGovernanceState
+        $state.Rulesets = @(
+            [ordered]@{ id = 321; name = 'main'; target = 'branch'; source_type = 'Repository'; source = $script:Repository; enforcement = 'evaluate' }
+        )
+        $state.RulesetDetails['321'] = New-ExactRulesetDetail -Id 321
+        $state.RulesetDetails['321'].enforcement = 'evaluate'
+        $state.BeforeSecondSnapshot = {
+            param($currentState)
+            $refName = $currentState.RulesetDetails['321'].conditions.ref_name
+            $currentState.RulesetDetails['321'].conditions.ref_name = [pscustomobject]([ordered]@{
+                exclude = @($refName.exclude)
+                include = @($refName.include)
+            })
+        }
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        $result = Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath
+
+        $result.Status | Should -BeExactly 'Verified'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 1
     }
 
     It 'rejects each closed desired-state or allowlist mismatch before native calls' -ForEach @(

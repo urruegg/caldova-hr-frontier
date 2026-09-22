@@ -1018,10 +1018,10 @@ Create a closed JSON schema and `main-ruleset.json` containing the exact setting
 `Enable-GitHubGovernance.ps1` accepts `-Repository`, `-ValidatorRunId`, `-BootstrapRunId`, `-BootstrapEvidencePath`, and `-DesiredStatePath`. The cleanup evidence is a reviewed, out-of-repository JSON record containing the numeric bootstrap run ID, its exact `head_sha`, the reviewed Tenant 1 service-principal object ID and subscription scope, and both exact temporary assignment IDs with current `Absent` read-back results. It:
 
 1. verifies both run IDs belong to the current `main` commit in this repository, use approved events, concluded `success`, and match the expected workflows;
-2. loads the Tenant 1 manifest from the exact current-`main` GitHub blob, binds the normalized cleanup evidence to that bootstrap run, commit, and reviewed service principal, then independently verifies through read-only Azure calls that both exact assignment resource IDs and both temporary roles are absent;
-3. paginates every repository ruleset, fails on duplicate desired names, and rejects any additional active branch ruleset that applies to `main`;
+2. loads the Tenant 1 manifest from the exact current-`main` GitHub blob, binds the normalized cleanup evidence to that bootstrap run, commit, and reviewed service principal, keeps the short-lived ARM token in memory, then independently verifies each exact assignment resource through an authenticated ARM GET that must return HTTP `404` and verifies the principal has neither temporary role;
+3. reads and rechecks the live default branch, paginates every repository ruleset, evaluates branch conditions with case-sensitive GitHub-compatible path-component `fnmatch` semantics, fails on duplicate desired names, and rejects any additional active branch ruleset that applies to `main`;
 4. displays the exact proposed GitHub mutation under `-WhatIf`;
-5. after `ShouldProcess` approval, repeats every mutable GitHub, manifest, evidence, Environment, and Azure read and aborts on drift;
+5. after `ShouldProcess` approval, repeats every mutable GitHub, manifest, evidence, Environment, and Azure read, compares the recursively canonical ruleset inventory and detail snapshot, and aborts on drift;
 6. creates or updates the ruleset only after that second validation pass;
 7. reads back the exact ruleset and paginated repository ruleset inventory, plus the reviewed Tenant 1 bootstrap Environment; Tenant 2 and Tenant 3 remain absent until separately approved onboarding;
 8. compares every reviewed field and fails on drift;
