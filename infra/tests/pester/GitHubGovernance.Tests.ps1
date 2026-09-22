@@ -16,6 +16,17 @@ Describe 'Final GitHub governance activation' {
         $script:PrincipalObjectId = '55555555-5555-5555-5555-555555555555'
         $script:SubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
         $script:Scope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
+        $tokens = $null
+        $parseErrors = $null
+        $scriptAst = [System.Management.Automation.Language.Parser]::ParseFile($script:ScriptPath, [ref]$tokens, [ref]$parseErrors)
+        if ($parseErrors.Count -gt 0) {
+            throw ($parseErrors | ForEach-Object Message | Out-String)
+        }
+        foreach ($statement in @($scriptAst.EndBlock.Statements)) {
+            if ($statement -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+                Invoke-Expression $statement.Extent.Text
+            }
+        }
 
         function script:Write-TestJson {
             param(
@@ -483,97 +494,34 @@ Describe 'Final GitHub governance activation' {
                 BootstrapRunId = $BootstrapRunId
                 BootstrapEvidencePath = $EvidencePath
                 DesiredStatePath = $DesiredStatePath
-                Confirm = $false
-            }
-            if ($WhatIf) {
-                $parameters.WhatIf = $true
             }
 
-            $nativeRunner = $Harness.Runner
             $state = $Harness.State
-            $ghShim = {
-                $result = & $nativeRunner -FilePath 'gh' -ArgumentList ([string[]]@($args))
-                $global:LASTEXITCODE = [int]$result.ExitCode
-                if (-not [string]::IsNullOrEmpty([string]$result.StdOut)) {
-                    Write-Output ([string]$result.StdOut)
-                }
-                if (-not [string]::IsNullOrEmpty([string]$result.StdErr)) {
-                    Write-Output ([string]$result.StdErr)
-                }
-            }.GetNewClosure()
-            $azShim = {
-                $result = & $nativeRunner -FilePath 'az' -ArgumentList ([string[]]@($args))
-                $global:LASTEXITCODE = [int]$result.ExitCode
-                if (-not [string]::IsNullOrEmpty([string]$result.StdOut)) {
-                    Write-Output ([string]$result.StdOut)
-                }
-                if (-not [string]::IsNullOrEmpty([string]$result.StdErr)) {
-                    Write-Output ([string]$result.StdErr)
-                }
-            }.GetNewClosure()
-            $webRequestShim = {
-                [CmdletBinding()]
+            $armResourceStatusReader = {
                 param(
-                    [Parameter(Mandatory)][uri]$Uri,
-                    [Parameter(Mandatory)][string]$Method,
-                    [Parameter(Mandatory)][hashtable]$Headers,
-                    [switch]$UseBasicParsing
+                    [Parameter(Mandatory)][string]$ResourceId,
+                    [Parameter(Mandatory)][string]$AccessToken
                 )
 
-                if ($Method -cne 'Get' -or [string]$Headers.Authorization -cne 'Bearer test-access-token') {
-                    throw 'Unexpected ARM request authentication or method.'
+                if ($AccessToken -cne 'test-access-token') {
+                    throw 'Unexpected ARM access token.'
                 }
-
-                $assignmentId = [string]$Uri.GetLeftPart([System.UriPartial]::Path)
-                $assignmentId = $assignmentId -replace '^https://management\.azure\.com', ''
-                $statusCode = if ($state.ExactRoleAssignmentStatusCodes.Contains($assignmentId)) {
-                    [int]$state.ExactRoleAssignmentStatusCodes[$assignmentId]
+                if ($state.ExactRoleAssignmentStatusCodes.Contains($ResourceId)) {
+                    return [int]$state.ExactRoleAssignmentStatusCodes[$ResourceId]
                 }
-                elseif ($state.ExactRoleAssignments.Contains($assignmentId)) {
-                    200
+                if ($state.ExactRoleAssignments.Contains($ResourceId)) {
+                    return 200
                 }
-                else {
-                    404
-                }
-
-                if ($statusCode -ge 200 -and $statusCode -lt 300) {
-                    return [pscustomobject]@{ StatusCode = $statusCode }
-                }
-
-                $exception = [System.Exception]::new("HTTP $statusCode")
-                $exception | Add-Member -NotePropertyName Response -NotePropertyValue ([pscustomobject]@{ StatusCode = $statusCode })
-                throw $exception
+                404
             }.GetNewClosure()
+            $shouldProcess = { param([string]$Target, [string]$Action) $true }
 
-            $existingGh = Get-Item -LiteralPath Function:\global:gh -ErrorAction SilentlyContinue
-            $existingAz = Get-Item -LiteralPath Function:\global:az -ErrorAction SilentlyContinue
-            $existingInvokeWebRequest = Get-Item -LiteralPath Function:\global:Invoke-WebRequest -ErrorAction SilentlyContinue
-            try {
-                Set-Item -LiteralPath Function:\global:gh -Value $ghShim -Force
-                Set-Item -LiteralPath Function:\global:az -Value $azShim -Force
-                Set-Item -LiteralPath Function:\global:Invoke-WebRequest -Value $webRequestShim -Force
-                & $script:ScriptPath @parameters
-            }
-            finally {
-                if ($existingGh) {
-                    Set-Item -LiteralPath Function:\global:gh -Value $existingGh.ScriptBlock -Force
-                }
-                else {
-                    Remove-Item -LiteralPath Function:\global:gh -Force -ErrorAction SilentlyContinue
-                }
-                if ($existingAz) {
-                    Set-Item -LiteralPath Function:\global:az -Value $existingAz.ScriptBlock -Force
-                }
-                else {
-                    Remove-Item -LiteralPath Function:\global:az -Force -ErrorAction SilentlyContinue
-                }
-                if ($existingInvokeWebRequest) {
-                    Set-Item -LiteralPath Function:\global:Invoke-WebRequest -Value $existingInvokeWebRequest.ScriptBlock -Force
-                }
-                else {
-                    Remove-Item -LiteralPath Function:\global:Invoke-WebRequest -Force -ErrorAction SilentlyContinue
-                }
-            }
+            Invoke-GitHubGovernanceCore `
+                @parameters `
+                -NativeCommandRunner $Harness.Runner `
+                -ArmResourceStatusReader $armResourceStatusReader `
+                -ShouldProcess $shouldProcess `
+                -IsWhatIf ([bool]$WhatIf)
         }
 
         function script:Set-ExactExistingRuleset {
@@ -701,6 +649,66 @@ Describe 'Final GitHub governance activation' {
         $ErrorActionPreference | Should -BeExactly $originalErrorActionPreference
     }
 
+    It 'rejects ambient function commands at the production native boundary' {
+        $tokens = $null
+        $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile($script:ScriptPath, [ref]$tokens, [ref]$errors)
+        $errors | Should -HaveCount 0
+        $runnerFunction = @($ast.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq 'New-DefaultNativeCommandRunner'
+        }, $true))
+        $runnerFunction | Should -HaveCount 1
+        Invoke-Expression $runnerFunction[0].Extent.Text
+        $existingGh = Get-Item -LiteralPath Function:\gh -ErrorAction SilentlyContinue
+        try {
+            Set-Item -LiteralPath Function:\gh -Value { 'forged' } -Force
+            $runner = New-DefaultNativeCommandRunner
+
+            $result = & $runner -FilePath 'gh' -ArgumentList @('--version')
+
+            $result.ExitCode | Should -Be 0
+            $result.StdOut | Should -Match '^gh version '
+            $result.StdOut | Should -Not -BeExactly 'forged'
+        }
+        finally {
+            if ($existingGh) {
+                Set-Item -LiteralPath Function:\gh -Value $existingGh.ScriptBlock -Force
+            }
+            else {
+                Remove-Item -LiteralPath Function:\gh -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
+    It 'captures the production invocation cmdlet for the ShouldProcess callback' {
+        $content = Get-Content -Raw -LiteralPath $script:ScriptPath
+
+        $content | Should -Match '\$invocationCmdlet\s*=\s*\$PSCmdlet'
+        $content | Should -Match '\$invocationCmdlet\.ShouldProcess\(\$Target,\s*\$Action\)'
+        $content | Should -Not -Match '\$PSCmdlet\.ShouldProcess\(\$Target,\s*\$Action\)'
+    }
+
+    It 'reads structured ARM error status without parsing response text' -ForEach @(
+        @{ Name = 'not found'; StatusCode = 404 },
+        @{ Name = 'forbidden'; StatusCode = 403 },
+        @{ Name = 'server error'; StatusCode = 500 }
+    ) {
+        $requestInvoker = {
+            param([uri]$Uri, [string]$Method, [hashtable]$Headers)
+            $exception = [System.Exception]::new('opaque ARM failure')
+            $exception | Add-Member -NotePropertyName Response -NotePropertyValue ([pscustomobject]@{ StatusCode = $StatusCode })
+            throw $exception
+        }.GetNewClosure()
+
+        $actual = Get-ArmResourceStatusCode `
+            -ResourceId "$($script:Scope)/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" `
+            -AccessToken 'sentinel-token' `
+            -RequestInvoker $requestInvoker
+
+        $actual | Should -Be $StatusCode
+    }
+
     It 'returns the exact create proposal under WhatIf and performs zero mutation calls' {
         $state = New-TestGovernanceState
         $harness = New-NativeHarness -State $state
@@ -768,7 +776,8 @@ Describe 'Final GitHub governance activation' {
         Test-Path -LiteralPath $mutation.InputPath | Should -BeFalse
         $result.Action | Should -BeExactly 'Create'
         $result.Status | Should -BeExactly 'Verified'
-        $harness.Calls[-1].ArgumentList | Should -Be @('api', 'repos/urruegg/caldova-hr-frontier/rulesets/321')
+        @($harness.Calls | Where-Object { $_.ArgumentList -join [char]31 -ceq (@('api', 'repos/urruegg/caldova-hr-frontier/rulesets/321') -join [char]31) }).Count | Should -BeGreaterThan 0
+        $harness.Calls[-1].ArgumentList | Should -Be @('api', 'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897/variables')
     }
 
     It 'updates one drifted repository ruleset with PUT and no other mutation method' {
@@ -826,6 +835,19 @@ Describe 'Final GitHub governance activation' {
         $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
 
         { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath } | Should -Throw '*additional active*main*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 1
+    }
+
+    It 'fails after mutation when the reviewed Environment concurrently drifts' {
+        $state = New-TestGovernanceState
+        $state.AfterMutation = {
+            param($currentState)
+            ($currentState.EnvironmentVariables.variables | Where-Object name -CEQ 'AZURE_CLIENT_ID').value = '66666666-6666-6666-6666-666666666666'
+        }
+        $harness = New-NativeHarness -State $state
+        $evidencePath = Write-TestJson -Value (New-TestBootstrapEvidence)
+
+        { Invoke-TestGovernance -Harness $harness -EvidencePath $evidencePath } | Should -Throw '*Environment*'
         @(Get-MutationCalls -Harness $harness) | Should -HaveCount 1
     }
 
@@ -1096,7 +1118,8 @@ Describe 'Final GitHub governance activation' {
         @{ Name = 'brace expansion'; Pattern = 'refs/heads/{main,dev}' },
         @{ Name = 'unknown special token'; Pattern = '~UNKNOWN' },
         @{ Name = 'wrong-case all token'; Pattern = '~all' },
-        @{ Name = 'wrong-case default token'; Pattern = '~default_branch' }
+        @{ Name = 'wrong-case default token'; Pattern = '~default_branch' },
+        @{ Name = 'overlong globstar'; Pattern = 'refs/heads/***/main' }
     ) {
         $state = New-TestGovernanceState
         Set-ConflictingRulesetPattern -State $state -Include @($Pattern) -Exclude @()

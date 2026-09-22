@@ -19,15 +19,6 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$expectedRepository = 'urruegg/caldova-hr-frontier'
-$expectedTenantAlias = 'caldova25156897'
-$expectedTenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
-$expectedSubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
-$expectedScope = "/subscriptions/$expectedSubscriptionId"
-$expectedEnvironmentName = 'bootstrap-caldova25156897'
-$expectedVariableNames = @('AZURE_CLIENT_ID', 'AZURE_TENANT_ID', 'AZURE_SUBSCRIPTION_ID')
-$evidenceMaximumAge = [timespan]::FromHours(24)
-
 function New-DefaultNativeCommandRunner {
     {
         param(
@@ -38,15 +29,11 @@ function New-DefaultNativeCommandRunner {
             [string[]]$ArgumentList
         )
 
-        $command = Get-Command -Name $FilePath -ErrorAction Stop
-        if ($command.CommandType -in @('Function', 'Filter')) {
-            $output = & $FilePath @ArgumentList
-            return [pscustomobject]@{
-                ExitCode = $LASTEXITCODE
-                StdOut = ($output | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
-                StdErr = ''
-            }
+        $commands = @(Microsoft.PowerShell.Core\Get-Command -Name $FilePath -CommandType Application -All -ErrorAction Stop)
+        if ($commands.Count -eq 0) {
+            throw "Required application command was not found: $FilePath"
         }
+        $command = $commands[0]
 
         $stderrPath = [System.IO.Path]::GetTempFileName()
         $originalErrorActionPreference = $ErrorActionPreference
@@ -552,18 +539,25 @@ function Invoke-NativeCommand {
 function Get-ArmResourceStatusCode {
     param(
         [Parameter(Mandatory)][string]$ResourceId,
-        [Parameter(Mandatory)][string]$AccessToken
+        [Parameter(Mandatory)][string]$AccessToken,
+        [scriptblock]$RequestInvoker
     )
 
     $uri = [uri]("https://management.azure.com{0}?api-version=2022-04-01" -f $ResourceId)
     $statusCode = 0
     try {
-        $response = Invoke-WebRequest `
-            -Uri $uri `
-            -Method Get `
-            -Headers @{ Authorization = "Bearer $AccessToken" } `
-            -UseBasicParsing `
-            -ErrorAction Stop
+        $headers = @{ Authorization = "Bearer $AccessToken" }
+        $response = if ($RequestInvoker) {
+            & $RequestInvoker -Uri $uri -Method 'Get' -Headers $headers
+        }
+        else {
+            Microsoft.PowerShell.Utility\Invoke-WebRequest `
+                -Uri $uri `
+                -Method Get `
+                -Headers $headers `
+                -UseBasicParsing `
+                -ErrorAction Stop
+        }
         $statusCode = [int]$response.StatusCode
     }
     catch {
@@ -890,7 +884,11 @@ function Test-RefPatternMatchesMain {
                 while ($runEnd + 1 -lt $Pattern.Length -and $Pattern[$runEnd + 1] -eq '*') {
                     $runEnd++
                 }
-                $isGlobstar = $runEnd -gt $index -and
+                $starCount = $runEnd - $index + 1
+                if ($starCount -gt 2) {
+                    throw "Unsupported repository ruleset ref pattern '$Pattern'."
+                }
+                $isGlobstar = $starCount -eq 2 -and
                     ($index -eq 0 -or $Pattern[$index - 1] -eq '/') -and
                     ($runEnd + 1 -eq $Pattern.Length -or $Pattern[$runEnd + 1] -eq '/')
                 $index = $runEnd
@@ -1215,6 +1213,7 @@ function Assert-EnvironmentReadBack {
 function Assert-LiveAzureRoleAbsence {
     param(
         [Parameter(Mandatory)][scriptblock]$Runner,
+        [Parameter(Mandatory)][scriptblock]$ArmResourceStatusReader,
         [Parameter(Mandatory)][string]$ClientId,
         [Parameter(Mandatory)][string]$ExpectedPrincipalObjectId,
         [Parameter(Mandatory)][object]$Evidence
@@ -1250,7 +1249,7 @@ function Assert-LiveAzureRoleAbsence {
 
     $evidenceAssignmentIds = @($Evidence.Assignments | ForEach-Object { [string]$_.Id })
     foreach ($assignmentId in $evidenceAssignmentIds) {
-        $statusCode = Get-ArmResourceStatusCode -ResourceId $assignmentId -AccessToken $accessToken
+        $statusCode = & $ArmResourceStatusReader -ResourceId $assignmentId -AccessToken $accessToken
         if ($statusCode -ge 200 -and $statusCode -lt 300) {
             throw "The exact bootstrap evidence assignment remains present in Azure: $assignmentId"
         }
@@ -1296,6 +1295,28 @@ function Assert-LiveAzureRoleAbsence {
     }
 }
 
+function Invoke-GitHubGovernanceCore {
+    param(
+        [Parameter(Mandatory)][string]$Repository,
+        [Parameter(Mandatory)][long]$ValidatorRunId,
+        [Parameter(Mandatory)][long]$BootstrapRunId,
+        [Parameter(Mandatory)][string]$BootstrapEvidencePath,
+        [Parameter(Mandatory)][string]$DesiredStatePath,
+        [Parameter(Mandatory)][scriptblock]$NativeCommandRunner,
+        [Parameter(Mandatory)][scriptblock]$ArmResourceStatusReader,
+        [Parameter(Mandatory)][scriptblock]$ShouldProcess,
+        [Parameter(Mandatory)][bool]$IsWhatIf
+    )
+
+$expectedRepository = 'urruegg/caldova-hr-frontier'
+$expectedTenantAlias = 'caldova25156897'
+$expectedTenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
+$expectedSubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
+$expectedScope = "/subscriptions/$expectedSubscriptionId"
+$expectedEnvironmentName = 'bootstrap-caldova25156897'
+$expectedVariableNames = @('AZURE_CLIENT_ID', 'AZURE_TENANT_ID', 'AZURE_SUBSCRIPTION_ID')
+$evidenceMaximumAge = [timespan]::FromHours(24)
+
 if ($Repository -cne $expectedRepository) {
     throw "Repository must be exactly '$expectedRepository'."
 }
@@ -1310,8 +1331,6 @@ $desiredStateDocument = Read-JsonFile -Path $DesiredStatePath -Context 'GitHub g
 $desiredRuleset = Assert-DesiredState -DesiredState $desiredStateDocument.Value
 $bootstrapEvidenceDocument = Read-JsonFile -Path $BootstrapEvidencePath -Context 'Bootstrap cleanup evidence'
 Assert-BootstrapEvidence -Evidence $bootstrapEvidenceDocument.Value -ExpectedBootstrapRunId $BootstrapRunId
-
-$nativeCommandRunner = New-DefaultNativeCommandRunner
 
 $userIdText = (Invoke-NativeCommand -Runner $nativeCommandRunner -ArgumentList @('api', 'users/urruegg', '--jq', '.id')).Trim()
 $resolvedUserId = [long]0
@@ -1352,7 +1371,7 @@ $existingRulesetId = $rulesetState.ExistingRulesetId
 $existingRulesetExact = [bool]$rulesetState.ExistingRulesetExact
 
 $environmentClientId = Assert-EnvironmentReadBack -Runner $nativeCommandRunner -ResolvedUserId $resolvedUserId
-Assert-LiveAzureRoleAbsence -Runner $nativeCommandRunner -ClientId $environmentClientId -ExpectedPrincipalObjectId $reviewedPrincipalObjectId -Evidence $bootstrapEvidenceDocument.Value
+Assert-LiveAzureRoleAbsence -Runner $nativeCommandRunner -ArmResourceStatusReader $ArmResourceStatusReader -ClientId $environmentClientId -ExpectedPrincipalObjectId $reviewedPrincipalObjectId -Evidence $bootstrapEvidenceDocument.Value
 
 $action = if ($null -eq $existingRulesetId) { 'Create' } elseif (-not $existingRulesetExact) { 'Update' } else { 'None' }
 $method = if ($action -ceq 'Create') { 'POST' } elseif ($action -ceq 'Update') { 'PUT' } else { $null }
@@ -1372,12 +1391,12 @@ $proposal = [pscustomobject]([ordered]@{
     Status = if ($action -ceq 'None') { 'Verified' } else { 'Proposed' }
 })
 
-if ($action -ceq 'None' -or $WhatIfPreference) {
+if ($action -ceq 'None' -or $IsWhatIf) {
     return $proposal
 }
 
 $target = "$expectedRepository ruleset '$($desiredRuleset.name)'"
-if (-not $PSCmdlet.ShouldProcess($target, "$method $endpoint")) {
+if (-not (& $ShouldProcess -Target $target -Action "$method $endpoint")) {
     throw 'GitHub ruleset mutation was declined; governance was not activated.'
 }
 
@@ -1434,7 +1453,7 @@ $approvalEnvironmentClientId = Assert-EnvironmentReadBack -Runner $nativeCommand
 if ($approvalEnvironmentClientId -cne $environmentClientId) {
     throw 'GitHub Environment client id changed during the approval window.'
 }
-Assert-LiveAzureRoleAbsence -Runner $nativeCommandRunner -ClientId $approvalEnvironmentClientId -ExpectedPrincipalObjectId $approvalPrincipalObjectId -Evidence $approvalEvidenceDocument.Value
+Assert-LiveAzureRoleAbsence -Runner $nativeCommandRunner -ArmResourceStatusReader $ArmResourceStatusReader -ClientId $approvalEnvironmentClientId -ExpectedPrincipalObjectId $approvalPrincipalObjectId -Evidence $approvalEvidenceDocument.Value
 
 $tempPath = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString() + '.json')
 try {
@@ -1472,6 +1491,41 @@ $postMutationRulesetState = Get-RepositoryRulesetState -Runner $nativeCommandRun
 if ($postMutationRulesetState.ExistingRulesetId -ne $mutatedRulesetId -or -not [bool]$postMutationRulesetState.ExistingRulesetExact) {
     throw 'Post-mutation repository ruleset inventory does not contain exactly the reviewed main ruleset.'
 }
+$postMutationEnvironmentClientId = Assert-EnvironmentReadBack -Runner $nativeCommandRunner -ResolvedUserId $approvalUserId
+if ($postMutationEnvironmentClientId -cne $approvalEnvironmentClientId) {
+    throw 'GitHub Environment client id changed during ruleset mutation.'
+}
 
 $proposal.Status = 'Verified'
 $proposal
+}
+
+$nativeCommandRunner = New-DefaultNativeCommandRunner
+$armResourceStatusReader = {
+    param(
+        [Parameter(Mandatory)][string]$ResourceId,
+        [Parameter(Mandatory)][string]$AccessToken
+    )
+
+    Get-ArmResourceStatusCode -ResourceId $ResourceId -AccessToken $AccessToken
+}
+$invocationCmdlet = $PSCmdlet
+$shouldProcess = {
+    param(
+        [Parameter(Mandatory)][string]$Target,
+        [Parameter(Mandatory)][string]$Action
+    )
+
+    $invocationCmdlet.ShouldProcess($Target, $Action)
+}.GetNewClosure()
+
+Invoke-GitHubGovernanceCore `
+    -Repository $Repository `
+    -ValidatorRunId $ValidatorRunId `
+    -BootstrapRunId $BootstrapRunId `
+    -BootstrapEvidencePath $BootstrapEvidencePath `
+    -DesiredStatePath $DesiredStatePath `
+    -NativeCommandRunner $nativeCommandRunner `
+    -ArmResourceStatusReader $armResourceStatusReader `
+    -ShouldProcess $shouldProcess `
+    -IsWhatIf ([bool]$WhatIfPreference)
