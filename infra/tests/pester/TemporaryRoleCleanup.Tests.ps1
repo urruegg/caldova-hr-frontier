@@ -520,7 +520,7 @@ Describe 'Task 6 temporary role cleanup' {
             $calls.Add([pscustomobject]@{ FilePath = $FilePath; ArgumentList = @($ArgumentList) }) | Out-Null
 
             if (@($ArgumentList).Count -eq 4 -and $ArgumentList[0] -ceq 'account' -and $ArgumentList[1] -ceq 'show') {
-                return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"e2312862-df63-440c-8bcf-007a2c52859d","id":"edb45a24-408d-47c4-bbc7-685b9b3fc017","user":{"type":"user","name":"admin@Caldova25156897.onmicrosoft.com"}}'; StdErr = '' }
+                return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"e2312862-df63-440c-8bcf-007a2c52859d","id":"edb45a24-408d-47c4-bbc7-685b9b3fc017","user":{"type":"user","name":"admin@caldova25156897.onmicrosoft.com"}}'; StdErr = '' }
             }
 
             if (@($ArgumentList).Count -eq 5 -and $ArgumentList[0] -ceq 'ad' -and $ArgumentList[1] -ceq 'signed-in-user') {

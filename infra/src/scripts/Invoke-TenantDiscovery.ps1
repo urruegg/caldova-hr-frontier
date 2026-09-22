@@ -159,7 +159,7 @@ function Get-InteractivePrincipal {
     }
 
     $userName = [string]$account.user.name
-    if ([string]::IsNullOrWhiteSpace($userName) -or $userName -cne [string]$TenantConfiguration.AdminUpn) {
+    if ([string]::IsNullOrWhiteSpace($userName) -or $userName -ine [string]$TenantConfiguration.AdminUpn) {
         throw 'Interactive discovery requires the reviewed administrator account context.'
     }
 

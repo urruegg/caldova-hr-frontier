@@ -13,15 +13,25 @@ function Invoke-GitHubDiscoveryRequest {
 
     $repositoryPath = "repos/{0}/{1}" -f $Arguments.Owner, $Arguments.Repository
     $environmentName = [string]$Arguments.EnvironmentName
+    $endpoints = [ordered]@{
+        repository = $repositoryPath
+        oidcCustomization = "$repositoryPath/actions/oidc/customization/sub"
+        rulesets = "$repositoryPath/rulesets"
+        environment = "$repositoryPath/environments/$environmentName"
+        variables = "$repositoryPath/environments/$environmentName/variables"
+        actionsPermissions = "$repositoryPath/actions/permissions"
+        workflows = "$repositoryPath/actions/workflows"
+        collaborator = "$repositoryPath/collaborators/$($Arguments.Owner)/permission"
+    }
     $body = [ordered]@{
-        repository = (Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', $repositoryPath)).Body
-        oidcCustomization = (Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', "$repositoryPath/actions/oidc/customization/sub")).Body
-        rulesets = (Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', "$repositoryPath/rulesets")).Body
-        environment = (Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', "$repositoryPath/environments/$environmentName")).Body
-        variables = (Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', "$repositoryPath/environments/$environmentName/variables")).Body
-        actionsPermissions = (Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', "$repositoryPath/actions/permissions")).Body
-        workflows = (Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', "$repositoryPath/actions/workflows")).Body
-        collaborator = (Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', "$repositoryPath/collaborators/$($Arguments.Owner)/permission")).Body
+    }
+    foreach ($endpoint in $endpoints.GetEnumerator()) {
+        $response = Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', [string]$endpoint.Value)
+        if ([int]$response.StatusCode -ne 200) {
+            return $response
+        }
+
+        $body[$endpoint.Key] = $response.Body
     }
 
     [pscustomobject]@{

@@ -206,12 +206,70 @@ function Invoke-DiscoveryNativeCommand {
         [string[]]$ArgumentList
     )
 
-    $output = & $FilePath @ArgumentList 2>&1
-    if ($LASTEXITCODE -ne 0) {
+    $isGitHubApi = $FilePath -ceq 'gh' -and $ArgumentList.Count -gt 0 -and $ArgumentList[0] -ceq 'api'
+    $effectiveArgumentList = @($ArgumentList)
+    if ($isGitHubApi -and $effectiveArgumentList -notcontains '--include') {
+        $effectiveArgumentList += '--include'
+    }
+
+    $output = if ($isGitHubApi) {
+        & $FilePath @effectiveArgumentList 2>$null
+    }
+    else {
+        & $FilePath @effectiveArgumentList 2>&1
+    }
+    $exitCode = $LASTEXITCODE
+    $text = ($output | Out-String).Trim()
+
+    if ($isGitHubApi) {
+        $normalizedText = $text.Replace("`r`n", "`n")
+        $statusMatches = [regex]::Matches($normalizedText, '(?m)^HTTP/\S+\s+(?<StatusCode>\d{3})[^\n]*$')
+        if ($statusMatches.Count -eq 0) {
+            throw "$FilePath returned a GitHub API response without an HTTP status."
+        }
+
+        $statusMatch = $statusMatches[$statusMatches.Count - 1]
+        $httpResponse = $normalizedText.Substring($statusMatch.Index)
+        $sections = @($httpResponse -split "`n`n", 2)
+        $headerLines = @($sections[0] -split "`n")
+        $headers = @{}
+        foreach ($headerLine in @($headerLines | Select-Object -Skip 1)) {
+            $delimiterIndex = $headerLine.IndexOf(':')
+            if ($delimiterIndex -le 0) {
+                continue
+            }
+
+            $headerName = $headerLine.Substring(0, $delimiterIndex).Trim()
+            if ([string]::IsNullOrWhiteSpace($headerName)) {
+                continue
+            }
+
+            $headers[$headerName] = $headerLine.Substring($delimiterIndex + 1).Trim()
+        }
+        $bodyText = if ($sections.Count -eq 2) { $sections[1].Trim() } else { '' }
+        $body = if ([string]::IsNullOrWhiteSpace($bodyText)) {
+            $null
+        }
+        else {
+            try {
+                $bodyText | ConvertFrom-Json
+            }
+            catch {
+                throw "$FilePath returned unexpected non-JSON discovery output."
+            }
+        }
+
+        return [pscustomobject]@{
+            StatusCode = [int]$statusMatch.Groups['StatusCode'].Value
+            Headers = $headers
+            Body = $body
+        }
+    }
+
+    if ($exitCode -ne 0) {
         throw "$FilePath failed while executing discovery request."
     }
 
-    $text = ($output | Out-String).Trim()
     if ([string]::IsNullOrWhiteSpace($text)) {
         return [pscustomobject]@{
             StatusCode = 404

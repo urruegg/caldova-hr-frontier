@@ -210,7 +210,7 @@ if (-not $AzRequest) {
     if ([string]$account.id -cne $subscriptionId) {
         throw 'Signed-in subscription does not match the reviewed tenant manifest.'
     }
-    if ([string]$account.user.type -cne 'user' -or [string]$account.user.name -cne [string]$tenantConfiguration.AdminUpn) {
+    if ([string]$account.user.type -cne 'user' -or [string]$account.user.name -ine [string]$tenantConfiguration.AdminUpn) {
         throw 'Temporary bootstrap grants require the reviewed attended administrator user context.'
     }
 

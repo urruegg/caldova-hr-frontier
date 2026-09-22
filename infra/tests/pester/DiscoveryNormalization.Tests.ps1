@@ -506,6 +506,134 @@ function Get-AzureDevOpsDiscovery {
         }
     }
 
+    It 'normalizes a missing GitHub API resource from the included HTTP response' {
+        $result = InModuleScope Caldova.HrFrontier.Bootstrap {
+            $script:CapturedGitHubArguments = @()
+            $previousExitCode = $global:LASTEXITCODE
+            function script:gh {
+                $script:CapturedGitHubArguments = @($args)
+                $global:LASTEXITCODE = 1
+                @(
+                    'HTTP/2.0 404 Not Found',
+                    'Content-Type: application/json; charset=utf-8',
+                    '',
+                    '{"message":"Not Found","status":"404"}'
+                )
+            }
+
+            try {
+                $response = Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', 'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897')
+                [pscustomobject]@{
+                    Response = $response
+                    Arguments = @($script:CapturedGitHubArguments)
+                }
+            }
+            finally {
+                Remove-Item -Path Function:\gh -ErrorAction SilentlyContinue
+                $global:LASTEXITCODE = $previousExitCode
+            }
+        }
+
+        $result.Response.StatusCode | Should -Be 404
+        $result.Response.Body.message | Should -Be 'Not Found'
+        $result.Arguments | Should -Contain '--include'
+    }
+
+    It 'preserves Retry-After from a throttled GitHub API response' {
+        $response = InModuleScope Caldova.HrFrontier.Bootstrap {
+            $previousExitCode = $global:LASTEXITCODE
+            function script:gh {
+                $global:LASTEXITCODE = 1
+                @(
+                    'HTTP/2.0 429 Too Many Requests',
+                    'Content-Type: application/json; charset=utf-8',
+                    'Retry-After: 7',
+                    '',
+                    '{"message":"API rate limit exceeded","status":"429"}'
+                )
+            }
+
+            try {
+                Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', 'repos/urruegg/caldova-hr-frontier')
+            }
+            finally {
+                Remove-Item -Path Function:\gh -ErrorAction SilentlyContinue
+                $global:LASTEXITCODE = $previousExitCode
+            }
+        }
+
+        $response.StatusCode | Should -Be 429
+        $response.Headers['Retry-After'] | Should -Be '7'
+    }
+
+    It 'marks GitHub discovery Missing when the bootstrap Environment does not exist' {
+        $result = InModuleScope Caldova.HrFrontier.Bootstrap -Parameters @{
+            TenantConfiguration = $script:TenantConfiguration
+            RunId = $script:RunId
+            CollectedUtc = $script:CollectedUtc
+        } {
+            param($TenantConfiguration, $RunId, $CollectedUtc)
+
+            $script:CapturedCalls = @()
+            $originalNativeCommand = ${function:Invoke-DiscoveryNativeCommand}
+            function script:Invoke-DiscoveryNativeCommand {
+                param(
+                    [string]$FilePath,
+                    [string[]]$ArgumentList
+                )
+
+                $script:CapturedCalls += [string]$ArgumentList[1]
+                switch ([string]$ArgumentList[1]) {
+                    'repos/urruegg/caldova-hr-frontier' {
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 1371297722; name = 'caldova-hr-frontier'; html_url = 'https://github.com/urruegg/caldova-hr-frontier'; owner = [pscustomobject]@{ id = 46865858 } } }
+                    }
+                    'repos/urruegg/caldova-hr-frontier/actions/oidc/customization/sub' {
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ use_default = $false; use_immutable_subject = $true; sub_claim_prefix = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-caldova25156897' } }
+                    }
+                    'repos/urruegg/caldova-hr-frontier/rulesets' {
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @() }
+                    }
+                    'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897' {
+                        return [pscustomobject]@{ StatusCode = 404; Headers = @{}; Body = [pscustomobject]@{ message = 'Not Found' } }
+                    }
+                    default {
+                        throw "Unexpected GitHub discovery call: $($ArgumentList[1])"
+                    }
+                }
+            }
+
+            try {
+                $bundle = Invoke-GitHubDiscoveryRequest -Operation 'DiscoveryBundle' -Arguments ([ordered]@{
+                    Owner = 'urruegg'
+                    Repository = 'caldova-hr-frontier'
+                    EnvironmentName = 'bootstrap-caldova25156897'
+                })
+                $service = Get-GitHubDiscovery -TenantConfiguration $TenantConfiguration -RunId $RunId -CollectedUtc $CollectedUtc -Request {
+                    param($Operation, $Arguments)
+                    $bundle
+                }
+
+                [pscustomobject]@{
+                    Response = $bundle
+                    Service = $service
+                    Calls = @($script:CapturedCalls)
+                }
+            }
+            finally {
+                Set-Item -Path Function:\script:Invoke-DiscoveryNativeCommand -Value $originalNativeCommand
+            }
+        }
+
+        $result.Response.StatusCode | Should -Be 404
+        $result.Service.Status | Should -Be 'Missing'
+        $result.Calls | Should -Be @(
+            'repos/urruegg/caldova-hr-frontier',
+            'repos/urruegg/caldova-hr-frontier/actions/oidc/customization/sub',
+            'repos/urruegg/caldova-hr-frontier/rulesets',
+            'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897'
+        )
+    }
+
     It 'default Entra production request bundle fetches applications, service principals, and federated identity credentials' {
         $result = InModuleScope Caldova.HrFrontier.Bootstrap -Parameters @{
             TenantConfiguration = $script:TenantConfiguration
@@ -1390,6 +1518,48 @@ function Get-AzureDevOpsDiscovery {
         if (Test-Path -LiteralPath $replaceAllowed.NativeLogPath) {
             $nativeCalls = Get-Content -Raw -LiteralPath $replaceAllowed.NativeLogPath | ConvertFrom-Json
             @($nativeCalls).Count | Should -Be 0
+        }
+    }
+
+    It 'accepts the reviewed administrator UPN when Azure CLI normalizes its casing' {
+        $tokens = $null
+        $parseErrors = $null
+        $entryPointAst = [System.Management.Automation.Language.Parser]::ParseFile($script:DiscoveryEntryPointPath, [ref]$tokens, [ref]$parseErrors)
+        $parseErrors.Count | Should -Be 0
+        $functionAst = $entryPointAst.Find({
+            param($node)
+            $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq 'Get-InteractivePrincipal'
+        }, $true)
+        $functionAst | Should -Not -BeNullOrEmpty
+
+        . ([scriptblock]::Create($functionAst.Extent.Text))
+
+        $previousExitCode = $global:LASTEXITCODE
+        try {
+            function az {
+                $global:LASTEXITCODE = 0
+            }
+
+            function Invoke-AzJson {
+                param([string[]]$ArgumentList)
+
+                [pscustomobject]@{
+                    tenantId = $script:TenantConfiguration.TenantId
+                    id = $script:TenantConfiguration.SubscriptionId
+                    user = [pscustomobject]@{
+                        type = 'user'
+                        name = 'admin@caldova25156897.onmicrosoft.com'
+                    }
+                }
+            }
+
+            $principal = Get-InteractivePrincipal -TenantConfiguration $script:TenantConfiguration
+
+            $principal.Type | Should -Be 'User'
+            $principal.Upn | Should -Be 'admin@caldova25156897.onmicrosoft.com'
+        }
+        finally {
+            $global:LASTEXITCODE = $previousExitCode
         }
     }
 }
