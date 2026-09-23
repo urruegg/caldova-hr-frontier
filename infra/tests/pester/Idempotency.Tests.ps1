@@ -368,17 +368,25 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
         $fixturePath = $script:FixturePath
         $expectedMainBicepPath = [System.IO.Path]::GetFullPath((Join-Path $script:RepositoryRoot 'infra\src\bicep\main.bicep'))
         $global:Task6CapturedCommand = $null
+        $githubRunIdWasPresent = Test-Path Env:GITHUB_RUN_ID
+        $previousGithubRunId = $env:GITHUB_RUN_ID
 
-        & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { } -IntentValidator { } -OidcContextValidator { } -BicepValidator { } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
-            param([string]$FilePath, [string[]]$ArgumentList)
+        try {
+            Remove-Item Env:GITHUB_RUN_ID -ErrorAction SilentlyContinue
+            & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { } -IntentValidator { } -OidcContextValidator { } -BicepValidator { } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
+                param([string]$FilePath, [string[]]$ArgumentList)
 
-            $global:Task6CapturedCommand = [pscustomobject]@{
-                FilePath = $FilePath
-                ArgumentList = $ArgumentList
-            }
+                $global:Task6CapturedCommand = [pscustomobject]@{
+                    FilePath = $FilePath
+                    ArgumentList = $ArgumentList
+                }
 
-            @{ ExitCode = 0; StdOut = (Get-Content -Raw -LiteralPath $fixturePath); StdErr = '' }
-        } -WhatIfBoundaryValidator { param([string]$Path) } -CleanupRunner { param([object]$RoleState) }
+                @{ ExitCode = 0; StdOut = (Get-Content -Raw -LiteralPath $fixturePath); StdErr = '' }
+            } -WhatIfBoundaryValidator { param([string]$Path) } -CleanupRunner { param([object]$RoleState) }
+        }
+        finally {
+            if ($githubRunIdWasPresent) { $env:GITHUB_RUN_ID = $previousGithubRunId } else { Remove-Item Env:GITHUB_RUN_ID -ErrorAction SilentlyContinue }
+        }
 
         $global:Task6CapturedCommand.FilePath | Should -Be 'az'
         $global:Task6CapturedCommand.ArgumentList | Should -Be @(
