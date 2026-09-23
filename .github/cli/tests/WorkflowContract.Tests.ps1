@@ -1,6 +1,7 @@
 BeforeAll {
     $script:repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
     $script:workflowPath = Join-Path $script:repositoryRoot '.github\workflows\validate-repository.yml'
+    $script:validatorPath = Join-Path $script:repositoryRoot '.github\cli\verify-repository-setup.ps1'
 }
 
 Describe 'Repository validation workflow' {
@@ -54,5 +55,12 @@ Describe 'Repository validation workflow' {
 
         $content | Should -Not -Match '\$\{\{\s*secrets\.'
         $content | Should -Not -Match '(?m)^\s*(?:pull-requests|contents|id-token):\s*write\r?$'
+    }
+
+    It 'selects one Git executable when the runner exposes duplicate command paths' {
+        $script:validatorPath | Should -Exist
+        $content = Get-Content -LiteralPath $script:validatorPath -Raw
+
+        $content | Should -Match '(?m)^\$gitCommand = Get-Command git -CommandType Application -ErrorAction SilentlyContinue \| Select-Object -First 1\r?$'
     }
 }

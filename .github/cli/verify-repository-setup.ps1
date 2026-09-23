@@ -176,7 +176,7 @@ foreach ($fileName in $issueTemplateFileNames) {
     [void]$ordinaryIssueTemplateFiles.Add($fileName)
 }
 
-$gitCommand = Get-Command git -CommandType Application -ErrorAction SilentlyContinue
+$gitCommand = Get-Command git -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
 $gitIndexLines = @()
 $gitIndexReadable = $false
 $gitIndexRecords = [Collections.Generic.List[object]]::new()
