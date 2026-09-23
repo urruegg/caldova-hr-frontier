@@ -13,19 +13,47 @@ function Invoke-GitHubDiscoveryRequest {
 
     $repositoryPath = "repos/{0}/{1}" -f $Arguments.Owner, $Arguments.Repository
     $environmentName = [string]$Arguments.EnvironmentName
-    $endpoints = [ordered]@{
+    $requiredEndpoints = [ordered]@{
         repository = $repositoryPath
         oidcCustomization = "$repositoryPath/actions/oidc/customization/sub"
         rulesets = "$repositoryPath/rulesets"
-        environment = "$repositoryPath/environments/$environmentName"
-        variables = "$repositoryPath/environments/$environmentName/variables"
+    }
+    $remainingEndpoints = [ordered]@{
         actionsPermissions = "$repositoryPath/actions/permissions"
         workflows = "$repositoryPath/actions/workflows"
         collaborator = "$repositoryPath/collaborators/$($Arguments.Owner)/permission"
     }
     $body = [ordered]@{
     }
-    foreach ($endpoint in $endpoints.GetEnumerator()) {
+    foreach ($endpoint in $requiredEndpoints.GetEnumerator()) {
+        $response = Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', [string]$endpoint.Value)
+        if ([int]$response.StatusCode -ne 200) {
+            return $response
+        }
+
+        $body[$endpoint.Key] = $response.Body
+    }
+
+    $environmentResponse = Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', "$repositoryPath/environments/$environmentName")
+    if ([int]$environmentResponse.StatusCode -eq 404) {
+        $body.environment = $null
+        $body.environmentStatus = 'Missing'
+        $body.variables = @()
+    }
+    elseif ([int]$environmentResponse.StatusCode -ne 200) {
+        return $environmentResponse
+    }
+    else {
+        $body.environment = $environmentResponse.Body
+        $body.environmentStatus = 'Found'
+        $variablesResponse = Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', "$repositoryPath/environments/$environmentName/variables")
+        if ([int]$variablesResponse.StatusCode -ne 200) {
+            return $variablesResponse
+        }
+        $body.variables = $variablesResponse.Body
+    }
+
+    foreach ($endpoint in $remainingEndpoints.GetEnumerator()) {
         $response = Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', [string]$endpoint.Value)
         if ([int]$response.StatusCode -ne 200) {
             return $response
@@ -122,12 +150,11 @@ function Get-GitHubDiscovery {
         }
     }
 
-    $environmentName = [string](Get-DiscoveryPropertyValue -InputObject $repository -Name 'environment')
-    if ([string]::IsNullOrWhiteSpace($environmentName)) {
-        $environment = Get-DiscoveryPropertyValue -InputObject $body -Name 'environment'
-        if ($null -ne $environment) {
-            $environmentName = [string](Get-DiscoveryPropertyValue -InputObject $environment -Name 'name')
-        }
+    $environment = Get-DiscoveryPropertyValue -InputObject $body -Name 'environment'
+    $environmentName = if ($null -ne $environment) { [string](Get-DiscoveryPropertyValue -InputObject $environment -Name 'name') } else { [string](Get-DiscoveryPropertyValue -InputObject $repository -Name 'environment') }
+    $environmentCollectionStatus = [string](Get-DiscoveryPropertyValue -InputObject $body -Name 'environmentStatus')
+    if ([string]::IsNullOrWhiteSpace($environmentCollectionStatus) -and -not [string]::IsNullOrWhiteSpace($environmentName)) {
+        $environmentCollectionStatus = 'Found'
     }
     $oidcSettings = Get-DiscoveryPropertyValue -InputObject $body -Name 'oidcCustomization' -Required
     $expectedPrefix = Get-GitHubOidcSubject -Owner $TenantConfiguration.GitHub.Owner -OwnerId $TenantConfiguration.GitHub.OwnerId -Repository $TenantConfiguration.GitHub.Repository -RepositoryId $TenantConfiguration.GitHub.RepositoryId -TenantAlias $TenantConfiguration.TenantAlias
@@ -137,15 +164,36 @@ function Get-GitHubDiscovery {
     $expectedRepositoryId = [string]$TenantConfiguration.GitHub.RepositoryId
     $expectedOwnerId = [string]$TenantConfiguration.GitHub.OwnerId
     $identityMatches = -not [string]::IsNullOrWhiteSpace($repositoryId) -and -not [string]::IsNullOrWhiteSpace($ownerId) -and $repositoryId -ceq $expectedRepositoryId -and $ownerId -ceq $expectedOwnerId
-    $status = if ($identityMatches -and -not $useDefault -and $useImmutable -and $subjectPrefix -ceq $expectedPrefix -and $environmentName -ceq $TenantConfiguration.GitHub.EnvironmentName) { 'Found' } else { 'Ambiguous' }
-    $resource = [pscustomobject][ordered]@{
+    $oidcMatches = -not $useDefault -and $useImmutable -and $subjectPrefix -ceq $expectedPrefix
+    $repositoryStatus = if ($identityMatches) { 'Found' } else { 'Ambiguous' }
+    $oidcStatus = if ($oidcMatches) { 'Found' } else { 'Ambiguous' }
+    $environmentStatus = if ($environmentCollectionStatus -ceq 'Missing') { 'Missing' } elseif ($environmentCollectionStatus -ceq 'Found' -and $environmentName -ceq $TenantConfiguration.GitHub.EnvironmentName) { 'Found' } else { 'Ambiguous' }
+    $status = if ($repositoryStatus -ceq 'Ambiguous' -or $oidcStatus -ceq 'Ambiguous' -or $environmentStatus -ceq 'Ambiguous') { 'Ambiguous' } elseif ($environmentStatus -ceq 'Missing') { 'Missing' } else { 'Found' }
+    $repositoryResource = [pscustomobject][ordered]@{
         Type = 'GitHubRepository'
         Id = $repositoryId
         Name = $repositoryName
         Url = $repositoryUrl
         Scope = "repo:$($TenantConfiguration.GitHub.Owner)/$($TenantConfiguration.GitHub.Repository)"
-        Status = $status
+        Status = $repositoryStatus
     }
 
-    New-DiscoveryServiceResult -Name 'GitHub' -Status $status -SourceApi $sourceApi -CollectedUtc $CollectedUtc -Resources @($resource) -RawPayload $body
+    $oidcResource = [pscustomobject][ordered]@{
+        Type = 'GitHubOidcCustomization'
+        Id = $expectedPrefix
+        Name = 'Immutable OIDC subject'
+        Scope = "repo:$($TenantConfiguration.GitHub.Owner)/$($TenantConfiguration.GitHub.Repository)"
+        Status = $oidcStatus
+    }
+
+    $environmentResource = [pscustomobject][ordered]@{
+        Type = 'GitHubEnvironment'
+        Id = [string]$TenantConfiguration.GitHub.EnvironmentName
+        Name = [string]$TenantConfiguration.GitHub.EnvironmentName
+        Url = "https://github.com/$($TenantConfiguration.GitHub.Owner)/$($TenantConfiguration.GitHub.Repository)/settings/environments"
+        Scope = "repo:$($TenantConfiguration.GitHub.Owner)/$($TenantConfiguration.GitHub.Repository)"
+        Status = $environmentStatus
+    }
+
+    New-DiscoveryServiceResult -Name 'GitHub' -Status $status -SourceApi $sourceApi -CollectedUtc $CollectedUtc -Resources @($repositoryResource, $oidcResource, $environmentResource) -RawPayload $body
 }

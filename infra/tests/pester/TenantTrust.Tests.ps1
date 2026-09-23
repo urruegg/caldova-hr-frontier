@@ -19,6 +19,9 @@ Describe 'Tenant trust bootstrap' {
             EntraServicePrincipal = @{
                 Mode = 'Create'
             }
+            EntraFederatedIdentityCredential = @{
+                Mode = 'Create'
+            }
             GitHubEnvironment = @{
                 Mode = 'Create'
             }
@@ -983,6 +986,7 @@ Describe 'Tenant trust bootstrap' {
         $consentItem.Properties.Attended | Should -BeTrue
 
         $ficItem = $result.Plan | Where-Object Operation -eq 'EnsureFederatedCredential'
+        $ficItem.Mode | Should -Be 'Create'
         $ficItem.Properties.Issuer | Should -Be 'https://token.actions.githubusercontent.com'
         $ficItem.Properties.Audience | Should -Be 'api://AzureADTokenExchange'
         $ficItem.Properties.Subject | Should -Be (Get-GitHubOidcSubject -Owner 'urruegg' -OwnerId '46865858' -Repository 'caldova-hr-frontier' -RepositoryId '1371297722' -TenantAlias 'caldova25156897')
@@ -1011,6 +1015,37 @@ Describe 'Tenant trust bootstrap' {
         @($adapters.Calls | Where-Object Adapter -eq 'Az').Operation | Should -Contain 'GetInteractiveContext'
         @($adapters.Calls | Where-Object Adapter -eq 'GitHub').Operation | Should -Contain 'GetOidcCustomization'
         @($adapters.Calls | Where-Object Adapter -eq 'AzureDevOps').Operation | Should -Contain 'GetProjectReadersGroup'
+    }
+
+    It 'uses a federated credential decision independent from the GitHub Environment decision' {
+        $configPath = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent -ComponentsBody @"
+        @{
+            EntraApplication = @{ Mode = 'Create' }
+            EntraServicePrincipal = @{ Mode = 'Create' }
+            EntraFederatedIdentityCredential = @{ Mode = 'Existing'; Id = 'fic-id-33333333-3333-3333-3333-333333333333' }
+            GitHubEnvironment = @{ Mode = 'Create' }
+            AzureDevOpsServicePrincipalEntitlement = @{ Mode = 'Create' }
+            AzureDevOpsReadersMembership = @{ Mode = 'Create' }
+            PowerPlatformEnvironmentDev = @{ Mode = 'Existing'; Id = 'pp-env-synthetic-dev-44444444-4444-4444-4444-444444444444' }
+            PowerPlatformEnvironmentTest = @{ Mode = 'Existing'; Id = 'pp-env-synthetic-test-55555555-5555-5555-5555-555555555555' }
+            PowerPlatformEnvironmentProd = @{ Mode = 'Existing'; Id = 'pp-env-synthetic-prod-66666666-6666-6666-6666-666666666666' }
+        }
+"@)
+        $state = New-TrustState
+        $state.Application = [ordered]@{ id = 'app-object-11111111-1111-1111-1111-111111111111'; appId = 'app-client-11111111-1111-1111-1111-111111111111'; displayName = 'cal-hr-agentic-bc8rbt-github-bootstrap'; signInAudience = 'AzureADMyOrg'; passwordCredentials = @(); keyCredentials = @() }
+        $state.ApplicationsByDisplayName = @($state.Application)
+        $state.ServicePrincipal = [ordered]@{ id = 'sp-object-22222222-2222-2222-2222-222222222222'; appId = 'app-client-11111111-1111-1111-1111-111111111111'; displayName = 'cal-hr-agentic-bc8rbt-github-bootstrap' }
+        $state.ApplicationPermissions = @(
+            [ordered]@{ resourceAppId = '00000007-0000-0000-c000-000000000000'; resourceDisplayName = 'Microsoft Dataverse'; permissionType = 'Scope'; permissionName = 'user_impersonation' },
+            [ordered]@{ resourceAppId = '00000003-0000-0000-c000-000000000000'; resourceDisplayName = 'Microsoft Graph'; permissionType = 'Role'; permissionName = 'Application.Read.All' }
+        )
+        $state.FederatedCredential = [ordered]@{ id = 'fic-id-33333333-3333-3333-3333-333333333333'; name = 'github-bootstrap'; issuer = 'https://token.actions.githubusercontent.com'; audiences = @('api://AzureADTokenExchange'); subject = (Get-GitHubOidcSubject -Owner 'urruegg' -OwnerId '46865858' -Repository 'caldova-hr-frontier' -RepositoryId '1371297722' -TenantAlias 'caldova25156897') }
+        $adapters = New-RecordingAdapters -State $state
+
+        $result = Invoke-TrustScript -TenantConfigurationPath $configPath -Adapters $adapters -WhatIf
+
+        ($result.Plan | Where-Object Operation -eq 'EnsureFederatedCredential').Mode | Should -Be 'Existing'
+        ($result.Plan | Where-Object Operation -eq 'EnsureGitHubEnvironment').Mode | Should -Be 'Create'
     }
 
     It 'fails when repository metadata or immutable OIDC customization diverges from the reviewed contract' {
@@ -1090,6 +1125,9 @@ Describe 'Tenant trust bootstrap' {
             EntraServicePrincipal = @{
                 Mode = 'Create'
             }
+            EntraFederatedIdentityCredential = @{
+                Mode = 'Create'
+            }
             GitHubEnvironment = @{
                 Mode = 'Existing'
                 Id = 'reviewed-github-environment-id'
@@ -1133,6 +1171,7 @@ Describe 'Tenant trust bootstrap' {
         @{
             EntraApplication = @{ Mode = 'Create' }
             EntraServicePrincipal = @{ Mode = 'Create' }
+            EntraFederatedIdentityCredential = @{ Mode = 'Create' }
             GitHubEnvironment = @{ Mode = 'Existing'; Id = '91234' }
             AzureDevOpsServicePrincipalEntitlement = @{ Mode = 'Create' }
             AzureDevOpsReadersMembership = @{ Mode = 'Create' }
@@ -1173,6 +1212,9 @@ Describe 'Tenant trust bootstrap' {
                 Mode = 'Create'
             }
             EntraServicePrincipal = @{
+                Mode = 'Create'
+            }
+            EntraFederatedIdentityCredential = @{
                 Mode = 'Create'
             }
             GitHubEnvironment = @{
@@ -1223,6 +1265,9 @@ Describe 'Tenant trust bootstrap' {
                 Mode = 'Create'
             }
             EntraServicePrincipal = @{
+                Mode = 'Create'
+            }
+            EntraFederatedIdentityCredential = @{
                 Mode = 'Create'
             }
             GitHubEnvironment = @{
@@ -1276,6 +1321,9 @@ Describe 'Tenant trust bootstrap' {
             EntraServicePrincipal = @{
                 Mode = 'Existing'
                 Id = 'sp-object-22222222-2222-2222-2222-222222222222'
+            }
+            EntraFederatedIdentityCredential = @{
+                Mode = 'Create'
             }
             GitHubEnvironment = @{
                 Mode = 'Create'

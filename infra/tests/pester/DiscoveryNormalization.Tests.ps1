@@ -438,7 +438,7 @@ function Get-AzureDevOpsDiscovery {
             if ($service.Name -ceq 'Entra') {
                 $service.Value.Resources.Count | Should -Be 2
             }
-            elseif ($service.Name -ceq 'PowerPlatform') {
+            elseif ($service.Name -in @('GitHub', 'PowerPlatform')) {
                 $service.Value.Resources.Count | Should -Be 3
             }
             else {
@@ -453,6 +453,8 @@ function Get-AzureDevOpsDiscovery {
         $evidence.Services.GitHub.SourceApi | Should -Be 'GitHub REST v3'
         $evidence.Services.GitHub.ResponseSha256 | Should -Be (Get-ResponseHash -Body $githubFixture.Body)
         $evidence.Services.GitHub.Resources[0].Id | Should -Be '1371297722'
+        $evidence.Services.GitHub.Resources.Type | Should -Be @('GitHubRepository', 'GitHubOidcCustomization', 'GitHubEnvironment')
+        $evidence.Services.GitHub.Resources.Status | Should -Be @('Found', 'Found', 'Found')
 
         $evidence.Services.Entra.SourceApi | Should -Be 'Microsoft Graph v1.0'
         $evidence.Services.Entra.ResponseSha256 | Should -Be (Get-ResponseHash -Body $entraFixture.Body)
@@ -596,6 +598,15 @@ function Get-AzureDevOpsDiscovery {
                     'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897' {
                         return [pscustomobject]@{ StatusCode = 404; Headers = @{}; Body = [pscustomobject]@{ message = 'Not Found' } }
                     }
+                    'repos/urruegg/caldova-hr-frontier/actions/permissions' {
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ enabled = $true } }
+                    }
+                    'repos/urruegg/caldova-hr-frontier/actions/workflows' {
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ workflows = @() } }
+                    }
+                    'repos/urruegg/caldova-hr-frontier/collaborators/urruegg/permission' {
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ permission = 'admin' } }
+                    }
                     default {
                         throw "Unexpected GitHub discovery call: $($ArgumentList[1])"
                     }
@@ -624,13 +635,18 @@ function Get-AzureDevOpsDiscovery {
             }
         }
 
-        $result.Response.StatusCode | Should -Be 404
+        $result.Response.StatusCode | Should -Be 200
         $result.Service.Status | Should -Be 'Missing'
+        $result.Service.Resources.Type | Should -Be @('GitHubRepository', 'GitHubOidcCustomization', 'GitHubEnvironment')
+        $result.Service.Resources.Status | Should -Be @('Found', 'Found', 'Missing')
         $result.Calls | Should -Be @(
             'repos/urruegg/caldova-hr-frontier',
             'repos/urruegg/caldova-hr-frontier/actions/oidc/customization/sub',
             'repos/urruegg/caldova-hr-frontier/rulesets',
-            'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897'
+            'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897',
+            'repos/urruegg/caldova-hr-frontier/actions/permissions',
+            'repos/urruegg/caldova-hr-frontier/actions/workflows',
+            'repos/urruegg/caldova-hr-frontier/collaborators/urruegg/permission'
         )
     }
 
@@ -735,6 +751,43 @@ function Get-AzureDevOpsDiscovery {
         $urls | Should -Contain 'https://graph.microsoft.com/v1.0/applications/app-synthetic-11111111-1111-1111-1111-111111111111/federatedIdentityCredentials'
         $result.Service.Status | Should -Be 'Found'
         $result.Service.Resources.Type | Should -Contain 'EntraFederatedIdentityCredential'
+    }
+
+    It 'marks Entra discovery Missing for a wrapped empty application collection' {
+        $result = InModuleScope Caldova.HrFrontier.Bootstrap -Parameters @{
+            TenantConfiguration = $script:TenantConfiguration
+            RunId = $script:RunId
+            CollectedUtc = $script:CollectedUtc
+        } {
+            param($TenantConfiguration, $RunId, $CollectedUtc)
+
+            $applications = [pscustomobject]@{
+                '@odata.context' = 'https://graph.microsoft.com/v1.0/$metadata#applications'
+                value = @()
+            }
+            $service = Get-EntraDiscovery -TenantConfiguration $TenantConfiguration -RunId $RunId -CollectedUtc $CollectedUtc -Request {
+                param($Operation, $Arguments)
+
+                [pscustomobject]@{
+                    StatusCode = 200
+                    Headers = @{}
+                    Body = [pscustomobject]@{
+                        applications = $applications
+                        servicePrincipals = $null
+                        federatedIdentityCredentials = @()
+                    }
+                }
+            }
+
+            [pscustomobject]@{
+                ConvertedCount = @(ConvertTo-EntraDiscoveryItems -Node $applications).Count
+                Service = $service
+            }
+        }
+
+        $result.ConvertedCount | Should -Be 0
+        $result.Service.Status | Should -Be 'Missing'
+        @($result.Service.Resources).Count | Should -Be 0
     }
 
     It 'default Entra production request bundle queries Graph by reviewed IDs in Existing mode' {
@@ -906,8 +959,18 @@ function Get-AzureDevOpsDiscovery {
         ($signatures | Where-Object { $_ -like 'policy assignment list*' }).Count | Should -Be 1
         ($signatures | Where-Object { $_ -like 'monitor diagnostic-settings subscription list*' }).Count | Should -Be 1
         ($signatures | Where-Object { $_ -like 'provider show*' }).Count | Should -Be 1
+        $roleAssignmentCall = @($result.Calls | Where-Object { ($_.ArgumentList -join ' ') -like 'role assignment list*' })[0]
+        $roleAssignmentCall.ArgumentList | Should -Be @(
+            'role',
+            'assignment',
+            'list',
+            '--scope',
+            '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017',
+            '--output',
+            'json'
+        )
         $result.Service.Status | Should -Be 'Found'
-        $result.Service.Resources.Type | Should -Contain 'AzureSubscriptionIdentity'
+        $result.Service.Resources.Type | Should -Not -Contain 'AzureSubscriptionIdentity'
         $result.Service.Resources.Type | Should -Contain 'AzureRoleAssignment'
         $result.Service.Resources.Type | Should -Contain 'AzurePolicyAssignment'
         $result.Service.Resources.Type | Should -Contain 'AzureDiagnosticSetting'
@@ -939,29 +1002,32 @@ function Get-AzureDevOpsDiscovery {
 
                 $signature = ($ArgumentList -join ' ')
                 switch -Wildcard ($signature) {
-                    'devops invoke --area connectionData*' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ authenticatedUser = [pscustomobject]@{ id = 'ado-user-synthetic' } } }
+                    'devops user show*' {
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 'ado-user-synthetic'; user = [pscustomobject]@{ descriptor = 'aad.synthetic-descriptor' } } }
                     }
-                    'devops invoke --organization* --area core --resource projects*' {
+                    'devops project show*' {
                         return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 'ado-project-synthetic-33333333-3333-3333-3333-333333333333'; name = 'Caldova HR Frontier'; url = 'https://dev.azure.com/caldova25156897/Caldova%20HR%20Frontier' } }
                     }
                     'devops invoke --organization* --area git --resource repositories*' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @([pscustomobject]@{ id = 'ado-repo-synthetic-1'; name = 'caldova-hr-frontier'; webUrl = 'https://dev.azure.com/caldova25156897/_git/caldova-hr-frontier' }) }
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ count = 1; value = @([pscustomobject]@{ id = 'ado-repo-synthetic-1'; name = 'caldova-hr-frontier'; webUrl = 'https://dev.azure.com/caldova25156897/_git/caldova-hr-frontier' }) } }
                     }
                     'devops invoke --organization* --area serviceendpoint --resource endpoints*' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @([pscustomobject]@{ id = 'service-endpoint-synthetic-1'; name = 'bootstrap-subscription' }) }
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ count = 1; value = @([pscustomobject]@{ id = 'service-endpoint-synthetic-1'; name = 'bootstrap-subscription' }) } }
                     }
                     'devops invoke --organization* --area distributedtask --resource environments*' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @([pscustomobject]@{ id = 'environment-synthetic-1'; name = 'bootstrap-caldova25156897' }) }
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ count = 1; value = @([pscustomobject]@{ id = 'environment-synthetic-1'; name = 'bootstrap-caldova25156897' }) } }
                     }
                     'devops invoke --organization* --area pipelines --resource pipelines*' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @([pscustomobject]@{ id = 'pipeline-synthetic-1'; name = 'tenant-bootstrap' }) }
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ count = 1; value = @([pscustomobject]@{ id = 'pipeline-synthetic-1'; name = 'tenant-bootstrap' }) } }
                     }
-                    'devops invoke --organization* --area pipelinesChecks --resource configurations*' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @([pscustomobject]@{ id = 'check-synthetic-1'; name = 'required-approval' }) }
+                    '*--area pipelinesChecks --resource configurations*resourceType=endpoint*' {
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @([pscustomobject]@{ id = 'check-synthetic-endpoint'; type = [pscustomobject]@{ name = 'endpoint-approval' } }) }
+                    }
+                    '*--area pipelinesChecks --resource configurations*resourceType=environment*' {
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @([pscustomobject]@{ id = 'check-synthetic-environment'; type = [pscustomobject]@{ name = 'environment-approval' } }) }
                     }
                     'devops security permission list*' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @([pscustomobject]@{ id = 'permission-synthetic-1'; name = 'Project Administrators' }) }
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @([pscustomobject]@{ token = '$PROJECT:vstfs:///Classification/TeamProject/ado-project-synthetic-33333333-3333-3333-3333-333333333333'; acesDictionary = [pscustomobject]@{ 'reviewed-identity' = [pscustomobject]@{ allow = 1; deny = 0 } } }) }
                     }
                     default {
                         throw "Unexpected Azure DevOps arguments: $signature"
@@ -969,7 +1035,7 @@ function Get-AzureDevOpsDiscovery {
                 }
             }
 
-            $bundle = Invoke-AzureDevOpsDiscoveryRequest -Operation 'DiscoveryBundle' -Arguments @{ OrganizationUrl = [string]$TenantConfiguration.AzureDevOps.OrganizationUrl; ProjectName = [string]$TenantConfiguration.AzureDevOps.ProjectName }
+            $bundle = Invoke-AzureDevOpsDiscoveryRequest -Operation 'DiscoveryBundle' -Arguments @{ OrganizationUrl = [string]$TenantConfiguration.AzureDevOps.OrganizationUrl; ProjectName = [string]$TenantConfiguration.AzureDevOps.ProjectName; AdminUpn = [string]$TenantConfiguration.AdminUpn }
             $service = Get-AzureDevOpsDiscovery -TenantConfiguration $TenantConfiguration -RunId $RunId -CollectedUtc $CollectedUtc -Request {
                 param($Operation, $Arguments)
                 $bundle
@@ -984,20 +1050,97 @@ function Get-AzureDevOpsDiscovery {
 
         $result.Bundle.StatusCode | Should -Be 200
         $signatures = @($result.Calls | ForEach-Object { $_.ArgumentList -join ' ' })
-        $signatures.Count | Should -Be 8
-        ($signatures | Where-Object { $_ -like 'devops invoke --area connectionData*' }).Count | Should -Be 1
-        ($signatures | Where-Object { $_ -like 'devops invoke --organization* --area core --resource projects*' }).Count | Should -Be 1
+        $signatures.Count | Should -Be 9
+        $result.Calls[0].ArgumentList | Should -Be @('devops', 'user', 'show', '--user', 'admin@Caldova25156897.onmicrosoft.com', '--organization', 'https://dev.azure.com/caldova25156897/', '--output', 'json')
+        $result.Calls[1].ArgumentList | Should -Be @('devops', 'project', 'show', '--project', 'Caldova HR Frontier', '--organization', 'https://dev.azure.com/caldova25156897/', '--output', 'json')
         ($signatures | Where-Object { $_ -like 'devops invoke --organization* --area git --resource repositories*' }).Count | Should -Be 1
         ($signatures | Where-Object { $_ -like 'devops invoke --organization* --area serviceendpoint --resource endpoints*' }).Count | Should -Be 1
         ($signatures | Where-Object { $_ -like 'devops invoke --organization* --area distributedtask --resource environments*' }).Count | Should -Be 1
         ($signatures | Where-Object { $_ -like 'devops invoke --organization* --area pipelines --resource pipelines*' }).Count | Should -Be 1
-        ($signatures | Where-Object { $_ -like 'devops invoke --organization* --area pipelinesChecks --resource configurations*' }).Count | Should -Be 1
+        ($signatures | Where-Object { $_ -like '*--area pipelinesChecks --resource configurations*resourceType=endpoint*' }).Count | Should -Be 1
+        ($signatures | Where-Object { $_ -like '*--area pipelinesChecks --resource configurations*resourceType=environment*' }).Count | Should -Be 1
         ($signatures | Where-Object { $_ -like 'devops security permission list*' }).Count | Should -Be 1
+        $permissionCall = @($result.Calls | Where-Object { ($_.ArgumentList -join ' ') -like 'devops security permission list*' })[0]
+        $permissionCall.ArgumentList | Should -Be @(
+            'devops', 'security', 'permission', 'list',
+            '--organization', 'https://dev.azure.com/caldova25156897/',
+            '--namespace-id', '52d39943-cb85-4d7f-8fa8-c6baac873819',
+            '--subject', 'aad.synthetic-descriptor',
+            '--token', '$PROJECT:vstfs:///Classification/TeamProject/ado-project-synthetic-33333333-3333-3333-3333-333333333333',
+            '--output', 'json'
+        )
         $result.Service.Status | Should -Be 'Found'
+        $result.Service.Resources.Type | Should -Contain 'AzureDevOpsUserEntitlement'
+        $result.Service.Resources.Type | Should -Not -Contain 'AzureDevOpsConnectionData'
+        $result.Service.Resources.Type | Should -Contain 'AzureDevOpsRepository'
         $result.Service.Resources.Type | Should -Contain 'AzureDevOpsServiceEndpoint'
         $result.Service.Resources.Type | Should -Contain 'AzureDevOpsEnvironment'
         $result.Service.Resources.Type | Should -Contain 'AzureDevOpsCheck'
         $result.Service.Resources.Type | Should -Contain 'AzureDevOpsEffectivePermission'
+        @($result.Service.Resources | Where-Object Type -eq 'AzureDevOpsCheck').Name | Should -Be @('endpoint-approval', 'environment-approval')
+        ($result.Service.Resources | Where-Object Type -eq 'AzureDevOpsEffectivePermission').Id | Should -Be '$PROJECT:vstfs:///Classification/TeamProject/ado-project-synthetic-33333333-3333-3333-3333-333333333333'
+    }
+
+    It 'skips Azure DevOps check queries when no protected resources exist' {
+        $result = InModuleScope Caldova.HrFrontier.Bootstrap {
+            $script:CapturedCalls = @()
+            $originalNativeCommand = ${function:Invoke-DiscoveryNativeCommand}
+            function script:Invoke-DiscoveryNativeCommand {
+                param([string]$FilePath, [string[]]$ArgumentList)
+
+                $signature = $ArgumentList -join ' '
+                $script:CapturedCalls += $signature
+                if ($signature -like '*--area pipelinesChecks*') {
+                    throw 'Check discovery must not run without a protected resource.'
+                }
+                if ($signature -like 'devops invoke --area connectionData*' -or $signature -like 'devops user show*') {
+                    return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 'ado-user-synthetic'; user = [pscustomobject]@{ descriptor = 'aad.synthetic-descriptor' } } }
+                }
+                if ($signature -like 'devops project show*') {
+                    return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 'ado-project-synthetic'; name = 'Caldova HR Frontier' } }
+                }
+                if ($signature -like '*--area git --resource repositories*' -or
+                    $signature -like '*--area serviceendpoint --resource endpoints*' -or
+                    $signature -like '*--area distributedtask --resource environments*' -or
+                    $signature -like '*--area pipelines --resource pipelines*' -or
+                    $signature -like 'devops security permission list*') {
+                    return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @() }
+                }
+
+                throw "Unexpected Azure DevOps arguments: $signature"
+            }
+
+            try {
+                $bundle = Invoke-AzureDevOpsDiscoveryRequest -Operation 'DiscoveryBundle' -Arguments @{
+                    OrganizationUrl = 'https://dev.azure.com/caldova25156897/'
+                    ProjectName = 'Caldova HR Frontier'
+                    AdminUpn = 'admin@Caldova25156897.onmicrosoft.com'
+                }
+
+                [pscustomobject]@{
+                    Bundle = $bundle
+                    Calls = @($script:CapturedCalls)
+                }
+            }
+            finally {
+                Set-Item -Path Function:\script:Invoke-DiscoveryNativeCommand -Value $originalNativeCommand
+            }
+        }
+
+        $result.Bundle.StatusCode | Should -Be 200
+        @($result.Calls | Where-Object { $_ -like '*--area pipelinesChecks*' }).Count | Should -Be 0
+    }
+
+    It 'normalizes an empty Azure DevOps count and value wrapper as zero items' {
+        $items = InModuleScope Caldova.HrFrontier.Bootstrap {
+            @(ConvertTo-AzureDevOpsDiscoveryItems -Node ([pscustomobject]@{
+                continuation_token = $null
+                count = 0
+                value = @()
+            }))
+        }
+
+        @($items).Count | Should -Be 0
     }
 
     It 'marks GitHub discovery ambiguous when the discovered owner id mismatches the reviewed owner id' {
@@ -1176,10 +1319,6 @@ function Get-AzureDevOpsDiscovery {
                     id = 'subscription-synthetic-edb45a24-408d-47c4-bbc7-685b9b3fc017'
                     name = 'Caldova HR Frontier Platform'
                 }
-                subscriptionIdentity = [pscustomobject]@{
-                    tenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
-                    principalId = 'subscription-principal-synthetic'
-                }
                 resources = @(
                     [pscustomobject]@{
                         id = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/resourceGroups/rg-bootstrap/providers/Microsoft.ManagedIdentity/userAssignedIdentities/bootstrap'
@@ -1228,7 +1367,7 @@ function Get-AzureDevOpsDiscovery {
 
         $service.Status | Should -Be 'Found'
         $service.Resources.Type | Should -Contain 'AzureSubscription'
-        $service.Resources.Type | Should -Contain 'AzureSubscriptionIdentity'
+        $service.Resources.Type | Should -Not -Contain 'AzureSubscriptionIdentity'
         $service.Resources.Type | Should -Contain 'AzureResource'
         $service.Resources.Type | Should -Contain 'AzureRoleAssignment'
         $service.Resources.Type | Should -Contain 'AzurePolicyAssignment'
@@ -1241,7 +1380,7 @@ function Get-AzureDevOpsDiscovery {
             StatusCode = 200
             Headers = @{}
             Body = [ordered]@{
-                connectionData = [pscustomobject]@{ authenticatedUser = [pscustomobject]@{ id = 'ado-user-synthetic' } }
+                reviewedUser = [pscustomobject]@{ id = 'ado-user-synthetic'; user = [pscustomobject]@{ descriptor = 'aad.synthetic-descriptor' } }
                 project = [pscustomobject]@{ id = 'ado-project-synthetic-33333333-3333-3333-3333-333333333333'; name = 'Caldova HR Frontier'; url = 'https://dev.azure.com/caldova25156897/Caldova%20HR%20Frontier' }
                 repositories = @([pscustomobject]@{ id = 'ado-repo-synthetic-1'; name = 'caldova-hr-frontier'; webUrl = 'https://dev.azure.com/caldova25156897/_git/caldova-hr-frontier' })
                 serviceEndpoints = @([pscustomobject]@{ id = 'service-endpoint-synthetic-1'; name = 'bootstrap-subscription' })
@@ -1268,7 +1407,7 @@ function Get-AzureDevOpsDiscovery {
 
         $service.Status | Should -Be 'Found'
         $service.Resources.Type | Should -Contain 'AzureDevOpsProject'
-        $service.Resources.Type | Should -Contain 'AzureDevOpsConnectionData'
+        $service.Resources.Type | Should -Contain 'AzureDevOpsUserEntitlement'
         $service.Resources.Type | Should -Contain 'AzureDevOpsRepository'
         $service.Resources.Type | Should -Contain 'AzureDevOpsServiceEndpoint'
         $service.Resources.Type | Should -Contain 'AzureDevOpsEnvironment'
@@ -1325,9 +1464,9 @@ function Get-AzureDevOpsDiscovery {
                     StatusCode = 200
                     Headers = @{}
                     Body = @(
-                        [pscustomobject]@{ id = 'pp-env-synthetic-dev-44444444-4444-4444-4444-444444444444'; displayName = 'HR Frontier Dev'; environmentUrl = $TenantConfiguration.PowerPlatform.DevUrl; properties = [pscustomobject]@{ environmentSku = 'Sandbox'; state = 'Ready'; isManaged = $true } },
-                        [pscustomobject]@{ id = 'pp-env-synthetic-test-55555555-5555-5555-5555-555555555555'; displayName = 'HR Frontier Test'; environmentUrl = $TenantConfiguration.PowerPlatform.TestUrl; properties = [pscustomobject]@{ environmentSku = 'Sandbox'; state = 'Ready'; isManaged = $true } },
-                        [pscustomobject]@{ id = 'pp-env-synthetic-prod-66666666-6666-6666-6666-666666666666'; displayName = 'HR Frontier Prod'; environmentUrl = $TenantConfiguration.PowerPlatform.ProdUrl; properties = [pscustomobject]@{ environmentSku = 'Production'; state = 'Ready'; isManaged = $true } }
+                        [pscustomobject]@{ EnvironmentId = 'pp-env-synthetic-dev-44444444-4444-4444-4444-444444444444'; displayName = 'HR Frontier Dev'; environmentUrl = $TenantConfiguration.PowerPlatform.DevUrl; properties = [pscustomobject]@{ environmentSku = 'Sandbox'; state = 'Ready'; isManaged = $true } },
+                        [pscustomobject]@{ EnvironmentId = 'pp-env-synthetic-test-55555555-5555-5555-5555-555555555555'; displayName = 'HR Frontier Test'; environmentUrl = $TenantConfiguration.PowerPlatform.TestUrl; properties = [pscustomobject]@{ environmentSku = 'Sandbox'; state = 'Ready'; isManaged = $true } },
+                        [pscustomobject]@{ EnvironmentId = 'pp-env-synthetic-prod-66666666-6666-6666-6666-666666666666'; displayName = 'HR Frontier Prod'; environmentUrl = $TenantConfiguration.PowerPlatform.ProdUrl; properties = [pscustomobject]@{ environmentSku = 'Production'; state = 'Ready'; isManaged = $true } }
                     )
                 }
             }
@@ -1521,7 +1660,7 @@ function Get-AzureDevOpsDiscovery {
         }
     }
 
-    It 'accepts the reviewed administrator UPN when Azure CLI normalizes its casing' {
+    It 'accepts the reviewed administrator UPN casing and records the stable user object id' {
         $tokens = $null
         $parseErrors = $null
         $entryPointAst = [System.Management.Automation.Language.Parser]::ParseFile($script:DiscoveryEntryPointPath, [ref]$tokens, [ref]$parseErrors)
@@ -1536,6 +1675,7 @@ function Get-AzureDevOpsDiscovery {
 
         $previousExitCode = $global:LASTEXITCODE
         try {
+            $script:InteractiveAzCalls = @()
             function az {
                 $global:LASTEXITCODE = 0
             }
@@ -1543,20 +1683,35 @@ function Get-AzureDevOpsDiscovery {
             function Invoke-AzJson {
                 param([string[]]$ArgumentList)
 
-                [pscustomobject]@{
-                    tenantId = $script:TenantConfiguration.TenantId
-                    id = $script:TenantConfiguration.SubscriptionId
-                    user = [pscustomobject]@{
-                        type = 'user'
-                        name = 'admin@caldova25156897.onmicrosoft.com'
+                $script:InteractiveAzCalls += ,@($ArgumentList)
+                if (($ArgumentList -join ' ') -eq 'account show --output json') {
+                    return [pscustomobject]@{
+                        tenantId = $script:TenantConfiguration.TenantId
+                        id = $script:TenantConfiguration.SubscriptionId
+                        user = [pscustomobject]@{
+                            type = 'user'
+                            name = 'admin@caldova25156897.onmicrosoft.com'
+                        }
                     }
                 }
+
+                if (($ArgumentList -join ' ') -eq 'ad signed-in-user show --output json') {
+                    return [pscustomobject]@{
+                        id = '99999999-9999-9999-9999-999999999999'
+                        userPrincipalName = 'admin@caldova25156897.onmicrosoft.com'
+                    }
+                }
+
+                throw "Unexpected Azure CLI arguments: $($ArgumentList -join ' ')"
             }
 
             $principal = Get-InteractivePrincipal -TenantConfiguration $script:TenantConfiguration
 
             $principal.Type | Should -Be 'User'
+            $principal.Id | Should -Be '99999999-9999-9999-9999-999999999999'
             $principal.Upn | Should -Be 'admin@caldova25156897.onmicrosoft.com'
+            $script:InteractiveAzCalls | Should -HaveCount 2
+            $script:InteractiveAzCalls[1] | Should -Be @('ad', 'signed-in-user', 'show', '--output', 'json')
         }
         finally {
             $global:LASTEXITCODE = $previousExitCode

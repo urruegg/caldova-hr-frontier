@@ -1295,6 +1295,7 @@ if (-not $AzureDevOpsRequest) {
 $requiredComponents = @(
     'EntraApplication',
     'EntraServicePrincipal',
+    'EntraFederatedIdentityCredential',
     'GitHubEnvironment',
     'AzureDevOpsServicePrincipalEntitlement',
     'AzureDevOpsReadersMembership',
@@ -1432,8 +1433,18 @@ else {
     [pscustomobject]@{ StatusCode = 404; Body = $null }
 }
 $federatedCredential = Get-ResponseBodyOrNull -Response $federatedCredentialResponse
+$federatedCredentialComponent = $resolvedComponents['EntraFederatedIdentityCredential']
+$federatedCredentialId = $null
 if ($null -ne $federatedCredential) {
     Assert-FederatedCredentialState -FederatedCredential $federatedCredential -ExpectedSubject $expectedSubject
+    $federatedCredentialTable = ConvertTo-Hashtable -InputObject $federatedCredential
+    if ($federatedCredentialTable.ContainsKey('id')) {
+        $federatedCredentialId = [string]$federatedCredentialTable['id']
+    }
+    Assert-ReviewedStableId -Component $federatedCredentialComponent -ObservedId $federatedCredentialId -ComponentName 'Entra federated identity credential'
+}
+elseif ($federatedCredentialComponent.Mode -eq 'Existing') {
+    throw 'Entra federated identity credential stable Id did not resolve through the reviewed application.'
 }
 
 $environmentComponent = $resolvedComponents['GitHubEnvironment']
@@ -1516,7 +1527,7 @@ Add-PlanItem -Plan $plan -Order ([ref]$order) -Operation 'EnsureApplicationPermi
 
 Add-PlanItem -Plan $plan -Order ([ref]$order) -Operation 'GrantAdminConsent' -TargetType 'AdminConsent' -TargetId $(if ($null -ne $application) { [string]$application.id } else { $null }) -TargetName $expectedDisplayName -Mode 'Attended' -Status 'AttendedCheckpoint' -Properties ([ordered]@{ Attended = $true; Permissions = Get-RequiredPermissions })
 
-Add-PlanItem -Plan $plan -Order ([ref]$order) -Operation 'EnsureFederatedCredential' -TargetType 'FederatedCredential' -TargetId 'github-bootstrap' -TargetName 'github-bootstrap' -Mode $environmentComponent.Mode -Status $(if ($null -ne $federatedCredential) { 'Existing' } else { 'PlannedCreate' }) -Properties ([ordered]@{ Issuer = 'https://token.actions.githubusercontent.com'; Audience = 'api://AzureADTokenExchange'; Subject = $expectedSubject })
+Add-PlanItem -Plan $plan -Order ([ref]$order) -Operation 'EnsureFederatedCredential' -TargetType 'FederatedCredential' -TargetId $(if (-not [string]::IsNullOrWhiteSpace($federatedCredentialId)) { $federatedCredentialId } elseif ($federatedCredentialComponent.Mode -eq 'Existing') { $federatedCredentialComponent.Id } else { 'github-bootstrap' }) -TargetName 'github-bootstrap' -Mode $federatedCredentialComponent.Mode -Status $(if ($null -ne $federatedCredential) { 'Existing' } else { 'PlannedCreate' }) -Properties ([ordered]@{ Issuer = 'https://token.actions.githubusercontent.com'; Audience = 'api://AzureADTokenExchange'; Subject = $expectedSubject })
 
 Add-PlanItem -Plan $plan -Order ([ref]$order) -Operation 'EnsureGitHubEnvironment' -TargetType 'GitHubEnvironment' -TargetId $(if ($null -ne $environment) { [string]$environment.id } else { $null }) -TargetName $expectedEnvironmentName -Mode $environmentComponent.Mode -Status $(if ($environmentExact) { 'Existing' } elseif ($null -ne $environment) { 'PlannedUpdate' } else { 'PlannedCreate' }) -Properties ([ordered]@{ Name = $expectedEnvironmentName; Branches = @('main'); PreventSelfReview = $false; RequiredReviewers = @('urruegg') })
 
@@ -1624,7 +1635,7 @@ if (-not $PSCmdlet.ShouldProcess($expectedDisplayName, 'GrantAdminConsent')) {
 $null = Invoke-RequestAdapter -Adapter $AzRequest -AdapterName 'Az' -Operation 'GrantAdminConsent' -Arguments @{ ApplicationObjectId = [string]$application.id; ApplicationAppId = [string]$application.appId }
 
 if ($null -eq $federatedCredential) {
-    if ($environmentComponent.Mode -ne 'Create') {
+    if ($federatedCredentialComponent.Mode -ne 'Create') {
         throw 'The federated credential was not found in Existing mode.'
     }
 

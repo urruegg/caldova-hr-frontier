@@ -34,7 +34,7 @@ function Get-ObjectEntryTable {
         }
     }
 
-    if ($entries.Count -eq 0) {
+    if ($entries.Keys.Count -eq 0) {
         throw 'Expected an object or dictionary.'
     }
 

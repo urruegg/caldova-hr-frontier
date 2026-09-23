@@ -163,9 +163,19 @@ function Get-InteractivePrincipal {
         throw 'Interactive discovery requires the reviewed administrator account context.'
     }
 
+    $signedInUser = Invoke-AzJson -ArgumentList @('ad', 'signed-in-user', 'show', '--output', 'json')
+    $userObjectId = [string]$signedInUser.id
+    $signedInUpn = [string]$signedInUser.userPrincipalName
+    if ([string]::IsNullOrWhiteSpace($userObjectId)) {
+        throw 'Interactive discovery could not resolve the signed-in administrator object id.'
+    }
+    if ([string]::IsNullOrWhiteSpace($signedInUpn) -or $signedInUpn -ine [string]$TenantConfiguration.AdminUpn) {
+        throw 'Interactive discovery signed-in user does not match the reviewed administrator account.'
+    }
+
     [pscustomobject]@{
         Type = 'User'
-        Id = $userName
+        Id = $userObjectId
         Upn = $userName
     }
 }

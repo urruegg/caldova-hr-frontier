@@ -16,9 +16,8 @@ function Invoke-AzureDiscoveryRequest {
     $subscriptionBody = (Invoke-DiscoveryNativeCommand -FilePath 'az' -ArgumentList @('account', 'show', '--subscription', $Arguments.SubscriptionId, '--output', 'json')).Body
     $body = [ordered]@{
         subscription = $subscriptionBody
-        subscriptionIdentity = $subscriptionBody
         resources = (Invoke-DiscoveryNativeCommand -FilePath 'az' -ArgumentList @('graph', 'query', '-q', $query, '--output', 'json')).Body
-        roleAssignments = (Invoke-DiscoveryNativeCommand -FilePath 'az' -ArgumentList @('role', 'assignment', 'list', '--scope', $subscriptionScope, '--all', '--output', 'json')).Body
+        roleAssignments = (Invoke-DiscoveryNativeCommand -FilePath 'az' -ArgumentList @('role', 'assignment', 'list', '--scope', $subscriptionScope, '--output', 'json')).Body
         policyAssignments = (Invoke-DiscoveryNativeCommand -FilePath 'az' -ArgumentList @('policy', 'assignment', 'list', '--scope', $subscriptionScope, '--output', 'json')).Body
         diagnosticSettings = (Invoke-DiscoveryNativeCommand -FilePath 'az' -ArgumentList @('monitor', 'diagnostic-settings', 'subscription', 'list', '--subscription', $Arguments.SubscriptionId, '--output', 'json')).Body
         providerState = (Invoke-DiscoveryNativeCommand -FilePath 'az' -ArgumentList @('provider', 'show', '--namespace', 'Microsoft.Authorization', '--subscription', $Arguments.SubscriptionId, '--output', 'json')).Body
@@ -84,25 +83,6 @@ function Get-AzureDiscovery {
             Status = 'Found'
         }
     )
-
-    $subscriptionIdentity = Get-DiscoveryPropertyValue -InputObject $body -Name 'subscriptionIdentity'
-    if ($null -ne $subscriptionIdentity) {
-        $identityId = [string](Get-DiscoveryPropertyValue -InputObject $subscriptionIdentity -Name 'principalId')
-        if ([string]::IsNullOrWhiteSpace($identityId)) {
-            $identityId = [string](Get-DiscoveryPropertyValue -InputObject $subscriptionIdentity -Name 'id')
-        }
-
-        if (-not [string]::IsNullOrWhiteSpace($identityId)) {
-            $resources += [pscustomobject][ordered]@{
-                Type = 'AzureSubscriptionIdentity'
-                Id = $identityId
-                Name = 'Subscription identity'
-                Url = "https://management.azure.com/subscriptions/$subscriptionId"
-                Scope = "/subscriptions/$subscriptionId"
-                Status = 'Found'
-            }
-        }
-    }
 
     foreach ($item in @(Get-DiscoveryPropertyValue -InputObject $body -Name 'resources')) {
         if ($null -eq $item) {

@@ -76,13 +76,13 @@ function ConvertTo-EntraDiscoveryItems {
         return @()
     }
 
-    $valueNode = Get-DiscoveryPropertyValue -InputObject $Node -Name 'value'
-    if ($null -ne $valueNode) {
-        return @($valueNode)
-    }
-
     if ($Node -is [System.Collections.IEnumerable] -and -not ($Node -is [string]) -and -not ($Node -is [System.Collections.IDictionary])) {
         return @($Node)
+    }
+
+    $entries = Get-ObjectEntryTable -InputObject $Node
+    if ($entries.Contains('value')) {
+        return @($entries['value'])
     }
 
     @($Node)

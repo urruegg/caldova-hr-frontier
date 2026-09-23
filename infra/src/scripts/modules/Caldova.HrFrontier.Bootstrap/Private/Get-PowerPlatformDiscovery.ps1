@@ -84,6 +84,22 @@ function Get-PowerPlatformEnvironmentName {
     "Power Platform $FallbackStage"
 }
 
+function Get-PowerPlatformEnvironmentId {
+    param(
+        [Parameter(Mandatory)]
+        [object]$Environment
+    )
+
+    foreach ($propertyName in @('id', 'environmentId')) {
+        $value = [string](Get-DiscoveryPropertyValue -InputObject $Environment -Name $propertyName)
+        if (-not [string]::IsNullOrWhiteSpace($value)) {
+            return $value
+        }
+    }
+
+    $null
+}
+
 function Get-PowerPlatformProbeRecord {
     param(
         [Parameter(Mandatory)]
@@ -305,7 +321,7 @@ function Get-PowerPlatformDiscovery {
 
         if ($matches.Count -gt 1) {
             foreach ($candidate in $matches) {
-                $candidateId = [string](Get-DiscoveryPropertyValue -InputObject $candidate -Name 'id')
+                $candidateId = Get-PowerPlatformEnvironmentId -Environment $candidate
                 $ambiguousResources += [pscustomobject][ordered]@{
                     Type = $stageDefinition.Type
                     Id = $candidateId
@@ -320,7 +336,7 @@ function Get-PowerPlatformDiscovery {
         }
 
         $environment = $matches[0]
-        $environmentId = [string](Get-DiscoveryPropertyValue -InputObject $environment -Name 'id')
+    $environmentId = Get-PowerPlatformEnvironmentId -Environment $environment
         if ([string]::IsNullOrWhiteSpace($environmentId)) {
             $ambiguousResources += [pscustomobject][ordered]@{
                 Type = $stageDefinition.Type
