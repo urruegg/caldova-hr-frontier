@@ -1100,6 +1100,15 @@ catch {
     SkippedCount = if (`$null -ne `$result) { `$result.SkippedCount } else { 0 }
     HadErrors = (`$invocationFailed -or `$pesterPowerShell.HadErrors)
     ErrorCount = @(`$pesterPowerShell.Streams.Error).Count
+    FailedTests = if (`$null -ne `$result) { @(`$result.Failed | ForEach-Object {
+        `$failureName = if (-not [string]::IsNullOrWhiteSpace([string]`$_.ExpandedName)) { [string]`$_.ExpandedName } else { [string]`$_.Name }
+        if (`$failureName.Length -gt 300) { `$failureName = `$failureName.Substring(0, 300) + '...' }
+        `$failureMessage = [string]`$_.ErrorRecord.Exception.Message -replace '[\r\n]+', ' '
+        `$failureMessage = `$failureMessage -replace '(?i)-----BEGIN(?: [A-Z0-9]+)* PRIVATE KEY-----.*?-----END(?: [A-Z0-9]+)* PRIVATE KEY-----', '[REDACTED]'
+        `$failureMessage = `$failureMessage -replace '(?i)(?:authorization\s*[:=]\s*(?:\S+(?:\s+\S+)?)|sharedaccesssignature\s+\S+|(?:access[_\s-]?token|refresh[_\s-]?token|client[_\s-]?secret|password|api[_\s-]?key|accountkey|sharedaccesskey|(?:sig|signature))\s*[:=]\s*(?:"[^"]*"|''[^'']*''|[^&\s;,]+)|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)', '[REDACTED]'
+        if (`$failureMessage.Length -gt 1000) { `$failureMessage = `$failureMessage.Substring(0, 1000) + '...' }
+        '{0}: {1}' -f `$failureName, `$failureMessage
+    } | Select-Object -First 10) } else { @() }
 }
 Write-Output ('__PESTER_RESULT__' + (`$summary | ConvertTo-Json -Compress))
 `$pesterPowerShell.Dispose()
@@ -1144,14 +1153,15 @@ if (`$pesterResults.Count -ne 1 -or `$summary.HadErrors -or `$summary.Result -cn
                 $pesterResult.HadErrors -ne $false -or
                 $pesterResult.Result -cne 'Passed' -or
                 $pesterResult.FailedCount -ne 0) {
-                $resultSummary = 'result={0}, total={1}, passed={2}, failed={3}, skipped={4}, hadErrors={5}, errorCount={6}' -f
+                $resultSummary = 'result={0}, total={1}, passed={2}, failed={3}, skipped={4}, hadErrors={5}, errorCount={6}, failedTests={7}' -f
                     $pesterResult.Result,
                     $pesterResult.TotalCount,
                     $pesterResult.PassedCount,
                     $pesterResult.FailedCount,
                     $pesterResult.SkippedCount,
                     $pesterResult.HadErrors,
-                    $pesterResult.ErrorCount
+                    $pesterResult.ErrorCount,
+                    (@($pesterResult.FailedTests) -join ' || ')
                 Add-Failure "Integrated repository and infrastructure Pester suites did not pass under version 5.7.1: $resultSummary"
             }
         }
