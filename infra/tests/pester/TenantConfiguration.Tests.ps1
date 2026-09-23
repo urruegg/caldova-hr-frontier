@@ -88,7 +88,26 @@ Describe 'Tenant configuration' {
         $config.GitHub.EnvironmentName | Should -Be 'bootstrap-caldova25156897'
         $config.UniqueSuffix | Should -Match '^[a-z0-9]{6}$'
         $config.NamingRoot | Should -Be "cal-hr-agentic-$($config.UniqueSuffix)"
-        @($config.Components | Get-Member -MemberType NoteProperty, Property, ScriptProperty).Count | Should -Be 0
+        $config.LifecycleState | Should -Be 'IntentReviewed'
+        $config.Components.GitHubRepository.Mode | Should -Be 'Existing'
+        $config.Components.GitHubRepository.Id | Should -Be '1371297722'
+        $config.Components.EntraApplication.Mode | Should -Be 'Create'
+        $config.Components.EntraServicePrincipal.Mode | Should -Be 'Create'
+        $config.Components.EntraFederatedIdentityCredential.Mode | Should -Be 'Create'
+        $config.Components.GitHubEnvironment.Mode | Should -Be 'Create'
+        $config.Components.AzureSubscription.Mode | Should -Be 'Existing'
+        $config.Components.AzureSubscription.Id | Should -Be 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
+        $config.Components.AzureDevOpsProject.Mode | Should -Be 'Existing'
+        $config.Components.AzureDevOpsProject.Id | Should -Be 'f250378e-597d-487b-854a-fb8338962822'
+        $config.Components.AzureDevOpsServicePrincipalEntitlement.Mode | Should -Be 'Create'
+        $config.Components.AzureDevOpsReadersMembership.Mode | Should -Be 'Create'
+        $config.Components.PowerPlatformEnvironmentDev.Mode | Should -Be 'Existing'
+        $config.Components.PowerPlatformEnvironmentDev.Id | Should -Be '346c2cb2-534d-e581-978f-4c293e25a146'
+        $config.Components.PowerPlatformEnvironmentTest.Mode | Should -Be 'Existing'
+        $config.Components.PowerPlatformEnvironmentTest.Id | Should -Be '86fb2f33-4145-e23a-b064-5e0850aba258'
+        $config.Components.PowerPlatformEnvironmentProd.Mode | Should -Be 'Existing'
+        $config.Components.PowerPlatformEnvironmentProd.Id | Should -Be 'c5d83095-c8bf-ec78-94dd-b4e62f34c85e'
+        @($config.Components | Get-Member -MemberType NoteProperty, Property, ScriptProperty).Count | Should -Be 12
     }
 
     It 'rejects executable expressions and unknown top-level keys' {
