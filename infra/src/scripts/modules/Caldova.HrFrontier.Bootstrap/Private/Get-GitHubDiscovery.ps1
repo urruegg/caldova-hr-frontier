@@ -157,14 +157,16 @@ function Get-GitHubDiscovery {
         $environmentCollectionStatus = 'Found'
     }
     $oidcSettings = Get-DiscoveryPropertyValue -InputObject $body -Name 'oidcCustomization' -Required
-    $expectedPrefix = Get-GitHubOidcSubject -Owner $TenantConfiguration.GitHub.Owner -OwnerId $TenantConfiguration.GitHub.OwnerId -Repository $TenantConfiguration.GitHub.Repository -RepositoryId $TenantConfiguration.GitHub.RepositoryId -TenantAlias $TenantConfiguration.TenantAlias
-    $useDefault = [bool](Get-DiscoveryPropertyValue -InputObject $oidcSettings -Name 'use_default')
-    $useImmutable = [bool](Get-DiscoveryPropertyValue -InputObject $oidcSettings -Name 'use_immutable_subject')
+    $expectedPrefix = Get-GitHubOidcSubject -Owner $TenantConfiguration.GitHub.Owner -OwnerId $TenantConfiguration.GitHub.OwnerId -Repository $TenantConfiguration.GitHub.Repository -RepositoryId $TenantConfiguration.GitHub.RepositoryId -TenantAlias $TenantConfiguration.TenantAlias -PrefixOnly
+    $useDefaultValue = Get-DiscoveryPropertyValue -InputObject $oidcSettings -Name 'use_default'
+    $useImmutableValue = Get-DiscoveryPropertyValue -InputObject $oidcSettings -Name 'use_immutable_subject'
+    $useDefault = $useDefaultValue -is [bool] -and $useDefaultValue -eq $true
+    $useImmutable = $useImmutableValue -is [bool] -and $useImmutableValue -eq $true
     $subjectPrefix = [string](Get-DiscoveryPropertyValue -InputObject $oidcSettings -Name 'sub_claim_prefix' -Required)
     $expectedRepositoryId = [string]$TenantConfiguration.GitHub.RepositoryId
     $expectedOwnerId = [string]$TenantConfiguration.GitHub.OwnerId
     $identityMatches = -not [string]::IsNullOrWhiteSpace($repositoryId) -and -not [string]::IsNullOrWhiteSpace($ownerId) -and $repositoryId -ceq $expectedRepositoryId -and $ownerId -ceq $expectedOwnerId
-    $oidcMatches = -not $useDefault -and $useImmutable -and $subjectPrefix -ceq $expectedPrefix
+    $oidcMatches = $useDefault -and $useImmutable -and $subjectPrefix -ceq $expectedPrefix
     $repositoryStatus = if ($identityMatches) { 'Found' } else { 'Ambiguous' }
     $oidcStatus = if ($oidcMatches) { 'Found' } else { 'Ambiguous' }
     $environmentStatus = if ($environmentCollectionStatus -ceq 'Missing') { 'Missing' } elseif ($environmentCollectionStatus -ceq 'Found' -and $environmentName -ceq $TenantConfiguration.GitHub.EnvironmentName) { 'Found' } else { 'Ambiguous' }

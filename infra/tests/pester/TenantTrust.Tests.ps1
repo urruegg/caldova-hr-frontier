@@ -107,6 +107,7 @@ Describe 'Tenant trust bootstrap' {
             param()
 
             $subject = Get-GitHubOidcSubject -Owner 'urruegg' -OwnerId '46865858' -Repository 'caldova-hr-frontier' -RepositoryId '1371297722' -TenantAlias 'caldova25156897'
+            $prefix = Get-GitHubOidcSubject -Owner 'urruegg' -OwnerId '46865858' -Repository 'caldova-hr-frontier' -RepositoryId '1371297722' -TenantAlias 'caldova25156897' -PrefixOnly
             $environmentId = 91234
             $reviewerId = 46865858
 
@@ -132,7 +133,7 @@ Describe 'Tenant trust bootstrap' {
                 OidcCustomization = [ordered]@{
                     use_default = $true
                     use_immutable_subject = $true
-                    sub_claim_prefix = $subject
+                    sub_claim_prefix = $prefix
                 }
                 Application = $null
                 ApplicationsByDisplayName = @()
@@ -1052,6 +1053,21 @@ Describe 'Tenant trust bootstrap' {
         $configPath = New-TestTenantConfigurationFile
         $state = New-TrustState
         $state.OidcCustomization.sub_claim_prefix = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-other'
+        $adapters = New-RecordingAdapters -State $state
+
+        { Invoke-TrustScript -TenantConfigurationPath $configPath -Adapters $adapters -WhatIf } | Should -Throw '*OIDC*'
+    }
+
+    It 'fails closed on false or string OIDC flags' -ForEach @(
+        @{ UseDefault = $false; UseImmutable = $true },
+        @{ UseDefault = $true; UseImmutable = $false },
+        @{ UseDefault = 'false'; UseImmutable = $true },
+        @{ UseDefault = $true; UseImmutable = 'false' }
+    ) {
+        $configPath = New-TestTenantConfigurationFile
+        $state = New-TrustState
+        $state.OidcCustomization.use_default = $UseDefault
+        $state.OidcCustomization.use_immutable_subject = $UseImmutable
         $adapters = New-RecordingAdapters -State $state
 
         { Invoke-TrustScript -TenantConfigurationPath $configPath -Adapters $adapters -WhatIf } | Should -Throw '*OIDC*'

@@ -13,9 +13,9 @@
       "environment": "bootstrap-caldova25156897"
     },
     "oidcCustomization": {
-      "use_default": false,
+      "use_default": true,
       "use_immutable_subject": true,
-      "sub_claim_prefix": "repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-caldova25156897"
+      "sub_claim_prefix": "repo:urruegg@46865858/caldova-hr-frontier@1371297722"
     },
     "rulesets": [
       "baseline"

@@ -1312,6 +1312,7 @@ foreach ($componentName in $requiredComponents) {
 $expectedDisplayName = '{0}-github-bootstrap' -f [string]$configuration.NamingRoot
 $expectedEnvironmentName = [string]$configuration.GitHub.EnvironmentName
 $expectedSubject = Get-GitHubOidcSubject -Owner $configuration.GitHub.Owner -OwnerId $configuration.GitHub.OwnerId -Repository $configuration.GitHub.Repository -RepositoryId $configuration.GitHub.RepositoryId -TenantAlias $configuration.TenantAlias
+$expectedPrefix = Get-GitHubOidcSubject -Owner $configuration.GitHub.Owner -OwnerId $configuration.GitHub.OwnerId -Repository $configuration.GitHub.Repository -RepositoryId $configuration.GitHub.RepositoryId -TenantAlias $configuration.TenantAlias -PrefixOnly
 
 $contextResponse = Invoke-RequestAdapter -Adapter $AzRequest -AdapterName 'Az' -Operation 'GetInteractiveContext' -Arguments @{}
 $context = Get-ResponseBodyOrNull -Response $contextResponse
@@ -1369,7 +1370,11 @@ if ($null -eq $oidcCustomization) {
     throw 'GitHub OIDC customization could not be read.'
 }
 
-if (-not [bool]$oidcCustomization.use_default -or -not [bool]$oidcCustomization.use_immutable_subject -or [string]$oidcCustomization.sub_claim_prefix -cne $expectedSubject) {
+$useDefaultValue = $oidcCustomization.use_default
+$useImmutableValue = $oidcCustomization.use_immutable_subject
+$useDefault = $useDefaultValue -is [bool] -and $useDefaultValue -eq $true
+$useImmutable = $useImmutableValue -is [bool] -and $useImmutableValue -eq $true
+if (-not $useDefault -or -not $useImmutable -or [string]$oidcCustomization.sub_claim_prefix -cne $expectedPrefix) {
     throw 'OIDC customization does not match the reviewed immutable Environment subject.'
 }
 

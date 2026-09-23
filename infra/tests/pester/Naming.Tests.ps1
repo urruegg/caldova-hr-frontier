@@ -34,6 +34,17 @@ Describe 'Tenant naming' {
             Should -Be 'repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-caldova25156897'
     }
 
+    It 'derives the immutable repository prefix separately from the Environment subject' {
+        Get-GitHubOidcSubject `
+            -Owner urruegg `
+            -OwnerId '46865858' `
+            -Repository caldova-hr-frontier `
+            -RepositoryId '1371297722' `
+            -TenantAlias caldova25156897 `
+            -PrefixOnly |
+            Should -Be 'repo:urruegg@46865858/caldova-hr-frontier@1371297722'
+    }
+
     It 'preserves mixed-case owner and repository names exactly in the OIDC subject' {
         Get-GitHubOidcSubject `
             -Owner UrrUegg `

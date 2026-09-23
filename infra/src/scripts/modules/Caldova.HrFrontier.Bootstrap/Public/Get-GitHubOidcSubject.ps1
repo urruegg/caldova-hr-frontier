@@ -19,7 +19,9 @@ function Get-GitHubOidcSubject {
 
         [Parameter(Mandatory)]
         [ValidatePattern('^[a-z0-9]+$')]
-        [string]$TenantAlias
+        [string]$TenantAlias,
+
+        [switch]$PrefixOnly
     )
 
     if ($Owner.Trim() -ne $Owner -or $Repository.Trim() -ne $Repository) {
@@ -34,5 +36,10 @@ function Get-GitHubOidcSubject {
         throw 'Repository must use the reviewed canonical name syntax.'
     }
 
-    "repo:{0}@{1}/{2}@{3}:environment:bootstrap-{4}" -f $Owner, $OwnerId, $Repository, $RepositoryId, $TenantAlias
+    $prefix = "repo:{0}@{1}/{2}@{3}" -f $Owner, $OwnerId, $Repository, $RepositoryId
+    if ($PrefixOnly) {
+        return $prefix
+    }
+
+    "{0}:environment:bootstrap-{1}" -f $prefix, $TenantAlias
 }

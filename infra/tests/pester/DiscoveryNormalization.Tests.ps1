@@ -590,7 +590,7 @@ function Get-AzureDevOpsDiscovery {
                         return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 1371297722; name = 'caldova-hr-frontier'; html_url = 'https://github.com/urruegg/caldova-hr-frontier'; owner = [pscustomobject]@{ id = 46865858 } } }
                     }
                     'repos/urruegg/caldova-hr-frontier/actions/oidc/customization/sub' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ use_default = $false; use_immutable_subject = $true; sub_claim_prefix = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-caldova25156897' } }
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ use_default = $true; use_immutable_subject = $true; sub_claim_prefix = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722' } }
                     }
                     'repos/urruegg/caldova-hr-frontier/rulesets' {
                         return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @() }
@@ -1155,9 +1155,9 @@ function Get-AzureDevOpsDiscovery {
                     owner = [pscustomobject]@{ id = '99999999' }
                 }
                 oidcCustomization = [pscustomobject]@{
-                    use_default = $false
+                    use_default = $true
                     use_immutable_subject = $true
-                    sub_claim_prefix = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-caldova25156897'
+                    sub_claim_prefix = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722'
                 }
                 environment = [pscustomobject]@{ name = 'bootstrap-caldova25156897' }
             }
@@ -1192,9 +1192,9 @@ function Get-AzureDevOpsDiscovery {
                     owner = [pscustomobject]@{ id = '46865858' }
                 }
                 oidcCustomization = [pscustomobject]@{
-                    use_default = $false
+                    use_default = $true
                     use_immutable_subject = $true
-                    sub_claim_prefix = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-caldova25156897'
+                    sub_claim_prefix = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722'
                 }
                 environment = [pscustomobject]@{ name = 'bootstrap-caldova25156897' }
             }
@@ -1229,9 +1229,9 @@ function Get-AzureDevOpsDiscovery {
                     owner = [pscustomobject]@{ id = '46865858' }
                 }
                 oidcCustomization = [pscustomobject]@{
-                    use_default = $false
+                    use_default = $true
                     use_immutable_subject = $true
-                    sub_claim_prefix = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-caldova25156897'
+                    sub_claim_prefix = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722'
                 }
                 environment = [pscustomobject]@{ name = 'bootstrap-caldova25156897' }
             }
@@ -1252,6 +1252,48 @@ function Get-AzureDevOpsDiscovery {
 
         $service.Status | Should -Be 'Found'
         $service.Resources[0].Status | Should -Be 'Found'
+    }
+
+    It 'marks GitHub discovery ambiguous for false or string OIDC flags' -ForEach @(
+        @{ UseDefault = $false; UseImmutable = $true },
+        @{ UseDefault = $true; UseImmutable = $false },
+        @{ UseDefault = 'false'; UseImmutable = $true },
+        @{ UseDefault = $true; UseImmutable = 'false' }
+    ) {
+        $fixture = [pscustomobject]@{
+            StatusCode = 200
+            Headers = @{}
+            Body = [ordered]@{
+                repository = [pscustomobject]@{
+                    id = '1371297722'
+                    name = 'caldova-hr-frontier'
+                    html_url = 'https://github.com/urruegg/caldova-hr-frontier'
+                    owner = [pscustomobject]@{ id = '46865858' }
+                }
+                oidcCustomization = [pscustomobject]@{
+                    use_default = $UseDefault
+                    use_immutable_subject = $UseImmutable
+                    sub_claim_prefix = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722'
+                }
+                environment = [pscustomobject]@{ name = 'bootstrap-caldova25156897' }
+            }
+        }
+
+        $service = InModuleScope Caldova.HrFrontier.Bootstrap -Parameters @{
+            TenantConfiguration = $script:TenantConfiguration
+            RunId = $script:RunId
+            CollectedUtc = $script:CollectedUtc
+            Fixture = $fixture
+        } {
+            param($TenantConfiguration, $RunId, $CollectedUtc, $Fixture)
+            Get-GitHubDiscovery -TenantConfiguration $TenantConfiguration -RunId $RunId -CollectedUtc $CollectedUtc -Request {
+                param($Operation, $Arguments)
+                $Fixture
+            }
+        }
+
+        $service.Status | Should -Be 'Ambiguous'
+        ($service.Resources | Where-Object Type -eq 'GitHubOidcCustomization').Status | Should -Be 'Ambiguous'
     }
 
     It 'requests and normalizes the required Entra discovery surfaces' {
