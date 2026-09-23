@@ -63,4 +63,21 @@ Describe 'Repository validation workflow' {
 
         $content | Should -Match '(?m)^\$gitCommand = Get-Command git -CommandType Application -ErrorAction SilentlyContinue \| Select-Object -First 1\r?$'
     }
+
+    It 'emits failed Pester test details in the validator summary' {
+        $script:validatorPath | Should -Exist
+        $content = Get-Content -LiteralPath $script:validatorPath -Raw
+
+        $content | Should -Match '(?m)^\s+FailedTests = if \(`\$null -ne `\$result\) \{ @\(`\$result\.Failed \| ForEach-Object \{'
+        $content | Should -Match "failedTests=\{7\}"
+        $content | Should -Match '(?m)^\s+`\$failureMessage = `\$failureMessage -replace .+\[REDACTED\].+\r?$'
+        $content | Should -Match 'authorization'
+        $content | Should -Match 'PRIVATE KEY'
+        $content | Should -Match 'sharedaccesssignature'
+        $content | Should -Match 'accountkey'
+        $content | Should -Match 'api\[_\\s-\]\?key'
+        $content | Should -Match '\(\?:sig\|signature\)'
+        $content | Should -Match '(?m)^\s+if \(`\$failureMessage\.Length -gt 1000\) \{ `\$failureMessage = `\$failureMessage\.Substring\(0, 1000\) \+ .+\}\r?$'
+        $content | Should -Match '(?m)^\s+\}\s+\| Select-Object -First 10\) \} else \{ @\(\) \}\r?$'
+    }
 }
