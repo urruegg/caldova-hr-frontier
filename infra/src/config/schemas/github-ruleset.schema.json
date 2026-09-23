@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "repository",
+    "rulesets"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "../schemas/github-ruleset.schema.json"
+    },
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "repository": {
+      "type": "string",
+      "const": "urruegg/caldova-hr-frontier"
+    },
+    "rulesets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/ruleset"
+      }
+    }
+  },
+  "$defs": {
+    "ruleset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "target",
+        "enforcement",
+        "bypassActors",
+        "conditions",
+        "rules"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "const": "main"
+        },
+        "target": {
+          "type": "string",
+          "const": "branch"
+        },
+        "enforcement": {
+          "type": "string",
+          "const": "active"
+        },
+        "bypassActors": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "$ref": "#/$defs/bypassActor"
+          }
+        },
+        "conditions": {
+          "$ref": "#/$defs/conditions"
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "prefixItems": [
+            {
+              "$ref": "#/$defs/deletionRule"
+            },
+            {
+              "$ref": "#/$defs/nonFastForwardRule"
+            },
+            {
+              "$ref": "#/$defs/pullRequestRule"
+            },
+            {
+              "$ref": "#/$defs/statusChecksRule"
+            }
+          ],
+          "items": false
+        }
+      }
+    },
+    "bypassActor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actorType",
+        "login",
+        "bypassMode"
+      ],
+      "properties": {
+        "actorType": {
+          "type": "string",
+          "const": "User"
+        },
+        "login": {
+          "type": "string",
+          "const": "urruegg"
+        },
+        "bypassMode": {
+          "type": "string",
+          "const": "pull_request"
+        }
+      }
+    },
+    "conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "refName"
+      ],
+      "properties": {
+        "refName": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "include",
+            "exclude"
+          ],
+          "properties": {
+            "include": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "prefixItems": [
+                {
+                  "type": "string",
+                  "const": "refs/heads/main"
+                }
+              ],
+              "items": false
+            },
+            "exclude": {
+              "type": "array",
+              "maxItems": 0
+            }
+          }
+        }
+      }
+    },
+    "deletionRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "deletion"
+        }
+      }
+    },
+    "nonFastForwardRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "non_fast_forward"
+        }
+      }
+    },
+    "pullRequestRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "parameters"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "pull_request"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "dismissStaleReviewsOnPush",
+            "requireCodeOwnerReview",
+            "requireLastPushApproval",
+            "requiredApprovingReviewCount",
+            "requiredReviewThreadResolution",
+            "allowedMergeMethods"
+          ],
+          "properties": {
+            "dismissStaleReviewsOnPush": {
+              "type": "boolean",
+              "const": true
+            },
+            "requireCodeOwnerReview": {
+              "type": "boolean",
+              "const": true
+            },
+            "requireLastPushApproval": {
+              "type": "boolean",
+              "const": false
+            },
+            "requiredApprovingReviewCount": {
+              "type": "integer",
+              "const": 1
+            },
+            "requiredReviewThreadResolution": {
+              "type": "boolean",
+              "const": true
+            },
+            "allowedMergeMethods": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "prefixItems": [
+                {
+                  "type": "string",
+                  "const": "merge"
+                },
+                {
+                  "type": "string",
+                  "const": "squash"
+                },
+                {
+                  "type": "string",
+                  "const": "rebase"
+                }
+              ],
+              "items": false
+            }
+          }
+        }
+      }
+    },
+    "statusChecksRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "parameters"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "required_status_checks"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "doNotEnforceOnCreate",
+            "requiredStatusChecks",
+            "strictRequiredStatusChecksPolicy"
+          ],
+          "properties": {
+            "doNotEnforceOnCreate": {
+              "type": "boolean",
+              "const": false
+            },
+            "requiredStatusChecks": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "context",
+                  "integrationId"
+                ],
+                "properties": {
+                  "context": {
+                    "type": "string",
+                    "const": "Repository setup validation"
+                  },
+                  "integrationId": {
+                    "type": "integer",
+                    "const": 15368
+                  }
+                }
+              }
+            },
+            "strictRequiredStatusChecksPolicy": {
+              "type": "boolean",
+              "const": true
+            }
+          }
+        }
+      }
+    }
+  }
+}

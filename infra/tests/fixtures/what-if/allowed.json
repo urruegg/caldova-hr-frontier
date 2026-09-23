@@ -1,0 +1,118 @@
+{
+  "status": "Succeeded",
+  "properties": {
+    "changes": [
+      {
+        "resourceId": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/resourceGroups/rg-cal-hr-agentic-bc8rbt-platform",
+        "changeType": "Create",
+        "before": null,
+        "after": {
+          "apiVersion": "2024-11-01",
+          "id": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/resourceGroups/rg-cal-hr-agentic-bc8rbt-platform",
+          "type": "Microsoft.Resources/resourceGroups",
+          "name": "rg-cal-hr-agentic-bc8rbt-platform",
+          "location": "switzerlandnorth",
+          "tags": {
+            "tenantAlias": "caldova25156897",
+            "namingRoot": "cal-hr-agentic-bc8rbt",
+            "baseline": "subscription-platform"
+          }
+        }
+      },
+      {
+        "resourceId": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/resourceGroups/rg-cal-hr-agentic-bc8rbt-platform/providers/Microsoft.OperationalInsights/workspaces/log-cal-hr-agentic-bc8rbt",
+        "changeType": "Create",
+        "before": null,
+        "after": {
+          "apiVersion": "2023-09-01",
+          "id": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/resourceGroups/rg-cal-hr-agentic-bc8rbt-platform/providers/Microsoft.OperationalInsights/workspaces/log-cal-hr-agentic-bc8rbt",
+          "type": "Microsoft.OperationalInsights/workspaces",
+          "name": "log-cal-hr-agentic-bc8rbt",
+          "location": "switzerlandnorth",
+          "tags": {
+            "tenantAlias": "caldova25156897",
+            "namingRoot": "cal-hr-agentic-bc8rbt",
+            "baseline": "subscription-platform"
+          },
+          "properties": {
+            "sku": {
+              "name": "PerGB2018"
+            },
+            "retentionInDays": 30,
+            "publicNetworkAccessForIngestion": "Enabled",
+            "publicNetworkAccessForQuery": "Enabled"
+          }
+        }
+      },
+      {
+        "resourceId": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Insights/diagnosticSettings/activity-log-to-log-analytics",
+        "changeType": "Create",
+        "before": null,
+        "after": {
+          "apiVersion": "2021-05-01-preview",
+          "id": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Insights/diagnosticSettings/activity-log-to-log-analytics",
+          "type": "Microsoft.Insights/diagnosticSettings",
+          "name": "activity-log-to-log-analytics",
+          "properties": {
+            "workspaceId": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/resourceGroups/rg-cal-hr-agentic-bc8rbt-platform/providers/Microsoft.OperationalInsights/workspaces/log-cal-hr-agentic-bc8rbt",
+            "logs": [
+              {
+                "categoryGroup": "allLogs",
+                "enabled": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "resourceId": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/9535bca5-5fef-5443-acf9-c0e0486562fd",
+        "changeType": "Create",
+        "before": null,
+        "after": {
+          "apiVersion": "2022-04-01",
+          "id": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/9535bca5-5fef-5443-acf9-c0e0486562fd",
+          "type": "Microsoft.Authorization/roleDefinitions",
+          "name": "9535bca5-5fef-5443-acf9-c0e0486562fd",
+          "properties": {
+            "roleName": "cal-hr-agentic-bc8rbt-deployment-validation",
+            "description": "Read-only deployment validation role for reviewed tenant subscription baselines.",
+            "type": "CustomRole",
+            "permissions": [
+              {
+                "actions": [
+                  "*/read",
+                  "Microsoft.Resources/deployments/read",
+                  "Microsoft.Resources/deployments/validate/action",
+                  "Microsoft.Resources/deployments/whatIf/action"
+                ],
+                "notActions": [],
+                "dataActions": [],
+                "notDataActions": []
+              }
+            ],
+            "assignableScopes": [
+              "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017"
+            ]
+          }
+        }
+      },
+      {
+        "resourceId": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/6753aab3-94dc-5d3f-90f7-1e3067fe7cee",
+        "changeType": "Create",
+        "before": null,
+        "after": {
+          "apiVersion": "2022-04-01",
+          "id": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/6753aab3-94dc-5d3f-90f7-1e3067fe7cee",
+          "type": "Microsoft.Authorization/roleAssignments",
+          "name": "6753aab3-94dc-5d3f-90f7-1e3067fe7cee",
+          "properties": {
+            "roleDefinitionId": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/9535bca5-5fef-5443-acf9-c0e0486562fd",
+            "principalId": "55555555-5555-5555-5555-555555555555",
+            "principalType": "ServicePrincipal"
+          }
+        }
+      }
+    ],
+    "diagnostics": []
+  }
+}

@@ -44,6 +44,7 @@ The Phase 2 Proposed Baseline describes intended relationships among Teams, Micr
 - agents never decide employment matters, including hiring, performance, compensation, discipline, termination, or other individual employment outcomes.
 - Production changes require managed deployment, recorded approval, and reviewable evidence before claims.
 - Phase 2 imported documentation only, and no Azure resources, Power Platform solutions, pipelines, seed data, or tenant controls were deployed or provisioned.
+- Phase 3 adds reviewed local infrastructure contracts and validation entry points; it does not provide evidence of live tenant or cloud changes.
 
 ### Domain Map
 
@@ -52,7 +53,7 @@ The Phase 2 Proposed Baseline describes intended relationships among Teams, Micr
 | `docs/` | Cross-cutting operating model, ADR candidates, reviews, specifications, and repository documentation policy. |
 | `data/` | Synthetic demo data guidance; no seed JSON is present in Phase 2. |
 | `hr/` | HR domain documentation and solution-source guidance; no Power Platform solution payload is present in Phase 2. |
-| future `infra/` | Infrastructure detail is planned for Phase 3. No `infra/` target is linked from this Phase 2 map until that import exists. |
+| `infra/` | Phase 3 Proposed Baseline documentation, Tenant 1 intent, local validation scripts, tests, and subscription-scope Bicep; no live deployment evidence. |
 
 ### Phase 2 Documentation Map
 
@@ -74,11 +75,25 @@ The Phase 2 Proposed Baseline describes intended relationships among Teams, Micr
 | [hr/docs/20-hr-employee-journey.md](hr/docs/20-hr-employee-journey.md) | Proposed Baseline HR employee journey. |
 | [hr/src/solutions/README.md](hr/src/solutions/README.md) | Solution-source guidance; no Power Platform solution payload. |
 
+### Phase 3 Infrastructure Map
+
+The [Phase 3 Infrastructure and Tenant Bootstrap Intake](docs/reviews/2026-09-17-phase-3-infrastructure-tenant-bootstrap-intake.md) approves the reviewed repository implementation for local validation. Infrastructure design and tenant intent remain a Proposed Baseline, and the review is not evidence of a live tenant state.
+
+| Entry point | Current role |
+|---|---|
+| `infra/src/config/tenants/caldova25156897.psd1` | Reviewed Tenant 1 desired-state manifest and immutable GitHub identity inputs. |
+| `infra/src/scripts/Invoke-TenantDiscovery.ps1` | Read-only five-service discovery entry point that produces local evidence for review. |
+| `infra/src/scripts/Initialize-TenantTrust.ps1` | Attended trust entry point, gated by reviewed intent and separate authorization before any mutation. |
+| `infra/src/scripts/Invoke-TenantBootstrap.ps1` | Local orchestration for validation, Bicep parameter generation, `what-if`, boundary checks, and exact-ID cleanup; it does not deploy. |
+| `infra/src/bicep/main.bicep` | Subscription-scope Bicep composition constrained to the reviewed resource-type allowlist. |
+
+No live deployment is authorized by this repository state.
+
 ### Current Status and Getting Started
 
-The repository governance and validation foundation exists: repository instructions, bundled Superpowers, documentation metadata validation, source-contract tests, and the repository verifier are present. Azure, Power Platform, Azure DevOps, agent, and product implementation remain planned or not yet verified unless a later reviewed artifact proves otherwise. Phase 2 contains documentation only, with no seed JSON, no solution payload, and no tenant deployment evidence.
+The repository governance and validation foundation exists: repository instructions, bundled Superpowers, documentation metadata validation, source-contract tests, and the repository verifier are present. Phase 3 adds a reviewed Tenant 1 manifest, discovery and bootstrap scripts, local Bicep composition, workflow contracts, and focused tests. Azure, Power Platform, Azure DevOps, agent, and product runtime state remains unverified unless later live evidence proves otherwise. Phase 2 contains documentation only, with no seed JSON or solution payload, and Phase 3 contains no tenant deployment evidence.
 
-Start with [docs/operating-model/00-north-star.md](docs/operating-model/00-north-star.md), then read [docs/operating-model/02-system-design.md](docs/operating-model/02-system-design.md), [docs/operating-model/04-hitl-governance.md](docs/operating-model/04-hitl-governance.md), [hr/docs/20-hr-employee-journey.md](hr/docs/20-hr-employee-journey.md), and the repository workflow below. Use [data/README.md](data/README.md) and [hr/src/solutions/README.md](hr/src/solutions/README.md) to understand the current no-data and no-payload boundaries.
+Start with [docs/operating-model/00-north-star.md](docs/operating-model/00-north-star.md), then read [docs/operating-model/02-system-design.md](docs/operating-model/02-system-design.md), [docs/operating-model/04-hitl-governance.md](docs/operating-model/04-hitl-governance.md), [hr/docs/20-hr-employee-journey.md](hr/docs/20-hr-employee-journey.md), [infra/README.md](infra/README.md), and the repository workflow below. Use [data/README.md](data/README.md), [hr/src/solutions/README.md](hr/src/solutions/README.md), and [infra/src/solutions/README.md](infra/src/solutions/README.md) to understand the current no-data and no-payload boundaries.
 
 
 ## Repository Agent Workflow

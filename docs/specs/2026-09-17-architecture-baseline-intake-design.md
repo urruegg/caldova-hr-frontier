@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-19 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -11,7 +11,7 @@
 
 ## Status
 
-Approved through attended design review on 2026-09-17.
+Approved through attended design review on 2026-09-17. The immutable GitHub OIDC subject amendment was approved on 2026-09-19 after repository API read-back confirmed that immutable subjects are enabled.
 
 Imported architecture and governance documents remain a **Proposed Baseline** until each document is accepted through a later decision or implementation review. Approval of this specification authorizes the intake and bootstrap design; it does not silently accept every imported recommendation.
 
@@ -195,7 +195,7 @@ Each tenant has:
 - a company three-letter abbreviation;
 - a six-character lowercase alphanumeric naming suffix;
 - explicit `Existing` or `Create` intent for every managed component;
-- a dedicated GitHub Environment named `bootstrap-<tenantAlias>`;
+- a dedicated GitHub Environment named `bootstrap-${tenantAlias}`;
 - a dedicated single-tenant Microsoft Entra application and service principal for this repository.
 
 Tenant 2 and Tenant 3 use the same schema and workflows but are not provisioned during this sprint. Their future attended discovery determines which components are declared `Existing` and which are declared `Create`.
@@ -223,7 +223,7 @@ The schema includes:
 - `WorkloadName`;
 - `UniqueSuffix`;
 - `NamingRoot`;
-- `GitHub.EnvironmentName`;
+- `GitHub.Owner`, `GitHub.OwnerId`, `GitHub.Repository`, `GitHub.RepositoryId`, and `GitHub.EnvironmentName`;
 - `AzureDevOps.OrganizationUrl` and `AzureDevOps.ProjectName`;
 - `PowerPlatform.DevUrl`, `PowerPlatform.TestUrl`, and `PowerPlatform.ProdUrl`;
 - a `Components` map whose entries contain `Mode` and, for `Existing`, the stable identifier needed to validate the object.
@@ -240,6 +240,10 @@ Tenant 1 has the following reviewed non-secret metadata:
 |---|---|
 | Tenant alias | `caldova25156897` |
 | Display name | `Caldova25156897` |
+| GitHub owner | `urruegg` |
+| GitHub owner ID | `46865858` |
+| GitHub repository | `caldova-hr-frontier` |
+| GitHub repository ID | `1371297722` |
 | Tenant ID | `e2312862-df63-440c-8bcf-007a2c52859d` |
 | Admin UPN | `admin@Caldova25156897.onmicrosoft.com` |
 | Subscription ID | `edb45a24-408d-47c4-bbc7-685b9b3fc017` |
@@ -355,13 +359,15 @@ The GitHub federated identity credential uses:
 ```text
 Issuer: https://token.actions.githubusercontent.com
 Audience: api://AzureADTokenExchange
-Subject: repo:urruegg/caldova-hr-frontier:environment:bootstrap-<tenantAlias>
+Subject: repo:${owner}@${ownerId}/${repository}@${repositoryId}:environment:bootstrap-${tenantAlias}
 ```
 
-Tenant 1 therefore uses:
+GitHub's read-only repository and OIDC customization APIs are queried before trust creation. The owner and repository names and their immutable numeric IDs are stored as reviewed non-secret manifest fields. The returned `sub_claim_prefix` must match the manifest-derived prefix, `use_default` and `use_immutable_subject` must both be `true`, and any mismatch stops the operation.
+
+The repository was created on 2026-09-15. Read-only API evidence collected on 2026-09-19 returned owner ID `46865858`, repository ID `1371297722`, and immutable prefix `repo:urruegg@46865858/caldova-hr-frontier@1371297722`. Tenant 1 therefore uses:
 
 ```text
-repo:urruegg/caldova-hr-frontier:environment:bootstrap-caldova25156897
+repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-caldova25156897
 ```
 
 The initial trust operation is attended and local. The configured admin UPN is versioned as non-secret metadata and is used only to select and verify the interactive account. Passwords, MFA responses, tokens, and recovery material are never accepted by scripts, written to disk, routed through an agent, or stored in GitHub.
@@ -401,7 +407,7 @@ The temporary grants, steady-state custom role definition, and role assignments 
 
 ### Tenant Discovery
 
-`.github/workflows/discover-tenant.yml` is manually dispatched with a required `tenantAlias`. It binds to `bootstrap-<tenantAlias>`, authenticates through OIDC, executes only read operations, validates redaction, and publishes the normalized JSON for review. The workflow does not push or open a pull request automatically.
+`.github/workflows/discover-tenant.yml` is manually dispatched with a required `tenantAlias`. It binds to `bootstrap-${tenantAlias}`, authenticates through OIDC, executes only read operations, validates redaction, and publishes the normalized JSON for review. The workflow does not push or open a pull request automatically.
 
 ### Tenant Bootstrap and What-If
 
@@ -491,7 +497,7 @@ A full bypass is allowed only as a documented break-glass operation. The adminis
 
 The validator workflow is added and successfully executed before the ruleset is activated. Ruleset activation is the final GitHub mutation in the sprint. The applied ruleset and Environment settings are read back through the GitHub API and compared with the reviewed desired state.
 
-Each `bootstrap-<tenantAlias>` Environment is restricted to the `main` branch, names the tenant administrator's GitHub identity as a required reviewer, and has prevent-self-review disabled for the approved pilot exception. It contains only the three reviewed non-secret Azure variables. Environment secrets are not required. The API read-back must confirm branch restriction, reviewer identity, self-review setting, and variable names without attempting to disclose secret values.
+Each `bootstrap-${tenantAlias}` Environment is restricted to the `main` branch, names the tenant administrator's GitHub identity as a required reviewer, and has prevent-self-review disabled for the approved pilot exception. It contains only the three reviewed non-secret Azure variables. Environment secrets are not required. The API read-back must confirm branch restriction, reviewer identity, self-review setting, and variable names without attempting to disclose secret values.
 
 ## Error Handling and Recovery
 
@@ -554,7 +560,7 @@ Pester tests cover:
 - `Existing` and `Create` gate behavior;
 - cleanup execution after simulated failures;
 - idempotent retries;
-- exact OIDC subject derivation.
+- exact immutable OIDC subject derivation from reviewed owner and repository names and IDs.
 
 Bicep validation covers build, lint, subscription-scope composition, parameter generation, and a machine-readable check that the Tenant 1 `what-if` contains only the approved baseline resource types and scopes.
 

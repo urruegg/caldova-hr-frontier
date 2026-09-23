@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-19 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -65,8 +65,8 @@ Create just enough in the tenant for the GitHub repository to take over. Perform
 - Admin account secured — MFA, cloud-only, Global Administrator count confirmed below five.
 - **Two break-glass accounts** created, excluded from restrictive Conditional Access, sign-in tested.
 - **Security defaults vs Conditional Access decision recorded.** Security defaults block device code flow, so `pac auth create --deviceCode` will fail if they remain on.
-- `CHF-Bootstrap-SP` registered with a federated credential for `repo:urruegg/caldova-hr-frontier:environment:bootstrap`, and **no client secret**.
-- `CHF-Bootstrap-SP` added to the Azure DevOps organisation with a **Basic** licence and Project Collection Administrators.
+- A dedicated tenant bootstrap service principal registered with the immutable Environment-bound federated subject `repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-caldova25156897`, and **no client secret**.
+- The dedicated tenant bootstrap service principal added to the Azure DevOps organisation with **Basic** access and the existing project's Readers group for discovery; broader access requires a separately reviewed operation.
 - Confirm licensing plan. [Approved Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md) is the governing repository-local reference until the infrastructure document is imported. Infrastructure detail enters in Phase 3.
 - Roles named: Product Owner, Agent Owner, Governance Owner, Technical Owner, Platform Owner.
 - Teams channel structure defined.

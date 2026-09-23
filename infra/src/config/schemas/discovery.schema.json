@@ -1,0 +1,244 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "SchemaVersion",
+    "ToolVersion",
+    "RunId",
+    "CollectionStartedUtc",
+    "CollectionCompletedUtc",
+    "TenantAlias",
+    "TenantId",
+    "Principal",
+    "Services"
+  ],
+  "properties": {
+    "SchemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "ToolVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "RunId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "CollectionStartedUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "CollectionCompletedUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "TenantAlias": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+$"
+    },
+    "TenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "Principal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "Type",
+        "Id"
+      ],
+      "properties": {
+        "Type": {
+          "type": "string",
+          "enum": [
+            "User",
+            "ServicePrincipal"
+          ]
+        },
+        "Id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ClientId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "Upn": {
+          "type": "string",
+          "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+        }
+      }
+    },
+    "Services": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "GitHub",
+        "Entra",
+        "Azure",
+        "AzureDevOps",
+        "PowerPlatform"
+      ],
+      "properties": {
+        "GitHub": {
+          "$ref": "#/$defs/service"
+        },
+        "Entra": {
+          "$ref": "#/$defs/service"
+        },
+        "Azure": {
+          "$ref": "#/$defs/service"
+        },
+        "AzureDevOps": {
+          "$ref": "#/$defs/service"
+        },
+        "PowerPlatform": {
+          "$ref": "#/$defs/service"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "Name",
+        "RunId",
+        "Status",
+        "SourceApi",
+        "CollectedUtc",
+        "ResponseSha256",
+        "Resources"
+      ],
+      "properties": {
+        "Name": {
+          "type": "string",
+          "enum": [
+            "GitHub",
+            "Entra",
+            "Azure",
+            "AzureDevOps",
+            "PowerPlatform"
+          ]
+        },
+        "RunId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "Status": {
+          "type": "string",
+          "enum": [
+            "Found",
+            "Missing",
+            "Unauthorized",
+            "Unavailable",
+            "Ambiguous"
+          ]
+        },
+        "SourceApi": {
+          "type": "string",
+          "minLength": 1
+        },
+        "CollectedUtc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ResponseSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "Resources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resource"
+          }
+        }
+      }
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "Type",
+        "Id",
+        "Name",
+        "Status",
+        "EvidenceReference"
+      ],
+      "properties": {
+        "Type": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+        },
+        "Id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "Name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "Url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "Scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "Status": {
+          "type": "string",
+          "enum": [
+            "Found",
+            "Missing",
+            "Unauthorized",
+            "Unavailable",
+            "Ambiguous"
+          ]
+        },
+        "EvidenceReference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Service",
+            "SourceApi",
+            "Scope",
+            "CollectedUtc",
+            "ResponseSha256"
+          ],
+          "properties": {
+            "Service": {
+              "type": "string",
+              "enum": [
+                "GitHub",
+                "Entra",
+                "Azure",
+                "AzureDevOps",
+                "PowerPlatform"
+              ]
+            },
+            "SourceApi": {
+              "type": "string",
+              "minLength": 1
+            },
+            "Scope": {
+              "type": "string",
+              "minLength": 1
+            },
+            "CollectedUtc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "ResponseSha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        }
+      }
+    }
+  }
+}

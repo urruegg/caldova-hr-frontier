@@ -1,0 +1,63 @@
+{
+  "$schema": "../schemas/github-ruleset.schema.json",
+  "schemaVersion": "1.0",
+  "repository": "urruegg/caldova-hr-frontier",
+  "rulesets": [
+    {
+      "name": "main",
+      "target": "branch",
+      "enforcement": "active",
+      "bypassActors": [
+        {
+          "actorType": "User",
+          "login": "urruegg",
+          "bypassMode": "pull_request"
+        }
+      ],
+      "conditions": {
+        "refName": {
+          "include": [
+            "refs/heads/main"
+          ],
+          "exclude": []
+        }
+      },
+      "rules": [
+        {
+          "type": "deletion"
+        },
+        {
+          "type": "non_fast_forward"
+        },
+        {
+          "type": "pull_request",
+          "parameters": {
+            "dismissStaleReviewsOnPush": true,
+            "requireCodeOwnerReview": true,
+            "requireLastPushApproval": false,
+            "requiredApprovingReviewCount": 1,
+            "requiredReviewThreadResolution": true,
+            "allowedMergeMethods": [
+              "merge",
+              "squash",
+              "rebase"
+            ]
+          }
+        },
+        {
+          "type": "required_status_checks",
+          "parameters": {
+            "doNotEnforceOnCreate": false,
+            "requiredStatusChecks": [
+              {
+                "context": "Repository setup validation",
+                "integrationId": 15368
+              }
+            ],
+            "strictRequiredStatusChecksPolicy": true
+          }
+        }
+      ]
+    }
+  ]
+}

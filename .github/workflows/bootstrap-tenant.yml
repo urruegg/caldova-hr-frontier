@@ -1,0 +1,212 @@
+name: Validate tenant bootstrap
+
+on:
+  workflow_dispatch:
+    inputs:
+      tenantAlias:
+        description: Reviewed tenant alias
+        required: true
+        type: choice
+        options:
+          - caldova25156897
+      confirmRoleCleanup:
+        description: Confirm exact-ID cleanup of both temporary role assignments
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: bootstrap-${{ inputs.tenantAlias }}
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    name: Validate reviewed tenant bootstrap
+    runs-on: windows-2025
+    timeout-minutes: 45
+    environment: bootstrap-${{ inputs.tenantAlias }}
+    env:
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      DISCOVERY_EVIDENCE_PATH: infra\evidence\discovery\${{ inputs.tenantAlias }}.json
+      BICEP_PARAMETER_PATH: infra\src\bicep\params\${{ inputs.tenantAlias }}.bicepparam
+    steps:
+      - name: Require cleanup confirmation
+        shell: powershell
+        run: |
+          if ('${{ inputs.confirmRoleCleanup }}' -cne 'true') {
+              throw 'confirmRoleCleanup must be true before checkout or authentication.'
+          }
+
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Validate tenant manifest
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $manifestPath = 'infra\src\config\tenants\${{ inputs.tenantAlias }}.psd1'
+          if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+              throw "Reviewed tenant manifest was not found: $manifestPath"
+          }
+
+          $configuration = Import-PowerShellDataFile -LiteralPath $manifestPath
+          if ([string]$configuration.TenantAlias -cne '${{ inputs.tenantAlias }}') {
+              throw 'Dispatched tenant alias does not match the reviewed tenant manifest.'
+          }
+          if ([string]$configuration.GitHub.EnvironmentName -cne 'bootstrap-${{ inputs.tenantAlias }}') {
+              throw 'Selected GitHub Environment does not match the reviewed tenant manifest.'
+          }
+          if ([string]$configuration.TenantId -cne [string]$env:AZURE_TENANT_ID) {
+              throw 'AZURE_TENANT_ID does not match the reviewed tenant manifest.'
+          }
+          if ([string]$configuration.SubscriptionId -cne [string]$env:AZURE_SUBSCRIPTION_ID) {
+              throw 'AZURE_SUBSCRIPTION_ID does not match the reviewed tenant manifest.'
+          }
+
+      - name: Require reviewed evidence and parameters
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @($env:DISCOVERY_EVIDENCE_PATH, $env:BICEP_PARAMETER_PATH)) {
+              if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+                  throw "Required reviewed bootstrap input was not found: $path"
+              }
+
+              git ls-files --error-unmatch -- $path | Out-Null
+              if ($LASTEXITCODE -ne 0) {
+                  throw "Bootstrap input must be committed before workflow execution: $path"
+              }
+          }
+
+      - name: Azure OIDC login
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Discover exact temporary role assignments
+        env:
+          ROLE_STATE_PATH: ${{ runner.temp }}\bootstrap-role-state.json
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./infra/src/scripts/Get-TemporaryBootstrapRoleState.ps1 `
+            -TenantAlias '${{ inputs.tenantAlias }}' `
+            -OutputPath $env:ROLE_STATE_PATH | Out-Null
+
+          $state = Get-Content -Raw -LiteralPath $env:ROLE_STATE_PATH | ConvertFrom-Json
+          if (@($state.Assignments).Count -ne 2) {
+              throw 'Temporary role state must contain exactly two assignments.'
+          }
+
+          $contributor = @($state.Assignments | Where-Object { [string]$_.RoleName -ceq 'Contributor' })
+          $rbacAdministrator = @($state.Assignments | Where-Object { [string]$_.RoleName -ceq 'Role Based Access Control Administrator' })
+          if ($contributor.Count -ne 1 -or $rbacAdministrator.Count -ne 1) {
+              throw 'Temporary role state must contain one approved assignment for each temporary role.'
+          }
+
+      - name: Run Bicep build and validated what-if
+        env:
+          ROLE_STATE_PATH: ${{ runner.temp }}\bootstrap-role-state.json
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+            $roleState = Get-Content -Raw -LiteralPath $env:ROLE_STATE_PATH | ConvertFrom-Json
+            if (@($roleState.Assignments).Count -ne 2) {
+              throw 'Temporary role state must contain exactly two assignments.'
+            }
+
+            $contributor = @($roleState.Assignments | Where-Object { [string]$_.RoleName -ceq 'Contributor' })
+            $rbacAdministrator = @($roleState.Assignments | Where-Object { [string]$_.RoleName -ceq 'Role Based Access Control Administrator' })
+            if ($contributor.Count -ne 1 -or $rbacAdministrator.Count -ne 1) {
+              throw 'Temporary role state must contain one approved assignment for each temporary role.'
+            }
+
+            $expectedRunId = [string]$roleState.RunId
+            $expectedPrincipalObjectId = [string]$roleState.PrincipalObjectId
+            $expectedScope = [string]$roleState.Scope
+          $approvedRoleAssignmentIds = @(
+              [string]$contributor[0].Id
+              [string]$rbacAdministrator[0].Id
+          )
+            $cleanupTupleValues = @($expectedRunId, $expectedPrincipalObjectId, $expectedScope, $approvedRoleAssignmentIds[0], $approvedRoleAssignmentIds[1])
+            if (@($cleanupTupleValues | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) {
+              throw 'Temporary role state cleanup tuple values must not be empty.'
+            }
+            if (@($approvedRoleAssignmentIds | Select-Object -Unique).Count -ne 2) {
+              throw 'Temporary role state assignment ids must be unique.'
+            }
+            foreach ($assignment in @($contributor[0], $rbacAdministrator[0])) {
+              if ([string]$assignment.PrincipalObjectId -cne $expectedPrincipalObjectId -or [string]$assignment.Scope -cne $expectedScope) {
+                throw 'Temporary role state assignments must match the persisted principal and scope.'
+              }
+            }
+
+          ./infra/src/scripts/Invoke-TenantBootstrap.ps1 `
+            -TenantAlias '${{ inputs.tenantAlias }}' `
+            -EvidencePath $env:DISCOVERY_EVIDENCE_PATH `
+            -ParameterFile $env:BICEP_PARAMETER_PATH `
+            -TemporaryRoleStatePath $env:ROLE_STATE_PATH `
+            -ConfirmRoleCleanup $true `
+            -BootstrapRunId $expectedRunId `
+            -ApprovedRoleAssignmentIds $approvedRoleAssignmentIds `
+            -WhatIfOnly
+
+      - name: Ensure exact temporary role cleanup
+        if: ${{ always() }}
+        env:
+          ROLE_STATE_PATH: ${{ runner.temp }}\bootstrap-role-state.json
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Test-Path -LiteralPath $env:ROLE_STATE_PATH -PathType Leaf)) {
+              Write-Output 'No temporary role state was created; exact-ID cleanup is not required.'
+              return
+          }
+
+          $roleState = Get-Content -Raw -LiteralPath $env:ROLE_STATE_PATH | ConvertFrom-Json
+            if (@($roleState.Assignments).Count -ne 2) {
+              throw 'Temporary role state must contain exactly two assignments.'
+            }
+
+            $contributor = @($roleState.Assignments | Where-Object { [string]$_.RoleName -ceq 'Contributor' })
+            $rbacAdministrator = @($roleState.Assignments | Where-Object { [string]$_.RoleName -ceq 'Role Based Access Control Administrator' })
+            if ($contributor.Count -ne 1 -or $rbacAdministrator.Count -ne 1) {
+              throw 'Temporary role state must contain one approved assignment for each temporary role.'
+            }
+
+            $expectedRunId = [string]$roleState.RunId
+            $expectedPrincipalObjectId = [string]$roleState.PrincipalObjectId
+            $expectedScope = [string]$roleState.Scope
+          $approvedRoleAssignmentIds = @(
+              [string]$contributor[0].Id
+              [string]$rbacAdministrator[0].Id
+          )
+            $cleanupTupleValues = @($expectedRunId, $expectedPrincipalObjectId, $expectedScope, $approvedRoleAssignmentIds[0], $approvedRoleAssignmentIds[1])
+            if (@($cleanupTupleValues | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) {
+              throw 'Temporary role state cleanup tuple values must not be empty.'
+            }
+            if (@($approvedRoleAssignmentIds | Select-Object -Unique).Count -ne 2) {
+              throw 'Temporary role state assignment ids must be unique.'
+            }
+            foreach ($assignment in @($contributor[0], $rbacAdministrator[0])) {
+              if ([string]$assignment.PrincipalObjectId -cne $expectedPrincipalObjectId -or [string]$assignment.Scope -cne $expectedScope) {
+                throw 'Temporary role state assignments must match the persisted principal and scope.'
+              }
+            }
+
+          Import-Module ./infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Caldova.HrFrontier.Bootstrap.psd1 -Force
+          Remove-TemporaryRoleAssignments `
+            -BootstrapResult $roleState `
+            -ExpectedRunId $expectedRunId `
+            -ExpectedPrincipalObjectId $expectedPrincipalObjectId `
+            -ExpectedScope $expectedScope `
+            -ApprovedRoleAssignmentIds $approvedRoleAssignmentIds `
+            -Confirm:$false

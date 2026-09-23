@@ -1,0 +1,25 @@
+{
+  "StatusCode": 200,
+  "Headers": {},
+  "Body": {
+    "repository": {
+      "type": "GitHubRepository",
+      "id": "1371297722",
+      "name": "caldova-hr-frontier",
+      "url": "https://github.com/urruegg/caldova-hr-frontier",
+      "scope": "repo:urruegg/caldova-hr-frontier",
+      "ownerId": "46865858",
+      "repositoryId": "1371297722",
+      "environment": "bootstrap-caldova25156897"
+    },
+    "oidcCustomization": {
+      "use_default": true,
+      "use_immutable_subject": true,
+      "sub_claim_prefix": "repo:urruegg@46865858/caldova-hr-frontier@1371297722"
+    },
+    "rulesets": [
+      "baseline"
+    ],
+    "accessToken": "ghs_synthetic_disallowed_value"
+  }
+}

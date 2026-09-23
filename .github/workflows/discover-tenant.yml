@@ -1,0 +1,170 @@
+name: Discover tenant
+
+on:
+  workflow_dispatch:
+    inputs:
+      tenantAlias:
+        description: Reviewed tenant alias
+        required: true
+        type: choice
+        options:
+          - caldova25156897
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: bootstrap-${{ inputs.tenantAlias }}
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    name: Discover reviewed tenant
+    runs-on: windows-2025
+    timeout-minutes: 30
+    environment: bootstrap-${{ inputs.tenantAlias }}
+    env:
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install pinned Pester
+        shell: powershell
+        run: Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck
+
+      - name: Validate tenant manifest
+        id: manifest
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $manifestPath = 'infra\src\config\tenants\${{ inputs.tenantAlias }}.psd1'
+          if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+              throw "Reviewed tenant manifest was not found: $manifestPath"
+          }
+
+          $configuration = Import-PowerShellDataFile -LiteralPath $manifestPath
+          if ([string]$configuration.TenantAlias -cne '${{ inputs.tenantAlias }}') {
+              throw 'Dispatched tenant alias does not match the reviewed tenant manifest.'
+          }
+          if ([string]$configuration.GitHub.EnvironmentName -cne 'bootstrap-${{ inputs.tenantAlias }}') {
+              throw 'Selected GitHub Environment does not match the reviewed tenant manifest.'
+          }
+          if ([string]$configuration.TenantId -cne [string]$env:AZURE_TENANT_ID) {
+              throw 'AZURE_TENANT_ID does not match the reviewed tenant manifest.'
+          }
+          if ([string]$configuration.SubscriptionId -cne [string]$env:AZURE_SUBSCRIPTION_ID) {
+              throw 'AZURE_SUBSCRIPTION_ID does not match the reviewed tenant manifest.'
+          }
+
+          $powerPlatformUrls = @(
+              [string]$configuration.PowerPlatform.DevUrl
+              [string]$configuration.PowerPlatform.TestUrl
+              [string]$configuration.PowerPlatform.ProdUrl
+          )
+          if ($powerPlatformUrls.Count -ne 3 -or @($powerPlatformUrls | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) {
+              throw 'The reviewed tenant manifest must define DEV, TEST, and PROD Power Platform URLs.'
+          }
+          foreach ($url in $powerPlatformUrls) {
+              $uri = [uri]$url
+              if ($uri.Scheme -cne 'https') {
+                  throw "Power Platform URL must use HTTPS: $url"
+              }
+          }
+
+          $outputLines = @(
+              "dev-url=$($configuration.PowerPlatform.DevUrl)"
+              "test-url=$($configuration.PowerPlatform.TestUrl)"
+              "prod-url=$($configuration.PowerPlatform.ProdUrl)"
+          )
+          [System.IO.File]::AppendAllText(
+              $env:GITHUB_OUTPUT,
+              (($outputLines -join "`n") + "`n"),
+              [System.Text.UTF8Encoding]::new($false)
+          )
+
+      - name: Azure OIDC login
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify Power Platform DEV
+        uses: microsoft/powerplatform-actions/who-am-i@0e44beb5424af932af47250a2568eba4c259e3d8
+        with:
+          environment-url: ${{ steps.manifest.outputs.dev-url }}
+          app-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+
+      - name: Verify Power Platform TEST
+        uses: microsoft/powerplatform-actions/who-am-i@0e44beb5424af932af47250a2568eba4c259e3d8
+        with:
+          environment-url: ${{ steps.manifest.outputs.test-url }}
+          app-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+
+      - name: Verify Power Platform PROD
+        uses: microsoft/powerplatform-actions/who-am-i@0e44beb5424af932af47250a2568eba4c259e3d8
+        with:
+          environment-url: ${{ steps.manifest.outputs.prod-url }}
+          app-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+
+      - name: Write redacted Power Platform probe evidence
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $actionRevision = '0e44beb5424af932af47250a2568eba4c259e3d8'
+          $probeRecords = @(
+              [pscustomobject]@{
+                  Stage = 'DEV'
+                  Url = '${{ steps.manifest.outputs.dev-url }}'
+                  Status = 'Success'
+                  CollectedUtc = [datetime]::UtcNow.ToString('o')
+                  ActionRevision = $actionRevision
+              }
+              [pscustomobject]@{
+                  Stage = 'TEST'
+                  Url = '${{ steps.manifest.outputs.test-url }}'
+                  Status = 'Success'
+                  CollectedUtc = [datetime]::UtcNow.ToString('o')
+                  ActionRevision = $actionRevision
+              }
+              [pscustomobject]@{
+                  Stage = 'PROD'
+                  Url = '${{ steps.manifest.outputs.prod-url }}'
+                  Status = 'Success'
+                  CollectedUtc = [datetime]::UtcNow.ToString('o')
+                  ActionRevision = $actionRevision
+              }
+          )
+
+          $probePath = "$env:RUNNER_TEMP\power-platform-probes.json"
+          $probeJson = $probeRecords | ConvertTo-Json -Depth 4
+          [System.IO.File]::WriteAllText($probePath, $probeJson, [System.Text.UTF8Encoding]::new($false))
+
+      - name: Run tenant discovery
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./infra/src/scripts/Invoke-TenantDiscovery.ps1 `
+            -TenantAlias '${{ inputs.tenantAlias }}' `
+            -AuthenticationMode ExistingContext `
+            -PowerPlatformProbePath "$env:RUNNER_TEMP\power-platform-probes.json" `
+            -OutputPath "$env:RUNNER_TEMP\discovery.json"
+
+      - name: Validate normalized discovery
+        shell: powershell
+        run: Invoke-Pester infra/tests/pester/DiscoveryNormalization.Tests.ps1 -Output Detailed -CI
+
+      - name: Upload redacted tenant discovery
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: redacted-tenant-discovery-${{ inputs.tenantAlias }}-${{ github.run_id }}
+          path: ${{ runner.temp }}\discovery.json
+          if-no-files-found: error
+          retention-days: 7
