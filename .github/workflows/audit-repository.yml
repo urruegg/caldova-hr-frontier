@@ -1,0 +1,37 @@
+name: Audit repository baseline
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Repository baseline audit (advisory)
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+
+      - name: Install pinned Pester
+        shell: powershell
+        run: Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck
+
+      - name: Run baseline validator
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-setup.ps1 -SkipIntegratedTests -SkipBicepBuild
+
+      - name: Run advisory repository contracts
+        shell: powershell
+        run: |
+          $paths = Get-ChildItem .github/cli/tests/*.Tests.ps1 |
+            Where-Object Name -notin @('WorkflowContract.Tests.ps1', 'RepositorySafety.Tests.ps1') |
+            Select-Object -ExpandProperty FullName
+          Invoke-Pester -Path $paths -Output Detailed -CI

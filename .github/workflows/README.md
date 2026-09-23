@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-20 |
+| **Version** | 1.2 |
+| **Date** | 2026-09-23 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
 | **Scope** | Repository |
@@ -23,9 +23,16 @@ The workflow grants only global `contents: read`. It requests no write or identi
 The job performs these checks in order:
 
 1. Checks out the complete Git history with `fetch-depth: 0`.
-2. Runs the repository validator.
-3. Runs `Invoke-Pester .github/cli/tests -Output Detailed -CI` so failed tests fail the job.
-4. Runs `git diff --check origin/main...HEAD` to reject branch whitespace errors.
+2. Runs the workflow and safety contracts plus every infrastructure Pester test.
+3. Scans the real checkout for prohibited deployment commands and credential-based bootstrap patterns.
+4. Builds the Bicep entry point without deploying resources.
+5. Runs `git diff --check origin/main...HEAD` to reject branch whitespace errors.
+
+## Repository Baseline Audit
+
+[audit-repository.yml](audit-repository.yml) runs for the same pull request, `main`, and manual events. It validates the comprehensive repository baseline and the seven documentation, source-inventory, and intake contract files without repeating the required Pester paths or Bicep build.
+
+The `Repository baseline audit (advisory)` check remains visibly red when drift is found, but it is not a required status in the reviewed `main` ruleset. A pull request may proceed only when a reviewer records acceptance and rationale for any advisory failure in the pull request completion contract.
 
 ## Tenant Discovery
 

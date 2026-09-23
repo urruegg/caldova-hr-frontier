@@ -1,60 +1,56 @@
 BeforeAll {
     $script:repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
     $script:workflowPath = Join-Path $script:repositoryRoot '.github\workflows\validate-repository.yml'
+    $script:auditWorkflowPath = Join-Path $script:repositoryRoot '.github\workflows\audit-repository.yml'
     $script:validatorPath = Join-Path $script:repositoryRoot '.github\cli\verify-repository-setup.ps1'
+    $script:safetyValidatorPath = Join-Path $script:repositoryRoot '.github\cli\verify-repository-safety.ps1'
+    $script:pullRequestTemplatePath = Join-Path $script:repositoryRoot '.github\pull_request_template.md'
+    $script:rulesetPath = Join-Path $script:repositoryRoot 'infra\src\config\github\main-ruleset.json'
 }
 
 Describe 'Repository validation workflow' {
-    It 'has least privilege, a pinned checkout action, and runs both validator and Pester' {
+    It 'keeps the stable required status and runs only deterministic core checks' {
         $script:workflowPath | Should -Exist
         $content = Get-Content -LiteralPath $script:workflowPath -Raw
 
         $content | Should -Match '(?m)^permissions:\r?\n  contents: read\r?$'
         $content | Should -Match 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683'
         $content | Should -Match '(?m)^\s+name: Repository setup validation\r?$'
-        $content | Should -Match 'verify-repository-setup\.ps1'
-        $content | Should -Match 'Invoke-Pester'
+        $content | Should -Match '\.github/cli/tests/WorkflowContract\.Tests\.ps1'
+        $content | Should -Match 'infra/tests/pester'
+        $content | Should -Match 'verify-repository-safety\.ps1'
+        $content | Should -Match 'az bicep build --file infra/src/bicep/main\.bicep --stdout'
+        $content | Should -Match 'git diff --check origin/main\.\.\.HEAD'
+        $content | Should -Not -Match 'verify-repository-setup\.ps1'
         $content | Should -Not -Match '(?m)^\s*(?:pull-requests|contents|id-token):\s*write\r?$'
     }
 
-    It 'declares the intended workflow name and triggers' {
-        $script:workflowPath | Should -Exist
-        $content = Get-Content -LiteralPath $script:workflowPath -Raw
+    It 'runs the comprehensive baseline as a non-blocking advisory workflow' {
+        $script:auditWorkflowPath | Should -Exist
+        $content = Get-Content -LiteralPath $script:auditWorkflowPath -Raw
 
-        $content | Should -Match '(?m)^name: Validate repository\r?$'
+        $content | Should -Match '(?m)^name: Audit repository baseline\r?$'
         $content | Should -Match '(?m)^on:\r?\n  pull_request:\r?\n  push:\r?\n    branches: \[main\]\r?\n  workflow_dispatch:\r?$'
-    }
-
-    It 'defines the validate job with exact indentation and limits' {
-        $script:workflowPath | Should -Exist
-        $content = Get-Content -LiteralPath $script:workflowPath -Raw
-
-        $content | Should -Match '(?m)^jobs:\r?\n  validate:\r?\n    name: Repository setup validation\r?\n    runs-on: windows-2025\r?\n    timeout-minutes: 15\r?\n    steps:\r?$'
-    }
-
-    It 'pins checkout and Pester with the intended step shape' {
-        $script:workflowPath | Should -Exist
-        $content = Get-Content -LiteralPath $script:workflowPath -Raw
-
-        $content | Should -Match '(?m)^      - name: Check out repository\r?\n        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683\r?\n        with:\r?\n          fetch-depth: 0\r?$'
-        $content | Should -Match '(?m)^      - name: Install pinned Pester\r?\n        shell: powershell\r?\n        run: Install-Module Pester -RequiredVersion 5\.7\.1 -Scope CurrentUser -Force -SkipPublisherCheck\r?$'
-    }
-
-    It 'runs the validator, contract suite, and branch whitespace check' {
-        $script:workflowPath | Should -Exist
-        $content = Get-Content -LiteralPath $script:workflowPath -Raw
-
-        $content | Should -Match '(?m)^        run: powershell -NoProfile -ExecutionPolicy Bypass -File \.github/cli/verify-repository-setup\.ps1\r?$'
-        $content | Should -Match '(?m)^        run: Invoke-Pester \.github/cli/tests -Output Detailed -CI\r?$'
-        $content | Should -Match '(?m)^        run: git diff --check origin/main\.\.\.HEAD\r?$'
-    }
-
-    It 'does not consume secrets or grant write and identity-token permissions' {
-        $script:workflowPath | Should -Exist
-        $content = Get-Content -LiteralPath $script:workflowPath -Raw
-
-        $content | Should -Not -Match '\$\{\{\s*secrets\.'
+        $content | Should -Match '(?m)^\s+name: Repository baseline audit \(advisory\)\r?$'
+        $content | Should -Not -Match '(?m)^\s+continue-on-error: true\r?$'
+        $content | Should -Match 'verify-repository-setup\.ps1 -SkipIntegratedTests -SkipBicepBuild'
+        $content | Should -Match "Where-Object Name -notin @\('WorkflowContract\.Tests\.ps1', 'RepositorySafety\.Tests\.ps1'\)"
+        $content | Should -Match 'Invoke-Pester -Path \$paths -Output Detailed -CI'
         $content | Should -Not -Match '(?m)^\s*(?:pull-requests|contents|id-token):\s*write\r?$'
+
+        $ruleset = Get-Content -LiteralPath $script:rulesetPath -Raw
+        $ruleset | Should -Match '"context": "Repository setup validation"'
+        $ruleset | Should -Not -Match 'Repository baseline audit'
+    }
+
+    It 'supports baseline-only execution without weakening the default validator' {
+        $script:validatorPath | Should -Exist
+        $content = Get-Content -LiteralPath $script:validatorPath -Raw
+
+        $content | Should -Match '\[switch\]\$SkipIntegratedTests'
+        $content | Should -Match '\[switch\]\$SkipBicepBuild'
+        $content | Should -Match '(?m)^if \(-not \$SkipIntegratedTests\) \{\r?$'
+        $content | Should -Match '(?m)^if \(-not \$SkipBicepBuild\) \{\r?$'
     }
 
     It 'selects one Git executable when the runner exposes duplicate command paths' {
@@ -79,5 +75,12 @@ Describe 'Repository validation workflow' {
         $content | Should -Match '\(\?:sig\|signature\)'
         $content | Should -Match '(?m)^\s+if \(`\$failureMessage\.Length -gt 1000\) \{ `\$failureMessage = `\$failureMessage\.Substring\(0, 1000\) \+ .+\}\r?$'
         $content | Should -Match '(?m)^\s+\}\s+\| Select-Object -First 10\) \} else \{ @\(\) \}\r?$'
+    }
+
+    It 'records reviewer acceptance when an advisory audit is not green' {
+        $script:pullRequestTemplatePath | Should -Exist
+        $content = Get-Content -LiteralPath $script:pullRequestTemplatePath -Raw
+
+        $content | Should -Match 'Advisory baseline audit is green, or reviewer acceptance and rationale are recorded'
     }
 }

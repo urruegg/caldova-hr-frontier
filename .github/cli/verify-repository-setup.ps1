@@ -1,5 +1,8 @@
 [CmdletBinding()]
-param()
+param(
+    [switch]$SkipIntegratedTests,
+    [switch]$SkipBicepBuild
+)
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $skillsRoot = Join-Path $repositoryRoot '.github\skills'
@@ -776,7 +779,16 @@ Test-RequiredContent '.github/dependabot.yml' @('package-ecosystem: "github-acti
 Test-RequiredContent '.github/workflows/validate-repository.yml' @(
     'name: Validate repository',
     'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683',
-    'Invoke-Pester .github/cli/tests -Output Detailed -CI'
+    'Repository setup validation',
+    'RepositorySafety.Tests.ps1',
+    'infra/tests/pester',
+    'verify-repository-safety.ps1',
+    'az bicep build --file infra/src/bicep/main.bicep --stdout'
+)
+Test-RequiredContent '.github/workflows/audit-repository.yml' @(
+    'name: Audit repository baseline',
+    'Repository baseline audit (advisory)',
+    'verify-repository-setup.ps1 -SkipIntegratedTests -SkipBicepBuild'
 )
 
 $phase3RequiredPaths = @(
@@ -1052,14 +1064,15 @@ else {
     }
 }
 
-$requiredPesterVersion = [Version]'5.7.1'
-$pesterModule = @(Get-Module -ListAvailable -Name Pester | Where-Object {
-    $_.Version -eq $requiredPesterVersion
-} | Select-Object -First 1)
-if ($pesterModule.Count -ne 1) {
-    Add-Failure 'Required Pester version 5.7.1 is unavailable.'
-}
-else {
+if (-not $SkipIntegratedTests) {
+    $requiredPesterVersion = [Version]'5.7.1'
+    $pesterModule = @(Get-Module -ListAvailable -Name Pester | Where-Object {
+        $_.Version -eq $requiredPesterVersion
+    } | Select-Object -First 1)
+    if ($pesterModule.Count -ne 1) {
+        Add-Failure 'Required Pester version 5.7.1 is unavailable.'
+    }
+    else {
     $validationSuitePaths = @(
         (Join-Path $PSScriptRoot 'tests'),
         (Join-Path $repositoryRoot 'infra\tests\pester')
@@ -1172,25 +1185,28 @@ if (`$pesterResults.Count -ne 1 -or `$summary.HadErrors -or `$summary.Result -cn
     finally {
         if ($null -ne $pesterProcess) { $pesterProcess.Dispose() }
     }
+    }
 }
 
-$azCommand = Get-Command az -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
-if ($null -eq $azCommand) {
-    Add-Failure 'Azure CLI with the Bicep command is unavailable.'
-}
-else {
-    $phase3BicepPath = Join-Path $repositoryRoot 'infra\src\bicep\main.bicep'
-    if (Test-Path -LiteralPath $phase3BicepPath -PathType Leaf) {
-        try {
-            [string[]]$bicepBuildOutput = @(& $azCommand.Source bicep build --file $phase3BicepPath --stdout 2>&1 |
-                ForEach-Object { $_.ToString() })
-            $bicepBuildExitCode = $LASTEXITCODE
-            if ($bicepBuildExitCode -ne 0 -or [string]::IsNullOrWhiteSpace(($bicepBuildOutput -join "`n"))) {
-                Add-Failure 'Local Phase 3 Bicep build failed.'
+if (-not $SkipBicepBuild) {
+    $azCommand = Get-Command az -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($null -eq $azCommand) {
+        Add-Failure 'Azure CLI with the Bicep command is unavailable.'
+    }
+    else {
+        $phase3BicepPath = Join-Path $repositoryRoot 'infra\src\bicep\main.bicep'
+        if (Test-Path -LiteralPath $phase3BicepPath -PathType Leaf) {
+            try {
+                [string[]]$bicepBuildOutput = @(& $azCommand.Source bicep build --file $phase3BicepPath --stdout 2>&1 |
+                    ForEach-Object { $_.ToString() })
+                $bicepBuildExitCode = $LASTEXITCODE
+                if ($bicepBuildExitCode -ne 0 -or [string]::IsNullOrWhiteSpace(($bicepBuildOutput -join "`n"))) {
+                    Add-Failure 'Local Phase 3 Bicep build failed.'
+                }
             }
-        }
-        catch {
-            Add-Failure "Cannot run the local Phase 3 Bicep build: $($_.Exception.Message)"
+            catch {
+                Add-Failure "Cannot run the local Phase 3 Bicep build: $($_.Exception.Message)"
+            }
         }
     }
 }

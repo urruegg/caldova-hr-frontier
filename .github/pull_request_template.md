@@ -57,6 +57,7 @@ Paste real command output, not a claim.
 
 - [ ] Build, lint, test, and Solution Checker run for affected areas
 - [ ] TDD evidence (RED to GREEN), or the acceptance-check equivalent for low-code artifacts
+- [ ] Advisory baseline audit is green, or reviewer acceptance and rationale are recorded
 
 ### Documentation
 
