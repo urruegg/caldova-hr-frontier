@@ -24,13 +24,23 @@ jobs:
         shell: powershell
         run: Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck
 
-      - name: Run repository validator
+      - name: Run core contract tests
         shell: powershell
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-setup.ps1
+        run: |
+          $paths = @(
+            '.github/cli/tests/WorkflowContract.Tests.ps1'
+            '.github/cli/tests/RepositorySafety.Tests.ps1'
+            'infra/tests/pester'
+          )
+          Invoke-Pester -Path $paths -Output Detailed -CI
 
-      - name: Run repository contract tests
+      - name: Run repository safety validation
         shell: powershell
-        run: Invoke-Pester .github/cli/tests -Output Detailed -CI
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-safety.ps1
+
+      - name: Build Bicep
+        shell: powershell
+        run: az bicep build --file infra/src/bicep/main.bicep --stdout
 
       - name: Check branch whitespace
         shell: powershell

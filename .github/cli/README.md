@@ -30,11 +30,13 @@ Use `-WhatIf` with the setter to review the intended insertion without changing 
 
 ## Repository Validation
 
-[verify-repository-setup.ps1](verify-repository-setup.ps1) validates repository structure, the protected Superpowers runtime and manifest, the exact issue-form byte snapshot, Git index and working-tree coherence, documentation metadata, governance artifacts, and the integrated repository and infrastructure Pester contracts. Its Phase 3 checks cover required infrastructure paths, the Tenant 1 manifest and naming contract, five-service discovery, prohibited data, immutable GitHub OIDC identity, the Bicep resource allowlist and local build, pinned workflow actions and permissions, documentation links, rejected placeholders, and the absence of Tenant 2 and Tenant 3 manifests.
+[verify-repository-safety.ps1](verify-repository-safety.ps1) is the deterministic merge-gate safety scan. It scans every infrastructure PowerShell script and repository workflow for subscription deployment execution and credential-based bootstrap patterns without authenticating or calling cloud services. Its focused Pester tests validate the scanner against fixtures; the workflow invokes the scanner separately against the real checkout.
+
+[verify-repository-setup.ps1](verify-repository-setup.ps1) performs the comprehensive baseline audit: repository structure, the protected Superpowers runtime and manifest, the exact issue-form byte snapshot, Git index and working-tree coherence, documentation metadata, governance artifacts, and the integrated repository and infrastructure Pester contracts. Its Phase 3 checks cover required infrastructure paths, the Tenant 1 manifest and naming contract, five-service discovery, prohibited data, immutable GitHub OIDC identity, the Bicep resource allowlist and local build, pinned workflow actions and permissions, documentation links, rejected placeholders, and the absence of Tenant 2 and Tenant 3 manifests.
 
 Run it from the repository root with Git, Windows PowerShell, exact Pester 5.7.1, and Azure CLI with the Bicep command installed locally. The validator does not authenticate or call Azure services.
 
-Success exits `0` and writes exactly one line: `Repository setup validation passed.` Failure writes `ERROR:` lines plus a summary and exits nonzero. The corresponding CI entry point is [validate-repository.yml](../workflows/validate-repository.yml).
+Success exits `0` and writes exactly one line: `Repository setup validation passed.` Failure writes `ERROR:` lines plus a summary and exits nonzero. Use `-SkipIntegratedTests -SkipBicepBuild` only from the advisory [audit-repository.yml](../workflows/audit-repository.yml), where those checks are deliberately skipped to avoid re-running the Pester suites and Bicep build owned by the required [validate-repository.yml](../workflows/validate-repository.yml) gate.
 
 ## Tests
 
