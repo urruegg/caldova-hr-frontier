@@ -118,7 +118,11 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          $actionRevision = '0e44beb5424af932af47250a2568eba4c259e3d8'
+          $actionPins = Get-Content -Raw -LiteralPath 'infra\src\config\github\action-pins.json' | ConvertFrom-Json
+          $actionRevision = [string]$actionPins.actions.'microsoft/powerplatform-actions/who-am-i'.sha
+          if ($actionRevision -cnotmatch '^[0-9a-f]{40}$') {
+              throw 'The reviewed Power Platform action SHA is missing or malformed.'
+          }
           $probeRecords = @(
               [pscustomobject]@{
                   Stage = 'DEV'
