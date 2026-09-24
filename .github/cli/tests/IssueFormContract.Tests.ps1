@@ -28,7 +28,7 @@ BeforeAll {
 }
 
 Describe 'Active issue forms' {
-    It 'contains the exact four-file set' {
+    It 'contains the exact five-file set' {
         $actual = @(Get-ChildItem $script:issueTemplateRoot -File |
             Sort-Object Name |
             ForEach-Object Name)
@@ -37,7 +37,8 @@ Describe 'Active issue forms' {
             '01-bug.yml',
             '02-feature.yml',
             '03-frontier-intake.yml',
-            'config.yml'
+            'config.yml',
+            'use-case-intake.yml'
         )
     }
 
@@ -108,6 +109,12 @@ Describe 'Active issue forms' {
             '  - name: Governance and data rules'
             '    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/operating-model/04-hitl-governance.md'
             '    about: Read before raising anything that might contain personal data.'
+            '  - name: Platform design question'
+            '    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/README.md'
+            '    about: docs/README.md says which document answers which kind of question.'
+            '  - name: Open decision'
+            '    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/prd.md'
+            '    about: Open items live in docs/prd.md section 10 and each use-case PRD section 13. Raise there, not as a new issue.'
             ''
         ) -join "`n"
         Get-FileContentIfPresent -Path (Join-Path $script:issueTemplateRoot 'config.yml') |
@@ -142,8 +149,12 @@ Describe 'CODEOWNERS contract' {
             '/.github/',
             '/AGENTS.md',
             '/docs/',
+            '/docs/adr/',
+            '/docs/prd.md',
             '/infra/',
             '/hr/',
+            '/hr/docs/ideas/',
+            '/hr/src/solutions/',
             '/data/'
         )) {
             $matchingEntries = @($entries | Where-Object Pattern -CEQ $expectedPattern)
@@ -151,7 +162,7 @@ Describe 'CODEOWNERS contract' {
             $matchingEntries[0].Owners | Should -BeExactly '@urruegg'
         }
 
-        $approvedScheduledDirectories = @('/infra/', '/hr/', '/data/')
+        $approvedScheduledDirectories = @('/infra/', '/hr/', '/hr/docs/ideas/', '/hr/src/solutions/', '/data/', '/docs/adr/')
         foreach ($entry in $entries) {
             if ($entry.Pattern -ceq '*') {
                 continue
@@ -196,23 +207,18 @@ Describe 'Pull request template contract' {
             Should -Be 0
         $lines | Should -Contain '# Pull Request'
         $lines | Should -Contain '| **Version** | 1.0 |'
-        $lines | Should -Contain '| **Date** | 2026-09-17 |'
+        $lines | Should -Contain '| **Date** | 2026-09-24 |'
         $lines | Should -Contain '| **Author** | docs-agent (Voice of Knowledge) |'
         $lines | Should -Contain '| **Status** | Proposed Baseline |'
         $lines | Should -Contain '| **Scope** | Repository |'
-        $lines | Should -Contain '| **References** | [Approved Architecture Baseline Intake Design](../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Phase 1 Governance and GitHub Intake Review](../docs/reviews/2026-09-17-phase-1-governance-github-intake.md) |'
+        $lines | Should -Contain '| **References** | [HR Solution Functional Design Intake](../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |'
 
         foreach ($section in @(
             '## Work item',
             '## Journey stage',
-            '### Scope',
-            '### Governance',
-            '### Validation evidence',
-            '### Documentation',
-            '### Impact',
-            '### Review handoff',
-            '## Evidence',
-            '## Review first'
+            '## Environments affected',
+            '## Checks',
+            '## If this touches a use case'
         )) {
             $lines | Should -Contain $section
         }

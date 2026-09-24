@@ -1,5 +1,14 @@
 # HR Solution Functional Design Intake Implementation Plan
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Draft |
+| **Scope** | Cross-cutting (docs, hr, data, repository governance) |
+| **References** | [HR Solution Functional Design Intake Design](../specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Reconcile the new GF HR solution functional design package (PRD, solution design, journey/RACI, 7 ADRs, BrandKit, 19-item use-case portfolio) into the repository baseline, without touching anything under `infra/`.
@@ -404,7 +413,7 @@ git commit -m "docs: restore infra documentation map and add Phase 2 superseded 
 
 Append this section at the end of the file (after whatever the new package's last section is — currently "The three things to settle first"):
 
-```markdown
+````markdown
 ---
 
 ## Repository Agent Workflow
@@ -455,7 +464,7 @@ Updates are deliberate and reviewed. To update:
 9. Commit the runtime replacement, manifest, metadata, validator contracts, and any required bootstrap compatibility changes together.
 
 Do not track upstream `main`, use a submodule, or edit vendored skill files for repository-specific behavior.
-```
+````
 
 - [ ] **Step 3: Verify `verify-repository-setup.ps1`'s required-content check for `README.md` still passes**
 

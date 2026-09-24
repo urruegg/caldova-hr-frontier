@@ -1,5 +1,14 @@
 # HR End-to-End Journey, Roles and RACI
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Proposed Baseline |
+| **Scope** | Cross-cutting (all solution domains) |
+| **References** | [HR Solution Functional Design Intake](specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
 > **Document ID:** GF-JRN-03
 > **Status:** Draft 0.1
 > **Owner:** DAAI / HR AI Business Lead, with HR Operations

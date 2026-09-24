@@ -4,6 +4,9 @@
 # decided as part of that tenant's future repository handover, not
 # assigned to a placeholder team now.
 
+# Default owner
+* @urruegg
+
 # Platform design — changes here affect every use case
 /docs/                      @urruegg
 /docs/adr/                  @urruegg

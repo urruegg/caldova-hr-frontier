@@ -23,6 +23,10 @@
 
 AB#
 
+## Journey stage
+
+<!-- Attract | Hire | Pre-board | Onboard | Enable | Grow | Change | Offboard | Alumni | Cross-cutting -->
+
 ## Environments affected
 
 The DEV, TEST, and PROD checkboxes describe Power Platform ALM impact, not Azure infrastructure environments.
@@ -45,6 +49,7 @@ The DEV, TEST, and PROD checkboxes describe Power Platform ALM impact, not Azure
 - [ ] Identifiers cited rather than prose; new numbers allocated, never reused
 - [ ] Links resolve
 - [ ] No secrets, credentials, access tokens, personal HR data, or unreviewed tenant values introduced
+- [ ] Any committed tenant identifier or service URL is approved non-secret metadata covered by the tenant manifest and evidence policy
 - [ ] Deployment order respected: infrastructure before HR
 - [ ] Build, lint, test, and Solution Checker run for affected areas; evidence pasted below rather than claimed
 - [ ] Advisory baseline audit is green, or reviewer acceptance and rationale are recorded

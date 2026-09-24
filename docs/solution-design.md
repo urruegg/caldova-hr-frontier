@@ -1,5 +1,14 @@
 # Solution Design — GF HR Agentic Platform
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Proposed Baseline |
+| **Scope** | Cross-cutting (all solution domains) |
+| **References** | [HR Solution Functional Design Intake](specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
 > **Document ID:** GF-SD-02
 > **Status:** Draft 0.1
 > **Scope:** The platform architecture for GF HR agentic use cases, with the Personal Master Data Completion Agent as the first implementation

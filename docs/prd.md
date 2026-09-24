@@ -1,5 +1,14 @@
 # Product Requirements — GF HR Agentic Platform
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Proposed Baseline |
+| **Scope** | Cross-cutting (all solution domains) |
+| **References** | [HR Solution Functional Design Intake](specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
 | | |
 |---|---|
 | **Document** | `prd.md` — platform-level product requirements |

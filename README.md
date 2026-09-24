@@ -152,9 +152,9 @@ HR Operations exports new-joiner PDFs from PeopleDoc to SharePoint. The agent re
 │   │   └── uc-0002 … uc-0019.md       candidates
 │   └── src/solutions/             Power Platform solution source
 │
-├── infra/                     INFRASTRUCTURE DOMAIN — how it runs
-│   ├── docs/30-environment-setup.md   the ordered setup checklist
-│   └── src/{bicep,scripts,config}/    IaC artefacts
+├── infra/                     INFRASTRUCTURE DOMAIN — how it runs (untouched by this package)
+│   ├── docs/10-19...               tenant setup, identity, ALM, bootstrap, recovery
+│   └── src/{bicep,scripts,config}/    IaC artefacts, Tenant 1 manifest
 │
 └── data/                      field lists, mappings, test data
                                never real personal data
@@ -169,7 +169,7 @@ HR Operations exports new-joiner PDFs from PeopleDoc to SharePoint. The agent re
 | How is it built | [`docs/solution-design.md`](docs/solution-design.md) |
 | Who is accountable | [`docs/hr-journey-and-raci.md`](docs/hr-journey-and-raci.md) §5–6 |
 | **Why** was it decided | [`docs/adr/`](docs/adr/README.md) — and what was rejected |
-| How do we stand it up | [`infra/docs/30-environment-setup.md`](infra/docs/30-environment-setup.md) |
+| How do we stand it up | [`infra/README.md`](infra/README.md) and its documentation map — untouched by this package, still Tenant 1 & 2 (Caldova) only |
 | How must an agent behave | [`AGENTS.md`](AGENTS.md) |
 | What must it look like | [`docs/brand/`](docs/brand/README.md) — GF palette, Fluent themes, EN/DE/IT/FR/ES |
 
@@ -266,6 +266,22 @@ Where a source says TBD, this package says TBD. Nothing has been invented to fil
 1. **D-03 — the Workday matching key.** Last Name + First Name + Postal Code is marked TBD in GF's own draft and is not sufficient: names repeat and postal codes change, so a false match writes one person's data onto another's record. Carrying a Candidate or Pre-Hire ID through the PeopleDoc export would remove the risk rather than mitigate it. **This is the highest-risk open item in the MVP.**
 2. **D-0002 — the Workday ISU write scope.** If Workday security cannot scope a write permission to the approved field set alone, the hard enforcement boundary collapses to software-only controls and the risk position changes materially. Confirm before build, not during.
 3. **D-01 — the approved field list.** Until it is final, extraction mapping cannot be completed and MVP scope is unstable.
+
+---
+
+### Phase 3 Infrastructure Map
+
+The [Phase 3 Infrastructure and Tenant Bootstrap Intake](docs/reviews/2026-09-17-phase-3-infrastructure-tenant-bootstrap-intake.md) approves the reviewed repository implementation for local validation, independently of this HR solution package. It covers Tenant 1 and Tenant 2 — the Caldova practice tenants; Tenant 3, the real customer, is out of scope for that intake and untouched by it.
+
+| Entry point | Current role |
+|---|---|
+| `infra/src/config/tenants/caldova25156897.psd1` | Reviewed Tenant 1 desired-state manifest and immutable GitHub identity inputs. |
+| `infra/src/scripts/Invoke-TenantDiscovery.ps1` | Read-only five-service discovery entry point that produces local evidence for review. |
+| `infra/src/scripts/Initialize-TenantTrust.ps1` | Attended trust entry point, gated by reviewed intent and separate authorization before any mutation. |
+| `infra/src/scripts/Invoke-TenantBootstrap.ps1` | Local orchestration for validation, Bicep parameter generation, `what-if`, boundary checks, and exact-ID cleanup; it does not deploy. |
+| `infra/src/bicep/main.bicep` | Subscription-scope Bicep composition constrained to the reviewed resource-type allowlist. |
+
+No live deployment is authorized by this repository state.
 
 ---
 

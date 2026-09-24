@@ -5,7 +5,7 @@
 | **Version** | 1.0 |
 | **Date** | 2026-09-24 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed |
+| **Status** | Draft |
 | **Scope** | Cross-cutting (docs, hr, data, repository governance) |
 | **References** | [Architecture Baseline Intake and Tenant Bootstrap Design](./2026-09-17-architecture-baseline-intake-design.md), [Phase 3 Infrastructure and Tenant Bootstrap Intake](../reviews/2026-09-17-phase-3-infrastructure-tenant-bootstrap-intake.md) |
 
