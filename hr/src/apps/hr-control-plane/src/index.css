@@ -1,0 +1,14 @@
+﻿/* Minimal reset. Fluent UI (via FluentProvider) owns theming and typography;
+   this file only removes default browser margins that would otherwise
+   fight the app-shell's full-height layout. */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}

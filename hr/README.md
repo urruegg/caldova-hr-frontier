@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-09-24 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR |
-| **References** | [HR Solution Functional Design Intake](../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+| **References** | [HR Solution Functional Design Intake](../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md), [HR Control Plane Code App Wireframe Design](../docs/specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md) |
 
 **Purpose.** Everything specific to HR: the use cases, their requirements, and the Power Platform solutions that implement them. If it is about *what HR does*, it lives here. If it is about *how the platform works*, it lives in [`docs/`](../docs/README.md).
 
@@ -28,6 +28,8 @@ hr/
 │   │   └── uc-0002 … uc-0019.md
 │   └── (use-case folders join here as they graduate)
 └── src/
+    ├── apps/                  Power Apps Code App projects
+    │   └── hr-control-plane/  wireframe shell (no functional code yet)
     └── solutions/             Power Platform solution source
 ```
 
@@ -50,6 +52,10 @@ Fifteen further use cases are candidates with no commitment attached. See the [p
 ## Solutions
 
 Power Platform solution source lives in `src/solutions/`, exported unmanaged from DEV and committed via [`hr/src/scripts/Sync-HrSolutionSource.ps1`](src/scripts/README.md). Managed solutions for TEST and PROD are produced by the pipeline, never hand-exported.
+
+## Code apps
+
+Power Apps Code App projects — npm/Vite projects, a different kind of source than either the PowerShell tooling in `src/scripts/` or the unpacked Dataverse XML in `src/solutions/` — live in `src/apps/`. The first is [`hr-control-plane`](src/apps/hr-control-plane/README.md), the wireframe shell for the HR Employee Control Plane ([ADR-0006](../docs/adr/0006-agentic-toolset-and-hr-control-plane.md)), deployed to Tenant 1 DEV and added to the `caldovahrfrontier` solution. See [its design](../docs/specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md) for what is and is not built yet.
 
 **Current state (Tenant 1):** one foundation solution, [`caldovahrfrontier`](src/solutions/caldovahrfrontier/), publisher prefix `calhr`. It is empty — no Dataverse tables or Copilot Studio agent artefacts exist in it yet.
 
