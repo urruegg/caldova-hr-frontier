@@ -37,7 +37,7 @@
 
 **Interfaces:**
 - Consumes: `Get-DiscoveryPropertyValue -InputObject <object> -Name <string>` (existing helper, `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Invoke-BoundedRetry.ps1:107-135`) — returns the named property's raw value or `$null` if absent.
-- Produces: each `AzureDevOpsRepository` resource object gains two new properties, `Size` (`[int]`, `0` when the API omits `size`) and `DefaultBranch` (`[string]`, `''` when the API omits `defaultBranch`, which happens for a repository that has never received a push). No existing property name, resource `Type`, or function signature changes — this is purely additive.
+- Produces: each `AzureDevOpsRepository` resource object gains two new properties, `Size` (`[long]`, `0` when the API omits `size`) and `DefaultBranch` (`[string]`, `''` when the API omits `defaultBranch`, which happens for a repository that has never received a push). No existing property name, resource `Type`, or function signature changes — this is purely additive.
 
 - [ ] **Step 1: Write the failing test**
 
