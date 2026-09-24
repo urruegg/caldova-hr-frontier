@@ -196,6 +196,9 @@ function Get-AzureDevOpsDiscovery {
             continue
         }
 
+        $repositorySize = Get-DiscoveryPropertyValue -InputObject $item -Name 'size'
+        $repositoryDefaultBranch = Get-DiscoveryPropertyValue -InputObject $item -Name 'defaultBranch'
+
         $resources += [pscustomobject][ordered]@{
             Type = 'AzureDevOpsRepository'
             Id = $repositoryId
@@ -203,6 +206,8 @@ function Get-AzureDevOpsDiscovery {
             Url = [string](Get-DiscoveryPropertyValue -InputObject $item -Name 'webUrl')
             Scope = $organizationScope
             Status = 'Found'
+            Size = if ($null -eq $repositorySize) { 0 } else { [int]$repositorySize }
+            DefaultBranch = [string]$repositoryDefaultBranch
         }
     }
 

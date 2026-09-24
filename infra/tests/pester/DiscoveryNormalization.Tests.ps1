@@ -1458,6 +1458,51 @@ function Get-AzureDevOpsDiscovery {
         $service.Resources.Type | Should -Contain 'AzureDevOpsEffectivePermission'
     }
 
+    It 'captures repository size and default branch, distinguishing an empty Azure Repos repository from a populated one' {
+        $fixture = [pscustomobject]@{
+            StatusCode = 200
+            Headers = @{}
+            Body = [ordered]@{
+                reviewedUser = [pscustomobject]@{ id = 'ado-user-synthetic'; user = [pscustomobject]@{ descriptor = 'aad.synthetic-descriptor' } }
+                project = [pscustomobject]@{ id = 'ado-project-synthetic-33333333-3333-3333-3333-333333333333'; name = 'Caldova HR Frontier'; url = 'https://dev.azure.com/caldova25156897/Caldova%20HR%20Frontier' }
+                repositories = @(
+                    [pscustomobject]@{ id = 'ado-repo-populated'; name = 'caldova-hr-frontier-config'; webUrl = 'https://dev.azure.com/caldova25156897/_git/caldova-hr-frontier-config'; size = 4096; defaultBranch = 'refs/heads/main' },
+                    [pscustomobject]@{ id = 'ado-repo-empty'; name = 'Caldova HR Frontier'; webUrl = 'https://dev.azure.com/caldova25156897/_git/Caldova%20HR%20Frontier'; size = 0 }
+                )
+                serviceEndpoints = @()
+                environments = @()
+                pipelines = @()
+                checks = @()
+                effectivePermissions = @()
+                projectUrl = 'https://dev.azure.com/caldova25156897/Caldova%20HR%20Frontier'
+            }
+        }
+
+        $service = InModuleScope Caldova.HrFrontier.Bootstrap -Parameters @{
+            TenantConfiguration = $script:TenantConfiguration
+            RunId = $script:RunId
+            CollectedUtc = $script:CollectedUtc
+            Fixture = $fixture
+        } {
+            param($TenantConfiguration, $RunId, $CollectedUtc, $Fixture)
+            Get-AzureDevOpsDiscovery -TenantConfiguration $TenantConfiguration -RunId $RunId -CollectedUtc $CollectedUtc -Request {
+                param($Operation, $Arguments)
+                $Fixture
+            }
+        }
+
+        $repositories = @($service.Resources | Where-Object Type -eq 'AzureDevOpsRepository')
+        $repositories.Count | Should -Be 2
+
+        $populated = $repositories | Where-Object Id -eq 'ado-repo-populated'
+        $populated.Size | Should -Be 4096
+        $populated.DefaultBranch | Should -Be 'refs/heads/main'
+
+        $empty = $repositories | Where-Object Id -eq 'ado-repo-empty'
+        $empty.Size | Should -Be 0
+        $empty.DefaultBranch | Should -Be ''
+    }
+
     It 'joins ExistingContext Power Platform probes to committed baseline stable ids' {
         $baselineEvidence = New-BaselineEvidence
         $probePath = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString() + '.json')
