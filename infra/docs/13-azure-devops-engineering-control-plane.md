@@ -41,7 +41,7 @@ Discovery uses supported Azure DevOps REST API reads and records only allowliste
 
 - organization connection and authenticated-principal context;
 - project ID, name, visibility, state, and process metadata;
-- repositories and default branches;
+- repositories, default branches, and repository size in bytes — size distinguishes a repository that has never received a push (size `0`, no default branch) from one that already holds content;
 - pipeline, environment, check, and service-connection identifiers;
 - effective permissions needed to evaluate the proposed bootstrap.
 
