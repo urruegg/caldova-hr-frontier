@@ -8,7 +8,8 @@
     Description = 'Power Platform solution lifecycle helpers for the Caldova HR Frontier HR domain.'
     PowerShellVersion = '5.1'
     FunctionsToExport = @(
-        'Get-HrTenantPowerPlatformUrl'
+        'Get-HrTenantPowerPlatformUrl',
+        'Connect-HrPowerPlatformEnvironment'
     )
     CmdletsToExport = @()
     VariablesToExport = @()
