@@ -1,5 +1,22 @@
 # GitHub Copilot instructions — GF HR Agentic Platform
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Proposed Baseline |
+| **Scope** | Repository |
+| **References** | [HR Solution Functional Design Intake](../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
+## Repository workflow (read this before anything else)
+
+This repository bundles agent skills in `.github/skills/`; no machine-level Superpowers installation is required. Before responding or taking any action, load and follow the `using-superpowers` skill from `.github/skills/using-superpowers/SKILL.md`, check for other applicable skills, and follow the applicable workflow. Repository and user instructions take precedence over a conflicting skill instruction.
+
+Maintained repository documentation is written in English and follows [the documentation policy](../docs/README.md). Use [`.github/agents/docs-agent.agent.md`](agents/docs-agent.agent.md) as the documentation policy owner. Preserve the documented exclusions and never edit vendored Superpowers content to enforce repository metadata.
+
+---
+
 You are working in the design repository for Georg Fischer's HR agentic platform. This file tells you how to find evidence here and what you must not do.
 
 ---

@@ -1,5 +1,14 @@
 # AGENTS.md — how agents work in this repository
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Proposed Baseline |
+| **Scope** | HR Solution Architecture |
+| **References** | [HR Solution Functional Design Intake](docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
 Two kinds of agent are in scope here, and conflating them causes real errors:
 
 | | |
@@ -7,7 +16,7 @@ Two kinds of agent are in scope here, and conflating them causes real errors:
 | **Agents we design** | The HR agents described in this repository — UC-0001 and the portfolio behind it. They run in GF's Power Platform tenant |
 | **Agents that work on this repository** | GitHub Copilot and similar, editing and reasoning over these documents. Their instructions are in [`.github/copilot-instructions.md`](.github/copilot-instructions.md) |
 
-This file is about the **first** kind: the rules every HR agent GF builds must satisfy.
+This file is about the **first** kind: the rules every HR agent GF builds must satisfy. For the **second** kind: this repository bundles agent skills in `.github/skills/`, discovered by loading the `using-superpowers` skill first, and documented under [`.github/agents/docs-agent.agent.md`](.github/agents/docs-agent.agent.md); the full mandate is authoritative in [`.github/copilot-instructions.md`](.github/copilot-instructions.md).
 
 ---
 
