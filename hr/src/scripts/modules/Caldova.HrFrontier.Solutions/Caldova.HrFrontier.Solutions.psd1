@@ -10,7 +10,8 @@
     FunctionsToExport = @(
         'Get-HrTenantPowerPlatformUrl',
         'Connect-HrPowerPlatformEnvironment',
-        'Export-HrSolutionPackage'
+        'Export-HrSolutionPackage',
+        'Expand-HrSolutionPackage'
     )
     CmdletsToExport = @()
     VariablesToExport = @()

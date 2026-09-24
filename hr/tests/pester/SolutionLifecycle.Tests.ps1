@@ -233,3 +233,60 @@ Describe 'Export-HrSolutionPackage' {
             Should -Throw '*pac solution export failed*'
     }
 }
+
+Describe 'Expand-HrSolutionPackage' {
+    BeforeAll {
+        $script:ModuleManifestPath = Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Solutions\Caldova.HrFrontier.Solutions.psd1'
+        Import-Module $script:ModuleManifestPath -Force
+    }
+
+    It 'constructs the exact expected pac solution unpack arguments and reports the target folder' {
+        $zipPath = Join-Path $TestDrive 'caldovahrfrontier.zip'
+        [System.IO.File]::WriteAllText($zipPath, 'fake zip content')
+        $solutionsRoot = Join-Path $TestDrive 'solutions'
+        $expectedFolder = Join-Path $solutionsRoot 'caldovahrfrontier'
+        $calls = [System.Collections.Generic.List[object]]::new()
+
+        $runner = {
+            param([string]$FilePath, [string[]]$ArgumentList)
+            $calls.Add(@($ArgumentList)) | Out-Null
+            [void](New-Item -ItemType Directory -Path $expectedFolder -Force)
+            [System.IO.File]::WriteAllText((Join-Path $expectedFolder 'solution.xml'), '<x/>')
+            [pscustomobject]@{ ExitCode = 0; StdOut = 'Unpacked Solution.'; StdErr = '' }
+        }.GetNewClosure()
+
+        $result = Expand-HrSolutionPackage -ZipPath $zipPath -SolutionUniqueName 'caldovahrfrontier' -SolutionsRoot $solutionsRoot -NativeCommandRunner $runner
+
+        $result.Folder | Should -Be $expectedFolder
+        ($calls[0] -join ' ') | Should -Be "solution unpack --zipfile $zipPath --folder $expectedFolder --packagetype Unmanaged --allowWrite true --allowDelete true --clobber true"
+    }
+
+    It 'throws when the zip file does not exist' {
+        { Expand-HrSolutionPackage -ZipPath (Join-Path $TestDrive 'missing.zip') -SolutionUniqueName 'x' -SolutionsRoot $TestDrive } |
+            Should -Throw '*Solution zip not found*'
+    }
+
+    It 'throws when pac solution unpack fails' {
+        $zipPath = Join-Path $TestDrive 'caldovahrfrontier2.zip'
+        [System.IO.File]::WriteAllText($zipPath, 'fake zip content')
+        $runner = { param([string]$FilePath, [string[]]$ArgumentList) [pscustomobject]@{ ExitCode = 1; StdOut = ''; StdErr = 'unpack failed' } }
+
+        { Expand-HrSolutionPackage -ZipPath $zipPath -SolutionUniqueName 'caldovahrfrontier' -SolutionsRoot (Join-Path $TestDrive 'solutions2') -NativeCommandRunner $runner } |
+            Should -Throw '*pac solution unpack failed*'
+    }
+
+    It 'throws when unpack reports success but the target folder is empty' {
+        $zipPath = Join-Path $TestDrive 'caldovahrfrontier3.zip'
+        [System.IO.File]::WriteAllText($zipPath, 'fake zip content')
+        $solutionsRoot = Join-Path $TestDrive 'solutions3'
+        $expectedFolder = Join-Path $solutionsRoot 'caldovahrfrontier'
+        $runner = {
+            param([string]$FilePath, [string[]]$ArgumentList)
+            [void](New-Item -ItemType Directory -Path $expectedFolder -Force)
+            [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' }
+        }.GetNewClosure()
+
+        { Expand-HrSolutionPackage -ZipPath $zipPath -SolutionUniqueName 'caldovahrfrontier' -SolutionsRoot $solutionsRoot -NativeCommandRunner $runner } |
+            Should -Throw '*is empty*'
+    }
+}
