@@ -5,9 +5,11 @@
 | **Version** | 1.1 |
 | **Date** | 2026-09-19 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed Baseline |
+| **Status** | Superseded |
 | **Scope** | Cross-cutting (all solution domains) |
 | **References** | [Approved Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md), [System Design](./02-system-design.md) |
+
+> **Superseded.** This document is retained for history. The current product and solution design is [`prd.md`](../prd.md), [`solution-design.md`](../solution-design.md), and [`hr-journey-and-raci.md`](../hr-journey-and-raci.md), reconciled through the [Phase 4 HR Solution Functional Design Intake](../reviews/2026-09-24-phase-4-hr-solution-functional-design-intake.md).
 
 Proposed Baseline orientation: This document describes intended future operating-model behavior. It does not prove that agents, Azure DevOps objects, pipelines, environments, Power Platform solutions, Azure resources, Teams structures, Work IQ configuration, or tenant controls currently exist.
 
