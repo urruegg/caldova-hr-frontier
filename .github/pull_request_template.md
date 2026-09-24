@@ -47,6 +47,7 @@ The DEV, TEST, and PROD checkboxes describe Power Platform ALM impact, not Azure
 - [ ] No secrets, credentials, access tokens, personal HR data, or unreviewed tenant values introduced
 - [ ] Deployment order respected: infrastructure before HR
 - [ ] Build, lint, test, and Solution Checker run for affected areas; evidence pasted below rather than claimed
+- [ ] Advisory baseline audit is green, or reviewer acceptance and rationale are recorded
 
 ```text
 Paste command output here.
