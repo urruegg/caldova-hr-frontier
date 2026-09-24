@@ -31,6 +31,7 @@ jobs:
             '.github/cli/tests/WorkflowContract.Tests.ps1'
             '.github/cli/tests/RepositorySafety.Tests.ps1'
             'infra/tests/pester'
+            'hr/tests/pester'
           )
           Invoke-Pester -Path $paths -Output Detailed -CI
 
