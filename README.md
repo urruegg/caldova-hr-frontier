@@ -317,4 +317,3 @@ Updates are deliberate and reviewed. To update:
 9. Commit the runtime replacement, manifest, metadata, validator contracts, and any required bootstrap compatibility changes together.
 
 Do not track upstream `main`, use a submodule, or edit vendored skill files for repository-specific behavior.
-
