@@ -1,0 +1,108 @@
+# UC-0002 — HR Policy Chat Assistant
+
+> **Status:** **Runs alongside the MVP** — recommended, not counted
+> **Journey stage:** Cross-cutting — HR Service Delivery
+> **HR process area:** HR Service Delivery
+> **HR owner:** HR Ops
+> **Suggested wave:** 1
+>
+> **Source:** GF HR AI use case list. This document expands the list entry into a reviewable idea; it is **not** an approved requirement.
+
+---
+
+> ## ⬛ RUNS ALONGSIDE THE MVP — not counted in it
+>
+> **Recommended in parallel, deliberately excluded from the MVP set.** On the Copilot chat harness it carries **no charge for Microsoft 365 Copilot-licensed users** in employee-facing scenarios, so it buys organisational familiarity with agents at close to zero marginal cost.
+>
+> **It is not an agentic exemplar.** It answers questions; it does not take action, hold a write envelope, or touch the system of record. Presenting it as evidence for GF's Level 3 position would weaken that position rather than support it — so it is an adoption vehicle, and labelled as one.
+
+
+## 1. The Idea
+
+Employees ask HR policy questions via Copilot — leave, benefits, travel and similar.
+
+| | |
+|---|---|
+| **Business objective** | Reduces HR tickets |
+| **Business value** | High |
+| **Expected outcome (KPI)** | -30% HR tickets |
+| **Complexity** | Low |
+| **Priority** | High |
+| **Change timeframe** | 1 – 3 months |
+| **Tool** | Copilot |
+| **Data source** | HR Knowledge Base + SharePoint |
+| **Key personas** | All Employees; Workday Solutions Team; Local HR |
+| **Risk type** | Medium |
+
+**Key results as stated by HR:** Ticket deflection rate; self-service resolution rate; employee satisfaction
+
+**Risks as stated by HR:** Outdated policy content; inconsistent answers; access control for sensitive policies
+
+---
+
+## 2. Where It Sits
+
+**Journey stage:** Cross-cutting — HR Service Delivery
+
+See [`hr-journey-and-raci.md`](../../../docs/hr-journey-and-raci.md) for the full journey and the placement of every use case.
+
+---
+
+## 3. Platform Fit
+
+**Harness:** **Copilot chat harness** — grounded knowledge answers. Included at no charge for Microsoft 365 Copilot-licensed users in employee-facing scenarios, which makes this the cheapest agent in the portfolio to run.
+
+**Write envelope:** **No write envelope.** This agent reads approved knowledge and answers. It writes nothing to any system of record.
+
+**Grounding:** Approved, versioned HR policy content in SharePoint. **No open web grounding.** Every answer cites its source.
+
+**Data classification:** Internal — published policy. The *question* may be personal; the *answer* must not require personal data.
+
+**Employment-decision surface:** None. An answer that quotes policy is not a decision about a person.
+
+### What it refuses
+
+- A question about an individual's own case, entitlement or exception
+- A question the approved sources do not answer — it says so rather than inferring
+- Anything touching a policy exception, grievance or employment decision
+
+---
+
+## 4. Assessment
+
+The listed risk — *outdated policy content* — is the real one. An agent answering confidently from a stale document is worse than no agent, because it is trusted.
+
+Requires a named content owner and review cadence per source **before** launch, not after.
+
+Access control matters: some policy content is restricted, and the agent must respect the asking user's permissions rather than a service identity's.
+
+---
+
+## 5. Before This Becomes a Requirement
+
+The seven declarations from [`hr-journey-and-raci.md`](../../../docs/hr-journey-and-raci.md) §9 must be answerable:
+
+- [ ] **Write envelope** — what may it write, where, under what conditions?
+- [ ] **Refusal set** — what does it refuse, and what happens then?
+- [ ] **Escalation path** — who is the named human, and how are they reached?
+- [ ] **Grounding sources** — which approved sources, with which owner and review date?
+- [ ] **Data classification** — confirmed with Privacy.
+- [ ] **Employment-decision surface** — if any output influences a decision about a person, who decides and what do they see?
+- [ ] **Measurement** — what changes, and how is that observed? Baseline captured before build.
+
+Plus, for this use case specifically:
+
+- [ ] Confirm the harness choice — **it cannot be changed after the agent is created**.
+- [ ] Confirm the KPI baseline exists, or can be established.
+- [ ] Confirm the named HR owner has capacity to own the operational outcome.
+
+---
+
+## 6. Open Questions
+
+| # | Question | Owner |
+|---|---|---|
+| 1 | Is the stated KPI baseline measurable today? | HR Ops |
+| 2 | Does the grounding source exist, with a named content owner and review cadence? | HR Ops |
+| 3 | Which country or population is in scope for a first increment? | HR Ops |
+| 4 | What is the smallest version of this that would prove the value? | DAAI |
