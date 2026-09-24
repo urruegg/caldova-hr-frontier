@@ -49,14 +49,18 @@ Fifteen further use cases are candidates with no commitment attached. See the [p
 
 ## Solutions
 
-Power Platform solution source lives in `src/solutions/`, exported unmanaged from DEV and committed. Managed solutions for TEST and PROD are produced by the pipeline, never hand-exported.
+Power Platform solution source lives in `src/solutions/`, exported unmanaged from DEV and committed via [`hr/src/scripts/Sync-HrSolutionSource.ps1`](src/scripts/README.md). Managed solutions for TEST and PROD are produced by the pipeline, never hand-exported.
+
+**Current state (Tenant 1):** one foundation solution, [`caldovahrfrontier`](src/solutions/caldovahrfrontier/), publisher prefix `calhr`. It is empty — no Dataverse tables or Copilot Studio agent artefacts exist in it yet.
+
+**Documented target (Tenant 3 / GF), not yet built anywhere:**
 
 | Solution | Contains |
 |---|---|
 | `GFHRPlatformCore` | Dataverse tables, security roles, connection references, environment variable definitions, shared agent skills |
 | `GFHRMasterDataAgent` | The UC-0001 workflow, the agent it calls, the Workday Access Layer workflow, the control plane app registration |
 
-Core imports first. The agent solution depends on it. Publisher prefix is tenant-specific and decided once per tenant before the first table — `calhr` for the Caldova practice tenants (Tenant 1 & 2), `gfhr` for the real customer tenant (Tenant 3) — because it cannot be changed afterwards without rebuilding every component that references it. This domain's solution names below (`GFHRPlatformCore`, `GFHRMasterDataAgent`) are the Tenant 3 build.
+Core would import first, with the agent solution depending on it — once there is enough content to justify splitting into two solutions. Until then, the single foundation solution above is where all of it goes. Publisher prefix is tenant-specific and decided once per tenant before the first table — `calhr` for the Caldova practice tenants (Tenant 1 & 2), `gfhr` for the real customer tenant (Tenant 3) — because it cannot be changed afterwards without rebuilding every component that references it.
 
 ---
 
