@@ -1,5 +1,14 @@
 # `docs/` — Platform documentation
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Proposed Baseline |
+| **Scope** | Cross-cutting (all solution domains) |
+| **References** | [HR Solution Functional Design Intake](specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
 **Purpose.** What applies to **every** use case: platform requirements, architecture, accountability, and the decisions that shape all of it. Use-case-specific material lives in [`hr/`](../hr/README.md); operational setup lives in [`infra/`](../infra/README.md).
 
 **Read this first if you are an agent or a new contributor.** The rules below tell you which document is authoritative for which kind of question. Answering from the wrong one produces confident, wrong answers — most of the failure modes in this repository start there.
@@ -13,7 +22,7 @@ docs/
 ├── prd.md                    Platform requirements — FR-0001…, NFR-0001…, roles, gates
 ├── solution-design.md        Architecture — layers, components, integration, security, ALM
 ├── hr-journey-and-raci.md    The HR journey, roles, RACI, use-case placement, sequencing
-├── adr/                      Decision records (7) — why, what was rejected, what it costs
+├── adr/                      Decision records (11: 4 infra/governance, 7 HR solution) — why, what was rejected, what it costs
 └── brand/                    BrandKit — tokens, Fluent themes, logo guidance
 ```
 
@@ -86,6 +95,41 @@ Stated here because they are load-bearing and easy to get backwards:
 | `d-` / `td-` | Open decision IDs — identifiers, not filenames | `D-0003`, `TD-09` |
 
 Numbers are **allocated once and never reused**, including after a document is superseded. The three top-level documents — `prd.md`, `solution-design.md`, `hr-journey-and-raci.md` — carry no number because there is exactly one of each.
+
+---
+
+## Infrastructure Domain
+
+The Infrastructure domain is imported as source-derived Proposed Baseline documentation. It describes intended architecture, discovery, trust, validation, ALM, security, and recovery boundaries; it does not prove that tenant configuration, Azure resources, Azure DevOps objects, Power Platform environments, GitHub controls, pipelines, identities, or services currently exist. Task 1 disposition and pending approval are recorded in [Phase 3 Infrastructure and Tenant Bootstrap Intake](reviews/2026-09-17-phase-3-infrastructure-tenant-bootstrap-intake.md).
+
+| Document | Purpose |
+|---|---|
+| [Infrastructure Domain](../infra/README.md) | Defines domain ownership, current no-payload boundary, planned layout, tool boundaries, and document map. |
+| [Tenant Setup and Configuration](../infra/docs/10-tenant-setup-and-configuration.md) | Defines the reviewed tenant metadata, desired manifest, observed evidence, explicit intent, and terminology boundaries. |
+| [Identity and Access](../infra/docs/11-identity-and-access.md) | Defines attended administration, per-tenant bootstrap identity, exact OIDC binding, and temporary privilege lifecycle. |
+| [Power Platform Environments and ALM](../infra/docs/12-power-platform-environments-and-alm.md) | Defines future DEV-to-TEST-to-PROD ALM, solution ordering, variables, connections, and evidence requirements. |
+| [Azure DevOps Engineering Control Plane](../infra/docs/13-azure-devops-engineering-control-plane.md) | Describes the proposed backlog and delivery split, discovery candidates, API constraints, and future pipeline boundary. |
+| [GitHub Repository Blueprint](../infra/docs/14-github-repository-blueprint.md) | Defines the shared-repository model, tenant Environments, proposed governance, public-repository safety, and read-back. |
+| [Agent and Workload Configuration](../infra/docs/15-agent-workload-configuration.md) | Defines future agent, flow, app, grounding, packaging, release, and data-prohibition contracts. |
+| [Security, Governance and Compliance](../infra/docs/16-security-governance-and-compliance.md) | Defines evidence-first security principles and proposed DLP, Dataverse, identity, audit, and compliance controls. |
+| [Bootstrap and Provisioning](../infra/docs/17-bootstrap-and-provisioning.md) | Defines the evidence-gated state machine, attended trust, subscription `what-if`, and no-deployment boundary. |
+| [Multi-Tenant Provisioning](../infra/docs/18-multi-tenant-provisioning.md) | Defines isolation for exactly three independent tenants using one repository and one-tenant execution. |
+| [Bootstrap Recovery](../infra/docs/19-bootstrap-recovery.md) | Defines attended recovery from nine failure states without bypassing validation, approvals, or least privilege. |
+| [Infrastructure Solution Sources](../infra/src/solutions/README.md) | Defines ownership and exclusions for future unpacked Infrastructure Power Platform solution source. |
+
+**This map is unchanged by the Phase 4 HR solution intake.** `infra/` remains governed exclusively by the Phase 3 review; see [Bicep Composition](../infra/src/bicep/main.bicep) and [Tenant 1 Manifest](../infra/src/config/tenants/caldova25156897.psd1) for its current state.
+
+---
+
+## Superseded (Phase 2)
+
+The original Proposed Baseline product/HR operating model is superseded by the documents above, reconciled through the [Phase 4 HR Solution Functional Design Intake](reviews/2026-09-24-phase-4-hr-solution-functional-design-intake.md). Retained for history, each carrying its own superseded banner:
+
+| Document | Superseded by |
+|---|---|
+| [operating-model/00-05](operating-model/00-north-star.md) | `prd.md`, `solution-design.md`, `hr-journey-and-raci.md` |
+| [90 Microsoft Best Practice Evaluation](90-microsoft-best-practice-evaluation.md) | A fresh evaluation against the new design is not yet performed — treat this as historical only |
+| [HR Employee Journey (Phase 2)](../hr/docs/20-hr-employee-journey.md) | `hr-journey-and-raci.md`, `hr/docs/ideas/` |
 
 ---
 
