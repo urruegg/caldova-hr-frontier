@@ -6,6 +6,8 @@ BeforeAll {
     $script:safetyValidatorPath = Join-Path $script:repositoryRoot '.github\cli\verify-repository-safety.ps1'
     $script:pullRequestTemplatePath = Join-Path $script:repositoryRoot '.github\pull_request_template.md'
     $script:rulesetPath = Join-Path $script:repositoryRoot 'infra\src\config\github\main-ruleset.json'
+    $script:actionPins = Get-Content -Raw -LiteralPath (Join-Path $script:repositoryRoot 'infra\src\config\github\action-pins.json') | ConvertFrom-Json
+    $script:checkoutUse = 'actions/checkout@{0}' -f $script:actionPins.actions.'actions/checkout'.sha
 }
 
 Describe 'Repository validation workflow' {
@@ -14,7 +16,7 @@ Describe 'Repository validation workflow' {
         $content = Get-Content -LiteralPath $script:workflowPath -Raw
 
         $content | Should -Match '(?m)^permissions:\r?\n  contents: read\r?$'
-        $content | Should -Match 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683'
+        $content | Should -Match ([regex]::Escape($script:checkoutUse))
         $content | Should -Match '(?m)^\s+name: Repository setup validation\r?$'
         $content | Should -Match '\.github/cli/tests/WorkflowContract\.Tests\.ps1'
         $content | Should -Match 'infra/tests/pester'
