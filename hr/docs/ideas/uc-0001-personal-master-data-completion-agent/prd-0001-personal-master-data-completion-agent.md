@@ -1,5 +1,14 @@
 # PRD — Personal Master Data Completion Agent
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Proposed Baseline |
+| **Scope** | HR Use Case Portfolio |
+| **References** | [HR Solution Functional Design Intake](../../../../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
 > **Document ID:** GF-PRD-01
 > **Status:** Draft 0.3 — supersedes *PRD_Personal_Master_Data_Completion_Agent_Switzerland_Draft_0.1*
 > **Scope:** Switzerland MVP only

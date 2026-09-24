@@ -1,5 +1,14 @@
 # `docs/ideas/` — the use case portfolio
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Proposed Baseline |
+| **Scope** | HR Use Case Portfolio |
+| **References** | [HR Solution Functional Design Intake](../../../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
 **Purpose.** Every candidate use case from the **GF HR AI use case list**, expanded into a reviewable idea document and placed in the HR journey. This folder is where a use case lives before anyone commits to it.
 
 > **Most of these are ideas, not requirements — and that distinction is the point of this folder.** Each document records what HR stated (objective, value, KPI, complexity, priority, risks, personas) and adds a platform-fit assessment: harness, write envelope, refusals, grounding, data classification and employment-decision surface.

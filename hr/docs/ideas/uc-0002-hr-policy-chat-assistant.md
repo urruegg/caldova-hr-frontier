@@ -1,5 +1,14 @@
 # UC-0002 — HR Policy Chat Assistant
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Proposed Baseline |
+| **Scope** | HR Use Case Portfolio |
+| **References** | [HR Solution Functional Design Intake](../../../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
 > **Status:** **Runs alongside the MVP** — recommended, not counted
 > **Journey stage:** Cross-cutting — HR Service Delivery
 > **HR process area:** HR Service Delivery

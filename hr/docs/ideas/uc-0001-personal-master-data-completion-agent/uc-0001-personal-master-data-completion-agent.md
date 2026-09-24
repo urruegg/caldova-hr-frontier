@@ -1,5 +1,14 @@
 # UC-0001 — Personal Master Data Completion Agent
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Proposed Baseline |
+| **Scope** | HR Use Case Portfolio |
+| **References** | [HR Solution Functional Design Intake](../../../../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
 > **Status:** **Selected as MVP** — the only use case in this portfolio that has advanced past idea
 > **Journey stage:** Pre-board
 > **HR process area:** HR Operations Switzerland

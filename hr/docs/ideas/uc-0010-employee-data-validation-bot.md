@@ -1,5 +1,14 @@
 # UC-0010 — Employee Data Validation Bot
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Proposed Baseline |
+| **Scope** | HR Use Case Portfolio |
+| **References** | [HR Solution Functional Design Intake](../../../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
 > **Status:** **IN MVP SCOPE** — selected, not yet specified
 > **Journey stage:** Cross-cutting — HR Operations
 > **HR process area:** HR Operations

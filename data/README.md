@@ -1,5 +1,14 @@
 # `data/` — Data domain
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Proposed Baseline |
+| **Scope** | Data |
+| **References** | [HR Solution Functional Design Intake](../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
 **Purpose.** Data definitions, field mappings, reference lists and test data that are neither HR use-case logic nor infrastructure. Cross-domain by nature: the approved field list is owned by HR, targeted at Workday, and consumed by a workflow.
 
 ---

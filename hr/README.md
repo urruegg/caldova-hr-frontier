@@ -1,5 +1,14 @@
 # `hr/` — HR domain
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Proposed Baseline |
+| **Scope** | HR |
+| **References** | [HR Solution Functional Design Intake](../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
 **Purpose.** Everything specific to HR: the use cases, their requirements, and the Power Platform solutions that implement them. If it is about *what HR does*, it lives here. If it is about *how the platform works*, it lives in [`docs/`](../docs/README.md).
 
 ---

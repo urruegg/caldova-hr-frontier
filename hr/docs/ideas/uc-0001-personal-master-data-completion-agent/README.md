@@ -1,5 +1,14 @@
 # UC-0001 — Personal Master Data Completion Agent
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Proposed Baseline |
+| **Scope** | HR Use Case Portfolio |
+| **References** | [HR Solution Functional Design Intake](../../../../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
 **Purpose.** Everything specific to the **selected MVP use case**. This is the only use case in the portfolio that has advanced past idea, and this folder is the pattern every future selected use case follows.
 
 > **Status: Selected as MVP — the first of three. Approved in scope, not yet approved for build** — the Definition of Ready in the PRD §13 is not met. The blocking item is the matching key (D-03).
