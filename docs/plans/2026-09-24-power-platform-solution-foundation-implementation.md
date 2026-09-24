@@ -1,5 +1,14 @@
 # Power Platform Solution Foundation Implementation Plan
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Draft |
+| **Scope** | HR Solution Architecture |
+| **References** | [Power Platform Solution Foundation Design](../specs/2026-09-24-power-platform-solution-foundation-design.md) |
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build reusable, tested PowerShell tooling that connects to a tenant's Power Platform environment, exports its unmanaged solution, and unpacks it into `hr/src/solutions/`, then use it to commit the first real (currently empty) solution source for Tenant 1.

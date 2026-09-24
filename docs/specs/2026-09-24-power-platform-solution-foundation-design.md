@@ -7,7 +7,7 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | HR Solution Architecture |
-| **References** | [HR Solution Functional Design Intake](./2026-09-24-hr-solution-functional-design-intake-design.md), [Solution Design](../solution-design.md) §7, [HR Solution Sources](../../hr/src/solutions/README.md) |
+| **References** | [HR Solution Functional Design Intake](./2026-09-24-hr-solution-functional-design-intake-design.md), [Solution Design](../solution-design.md), [HR Solution Sources](../../hr/src/solutions/README.md) |
 
 ## Objective
 
