@@ -131,6 +131,16 @@ GF positions at **Level 3 — agentic**. These three carry that claim.
 
 ---
 
+## Design explorations (not part of the GF use case list)
+
+Internal ideas captured for later exploration, distinct from the 19 GF-stated use cases above — no `UC-nnnn` identifier, no MVP claim, no commitment.
+
+| Idea | What it is |
+|---|---|
+| [HR Control Plane Mockup](hr-control-plane-mockup-idea.md) | A static UI mockup for the operational cockpit described in `solution-design.md` §4.1 — to explore later, not scheduled |
+
+---
+
 ## Sources
 
 - `GF_HR AI Use case list.xlsx` — sheets *T-Shirt Size BizValue* (16 use cases) and *HR Ops CH* (2 pain points, captured as UC-0017 and UC-0018)
