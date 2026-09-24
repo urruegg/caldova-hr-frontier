@@ -451,3 +451,21 @@ npm-debug.log*
 *.key
 .env.*
 local.settings.json
+
+# Power Platform solution build output (Phase 4 HR solution intake)
+**/bin/
+**/obj/
+!**/solutions/**/*.zip
+
+# Environment and secrets specific to Power Platform config — never commit
+infra/src/config/*.local.json
+*.secret.json
+
+# Real data — never commit (see data/README.md)
+data/**/*.xlsx
+data/**/*.csv
+!data/**/sample-*.xlsx
+!data/**/sample-*.csv
+
+# OS
+Thumbs.db

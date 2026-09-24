@@ -1,0 +1,186 @@
+/* ============================================================
+   GF BrandKit v1.0.0 — design tokens
+   GF HR Agentic Platform
+   Palette derived from third-party brand data, NOT GF's official
+   corporate design manual. Replace on receipt of the CD manual —
+   that is the whole point of this file.
+   ============================================================ */
+
+:root {
+  /* ---- Brand ramp (primary at 60) ---- */
+  --gf-brand-10:  #04121E;
+  --gf-brand-20:  #08243C;
+  --gf-brand-30:  #0C3559;
+  --gf-brand-40:  #104776;
+  --gf-brand-50:  #145893;
+  --gf-brand-60:  #1965A3;   /* PRIMARY — 6.05:1 on white */
+  --gf-brand-70:  #2C76B0;
+  --gf-brand-80:  #4488BE;
+  --gf-brand-90:  #5F9ACB;
+  --gf-brand-100: #7CACD8;   /* dark-mode primary — 7.28:1 on #1B1A19 */
+  --gf-brand-110: #99BFE4;
+  --gf-brand-120: #B5D1EC;
+  --gf-brand-130: #CFE1F3;
+  --gf-brand-140: #E2EDF8;
+  --gf-brand-150: #EFF5FB;
+  --gf-brand-160: #F7FAFD;
+
+  /* ---- Secondary ---- */
+  --gf-accent-sky:    #4AA6E5;  /* data viz, agent-reasoning emphasis */
+  --gf-accent-bright: #33ADFF;  /* charts only — too light for text */
+  --gf-ink:           #000115;
+
+  /* ---- Semantic (Fluent, unbranded on purpose) ---- */
+  --gf-success:      #0F7B3F;
+  --gf-success-bg:   #DFF6E6;
+  --gf-warning:      #AF5700;   /* 4.76:1 on its tint; #B85C00 measured 4.36 */
+  --gf-warning-bg:   #FFF4E0;
+  --gf-danger:       #A4262C;
+  --gf-danger-bg:    #FDE7E9;
+  --gf-info:         #0F6CBD;   /* kept distinct from brand — see BrandKit section 1 */
+  --gf-info-bg:      #EFF6FC;
+
+  /* ---- Neutrals ---- */
+  --gf-canvas:         #FAF9F8;
+  --gf-surface:        #FFFFFF;
+  --gf-surface-alt:    #F3F2F1;
+  --gf-stroke:         #E1DFDD;
+  --gf-stroke-strong:  #C8C6C4;
+  --gf-text-secondary: #605E5C;
+  --gf-text-tertiary:  #6E6C6A;  /* lightest grey permitted for text — 4.97:1 on canvas */
+  --gf-text:           #242424;
+  --gf-text-strong:    #1B1A19;
+  --gf-text-disabled:  #A19F9D;
+  --gf-text-on-brand:  #FFFFFF;
+
+  /* ---- Chrome ---- */
+  --gf-header-bg:   var(--gf-brand-30);
+  --gf-header-text: #FFFFFF;
+
+  /* ---- Type ---- */
+  --gf-font: "Segoe UI Variable Display", "Segoe UI Variable Text",
+             "Segoe UI", system-ui, -apple-system, sans-serif;
+  --gf-font-mono: "Cascadia Mono", "Consolas", "SF Mono", monospace;
+
+  --gf-size-caption1:  12px;  --gf-line-caption1:  16px;
+  --gf-size-body1:     14px;  --gf-line-body1:     20px;
+  --gf-size-subtitle2: 16px;  --gf-line-subtitle2: 22px;
+  --gf-size-subtitle1: 20px;  --gf-line-subtitle1: 26px;
+  --gf-size-title3:    24px;  --gf-line-title3:    32px;
+  --gf-size-title2:    28px;  --gf-line-title2:    36px;
+
+  --gf-weight-regular:  400;
+  --gf-weight-semibold: 600;
+  --gf-weight-bold:     700;
+
+  /* ---- Shape ---- */
+  --gf-radius-sm: 2px;
+  --gf-radius:    4px;
+  --gf-radius-lg: 8px;
+
+  /* ---- Elevation ---- */
+  --gf-shadow-2:  0 1px 2px rgba(0,0,0,.14),  0 0 2px rgba(0,0,0,.12);
+  --gf-shadow-4:  0 2px 4px rgba(0,0,0,.14),  0 0 2px rgba(0,0,0,.12);
+  --gf-shadow-8:  0 4px 8px rgba(0,0,0,.14),  0 0 2px rgba(0,0,0,.12);
+  --gf-shadow-16: 0 8px 16px rgba(0,0,0,.14), 0 0 2px rgba(0,0,0,.12);
+  --gf-shadow-64: 0 32px 64px rgba(0,0,0,.24),0 0 8px rgba(0,0,0,.20);
+
+  /* ---- Spacing: 4px grid ---- */
+  --gf-space-xs:   4px;
+  --gf-space-s:    8px;
+  --gf-space-m:   12px;
+  --gf-space-l:   16px;
+  --gf-space-xl:  20px;
+  --gf-space-2xl: 24px;
+  --gf-space-3xl: 32px;
+  --gf-space-4xl: 40px;
+
+  /* ---- Motion ---- */
+  --gf-duration-fast:   100ms;
+  --gf-duration-normal: 200ms;
+  --gf-curve-standard:  cubic-bezier(.33,0,.67,1);
+  --gf-curve-decel:     cubic-bezier(.1,.9,.2,1);
+}
+
+/* ============================================================
+   Dark theme. Brand moves 60 -> 100; the light blue fails
+   contrast on a dark surface (2.1:1).
+   ============================================================ */
+:root[data-theme="dark"],
+.gf-theme-dark {
+  --gf-canvas:         #1B1A19;
+  --gf-surface:        #252423;
+  --gf-surface-alt:    #2D2C2B;
+  --gf-stroke:         #3B3A39;
+  --gf-stroke-strong:  #484644;
+  --gf-text-secondary: #C8C6C4;
+  --gf-text:           #F3F2F1;
+  --gf-text-strong:    #FFFFFF;
+  --gf-text-disabled:  #797775;
+
+  --gf-brand-60:  #7CACD8;
+  --gf-brand-50:  #99BFE4;
+  --gf-brand-130: #104776;
+  --gf-brand-140: #0C3559;
+  --gf-brand-150: #08243C;
+  --gf-brand-160: #04121E;
+
+  --gf-success:    #5EC98A;  --gf-success-bg: #10301C;
+  --gf-warning:    #E8A33D;  --gf-warning-bg: #3A2609;
+  --gf-danger:     #F1707B;  --gf-danger-bg:  #3B1014;
+  --gf-info:       #7CACD8;  --gf-info-bg:    #08243C;
+
+  --gf-header-bg:     #0C3559;
+  --gf-text-on-brand: #04121E;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+  }
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
+.gf-app {
+  font-family: var(--gf-font);
+  font-size: var(--gf-size-body1);
+  line-height: var(--gf-line-body1);
+  color: var(--gf-text);
+  background: var(--gf-canvas);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Figures must align. This app is full of numeric columns. */
+.gf-num, .gf-table td.gf-num, .gf-metric {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Focus ring — 2px brand, never removed */
+.gf-focusable:focus-visible,
+.gf-app :focus-visible {
+  outline: 2px solid var(--gf-brand-60);
+  outline-offset: 2px;
+  border-radius: var(--gf-radius-sm);
+}
+
+/* Logo slot. Placeholder wordmark — see BrandKit section 5.
+   Swap the contents, keep the box. */
+.gf-logo {
+  display: inline-flex;
+  align-items: center;
+  block-size: 28px;
+  padding-inline: var(--gf-space-s);
+  font-weight: var(--gf-weight-bold);
+  letter-spacing: .06em;
+  color: var(--gf-header-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gf-app *, .gf-app *::before, .gf-app *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
