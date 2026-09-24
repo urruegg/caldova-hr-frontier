@@ -273,8 +273,8 @@ Index Active Kind      Name         User                                  Cloud 
 
         $result.EnvironmentUrl | Should -Be 'https://hrfrontierdev.crm17.dynamics.com/'
         $result.ProfileName | Should -Be 'hr-caldova25156897-dev'
-        ($calls | Where-Object { $_.ArgumentList -join ' ' -like 'auth create*' }).Count | Should -Be 0
-        ($calls | Where-Object { $_.ArgumentList -join ' ' -eq 'auth select --name hr-caldova25156897-dev' }).Count | Should -Be 1
+        @($calls | Where-Object { $_.ArgumentList -join ' ' -like 'auth create*' }).Count | Should -Be 0
+        @($calls | Where-Object { $_.ArgumentList -join ' ' -eq 'auth select --name hr-caldova25156897-dev' }).Count | Should -Be 1
     }
 
     It 'creates a new profile when none matches' {
@@ -288,7 +288,7 @@ Index Active Kind      Name         User                                  Cloud 
         $result = Connect-HrPowerPlatformEnvironment -TenantAlias 'caldova25156897' -Stage 'Dev' -TenantConfigurationPath $script:RealTenantManifestPath -NativeCommandRunner $runner
 
         $result.ProfileName | Should -Be 'hr-caldova25156897-dev'
-        ($calls | Where-Object { $_.ArgumentList -join ' ' -eq 'auth create --name hr-caldova25156897-dev --environment https://hrfrontierdev.crm17.dynamics.com/' }).Count | Should -Be 1
+        @($calls | Where-Object { $_.ArgumentList -join ' ' -eq 'auth create --name hr-caldova25156897-dev --environment https://hrfrontierdev.crm17.dynamics.com/' }).Count | Should -Be 1
     }
 
     It 'throws when the computed profile name would exceed 30 characters' {
@@ -709,12 +709,12 @@ Describe 'Expand-HrSolutionPackage' {
         $zipPath = Join-Path $TestDrive 'caldovahrfrontier.zip'
         [System.IO.File]::WriteAllText($zipPath, 'fake zip content')
         $solutionsRoot = Join-Path $TestDrive 'solutions'
-        $calls = [System.Collections.Generic.List[object]]::new()
         $expectedFolder = Join-Path $solutionsRoot 'caldovahrfrontier'
+        $calls = [System.Collections.Generic.List[object]]::new()
 
         $runner = {
             param([string]$FilePath, [string[]]$ArgumentList)
-            $script:calls = $ArgumentList
+            $calls.Add(@($ArgumentList)) | Out-Null
             [void](New-Item -ItemType Directory -Path $expectedFolder -Force)
             [System.IO.File]::WriteAllText((Join-Path $expectedFolder 'solution.xml'), '<x/>')
             [pscustomobject]@{ ExitCode = 0; StdOut = 'Unpacked Solution.'; StdErr = '' }
@@ -723,7 +723,7 @@ Describe 'Expand-HrSolutionPackage' {
         $result = Expand-HrSolutionPackage -ZipPath $zipPath -SolutionUniqueName 'caldovahrfrontier' -SolutionsRoot $solutionsRoot -NativeCommandRunner $runner
 
         $result.Folder | Should -Be $expectedFolder
-        ($script:calls -join ' ') | Should -Be "solution unpack --zipfile $zipPath --folder $expectedFolder --packagetype Unmanaged --allowWrite true --allowDelete true --clobber true"
+        ($calls[0] -join ' ') | Should -Be "solution unpack --zipfile $zipPath --folder $expectedFolder --packagetype Unmanaged --allowWrite true --allowDelete true --clobber true"
     }
 
     It 'throws when the zip file does not exist' {
