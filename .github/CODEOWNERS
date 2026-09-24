@@ -1,12 +1,25 @@
-# Default owner
-* @urruegg
+# Ownership mirrors accountability in docs/hr-journey-and-raci.md.
+# Tenant 1 & 2 (Caldova) are owned by @urruegg. Tenant 3 (the real
+# customer / GF) ownership is intentionally left open here — it is
+# decided as part of that tenant's future repository handover, not
+# assigned to a placeholder team now.
 
-# Repository governance and documentation
-/.github/ @urruegg
-/AGENTS.md @urruegg
-/docs/ @urruegg
+# Platform design — changes here affect every use case
+/docs/                      @urruegg
+/docs/adr/                  @urruegg
+/docs/prd.md                @urruegg
 
-# Scheduled solution domains
-/infra/ @urruegg
-/hr/ @urruegg
-/data/ @urruegg
+# HR domain
+/hr/                        @urruegg
+/hr/docs/ideas/              @urruegg
+/hr/src/solutions/          @urruegg
+
+# Infrastructure — unchanged ownership, untouched by this intake
+/infra/                     @urruegg
+
+# Data definitions
+/data/                      @urruegg
+
+# Repository governance
+/.github/                   @urruegg
+/AGENTS.md                  @urruegg
