@@ -9,7 +9,8 @@
     PowerShellVersion = '5.1'
     FunctionsToExport = @(
         'Get-HrTenantPowerPlatformUrl',
-        'Connect-HrPowerPlatformEnvironment'
+        'Connect-HrPowerPlatformEnvironment',
+        'Export-HrSolutionPackage'
     )
     CmdletsToExport = @()
     VariablesToExport = @()

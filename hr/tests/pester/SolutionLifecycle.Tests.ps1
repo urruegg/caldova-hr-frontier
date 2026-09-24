@@ -158,3 +158,78 @@ Index Active Kind      Name         User                                  Cloud 
             Should -Throw '*pac org who failed*'
     }
 }
+
+Describe 'Export-HrSolutionPackage' {
+    BeforeAll {
+        $script:ModuleManifestPath = Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Solutions\Caldova.HrFrontier.Solutions.psd1'
+        $script:RealTenantManifestPath = Join-Path $PSScriptRoot '..\..\..\infra\src\config\tenants\caldova25156897.psd1'
+        Import-Module $script:ModuleManifestPath -Force
+
+        function script:New-ExportFakeRunner {
+            param([System.Collections.Generic.List[object]]$Calls)
+
+            {
+                param(
+                    [Parameter(Mandatory)]
+                    [string]$FilePath,
+
+                    [Parameter(Mandatory)]
+                    [string[]]$ArgumentList
+                )
+
+                $Calls.Add([pscustomobject]@{ FilePath = $FilePath; ArgumentList = @($ArgumentList) }) | Out-Null
+                $joined = $ArgumentList -join ' '
+                if ($joined -eq 'auth list') {
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = "Index Active Kind Name User Cloud Type`n[1] * UNIVERSAL hr-caldova25156897-dev admin@x Public User"; StdErr = '' }
+                }
+                if ($joined -eq 'auth select --name hr-caldova25156897-dev') {
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' }
+                }
+                if ($joined -eq 'org who --environment https://hrfrontierdev.crm17.dynamics.com/') {
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = 'Connected'; StdErr = '' }
+                }
+                if ($FilePath -eq 'pac' -and $ArgumentList[0] -eq 'solution' -and $ArgumentList[1] -eq 'export') {
+                    $pathIndex = [array]::IndexOf($ArgumentList, '--path') + 1
+                    [System.IO.File]::WriteAllText($ArgumentList[$pathIndex], 'fake zip content')
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = 'Solution export succeeded.'; StdErr = '' }
+                }
+
+                [pscustomobject]@{ ExitCode = 1; StdOut = ''; StdErr = "Unmapped fake call: $joined" }
+            }.GetNewClosure()
+        }
+    }
+
+    It 'exports with the Dev environment explicitly, never relying on ambient org state' {
+        $destination = Join-Path $TestDrive 'caldovahrfrontier.zip'
+        $calls = [System.Collections.Generic.List[object]]::new()
+        $runner = New-ExportFakeRunner -Calls $calls
+
+        $result = Export-HrSolutionPackage -TenantAlias 'caldova25156897' -SolutionUniqueName 'caldovahrfrontier' -DestinationPath $destination -TenantConfigurationPath $script:RealTenantManifestPath -NativeCommandRunner $runner
+
+        $result.EnvironmentUrl | Should -Be 'https://hrfrontierdev.crm17.dynamics.com/'
+        $result.SolutionUniqueName | Should -Be 'caldovahrfrontier'
+        Test-Path -LiteralPath $result.Path | Should -BeTrue
+
+        $exportCall = $calls | Where-Object { $_.ArgumentList[0] -eq 'solution' -and $_.ArgumentList[1] -eq 'export' }
+        $exportCall.ArgumentList -join ' ' | Should -Be "solution export --name caldovahrfrontier --path $destination --managed false --overwrite true --environment https://hrfrontierdev.crm17.dynamics.com/"
+    }
+
+    It 'does not expose a Stage parameter — export is always Dev-only' {
+        (Get-Command Export-HrSolutionPackage).Parameters.Keys | Should -Not -Contain 'Stage'
+    }
+
+    It 'throws when pac solution export fails' {
+        $destination = Join-Path $TestDrive 'failed.zip'
+        $runner = {
+            param([string]$FilePath, [string[]]$ArgumentList)
+            $joined = $ArgumentList -join ' '
+            if ($joined -eq 'auth list') { return [pscustomobject]@{ ExitCode = 0; StdOut = "Index`n[1] * UNIVERSAL hr-caldova25156897-dev admin@x Public User"; StdErr = '' } }
+            if ($joined -eq 'auth select --name hr-caldova25156897-dev') { return [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' } }
+            if ($joined -eq 'org who --environment https://hrfrontierdev.crm17.dynamics.com/') { return [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' } }
+            [pscustomobject]@{ ExitCode = 1; StdOut = ''; StdErr = 'export failed' }
+        }
+
+        { Export-HrSolutionPackage -TenantAlias 'caldova25156897' -SolutionUniqueName 'caldovahrfrontier' -DestinationPath $destination -TenantConfigurationPath $script:RealTenantManifestPath -NativeCommandRunner $runner } |
+            Should -Throw '*pac solution export failed*'
+    }
+}

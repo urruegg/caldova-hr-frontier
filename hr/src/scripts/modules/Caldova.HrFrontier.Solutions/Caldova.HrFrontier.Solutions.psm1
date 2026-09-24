@@ -12,5 +12,6 @@ Get-ChildItem -LiteralPath $publicScriptsPath -Filter '*.ps1' | Sort-Object Name
 
 Export-ModuleMember -Function @(
     'Get-HrTenantPowerPlatformUrl',
-    'Connect-HrPowerPlatformEnvironment'
+    'Connect-HrPowerPlatformEnvironment',
+    'Export-HrSolutionPackage'
 )
