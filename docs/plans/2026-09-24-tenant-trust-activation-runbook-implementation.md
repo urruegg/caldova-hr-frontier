@@ -1,5 +1,14 @@
 # Tenant Trust Activation Runbook Implementation Plan
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Draft |
+| **Scope** | Infrastructure (Tenant 1, reusable for Tenant 2/3) |
+| **References** | [Tenant Trust Activation Design](../specs/2026-09-24-tenant-trust-activation-design.md) |
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Write the operator runbook that activates Tenant 1's trust (Entra Application, Service Principal, Federated Identity Credential, GitHub Environment + 3 variables, Azure DevOps entitlement, Azure DevOps Readers membership) using the existing, already-tested `Initialize-TenantTrust.ps1` — no new PowerShell code — and confirm the tool is ready to run against live Tenant 1 state today.
