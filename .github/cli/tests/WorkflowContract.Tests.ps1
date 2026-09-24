@@ -14,7 +14,7 @@ Describe 'Repository validation workflow' {
         $content = Get-Content -LiteralPath $script:workflowPath -Raw
 
         $content | Should -Match '(?m)^permissions:\r?\n  contents: read\r?$'
-        $content | Should -Match 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683'
+        $content | Should -Match 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         $content | Should -Match '(?m)^\s+name: Repository setup validation\r?$'
         $content | Should -Match '\.github/cli/tests/WorkflowContract\.Tests\.ps1'
         $content | Should -Match 'infra/tests/pester'

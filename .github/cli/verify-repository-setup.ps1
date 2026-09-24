@@ -778,7 +778,7 @@ Test-RequiredContent '.github/pull_request_template.md' @(
 Test-RequiredContent '.github/dependabot.yml' @('package-ecosystem: "github-actions"', 'interval: "weekly"')
 Test-RequiredContent '.github/workflows/validate-repository.yml' @(
     'name: Validate repository',
-    'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683',
+    'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
     'Repository setup validation',
     'RepositorySafety.Tests.ps1',
     'infra/tests/pester',
@@ -895,7 +895,7 @@ foreach ($workflowPath in @('.github/workflows/bootstrap-tenant.yml', '.github/w
         'permissions:',
         'contents: read',
         'id-token: write',
-        'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683',
+        'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
         'azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5',
         'environment: bootstrap-${{ inputs.tenantAlias }}'
     )

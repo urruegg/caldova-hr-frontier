@@ -379,7 +379,7 @@ Describe 'Task 7 tenant workflow contracts' {
             (Get-YamlScalarValue -Content $environment -Name 'AZURE_SUBSCRIPTION_ID' -Indent 6) | Should -Be '${{ vars.AZURE_SUBSCRIPTION_ID }}'
 
             $checkout = Get-StepBlock -Job $job -Name 'Check out repository'
-            (Get-StepUses -Step $checkout) | Should -Be 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683'
+            (Get-StepUses -Step $checkout) | Should -Be 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
 
             $login = Get-StepBlock -Job $job -Name 'Azure OIDC login'
             (Get-StepUses -Step $login) | Should -Be 'azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5'
@@ -389,7 +389,7 @@ Describe 'Task 7 tenant workflow contracts' {
             (Get-YamlScalarValue -Content $loginInputs -Name 'subscription-id' -Indent 10) | Should -Be '${{ env.AZURE_SUBSCRIPTION_ID }}'
 
             $actionUses = @([regex]::Matches($job, '(?m)^        uses:\s*(\S+)\s*$') | ForEach-Object { $_.Groups[1].Value })
-            @($actionUses | Where-Object { $_ -ceq 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' }).Count | Should -Be 1
+            @($actionUses | Where-Object { $_ -ceq 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' }).Count | Should -Be 1
             @($actionUses | Where-Object { $_ -ceq 'azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5' }).Count | Should -Be 1
             foreach ($actionUse in $actionUses) {
                 $actionUse | Should -Match '@[0-9a-f]{40}$'
