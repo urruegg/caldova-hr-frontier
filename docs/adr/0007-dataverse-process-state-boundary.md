@@ -38,7 +38,7 @@ For any proposed Dataverse column, ask:
 - **No** → it is process state. It belongs in Dataverse.
 - **Yes** → it is master data. It belongs in Workday.
 
-`gf_fieldaction.action = "Added"` survives a Workday restore unchanged — it remains true that the agent performed that action. `gf_fieldaction.value_written = "8005"` would become a claim about employee data that Workday might now contradict. The first is history; the second is a competing record.
+`gfhr_fieldaction.action = "Added"` survives a Workday restore unchanged — it remains true that the agent performed that action. `gfhr_fieldaction.value_written = "8005"` would become a claim about employee data that Workday might now contradict. The first is history; the second is a competing record.
 
 ### What Dataverse holds
 
@@ -96,7 +96,7 @@ For any proposed Dataverse column, ask:
 ### Mitigations
 
 - **Provenance is mandatory** (FR-20): every field action records its source document and the location within it, so verification is one click rather than a search.
-- The `gf_approvedfield` table is versioned, so it is always possible to say which rules applied to a historical run without storing the data those rules acted on.
+- The `gfhr_approvedfield` table is versioned, so it is always possible to say which rules applied to a historical run without storing the data those rules acted on.
 - A schema-change checklist applies the restore test to every new column, and requires a Privacy sign-off to override.
 
 ---

@@ -56,7 +56,7 @@ Power Platform solution source lives in `src/solutions/`, exported unmanaged fro
 | `GFHRPlatformCore` | Dataverse tables, security roles, connection references, environment variable definitions, shared agent skills |
 | `GFHRMasterDataAgent` | The UC-0001 workflow, the agent it calls, the Workday Access Layer workflow, the control plane app registration |
 
-Core imports first. The agent solution depends on it. Publisher prefix is `gf_`, decided once — it cannot be changed afterwards without rebuilding every component that references it.
+Core imports first. The agent solution depends on it. Publisher prefix is tenant-specific and decided once per tenant before the first table — `calhr` for the Caldova practice tenants (Tenant 1 & 2), `gfhr` for the real customer tenant (Tenant 3) — because it cannot be changed afterwards without rebuilding every component that references it. This domain's solution names below (`GFHRPlatformCore`, `GFHRMasterDataAgent`) are the Tenant 3 build.
 
 ---
 

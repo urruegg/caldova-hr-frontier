@@ -124,7 +124,7 @@ Because the envelope will eventually need to change:
 4. **HR Operations accepts** the operational consequence.
 5. **The access-layer action contract is updated** — not just the agent instructions — and the Integration System User's permissions are re-checked.
 6. **A negative test proves** the old boundary still holds for everything outside the new envelope.
-7. **The change is recorded** with a version on `gf_approvedfield`, so historical runs remain interpretable.
+7. **The change is recorded** with a version on `gfhr_approvedfield`, so historical runs remain interpretable.
 
 Steps 5 and 6 are the ones that get skipped under time pressure, and they are the ones that matter.
 

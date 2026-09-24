@@ -116,16 +116,16 @@ Dataverse holds **four things only**: what ran, what it touched, what happened, 
 
 | Table | Purpose | Explicitly does NOT hold |
 |---|---|---|
-| `gf_agentrun` | One agent execution: trigger, actor, start, end, status, counts | — |
-| `gf_employeepackage` | One employee's document package in one run: source documents, match outcome, matched profile **reference**, package status | Name, address, date of birth, or any master-data value |
-| `gf_fieldaction` | One field decision: field name, action, confidence, source document reference and location, access-layer result | **The value written.** The value lives in Workday |
-| `gf_exception` | One thing a human must resolve: type, package reference, detail, owner, status, resolution | Personal data beyond the reference needed to act |
-| `gf_followup` | An eligible field still blank after a run: field, package, owner, status | The expected value |
-| `gf_approvedfield` | The approved field list, versioned: field name, Workday target, active flag | — |
+| `gfhr_agentrun` | One agent execution: trigger, actor, start, end, status, counts | — |
+| `gfhr_employeepackage` | One employee's document package in one run: source documents, match outcome, matched profile **reference**, package status | Name, address, date of birth, or any master-data value |
+| `gfhr_fieldaction` | One field decision: field name, action, confidence, source document reference and location, access-layer result | **The value written.** The value lives in Workday |
+| `gfhr_exception` | One thing a human must resolve: type, package reference, detail, owner, status, resolution | Personal data beyond the reference needed to act |
+| `gfhr_followup` | An eligible field still blank after a run: field, package, owner, status | The expected value |
+| `gfhr_approvedfield` | The approved field list, versioned: field name, Workday target, active flag | — |
 
-> ⚠️ **The `gf_fieldaction` boundary is the important one.** Recording *"Added `Postal Code` from document 3, page 1, confidence 0.94"* is process state. Recording *"Added Postal Code = 8005"* is a copy of master data, and the moment it exists Dataverse becomes a second source of truth that will drift. **Record that a value was written, never what the value was.**
+> ⚠️ **The `gfhr_fieldaction` boundary is the important one.** Recording *"Added `Postal Code` from document 3, page 1, confidence 0.94"* is process state. Recording *"Added Postal Code = 8005"* is a copy of master data, and the moment it exists Dataverse becomes a second source of truth that will drift. **Record that a value was written, never what the value was.**
 
-Naming uses a GF publisher prefix — `gf_` throughout, decided once before the first table, because a prefix cannot be changed afterwards without rebuilding every component that references it.
+Naming uses a tenant-specific publisher prefix, decided once per tenant before the first table, because a prefix cannot be changed afterwards without rebuilding every component that references it: `calhr` for the Caldova practice tenants (Tenant 1 & 2) and `gfhr` for the real customer tenant (Tenant 3). This design's table names below use the Tenant 3 (`gfhr`) value, since this document describes the GF solution.
 
 ### 4.4 Governed integration — the Workday access path
 
@@ -305,9 +305,9 @@ Validation takes a few hours, and a full upload can take **up to three days** to
  WORKFLOW  (deterministic — same input, same output)
  ─────────────────────────────────────────────────────────────────────────
   1  Trigger: HR Ops starts a run from the Control Plane App    [instant]
-  2  Create gf_agentrun (status: Running)                       [Dataverse]
+  2  Create gfhr_agentrun (status: Running)                       [Dataverse]
   3  List documents in /New Employees                           [SharePoint]
-  4  Group into employee packages        → gf_employeepackage
+  4  Group into employee packages        → gfhr_employeepackage
   5  For each package:
 
        6  Extract approved fields          [workflow: process documents]
@@ -323,8 +323,8 @@ Validation takes a few hours, and a full upload can take **up to three days** to
             └──────────────────────────────────────────────┘
                      │
        7  search_profile                     [Access Layer workflow tool]
-            0 matches  → gf_exception (Employee Not Found)  → stop package
-            >1 matches → gf_exception (Multiple Match)      → stop package
+            0 matches  → gfhr_exception (Employee Not Found)  → stop package
+            >1 matches → gfhr_exception (Multiple Match)      → stop package
             1 match    → continue
 
        8  read_fields — ONE batched call, whole approved set   [Access Layer]
@@ -333,17 +333,17 @@ Validation takes a few hours, and a full upload can take **up to three days** to
             WD blank + value + confidence OK → add_missing_value
                                                (idempotency key; rejected
                                                 server-side if now populated)
-                                             → gf_fieldaction (Added)
-            WD populated                     → gf_fieldaction (Already Exists)
-            WD blank + no value              → gf_fieldaction (Missing)
-                                             + gf_followup
-            confidence below threshold       → gf_fieldaction (Low Confidence)
-                                             + gf_exception
+                                             → gfhr_fieldaction (Added)
+            WD populated                     → gfhr_fieldaction (Already Exists)
+            WD blank + no value              → gfhr_fieldaction (Missing)
+                                             + gfhr_followup
+            confidence below threshold       → gfhr_fieldaction (Low Confidence)
+                                             + gfhr_exception
 
-      10  Record package outcome            → gf_employeepackage
+      10  Record package outcome            → gfhr_employeepackage
       11  Move PDFs → /Complete or /Exceptions            [SharePoint]
 
- 12  Close gf_agentrun (status, counts, duration)
+ 12  Close gfhr_agentrun (status, counts, duration)
  13  Notify the responsible HR Ops user                          [Teams]
  14  Exception needing a recorded decision → request information [HITL]
  15  HR Ops reviews in the Control Plane App                     [human]
@@ -416,7 +416,7 @@ Non-production **never** uses uncontrolled production PDFs. A Workday non-produc
 | Approval | Recorded approval gate before PROD import |
 | Rollback | Roll forward with a corrected managed solution. Never hand-edit the target environment — it creates an unmanaged layer that silently overrides the next deployment |
 
-**Solution structure:** one publisher, prefix `gf_`. Two solutions, deployed in order:
+**Solution structure:** one publisher per tenant (`calhr` for Tenant 1 & 2, `gfhr` for Tenant 3 — see [ADR-0004](adr/0004-domain-solution-architecture-and-publisher.md)). Two solutions, deployed in order:
 
 | Solution | Contains |
 |---|---|
@@ -431,10 +431,10 @@ Core is always imported first. The agent solution depends on it.
 
 | Signal | Source | Surfaced in |
 |---|---|---|
-| Run status, counts, duration | `gf_agentrun` | Control plane app |
-| Field action distribution | `gf_fieldaction` | Control plane app |
-| Exception rate by type | `gf_exception` | Control plane app |
-| Extraction confidence distribution | `gf_fieldaction` | Control plane app — informs the D-11 threshold |
+| Run status, counts, duration | `gfhr_agentrun` | Control plane app |
+| Field action distribution | `gfhr_fieldaction` | Control plane app |
+| Exception rate by type | `gfhr_exception` | Control plane app |
+| Extraction confidence distribution | `gfhr_fieldaction` | Control plane app — informs the D-11 threshold |
 | Agent runtime telemetry | Copilot Studio analytics; the agent's Monitor tab shows recent tasks, files accessed and activity | Copilot Studio |
 | Environment-wide agent telemetry | Power Platform admin center export to Azure Application Insights (preview) | Application Insights |
 | Workflow capacity consumption | Power Platform admin center → Licensing → Copilot Studio, per workflow | **Alerted** — exhaustion blocks new runs (§5.3) |
@@ -452,7 +452,7 @@ Core is always imported first. The agent solution depends on it.
 |---|---|---|
 | Experience | Teams, M365 Copilot, control plane app shell | A view or queue per use case |
 | Agentic toolset | Copilot Studio environment, harness policy, the workflow process pattern, shared refusal and escalation **skills** | The agent itself, and the use-case-specific workflow steps |
-| Control plane | `gf_agentrun`, `gf_exception`, `gf_followup`, audit pattern | Use-case-specific process tables, if any |
+| Control plane | `gfhr_agentrun`, `gfhr_exception`, `gfhr_followup`, audit pattern | Use-case-specific process tables, if any |
 | Integration | Workday Access Layer, the connector inventory in §4.5, the DLP grouping | Additional declared access-layer actions; any new connector needs a DLP review |
 | Security | Identities, DLP, environments, retention | Permission scope for new actions |
 | ALM | Solutions, pipeline, approval gates | — |
