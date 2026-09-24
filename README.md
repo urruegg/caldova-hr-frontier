@@ -1,5 +1,14 @@
 # GF HR Agentic Platform
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Proposed Baseline |
+| **Scope** | Repository |
+| **References** | [HR Solution Functional Design Intake](docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
 **A pure agentic, Frontier-driven HR organisation — with Workday as the system of record.**
 
 Georg Fischer is not automating HR tasks. It is building an HR organisation where agents do the reading, preparing, checking and completing, and people do the deciding. This package is the design for that platform: the requirements, the architecture, the decisions, the journey it serves, and every use case considered.
@@ -245,8 +254,8 @@ Where a source says TBD, this package says TBD. Nothing has been invented to fil
 | Platform PRD | Draft 0.1 — FR-0001…FR-0014, NFR-0001…NFR-0012 |
 | Solution Design | Draft 0.2 — workflow-first |
 | HR Journey and RACI | Draft 0.1 |
-| ADR 0001–0005, 0007 | Accepted, pending GF ratification |
-| ADR 0006 | **Proposed** — Organizational Data Service not confirmed by GF |
+| ADR 0005–0009, 0011 | Accepted, pending GF ratification |
+| ADR 0010 | **Proposed** — Organizational Data Service not confirmed by GF |
 | UC-0001 | **Specified** — PRD Draft 0.3. Definition of Ready **not met** |
 | UC-0010, UC-0005 | In MVP scope, **no PRD yet** |
 | 15 further use cases | Ideas. No commitment attached |
@@ -260,4 +269,52 @@ Where a source says TBD, this package says TBD. Nothing has been invented to fil
 
 ---
 
+## Repository Agent Workflow
+
+This repository bundles [Superpowers](https://github.com/obra/superpowers) v6.3.0 for GitHub Copilot. Contributors receive the same agent workflows by cloning the repository; no machine-level Superpowers installation is required.
+
+GitHub Copilot discovers the skills under `.github/skills/` in:
+
+- Visual Studio Code chat and agent mode;
+- GitHub Copilot CLI when launched from this repository.
+
+Repository instructions require Copilot to begin with the `using-superpowers` skill and load other skills when relevant.
+
+### Verify the Bundle
+
+From the repository root on Windows, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-setup.ps1
+```
+
+The command succeeds with `Repository setup validation passed.` when the folder structure, skill metadata, exact runtime file set and SHA-256 hashes, executable Git modes, bootstrap instructions, version metadata, and license are valid.
+
+In VS Code, open **Chat: Open Customizations** and confirm the workspace skills appear without metadata errors. Confirm `using-superpowers` shows its source/path as `.github/skills/using-superpowers/SKILL.md` so repository provenance is checked.
+
+In Copilot CLI, from the repository root run `copilot --no-auto-update -C . skill list --json` and confirm `using-superpowers` has `source` equal to `project`, `enabled` equal to `true`, and a `path` ending in this repository's `.github/skills/using-superpowers`, regardless of whether the host displays `/` or `\` path separators. In an interactive session, `/skills info using-superpowers` can also confirm the repository location. For the behavior smoke test, start `copilot --no-auto-update -C .`, then enter a natural-language prompt such as `Use the /using-superpowers skill to identify which process applies before changing code.` Standalone `/using-superpowers` is supported, but the prompt form is recommended because it provides a verifiable response.
+
+### Pinned Version and License
+
+The vendored runtime is pinned to upstream release v6.3.0 at commit `b36e0829c6d0140e93cfef2ca599b1b07d4a7797`.
+
+- Source metadata: [`.github/skills/SUPERPOWERS_VERSION`](.github/skills/SUPERPOWERS_VERSION)
+- Runtime SHA-256 manifest: [`.github/skills/SUPERPOWERS_SHA256SUMS`](.github/skills/SUPERPOWERS_SHA256SUMS)
+- Upstream MIT license: [`.github/skills/LICENSE.superpowers`](.github/skills/LICENSE.superpowers)
+
+### Updating Superpowers
+
+Updates are deliberate and reviewed. To update:
+
+1. Review the newer upstream release and release notes.
+2. Replace only the 14 vendored skill directories with the newer release's `skills/` content.
+3. Review and update `.github/cli/verify-repository-setup.ps1` fixed contracts for the new upstream release: the expected 14-skill inventory, seven-path executable mode inventory, source release/version/tag/commit, manifest name and metadata, and license attribution checks.
+4. Regenerate `SUPERPOWERS_SHA256SUMS` from every file in the 14 reviewed upstream runtime directories using forward-slash relative paths, ordinal path sorting, and lowercase SHA-256 hashes.
+5. Preserve the upstream executable Git modes for the reviewed runtime paths.
+6. Refresh `LICENSE.superpowers` if the upstream license changed.
+7. Update `SUPERPOWERS_VERSION` with the release, tag object, commit, date, manifest name, and included skill list.
+8. Run the repository verifier and complete the VS Code and Copilot CLI smoke tests under **Verify the Bundle**.
+9. Commit the runtime replacement, manifest, metadata, validator contracts, and any required bootstrap compatibility changes together.
+
+Do not track upstream `main`, use a submodule, or edit vendored skill files for repository-specific behavior.
 
