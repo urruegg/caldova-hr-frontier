@@ -1,9 +1,16 @@
 [CmdletBinding()]
 param(
-    [string]$RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
+    [string]$RepositoryRoot
 )
 
 $ErrorActionPreference = 'Stop'
+# $PSScriptRoot is not populated while parameter default values are evaluated
+# under `-File` invocation, so the default is resolved here in the script body
+# instead of in the param block (see infra/tests/pester or CI failures for the
+# ParameterArgumentValidationErrorEmptyStringNotAllowed symptom otherwise).
+if (-not $RepositoryRoot) {
+    $RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
+}
 $repositoryRootPath = [IO.Path]::GetFullPath($RepositoryRoot)
 $prohibitedPattern = 'az\s+deployment\s+sub\s+create|New-AzSubscriptionDeployment|client[_-]?secret|AZURE_CLIENT_SECRET|--password'
 $failures = [Collections.Generic.List[string]]::new()

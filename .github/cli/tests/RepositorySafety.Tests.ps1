@@ -18,6 +18,18 @@ BeforeAll {
 }
 
 Describe 'Core repository safety validation' {
+    It 'resolves its own repository root when invoked without -RepositoryRoot' {
+        # The CI workflow step runs this script via `-File` with no
+        # -RepositoryRoot argument, which exercises the parameter default
+        # value in a way that `& $script:validatorPath -RepositoryRoot ...`
+        # calls elsewhere in this file do not. Regression test for
+        # ParameterArgumentValidationErrorEmptyStringNotAllowed on $PSScriptRoot.
+        $output = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $script:validatorPath 2>&1 | ForEach-Object { $_.ToString() })
+
+        $LASTEXITCODE | Should -Be 0
+        $output | Should -Contain 'Repository safety validation passed.'
+    }
+
     It 'accepts scripts and workflows without deployment execution or credentials' {
         $script:validatorPath | Should -Exist
         $fixtureRoot = New-SafetyFixture
