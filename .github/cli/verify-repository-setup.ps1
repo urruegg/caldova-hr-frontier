@@ -13,6 +13,31 @@ function Add-Failure {
     param([string]$Message)
     [void]$failures.Add($Message)
 }
+$actionPinManifestPath = Join-Path $repositoryRoot 'infra\src\config\github\action-pins.json'
+$reviewedActionUses = [ordered]@{}
+if (-not (Test-Path -LiteralPath $actionPinManifestPath -PathType Leaf)) {
+    Add-Failure 'Missing action pin manifest: infra/src/config/github/action-pins.json'
+}
+else {
+    try {
+        $actionPinManifest = Get-Content -Raw -LiteralPath $actionPinManifestPath | ConvertFrom-Json
+        foreach ($actionProperty in @($actionPinManifest.actions.PSObject.Properties)) {
+            $reviewedActionUses[[string]$actionProperty.Name] = '{0}@{1}' -f $actionProperty.Name, $actionProperty.Value.sha
+        }
+    }
+    catch {
+        Add-Failure "Cannot read action pin manifest: $($_.Exception.Message)"
+    }
+}
+function Get-ReviewedActionUse {
+    param([string]$Name)
+
+    if (-not $reviewedActionUses.Contains($Name)) {
+        Add-Failure "Action pin manifest does not define required action: $Name"
+        return "${Name}@MISSING"
+    }
+    [string]$reviewedActionUses[$Name]
+}
 $documentationMetadataModulePath = Join-Path $PSScriptRoot 'modules\DocumentationMetadata.psm1'
 $documentationMetadataAvailable = $false
 if (-not (Test-Path -LiteralPath $documentationMetadataModulePath -PathType Leaf)) {
@@ -779,7 +804,7 @@ Test-RequiredContent '.github/pull_request_template.md' @(
 Test-RequiredContent '.github/dependabot.yml' @('package-ecosystem: "github-actions"', 'interval: "weekly"')
 Test-RequiredContent '.github/workflows/validate-repository.yml' @(
     'name: Validate repository',
-    'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683',
+    (Get-ReviewedActionUse -Name 'actions/checkout'),
     'Repository setup validation',
     'RepositorySafety.Tests.ps1',
     'infra/tests/pester',
@@ -816,6 +841,7 @@ $phase3RequiredPaths = @(
     'infra/src/bicep/modules/resource-group.bicep',
     'infra/src/bicep/modules/subscription-policy-assignments.bicep',
     'infra/src/bicep/modules/validation-role.bicep',
+    'infra/src/config/github/action-pins.json',
     'infra/src/config/schemas/bootstrap-result.schema.json',
     'infra/src/config/schemas/discovery.schema.json',
     'infra/src/config/schemas/tenant.schema.json',
@@ -896,8 +922,8 @@ foreach ($workflowPath in @('.github/workflows/bootstrap-tenant.yml', '.github/w
         'permissions:',
         'contents: read',
         'id-token: write',
-        'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683',
-        'azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5',
+        (Get-ReviewedActionUse -Name 'actions/checkout'),
+        (Get-ReviewedActionUse -Name 'azure/login'),
         'environment: bootstrap-${{ inputs.tenantAlias }}'
     )
 }

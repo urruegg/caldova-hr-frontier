@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0",
+  "actions": {
+    "actions/checkout": {
+      "sourceRef": "v7.0.1",
+      "sha": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+    },
+    "azure/login": {
+      "sourceRef": "v2.3.0",
+      "sha": "a457da9ea143d694b1b9c7c869ebb04ebe844ef5"
+    },
+    "microsoft/powerplatform-actions/who-am-i": {
+      "sourceRef": "reviewed commit",
+      "sha": "0e44beb5424af932af47250a2568eba4c259e3d8"
+    },
+    "actions/upload-artifact": {
+      "sourceRef": "v4.6.2",
+      "sha": "ea165f8d65b6e75b540449e92b4886f43607fa02"
+    }
+  }
+}

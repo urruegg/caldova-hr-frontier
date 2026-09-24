@@ -3,16 +3,35 @@ BeforeAll {
     $script:validatorPath = Join-Path $script:repositoryRoot '.github\cli\verify-repository-safety.ps1'
 
     function script:New-SafetyFixture {
-        param([string]$Content = 'Write-Output ''safe''')
+                param(
+                        [string]$Content = 'Write-Output ''safe''',
+                        [string]$WorkflowContent = @'
+steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+'@,
+                        [string]$ManifestContent = @'
+{
+    "schemaVersion": "1.0",
+    "actions": {
+        "actions/checkout": {
+            "sourceRef": "v7.0.1",
+            "sha": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+        }
+    }
+}
+'@
+                )
 
         $root = Join-Path $TestDrive ([guid]::NewGuid().ToString())
         $scriptRoot = Join-Path $root 'infra\src\scripts'
         $workflowRoot = Join-Path $root '.github\workflows'
+                $manifestRoot = Join-Path $root 'infra\src\config\github'
         [void](New-Item -ItemType Directory -Path $scriptRoot -Force)
         [void](New-Item -ItemType Directory -Path $workflowRoot -Force)
+                [void](New-Item -ItemType Directory -Path $manifestRoot -Force)
         [IO.File]::WriteAllText((Join-Path $scriptRoot 'Example.ps1'), $Content, [Text.UTF8Encoding]::new($false))
-        [IO.File]::WriteAllText((Join-Path $workflowRoot 'bootstrap-tenant.yml'), "name: safe`n", [Text.UTF8Encoding]::new($false))
-        [IO.File]::WriteAllText((Join-Path $workflowRoot 'discover-tenant.yml'), "name: safe`n", [Text.UTF8Encoding]::new($false))
+                [IO.File]::WriteAllText((Join-Path $workflowRoot 'validate.yml'), $WorkflowContent, [Text.UTF8Encoding]::new($false))
+                [IO.File]::WriteAllText((Join-Path $manifestRoot 'action-pins.json'), $ManifestContent, [Text.UTF8Encoding]::new($false))
         $root
     }
 }
@@ -63,5 +82,67 @@ Describe 'Core repository safety validation' {
 
         $LASTEXITCODE | Should -Be 1
         $output -join "`n" | Should -Match 'other\.yml'
+    }
+
+    It 'accepts exact external pins and ignores repository-local actions' {
+        $fixtureRoot = New-SafetyFixture -WorkflowContent @'
+steps:
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  - uses: ./.github/actions/local
+'@
+
+        $output = @(& $script:validatorPath -RepositoryRoot $fixtureRoot)
+
+        $output | Should -Be @('Repository safety validation passed.')
+    }
+
+    It 'rejects <Reason>' -TestCases @(
+        @{
+            Reason = 'an unknown external action'
+            WorkflowContent = 'steps:
+  - uses: owner/unknown@1111111111111111111111111111111111111111'
+            ManifestContent = '{"schemaVersion":"1.0","actions":{"actions/checkout":{"sourceRef":"v7.0.1","sha":"3d3c42e5aac5ba805825da76410c181273ba90b1"},"owner/known":{"sourceRef":"v1.0.0","sha":"2222222222222222222222222222222222222222"}}}'
+            Expected = 'Unknown external action owner/unknown'
+        }
+        @{
+            Reason = 'a mutable action reference'
+            WorkflowContent = 'steps:
+  - uses: actions/checkout@v7'
+            ManifestContent = '{"schemaVersion":"1.0","actions":{"actions/checkout":{"sourceRef":"v7.0.1","sha":"3d3c42e5aac5ba805825da76410c181273ba90b1"}}}'
+            Expected = 'must use a lowercase 40-character SHA'
+        }
+        @{
+            Reason = 'a mismatched action SHA'
+            WorkflowContent = 'steps:
+  - uses: actions/checkout@1111111111111111111111111111111111111111'
+            ManifestContent = '{"schemaVersion":"1.0","actions":{"actions/checkout":{"sourceRef":"v7.0.1","sha":"3d3c42e5aac5ba805825da76410c181273ba90b1"}}}'
+            Expected = 'does not match reviewed SHA'
+        }
+        @{
+            Reason = 'an unused manifest entry'
+            WorkflowContent = 'steps:
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+            ManifestContent = '{"schemaVersion":"1.0","actions":{"actions/checkout":{"sourceRef":"v7.0.1","sha":"3d3c42e5aac5ba805825da76410c181273ba90b1"},"owner/unused":{"sourceRef":"v1.0.0","sha":"2222222222222222222222222222222222222222"}}}'
+            Expected = 'Manifest action is unused: owner/unused'
+        }
+    ) {
+        param([string]$WorkflowContent, [string]$ManifestContent, [string]$Expected)
+
+        $fixtureRoot = New-SafetyFixture -WorkflowContent $WorkflowContent -ManifestContent $ManifestContent
+        $output = @(& $script:validatorPath -RepositoryRoot $fixtureRoot 2>&1 | ForEach-Object { $_.ToString() })
+
+        $LASTEXITCODE | Should -Be 1
+        $output -join "`n" | Should -Match ([regex]::Escape($Expected))
+    }
+
+    It 'resolves its repository root when invoked without parameters' {
+        $powershell = Get-Command powershell.exe -CommandType Application | Select-Object -First 1
+        $process = Start-Process -FilePath $powershell.Source -ArgumentList @(
+            '-NoProfile',
+            '-ExecutionPolicy', 'Bypass',
+            '-File', ('"{0}"' -f $script:validatorPath)
+        ) -WorkingDirectory $TestDrive -Wait -PassThru -NoNewWindow
+
+        $process.ExitCode | Should -Be 0
     }
 }
