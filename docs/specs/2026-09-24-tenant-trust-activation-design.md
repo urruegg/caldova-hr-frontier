@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 2.0 |
 | **Date** | 2026-09-24 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -11,72 +11,77 @@
 
 ## Status
 
-Proposed Baseline. This document is the first of several planned sub-projects toward standing up Tenant 1's Azure DevOps and GitHub foundation for building and deploying HR solutions to DEV. It scopes only the trust-creation gap identified below. Azure DevOps project configuration, Azure Boards backlog population, the Azure Boards↔GitHub connection, final GitHub governance activation, and the Power Platform DEV deployment pipeline are explicitly tracked as separate, later sub-projects — not designed here.
+Proposed Baseline. This document is the first of several planned sub-projects toward standing up Tenant 1's Azure DevOps and GitHub foundation for building and deploying HR solutions to DEV. It scopes only the trust-activation gap identified below. Azure DevOps project configuration, Azure Boards backlog population, the Azure Boards↔GitHub connection, final GitHub governance activation, and the Power Platform DEV deployment pipeline are explicitly tracked as separate, later sub-projects — not designed here.
+
+**Revision note (v2.0):** Version 1.0 of this document claimed no script in this repository creates the Entra Application, Service Principal, Federated Identity Credential, or GitHub Environment, and proposed building a new `New-TenantTrust.ps1` plus four new module functions to do so. That claim was wrong — the author read one test title ("builds the full attended trust plan under WhatIf with zero mutation adapter calls") and incorrectly inferred it described the script's only behavior, without reading the script's actual control flow. `Initialize-TenantTrust.ps1` already creates every one of these objects when run without `-WhatIf` (see Context below). Version 2.0 corrects this: no new script or module function is proposed. The only new deliverable is the operator runbook, plus a zero-mutation readiness check confirming the existing tool runs cleanly against live Tenant 1 state today.
 
 ## Objective
 
-Close the one gap blocking every piece of already-built Tenant 1 automation (discovery, the bootstrap `what-if`, GitHub governance activation): no script in this repository creates the Entra Application, Service Principal, Federated Identity Credential, or the GitHub Environment `bootstrap-${tenantAlias}`. `Initialize-TenantTrust.ps1` only plans this — proven zero-mutation by its own test suite. Build the missing, reusable creation capability, and produce a runbook so this same tooling activates trust for Tenant 2 and Tenant 3 later.
+Produce the operator runbook for activating Tenant 1's trust — the Entra Application, Service Principal, Federated Identity Credential, and GitHub Environment `bootstrap-caldova25156897` (with its 3 variables), plus the Azure DevOps service-principal entitlement and Readers membership — using the existing `Initialize-TenantTrust.ps1`, which already creates all of these. This unblocks every downstream piece of already-built automation (discovery, the bootstrap `what-if`, GitHub governance activation), and the runbook itself is written to be reusable for Tenant 2 and Tenant 3 later.
 
-## Context: Why This Is the Right Next Step
+## Context: What `Initialize-TenantTrust.ps1` Actually Does
 
-Live evidence gathered directly in this session:
+Live evidence gathered directly in this session, and a full read of `infra/src/scripts/Initialize-TenantTrust.ps1`'s control flow:
 
 - `az` CLI 2.90.0 and Azure Developer CLI are installed locally, but not logged in (`az account show` → "Please run 'az login'"). `gh` CLI is already authenticated as `urruegg` with `repo` scope.
 - GitHub side: 0 Environments and 0 rulesets exist on `urruegg/caldova-hr-frontier` today.
 - `infra/src/config/tenants/caldova25156897.psd1` still marks `EntraApplication`, `EntraServicePrincipal`, `EntraFederatedIdentityCredential`, and `GitHubEnvironment` as `Mode = Create` — none exist yet.
-- `.github/workflows/discover-tenant.yml` and `bootstrap-tenant.yml` both declare `environment: bootstrap-${{ inputs.tenantAlias }}` — neither can even start without that Environment already existing.
-- `Initialize-TenantTrust.ps1`'s own Pester coverage proves it performs zero mutation ("builds the full attended trust plan under WhatIf with zero mutation adapter calls") and "never contains app credential creation commands or forbidden secret flags." Its `Assert-*State` functions only read and compare — they never create.
-- `Enable-GitHubGovernance.ps1` (the final governance-activation step) requires the Environment to already exist (`Assert-EnvironmentReadBack`) and requires a completed, evidenced `bootstrap-tenant.yml` run — it activates the branch ruleset only, nothing upstream of it.
-- Creating the very first OIDC trust for a tenant is an inherent chicken-and-egg: a GitHub Actions workflow has nothing to authenticate with until the trust exists, so this one-time step can only ever be run by a human, with their own interactive Azure login carrying Entra Application Administrator rights. This is universal to OIDC bootstrapping, not a gap specific to this repository.
+- `.github/workflows/discover-tenant.yml` and `bootstrap-tenant.yml` both declare `environment: bootstrap-${{ inputs.tenantAlias }}` — neither can start without that Environment already existing.
+- **`Initialize-TenantTrust.ps1` is not read-only.** It always builds and writes the reviewed plan first (`Write-BomlessJsonAtomically` to `-PlanOutputPath`, when supplied), then contains this exact gate: `if ($WhatIfPreference) { return $result }`. Passed `-WhatIf`, it stops there — zero mutation, which is what its own test ("builds the full attended trust plan under WhatIf with zero mutation adapter calls") actually proves, and only that. **Run without `-WhatIf`, it continues past that gate** and, for every component whose reviewed `Mode` is `Create`, performs the real creation: `CreateApplication`, `CreateServicePrincipal`, `AddApplicationPermission`, `GrantAdminConsent`, `CreateFederatedCredential`, `PutEnvironment`, `SetEnvironmentVariable` (all three variables), `CreateServicePrincipalEntitlement` (Azure DevOps), and the Azure DevOps Readers group membership — each individually gated by its own `$PSCmdlet.ShouldProcess(...)` call, and each followed by an immediate read-back through the same `Assert-*State` functions used for verification.
+- It never creates a password or certificate credential — the federated identity credential is the only trust mechanism (proven by its own "never contains app credential creation commands or forbidden secret flags" test) — and it never touches Azure RBAC role assignments or Power Platform environments; `New-PowerPlatformPrerequisites` only documents what a Power Platform administrator still needs to do separately.
+- It requires an **interactive Azure user context**: it calls `az account get-access-token` and asserts the authenticated principal's `UserType` is `user` (never a service principal) and its `UserPrincipalName` matches the reviewed `AdminUpn`. This is why it can only ever be run by a human with their own `az login` — it is designed for exactly that, not for a GitHub Actions workflow.
+- `-PlanOutputPath` must resolve under the OS temp directory or `$env:RUNNER_TEMP` (`Resolve-AllowedPlanOutputPath` throws otherwise) — the plan file is deliberately kept out of the repository.
+- `Enable-GitHubGovernance.ps1` (the final governance-activation step, separate and later) requires this Environment to already exist (`Assert-EnvironmentReadBack`) and a completed, evidenced `bootstrap-tenant.yml` run — it activates the branch ruleset only, nothing this document covers.
+- Creating the very first OIDC trust for a tenant is an inherent chicken-and-egg: a GitHub Actions workflow has nothing to authenticate with until the trust exists, so this one-time run is always a human, interactively, with Entra Application Administrator rights — universal to OIDC bootstrapping, not a gap in this repository's design.
 
 ## Architecture
 
+No new script or module function. The existing `Initialize-TenantTrust.ps1` is run twice by the operator:
+
 ```text
-Initialize-TenantTrust.ps1 (existing, zero-mutation)
-    --> writes reviewed plan JSON (-PlanOutputPath)
-        --> New-TenantTrust.ps1 (new, mutation-capable)
-            --> Graph API: create Application, Service Principal, Federated Identity Credential
-            --> GitHub API: create Environment + 3 variables
-            --> re-invokes Initialize-TenantTrust.ps1 for read-back proof
+az login                                    (human, interactive, Application Administrator)
+    |
+    v
+Initialize-TenantTrust.ps1 -WhatIf          (review the plan; zero mutation; safe to re-run any time)
+    |  human reviews the written plan JSON
+    v
+Initialize-TenantTrust.ps1                  (same tool, no -WhatIf; creates every reviewed Create item;
+                                              each object individually confirmed via ShouldProcess)
+    |
+    v
+Initialize-TenantTrust.ps1 -WhatIf          (re-run for read-back proof: every prior Create item
+                                              must now show Existing with a stable ID)
 ```
 
-`New-TenantTrust.ps1` never re-implements plan logic. It reads the JSON plan the existing tool already produces (via `Add-PlanItem`'s `Order`/`Operation`/`TargetType`/`TargetId`/`TargetName`/`Mode`/`Status`/`Properties` shape) and adds only the missing capability: executing `Create` items. It does not invent new verification either: after creating, it re-runs `Initialize-TenantTrust.ps1` fresh and requires every previously-`Create` item to now read back `Existing`/verified with an exact stable ID — reusing a tool a human already trusts rather than auditing new verification code. This leaves the existing, already-tested 1,500-line `Initialize-TenantTrust.ps1` completely untouched — zero regression risk to it.
-
-Scope is deliberately narrow: only `EntraApplication`, `EntraServicePrincipal`, `EntraFederatedIdentityCredential`, `GitHubEnvironment` (and its 3 non-secret variables). `AzureDevOpsServicePrincipalEntitlement`, `AzureDevOpsReadersMembership`, and every `PowerPlatformEnvironment*` component are explicitly out of scope — separate sub-projects. No Azure RBAC role assignment is ever created, granted, or touched here, and no application secret or certificate credential is ever created — the federated identity credential is the only trust mechanism, matching this repository's existing hard rule (proven by `Initialize-TenantTrust.ps1`'s "never contains app credential creation commands" test).
+Running with `-WhatIf` first is a safety practice this design recommends, not something the tool requires — `-WhatIf` and the no-`-WhatIf` run both write the same plan file shape, so the first run gives the operator a clean, risk-free preview before anything is created.
 
 ## Components
 
 | File | Responsibility |
 |---|---|
-| `infra/src/scripts/New-TenantTrust.ps1` (new) | CLI entry point. Reads a plan JSON produced by `Initialize-TenantTrust.ps1 -PlanOutputPath`, filters to in-scope `Create` items, executes them in `Order`, then re-invokes `Initialize-TenantTrust.ps1` for read-back proof. `[CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]`. Performs the same interactive-context check as the existing tool: the authenticated Azure principal must be a `user` (never a service principal) whose `UserPrincipalName` matches the reviewed `AdminUpn`. |
-| `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/New-EntraTrustApplication.ps1` (new) | `POST /applications` — single-tenant (`signInAudience = AzureADMyOrg`), exact reviewed display name `{NamingRoot}-github-bootstrap`. Reads the created object back via `GET` before returning. |
-| `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/New-EntraTrustServicePrincipal.ps1` (new) | `POST /servicePrincipals` for the created application's `appId`. |
-| `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/New-EntraTrustFederatedCredential.ps1` (new) | `POST /applications/{id}/federatedIdentityCredentials` with the exact issuer (`https://token.actions.githubusercontent.com`), audience (`api://AzureADTokenExchange`), and subject computed by the existing, reused `Get-GitHubOidcSubject` module function — never a hand-built string. |
-| `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/New-GitHubBootstrapEnvironment.ps1` (new) | `PUT /repos/{owner}/{repo}/environments/{name}` (deployment branch policy restricted to `main`, required reviewer = the reviewed GitHub login), then `POST` the 3 non-secret variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`. |
-| `infra/tests/pester/TenantTrustActivation.Tests.ps1` (new) | Full injected-adapter coverage mirroring `TenantTrust.Tests.ps1`'s dependency-injection pattern — zero live network calls in any test. Kept as its own file rather than growing the already 1,500+ line existing one. |
-| `infra/docs/20-tenant-trust-activation-runbook.md` (new) | Tenant-agnostic (`<tenantAlias>`-parameterized), step-by-step operator runbook — see below. |
+| `infra/docs/20-tenant-trust-activation-runbook.md` (new) | Tenant-agnostic (`<tenantAlias>`-parameterized), step-by-step operator runbook — see below. The only new file this document proposes. |
 
-Each new Private function does exactly one Graph/GitHub call plus its own read-back; none creates more than one object type.
+No PowerShell code is created or modified. `Initialize-TenantTrust.ps1` and its Pester coverage (`infra/tests/pester/TenantTrust.Tests.ps1`) are used exactly as they exist today.
 
 ## Data Flow, Gating, and Error Handling
 
-1. The human runs `az login` interactively, with Entra Application Administrator rights — outside any script, and never performed by an agent.
-2. The human runs `Initialize-TenantTrust.ps1 -TenantAlias <alias> -PlanOutputPath plan.json` (existing tool, zero mutation) and reviews the plan.
-3. The human — or an agent in the same session, only with the human's explicit go-ahead at this specific step — runs `New-TenantTrust.ps1 -TenantAlias <alias> -PlanPath plan.json`. Default PowerShell `ShouldProcess` behavior prompts for confirmation before creating each object; nothing is created silently.
-4. A partial failure (for example, the Application is created but the Service Principal `POST` fails) is diagnosable and safely re-runnable: re-running `New-TenantTrust.ps1` against a fresh plan shows the Application as `Existing` and only attempts the remaining `Create` items. No rollback or delete logic is built — this matches [Bootstrap Recovery](../../infra/docs/19-bootstrap-recovery.md)'s existing "stop on ambiguity, repair only after approval" model, never an automatic delete.
-5. Final step: re-run `Initialize-TenantTrust.ps1` fresh; every item that was `Create` must now read back `Existing` with a stable ID matching what was just created — not merely "an application exists somewhere."
+1. The human runs `az login` interactively, with Entra Application Administrator rights — outside any script, never performed by an agent.
+2. The human (or an agent in the same session, only with the human's explicit go-ahead at this specific step) runs `Initialize-TenantTrust.ps1 -TenantAlias caldova25156897 -PlanOutputPath <temp-path>\tenant-trust-plan.json -WhatIf` and reviews the written plan.
+3. The same command is run again **without** `-WhatIf`. PowerShell's default `$ConfirmPreference` (`High`, matching the script's declared `ConfirmImpact = 'High'`) means every mutating step prompts for confirmation automatically — nothing is created silently, with no extra flag required.
+4. A partial failure (for example, the Application is created but a later step fails) is diagnosable and safely re-runnable: re-running the same command shows already-created objects as `Existing` and only attempts the remaining `Create` items — this is the script's own existing behavior, not new logic.
+5. Final step: re-run with `-WhatIf` one more time; every item that was `Create` must now read back `Existing` with a stable ID matching what was just created.
 6. Explicitly **not** covered by this sub-project: granting the two temporary Azure RBAC roles (Contributor, Role Based Access Control Administrator), running `bootstrap-tenant.yml`, or running `Enable-GitHubGovernance.ps1`. Those are already-built, later steps in the existing evidence-gated state machine and remain their own separate, attended actions.
 
 ## Testing
 
-Every new Private function gets injected-adapter Pester tests: success path, a Graph/GitHub error response, and a read-back mismatch that must throw. No test makes a live call, matching this repository's universal pattern. `New-TenantTrust.ps1` gets integration-style tests using the same injection points, covering: a full `Create` set, a mixed `Existing`+`Create` plan, a plan containing an out-of-scope target type (must be skipped — Azure DevOps and Power Platform items are never touched), and a forced read-back mismatch after creation (must throw, never silently accept).
+No new test file. `infra/tests/pester/TenantTrust.Tests.ps1` already covers the Create path with injected adapters (for example: "fails closed on ambiguous application lookup in Create mode"), so this sub-project's only verification obligation is a readiness check: run `Invoke-Pester -Path infra/tests/pester/TenantTrust.Tests.ps1 -Output Detailed` and confirm it is green today, then perform one real, zero-mutation `-WhatIf` run against live Tenant 1 state (after `az login`) to prove the tool actually executes end-to-end in this environment — not just under test doubles.
 
 ## Runbook (Reusable Across Tenants)
 
 `infra/docs/20-tenant-trust-activation-runbook.md` is written parameterized by `<tenantAlias>` so the same steps activate trust for Tenant 2 and Tenant 3 later, per the sequence already documented in [Multi-Tenant Provisioning](../../infra/docs/18-multi-tenant-provisioning.md). It covers:
 
 - **Prerequisites:** Entra Application Administrator (or Cloud Application Administrator) role for the operator; `az` CLI installed and not yet logged in; `gh` CLI already authenticated with repository administrator permission; the tenant's manifest committed with `LifecycleState = IntentReviewed` or later.
-- **Step-by-step:** `az login` (interactive); run `Initialize-TenantTrust.ps1` and review the plan by hand; run `New-TenantTrust.ps1` and respond to each `ShouldProcess` confirmation; re-run `Initialize-TenantTrust.ps1` and confirm every prior `Create` item now shows `Existing` with a stable ID.
+- **Step-by-step:** `az login` (interactive); run `Initialize-TenantTrust.ps1 -WhatIf` and review the plan by hand; run the same command again without `-WhatIf` and respond to each `ShouldProcess` confirmation; re-run with `-WhatIf` and confirm every prior `Create` item now shows `Existing` with a stable ID.
 - **Explicit boundaries:** what this runbook does not do (temporary Azure role grants, `bootstrap-tenant.yml`, `Enable-GitHubGovernance.ps1`), each with a pointer to the existing document that owns it.
 - **Troubleshooting:** maps directly to the relevant sections of [Bootstrap Recovery](../../infra/docs/19-bootstrap-recovery.md) ("Trust creation", "OIDC mismatch") rather than duplicating their content.
 
