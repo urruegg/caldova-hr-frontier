@@ -1,3 +1,16 @@
+# Pull Request
+
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-24 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Proposed Baseline |
+| **Scope** | Repository |
+| **References** | [HR Solution Functional Design Intake](../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+
+<!-- markdownlint-configure-file { "MD060": false } -->
+
 ## What changed
 
 <!-- One or two sentences. What is different after this merge? -->
@@ -5,6 +18,18 @@
 ## Why
 
 <!-- Link the decision, requirement or open item this serves: ADR-nnnn, FR-nnnn, D-nn, UC-nnnn -->
+
+## Work item
+
+AB#
+
+## Environments affected
+
+The DEV, TEST, and PROD checkboxes describe Power Platform ALM impact, not Azure infrastructure environments.
+
+- [ ] DEV
+- [ ] TEST
+- [ ] PROD
 
 ---
 
@@ -19,6 +44,13 @@
 - [ ] **Open decisions stay open.** Nothing marked TBD has been resolved by inference
 - [ ] Identifiers cited rather than prose; new numbers allocated, never reused
 - [ ] Links resolve
+- [ ] No secrets, credentials, access tokens, personal HR data, or unreviewed tenant values introduced
+- [ ] Deployment order respected: infrastructure before HR
+- [ ] Build, lint, test, and Solution Checker run for affected areas; evidence pasted below rather than claimed
+
+```text
+Paste command output here.
+```
 
 ## If this touches a use case
 
