@@ -5,7 +5,7 @@
 | **Version** | 1.0 |
 | **Date** | 2026-09-24 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Implemented |
+| **Status** | Active |
 | **Scope** | HR |
 | **References** | [ADR-0006 Agentic Toolset and HR Control Plane Split](../adr/0006-agentic-toolset-and-hr-control-plane.md), [HR Control Plane Mockup Idea](../../hr/docs/ideas/hr-control-plane-mockup-idea.md), [Power Platform Solution Foundation Design](2026-09-24-power-platform-solution-foundation-design.md), [BrandKit README](../brand/README.md) |
 
