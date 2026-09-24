@@ -981,7 +981,7 @@ Expected: `Connect script parse errors: 0` and `Sync script parse errors: 0`.
 
 Create `hr/src/scripts/README.md`:
 
-```markdown
+````markdown
 # `hr/src/scripts/` — Power Platform solution lifecycle tooling
 
 | Field | Value |
@@ -1017,13 +1017,13 @@ The first run for a tenant prompts an interactive Microsoft Entra ID sign-in (a 
 
 ## Why export is DEV-only
 
-`Export-HrSolutionPackage` does not accept a `-Stage` parameter. Managed solutions for TEST and PROD are produced by a deployment pipeline from the committed DEV source — never hand-exported from those environments — per [`docs/solution-design.md`](../../../docs/solution-design.md) §7. Hand-exporting from TEST or PROD would create a second, undocumented path for solution content to enter source control, silently diverging from the pipeline-managed one.
+`Export-HrSolutionPackage` does not accept a `-Stage` parameter. Managed solutions for TEST and PROD are produced by a deployment pipeline from the committed DEV source — never hand-exported from those environments — per [`docs/solution-design.md`](../../../docs/solution-design.md). Hand-exporting from TEST or PROD would create a second, undocumented path for solution content to enter source control, silently diverging from the pipeline-managed one.
 
 ## What this does not do (yet)
 
 - **No push path.** These scripts only pull (export + unpack). Pushing local changes back into Dataverse (`pac solution pack` + `pac solution import`) is separate future work, once there is local content to round-trip.
 - **No table, security role, connection reference, environment variable, or Copilot Studio agent creation.** Those are authored in the Power Platform maker portal (or via `pac` commands run directly by whoever is building); this tooling only pulls the result into source control afterward.
-```
+````
 
 - [ ] **Step 5: Verify documentation metadata passes**
 
