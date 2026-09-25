@@ -161,9 +161,9 @@ $Summary
             $wiqlEmptyFixture = [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ workItems = @() } }
 
             $ideasRoot = New-FixtureIdeasRoot
-            $items = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -ReturnPortfolioOnly
+            $items = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -ReturnPortfolioOnly
 
-            $plan = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -ReturnWorkItemPlanOnly `
+            $plan = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -ReturnWorkItemPlanOnly `
                 -AzureDevOpsRequest {
                     param($Operation, $Arguments)
                     switch ($Operation) {
@@ -182,7 +182,7 @@ $Summary
         It 'marks an idea Existing when the WIQL query returns exactly one matching work item' {
             $ideasRoot = New-FixtureIdeasRoot
 
-            $plan = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -ReturnWorkItemPlanOnly `
+            $plan = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -ReturnWorkItemPlanOnly `
                 -AzureDevOpsRequest {
                     param($Operation, $Arguments)
                     switch ($Operation) {
@@ -206,7 +206,7 @@ $Summary
             $ideasRoot = New-FixtureIdeasRoot
 
             {
-                & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -ReturnWorkItemPlanOnly `
+                & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -ReturnWorkItemPlanOnly `
                     -AzureDevOpsRequest {
                         param($Operation, $Arguments)
                         switch ($Operation) {
