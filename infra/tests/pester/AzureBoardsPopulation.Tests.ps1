@@ -23,7 +23,7 @@ Describe 'Azure Boards population' {
             }
 
             $content = @"
-# $UseCaseId — $Title
+# $UseCaseId - $Title
 
 | Field | Value |
 |---|---|
@@ -52,10 +52,10 @@ $Summary
             New-Item -ItemType Directory -Path $root -Force | Out-Null
 
             $fixtures = @(
-                @{ Id = 'UC-0001'; Path = 'uc-0001-fixture-folder\uc-0001-fixture-folder.md'; Title = 'Fixture MVP Selected'; StatusLine = '**Selected as MVP** — the only use case in this portfolio that has advanced past idea'; Stage = 'Pre-board'; Summary = 'Summary for UC-0001.' }
-                @{ Id = 'UC-0002'; Path = 'uc-0002-fixture-adjacent.md'; Title = 'Fixture Adjacent'; StatusLine = '**Runs alongside the MVP** — recommended, not counted'; Stage = 'Cross-cutting — HR Service Delivery'; Summary = 'Summary for UC-0002.' }
-                @{ Id = 'UC-0005'; Path = 'uc-0005-fixture-mvp-candidate.md'; Title = 'Fixture MVP Candidate'; StatusLine = '**IN MVP SCOPE** — selected, not yet specified'; Stage = 'Onboard'; Summary = 'Summary for UC-0005.' }
-                @{ Id = 'UC-0006'; Path = 'uc-0006-fixture-candidate.md'; Title = 'Fixture Candidate'; StatusLine = 'Idea — draft for review'; Stage = 'Hire'; Summary = 'Summary for UC-0006.' }
+                @{ Id = 'UC-0001'; Path = 'uc-0001-fixture-folder\uc-0001-fixture-folder.md'; Title = 'Fixture MVP Selected'; StatusLine = '**Selected as MVP** - the only use case in this portfolio that has advanced past idea'; Stage = 'Pre-board'; Summary = 'Summary for UC-0001.' }
+                @{ Id = 'UC-0002'; Path = 'uc-0002-fixture-adjacent.md'; Title = 'Fixture Adjacent'; StatusLine = '**Runs alongside the MVP** - recommended, not counted'; Stage = 'Cross-cutting - HR Service Delivery'; Summary = 'Summary for UC-0002.' }
+                @{ Id = 'UC-0005'; Path = 'uc-0005-fixture-mvp-candidate.md'; Title = 'Fixture MVP Candidate'; StatusLine = '**IN MVP SCOPE** - selected, not yet specified'; Stage = 'Onboard'; Summary = 'Summary for UC-0005.' }
+                @{ Id = 'UC-0006'; Path = 'uc-0006-fixture-candidate.md'; Title = 'Fixture Candidate'; StatusLine = 'Idea - draft for review'; Stage = 'Hire'; Summary = 'Summary for UC-0006.' }
             )
 
             foreach ($fixture in $fixtures) {
@@ -103,7 +103,7 @@ $Summary
         It 'throws a clear error when an idea file has no Status blockquote line' {
             $root = Join-Path $TestDrive ([guid]::NewGuid().ToString())
             New-Item -ItemType Directory -Path $root -Force | Out-Null
-            [System.IO.File]::WriteAllText((Join-Path $root 'uc-0001-broken.md'), "# UC-0001 — Broken`n`nNo status blockquote.`n", [System.Text.UTF8Encoding]::new($false))
+            [System.IO.File]::WriteAllText((Join-Path $root 'uc-0001-broken.md'), "# UC-0001 - Broken`n`nNo status blockquote.`n", [System.Text.UTF8Encoding]::new($false))
 
             { & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $root -RepositoryRootOverride $root -ReturnPortfolioOnly } | Should -Throw '*Status*'
         }
@@ -153,6 +153,63 @@ $Summary
                         $fixture
                     }
             } | Should -Throw "*no 'Epic' work item type*Requirement, Bug*"
+        }
+    }
+
+    Context 'Get-AzureDevOpsWorkItemPlan' {
+        It 'marks an idea Create when the WIQL query returns no matching work item' {
+            $wiqlEmptyFixture = [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ workItems = @() } }
+
+            $ideasRoot = New-FixtureIdeasRoot
+            $items = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -ReturnPortfolioOnly
+
+            $plan = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -ReturnWorkItemPlanOnly `
+                -AzureDevOpsRequest {
+                    param($Operation, $Arguments)
+                    switch ($Operation) {
+                        'QueryWorkItemsByTag' { $wiqlEmptyFixture }
+                        default { throw "Unexpected operation '$Operation' in this test." }
+                    }
+                }
+
+            $plan.Count | Should -Be $items.Count
+            ($plan | Where-Object UseCaseId -eq 'UC-0001').Mode | Should -Be 'Create'
+            ($plan | Where-Object UseCaseId -eq 'UC-0001').ExistingWorkItemId | Should -Be 0
+            ($plan | Where-Object UseCaseId -eq 'UC-0001').HyperlinkUrl | Should -Be 'https://github.com/urruegg/caldova-hr-frontier/blob/main/uc-0001-fixture-folder/uc-0001-fixture-folder.md'
+        }
+
+        It 'marks an idea Existing when the WIQL query returns exactly one matching work item' {
+            $ideasRoot = New-FixtureIdeasRoot
+
+            $plan = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -ReturnWorkItemPlanOnly `
+                -AzureDevOpsRequest {
+                    param($Operation, $Arguments)
+                    switch ($Operation) {
+                        'QueryWorkItemsByTag' {
+                            if ([string]$Arguments['Tag'] -eq 'UC-0002') {
+                                return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ workItems = @([pscustomobject]@{ id = 4242 }) } }
+                            }
+                            return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ workItems = @() } }
+                        }
+                        default { throw "Unexpected operation '$Operation' in this test." }
+                    }
+                }
+
+            $uc0002Plan = $plan | Where-Object UseCaseId -eq 'UC-0002'
+            $uc0002Plan.Mode | Should -Be 'Existing'
+            $uc0002Plan.ExistingWorkItemId | Should -Be 4242
+        }
+
+        It 'throws a named ambiguous error when the WIQL query returns more than one matching work item' {
+            $ideasRoot = New-FixtureIdeasRoot
+
+            {
+                & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -ReturnWorkItemPlanOnly `
+                    -AzureDevOpsRequest {
+                        param($Operation, $Arguments)
+                        [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ workItems = @([pscustomobject]@{ id = 1 }, [pscustomobject]@{ id = 2 }) } }
+                    }
+            } | Should -Throw '*Ambiguous existing work items tagged*'
         }
     }
 }

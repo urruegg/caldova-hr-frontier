@@ -14,6 +14,8 @@ param(
 
     [switch]$ReturnProcessCapabilitiesOnly,
 
+    [switch]$ReturnWorkItemPlanOnly,
+
     [Parameter(DontShow)]
     [scriptblock]$AzRequest,
 
@@ -76,11 +78,11 @@ function Get-HrIdeaPortfolioItems {
         $content = [System.IO.File]::ReadAllText($file.FullName)
         $lines = $content -split "`r?`n"
 
-        $headingLine = $lines | Where-Object { $_ -cmatch '^#\s+(UC-\d{4})\s*[—-]\s*(.+)$' } | Select-Object -First 1
+        $headingLine = $lines | Where-Object { $_ -cmatch '^#\s+(UC-\d{4})\s*[-\u2013\u2014]\s*(.+)$' } | Select-Object -First 1
         if (-not $headingLine) {
-            throw "Idea file '$($file.FullName)' has no H1 line matching '# UC-NNNN — Title'."
+            throw "Idea file '$($file.FullName)' has no H1 line matching '# UC-NNNN - Title'."
         }
-        $null = $headingLine -cmatch '^#\s+(UC-\d{4})\s*[—-]\s*(.+)$'
+        $null = $headingLine -cmatch '^#\s+(UC-\d{4})\s*[-\u2013\u2014]\s*(.+)$'
         $useCaseId = $Matches[1]
         $title = $Matches[2].Trim()
 
@@ -102,7 +104,7 @@ function Get-HrIdeaPortfolioItems {
             throw "Idea file '$($file.FullName)' ($useCaseId) has no '> **Journey stage:** ...' blockquote line."
         }
         $null = $stageLine -cmatch '^>\s*\*\*Journey stage:\*\*\s*(.+)$'
-        $journeyStage = ($Matches[1].Trim()) -replace '\s+—\s+', ' - '
+        $journeyStage = ($Matches[1].Trim()) -replace '\s+[-\u2013\u2014]\s+', ' - '
 
         $ideaHeadingIndex = 0..($lines.Count - 1) | Where-Object { $lines[$_] -cmatch '^##\s+1\.\s+The Idea\s*$' } | Select-Object -First 1
         if ($null -eq $ideaHeadingIndex) {
@@ -282,6 +284,28 @@ function New-DefaultAzureDevOpsRequest {
                     '--output', 'json'
                 ))
             }
+            'QueryWorkItemsByTag' {
+                $wiqlQuery = "SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '$([string]$Arguments['ProjectName'])' AND [System.WorkItemType] = 'Epic' AND [System.Tags] CONTAINS '$([string]$Arguments['Tag'])'"
+                $wiqlBody = @{ query = $wiqlQuery } | ConvertTo-Json -Compress
+                $tempFile = [System.IO.Path]::GetTempFileName()
+                try {
+                    [System.IO.File]::WriteAllText($tempFile, $wiqlBody)
+                    return (Invoke-NativeJsonCommand -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
+                        'devops', 'invoke',
+                        '--organization', [string]$Arguments['OrganizationUrl'],
+                        '--area', 'wit',
+                        '--resource', 'wiql',
+                        '--route-parameters', "project=$([string]$Arguments['ProjectName'])",
+                        '--http-method', 'POST',
+                        '--in-file', $tempFile,
+                        '--api-version', '7.1',
+                        '--output', 'json'
+                    ))
+                }
+                finally {
+                    Remove-Item -LiteralPath $tempFile -Force -ErrorAction SilentlyContinue
+                }
+            }
             default {
                 throw "Unsupported AzureDevOps operation '$Operation'."
             }
@@ -313,10 +337,57 @@ function Get-AzureDevOpsProcessCapabilities {
     [pscustomobject]@{ EpicWorkItemTypeName = 'Epic' }
 }
 
+function Get-AzureDevOpsWorkItemPlan {
+    param(
+        [Parameter(Mandatory)]
+        [string]$OrganizationUrl,
+
+        [Parameter(Mandatory)]
+        [string]$ProjectName,
+
+        [Parameter(Mandatory)]
+        [object[]]$PortfolioItems,
+
+        [Parameter(Mandatory)]
+        [scriptblock]$Request
+    )
+
+    $plan = [System.Collections.Generic.List[object]]::new()
+    foreach ($item in $PortfolioItems) {
+        $response = & $Request 'QueryWorkItemsByTag' @{ OrganizationUrl = $OrganizationUrl; ProjectName = $ProjectName; Tag = $item.UseCaseId }
+        $body = Get-ResponseBodyOrNull -Response $response
+        $bodyTable = ConvertTo-Hashtable -InputObject $body
+        $workItems = if ($bodyTable.ContainsKey('workItems')) { @($bodyTable['workItems']) } else { @() }
+
+        $ids = @($workItems | ForEach-Object { [int](ConvertTo-Hashtable -InputObject $_)['id'] })
+        if ($ids.Count -gt 1) {
+            throw "Ambiguous existing work items tagged '$($item.UseCaseId)': ids $($ids -join ', ')."
+        }
+
+        $existingId = if ($ids.Count -eq 1) { $ids[0] } else { 0 }
+        $mode = if ($existingId -gt 0) { 'Existing' } else { 'Create' }
+
+        $plan.Add([pscustomobject]@{
+            UseCaseId = $item.UseCaseId
+            Title = $item.Title
+            Status = $item.Status
+            JourneyStage = $item.JourneyStage
+            SourcePath = $item.SourcePath
+            Summary = $item.Summary
+            ExistingWorkItemId = $existingId
+            Mode = $mode
+            HyperlinkUrl = "https://github.com/urruegg/caldova-hr-frontier/blob/main/$($item.SourcePath)"
+        }) | Out-Null
+    }
+
+    @($plan)
+}
+
 $nativeCommandRunner = if ($NativeCommandRunner) { $NativeCommandRunner } else { New-DefaultNativeCommandRunner }
 $azureDevOpsRequest = if ($AzureDevOpsRequest) { $AzureDevOpsRequest } else { New-DefaultAzureDevOpsRequest -NativeRunner $nativeCommandRunner }
 
 $resolvedIdeasRoot = if ([string]::IsNullOrWhiteSpace($IdeasRoot)) { Get-DefaultIdeasRoot } else { $IdeasRoot }
+if ([string]::IsNullOrWhiteSpace($RepositoryRootOverride)) { $RepositoryRootOverride = $resolvedIdeasRoot }
 $portfolio = Get-HrIdeaPortfolioItems -IdeasRoot $resolvedIdeasRoot -RepositoryRoot $RepositoryRootOverride
 
 if ($ReturnPortfolioOnly) {
@@ -333,4 +404,10 @@ if ($ReturnProcessCapabilitiesOnly) {
     return
 }
 
-throw 'Initialize-AzureDevOpsWorkItems.ps1: only -ReturnPortfolioOnly and -ReturnProcessCapabilitiesOnly are implemented so far (Tasks 1-2 of the implementation plan). Later tasks add plan computation and mutation.'
+if ($ReturnWorkItemPlanOnly) {
+    $workItemPlan = Get-AzureDevOpsWorkItemPlan -OrganizationUrl $organizationUrl -ProjectName $projectName -PortfolioItems $portfolio -Request $azureDevOpsRequest
+    Write-Output -NoEnumerate $workItemPlan
+    return
+}
+
+throw 'Initialize-AzureDevOpsWorkItems.ps1: only -ReturnPortfolioOnly, -ReturnProcessCapabilitiesOnly, and -ReturnWorkItemPlanOnly are implemented so far (Tasks 1-3 of the implementation plan). Task 4 adds mutation.'
