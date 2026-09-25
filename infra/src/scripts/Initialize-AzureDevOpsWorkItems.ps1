@@ -387,7 +387,6 @@ $nativeCommandRunner = if ($NativeCommandRunner) { $NativeCommandRunner } else {
 $azureDevOpsRequest = if ($AzureDevOpsRequest) { $AzureDevOpsRequest } else { New-DefaultAzureDevOpsRequest -NativeRunner $nativeCommandRunner }
 
 $resolvedIdeasRoot = if ([string]::IsNullOrWhiteSpace($IdeasRoot)) { Get-DefaultIdeasRoot } else { $IdeasRoot }
-if ([string]::IsNullOrWhiteSpace($RepositoryRootOverride)) { $RepositoryRootOverride = $resolvedIdeasRoot }
 $portfolio = Get-HrIdeaPortfolioItems -IdeasRoot $resolvedIdeasRoot -RepositoryRoot $RepositoryRootOverride
 
 if ($ReturnPortfolioOnly) {
@@ -398,8 +397,9 @@ if ($ReturnPortfolioOnly) {
 $organizationUrl = "https://dev.azure.com/$TenantAlias/"
 $projectName = 'Caldova HR Frontier'
 
+$capabilities = Get-AzureDevOpsProcessCapabilities -OrganizationUrl $organizationUrl -ProjectName $projectName -Request $azureDevOpsRequest
+
 if ($ReturnProcessCapabilitiesOnly) {
-    $capabilities = Get-AzureDevOpsProcessCapabilities -OrganizationUrl $organizationUrl -ProjectName $projectName -Request $azureDevOpsRequest
     Write-Output -NoEnumerate $capabilities
     return
 }

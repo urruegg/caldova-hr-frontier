@@ -167,6 +167,7 @@ $Summary
                 -AzureDevOpsRequest {
                     param($Operation, $Arguments)
                     switch ($Operation) {
+                        'ListWorkItemTypes' { return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ count = 1; value = @([pscustomobject]@{ name = 'Epic' }) } } }
                         'QueryWorkItemsByTag' { $wiqlEmptyFixture }
                         default { throw "Unexpected operation '$Operation' in this test." }
                     }
@@ -185,6 +186,7 @@ $Summary
                 -AzureDevOpsRequest {
                     param($Operation, $Arguments)
                     switch ($Operation) {
+                        'ListWorkItemTypes' { return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ count = 1; value = @([pscustomobject]@{ name = 'Epic' }) } } }
                         'QueryWorkItemsByTag' {
                             if ([string]$Arguments['Tag'] -eq 'UC-0002') {
                                 return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ workItems = @([pscustomobject]@{ id = 4242 }) } }
@@ -207,9 +209,13 @@ $Summary
                 & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -ReturnWorkItemPlanOnly `
                     -AzureDevOpsRequest {
                         param($Operation, $Arguments)
-                        [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ workItems = @([pscustomobject]@{ id = 1 }, [pscustomobject]@{ id = 2 }) } }
+                        switch ($Operation) {
+                            'ListWorkItemTypes' { return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ count = 1; value = @([pscustomobject]@{ name = 'Epic' }) } } }
+                            default { return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ workItems = @([pscustomobject]@{ id = 1 }, [pscustomobject]@{ id = 2 }) } } }
+                        }
                     }
             } | Should -Throw '*Ambiguous existing work items tagged*'
         }
     }
 }
+
