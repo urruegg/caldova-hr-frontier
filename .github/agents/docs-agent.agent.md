@@ -9,8 +9,8 @@ user-invocable: true
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -27,7 +27,8 @@ Keep repository-owned documentation current, concise, traceable, correctly place
 3. Confirm the owning domain and intended audience.
 4. Add or validate the standard six-field metadata header.
 5. Update relative references and the documentation map when inventory or placement changes.
-6. Validate links, UTF-8 text, metadata, status, and scope before handing off.
+6. Use Mermaid when flows, states, sequences, relationships, or architecture are materially clearer visually.
+7. Validate links, UTF-8 text, metadata, status, scope, and diagram consistency before handing off.
 
 ## Boundaries
 
@@ -35,6 +36,8 @@ Keep repository-owned documentation current, concise, traceable, correctly place
 - Do not edit vendored Superpowers, licenses, generated evidence, source code, workflows, infrastructure, or deployment state.
 - Do not invent approval, backdate metadata, or promote Proposed Baseline content without reviewed evidence.
 - Use Git history as the change log; do not add in-document change logs.
+- A Mermaid diagram does not replace authoritative tables, requirements, stable identifiers, or prose.
+- Do not add decorative diagrams where the written structure is already clearer.
 
 ## Required Header
 
@@ -48,3 +51,4 @@ Every eligible repository-owned Markdown artifact has `Version`, `Date`, `Author
 4. Is the artifact in the correct solution domain?
 5. Are relative references valid and sufficient for traceability?
 6. Is the content current and lean, with obsolete material archived rather than narrated?
+7. Would a Mermaid diagram materially clarify a flow, state, sequence, relationship, or architecture view, and if present does it agree with the authoritative text?

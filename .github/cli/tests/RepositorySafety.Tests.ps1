@@ -37,6 +37,19 @@ steps:
 }
 
 Describe 'Core repository safety validation' {
+    It 'treats PDF corpus files as binary on every Git installation' {
+        $pdfPath = 'hr/docs/ideas/uc-0001-personal-master-data-completion-agent/gf-aib-fixed-template/documents/a-personalblatt/a01-CAND-2026-0411-brunner.pdf'
+
+        $attributes = @(
+            & git -C $script:repositoryRoot check-attr text diff merge -- $pdfPath
+        )
+
+        $LASTEXITCODE | Should -Be 0
+        $attributes | Should -Contain "$pdfPath`: text: unset"
+        $attributes | Should -Contain "$pdfPath`: diff: unset"
+        $attributes | Should -Contain "$pdfPath`: merge: unset"
+    }
+
     It 'resolves its own repository root when invoked without -RepositoryRoot' {
         # The CI workflow step runs this script via `-File` with no
         # -RepositoryRoot argument, which exercises the parameter default

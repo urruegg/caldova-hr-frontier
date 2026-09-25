@@ -1,0 +1,25 @@
+document,collection_or_layout,candidate_id_expected,candidate_id,last_name,first_name,dob,nationality,marital,heimatort,permit,street,plz,city,ahv,iban,phone,email,ec_name,ec_phone
+a01-CAND-2026-0411-brunner.pdf,a-personalblatt,CAND-2026-0411,CAND-2026-0411,Brunner,Livia,14.03.1994,Schweiz,ledig,Stein am Rhein SH,—,Sonnenbergstrasse 14,8203,Schaffhausen,756.1943.0211.85,CH74 0070 0001 1455 2331,+41 79 412 88 03,l.brunner@example.ch,Marco Brunner,+41 79 655 21 40
+a02-CAND-2026-0412-ochsner.pdf,a-personalblatt,CAND-2026-0412,CAND-2026-0412,Ochsner,Tobias,02.11.1988,Schweiz,verheiratet,Neunkirch SH,—,Rheinhaldenstrasse 7,8200,Schaffhausen,756.1882.1104.76,CH28 0078 4002 2889 1004,+41 76 330 14 92,t.ochsner@example.ch,Sandra Ochsner,+41 76 812 09 55
+a03-CAND-2026-0413-iten.pdf,a-personalblatt,CAND-2026-0413,CAND-2026-0413,Iten,Mirjam,27.06.1996,Schweiz,ledig,Zug ZG,—,Bachtelweg 22,8280,Kreuzlingen,756.1966.2708.50,CH44 0023 0003 3127 6889,+41 78 221 63 17,m.iten@example.ch,Beat Iten,+41 78 904 33 21
+a04-CAND-2026-0414-perren.pdf,a-personalblatt,CAND-2026-0414,CAND-2026-0414,Perren,Andrea,09.09.1991,Schweiz,geschieden,Randa VS,—,Dorfstrasse 41,3920,Zermatt,756.1991.0933.49,CH14 0639 0004 4771 0552,+41 79 508 77 26,a.perren@example.ch,Nadia Perren,+41 79 118 44 07
+a05-CAND-2026-0415-steiner.pdf,a-personalblatt,CAND-2026-0415,CAND-2026-0415,Steiner,Valentin,18.01.1985,Schweiz,verheiratet,Herisau AR,—,Im Lindenhof 3,8005,Zürich,756.1985.0182.28,CH29 0077 9005 5330 4116,+41 44 271 55 18,v.steiner@example.ch,Céline Steiner,+41 79 733 62 10
+a06-CAND-2026-0416-gerber.pdf,a-personalblatt,CAND-2026-0416,CAND-2026-0416,Gerber,Noemi,30.04.1999,Schweiz,ledig,Langnau BE,—,Quellenstrasse 58,3007,Bern,756.1999.4301.22,CH81 0079 2006 6998 5773,+41 31 992 14 63,n.gerber@example.ch,Peter Gerber,+41 79 221 87 44
+b01-CAND-2026-0417-bosshard.pdf,b-anmeldung-gemeinde,CAND-2026-0417,,Bosshard,Lukas,11.07.1990,Schweiz,ledig,Bülach ZH,—,Alte Landstrasse 90,8802,Kilchberg,756.1990.0711.64,,,,,
+b02-CAND-2026-0418-keller.pdf,b-anmeldung-gemeinde,CAND-2026-0418,,Keller,Sofia,23.02.1993,Schweiz,verheiratet,Elgg ZH,—,Weinbergweg 12,8400,Winterthur,756.1993.2264.17,,,,,
+b03-CAND-2026-0419-widmer.pdf,b-anmeldung-gemeinde,CAND-2026-0419,,Widmer,Matthias,05.12.1987,Schweiz,verheiratet,Zofingen AG,—,Hauptstrasse 205,5000,Aarau,756.1987.1250.92,,,,,
+b04-CAND-2026-0420-vogt.pdf,b-anmeldung-gemeinde,CAND-2026-0420,,Vogt,Chantal,16.08.1995,Schweiz,ledig,Sursee LU,—,Seestrasse 77,6003,Luzern,756.1995.0877.40,,,,,
+b05-CAND-2026-0421-ammann.pdf,b-anmeldung-gemeinde,CAND-2026-0421,,Ammann,Fabian,21.05.1992,Schweiz,ledig,Wattwil SG,—,Industriestrasse 9,9000,St. Gallen,756.1992.0518.36,,,,,
+b06-CAND-2026-0422-schnyder.pdf,b-anmeldung-gemeinde,CAND-2026-0422,,Schnyder,Elena,03.10.1989,Schweiz,verheiratet,Leukerbad VS,—,Kirchgasse 18,4051,Basel,756.1989.1030.67,,,,,
+c01-CAND-2026-0423-ferrari.pdf,c-sozialversicherung,CAND-2026-0423,,Ferrari,Marco,07.03.1990,Italien,verheiratet,—,,Via Motta 24,6900,Lugano,756.1990.0371.91,CH53 0800 0014 3441 7228,,,,
+c02-CAND-2026-0424-müller.pdf,c-sozialversicherung,CAND-2026-0424,,Müller,Anja,29.01.1986,Deutschland,ledig,—,,Hauptstrasse 61,8262,Ramsen,756.1986.0129.42,CH70 0070 0015 4880 2551,,,,
+c03-CAND-2026-0425-dubois.pdf,c-sozialversicherung,CAND-2026-0425,,Dubois,Pierre,12.06.1993,Frankreich,ledig,—,,Route de Lyon 88,1203,Genève,756.1993.0612.23,CH06 0110 0016 5223 9884,,,,
+c04-CAND-2026-0426-nowak.pdf,c-sozialversicherung,CAND-2026-0426,,Nowak,Katarzyna,08.08.1991,Polen,verheiratet,—,,Bahnhofstrasse 33,8180,Bülach,756.1991.0845.69,CH07 0077 9017 6667 4117,,,,
+c05-CAND-2026-0427-bühler.pdf,c-sozialversicherung,CAND-2026-0427,,Bühler,Daniel,25.09.1984,Schweiz,verheiratet,Thayngen SH,,Rebbergweg 5,8212,Neuhausen,756.1984.0925.88,CH24 0070 0018 7110 6443,,,,
+c06-CAND-2026-0428-frei.pdf,c-sozialversicherung,CAND-2026-0428,,Frei,Sarah,19.04.1997,Schweiz,ledig,Davos GR,,Talstrasse 102,7000,Chur,756.1997.0419.79,CH76 0700 0019 8553 1776,,,,
+d01-CAND-2026-0429-pfister.pdf,d-bankverbindung,CAND-2026-0429,CAND-2026-0429,Pfister,Nicolas,14.02.1988,,,,,Mühlegasse 27,6300,Zug,756.1988.0214.47,CH54 0631 0020 9996 3224,,,,
+d02-CAND-2026-0430-meier.pdf,d-bankverbindung,CAND-2026-0430,CAND-2026-0430,Meier,Laura,06.11.1994,,,,,Feldstrasse 46,8500,Frauenfeld,756.1994.1106.30,CH31 0850 0021 0442 8559,,,,
+d03-CAND-2026-0431-roth.pdf,d-bankverbindung,CAND-2026-0431,CAND-2026-0431,Roth,Stefan,28.07.1982,,,,,Oberdorfstrasse 8,8442,Hettlingen,756.1982.0728.65,CH58 0077 9022 1775 4336,,,,
+d04-CAND-2026-0432-baumann.pdf,d-bankverbindung,CAND-2026-0432,CAND-2026-0432,Baumann,Miriam,02.05.1998,,,,,Lindenplatz 11,9100,Herisau,756.1998.0502.39,CH70 0900 0023 2331 7885,,,,
+d05-CAND-2026-0433-hofer.pdf,d-bankverbindung,CAND-2026-0433,CAND-2026-0433,Hofer,Jonas,17.12.1990,,,,,Schulhausweg 3,8253,Diessenhofen,756.1990.1217.22,CH43 0070 0024 3884 0117,,,,
+d06-CAND-2026-0434-ochsner.pdf,d-bankverbindung,CAND-2026-0434,CAND-2026-0434,Ochsner,Tobias,19.05.1995,,,,,Rheinhaldenstrasse 7,8200,Schaffhausen,756.1995.0519.63,CH90 0078 4025 4220 6998,,,,

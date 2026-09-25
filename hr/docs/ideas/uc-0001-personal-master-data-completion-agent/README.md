@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Use Case Portfolio |
@@ -23,8 +23,10 @@
 |---|---|---|
 | [`uc-0001-personal-master-data-completion-agent.md`](uc-0001-personal-master-data-completion-agent.md) | The use case: what it does, where it sits in the journey, platform fit, assessment | Orientation |
 | [`prd-0001-personal-master-data-completion-agent.md`](prd-0001-personal-master-data-completion-agent.md) | **The requirements.** Draft 0.2, superseding GF Draft 0.1. Business rules, functional and non-functional requirements, acceptance criteria, open decisions, risks | **Authoritative for this use case** |
+| [`bom-0001-peopledoc-master-data-ai-builder-fields.md`](bom-0001-peopledoc-master-data-ai-builder-fields.md) | Repository-owned traceability for the 17 AI Builder fields from design through tenant-specific implementation evidence; not the GF 60+ item artefact inventory | **Authoritative for AI Builder field lifecycle status** |
+| [`bom-0002-ai-builder-test-inputs-and-outcomes.md`](bom-0002-ai-builder-test-inputs-and-outcomes.md) | Repository-owned run-level traceability from qualified test inputs to model metrics, findings, and evidence | **Authoritative for AI Builder test-run input and outcome summaries** |
 
-Read the use case document for *what and why*. Read the PRD for *exactly what must be true*.
+Read the use case document for *what and why*. Read the PRD for *exactly what must be true*. Read the field BoM for *what has been designed, implemented and verified*. Read the test BoM for *which inputs were evaluated and what the evidence proves*.
 
 ---
 
