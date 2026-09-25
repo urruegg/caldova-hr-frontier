@@ -108,4 +108,51 @@ $Summary
             { & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $root -RepositoryRootOverride $root -ReturnPortfolioOnly } | Should -Throw '*Status*'
         }
     }
+
+    Context 'Get-AzureDevOpsProcessCapabilities' {
+        It 'returns EpicWorkItemTypeName when the project work item types include Epic' {
+            $fixture = [pscustomobject]@{
+                StatusCode = 200
+                Headers = @{}
+                Body = [pscustomobject]@{
+                    count = 3
+                    value = @(
+                        [pscustomobject]@{ name = 'Epic'; referenceName = 'Microsoft.VSTS.WorkItemTypes.Epic' }
+                        [pscustomobject]@{ name = 'Feature'; referenceName = 'Microsoft.VSTS.WorkItemTypes.Feature' }
+                        [pscustomobject]@{ name = 'Bug'; referenceName = 'Microsoft.VSTS.WorkItemTypes.Bug' }
+                    )
+                }
+            }
+
+            $result = & $script:ScriptPath -TenantAlias 'caldova25156897' -ReturnProcessCapabilitiesOnly `
+                -AzureDevOpsRequest {
+                    param($Operation, $Arguments)
+                    $fixture
+                }
+
+            $result.EpicWorkItemTypeName | Should -Be 'Epic'
+        }
+
+        It 'throws a named error listing the observed types when Epic is absent' {
+            $fixture = [pscustomobject]@{
+                StatusCode = 200
+                Headers = @{}
+                Body = [pscustomobject]@{
+                    count = 2
+                    value = @(
+                        [pscustomobject]@{ name = 'Requirement'; referenceName = 'Microsoft.VSTS.WorkItemTypes.Requirement' }
+                        [pscustomobject]@{ name = 'Bug'; referenceName = 'Microsoft.VSTS.WorkItemTypes.Bug' }
+                    )
+                }
+            }
+
+            {
+                & $script:ScriptPath -TenantAlias 'caldova25156897' -ReturnProcessCapabilitiesOnly `
+                    -AzureDevOpsRequest {
+                        param($Operation, $Arguments)
+                        $fixture
+                    }
+            } | Should -Throw "*no 'Epic' work item type*Requirement, Bug*"
+        }
+    }
 }

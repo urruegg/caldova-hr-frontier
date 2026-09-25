@@ -12,6 +12,8 @@ param(
 
     [switch]$ReturnPortfolioOnly,
 
+    [switch]$ReturnProcessCapabilitiesOnly,
+
     [Parameter(DontShow)]
     [scriptblock]$AzRequest,
 
@@ -130,6 +132,190 @@ function Get-HrIdeaPortfolioItems {
     @($items | Sort-Object UseCaseId)
 }
 
+function Get-ResponseBodyOrNull {
+    param(
+        [Parameter(Mandatory)]
+        [object]$Response
+    )
+
+    $responseTable = ConvertTo-Hashtable -InputObject $Response
+    if ($responseTable.ContainsKey('Body')) { $responseTable['Body'] } else { $null }
+}
+
+function ConvertTo-Hashtable {
+    param(
+        [AllowNull()]
+        [object]$InputObject
+    )
+
+    if ($null -eq $InputObject) {
+        return @{}
+    }
+
+    if ($InputObject -is [hashtable]) {
+        return $InputObject
+    }
+
+    if ($InputObject -is [System.Collections.IDictionary]) {
+        $table = @{}
+        foreach ($key in $InputObject.Keys) {
+            $table[[string]$key] = $InputObject[$key]
+        }
+
+        return $table
+    }
+
+    $table = @{}
+    foreach ($property in $InputObject.PSObject.Properties) {
+        if ($property.MemberType -in @('NoteProperty', 'Property', 'ScriptProperty')) {
+            $table[$property.Name] = $property.Value
+        }
+    }
+
+    $table
+}
+
+function ConvertTo-AzureDevOpsWorkItemTypeItems {
+    param(
+        [AllowNull()]
+        [object]$Node
+    )
+
+    if ($null -eq $Node) {
+        return @()
+    }
+
+    $entries = ConvertTo-Hashtable -InputObject $Node
+    if ($entries.ContainsKey('value')) {
+        return @($entries['value'])
+    }
+
+    @($Node)
+}
+
+function Invoke-NativeCommand {
+    param(
+        [Parameter(Mandatory)]
+        [scriptblock]$Runner,
+
+        [Parameter(Mandatory)]
+        [string]$FilePath,
+
+        [Parameter(Mandatory)]
+        [string[]]$ArgumentList
+    )
+
+    $result = & $Runner -FilePath $FilePath -ArgumentList $ArgumentList
+    $resultTable = ConvertTo-Hashtable -InputObject $result
+    if (-not $resultTable.ContainsKey('ExitCode')) {
+        throw "Native command '$FilePath' did not return ExitCode."
+    }
+
+    [pscustomobject]@{
+        ExitCode = [int]$resultTable.ExitCode
+        StdOut = if ($resultTable.ContainsKey('StdOut')) { [string]$resultTable.StdOut } else { '' }
+        StdErr = if ($resultTable.ContainsKey('StdErr')) { [string]$resultTable.StdErr } else { '' }
+    }
+}
+
+function Invoke-NativeJsonCommand {
+    param(
+        [Parameter(Mandatory)]
+        [scriptblock]$Runner,
+
+        [Parameter(Mandatory)]
+        [string]$FilePath,
+
+        [Parameter(Mandatory)]
+        [string[]]$ArgumentList
+    )
+
+    $commandResult = Invoke-NativeCommand -Runner $Runner -FilePath $FilePath -ArgumentList $ArgumentList
+    if ($commandResult.ExitCode -ne 0) {
+        throw "$FilePath $($ArgumentList -join ' ') failed with exit code $($commandResult.ExitCode): $($commandResult.StdErr)"
+    }
+
+    [pscustomobject]@{
+        StatusCode = 200
+        Headers = @{}
+        Body = if ([string]::IsNullOrWhiteSpace($commandResult.StdOut)) { $null } else { $commandResult.StdOut | ConvertFrom-Json }
+    }
+}
+
+function New-DefaultNativeCommandRunner {
+    {
+        param(
+            [Parameter(Mandatory)]
+            [string]$FilePath,
+
+            [Parameter(Mandatory)]
+            [string[]]$ArgumentList
+        )
+
+        $merged = & $FilePath @ArgumentList 2>&1
+        [pscustomobject]@{
+            ExitCode = $LASTEXITCODE
+            StdOut = ($merged | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+            StdErr = ''
+        }
+    }
+}
+
+function New-DefaultAzureDevOpsRequest {
+    param(
+        [Parameter(Mandatory)]
+        [scriptblock]$NativeRunner
+    )
+
+    {
+        param($Operation, $Arguments)
+
+        switch ($Operation) {
+            'ListWorkItemTypes' {
+                return (Invoke-NativeJsonCommand -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
+                    'devops', 'invoke',
+                    '--organization', [string]$Arguments['OrganizationUrl'],
+                    '--area', 'wit',
+                    '--resource', 'workitemtypes',
+                    '--route-parameters', "project=$([string]$Arguments['ProjectName'])",
+                    '--api-version', '7.1',
+                    '--output', 'json'
+                ))
+            }
+            default {
+                throw "Unsupported AzureDevOps operation '$Operation'."
+            }
+        }
+    }.GetNewClosure()
+}
+
+function Get-AzureDevOpsProcessCapabilities {
+    param(
+        [Parameter(Mandatory)]
+        [string]$OrganizationUrl,
+
+        [Parameter(Mandatory)]
+        [string]$ProjectName,
+
+        [Parameter(Mandatory)]
+        [scriptblock]$Request
+    )
+
+    $response = & $Request 'ListWorkItemTypes' @{ OrganizationUrl = $OrganizationUrl; ProjectName = $ProjectName }
+    $body = Get-ResponseBodyOrNull -Response $response
+    $types = @(ConvertTo-AzureDevOpsWorkItemTypeItems -Node $body)
+    $typeNames = @($types | ForEach-Object { [string](ConvertTo-Hashtable -InputObject $_)['name'] })
+
+    if ($typeNames -notcontains 'Epic') {
+        throw "Azure DevOps project '$ProjectName' has no 'Epic' work item type. Observed types: $($typeNames -join ', ')."
+    }
+
+    [pscustomobject]@{ EpicWorkItemTypeName = 'Epic' }
+}
+
+$nativeCommandRunner = if ($NativeCommandRunner) { $NativeCommandRunner } else { New-DefaultNativeCommandRunner }
+$azureDevOpsRequest = if ($AzureDevOpsRequest) { $AzureDevOpsRequest } else { New-DefaultAzureDevOpsRequest -NativeRunner $nativeCommandRunner }
+
 $resolvedIdeasRoot = if ([string]::IsNullOrWhiteSpace($IdeasRoot)) { Get-DefaultIdeasRoot } else { $IdeasRoot }
 $portfolio = Get-HrIdeaPortfolioItems -IdeasRoot $resolvedIdeasRoot -RepositoryRoot $RepositoryRootOverride
 
@@ -138,4 +324,13 @@ if ($ReturnPortfolioOnly) {
     return
 }
 
-throw 'Initialize-AzureDevOpsWorkItems.ps1: only -ReturnPortfolioOnly is implemented so far (Task 1 of the implementation plan). Later tasks add process discovery, plan computation, and mutation.'
+$organizationUrl = "https://dev.azure.com/$TenantAlias/"
+$projectName = 'Caldova HR Frontier'
+
+if ($ReturnProcessCapabilitiesOnly) {
+    $capabilities = Get-AzureDevOpsProcessCapabilities -OrganizationUrl $organizationUrl -ProjectName $projectName -Request $azureDevOpsRequest
+    Write-Output -NoEnumerate $capabilities
+    return
+}
+
+throw 'Initialize-AzureDevOpsWorkItems.ps1: only -ReturnPortfolioOnly and -ReturnProcessCapabilitiesOnly are implemented so far (Tasks 1-2 of the implementation plan). Later tasks add plan computation and mutation.'
