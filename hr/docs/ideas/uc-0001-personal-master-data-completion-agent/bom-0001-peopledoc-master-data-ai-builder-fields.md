@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
+| **Version** | 0.2 |
 | **Date** | 2026-09-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -80,16 +80,16 @@ An evaluated field is not thereby approved for a future automated write path. Th
 
 ## 4. Evidence Rules
 
-An implementation or verification status must link to evidence that identifies:
+An implementation or verification status must link to an evidence run. Its `run-manifest.json` identifies:
 
-- tenant alias and environment ID;
-- model name and version;
-- evidence run ID;
+- `run_id`;
+- `tenant_key`, `power_platform_environment_id` and `environment_stage`;
+- solution and model identities and versions;
 - the held-out documents and their hashes;
 - the field-level expected and actual values;
 - the applicable quality and safety result.
 
-Missing evidence is recorded as missing evidence. It must not be represented as an implemented, evaluated or passing result.
+Field-level result records reference this deployment context through `run_id`; they do not repeat or hard-code tenant and environment values. Missing evidence is recorded as missing evidence. It must not be represented as an implemented, evaluated or passing result.
 
 ## 5. Tenant 1 Adaptation
 

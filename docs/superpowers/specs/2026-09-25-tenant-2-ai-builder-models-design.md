@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.3 |
+| **Version** | 0.4 |
 | **Date** | 2026-09-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -200,20 +200,21 @@ Each implementation run creates tenant-local repository evidence under:
 
 ```text
 hr/evidence/ai-builder/
-└── caldova25668747/
-    └── <run-id>/
-        ├── readiness.json
-        ├── corpus-quality.json
-        ├── model-inventory.json
-        ├── training-manifest.json
-        ├── validation-results-fixed.csv
-        ├── validation-results-general.csv
-        ├── validation-results.json
-        ├── evaluation-metrics.json
-        └── evaluation-summary.md
+└── <tenant-key>/
+    └── <environment-stage>/
+        └── <run-id>/
+            ├── readiness.json
+            ├── corpus-quality.json
+            ├── model-inventory.json
+            ├── run-manifest.json
+            ├── validation-results-fixed.csv
+            ├── validation-results-general.csv
+            ├── validation-results.json
+            ├── evaluation-metrics.json
+            └── evaluation-summary.md
 ```
 
-The evidence contains only synthetic values and non-secret platform metadata. Exported solution ZIP files remain build artifacts and are not committed.
+The path and artifact schema are portable. Tenant and environment values are supplied by each implementation run rather than embedded in the design. The evidence contains only synthetic values and non-secret platform metadata. Exported solution ZIP files remain build artifacts and are not committed.
 
 ## 6. Readiness Gate
 
@@ -234,22 +235,23 @@ This implementation does not repair a failed gate by allocating capacity, changi
 
 ## 7. Training Design
 
-### 7.1 Training manifest
+### 7.1 Run manifest
 
-Before uploading documents, create `training-manifest.json` with:
+Before uploading documents, create `run-manifest.json` with:
 
-- tenant alias;
-- environment ID;
-- solution unique name;
-- model display name and type;
-- corpus and generator revision;
-- SHA-256 for every training and held-out document;
-- collection or family;
-- assignment of `training` or `held-out`;
-- field contract version;
+- `run_id`;
+- `tenant_key`, a logical identifier supplied by the deployment;
+- `power_platform_environment_id`;
+- `environment_stage`, such as `DEV`, `TEST`, or `PROD`;
+- `solution_unique_name` and `solution_version`;
+- `models`, containing display names, types, AI Builder IDs, and versions when assigned;
+- `corpus_revision` and `generator_revision`;
+- SHA-256 for every training and held-out document, grouped by model;
+- collection or family and assignment of `training` or `held-out`;
+- `field_contract_version`;
 - operator and UTC start time.
 
-The manifest is immutable for a completed validation run. A changed split or generated document creates a new run ID.
+The manifest schema is identical in every tenant and environment. Its deployment-context values identify where the evidence was produced; they do not configure or alter the model contract. The manifest is immutable for a completed validation run. A deployment to another environment, a changed split, or a generated document creates a new run ID.
 
 ### 7.2 Corpus qualification
 
@@ -262,7 +264,7 @@ Before training, the corpus quality record must confirm:
 - document names, candidate references, collection or family, and ground-truth records agree;
 - training and held-out assignments are disjoint;
 - expected field coverage by collection and family is recorded;
-- document and ground-truth hashes match the training manifest.
+- document and ground-truth hashes match the run manifest.
 
 Corpus qualification is a strict gate. A document with ambiguous or incorrect ground truth is corrected or excluded before model quality is assessed.
 
@@ -274,7 +276,7 @@ The two models are tagged independently. Tags or corrections in one model do not
 
 ### 7.4 Parallel execution
 
-The fixed and general workstreams may train concurrently after both manifests and schemas pass review. Parallel execution does not merge their evidence or allow one model's result to stand in for the other.
+The fixed and general workstreams may train concurrently after both model entries in the run manifest and both schemas pass review. Parallel execution does not merge their results or allow one model's result to stand in for the other.
 
 ## 8. Validation Design
 
@@ -284,9 +286,7 @@ Validation produces one record for every held-out document and every contract fi
 
 | Property | Meaning |
 |---|---|
-| `run_id` | Evidence run identifier |
-| `tenant_alias` | `caldova25668747` |
-| `environment_id` | Tenant 2 DEV environment ID |
+| `run_id` | Resolves to deployment context in `run-manifest.json` |
 | `model_name` | Fixed or general model display name |
 | `model_version` | AI Builder version under test |
 | `document` | Held-out filename |
@@ -507,7 +507,7 @@ The implementation plan must:
 
 1. reconcile the draft AI Builder setup guide with the approved model names and current `caldovahrfrontier` solution;
 2. preserve the future Tenant 3/GF solution architecture without pretending it exists in Tenant 2;
-3. add the common field contract, training manifest, corpus-quality record, evidence schema, and evaluation validator;
+3. add the common field contract, run manifest, corpus-quality record, evidence schema, and evaluation validator;
 4. validate the synthetic corpus before upload;
 5. execute the two model workstreams independently;
 6. stop at every readiness, corpus, contract, or safety failure;
