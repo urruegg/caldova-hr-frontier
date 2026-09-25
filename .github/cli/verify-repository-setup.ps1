@@ -13,6 +13,31 @@ function Add-Failure {
     param([string]$Message)
     [void]$failures.Add($Message)
 }
+$actionPinManifestPath = Join-Path $repositoryRoot 'infra\src\config\github\action-pins.json'
+$reviewedActionUses = [ordered]@{}
+if (-not (Test-Path -LiteralPath $actionPinManifestPath -PathType Leaf)) {
+    Add-Failure 'Missing action pin manifest: infra/src/config/github/action-pins.json'
+}
+else {
+    try {
+        $actionPinManifest = Get-Content -Raw -LiteralPath $actionPinManifestPath | ConvertFrom-Json
+        foreach ($actionProperty in @($actionPinManifest.actions.PSObject.Properties)) {
+            $reviewedActionUses[[string]$actionProperty.Name] = '{0}@{1}' -f $actionProperty.Name, $actionProperty.Value.sha
+        }
+    }
+    catch {
+        Add-Failure "Cannot read action pin manifest: $($_.Exception.Message)"
+    }
+}
+function Get-ReviewedActionUse {
+    param([string]$Name)
+
+    if (-not $reviewedActionUses.Contains($Name)) {
+        Add-Failure "Action pin manifest does not define required action: $Name"
+        return "${Name}@MISSING"
+    }
+    [string]$reviewedActionUses[$Name]
+}
 $documentationMetadataModulePath = Join-Path $PSScriptRoot 'modules\DocumentationMetadata.psm1'
 $documentationMetadataAvailable = $false
 if (-not (Test-Path -LiteralPath $documentationMetadataModulePath -PathType Leaf)) {
@@ -102,7 +127,7 @@ if (Test-Path -LiteralPath $storyboardPath) {
 $issueTemplateRelativeRoot = '.github/ISSUE_TEMPLATE'
 $githubRoot = Join-Path $repositoryRoot '.github'
 $issueTemplateRoot = Join-Path $repositoryRoot '.github\ISSUE_TEMPLATE'
-$issueTemplateFileNames = @('01-bug.yml', '02-feature.yml', '03-frontier-intake.yml', 'config.yml')
+$issueTemplateFileNames = @('01-bug.yml', '02-feature.yml', '03-frontier-intake.yml', 'config.yml', 'use-case-intake.yml')
 $issueTemplateGitPrefix = '.github/ISSUE_TEMPLATE/'
 $expectedIssueTemplateGitPaths = @($issueTemplateFileNames | ForEach-Object { "${issueTemplateGitPrefix}$_" })
 $gitattributesRelativePath = '.gitattributes'
@@ -110,7 +135,8 @@ $expectedIssueTemplateHashes = [Collections.Generic.Dictionary[string,string]]::
 $expectedIssueTemplateHashes.Add('01-bug.yml', '8f2c31b169477b86d85e60f9d1c91eed349fae829f1071b8b42dc93624d8879a')
 $expectedIssueTemplateHashes.Add('02-feature.yml', '748e69155e9e60acd16f5cbb93b6398fd5853905951829080a9c440ed5c0e7a4')
 $expectedIssueTemplateHashes.Add('03-frontier-intake.yml', 'af13ab5a7c0aec18af59c10a257089b5b44ebf31208396b1c5903c56c394f840')
-$expectedIssueTemplateHashes.Add('config.yml', '6913de0ee9863fce0c24df504fb706a88c38b090617a3071fe207fd8f9ec6cbb')
+$expectedIssueTemplateHashes.Add('config.yml', '23d299e79424a2e1e2451dfa56b9d1691ef67a4cf7d677497816536a29bca7b0')
+$expectedIssueTemplateHashes.Add('use-case-intake.yml', 'f9a19a4752615ed78fd7a0e1481aa5e828a81a952be1cc009de98edc5a020c15')
 $actualIssueTemplateFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $reparseIssueTemplateEntries = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $ordinaryIssueTemplateFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
@@ -769,16 +795,16 @@ Test-RequiredContent 'docs/reviews/2026-09-17-phase-1-governance-github-intake.m
     'Proposed Baseline',
     'Phase 1 Inventory Disposition'
 )
-Test-RequiredContent '.github/CODEOWNERS' @('* @urruegg', '/.github/ @urruegg', '/docs/ @urruegg')
+Test-RequiredContent '.github/CODEOWNERS' @('/docs/                      @urruegg', '/.github/                   @urruegg', '/infra/                     @urruegg')
 Test-RequiredContent '.github/pull_request_template.md' @(
     '# Pull Request',
-    '### Governance',
-    '### Validation evidence'
+    '## Checks',
+    '## Work item'
 )
 Test-RequiredContent '.github/dependabot.yml' @('package-ecosystem: "github-actions"', 'interval: "weekly"')
 Test-RequiredContent '.github/workflows/validate-repository.yml' @(
     'name: Validate repository',
-    'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683',
+    (Get-ReviewedActionUse -Name 'actions/checkout'),
     'Repository setup validation',
     'RepositorySafety.Tests.ps1',
     'infra/tests/pester',
@@ -815,6 +841,7 @@ $phase3RequiredPaths = @(
     'infra/src/bicep/modules/resource-group.bicep',
     'infra/src/bicep/modules/subscription-policy-assignments.bicep',
     'infra/src/bicep/modules/validation-role.bicep',
+    'infra/src/config/github/action-pins.json',
     'infra/src/config/schemas/bootstrap-result.schema.json',
     'infra/src/config/schemas/discovery.schema.json',
     'infra/src/config/schemas/tenant.schema.json',
@@ -898,8 +925,8 @@ foreach ($workflowPath in @('.github/workflows/bootstrap-tenant.yml', '.github/w
         'permissions:',
         'contents: read',
         'id-token: write',
-        'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683',
-        'azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5',
+        (Get-ReviewedActionUse -Name 'actions/checkout'),
+        (Get-ReviewedActionUse -Name 'azure/login'),
         'environment: bootstrap-${{ inputs.tenantAlias }}'
     )
 }

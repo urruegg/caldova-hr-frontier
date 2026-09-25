@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "appId": "1470c83a-e70d-4ff4-8894-edcbc7f4a30e",
+  "appDisplayName": "HR Control Plane",
+  "region": "prod",
+  "appType": "CodeApp",
+  "environmentId": "346c2cb2-534d-e581-978f-4c293e25a146",
+  "description": " ",
+  "buildPath": "./dist",
+  "buildEntryPoint": "index.html",
+  "localAppUrl": "http://localhost:3000",
+  "logoPath": "Default",
+  "connectionReferences": {},
+  "databaseReferences": {}
+}

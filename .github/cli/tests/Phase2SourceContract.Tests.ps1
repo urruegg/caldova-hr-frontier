@@ -69,15 +69,16 @@ Describe 'Imported authority status' {
 		$discovered | Should -Be ($script:expectedAdrCandidates | Sort-Object)
 	}
 
-	It 'imports the Microsoft evaluation as a proposed, source-derived assessment' {
+	It 'imports the Microsoft evaluation as a proposed, source-derived assessment, now superseded by Phase 4' {
 		$path = Join-Path $script:repositoryRoot $script:expectedEvaluationPath
 		Test-Path -LiteralPath $path -PathType Leaf | Should -BeTrue -Because "$script:expectedEvaluationPath must exist as a regular file"
 
 		$content = Get-Content -LiteralPath $path -Raw
-		$content | Should -Match '\| \*\*Status\*\* \| Proposed Baseline \|'
+		$content | Should -Match '\| \*\*Status\*\* \| Superseded \|'
 		$content | Should -Match 'source-derived Proposed Baseline assessment'
 		$content | Should -Match 'documented design, not proof of deployed controls'
 		$content | Should -Match 'deployment/configuration claims remain planned or not yet verified'
+		$content | Should -Match '\*\*Superseded\.\*\*'
 	}
 }
 
@@ -87,15 +88,29 @@ Describe 'Root product and agent workflow map' {
 		$script:rootReadmeContent = Get-Content -LiteralPath $script:rootReadmePath -Raw
 	}
 
-	It 'preserves the repository workflow and publishes the proposed product baseline map' {
+	It 'preserves the repository workflow, and the Phase 2 deliverable is superseded on disk, not deleted' {
 		$requiredConcepts = @(
 			'Superpowers'
 			'v6.3.0'
 			'.github/skills'
 			'verify-repository-setup.ps1'
-			'Caldova HR Frontier'
-			'Insight -> Decision -> Delivery -> Outcome -> Learning -> Insight'
-			'Proposed Baseline'
+		)
+
+		foreach ($concept in $requiredConcepts) {
+			$script:rootReadmeContent | Should -Match ([regex]::Escape($concept))
+		}
+
+		# The Phase 2 product baseline map (Caldova HR Frontier framing, the
+		# operating-model set, and the original ADR-0001..0004 index) is
+		# superseded by the Phase 4 HR Solution Functional Design Intake, not
+		# removed. It is retained on disk with a Superseded banner and
+		# pointed to from docs/README.md, rather than restated in README.md.
+		$supersededPointerPath = Join-Path $script:repositoryRoot 'docs\README.md'
+		Test-Path -LiteralPath $supersededPointerPath -PathType Leaf | Should -BeTrue
+		$supersededPointerContent = Get-Content -LiteralPath $supersededPointerPath -Raw
+		$supersededPointerContent | Should -Match 'Superseded \(Phase 2\)'
+
+		$preservedPhase2Paths = @(
 			'docs/operating-model/00-north-star.md'
 			'docs/operating-model/01-prd.md'
 			'docs/operating-model/02-system-design.md'
@@ -111,15 +126,11 @@ Describe 'Root product and agent workflow map' {
 			'hr/README.md'
 			'hr/docs/20-hr-employee-journey.md'
 			'hr/src/solutions/README.md'
-			'No personal data'
-			'No secrets'
-			'agents never decide employment matters'
-			'Phase 2 imported documentation only'
-			'no Azure resources, Power Platform solutions, pipelines, seed data, or tenant controls were deployed or provisioned'
 		)
-
-		foreach ($concept in $requiredConcepts) {
-			$script:rootReadmeContent | Should -Match ([regex]::Escape($concept))
+		foreach ($relativePath in $preservedPhase2Paths) {
+			$fullPath = Join-Path $script:repositoryRoot $relativePath.Replace('/', '\')
+			Test-Path -LiteralPath $fullPath -PathType Leaf |
+				Should -BeTrue -Because "Phase 2 deliverable must still exist on disk: $relativePath"
 		}
 	}
 }

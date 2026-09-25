@@ -16,6 +16,7 @@ $workflowFilesPresent = @($workflowCases | Where-Object { Test-Path -LiteralPath
 Describe 'Task 7 tenant workflow contracts' {
     BeforeAll {
         $script:RepositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+        $script:ActionPins = Get-Content -Raw -LiteralPath (Join-Path $script:RepositoryRoot 'infra\src\config\github\action-pins.json') | ConvertFrom-Json
         $script:WorkflowCases = @(
             @{
                 Name = 'discovery'
@@ -26,6 +27,13 @@ Describe 'Task 7 tenant workflow contracts' {
                 Path = Join-Path $script:RepositoryRoot '.github\workflows\bootstrap-tenant.yml'
             }
         )
+
+        function script:Get-ReviewedActionUse {
+            param([Parameter(Mandatory)][string]$Name)
+
+            $entry = $script:ActionPins.actions.PSObject.Properties[$Name].Value
+            '{0}@{1}' -f $Name, $entry.sha
+        }
 
         function script:Get-YamlBlock {
             param(
@@ -378,18 +386,20 @@ Describe 'Task 7 tenant workflow contracts' {
             (Get-YamlScalarValue -Content $environment -Name 'AZURE_SUBSCRIPTION_ID' -Indent 6) | Should -Be '${{ vars.AZURE_SUBSCRIPTION_ID }}'
 
             $checkout = Get-StepBlock -Job $job -Name 'Check out repository'
-            (Get-StepUses -Step $checkout) | Should -Be 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683'
+            $checkoutUse = Get-ReviewedActionUse -Name 'actions/checkout'
+            (Get-StepUses -Step $checkout) | Should -Be $checkoutUse
 
             $login = Get-StepBlock -Job $job -Name 'Azure OIDC login'
-            (Get-StepUses -Step $login) | Should -Be 'azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5'
+            $loginUse = Get-ReviewedActionUse -Name 'azure/login'
+            (Get-StepUses -Step $login) | Should -Be $loginUse
             $loginInputs = Get-YamlBlock -Content $login -Header 'with:' -Indent 8
             (Get-YamlScalarValue -Content $loginInputs -Name 'client-id' -Indent 10) | Should -Be '${{ env.AZURE_CLIENT_ID }}'
             (Get-YamlScalarValue -Content $loginInputs -Name 'tenant-id' -Indent 10) | Should -Be '${{ env.AZURE_TENANT_ID }}'
             (Get-YamlScalarValue -Content $loginInputs -Name 'subscription-id' -Indent 10) | Should -Be '${{ env.AZURE_SUBSCRIPTION_ID }}'
 
             $actionUses = @([regex]::Matches($job, '(?m)^        uses:\s*(\S+)\s*$') | ForEach-Object { $_.Groups[1].Value })
-            @($actionUses | Where-Object { $_ -ceq 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' }).Count | Should -Be 1
-            @($actionUses | Where-Object { $_ -ceq 'azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5' }).Count | Should -Be 1
+            @($actionUses | Where-Object { $_ -ceq $checkoutUse }).Count | Should -Be 1
+            @($actionUses | Where-Object { $_ -ceq $loginUse }).Count | Should -Be 1
             foreach ($actionUse in $actionUses) {
                 $actionUse | Should -Match '@[0-9a-f]{40}$'
             }
@@ -417,7 +427,7 @@ Describe 'Task 7 tenant workflow contracts' {
             $manifestRun | Should -Match '\$configuration\.PowerPlatform\.TestUrl'
             $manifestRun | Should -Match '\$configuration\.PowerPlatform\.ProdUrl'
 
-            $whoAmIRevision = 'microsoft/powerplatform-actions/who-am-i@0e44beb5424af932af47250a2568eba4c259e3d8'
+            $whoAmIRevision = Get-ReviewedActionUse -Name 'microsoft/powerplatform-actions/who-am-i'
             $expectedProbes = @(
                 @{ Name = 'Verify Power Platform DEV'; Stage = 'DEV'; Url = '${{ steps.manifest.outputs.dev-url }}' },
                 @{ Name = 'Verify Power Platform TEST'; Stage = 'TEST'; Url = '${{ steps.manifest.outputs.test-url }}' },
@@ -452,6 +462,8 @@ Describe 'Task 7 tenant workflow contracts' {
                 ($keys -join ',') | Should -Be 'ActionRevision,CollectedUtc,Stage,Status,Url'
             }
             $probeRun | Should -Match '\$env:RUNNER_TEMP\\power-platform-probes\.json'
+            $probeRun | Should -Match 'infra[/\\]src[/\\]config[/\\]github[/\\]action-pins\.json'
+            $probeRun | Should -Match "actions\.'microsoft/powerplatform-actions/who-am-i'\.sha"
 
             $discoveryStep = Get-StepBlock -Job $job -Name 'Run tenant discovery'
             $discoveryRun = Get-StepRun -Step $discoveryStep
@@ -467,7 +479,7 @@ Describe 'Task 7 tenant workflow contracts' {
             @((Get-PowerShellCommands -Script $validationRun) | Where-Object { $_.GetCommandName() -ceq 'Invoke-Pester' }).Count | Should -Be 1
             $validationRun | Should -Match 'infra[/\\]tests[/\\]pester[/\\]DiscoveryNormalization\.Tests\.ps1'
 
-            $uploadRevision = 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02'
+            $uploadRevision = Get-ReviewedActionUse -Name 'actions/upload-artifact'
             $uploadStep = Get-StepBlock -Job $job -Name 'Upload redacted tenant discovery'
             (Get-StepUses -Step $uploadStep) | Should -Be $uploadRevision
             @([regex]::Matches($job, "(?m)^        uses:\s*$([regex]::Escape($uploadRevision))\s*$" )).Count | Should -Be 1

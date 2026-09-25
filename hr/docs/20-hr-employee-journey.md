@@ -5,9 +5,11 @@
 | **Version** | 1.0 |
 | **Date** | 2026-09-17 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed Baseline |
+| **Status** | Superseded |
 | **Scope** | HR |
 | **References** | [Implementation Roadmap](../../docs/operating-model/05-implementation-roadmap.md), [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md) |
+
+> **Superseded.** This document is retained for history. The current product and solution design is [`prd.md`](../../docs/prd.md), [`solution-design.md`](../../docs/solution-design.md), and [`hr-journey-and-raci.md`](../../docs/hr-journey-and-raci.md), reconciled through the [Phase 4 HR Solution Functional Design Intake](../../docs/reviews/2026-09-24-phase-4-hr-solution-functional-design-intake.md).
 
 Proposed Baseline orientation: this document describes intended future HR capabilities, data model, security model, agents and demo path. Phase 2 imports documentation only; it does not deliver Power Platform solution payload, Dataverse tables, security roles, agents, apps, flows, seed JSON or executable implementation.
 

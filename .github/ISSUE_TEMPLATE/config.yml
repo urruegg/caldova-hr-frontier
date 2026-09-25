@@ -6,3 +6,9 @@ contact_links:
   - name: Governance and data rules
     url: https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/operating-model/04-hitl-governance.md
     about: Read before raising anything that might contain personal data.
+  - name: Platform design question
+    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/README.md
+    about: docs/README.md says which document answers which kind of question.
+  - name: Open decision
+    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/prd.md
+    about: Open items live in docs/prd.md section 10 and each use-case PRD section 13. Raise there, not as a new issue.

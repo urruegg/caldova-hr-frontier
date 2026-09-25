@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
 
@@ -31,6 +31,7 @@ jobs:
             '.github/cli/tests/WorkflowContract.Tests.ps1'
             '.github/cli/tests/RepositorySafety.Tests.ps1'
             'infra/tests/pester'
+            'hr/tests/pester'
           )
           Invoke-Pester -Path $paths -Output Detailed -CI
 

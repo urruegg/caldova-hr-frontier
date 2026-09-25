@@ -1,0 +1,69 @@
+name: Use case intake
+description: Propose a new HR use case for the portfolio
+title: "[UC] "
+labels: ["use-case", "intake"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A use case enters as an **idea**. Nothing here commits GF to building it.
+        Three use cases are in MVP scope; everything else waits.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What HR work is painful today? Describe the work, not the solution.
+    validations:
+      required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Journey stage
+      options: [Attract, Hire, Pre-board, Onboard, Enable, Grow, Change, Offboard, Alumni, Cross-cutting]
+    validations:
+      required: true
+  - type: input
+    id: owner
+    attributes:
+      label: Named HR owner
+      description: Who carries the operational outcome? A use case without a named owner is not ready.
+    validations:
+      required: true
+  - type: textarea
+    id: envelope
+    attributes:
+      label: What would it write, and where?
+      description: "If it writes nothing, say read-only. If it writes, name the system, the fields and the conditions."
+    validations:
+      required: true
+  - type: textarea
+    id: refusals
+    attributes:
+      label: What must it refuse?
+      description: The conditions under which it must stop and escalate rather than proceed.
+    validations:
+      required: true
+  - type: dropdown
+    id: decision-surface
+    attributes:
+      label: Does any output influence a decision about a person?
+      description: "Hiring, pay, performance, promotion, exit. If yes, a named human decision-maker who sees the underlying evidence is mandatory (FR-0005)."
+      options: ["No", "Yes — decision-maker named below", "Unsure"]
+    validations:
+      required: true
+  - type: textarea
+    id: measurement
+    attributes:
+      label: What changes, and how would you observe it?
+      description: A baseline has to exist before build, not after.
+    validations:
+      required: true
+  - type: checkboxes
+    id: reality-check
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have checked this is not already in hr/docs/ideas/
+          required: true
+        - label: I have considered whether a workflow, report or process fix would serve better than an agent
+          required: true

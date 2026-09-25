@@ -30,7 +30,11 @@ Use `-WhatIf` with the setter to review the intended insertion without changing 
 
 ## Repository Validation
 
-[verify-repository-safety.ps1](verify-repository-safety.ps1) is the deterministic merge-gate safety scan. It scans every infrastructure PowerShell script and repository workflow for subscription deployment execution and credential-based bootstrap patterns without authenticating or calling cloud services. Its focused Pester tests validate the scanner against fixtures; the workflow invokes the scanner separately against the real checkout.
+[verify-repository-safety.ps1](verify-repository-safety.ps1) is the deterministic merge-gate safety scan. It scans every infrastructure PowerShell script and repository workflow for subscription deployment execution and credential-based bootstrap patterns without authenticating or calling cloud services. It also validates every external workflow `uses:` entry against [action-pins.json](../../infra/src/config/github/action-pins.json), rejects mutable or unknown references, and rejects unused manifest entries. Its focused Pester tests validate the scanner against fixtures; the workflow invokes the scanner separately against the real checkout.
+
+Third-party action updates require two reviewed changes: the workflow `uses:` SHA and its matching manifest entry. The manifest records a human-readable source reference for review, but enforcement uses the immutable lowercase 40-character SHA.
+
+External reusable workflows use the same `owner/repository/subpath@sha` policy and require a manifest entry. Repository-local actions and reusable workflows referenced with `./` remain repository content and do not require a third-party pin entry.
 
 [verify-repository-setup.ps1](verify-repository-setup.ps1) performs the comprehensive baseline audit: repository structure, the protected Superpowers runtime and manifest, the exact issue-form byte snapshot, Git index and working-tree coherence, documentation metadata, governance artifacts, and the integrated repository and infrastructure Pester contracts. Its Phase 3 checks cover required infrastructure paths, the reviewed Tenant 1 and Tenant 2 discovery manifests, optional SharePoint metadata discovery, prohibited data, immutable GitHub OIDC identity, the Tenant 1 Bicep resource allowlist and local build, pinned workflow actions and permissions, documentation links, rejected placeholders, and the absence of unreviewed tenant manifests.
 
