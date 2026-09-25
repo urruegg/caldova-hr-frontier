@@ -6,6 +6,8 @@ param(
 
     [string]$IdeasRoot,
 
+    [string]$RepositoryRootOverride,
+
     [string]$PlanOutputPath,
 
     [switch]$ReturnPortfolioOnly,
@@ -53,10 +55,12 @@ function ConvertTo-RepoRelativeForwardSlashPath {
 function Get-HrIdeaPortfolioItems {
     param(
         [Parameter(Mandatory)]
-        [string]$IdeasRoot
+        [string]$IdeasRoot,
+
+        [string]$RepositoryRoot
     )
 
-    $repositoryRoot = if (-not [string]::IsNullOrWhiteSpace($IdeasRoot) -and (Test-Path -LiteralPath $IdeasRoot)) { [System.IO.Path]::GetFullPath($IdeasRoot) } else { Get-RepositoryRoot }
+    $resolvedRepositoryRoot = if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) { Get-RepositoryRoot } else { $RepositoryRoot }
     $files = @(Get-ChildItem -LiteralPath $IdeasRoot -Filter '*.md' -Recurse -File |
         Where-Object { $_.Name -cmatch '^uc-\d{4}-' } |
         Sort-Object FullName)
@@ -118,7 +122,7 @@ function Get-HrIdeaPortfolioItems {
             Title = $title
             Status = $status
             JourneyStage = $journeyStage
-            SourcePath = ConvertTo-RepoRelativeForwardSlashPath -FullPath $file.FullName -RepositoryRoot $repositoryRoot
+            SourcePath = ConvertTo-RepoRelativeForwardSlashPath -FullPath $file.FullName -RepositoryRoot $resolvedRepositoryRoot
             Summary = $summary
         }) | Out-Null
     }
@@ -127,7 +131,7 @@ function Get-HrIdeaPortfolioItems {
 }
 
 $resolvedIdeasRoot = if ([string]::IsNullOrWhiteSpace($IdeasRoot)) { Get-DefaultIdeasRoot } else { $IdeasRoot }
-$portfolio = Get-HrIdeaPortfolioItems -IdeasRoot $resolvedIdeasRoot
+$portfolio = Get-HrIdeaPortfolioItems -IdeasRoot $resolvedIdeasRoot -RepositoryRoot $RepositoryRootOverride
 
 if ($ReturnPortfolioOnly) {
     Write-Output -NoEnumerate $portfolio

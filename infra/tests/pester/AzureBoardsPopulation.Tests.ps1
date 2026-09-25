@@ -70,7 +70,7 @@ $Summary
         It 'parses UseCaseId, Title, Status, JourneyStage, SourcePath, and Summary from each fixture idea file' {
             $ideasRoot = New-FixtureIdeasRoot
 
-            $items = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -ReturnPortfolioOnly
+            $items = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -ReturnPortfolioOnly
 
             $items.Count | Should -Be 4
 
@@ -97,7 +97,7 @@ $Summary
             New-Item -ItemType Directory -Path $root -Force | Out-Null
             [System.IO.File]::WriteAllText((Join-Path $root 'uc-0001-broken.md'), "No heading here`n> **Status:** Idea`n", [System.Text.UTF8Encoding]::new($false))
 
-            { & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $root -ReturnPortfolioOnly } | Should -Throw '*H1*'
+            { & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $root -RepositoryRootOverride $root -ReturnPortfolioOnly } | Should -Throw '*H1*'
         }
 
         It 'throws a clear error when an idea file has no Status blockquote line' {
@@ -105,7 +105,7 @@ $Summary
             New-Item -ItemType Directory -Path $root -Force | Out-Null
             [System.IO.File]::WriteAllText((Join-Path $root 'uc-0001-broken.md'), "# UC-0001 — Broken`n`nNo status blockquote.`n", [System.Text.UTF8Encoding]::new($false))
 
-            { & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $root -ReturnPortfolioOnly } | Should -Throw '*Status*'
+            { & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $root -RepositoryRootOverride $root -ReturnPortfolioOnly } | Should -Throw '*Status*'
         }
     }
 }
