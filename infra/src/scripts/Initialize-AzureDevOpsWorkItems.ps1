@@ -528,6 +528,11 @@ foreach ($planItem in $workItemPlan) {
         continue
     }
 
+    $target = "$($planItem.UseCaseId) ($($planItem.Title))"
+    if (-not $PSCmdlet.ShouldProcess($target, 'CreateAzureBoardsEpic')) {
+        throw "Azure Boards Epic creation for '$target' was declined."
+    }
+
     $tags = "$($planItem.UseCaseId); $($planItem.Status); $($planItem.JourneyStage)"
     Write-Verbose "Creating work item for '$($planItem.Title)'"
     $createResponse = & $azureDevOpsRequest 'CreateWorkItem' @{ 
