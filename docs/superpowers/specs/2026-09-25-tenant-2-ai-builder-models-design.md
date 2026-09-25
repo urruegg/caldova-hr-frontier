@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.2 |
+| **Version** | 0.3 |
 | **Date** | 2026-09-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | HR Solution Architecture - Tenant 2 DEV AI Builder models |
-| **References** | [UC-0001 PRD](../../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md), [ADR-0011](../../adr/0011-workflow-first-process-architecture.md), [Power Platform Solution Foundation Design](../../specs/2026-09-24-power-platform-solution-foundation-design.md) |
+| **References** | [UC-0001 PRD](../../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md), [PeopleDoc Master Data AI Builder Field BoM](../../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md), [ADR-0011](../../adr/0011-workflow-first-process-architecture.md), [Power Platform Solution Foundation Design](../../specs/2026-09-24-power-platform-solution-foundation-design.md) |
 
 ## 1. Objective
 
@@ -156,27 +156,27 @@ The families deliberately cover prose, letters, two-column layouts, tables, cent
 
 ### 5.3 Common field contract
 
-Both models define exactly the following fields:
+Both models define exactly the following fields. The BoM ID provides stable field-level traceability to the [PeopleDoc Master Data AI Builder Field BoM](../../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md), which is authoritative for design status, per-model implementation stage, verification status and evidence. This section remains authoritative for the model contract.
 
-| Field | AI Builder type | Contract rule |
-|---|---|---|
-| `candidate_id` | Text | Preserve the identifier as text |
-| `last_name` | Text | Preserve Unicode characters |
-| `first_name` | Text | Preserve Unicode characters |
-| `dob` | Date | Source format is `DD.MM.YYYY`; canonical comparison is `YYYY-MM-DD` |
-| `nationality` | Text | No vocabulary substitution in this increment |
-| `marital` | Text | No vocabulary substitution in this increment |
-| `heimatort` | Text | Preserve an explicit em dash as a literal value |
-| `permit` | Text | Preserve an explicit em dash as a literal value |
-| `street` | Text | Preserve punctuation |
-| `plz` | Text | Never define as Number; leading zeros must survive |
-| `city` | Text | Preserve Unicode characters |
-| `ahv` | Text | Never define as Number; preserve separators |
-| `iban` | Text | Preserve the extracted value and separators |
-| `phone` | Text | Preserve the extracted value and separators |
-| `email` | Text | Compare case-sensitively after normalization |
-| `ec_name` | Text | Preserve Unicode characters |
-| `ec_phone` | Text | Preserve the extracted value and separators |
+| BoM ID | Field | AI Builder type | Contract rule |
+|---|---|---|---|
+| `BOM-0001-F01` | `candidate_id` | Text | Preserve the identifier as text |
+| `BOM-0001-F02` | `last_name` | Text | Preserve Unicode characters |
+| `BOM-0001-F03` | `first_name` | Text | Preserve Unicode characters |
+| `BOM-0001-F04` | `dob` | Date | Source format is `DD.MM.YYYY`; canonical comparison is `YYYY-MM-DD` |
+| `BOM-0001-F05` | `nationality` | Text | No vocabulary substitution in this increment |
+| `BOM-0001-F06` | `marital` | Text | No vocabulary substitution in this increment |
+| `BOM-0001-F07` | `heimatort` | Text | Preserve an explicit em dash as a literal value |
+| `BOM-0001-F08` | `permit` | Text | Preserve an explicit em dash as a literal value |
+| `BOM-0001-F09` | `street` | Text | Preserve punctuation |
+| `BOM-0001-F10` | `plz` | Text | Never define as Number; leading zeros must survive |
+| `BOM-0001-F11` | `city` | Text | Preserve Unicode characters |
+| `BOM-0001-F12` | `ahv` | Text | Never define as Number; preserve separators |
+| `BOM-0001-F13` | `iban` | Text | Preserve the extracted value and separators |
+| `BOM-0001-F14` | `phone` | Text | Preserve the extracted value and separators |
+| `BOM-0001-F15` | `email` | Text | Compare case-sensitively after normalization |
+| `BOM-0001-F16` | `ec_name` | Text | Preserve Unicode characters |
+| `BOM-0001-F17` | `ec_phone` | Text | Preserve the extracted value and separators |
 
 The field names are stable identifiers and are not translated.
 
@@ -482,7 +482,8 @@ Tenant 2 implementation is complete only when:
 12. Both models are explicit components of Tenant 2's unmanaged `caldovahrfrontier` solution.
 13. Machine-readable and human-readable evidence is complete.
 14. The evidence does not claim approval for a future automated write path.
-15. No workflow, agent, Workday action, real personal data, production deployment, or cross-tenant dependency was introduced.
+15. The field BoM records per-model implementation stages, verification statuses and evidence links consistent with the completed evidence.
+16. No workflow, agent, Workday action, real personal data, production deployment, or cross-tenant dependency was introduced.
 
 Tenant 1 adaptation is designed, but not implemented, when a separate team can repeat this specification using only Tenant 1 resources and the repository standards.
 
@@ -511,7 +512,8 @@ The implementation plan must:
 5. execute the two model workstreams independently;
 6. stop at every readiness, corpus, contract, or safety failure;
 7. publish and add only evaluated models that pass the strict gates;
-8. capture enough evidence for a separately approved Tenant 1 team to repeat the design without accessing Tenant 2.
+8. update the field BoM only from model-version and run-specific evidence;
+9. capture enough evidence for a separately approved Tenant 1 team to repeat the design without accessing Tenant 2.
 
 ## 16. Microsoft Platform References
 
