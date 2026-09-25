@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-24 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
@@ -13,7 +13,7 @@ This Proposed Baseline defines attended recovery for future tenant bootstrap ope
 
 ## Trust creation
 
-- **Last trusted state:** Reviewed tenant manifest and current five-service discovery evidence; no trust object is assumed to exist.
+- **Last trusted state:** Reviewed tenant manifest and current required discovery evidence, plus optional SharePoint metadata evidence when declared; no trust object is assumed to exist.
 - **Required operator role:** Attended tenant Application Administrator or Cloud Application Administrator plus verified GitHub repository administrator.
 - **Read-only diagnostics:** Query applications by reviewed object ID or exact display name, related service principals, federated credentials, GitHub Environments, and non-secret Environment variable names. Classify zero, one, or multiple matches explicitly.
 - **Repair action:** Stop on ambiguity. After explicit approval, create or correct only the reviewed single-tenant app, related service principal, exact federated credential, tenant Environment, and three non-secret variables. Never add a password, certificate credential, or broader permission as a workaround.

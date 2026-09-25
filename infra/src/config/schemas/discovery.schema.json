@@ -96,6 +96,9 @@
         },
         "PowerPlatform": {
           "$ref": "#/$defs/service"
+        },
+        "SharePoint": {
+          "$ref": "#/$defs/service"
         }
       }
     }
@@ -121,7 +124,8 @@
             "Entra",
             "Azure",
             "AzureDevOps",
-            "PowerPlatform"
+            "PowerPlatform",
+            "SharePoint"
           ]
         },
         "RunId": {
@@ -217,7 +221,8 @@
                 "Entra",
                 "Azure",
                 "AzureDevOps",
-                "PowerPlatform"
+                "PowerPlatform",
+                "SharePoint"
               ]
             },
             "SourceApi": {

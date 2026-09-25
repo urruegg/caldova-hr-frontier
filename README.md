@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-09-24 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -276,7 +276,8 @@ The [Phase 3 Infrastructure and Tenant Bootstrap Intake](docs/reviews/2026-09-17
 | Entry point | Current role |
 |---|---|
 | `infra/src/config/tenants/caldova25156897.psd1` | Reviewed Tenant 1 desired-state manifest and immutable GitHub identity inputs. |
-| `infra/src/scripts/Invoke-TenantDiscovery.ps1` | Read-only five-service discovery entry point that produces local evidence for review. |
+| `infra/src/config/tenants/caldova25668747.psd1` | Reviewed Tenant 2 discovery manifest, including exact Power Platform and SharePoint candidates. |
+| `infra/src/scripts/Invoke-TenantDiscovery.ps1` | Read-only discovery entry point for the five core services and optional SharePoint site metadata. |
 | `infra/src/scripts/Initialize-TenantTrust.ps1` | Attended trust entry point, gated by reviewed intent and separate authorization before any mutation. |
 | `infra/src/scripts/Invoke-TenantBootstrap.ps1` | Local orchestration for validation, Bicep parameter generation, `what-if`, boundary checks, and exact-ID cleanup; it does not deploy. |
 | `infra/src/bicep/main.bicep` | Subscription-scope Bicep composition constrained to the reviewed resource-type allowlist. |

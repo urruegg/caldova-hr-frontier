@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-24 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
@@ -49,7 +49,7 @@ Every transition validates the preceding state and produces reviewable evidence.
 12. After explicit deletion approval, remove the two temporary role assignments by exact ID and verify absence.
 13. Activate final GitHub governance only after all preceding evidence succeeds on `main`.
 
-Tenant 1 is the only tenant eligible for later attended execution in this sprint. Tenant 2 and Tenant 3 remain unprovisioned.
+Tenant 1 is the only tenant eligible for bootstrap validation. Tenant 2 is eligible for attended read-only discovery but remains unprovisioned and excluded from bootstrap validation; Tenant 3 remains schema-ready only.
 
 ## Desired State and Discovery
 

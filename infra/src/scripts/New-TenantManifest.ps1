@@ -49,8 +49,53 @@ $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
 $moduleManifestPath = Join-Path $scriptDirectory 'modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
 Import-Module $moduleManifestPath -Force
 
-if ($TenantAlias -cne 'caldova25156897') {
-    throw 'This generator currently supports only the reviewed Tenant 1 alias caldova25156897.'
+$tenantProfile = switch ($TenantAlias) {
+    'caldova25156897' {
+        [ordered]@{
+            DisplayName = 'Caldova25156897'
+            TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
+            AdminUpn = 'admin@Caldova25156897.onmicrosoft.com'
+            SubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
+            PrimaryLocation = 'switzerlandnorth'
+            CompanyTla = 'cal'
+            AzureDevOps = [ordered]@{
+                OrganizationUrl = 'https://dev.azure.com/caldova25156897/'
+                ProjectName = 'Caldova HR Frontier'
+            }
+            PowerPlatform = [ordered]@{
+                DevUrl = 'https://hrfrontierdev.crm17.dynamics.com/'
+                TestUrl = 'https://hrfrontiertest.crm17.dynamics.com/'
+                ProdUrl = 'https://hrfrontier.crm17.dynamics.com/'
+            }
+        }
+    }
+    'caldova25668747' {
+        [ordered]@{
+            DisplayName = 'Caldova25668747'
+            TenantId = '4682b8db-586c-4602-ad98-d29e4018fd5b'
+            AdminUpn = 'admin@caldova25668747.onmicrosoft.com'
+            SubscriptionId = 'c097a50e-bfe0-487f-bffe-22d7695caadd'
+            PrimaryLocation = 'switzerlandnorth'
+            CompanyTla = 'cal'
+            AzureDevOps = [ordered]@{
+                OrganizationUrl = 'https://dev.azure.com/Caldova25668747/'
+                ProjectName = 'FrontierHR'
+            }
+            PowerPlatform = [ordered]@{
+                DevUrl = 'https://calhrfrontierdev.crm17.dynamics.com/'
+                TestUrl = 'https://calhrfrontiertest.crm17.dynamics.com/'
+                ProdUrl = 'https://calhrfrontier.crm17.dynamics.com/'
+            }
+            SharePoint = [ordered]@{
+                DevUrl = 'https://caldova25668747.sharepoint.com/sites/HRFrontierDEV'
+                TestUrl = 'https://caldova25668747.sharepoint.com/sites/HRFrontierTEST'
+                ProdUrl = 'https://caldova25668747.sharepoint.com/sites/HRFrontier'
+            }
+        }
+    }
+    default {
+        throw "No reviewed tenant profile exists for alias $TenantAlias."
+    }
 }
 
 $tenantDirectory = Join-Path $scriptDirectory '..\config\tenants'
@@ -61,16 +106,16 @@ if ($targetAlreadyExists) {
 }
 
 $suffix = New-TenantSuffix
-$namingRoot = 'cal-hr-agentic-{0}' -f $suffix
+$namingRoot = '{0}-hr-agentic-{1}' -f $tenantProfile.CompanyTla, $suffix
 $manifest = [ordered]@{
     SchemaVersion = '1.0'
-    TenantAlias = 'caldova25156897'
-    DisplayName = 'Caldova25156897'
-    TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
-    AdminUpn = 'admin@Caldova25156897.onmicrosoft.com'
-    SubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
-    PrimaryLocation = 'switzerlandnorth'
-    CompanyTla = 'cal'
+    TenantAlias = $TenantAlias
+    DisplayName = $tenantProfile.DisplayName
+    TenantId = $tenantProfile.TenantId
+    AdminUpn = $tenantProfile.AdminUpn
+    SubscriptionId = $tenantProfile.SubscriptionId
+    PrimaryLocation = $tenantProfile.PrimaryLocation
+    CompanyTla = $tenantProfile.CompanyTla
     WorkloadName = 'hr-agentic'
     UniqueSuffix = $suffix
     NamingRoot = $namingRoot
@@ -80,18 +125,17 @@ $manifest = [ordered]@{
         OwnerId = '46865858'
         Repository = 'caldova-hr-frontier'
         RepositoryId = '1371297722'
-        EnvironmentName = 'bootstrap-caldova25156897'
+        EnvironmentName = "bootstrap-$TenantAlias"
     }
-    AzureDevOps = [ordered]@{
-        OrganizationUrl = 'https://dev.azure.com/caldova25156897/'
-        ProjectName = 'Caldova HR Frontier'
-    }
-    PowerPlatform = [ordered]@{
-        DevUrl = 'https://hrfrontierdev.crm17.dynamics.com/'
-        TestUrl = 'https://hrfrontiertest.crm17.dynamics.com/'
-        ProdUrl = 'https://hrfrontier.crm17.dynamics.com/'
-    }
+    AzureDevOps = $tenantProfile.AzureDevOps
+    PowerPlatform = $tenantProfile.PowerPlatform
     Components = [ordered]@{}
+}
+if ($tenantProfile.Contains('SharePoint')) {
+    $manifest.SharePoint = $tenantProfile.SharePoint
+    $components = $manifest.Components
+    $manifest.Remove('Components')
+    $manifest.Components = $components
 }
 
 $tempPath = Join-Path $tenantDirectory ('.{0}.{1}.tmp' -f $TenantAlias, [guid]::NewGuid().ToString('N'))

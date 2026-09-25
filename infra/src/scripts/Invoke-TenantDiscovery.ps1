@@ -297,13 +297,18 @@ $serviceResults = & $moduleInfo {
         $powerPlatformParameters.BaselineEvidence = $BaselineEvidence
     }
 
-    @{
+    $results = @{
         GitHub = Get-GitHubDiscovery -TenantConfiguration $TenantConfiguration -RunId $RunId -CollectedUtc $CollectedUtc
         Entra = Get-EntraDiscovery -TenantConfiguration $TenantConfiguration -RunId $RunId -CollectedUtc $CollectedUtc
         Azure = Get-AzureDiscovery -TenantConfiguration $TenantConfiguration -RunId $RunId -CollectedUtc $CollectedUtc
         AzureDevOps = Get-AzureDevOpsDiscovery -TenantConfiguration $TenantConfiguration -RunId $RunId -CollectedUtc $CollectedUtc
         PowerPlatform = Get-PowerPlatformDiscovery @powerPlatformParameters
     }
+    if ($TenantConfiguration.PSObject.Properties.Name -contains 'SharePoint') {
+        $results.SharePoint = Get-SharePointDiscovery -TenantConfiguration $TenantConfiguration -RunId $RunId -CollectedUtc $CollectedUtc
+    }
+
+    $results
 } $tenantConfiguration $runId $collectionStartedUtc $AuthenticationMode $PowerPlatformProbePath $baselineEvidence
 
 $collectionCompletedUtc = [datetime]::UtcNow
