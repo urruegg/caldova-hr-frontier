@@ -88,7 +88,7 @@ function Get-SharePointDiscovery {
     foreach ($stageDefinition in $stageDefinitions) {
         $siteUri = [uri]$stageDefinition.Url
         $sitePath = $siteUri.AbsolutePath.Trim('/')
-        $graphUrl = "https://graph.microsoft.com/v1.0/sites/$($siteUri.Host):/$sitePath?`$select=id,displayName,name,webUrl"
+        $graphUrl = "https://graph.microsoft.com/v1.0/sites/$($siteUri.Host):/${sitePath}?`$select=id,displayName,name,webUrl"
         $response = Invoke-BoundedRetry -Request $Request -Operation 'SiteMetadata' -Arguments @{
             Stage = $stageDefinition.Stage
             WebUrl = $stageDefinition.Url

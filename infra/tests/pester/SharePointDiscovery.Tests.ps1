@@ -142,6 +142,44 @@ Describe 'Tenant 2 SharePoint discovery' {
         @($service.Resources | Where-Object Status -ceq 'Found').Count | Should -Be 3
     }
 
+    It 'queries the exact reviewed site paths in Microsoft Graph' {
+        $module = Get-Module Caldova.HrFrontier.Bootstrap -ErrorAction Stop
+        $runId = [guid]'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+        $collectedUtc = [datetime]::SpecifyKind([datetime]'2026-09-24T08:00:00', [System.DateTimeKind]::Utc)
+        $graphUrls = [System.Collections.Generic.List[string]]::new()
+        $request = {
+            param($Operation, $Arguments)
+
+            $graphUrls.Add([string]$Arguments.GraphUrl)
+            $siteName = ([uri]$Arguments.WebUrl).Segments[-1].TrimEnd('/')
+            [pscustomobject]@{
+                StatusCode = 200
+                Headers = @{}
+                Body = [pscustomobject]@{
+                    id = "caldova25668747.sharepoint.com,site-$($Arguments.Stage.ToLowerInvariant()),web-$($Arguments.Stage.ToLowerInvariant())"
+                    displayName = $siteName
+                    name = $siteName
+                    webUrl = $Arguments.WebUrl
+                }
+            }
+        }.GetNewClosure()
+
+        & $module {
+            param($TenantConfiguration, $RunId, $CollectedUtc, $Request)
+            Get-SharePointDiscovery `
+                -TenantConfiguration $TenantConfiguration `
+                -RunId $RunId `
+                -CollectedUtc $CollectedUtc `
+                -Request $Request
+        } $script:TenantConfiguration $runId $collectedUtc $request | Out-Null
+
+        $graphUrls | Should -Be @(
+            'https://graph.microsoft.com/v1.0/sites/caldova25668747.sharepoint.com:/sites/HRFrontierDEV?$select=id,displayName,name,webUrl'
+            'https://graph.microsoft.com/v1.0/sites/caldova25668747.sharepoint.com:/sites/HRFrontierTEST?$select=id,displayName,name,webUrl'
+            'https://graph.microsoft.com/v1.0/sites/caldova25668747.sharepoint.com:/sites/HRFrontier?$select=id,displayName,name,webUrl'
+        )
+    }
+
     It 'records SharePoint as an optional normalized discovery service' {
         $module = Get-Module Caldova.HrFrontier.Bootstrap -ErrorAction Stop
         $runId = [guid]'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'

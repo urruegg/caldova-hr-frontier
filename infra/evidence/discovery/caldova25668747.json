@@ -1,0 +1,814 @@
+{
+  "SchemaVersion": "1.0",
+  "ToolVersion": "1.0.0",
+  "RunId": "8a4caa62-8468-403f-9da5-87d99803b242",
+  "CollectionStartedUtc": "2026-09-25T10:39:06.8392743Z",
+  "CollectionCompletedUtc": "2026-09-25T10:40:13.1248481Z",
+  "TenantAlias": "caldova25668747",
+  "TenantId": "4682b8db-586c-4602-ad98-d29e4018fd5b",
+  "Principal": {
+    "Type": "User",
+    "Id": "78ff9222-484c-449b-9d09-83fa762dc306",
+    "Upn": "admin@caldova25668747.onmicrosoft.com"
+  },
+  "Services": {
+    "GitHub": {
+      "Name": "GitHub",
+      "RunId": "8a4caa62-8468-403f-9da5-87d99803b242",
+      "Status": "Missing",
+      "SourceApi": "GitHub REST v3",
+      "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+      "ResponseSha256": "267fab3ef702e795da4d2189a8936a3c5064b92bb534f8acea8ee58412b8204a",
+      "Resources": [
+        {
+          "Type": "GitHubRepository",
+          "Id": "1371297722",
+          "Name": "caldova-hr-frontier",
+          "Url": "https://api.github.com/repos/urruegg/caldova-hr-frontier",
+          "Scope": "repo:urruegg/caldova-hr-frontier",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "GitHub",
+            "SourceApi": "GitHub REST v3",
+            "Scope": "repo:urruegg/caldova-hr-frontier",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "267fab3ef702e795da4d2189a8936a3c5064b92bb534f8acea8ee58412b8204a"
+          }
+        },
+        {
+          "Type": "GitHubOidcCustomization",
+          "Id": "repo:urruegg@46865858/caldova-hr-frontier@1371297722",
+          "Name": "Immutable OIDC subject",
+          "Scope": "repo:urruegg/caldova-hr-frontier",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "GitHub",
+            "SourceApi": "GitHub REST v3",
+            "Scope": "repo:urruegg/caldova-hr-frontier",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "267fab3ef702e795da4d2189a8936a3c5064b92bb534f8acea8ee58412b8204a"
+          }
+        },
+        {
+          "Type": "GitHubEnvironment",
+          "Id": "bootstrap-caldova25668747",
+          "Name": "bootstrap-caldova25668747",
+          "Url": "https://github.com/urruegg/caldova-hr-frontier/settings/environments",
+          "Scope": "repo:urruegg/caldova-hr-frontier",
+          "Status": "Missing",
+          "EvidenceReference": {
+            "Service": "GitHub",
+            "SourceApi": "GitHub REST v3",
+            "Scope": "repo:urruegg/caldova-hr-frontier",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "267fab3ef702e795da4d2189a8936a3c5064b92bb534f8acea8ee58412b8204a"
+          }
+        }
+      ]
+    },
+    "Entra": {
+      "Name": "Entra",
+      "RunId": "8a4caa62-8468-403f-9da5-87d99803b242",
+      "Status": "Missing",
+      "SourceApi": "Microsoft Graph v1.0",
+      "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+      "ResponseSha256": "89d576bd4a467ce6277e95a5c68a956131019297c3e1dacccfb6dde6f06c635b",
+      "Resources": []
+    },
+    "Azure": {
+      "Name": "Azure",
+      "RunId": "8a4caa62-8468-403f-9da5-87d99803b242",
+      "Status": "Found",
+      "SourceApi": "Azure Resource Graph + ARM",
+      "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+      "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd",
+      "Resources": [
+        {
+          "Type": "AzureSubscription",
+          "Id": "c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Name": "ME-Caldova25668747-anrizzi-1",
+          "Url": "https://management.azure.com/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/85c4f1dc-a4cc-4389-a445-b0a74c983626",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/5473b851-e9e7-4bec-bc11-7a73bc402aa3",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/865a84e9-1878-46a2-937a-aa2c7c00d6f2",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/68786099-e581-43ed-95ce-4b99335ee90e",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/d24ecba3-c1f4-40fa-a7bb-4588a071e8fd",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/a5c1abcb-aa41-cd0d-0f80-f9340ecb107a",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/7d5cecf8-4810-e8dc-a5cc-b80544de7ac3",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/3c890ea8-1863-b296-ed14-336bd6aab3c9",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/2a03d3f7-3c1a-41fe-adba-4500a7a1629f",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/ad805330-260f-4150-bfcf-0f1dce6fffda",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/eadc314b-1a2d-4efa-be10-5d325db5065e",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/e4b280b3-0747-4197-a737-7a161f463b39",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/5a2bf55b-c580-45a3-b6ff-421b8bdd45c0",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/eadc314b-1a2d-4efa-be10-5d325db5065e",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/20253ca6-3bea-4fda-aa3e-3189ed08a870",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/53ca6127-db72-4b80-b1b0-d745d6d5456d",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/0cd47c25-bd8c-4008-9c8b-47f3ff56bf3e",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/0f641de8-0b88-4198-bdef-bd8b45ceba96",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/851bcada-a568-4215-9256-7bff067678eb",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/1e241071-0855-49ea-94dc-649edcd759de",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/cf426633-bd7b-b28c-366c-f8061d40cc13",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/1e7ca9b1-60d1-4db8-a914-f2ca1ff27c40",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/73c24d8e-d025-4a74-a782-203b09923fd9",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/8480c0f0-4509-4229-9339-7c10018cb8c4",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/210ee4f3-07a7-4ba4-97b7-1fc3c4de6c8d",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/c5c82243-e78e-43f9-8428-793bba85b28e",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/29fb2bdc-c7a4-4492-a4cc-a53c3d87d41d",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/d5a2ae44-610b-4500-93be-660a0c5f5ca6",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/c2f12c7c-1c32-40ae-9820-314c70371d36",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/6f91a4f9-10ee-4b95-b8cd-96ee73c5968d",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/e57c2749-a8d8-4d1b-bf5c-7a38265dfcee",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/68ac31b4-936a-4046-a6d2-ba6f8a757bf6",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/16c2767f-1473-4a81-a796-212e94f5ed4c",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/0b6ca2e8-2cdc-4bd6-b896-aa3d8c21fc35",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/c353a2be-8687-455a-924f-185fc02bb82c",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/7a312f8f-88c4-dae1-d933-8849c91da9a3",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/f4c81013-99ee-4d62-a7ee-b3f1f648599a",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/44ad69eb-de22-41fb-9bf1-513a7acb3e18",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/9980e02c-c2be-4d73-94e8-173b1dc7cf3c",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/07150d25-2767-4403-a769-bfbe22fa4505",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/f1a07417-d97a-45cb-824c-7a7467783830",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/10d87981-184b-4ee2-a974-7d381a774ae4",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/e3a0c10a-d8b7-48ee-92e3-3ef00ff822ec",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/c5c82243-e78e-43f9-8428-793bba85b28e",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/80dc429f-261a-4f4b-936a-165e993d8ec6",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/d5a2ae44-610b-4500-93be-660a0c5f5ca6",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/157ce673-a926-4ec3-af6a-ead072d94af0",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/7e559ce2-48d7-4b27-9128-fa1b247f1308",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/315c2179-29db-4784-a711-4d7f5496448b",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/5e93ba01-8f92-4c7a-b12a-801e3df23824",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/456da621-786a-47c3-82eb-57bf9230b8bf",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/ada52afe-776a-4b4d-a8f2-55670d3d8178",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/a1c584fb-487c-43da-8dcc-5a9e7d930dd6",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/2a2b9908-6ea1-4ae2-8e65-a410df84e7d1",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/3084df9c-9659-4570-91c8-d31a1556a416",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/8b9beb50-e28c-4879-8472-24c9d328085f",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureRoleAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleAssignments/21a7b8ae-b1ae-41f4-814d-848ba6b815b7",
+          "Name": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/roleDefinitions/4633458b-17de-408a-b874-0445c86b69e6",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzurePolicyAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/policyAssignments/OpenSourceRelationalDatabasesProtectionSecurityCenter",
+          "Name": "OpenSourceRelationalDatabasesProtectionSecurityCenter",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzurePolicyAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/policyAssignments/DataProtectionSecurityCenter",
+          "Name": "DataProtectionSecurityCenter",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzurePolicyAssignment",
+          "Id": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd/providers/Microsoft.Authorization/policyAssignments/SqlVmAndArcSqlServersProtection",
+          "Name": "SqlVmAndArcSqlServersProtection",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        },
+        {
+          "Type": "AzureProviderState",
+          "Id": "Microsoft.Authorization",
+          "Name": "Registered",
+          "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "Azure",
+            "SourceApi": "Azure Resource Graph + ARM",
+            "Scope": "/subscriptions/c097a50e-bfe0-487f-bffe-22d7695caadd",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bf996dc47adc99e0250fbe932f83fc999e593b8706c32018c40b8d5a3a6cddbd"
+          }
+        }
+      ]
+    },
+    "AzureDevOps": {
+      "Name": "AzureDevOps",
+      "RunId": "8a4caa62-8468-403f-9da5-87d99803b242",
+      "Status": "Found",
+      "SourceApi": "Azure DevOps REST 7.1",
+      "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+      "ResponseSha256": "bdda4cda88ddb2192c509353d50da753e376655cb3edca5e13bd86dc9424a68d",
+      "Resources": [
+        {
+          "Type": "AzureDevOpsProject",
+          "Id": "17896dfa-2a42-4b59-b530-40b2f846a812",
+          "Name": "FrontierHR",
+          "Url": "https://dev.azure.com/Caldova25668747/_apis/projects/17896dfa-2a42-4b59-b530-40b2f846a812",
+          "Scope": "https://dev.azure.com/Caldova25668747/",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "AzureDevOps",
+            "SourceApi": "Azure DevOps REST 7.1",
+            "Scope": "https://dev.azure.com/Caldova25668747/",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bdda4cda88ddb2192c509353d50da753e376655cb3edca5e13bd86dc9424a68d"
+          }
+        },
+        {
+          "Type": "AzureDevOpsUserEntitlement",
+          "Id": "a6ba2dd6-4f9a-6018-ba58-be222a99d1a9",
+          "Name": "Reviewed administrator entitlement",
+          "Scope": "https://dev.azure.com/Caldova25668747/",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "AzureDevOps",
+            "SourceApi": "Azure DevOps REST 7.1",
+            "Scope": "https://dev.azure.com/Caldova25668747/",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bdda4cda88ddb2192c509353d50da753e376655cb3edca5e13bd86dc9424a68d"
+          }
+        },
+        {
+          "Type": "AzureDevOpsRepository",
+          "Id": "ccb95f0c-c689-4a0e-80da-5b0115a998bd",
+          "Name": "FrontierHR",
+          "Url": "https://dev.azure.com/Caldova25668747/FrontierHR/_git/FrontierHR",
+          "Scope": "https://dev.azure.com/Caldova25668747/",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "AzureDevOps",
+            "SourceApi": "Azure DevOps REST 7.1",
+            "Scope": "https://dev.azure.com/Caldova25668747/",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bdda4cda88ddb2192c509353d50da753e376655cb3edca5e13bd86dc9424a68d"
+          }
+        },
+        {
+          "Type": "AzureDevOpsEffectivePermission",
+          "Id": "$PROJECT:vstfs:///Classification/TeamProject/17896dfa-2a42-4b59-b530-40b2f846a812",
+          "Name": "Reviewed administrator project permissions",
+          "Scope": "https://dev.azure.com/Caldova25668747/",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "AzureDevOps",
+            "SourceApi": "Azure DevOps REST 7.1",
+            "Scope": "https://dev.azure.com/Caldova25668747/",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "bdda4cda88ddb2192c509353d50da753e376655cb3edca5e13bd86dc9424a68d"
+          }
+        }
+      ]
+    },
+    "PowerPlatform": {
+      "Name": "PowerPlatform",
+      "RunId": "8a4caa62-8468-403f-9da5-87d99803b242",
+      "Status": "Found",
+      "SourceApi": "Power Platform Admin API",
+      "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+      "ResponseSha256": "6e19236522492ea97cb2aa6386059048df2ae14461e1df08e46b5ec62db35916",
+      "Resources": [
+        {
+          "Type": "PowerPlatformEnvironmentDev",
+          "Id": "/providers/Microsoft.BusinessAppPlatform/scopes/admin/environments/84ad4c54-41d9-e5df-ba07-188b4719594a",
+          "Name": "84ad4c54-41d9-e5df-ba07-188b4719594a",
+          "Url": "https://calhrfrontierdev.crm17.dynamics.com/",
+          "Scope": "environment:DEV",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "PowerPlatform",
+            "SourceApi": "Power Platform Admin API",
+            "Scope": "environment:DEV",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "6e19236522492ea97cb2aa6386059048df2ae14461e1df08e46b5ec62db35916"
+          }
+        },
+        {
+          "Type": "PowerPlatformEnvironmentTest",
+          "Id": "/providers/Microsoft.BusinessAppPlatform/scopes/admin/environments/961bc604-2bca-e833-9924-8804022be54f",
+          "Name": "961bc604-2bca-e833-9924-8804022be54f",
+          "Url": "https://calhrfrontiertest.crm17.dynamics.com/",
+          "Scope": "environment:TEST",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "PowerPlatform",
+            "SourceApi": "Power Platform Admin API",
+            "Scope": "environment:TEST",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "6e19236522492ea97cb2aa6386059048df2ae14461e1df08e46b5ec62db35916"
+          }
+        },
+        {
+          "Type": "PowerPlatformEnvironmentProd",
+          "Id": "/providers/Microsoft.BusinessAppPlatform/scopes/admin/environments/e4eca848-82a1-e835-ae70-f6fa4b3c8a5e",
+          "Name": "e4eca848-82a1-e835-ae70-f6fa4b3c8a5e",
+          "Url": "https://calhrfrontier.crm17.dynamics.com/",
+          "Scope": "environment:PROD",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "PowerPlatform",
+            "SourceApi": "Power Platform Admin API",
+            "Scope": "environment:PROD",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "6e19236522492ea97cb2aa6386059048df2ae14461e1df08e46b5ec62db35916"
+          }
+        }
+      ]
+    },
+    "SharePoint": {
+      "Name": "SharePoint",
+      "RunId": "8a4caa62-8468-403f-9da5-87d99803b242",
+      "Status": "Found",
+      "SourceApi": "Microsoft Graph v1.0",
+      "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+      "ResponseSha256": "7255f4bb8ba7e1d38bcd1fce83d568a4eee464a00d44694c046aedaa5f821486",
+      "Resources": [
+        {
+          "Type": "SharePointSiteDev",
+          "Id": "caldova25668747.sharepoint.com,04c5df56-e932-49fa-a85b-086e49285904,3f9f1eee-3856-41f8-91c4-5b845fafa402",
+          "Name": "HR Frontier DEV",
+          "Url": "https://caldova25668747.sharepoint.com/sites/HRFrontierDEV",
+          "Scope": "site:DEV",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "SharePoint",
+            "SourceApi": "Microsoft Graph v1.0",
+            "Scope": "site:DEV",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "7255f4bb8ba7e1d38bcd1fce83d568a4eee464a00d44694c046aedaa5f821486"
+          }
+        },
+        {
+          "Type": "SharePointSiteTest",
+          "Id": "caldova25668747.sharepoint.com,c774d672-1162-462c-b25b-c0ad2fdfa2f3,3f9f1eee-3856-41f8-91c4-5b845fafa402",
+          "Name": "HR Frontier TEST",
+          "Url": "https://caldova25668747.sharepoint.com/sites/HRFrontierTEST",
+          "Scope": "site:TEST",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "SharePoint",
+            "SourceApi": "Microsoft Graph v1.0",
+            "Scope": "site:TEST",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "7255f4bb8ba7e1d38bcd1fce83d568a4eee464a00d44694c046aedaa5f821486"
+          }
+        },
+        {
+          "Type": "SharePointSiteProd",
+          "Id": "caldova25668747.sharepoint.com,4aaec267-0082-4981-b9df-b44cd1329562,3f9f1eee-3856-41f8-91c4-5b845fafa402",
+          "Name": "HR Frontier",
+          "Url": "https://caldova25668747.sharepoint.com/sites/HRFrontier",
+          "Scope": "site:PROD",
+          "Status": "Found",
+          "EvidenceReference": {
+            "Service": "SharePoint",
+            "SourceApi": "Microsoft Graph v1.0",
+            "Scope": "site:PROD",
+            "CollectedUtc": "2026-09-25T10:39:06.8392743Z",
+            "ResponseSha256": "7255f4bb8ba7e1d38bcd1fce83d568a4eee464a00d44694c046aedaa5f821486"
+          }
+        }
+      ]
+    }
+  }
+}
