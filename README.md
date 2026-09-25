@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-24 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
 | **Scope** | Repository |
@@ -53,7 +53,7 @@ The Phase 2 Proposed Baseline describes intended relationships among Teams, Micr
 | `docs/` | Cross-cutting operating model, ADR candidates, reviews, specifications, and repository documentation policy. |
 | `data/` | Synthetic demo data guidance; no seed JSON is present in Phase 2. |
 | `hr/` | HR domain documentation and solution-source guidance; no Power Platform solution payload is present in Phase 2. |
-| `infra/` | Phase 3 Proposed Baseline documentation, Tenant 1 intent, local validation scripts, tests, and subscription-scope Bicep; no live deployment evidence. |
+| `infra/` | Phase 3 Proposed Baseline documentation, Tenant 1 bootstrap intent, Tenant 2 discovery intent, local validation scripts, tests, and subscription-scope Bicep; no live deployment evidence. |
 
 ### Phase 2 Documentation Map
 
@@ -82,7 +82,8 @@ The [Phase 3 Infrastructure and Tenant Bootstrap Intake](docs/reviews/2026-09-17
 | Entry point | Current role |
 |---|---|
 | `infra/src/config/tenants/caldova25156897.psd1` | Reviewed Tenant 1 desired-state manifest and immutable GitHub identity inputs. |
-| `infra/src/scripts/Invoke-TenantDiscovery.ps1` | Read-only five-service discovery entry point that produces local evidence for review. |
+| `infra/src/config/tenants/caldova25668747.psd1` | Reviewed Tenant 2 discovery manifest, including exact Power Platform and SharePoint candidates. |
+| `infra/src/scripts/Invoke-TenantDiscovery.ps1` | Read-only discovery entry point for the five core services and optional SharePoint site metadata. |
 | `infra/src/scripts/Initialize-TenantTrust.ps1` | Attended trust entry point, gated by reviewed intent and separate authorization before any mutation. |
 | `infra/src/scripts/Invoke-TenantBootstrap.ps1` | Local orchestration for validation, Bicep parameter generation, `what-if`, boundary checks, and exact-ID cleanup; it does not deploy. |
 | `infra/src/bicep/main.bicep` | Subscription-scope Bicep composition constrained to the reviewed resource-type allowlist. |
@@ -91,7 +92,7 @@ No live deployment is authorized by this repository state.
 
 ### Current Status and Getting Started
 
-The repository governance and validation foundation exists: repository instructions, bundled Superpowers, documentation metadata validation, source-contract tests, and the repository verifier are present. Phase 3 adds a reviewed Tenant 1 manifest, discovery and bootstrap scripts, local Bicep composition, workflow contracts, and focused tests. Azure, Power Platform, Azure DevOps, agent, and product runtime state remains unverified unless later live evidence proves otherwise. Phase 2 contains documentation only, with no seed JSON or solution payload, and Phase 3 contains no tenant deployment evidence.
+The repository governance and validation foundation exists: repository instructions, bundled Superpowers, documentation metadata validation, source-contract tests, and the repository verifier are present. Phase 3 adds reviewed Tenant 1 bootstrap intent, Tenant 2 discovery intent, discovery and bootstrap scripts, local Bicep composition, workflow contracts, and focused tests. Azure, Power Platform, SharePoint, Azure DevOps, agent, and product runtime state remains unverified unless later live evidence proves otherwise. Phase 2 contains documentation only, with no seed JSON or solution payload, and Phase 3 contains no tenant deployment evidence.
 
 Start with [docs/operating-model/00-north-star.md](docs/operating-model/00-north-star.md), then read [docs/operating-model/02-system-design.md](docs/operating-model/02-system-design.md), [docs/operating-model/04-hitl-governance.md](docs/operating-model/04-hitl-governance.md), [hr/docs/20-hr-employee-journey.md](hr/docs/20-hr-employee-journey.md), [infra/README.md](infra/README.md), and the repository workflow below. Use [data/README.md](data/README.md), [hr/src/solutions/README.md](hr/src/solutions/README.md), and [infra/src/solutions/README.md](infra/src/solutions/README.md) to understand the current no-data and no-payload boundaries.
 

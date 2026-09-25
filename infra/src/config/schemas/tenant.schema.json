@@ -146,6 +146,29 @@
         }
       }
     },
+    "SharePoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "DevUrl",
+        "TestUrl",
+        "ProdUrl"
+      ],
+      "properties": {
+        "DevUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "TestUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "ProdUrl": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
     "Components": {
       "type": "object",
       "additionalProperties": false,

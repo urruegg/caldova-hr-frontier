@@ -223,6 +223,44 @@ function Assert-TenantConfigurationContract {
         throw 'PowerPlatform URLs must be unique.'
     }
 
+    $configurationEntries = Get-ObjectEntryTable $Configuration
+    if ($Configuration.TenantAlias -ceq 'caldova25668747' -and -not $configurationEntries.Contains('SharePoint')) {
+        throw 'Tenant 2 requires the reviewed SharePoint sites.'
+    }
+
+    if ($configurationEntries.Contains('SharePoint')) {
+        $sharePointUrls = @(
+            $Configuration.SharePoint.DevUrl,
+            $Configuration.SharePoint.TestUrl,
+            $Configuration.SharePoint.ProdUrl
+        )
+        foreach ($url in $sharePointUrls) {
+            if (-not (Test-HttpsUri -Value $url)) {
+                throw 'SharePoint URLs must be HTTPS URLs.'
+            }
+
+            $uri = [uri]$url
+            if ($uri.Host -notmatch '\.sharepoint\.com$' -or $uri.AbsolutePath -notmatch '^/sites/[^/]+/?$') {
+                throw 'SharePoint URLs must identify a site collection on a sharepoint.com host.'
+            }
+        }
+
+        if ((@($sharePointUrls | Select-Object -Unique)).Count -ne (@($sharePointUrls)).Count) {
+            throw 'SharePoint URLs must be unique.'
+        }
+
+        if ($Configuration.TenantAlias -ceq 'caldova25668747') {
+            $reviewedTenant2SharePointUrls = @(
+                'https://caldova25668747.sharepoint.com/sites/HRFrontierDEV',
+                'https://caldova25668747.sharepoint.com/sites/HRFrontierTEST',
+                'https://caldova25668747.sharepoint.com/sites/HRFrontier'
+            )
+            if (($sharePointUrls -join '|') -cne ($reviewedTenant2SharePointUrls -join '|')) {
+                throw 'SharePoint URLs must match the exact reviewed Tenant 2 sites.'
+            }
+        }
+    }
+
     $components = Get-ObjectEntryTable $Configuration.Components
     foreach ($componentName in $components.Keys) {
         $component = Get-ObjectEntryTable $components[$componentName]

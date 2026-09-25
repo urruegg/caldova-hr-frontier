@@ -63,8 +63,9 @@ function Test-DiscoveryEvidence {
 
     $serviceEntries = Get-ObjectEntryTable -InputObject $topLevelEntries.Services
     $requiredServices = @('GitHub', 'Entra', 'Azure', 'AzureDevOps', 'PowerPlatform')
+    $allowedServices = @($requiredServices + 'SharePoint')
     foreach ($serviceKey in $serviceEntries.Keys) {
-        if ($serviceKey -notin $requiredServices) {
+        if ($serviceKey -notin $allowedServices) {
             throw "Evidence.Services.$serviceKey is not allowed by the closed schema."
         }
     }
@@ -74,7 +75,11 @@ function Test-DiscoveryEvidence {
         }
     }
 
-    foreach ($serviceKey in $requiredServices) {
+    foreach ($serviceKey in $allowedServices) {
+        if (-not $serviceEntries.Contains($serviceKey)) {
+            continue
+        }
+
         $service = $serviceEntries[$serviceKey]
         $serviceRecord = Get-ObjectEntryTable -InputObject $service
         foreach ($propertyName in $serviceRecord.Keys) {

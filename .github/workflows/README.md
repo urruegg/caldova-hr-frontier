@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-09-23 |
+| **Version** | 1.3 |
+| **Date** | 2026-09-24 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
 | **Scope** | Repository |
@@ -36,15 +36,17 @@ The `Repository baseline audit (advisory)` check remains visibly red when drift 
 
 ## Tenant Discovery
 
-[discover-tenant.yml](discover-tenant.yml) is a manual, Tenant 1-only discovery workflow. Its required `tenantAlias` choice currently contains only `caldova25156897`. The job binds to `bootstrap-${{ inputs.tenantAlias }}`, serializes work with the same tenant-specific concurrency key, and runs on `windows-2025`.
+[discover-tenant.yml](discover-tenant.yml) remains a manual Tenant 1 workflow while Tenant 2 completes its first attended local discovery. The Tenant 2 manifest and discovery adapter are repository-ready, but `caldova25668747` is intentionally excluded from the workflow choice until reviewed baseline evidence is committed. The job binds to `bootstrap-${{ inputs.tenantAlias }}`, serializes work with the same tenant-specific concurrency key, and runs on `windows-2025`.
 
 The selected GitHub Environment must provide non-secret variables named `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID`. The workflow grants only `contents: read` and `id-token: write`, cross-checks those values against the reviewed tenant manifest, and authenticates to Azure through OIDC. It does not accept a client secret or personal access token.
 
-Before discovery, the workflow runs the pinned Power Platform `who-am-i` action against the DEV, TEST, and PROD URLs loaded from the manifest. It records only stage, URL, success status, UTC timestamp, and reviewed action revision in the temporary probe file. Discovery writes normalized evidence under the runner temporary directory, validates it with pinned Pester 5.7.1, and uploads only `discovery.json` as the seven-day `redacted-tenant-discovery-*` artifact. It does not write evidence into the checkout, commit changes, push a branch, or create a pull request.
+Before discovery, the workflow runs the pinned Power Platform `who-am-i` action against the DEV, TEST, and PROD URLs loaded from the manifest. It records only stage, URL, success status, UTC timestamp, and reviewed action revision in the temporary probe file. When a manifest declares SharePoint sites, the discovery script queries only each reviewed site collection's Microsoft Graph metadata and records its stable ID, name, URL, status, and response hash; it never reads lists, files, pages, or HR content. The tenant-specific bootstrap application therefore needs read access to exactly those sites before a later Tenant 2 workflow validation is enabled.
+
+Discovery writes normalized evidence under the runner temporary directory, validates it with pinned Pester 5.7.1, and uploads only `discovery.json` as the seven-day `redacted-tenant-discovery-*` artifact. It does not write evidence into the checkout, commit changes, push a branch, or create a pull request.
 
 ## Tenant Bootstrap Validation
 
-[bootstrap-tenant.yml](bootstrap-tenant.yml) is a manual, Tenant 1-only validation workflow. It requires the same `tenantAlias` choice and a required `confirmRoleCleanup` boolean whose default is `false`. The first step fails a false confirmation before checkout or authentication. The workflow uses the same Environment, variables, OIDC permissions, Windows runner, and one-tenant concurrency boundary as discovery.
+[bootstrap-tenant.yml](bootstrap-tenant.yml) remains a manual, Tenant 1-only validation workflow. Tenant 2 is intentionally excluded until its attended discovery artifact, stable identifiers, explicit component intent, and Bicep parameter file are reviewed and committed. The workflow requires a `confirmRoleCleanup` boolean whose default is `false`; the first step fails a false confirmation before checkout or authentication. It uses the same Environment, variables, OIDC permissions, Windows runner, and one-tenant concurrency boundary as discovery.
 
 Before authentication, an operator must review and commit both of these tenant-specific inputs:
 

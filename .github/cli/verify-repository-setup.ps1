@@ -820,6 +820,7 @@ $phase3RequiredPaths = @(
     'infra/src/config/schemas/tenant.schema.json',
     'infra/src/config/tenants/_template.psd1',
     'infra/src/config/tenants/caldova25156897.psd1',
+    'infra/src/config/tenants/caldova25668747.psd1',
     'infra/src/scripts/Get-TemporaryBootstrapRoleState.ps1',
     'infra/src/scripts/Grant-TemporaryBootstrapRoles.ps1',
     'infra/src/scripts/Initialize-TenantTrust.ps1',
@@ -835,6 +836,7 @@ $phase3RequiredPaths = @(
     'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-EntraDiscovery.ps1',
     'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-GitHubDiscovery.ps1',
     'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-PowerPlatformDiscovery.ps1',
+    'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-SharePointDiscovery.ps1',
     'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Invoke-BoundedRetry.ps1',
     'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Test-ProhibitedData.ps1',
     'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/ConvertTo-DiscoveryEvidence.ps1',
@@ -856,6 +858,7 @@ $phase3RequiredPaths = @(
     'infra/tests/fixtures/what-if/wrong-scope.json',
     'infra/tests/pester/BicepComposition.Tests.ps1',
     'infra/tests/pester/DiscoveryNormalization.Tests.ps1',
+    'infra/tests/pester/SharePointDiscovery.Tests.ps1',
     'infra/tests/pester/EvidenceGate.Tests.ps1',
     'infra/tests/pester/EvidenceSecurity.Tests.ps1',
     'infra/tests/pester/Idempotency.Tests.ps1',
@@ -876,7 +879,7 @@ foreach ($relativePath in $phase3RequiredPaths) {
 }
 
 Test-RequiredContent 'infra/src/config/schemas/discovery.schema.json' @(
-    '"GitHub"', '"Entra"', '"Azure"', '"AzureDevOps"', '"PowerPlatform"'
+    '"GitHub"', '"Entra"', '"Azure"', '"AzureDevOps"', '"PowerPlatform"', '"SharePoint"'
 )
 Test-RequiredContent 'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Test-ProhibitedData.ps1' @(
     'access[_-]?token', 'refresh[_-]?token', 'client[_-]?secret', 'authorization:\s*bearer',
@@ -936,6 +939,49 @@ if (Test-Path -LiteralPath $phase3TenantManifestPath -PathType Leaf) {
     }
 }
 
+$tenant2ManifestRelativePath = 'infra/src/config/tenants/caldova25668747.psd1'
+$tenant2ManifestPath = Join-Path $repositoryRoot ($tenant2ManifestRelativePath.Replace('/', '\'))
+if (Test-Path -LiteralPath $tenant2ManifestPath -PathType Leaf) {
+    try {
+        $tenant2Configuration = Import-PowerShellDataFile -LiteralPath $tenant2ManifestPath
+        $tenant2ExpectedNamingRoot = '{0}-{1}-{2}' -f
+            $tenant2Configuration.CompanyTla,
+            $tenant2Configuration.WorkloadName,
+            $tenant2Configuration.UniqueSuffix
+        if ($tenant2Configuration.NamingRoot -cne $tenant2ExpectedNamingRoot -or
+            $tenant2Configuration.NamingRoot -cne 'cal-hr-agentic-zenpnq') {
+            Add-Failure 'Tenant 2 NamingRoot does not match its reviewed derivation.'
+        }
+        if ($tenant2Configuration.TenantId -cne '4682b8db-586c-4602-ad98-d29e4018fd5b' -or
+            $tenant2Configuration.SubscriptionId -cne 'c097a50e-bfe0-487f-bffe-22d7695caadd' -or
+            $tenant2Configuration.AdminUpn -cne 'admin@caldova25668747.onmicrosoft.com' -or
+            $tenant2Configuration.LifecycleState -cne 'DiscoveryRequired' -or
+            @($tenant2Configuration.Components.Keys).Count -ne 0) {
+            Add-Failure 'Tenant 2 discovery identity or lifecycle does not match the reviewed contract.'
+        }
+        if ($tenant2Configuration.GitHub.EnvironmentName -cne 'bootstrap-caldova25668747' -or
+            $tenant2Configuration.AzureDevOps.OrganizationUrl -cne 'https://dev.azure.com/Caldova25668747/' -or
+            $tenant2Configuration.AzureDevOps.ProjectName -cne 'FrontierHR') {
+            Add-Failure 'Tenant 2 GitHub or Azure DevOps discovery hints do not match the reviewed contract.'
+        }
+        $tenant2SharePointUrls = @(
+            [string]$tenant2Configuration.SharePoint.DevUrl
+            [string]$tenant2Configuration.SharePoint.TestUrl
+            [string]$tenant2Configuration.SharePoint.ProdUrl
+        )
+        if (($tenant2SharePointUrls -join '|') -cne (@(
+                'https://caldova25668747.sharepoint.com/sites/HRFrontierDEV'
+                'https://caldova25668747.sharepoint.com/sites/HRFrontierTEST'
+                'https://caldova25668747.sharepoint.com/sites/HRFrontier'
+            ) -join '|')) {
+            Add-Failure 'Tenant 2 SharePoint discovery hints do not match the reviewed contract.'
+        }
+    }
+    catch {
+        Add-Failure "Cannot validate the Tenant 2 manifest contract: $($_.Exception.Message)"
+    }
+}
+
 $infraRoot = Join-Path $repositoryRoot 'infra'
 if (Test-Path -LiteralPath $infraRoot -PathType Container) {
     foreach ($placeholder in @(Get-ChildItem -LiteralPath $infraRoot -Filter '.gitkeep' -File -Recurse -Force)) {
@@ -946,10 +992,10 @@ if (Test-Path -LiteralPath $infraRoot -PathType Container) {
 
 $tenantManifestRoot = Join-Path $repositoryRoot 'infra\src\config\tenants'
 if (Test-Path -LiteralPath $tenantManifestRoot -PathType Container) {
-    $allowedTenantManifestNames = @('_template.psd1', 'caldova25156897.psd1')
+    $allowedTenantManifestNames = @('_template.psd1', 'caldova25156897.psd1', 'caldova25668747.psd1')
     foreach ($tenantManifest in @(Get-ChildItem -LiteralPath $tenantManifestRoot -Filter '*.psd1' -File -Force)) {
         if ($allowedTenantManifestNames -cnotcontains $tenantManifest.Name) {
-            Add-Failure "Tenant 2 or Tenant 3 manifest is not allowed in this phase: infra/src/config/tenants/$($tenantManifest.Name)"
+            Add-Failure "Unreviewed tenant manifest is not allowed: infra/src/config/tenants/$($tenantManifest.Name)"
         }
     }
 }
@@ -1011,6 +1057,7 @@ Test-RequiredContent 'README.md' @(
     '### Phase 3 Infrastructure Map',
     '[Phase 3 Infrastructure and Tenant Bootstrap Intake](docs/reviews/2026-09-17-phase-3-infrastructure-tenant-bootstrap-intake.md)',
     '`infra/src/config/tenants/caldova25156897.psd1`',
+    '`infra/src/config/tenants/caldova25668747.psd1`',
     '`infra/src/scripts/Invoke-TenantDiscovery.ps1`',
     '`infra/src/scripts/Initialize-TenantTrust.ps1`',
     '`infra/src/scripts/Invoke-TenantBootstrap.ps1`',

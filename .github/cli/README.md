@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-24 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
 | **Scope** | Repository |
@@ -32,7 +32,7 @@ Use `-WhatIf` with the setter to review the intended insertion without changing 
 
 [verify-repository-safety.ps1](verify-repository-safety.ps1) is the deterministic merge-gate safety scan. It scans every infrastructure PowerShell script and repository workflow for subscription deployment execution and credential-based bootstrap patterns without authenticating or calling cloud services. Its focused Pester tests validate the scanner against fixtures; the workflow invokes the scanner separately against the real checkout.
 
-[verify-repository-setup.ps1](verify-repository-setup.ps1) performs the comprehensive baseline audit: repository structure, the protected Superpowers runtime and manifest, the exact issue-form byte snapshot, Git index and working-tree coherence, documentation metadata, governance artifacts, and the integrated repository and infrastructure Pester contracts. Its Phase 3 checks cover required infrastructure paths, the Tenant 1 manifest and naming contract, five-service discovery, prohibited data, immutable GitHub OIDC identity, the Bicep resource allowlist and local build, pinned workflow actions and permissions, documentation links, rejected placeholders, and the absence of Tenant 2 and Tenant 3 manifests.
+[verify-repository-setup.ps1](verify-repository-setup.ps1) performs the comprehensive baseline audit: repository structure, the protected Superpowers runtime and manifest, the exact issue-form byte snapshot, Git index and working-tree coherence, documentation metadata, governance artifacts, and the integrated repository and infrastructure Pester contracts. Its Phase 3 checks cover required infrastructure paths, the reviewed Tenant 1 and Tenant 2 discovery manifests, optional SharePoint metadata discovery, prohibited data, immutable GitHub OIDC identity, the Tenant 1 Bicep resource allowlist and local build, pinned workflow actions and permissions, documentation links, rejected placeholders, and the absence of unreviewed tenant manifests.
 
 Run it from the repository root with Git, Windows PowerShell, exact Pester 5.7.1, and Azure CLI with the Bicep command installed locally. The validator does not authenticate or call Azure services.
 

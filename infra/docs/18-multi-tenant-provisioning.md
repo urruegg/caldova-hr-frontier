@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-24 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
@@ -58,11 +58,13 @@ Managed identities remain future workload identities and are not shared bootstra
 
 | Tenant | Status | Allowed activity |
 |---|---|---|
-| Tenant 1 (`caldova25156897`) | Reviewed metadata only in Task 1; later tasks may prepare attended discovery and `what-if` | No live action in Task 1 |
+| Tenant 1 (`caldova25156897`) | Reviewed discovery evidence and bootstrap intent | Bootstrap validation and subscription `what-if` only |
+| Tenant 2 (`caldova25668747`) | Reviewed discovery manifest with optional SharePoint metadata scope | Attended read-only discovery only |
+| Tenant 3 | Schema-ready; no manifest | No live action |
 | Tenant 2 | Schema- and workflow-ready concept only | No manifest, Environment, app, discovery, or provisioning |
 | Tenant 3 | Schema- and workflow-ready concept only | No manifest, Environment, app, discovery, or provisioning |
 
-The absence of Tenant 2 and Tenant 3 artifacts is expected and must not be repaired by creating placeholders or speculative configuration.
+Tenant 2 has one reviewed discovery manifest. Its discovery evidence, stable component IDs, explicit intent, and Bicep parameters remain absent until attended discovery and review. Tenant 3 artifacts remain absent and must not be created as placeholders or speculative configuration.
 
 ## Future Onboarding Sequence
 

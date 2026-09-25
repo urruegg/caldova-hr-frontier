@@ -23,6 +23,7 @@ function ConvertTo-DiscoveryEvidence {
     )
 
     $requiredServices = @('GitHub', 'Entra', 'Azure', 'AzureDevOps', 'PowerPlatform')
+    $allowedServices = @($requiredServices + 'SharePoint')
     foreach ($serviceName in $requiredServices) {
         if (-not $ServiceResults.Contains($serviceName)) {
             throw "ServiceResults must include $serviceName."
@@ -30,7 +31,7 @@ function ConvertTo-DiscoveryEvidence {
     }
 
     foreach ($serviceName in $ServiceResults.Keys) {
-        if ($serviceName -notin $requiredServices) {
+        if ($serviceName -notin $allowedServices) {
             throw "Unexpected service result '$serviceName'."
         }
     }
@@ -74,7 +75,11 @@ function ConvertTo-DiscoveryEvidence {
     }
 
     $servicesGraph = [ordered]@{}
-    foreach ($serviceName in $requiredServices) {
+    foreach ($serviceName in $allowedServices) {
+        if (-not $ServiceResults.Contains($serviceName)) {
+            continue
+        }
+
         $serviceResult = $ServiceResults[$serviceName]
         $serviceEntries = Get-ObjectEntryTable -InputObject $serviceResult
         $status = [string]$serviceEntries.Status

@@ -329,7 +329,7 @@ Describe 'Task 7 tenant workflow contracts' {
             }
         }
 
-        It '<Name> exposes only the attended Tenant 1 dispatch choice' -ForEach $workflowCases {
+        It '<Name> exposes only reviewed tenant dispatch choices' -ForEach $workflowCases {
             param($Name)
 
             $content = $script:WorkflowContent[$Name]
@@ -343,8 +343,7 @@ Describe 'Task 7 tenant workflow contracts' {
             (Get-YamlScalarValue -Content $tenantAlias -Name 'type' -Indent 8) | Should -Be 'choice'
             $options = Get-YamlBlock -Content $tenantAlias -Header 'options:' -Indent 8
             $optionValues = @(Get-YamlListValues -Content $options -Indent 10)
-            $optionValues.Count | Should -Be 1
-            $optionValues[0] | Should -Be 'caldova25156897'
+            $optionValues | Should -Be @('caldova25156897')
         }
 
         It '<Name> serializes one tenant on its reviewed GitHub Environment' -ForEach $workflowCases {
