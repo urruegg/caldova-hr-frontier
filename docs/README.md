@@ -125,6 +125,7 @@ The Infrastructure domain is imported as source-derived Proposed Baseline docume
 | [Bootstrap and Provisioning](../infra/docs/17-bootstrap-and-provisioning.md) | Defines the evidence-gated state machine, attended trust, subscription `what-if`, and no-deployment boundary. |
 | [Multi-Tenant Provisioning](../infra/docs/18-multi-tenant-provisioning.md) | Defines isolation for exactly three independent tenants using one repository and one-tenant execution. |
 | [Bootstrap Recovery](../infra/docs/19-bootstrap-recovery.md) | Defines attended recovery from nine failure states without bypassing validation, approvals, or least privilege. |
+| [Tenant Trust Activation Runbook](../infra/docs/20-tenant-trust-activation-runbook.md) | Operator runbook for activating a tenant's Entra/GitHub/Azure DevOps trust using the existing Initialize-TenantTrust.ps1. |
 | [Infrastructure Solution Sources](../infra/src/solutions/README.md) | Defines ownership and exclusions for future unpacked Infrastructure Power Platform solution source. |
 
 **This map is unchanged by the Phase 4 HR solution intake.** `infra/` remains governed exclusively by the Phase 3 review; see [Bicep Composition](../infra/src/bicep/main.bicep) and [Tenant 1 Manifest](../infra/src/config/tenants/caldova25156897.psd1) for its current state.

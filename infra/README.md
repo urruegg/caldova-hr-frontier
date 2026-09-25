@@ -77,6 +77,7 @@ A path shown here is an ownership boundary, not evidence that its artifact alrea
 | [Bootstrap and Provisioning](docs/17-bootstrap-and-provisioning.md) | Defines the evidence-gated, no-deployment bootstrap sequence. |
 | [Multi-Tenant Provisioning](docs/18-multi-tenant-provisioning.md) | Defines isolation for three independent tenants in one repository. |
 | [Bootstrap Recovery](docs/19-bootstrap-recovery.md) | Defines attended recovery without bypassing validation or approvals. |
+| [Tenant Trust Activation Runbook](docs/20-tenant-trust-activation-runbook.md) | Operator runbook for activating a tenant's Entra/GitHub/Azure DevOps trust using the existing Initialize-TenantTrust.ps1. |
 | [Infrastructure Solution Sources](src/solutions/README.md) | Defines ownership and exclusions for future unpacked solution source. |
 
 ## Conventions
