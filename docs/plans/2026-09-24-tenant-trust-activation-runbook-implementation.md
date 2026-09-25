@@ -66,7 +66,7 @@ Create `infra/docs/20-tenant-trust-activation-runbook.md` with exactly this cont
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure (reusable for every onboarded tenant) |
-| **References** | [Tenant Trust Activation Design](../../docs/specs/2026-09-24-tenant-trust-activation-design.md), [Bootstrap and Provisioning](./17-bootstrap-and-provisioning.md), [Multi-Tenant Provisioning](./18-multi-tenant-provisioning.md), [Bootstrap Recovery](./19-bootstrap-recovery.md) |
+| **References** | [Tenant Trust Activation Design](../../docs/specs/2026-09-24-tenant-trust-activation-design.md), [Bootstrap and Provisioning](../../infra/docs/17-bootstrap-and-provisioning.md), [Multi-Tenant Provisioning](../../infra/docs/18-multi-tenant-provisioning.md), [Bootstrap Recovery](../../infra/docs/19-bootstrap-recovery.md) |
 
 This runbook activates one tenant's trust — the Entra Application, Service Principal, Federated Identity Credential, GitHub Environment and its three variables, and the Azure DevOps service-principal entitlement and Readers membership — using the existing `infra/src/scripts/Initialize-TenantTrust.ps1`. No new tooling is introduced here; this document only sequences an existing, already-tested script for a human operator. It is written for `<tenantAlias>` so the same steps apply to Tenant 2 and Tenant 3 when they are onboarded.
 
@@ -126,7 +126,7 @@ This runbook activates one tenant's trust — the Entra Application, Service Pri
 
 4. **Handle a partial failure.**
 
-   If any step fails partway through (for example, the Application is created but a later Graph call fails), do not attempt manual cleanup. Re-run the exact command from Step 3. The tool re-reads current state first; objects already created will read back as `Existing` and only the remaining `Create` items will be attempted. See [Bootstrap Recovery](./19-bootstrap-recovery.md) ("Trust creation", "OIDC mismatch") if the failure is not a simple retry.
+   If any step fails partway through (for example, the Application is created but a later Graph call fails), do not attempt manual cleanup. Re-run the exact command from Step 3. The tool re-reads current state first; objects already created will read back as `Existing` and only the remaining `Create` items will be attempted. See [Bootstrap Recovery](../../infra/docs/19-bootstrap-recovery.md) ("Trust creation", "OIDC mismatch") if the failure is not a simple retry.
 
 5. **Prove activation with a final read-back.**
 
@@ -141,7 +141,7 @@ This runbook activates one tenant's trust — the Entra Application, Service Pri
 
 | Not covered here | Where it lives instead |
 |---|---|
-| Granting the two temporary Azure RBAC roles (Contributor, Role Based Access Control Administrator) | [Bootstrap and Provisioning](./17-bootstrap-and-provisioning.md) §"Temporary Privilege Lifecycle" — a separate, later attended step |
+| Granting the two temporary Azure RBAC roles (Contributor, Role Based Access Control Administrator) | [Bootstrap and Provisioning](../../infra/docs/17-bootstrap-and-provisioning.md) §"Temporary Privilege Lifecycle" — a separate, later attended step |
 | Running the Bicep `what-if` bootstrap validation | `.github/workflows/bootstrap-tenant.yml` — requires the GitHub Environment this runbook creates, and requires the temporary roles above to already be granted |
 | Activating the final GitHub branch ruleset | `infra/src/scripts/Enable-GitHubGovernance.ps1` — requires a completed, evidenced `bootstrap-tenant.yml` run |
 | Azure DevOps project configuration (Boards process, area paths, Azure Repos repurposing) | Tracked as a separate sub-project |
@@ -150,7 +150,7 @@ This runbook activates one tenant's trust — the Entra Application, Service Pri
 
 ## Troubleshooting
 
-If `az login` succeeds but `Initialize-TenantTrust.ps1` still fails, consult [Bootstrap Recovery](./19-bootstrap-recovery.md):
+If `az login` succeeds but `Initialize-TenantTrust.ps1` still fails, consult [Bootstrap Recovery](../../infra/docs/19-bootstrap-recovery.md):
 
 - **"Interactive Azure administrator context is required"** or a `userType`/`userPrincipalName` mismatch → see "Trust creation".
 - Any federated-credential, issuer, audience, or subject mismatch → see "OIDC mismatch".
