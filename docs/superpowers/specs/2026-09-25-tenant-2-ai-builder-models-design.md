@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.4 |
+| **Version** | 0.5 |
 | **Date** | 2026-09-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | HR Solution Architecture - Tenant 2 DEV AI Builder models |
-| **References** | [UC-0001 PRD](../../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md), [PeopleDoc Master Data AI Builder Field BoM](../../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md), [ADR-0011](../../adr/0011-workflow-first-process-architecture.md), [Power Platform Solution Foundation Design](../../specs/2026-09-24-power-platform-solution-foundation-design.md) |
+| **References** | [UC-0001 PRD](../../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md), [PeopleDoc Master Data AI Builder Field BoM](../../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md), [AI Builder Test Inputs and Outcomes BoM](../../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md), [ADR-0011](../../adr/0011-workflow-first-process-architecture.md), [Power Platform Solution Foundation Design](../../specs/2026-09-24-power-platform-solution-foundation-design.md) |
 
 ## 1. Objective
 
@@ -180,6 +180,41 @@ Both models define exactly the following fields. The BoM ID provides stable fiel
 
 The field names are stable identifiers and are not translated.
 
+#### 5.3.1 How semantic fields are learned and evaluated
+
+AI Builder does not discover a new business schema from the documents. The maker defines the canonical contract fields first, then tags the source value that represents each field in every training document. For example, a surname is tagged as `last_name`, a given name as `first_name`, and an address is tagged as the separate `street`, `plz`, and `city` fields. `ec_name` remains distinct from the candidate's name.
+
+The model returns a raw value and a confidence score for each extracted field. Confidence is a value from `0` to `1`; it describes the model's certainty for that prediction, not whether the value is correct. Normalization changes only the comparison representation. It does not identify the entity, alter the extracted value, or recalculate confidence.
+
+```mermaid
+flowchart LR
+    Contract["Canonical field contract<br/>BoM ID, field name, and type"]
+    Training["Synthetic training document"]
+    Tag["Maker tags the source value<br/>to the canonical field"]
+    Model["Tenant-local AI Builder model"]
+    Holdout["Unseen held-out document"]
+    Raw["Raw extracted value"]
+    Confidence["Per-field confidence<br/>0 to 1"]
+    Normalize["Deterministic normalization"]
+    GroundTruth["Ground truth"]
+    Compare["Exact field comparison"]
+    Result["Field-level result record"]
+    Evidence["Metrics, safety gates,<br/>and BoM evidence"]
+
+    Contract --> Tag
+    Training --> Tag
+    Tag --> Model
+    Holdout --> Model
+    Model --> Raw
+    Model --> Confidence
+    Raw --> Normalize
+    Normalize --> Compare
+    GroundTruth --> Compare
+    Compare --> Result
+    Confidence --> Result
+    Result --> Evidence
+```
+
 ### 5.4 Controlled corpus
 
 The implementation uses the supplied synthetic fixed-template and general-document packages. Each package contains:
@@ -303,6 +338,8 @@ Validation produces one record for every held-out document and every contract fi
 | `exact_match` | Exact normalized equality |
 | `error_class` | Empty on match; otherwise missing, incorrect, false value, or invalid format |
 
+The [AI Builder Test Inputs and Outcomes BoM](../../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md) summarizes each model execution. The machine-readable result records remain authoritative for calculated metrics and findings.
+
 ### 8.2 Normalization
 
 Normalization is deterministic and deliberately narrow:
@@ -366,19 +403,32 @@ Testing uses AI Builder's model test experience and structured result capture. N
 
 The model test result is evidence input. The repository comparison calculates metrics and determines each strict gate status; screenshots alone are not sufficient because they do not provide complete field-level, machine-readable evidence.
 
+Microsoft documents machine-readable field values and per-field confidence scores through the AI Builder `Process documents` action. Before held-out evaluation starts, the implementation must prove that the selected no-flow test mechanism exposes equivalent structured values and confidence scores for every contract field. If it does not, validation is blocked and this design must be amended before introducing an evaluation-only flow or another supported capture mechanism. Manual transcription or screenshots do not satisfy the evidence contract.
+
 ## 9. Lifecycle and ALM
 
 Each model follows:
 
-```text
-Created
-  -> Schema defined
-  -> Training documents tagged
-  -> Trained
-  -> Baseline evaluation
-  -> Corpus, contract, and safety gates
-  -> Published as evaluated model
-  -> Added explicitly to caldovahrfrontier
+```mermaid
+stateDiagram-v2
+    state "Schema defined" as SchemaDefined
+    state "Training documents tagged" as Tagged
+    state "Baseline evaluation" as Evaluated
+    state "Corpus, contract, and safety gates" as Gates
+    state "Published as evaluated model" as Published
+    state "Added explicitly to caldovahrfrontier" as Added
+
+    [*] --> Created
+    Created --> SchemaDefined
+    SchemaDefined --> Tagged
+    Tagged --> Trained
+    Trained --> Evaluated
+    Evaluated --> Gates
+    Gates --> Published: strict gates pass
+    Gates --> Blocked: readiness, contract, corpus, or safety failure
+    Published --> Added
+    Added --> [*]
+    Blocked --> [*]
 ```
 
 A model is not published or added to the solution before the corpus, contract, and zero-false-value safety gates pass. Extraction-quality limitations remain visible in the evaluation evidence.
@@ -397,40 +447,37 @@ Managed properties for downstream imports are decided during each tenant's relea
 
 ## 10. Data Flow
 
-```text
-Versioned synthetic corpus + ground truth
-                  |
-        +---------+---------+
-        |                   |
-        v                   v
-PersonalMasterDataFixed   PersonalMasterDataGeneral
-20 training documents    16 training documents
-        |                   |
-        v                   v
-AI Builder training      AI Builder training
-        |                   |
-        v                   v
-4 unseen documents       8 unseen documents
-        |                   |
-        +---------+---------+
-                  |
-                  v
-Normalize and compare every field with ground truth
-                  |
-                  v
-Report accuracy, precision, recall, missing-field
-precision, false-value rate, and confidence
-                  |
-          +-------+--------+
-          |                |
- corpus, contract,     strict gates pass
- or safety failure          |
-          |                 v
-   block + evidence   publish evaluated model
-                            |
-                            v
-                add explicitly to unmanaged
-                   caldovahrfrontier
+The fixed and general models use the same field contract but retain separate training, prediction, metrics, and gate results.
+
+```mermaid
+flowchart TD
+    Corpus["Versioned synthetic corpus<br/>and ground truth"]
+    Fixed["PersonalMasterDataFixed<br/>20 training documents"]
+    General["PersonalMasterDataGeneral<br/>16 training documents"]
+    FixedTrain["AI Builder training"]
+    GeneralTrain["AI Builder training"]
+    FixedHoldout["4 unseen documents"]
+    GeneralHoldout["8 unseen documents"]
+    Compare["Normalize and compare every field<br/>with ground truth"]
+    Metrics["Report accuracy, precision, recall,<br/>missing-field precision, false-value rate,<br/>and confidence distribution"]
+    Gates{"Corpus, contract,<br/>and safety gates"}
+    Block["Block and record evidence"]
+    Publish["Publish evaluated model"]
+    Solution["Add explicitly to unmanaged<br/>caldovahrfrontier"]
+
+    Corpus --> Fixed
+    Corpus --> General
+    Fixed --> FixedTrain
+    General --> GeneralTrain
+    FixedTrain --> FixedHoldout
+    GeneralTrain --> GeneralHoldout
+    FixedHoldout --> Compare
+    GeneralHoldout --> Compare
+    Compare --> Metrics
+    Metrics --> Gates
+    Gates -->|Failure| Block
+    Gates -->|Pass| Publish
+    Publish --> Solution
 ```
 
 No data leaves the synthetic corpus for Workday, SharePoint, an agent, or another tenant.
@@ -483,7 +530,8 @@ Tenant 2 implementation is complete only when:
 13. Machine-readable and human-readable evidence is complete.
 14. The evidence does not claim approval for a future automated write path.
 15. The field BoM records per-model implementation stages, verification statuses and evidence links consistent with the completed evidence.
-16. No workflow, agent, Workday action, real personal data, production deployment, or cross-tenant dependency was introduced.
+16. The test BoM records qualified inputs, model-specific outcomes, metrics, findings, and evidence links consistent with the completed evidence.
+17. No workflow, agent, Workday action, real personal data, production deployment, or cross-tenant dependency was introduced.
 
 Tenant 1 adaptation is designed, but not implemented, when a separate team can repeat this specification using only Tenant 1 resources and the repository standards.
 
@@ -513,10 +561,13 @@ The implementation plan must:
 6. stop at every readiness, corpus, contract, or safety failure;
 7. publish and add only evaluated models that pass the strict gates;
 8. update the field BoM only from model-version and run-specific evidence;
-9. capture enough evidence for a separately approved Tenant 1 team to repeat the design without accessing Tenant 2.
+9. update the test BoM only from qualified input records and machine-readable results;
+10. capture enough evidence for a separately approved Tenant 1 team to repeat the design without accessing Tenant 2.
 
 ## 16. Microsoft Platform References
 
+- [Tag documents in a document processing model](https://learn.microsoft.com/ai-builder/tag-form-processing-model)
+- [Use the document processing model in Power Automate](https://learn.microsoft.com/ai-builder/form-processing-model-in-flow)
 - [Distribute your model using a solution](https://learn.microsoft.com/ai-builder/distribute-model)
 - [Administer AI Builder](https://learn.microsoft.com/ai-builder/administer)
 - [Application lifecycle management with Microsoft Power Platform](https://learn.microsoft.com/power-platform/alm/)

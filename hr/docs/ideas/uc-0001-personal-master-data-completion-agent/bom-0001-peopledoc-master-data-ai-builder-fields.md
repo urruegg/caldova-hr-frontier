@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.2 |
+| **Version** | 0.3 |
 | **Date** | 2026-09-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | UC-0001 AI Builder field design, implementation and verification traceability |
-| **References** | [Tenant 2 AI Builder Model Implementation Design](../../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md), [UC-0001 PRD](prd-0001-personal-master-data-completion-agent.md) |
+| **References** | [Tenant 2 AI Builder Model Implementation Design](../../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md), [AI Builder Test Inputs and Outcomes BoM](bom-0002-ai-builder-test-inputs-and-outcomes.md), [UC-0001 PRD](prd-0001-personal-master-data-completion-agent.md) |
 
 ## 1. Purpose and Authority
 
@@ -16,6 +16,33 @@ This repository-owned Build of Materials (BoM) traces the 17-field AI Builder co
 The [Tenant 2 AI Builder Model Implementation Design](../../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md) remains authoritative for field names, types and contract rules. This BoM does not change that contract.
 
 This document is this package's assessment. It is not the GF-supplied `BOM_Artefacts_Personal_Master_Data_Completion_Agent_Switzerland_Draft_0.1`, which is a broader artefact inventory. The GF-approved field source, `Personalstammdaten_Felder_DE_EN.xlsx`, is referenced by the source material but is not present in this repository. PeopleDoc source labels therefore remain explicitly unverified rather than being inferred.
+
+### 1.1 Traceability overview
+
+Each BoM row connects one stable field contract to the two independently trained models. A status advances only from run-specific evidence, and Tenant 2 evidence never proves Tenant 1 implementation.
+
+```mermaid
+flowchart LR
+    Contract["Stable field contract<br/>BoM ID, field name, type, and rule"]
+    Fixed["Tenant 2 fixed model<br/>stage and verification"]
+    General["Tenant 2 general model<br/>stage and verification"]
+    FixedResult["Fixed field results<br/>value, confidence, and finding"]
+    GeneralResult["General field results<br/>value, confidence, and finding"]
+    Run["Run-specific evidence<br/>run_id and deployment context"]
+    Status["BoM evidence link<br/>and lifecycle status"]
+    Tenant1["Tenant 1 adaptation<br/>new tenant-local evidence"]
+
+    Contract --> Fixed
+    Contract --> General
+    Fixed --> FixedResult
+    General --> GeneralResult
+    FixedResult --> Run
+    GeneralResult --> Run
+    Run --> Status
+    Contract --> Tenant1
+    Status -.-> Boundary["Tenant 2 status and evidence<br/>remain tenant-local"]
+    Boundary -.-> Tenant1
+```
 
 ## 2. Controlled Statuses
 
@@ -90,6 +117,8 @@ An implementation or verification status must link to an evidence run. Its `run-
 - the applicable quality and safety result.
 
 Field-level result records reference this deployment context through `run_id`; they do not repeat or hard-code tenant and environment values. Missing evidence is recorded as missing evidence. It must not be represented as an implemented, evaluated or passing result.
+
+The [AI Builder Test Inputs and Outcomes BoM](bom-0002-ai-builder-test-inputs-and-outcomes.md) summarizes the qualified inputs, metrics, findings, and evidence for each model execution.
 
 ## 5. Tenant 1 Adaptation
 
