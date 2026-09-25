@@ -217,5 +217,105 @@ $Summary
             } | Should -Throw '*Ambiguous existing work items tagged*'
         }
     }
+
+    Context 'Initialize-AzureDevOpsWorkItems main body' {
+        It 'performs zero mutation under -WhatIf and writes the plan to -PlanOutputPath' {
+            $ideasRoot = New-FixtureIdeasRoot
+            $planPath = Join-Path $TestDrive 'plan.json'
+            $script:MutationCallCount = 0
+
+            & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -PlanOutputPath $planPath -WhatIf `
+                -AzureDevOpsRequest {
+                    param($Operation, $Arguments)
+                    switch ($Operation) {
+                        'ListWorkItemTypes' { return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ count = 1; value = @([pscustomobject]@{ name = 'Epic' }) } } }
+                        'QueryWorkItemsByTag' { [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ workItems = @() } } }
+                        default { $script:MutationCallCount++; throw "Unexpected mutating operation '$Operation' under -WhatIf." }
+                    }
+                }
+
+            $script:MutationCallCount | Should -Be 0
+            Test-Path -LiteralPath $planPath | Should -BeTrue
+            $writtenPlan = Get-Content -Raw -LiteralPath $planPath | ConvertFrom-Json
+            @($writtenPlan).Count | Should -Be 4
+        }
+
+        It 'creates a work item, adds the Hyperlink relation, and verifies the read-back when not -WhatIf' {
+            $ideasRoot = New-FixtureIdeasRoot
+            $captured = @{ CreatedFieldsById = @{}; RelationAddedById = @{}; NextId = 9001 }
+
+            & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -Confirm:$false `
+                -AzureDevOpsRequest {
+                    param($Operation, $Arguments)
+                    switch ($Operation) {
+                        'ListWorkItemTypes' { return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ count = 1; value = @([pscustomobject]@{ name = 'Epic' }) } } }
+                        'QueryWorkItemsByTag' { [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ workItems = @() } } }
+                        'CreateWorkItem' {
+                            $newId = $captured.NextId
+                            $captured.NextId++
+                            $captured.CreatedFieldsById[$newId] = $Arguments
+                            [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = $newId } }
+                        }
+                        'AddHyperlinkRelation' {
+                            $captured.RelationAddedById[[int]$Arguments['WorkItemId']] = $Arguments
+                            [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = $null }
+                        }
+                        'ShowWorkItem' {
+                            $id = [int]$Arguments['WorkItemId']
+                            $fields = $captured.CreatedFieldsById[$id]
+                            $relation = $captured.RelationAddedById[$id]
+                            [pscustomobject]@{
+                                StatusCode = 200
+                                Headers = @{}
+                                Body = [pscustomobject]@{
+                                    id = $id
+                                    fields = [pscustomobject]@{
+                                        'System.Title' = [string]$fields['Title']
+                                        'System.Description' = [string]$fields['Description']
+                                        'System.Tags' = [string]$fields['Tags']
+                                    }
+                                    relations = @([pscustomobject]@{ rel = 'Hyperlink'; url = [string]$relation['Url'] })
+                                }
+                            }
+                        }
+                        default { throw "Unexpected operation '$Operation' in this test." }
+                    }
+                }
+
+            $uc0001Fields = $captured.CreatedFieldsById[9001]
+            $uc0001Fields['Title'] | Should -Be 'Fixture MVP Selected'
+            $uc0001Fields['Tags'] | Should -Be 'UC-0001; MVP; Pre-board'
+            $captured.RelationAddedById[9001]['Url'] | Should -Be 'https://github.com/urruegg/caldova-hr-frontier/blob/main/uc-0001-fixture-folder/uc-0001-fixture-folder.md'
+        }
+
+        It 'throws when the read-back does not match the plan' {
+            $ideasRoot = New-FixtureIdeasRoot
+
+            {
+                & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -Confirm:$false `
+                    -AzureDevOpsRequest {
+                        param($Operation, $Arguments)
+                        switch ($Operation) {
+                            'ListWorkItemTypes' { return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ count = 1; value = @([pscustomobject]@{ name = 'Epic' }) } } }
+                            'QueryWorkItemsByTag' { [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ workItems = @() } } }
+                            'CreateWorkItem' { [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 9001 } } }
+                            'AddHyperlinkRelation' { [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = $null } }
+                            'ShowWorkItem' {
+                                [pscustomobject]@{
+                                    StatusCode = 200
+                                    Headers = @{}
+                                    Body = [pscustomobject]@{
+                                        id = 9001
+                                        fields = [pscustomobject]@{ 'System.Title' = 'WRONG TITLE'; 'System.Description' = 'x'; 'System.Tags' = 'x' }
+                                        relations = @()
+                                    }
+                                }
+                            }
+                            default { throw "Unexpected operation '$Operation' in this test." }
+                        }
+                    }
+            } | Should -Throw '*read-back*'
+        }
+    }
 }
 

@@ -306,6 +306,50 @@ function New-DefaultAzureDevOpsRequest {
                     Remove-Item -LiteralPath $tempFile -Force -ErrorAction SilentlyContinue
                 }
             }
+            'CreateWorkItem' {
+                $patchBody = @(
+                    @{ op = 'add'; path = '/fields/System.Title'; value = [string]$Arguments['Title'] }
+                    @{ op = 'add'; path = '/fields/System.Description'; value = [string]$Arguments['Description'] }
+                    @{ op = 'add'; path = '/fields/System.Tags'; value = [string]$Arguments['Tags'] }
+                ) | ConvertTo-Json -Compress
+                $tempFile = [System.IO.Path]::GetTempFileName()
+                try {
+                    [System.IO.File]::WriteAllText($tempFile, $patchBody)
+                    return (Invoke-NativeJsonCommand -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
+                        'devops', 'invoke',
+                        '--organization', [string]$Arguments['OrganizationUrl'],
+                        '--area', 'wit',
+                        '--resource', 'workitems',
+                        '--route-parameters', "project=$([string]$Arguments['ProjectName'])", "type=$([string]$Arguments['WorkItemType'])",
+                        '--http-method', 'POST',
+                        '--in-file', $tempFile,
+                        '--api-version', '7.1',
+                        '--output', 'json'
+                    ))
+                }
+                finally {
+                    Remove-Item -LiteralPath $tempFile -Force -ErrorAction SilentlyContinue
+                }
+            }
+            'AddHyperlinkRelation' {
+                return (Invoke-NativeJsonCommand -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
+                    'boards', 'work-item', 'relation', 'add',
+                    '--id', [string]$Arguments['WorkItemId'],
+                    '--relation-type', 'Hyperlink',
+                    '--target-url', [string]$Arguments['Url'],
+                    '--organization', [string]$Arguments['OrganizationUrl'],
+                    '--output', 'json'
+                ))
+            }
+            'ShowWorkItem' {
+                return (Invoke-NativeJsonCommand -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
+                    'boards', 'work-item', 'show',
+                    '--id', [string]$Arguments['WorkItemId'],
+                    '--expand', 'all',
+                    '--organization', [string]$Arguments['OrganizationUrl'],
+                    '--output', 'json'
+                ))
+            }
             default {
                 throw "Unsupported AzureDevOps operation '$Operation'."
             }
@@ -410,4 +454,99 @@ if ($ReturnWorkItemPlanOnly) {
     return
 }
 
-throw 'Initialize-AzureDevOpsWorkItems.ps1: only -ReturnPortfolioOnly, -ReturnProcessCapabilitiesOnly, and -ReturnWorkItemPlanOnly are implemented so far (Tasks 1-3 of the implementation plan). Task 4 adds mutation.'
+function Assert-WorkItemReadBack {
+    param(
+        [Parameter(Mandatory)]
+        [object]$ReadBack,
+
+        [Parameter(Mandatory)]
+        [string]$ExpectedTitle,
+
+        [Parameter(Mandatory)]
+        [string]$ExpectedDescription,
+
+        [Parameter(Mandatory)]
+        [string]$ExpectedTags,
+
+        [Parameter(Mandatory)]
+        [string]$ExpectedHyperlinkUrl
+    )
+
+    $readBackTable = ConvertTo-Hashtable -InputObject $ReadBack
+    $fields = ConvertTo-Hashtable -InputObject $readBackTable['fields']
+    if ([string]$fields['System.Title'] -cne $ExpectedTitle) {
+        throw "Work item read-back Title mismatch: expected '$ExpectedTitle', observed '$([string]$fields['System.Title'])'."
+    }
+    if ([string]$fields['System.Description'] -cne $ExpectedDescription) {
+        throw "Work item read-back Description mismatch: expected '$ExpectedDescription', observed '$([string]$fields['System.Description'])'."
+    }
+    if ([string]$fields['System.Tags'] -cne $ExpectedTags) {
+        throw "Work item read-back Tags mismatch: expected '$ExpectedTags', observed '$([string]$fields['System.Tags'])'."
+    }
+
+    $relations = if ($readBackTable.ContainsKey('relations')) { @($readBackTable['relations']) } else { @() }
+    $hyperlinkMatch = @($relations | Where-Object {
+        $relationTable = ConvertTo-Hashtable -InputObject $_
+        [string]$relationTable['rel'] -ceq 'Hyperlink' -and [string]$relationTable['url'] -ceq $ExpectedHyperlinkUrl
+    })
+    if ($hyperlinkMatch.Count -eq 0) {
+        throw "Work item read-back is missing the expected Hyperlink relation to '$ExpectedHyperlinkUrl'."
+    }
+}
+
+$workItemPlan = Get-AzureDevOpsWorkItemPlan -OrganizationUrl $organizationUrl -ProjectName $projectName -PortfolioItems $portfolio -Request $azureDevOpsRequest
+
+if ($PlanOutputPath) {
+    $resolvedPlanOutputPath = [System.IO.Path]::GetFullPath($PlanOutputPath)
+    $allowedRoots = @([System.IO.Path]::GetTempPath())
+    if (-not [string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) {
+        $allowedRoots += [System.IO.Path]::GetFullPath($env:RUNNER_TEMP)
+    }
+    $isAllowed = $false
+    foreach ($root in $allowedRoots) {
+        $normalizedRoot = [System.IO.Path]::GetFullPath($root).TrimEnd('\') + '\'
+        if ($resolvedPlanOutputPath.StartsWith($normalizedRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $isAllowed = $true
+            break
+        }
+    }
+    if (-not $isAllowed) {
+        throw 'PlanOutputPath must resolve under the system temporary directory or RUNNER_TEMP.'
+    }
+
+    $json = $workItemPlan | ConvertTo-Json -Depth 10
+    [System.IO.File]::WriteAllText($resolvedPlanOutputPath, $json, (New-Object System.Text.UTF8Encoding $false))
+}
+
+if ($WhatIfPreference) {
+    Write-Output -NoEnumerate $workItemPlan
+    return
+}
+
+foreach ($planItem in $workItemPlan) {
+    if ($planItem.Mode -cne 'Create') {
+        continue
+    }
+
+    $tags = "$($planItem.UseCaseId); $($planItem.Status); $($planItem.JourneyStage)"
+    Write-Verbose "Creating work item for '$($planItem.Title)'"
+    $createResponse = & $azureDevOpsRequest 'CreateWorkItem' @{ 
+        OrganizationUrl = $organizationUrl
+        ProjectName = $projectName
+        WorkItemType = 'Epic'
+        Title = $planItem.Title
+        Description = $planItem.Summary
+        Tags = $tags
+    }
+    $createdBody = Get-ResponseBodyOrNull -Response $createResponse
+    $createdId = [int](ConvertTo-Hashtable -InputObject $createdBody)['id']
+    if ($createdId -le 0) {
+        throw "Azure Boards Epic creation for '$target' did not return a valid work item id."
+    }
+
+    $null = & $azureDevOpsRequest 'AddHyperlinkRelation' @{ OrganizationUrl = $organizationUrl; WorkItemId = $createdId; Url = $planItem.HyperlinkUrl }
+
+    $readBackResponse = & $azureDevOpsRequest 'ShowWorkItem' @{ OrganizationUrl = $organizationUrl; WorkItemId = $createdId }
+    $readBackBody = Get-ResponseBodyOrNull -Response $readBackResponse
+    Assert-WorkItemReadBack -ReadBack $readBackBody -ExpectedTitle $planItem.Title -ExpectedDescription $planItem.Summary -ExpectedTags $tags -ExpectedHyperlinkUrl $planItem.HyperlinkUrl
+}
