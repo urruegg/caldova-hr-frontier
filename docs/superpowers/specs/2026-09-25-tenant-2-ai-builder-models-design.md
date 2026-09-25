@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
+| **Version** | 0.2 |
 | **Date** | 2026-09-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -18,7 +18,7 @@ Implement and validate two AI Builder document-processing models in Tenant 2 DEV
 
 Implementation is tracked in [issue #13](https://github.com/urruegg/caldova-hr-frontier/issues/13).
 
-Both models expose the same 17-field outcome contract. They are trained and tested independently, and each must match the ground truth for every field in its own held-back validation set.
+Both models expose the same 17-field outcome contract. They are trained and tested independently. Each result is compared with ground truth to establish exact-match accuracy, precision, recall, missing-field precision, false-value rate, and confidence distribution.
 
 This design establishes Tenant 2 as one independent development box. Tenant 1 is another independent development box and is not part of this implementation. A separately approved Tenant 1 implementation can repeat this design without importing, calling, or otherwise depending on a Tenant 2 model or resource.
 
@@ -64,7 +64,7 @@ The tenants share:
 - the model names and 17-field contract;
 - synthetic corpus structure and deterministic generators;
 - training and held-out split rules;
-- normalization and exact-match rules;
+- normalization and evaluation rules;
 - evidence schemas and acceptance criteria.
 
 The tenants do not share:
@@ -95,11 +95,18 @@ The models are tested independently through AI Builder's model test experience. 
 
 A later tenant-local flow may select a model by document type. The identical field contract is the integration seam for that future work, but the flow is outside this design.
 
-### 4.5 Strict equality gate
+### 4.5 Tiered quality gates
 
-Both models must pass the same strict gate. Every normalized field in every held-back validation document must equal ground truth. There is no lower threshold for prose-heavy or degraded documents.
+The implementation separates four questions that a single accuracy percentage cannot answer:
 
-A model that does not achieve 100 percent remains blocked. The implementation records the failure rather than weakening the gate or returning a success-shaped result.
+1. **Is the corpus trustworthy?** Document-to-ground-truth consistency, synthetic-only status, file identity, and split integrity must pass completely.
+2. **Are the models interchangeable at the contract boundary?** Both models must define exactly the same 17 fields and types.
+3. **Does the model invent data?** A returned value for a field absent from the source is a blocking safety failure.
+4. **How well does the model extract present data?** Exact-match accuracy, precision, recall, missing-field precision, and confidence distribution are measured by field and document family.
+
+The first Tenant 2 run establishes the extraction-quality baseline. This design does not invent a global percentage before the corpus and model behavior are observed. DAAI and HR Operations approve model- and field-specific thresholds later from the evidence, consistent with D-11 and D-17.
+
+A model may be published as an evaluated component after the corpus, contract, and zero-false-value safety gates pass. Publication does not approve the model for an automated write path.
 
 ## 5. Component Design
 
@@ -112,7 +119,7 @@ A model that does not achieve 100 percent remains blocked. The implementation re
 | Purpose | Extract fields from known layouts with stable field positions |
 | Training corpus | 20 documents: documents 01-05 in each of four collections |
 | Initial held-out set | 4 documents: document 06 in each collection |
-| Solution | `caldovahrfrontier`, after publication and acceptance |
+| Solution | `caldovahrfrontier`, after publication and evaluation |
 
 The four collections are:
 
@@ -132,7 +139,7 @@ Each collection has six synthetic documents with a stable layout. Documents 01-0
 | Purpose | Extract the same fields from mixed and unfamiliar layouts |
 | Training corpus | 16 documents: the first two documents in each of eight families |
 | Initial held-out set | 8 documents: the third document in each family |
-| Solution | `caldovahrfrontier`, after publication and acceptance |
+| Solution | `caldovahrfrontier`, after publication and evaluation |
 
 The eight families are:
 
@@ -196,12 +203,14 @@ hr/evidence/ai-builder/
 └── caldova25668747/
     └── <run-id>/
         ├── readiness.json
+        ├── corpus-quality.json
         ├── model-inventory.json
         ├── training-manifest.json
         ├── validation-results-fixed.csv
         ├── validation-results-general.csv
         ├── validation-results.json
-        └── validation-summary.md
+        ├── evaluation-metrics.json
+        └── evaluation-summary.md
 ```
 
 The evidence contains only synthetic values and non-secret platform metadata. Exported solution ZIP files remain build artifacts and are not committed.
@@ -242,13 +251,28 @@ Before uploading documents, create `training-manifest.json` with:
 
 The manifest is immutable for a completed validation run. A changed split or generated document creates a new run ID.
 
-### 7.2 Tagging
+### 7.2 Corpus qualification
+
+Before training, the corpus quality record must confirm:
+
+- every document is synthetic;
+- every ground-truth row resolves to exactly one document;
+- every non-empty ground-truth value is visibly present in the corresponding document;
+- every empty ground-truth value genuinely means that the field is absent;
+- document names, candidate references, collection or family, and ground-truth records agree;
+- training and held-out assignments are disjoint;
+- expected field coverage by collection and family is recorded;
+- document and ground-truth hashes match the training manifest.
+
+Corpus qualification is a strict gate. A document with ambiguous or incorrect ground truth is corrected or excluded before model quality is assessed.
+
+### 7.3 Tagging
 
 Only values present in the ground truth are tagged. An empty ground-truth value means the field is absent and must not be tagged as an inferred or substituted value.
 
 The two models are tagged independently. Tags or corrections in one model do not alter the other model.
 
-### 7.3 Parallel execution
+### 7.4 Parallel execution
 
 The fixed and general workstreams may train concurrently after both manifests and schemas pass review. Parallel execution does not merge their evidence or allow one model's result to stand in for the other.
 
@@ -274,8 +298,10 @@ Validation produces one record for every held-out document and every contract fi
 | `expected_normalized` | Canonical expected value |
 | `actual_normalized` | Canonical actual value |
 | `confidence` | AI Builder confidence returned for the field |
-| `passed` | Exact normalized equality |
-| `reason` | Empty on pass; explicit mismatch reason on failure |
+| `expected_present` | Whether ground truth contains a value |
+| `actual_present` | Whether the model returned a value |
+| `exact_match` | Exact normalized equality |
+| `error_class` | Empty on match; otherwise missing, incorrect, false value, or invalid format |
 
 ### 8.2 Normalization
 
@@ -293,20 +319,40 @@ Normalization is deterministic and deliberately narrow:
 
 No fuzzy matching, semantic comparison, punctuation removal, phone reformatting, or vocabulary substitution is allowed in this increment.
 
-### 8.3 Exact-match acceptance
+### 8.3 Evaluation metrics
 
-A model passes only when:
+The validator reports the following for each model, field, and collection or family:
 
-- its schema contains exactly the 17 required fields and types;
-- all held-out documents have a result for all 17 contract fields;
-- every normalized actual value equals the normalized expected value;
+| Metric | Definition |
+|---|---|
+| Exact-match accuracy | Exact normalized matches divided by all expected field results |
+| Precision | Correct non-empty values divided by all non-empty values returned |
+| Recall | Correct non-empty values divided by all non-empty expected values |
+| Missing-field precision | Correctly absent outputs divided by all fields expected to be absent |
+| False-value rate | Values returned where the field is absent divided by all fields expected to be absent |
+| Confidence distribution | Confidence grouped by exact match, missing, incorrect, and false value |
+
+The fixed and general result sets are assessed separately. They are not required to process the same documents, and one model's metric cannot compensate for the other model.
+
+### 8.4 Evaluation gates and status
+
+The following gates are strict:
+
+- corpus quality is complete and internally consistent;
+- the schema contains exactly the 17 required fields and types;
+- every validation result is attributable to the model version and evidence run;
 - every expected absence remains absent;
-- the false-value rate is zero;
-- every result is attributable to the model version and evidence run.
+- the false-value rate is zero.
 
-The fixed and general result sets are assessed separately. They are not required to process the same documents.
+Extraction mismatches for fields that are present do not disappear or become near-matches. They remain explicit quality findings and reduce exact-match accuracy, precision, or recall.
 
-### 8.4 Holdout integrity
+The first run establishes a baseline rather than an invented pass percentage. The evaluation summary assigns three distinct statuses:
+
+1. **Evaluated** - corpus, contract, and safety gates pass, and all extraction-quality metrics are reported.
+2. **Technically complete** - the evaluated model is published, added to the solution, and has complete evidence.
+3. **Approved for a future automated write path** - not granted by this implementation. It requires approved D-11 and D-17 thresholds, representative validation evidence, and the separate workflow and Workday safeguards.
+
+### 8.5 Holdout integrity
 
 Held-out documents are never tagged or uploaded as training examples.
 
@@ -314,11 +360,11 @@ If a held-out result influences retagging, retraining, or another model change, 
 
 This rule prevents repeated tuning against the acceptance set.
 
-### 8.5 Model test mechanism
+### 8.6 Model test mechanism
 
 Testing uses AI Builder's model test experience and structured result capture. No Power Automate flow is created for validation.
 
-The model test result is evidence input. The repository comparison determines pass or fail; screenshots alone are not sufficient because they do not provide complete field-level, machine-readable evidence.
+The model test result is evidence input. The repository comparison calculates metrics and determines each strict gate status; screenshots alone are not sufficient because they do not provide complete field-level, machine-readable evidence.
 
 ## 9. Lifecycle and ALM
 
@@ -329,13 +375,13 @@ Created
   -> Schema defined
   -> Training documents tagged
   -> Trained
-  -> Held-out validation
-  -> Accepted
-  -> Published
+  -> Baseline evaluation
+  -> Corpus, contract, and safety gates
+  -> Published as evaluated model
   -> Added explicitly to caldovahrfrontier
 ```
 
-A model is not published or added to the solution before acceptance.
+A model is not published or added to the solution before the corpus, contract, and zero-false-value safety gates pass. Extraction-quality limitations remain visible in the evaluation evidence.
 
 Microsoft documents that:
 
@@ -345,7 +391,7 @@ Microsoft documents that:
 - an imported document-processing model cannot be retrained;
 - models must be added explicitly because they are not inferred dependencies of apps or flows.
 
-For those reasons, Tenant 1 does not import Tenant 2's model as an authoring source. Each tenant trains locally and later promotes its own accepted DEV model to its own TEST and PROD environments through managed solutions.
+For those reasons, Tenant 1 does not import Tenant 2's model as an authoring source. Each tenant trains locally. Promotion of an evaluated DEV model to that tenant's TEST or PROD environment requires a separate release approval and approved quality thresholds.
 
 Managed properties for downstream imports are decided during each tenant's release design. This implementation does not export to TEST or PROD.
 
@@ -371,15 +417,20 @@ AI Builder training      AI Builder training
                   v
 Normalize and compare every field with ground truth
                   |
-          +-------+-------+
-          |               |
-       mismatch        100% pass
-          |               |
-   block + evidence   publish model
-                          |
-                          v
-              add explicitly to unmanaged
-                 caldovahrfrontier
+                  v
+Report accuracy, precision, recall, missing-field
+precision, false-value rate, and confidence
+                  |
+          +-------+--------+
+          |                |
+ corpus, contract,     strict gates pass
+ or safety failure          |
+          |                 v
+   block + evidence   publish evaluated model
+                            |
+                            v
+                add explicitly to unmanaged
+                   caldovahrfrontier
 ```
 
 No data leaves the synthetic corpus for Workday, SharePoint, an agent, or another tenant.
@@ -389,14 +440,15 @@ No data leaves the synthetic corpus for Workday, SharePoint, an agent, or anothe
 | Failure | Required response |
 |---|---|
 | Readiness check is failed or unknown | Stop before model creation and record the blocker |
+| Corpus or ground truth is inconsistent | Correct or exclude the affected document before model evaluation |
 | Model schema differs from the contract | Correct the draft schema before training |
 | AI Builder training error | Record the platform error; do not publish |
-| Any validation mismatch | Block that model and retain field-level evidence |
+| Incorrect or missing value for a present field | Record the quality finding and update the model metrics |
 | False value for an absent field | Block that model; never treat it as a near-match |
 | Holdout used to tune the model | Retire that holdout and generate a new unseen acceptance set |
-| Publish failure | Retain accepted evidence, record the failure, and do not claim publication |
+| Publish failure | Retain evaluation evidence, record the failure, and do not claim publication |
 | Solution-add failure | Retain the published model, record the failure, and do not claim solution completion |
-| One model passes and one fails | Keep separate evidence; the overall implementation remains incomplete |
+| One model is technically complete and the other is blocked | Keep separate evidence; the overall implementation remains incomplete |
 | Solution source cannot be synchronized | Record the tooling limitation; do not commit exported ZIPs or claim source parity |
 
 There is no fallback that returns a passing result when evidence is missing.
@@ -420,14 +472,17 @@ Tenant 2 implementation is complete only when:
 2. `PersonalMasterDataFixed` exists locally in Tenant 2 DEV.
 3. `PersonalMasterDataGeneral` exists locally in Tenant 2 DEV.
 4. Both models define exactly the approved 17 fields and types.
-5. Training and held-out documents are disjoint and hash-recorded.
-6. The fixed model passes every field in all four held-out documents.
-7. The general model passes every field in all eight held-out documents.
-8. Both models have zero false values for expected absences.
-9. Both models are published.
-10. Both models are explicit components of Tenant 2's unmanaged `caldovahrfrontier` solution.
-11. Machine-readable and human-readable evidence is complete.
-12. No workflow, agent, Workday action, real personal data, production deployment, or cross-tenant dependency was introduced.
+5. Corpus qualification proves that documents and ground truth are internally consistent.
+6. Training and held-out documents are disjoint and hash-recorded.
+7. Both models have complete field-level results for their held-out documents.
+8. Accuracy, precision, recall, missing-field precision, false-value rate, and confidence distribution are reported by field and collection or family.
+9. Both models have zero false values for expected absences.
+10. Extraction mismatches remain explicit findings and are not converted into passing results.
+11. Both models are published as evaluated models.
+12. Both models are explicit components of Tenant 2's unmanaged `caldovahrfrontier` solution.
+13. Machine-readable and human-readable evidence is complete.
+14. The evidence does not claim approval for a future automated write path.
+15. No workflow, agent, Workday action, real personal data, production deployment, or cross-tenant dependency was introduced.
 
 Tenant 1 adaptation is designed, but not implemented, when a separate team can repeat this specification using only Tenant 1 resources and the repository standards.
 
@@ -451,11 +506,11 @@ The implementation plan must:
 
 1. reconcile the draft AI Builder setup guide with the approved model names and current `caldovahrfrontier` solution;
 2. preserve the future Tenant 3/GF solution architecture without pretending it exists in Tenant 2;
-3. add the common field contract, training manifest, evidence schema, and exact-match validator;
+3. add the common field contract, training manifest, corpus-quality record, evidence schema, and evaluation validator;
 4. validate the synthetic corpus before upload;
 5. execute the two model workstreams independently;
-6. stop at every readiness or acceptance failure;
-7. publish and add only accepted models;
+6. stop at every readiness, corpus, contract, or safety failure;
+7. publish and add only evaluated models that pass the strict gates;
 8. capture enough evidence for a separately approved Tenant 1 team to repeat the design without accessing Tenant 2.
 
 ## 16. Microsoft Platform References
