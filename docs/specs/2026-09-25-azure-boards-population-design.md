@@ -34,22 +34,35 @@ Populate Azure DevOps Boards for Tenant 1 with one work item per HR use case ide
 
 ## Ruling 2 — "Linked" means a native Azure DevOps hyperlink relation, not prose text
 
-**Decision:** Each Epic carries a `System.Description` of the idea's one-line summary (drawn from `hr/docs/ideas/README.md`'s tables) as plain text, plus a native Azure DevOps `Hyperlink` relation (the REST API's `relations` array, `rel = "Hyperlink"`, `url` = `https://github.com/urruegg/caldova-hr-frontier/blob/main/hr/docs/ideas/<path>`) pointing at the idea's GitHub source document. This is the literal, verifiable meaning of "linked" that does not depend on the separate, attended-only Azure Boards↔GitHub App connection (`docs/specs/2026-09-24-azure-devops-github-single-source-of-truth-design.md`) being installed.
+**Decision:** Each Epic carries a `System.Description` of the idea's own one-line summary (the first non-blank paragraph line immediately following the `## 1. The Idea` heading that every idea file already has — verified present, in that exact form, in all 19 files during this design) as plain text, plus a native Azure DevOps `Hyperlink` relation (the REST API's `relations` array, `rel = "Hyperlink"`, `url` = `https://github.com/urruegg/caldova-hr-frontier/blob/main/hr/docs/ideas/<path>`) pointing at the idea's GitHub source document. This is the literal, verifiable meaning of "linked" that does not depend on the separate, attended-only Azure Boards↔GitHub App connection (`docs/specs/2026-09-24-azure-devops-github-single-source-of-truth-design.md`) being installed.
 
 **Reasoning:** A `Hyperlink` relation is Azure DevOps' own first-class mechanism for exactly this — it shows up as a distinct, clickable entry in the work item's "Links" tab and is queryable via WIQL, unlike a URL embedded in `Description` prose (which is an HTML-rendered rich-text field; comparing a plain string the tool wrote against what Azure DevOps returns after HTML-escaping is fragile and unnecessary to get right when a purpose-built relation type already exists). The GitHub App connection and the `AB#` commit convention link *future commits* to work items — they say nothing about linking an *existing* portfolio of ideas to their *existing* source documents today.
 
 **Cost if wrong:** If the reviewer prefers the URL in `Description` instead of (or as well as) a `Hyperlink` relation, that is a one-line change to the plan/mutation functions' field-mapping, not a redesign — the plan JSON already names both fields independently.
 
-## Ruling 3 — Status metadata makes portfolio state visible without inventing commitment
+## Ruling 3 — Status metadata is parsed from each idea's own file, not from README prose tables
 
-**Decision:** Each Epic carries three pieces of status metadata, all copied verbatim from `hr/docs/ideas/README.md` and `docs/prd.md` — never inferred:
-- A tag `UC-nnnn` (the stable identifier).
-- A tag of exactly one of `MVP`, `MVP-Candidate`, or `Candidate` — `MVP` for `UC-0001` (has a PRD), `MVP-Candidate` for `UC-0005` and `UC-0010` (in MVP scope, not yet graduated to a folder), `Candidate` for the other 15.
-- A tag for the idea's journey stage, copied from the README's "By journey stage" table (e.g. `Stage-PreBoard`).
+**Decision:** Each idea document already carries a standard, structured blockquote immediately after its H1 — for example (`hr/docs/ideas/uc-0006-job-description-generator.md`):
+```markdown
+# UC-0006 — Job Description Generator
+...
+> **Status:** Idea — draft for review
+> **Journey stage:** Hire
+```
+Parse `UseCaseId` and `Title` from the H1 line (`^#\s+(UC-\d{4})\s*[—-]\s*(.+)$`), and derive each Epic's status tag from the blockquote's `**Status:**` line by substring match, in this priority order — checked against the 19 real files during this design, not assumed:
+1. Contains `Selected as MVP` → tag `MVP` (matches only `UC-0001`).
+2. Contains `IN MVP SCOPE` → tag `MVP-Candidate` (matches `UC-0005`, `UC-0010`).
+3. Contains `Runs alongside the MVP` → tag `MVP-Adjacent` (matches only `UC-0002` — explicitly "recommended, not counted" in the MVP, which is neither `MVP` nor a plain `Candidate`; treating it as either would misrepresent it).
+4. Anything else (in practice, always `Idea — draft for review`) → tag `Candidate` (the remaining 15).
+The `JourneyStage` tag is the blockquote's `**Journey stage:**` line value verbatim, with ` — ` normalized to ` - ` (e.g. `Cross-cutting - HR Service Delivery`, `Pre-board`) — never truncated or re-categorized, since `hr/docs/ideas/README.md`'s own "By journey stage" table already treats `Cross — Service Delivery`, `Cross — Operations`, and `Cross — Analytics` as three distinct stages, not one.
 
-**Reasoning:** This gives a reviewer three independent, source-verifiable filters (identifier, commitment level, journey stage) without adding a field that could be misread as approval or scheduling.
+**Reasoning:** Parsing README.md's prose/table sections would require format-fragile regex against a document meant for humans, and — as this correction shows — `README.md`'s three-way MVP/not-MVP framing does not actually capture `UC-0002`'s distinct "runs alongside, not counted" status; the per-file blockquote is each idea's own primary evidence and is visibly designed to be read this way. Preferring the more specific, primary source over a derived summary is the same evidence discipline this whole session's specs have followed throughout.
 
-**Cost if wrong:** Tags are the cheapest Azure Boards metadata to correct — renaming or re-tagging 19 work items is a five-minute fix, not a design defect.
+**Cost if wrong:** If a reviewer wants different tag values, both the priority list and the normalization rule are five lines of the parsing function to change — the 19 files themselves are not touched.
+
+## Ruling 3a — Every idea also gets its own `UC-nnnn` tag
+
+Each Epic additionally carries a bare `UC-nnnn` tag (from the H1), giving a reviewer a stable, source-verifiable identifier filter independent of title wording, status, or stage.
 
 ## Ruling 4 — Discover the process template before assuming Epic exists
 
@@ -61,43 +74,38 @@ Populate Azure DevOps Boards for Tenant 1 with one work item per HR use case ide
 
 ## Architecture
 
-Mirrors the already-established pattern in this repository (`Initialize-TenantTrust.ps1`, `Get-AzureDevOpsDiscovery.ps1`): a zero-mutation plan step, reviewed by a human, then an attended mutation step with per-item confirmation and read-back verification. No new architecture is introduced — this reuses the existing `Caldova.HrFrontier.Bootstrap` module's adapter-injection convention (`-AzureDevOpsRequest` scriptblock) so every new function is unit-testable with injected fakes, exactly like every existing discovery/trust function.
+Mirrors the already-established pattern in this repository for attended CLI workflows: `infra/src/scripts/Initialize-TenantTrust.ps1` and `infra/src/scripts/Enable-GitHubGovernance.ps1` are each a single, self-contained top-level script — not a set of module Private functions — with their own internal helper functions and injectable adapter parameters (`-AzRequest`, `-GitHubRequest`, `-AzureDevOpsRequest`, `-NativeCommandRunner`, all `[Parameter(DontShow)]`), tested by invoking the script directly (`& $ScriptPath @parameters`, per `infra/tests/pester/TenantTrust.Tests.ps1`) rather than via `InModuleScope`. This sub-project follows that exact convention: one new top-level script, not new module Private files.
 
 ```text
 hr/docs/ideas/README.md + hr/docs/ideas/*.md + hr/docs/ideas/uc-0001-.../  (source of truth for content)
     |
     v
-Get-HrIdeaPortfolio.ps1 (new, read-only)         -- parses the 19 ideas' metadata from source
-    |
-    v
-Get-AzureDevOpsWorkItemPlan.ps1 (new, zero-mutation)
-    |  reads: process template + Epic type fields (fails closed if absent)
-    |  reads: existing work items tagged UC-0001..UC-0019 (Existing vs Create, exact tag match)
+Initialize-AzureDevOpsWorkItems.ps1 -WhatIf   (new, self-contained, mirrors Initialize-TenantTrust.ps1's shape)
+    |  internal: Get-HrIdeaPortfolioItems  -- parses each idea file's H1 + status blockquote (see Ruling 3), no network
+    |  internal: Get-AzureDevOpsProcessCapabilities  -- reads process template + Epic type fields via -AzureDevOpsRequest (fails closed if Epic absent)
+    |  internal: Get-AzureDevOpsWorkItemPlan  -- WIQL query for existing UC-nnnn-tagged items; Existing vs Create decision per idea
     |  writes: reviewed plan JSON (same allowed-path restriction as Initialize-TenantTrust.ps1)
     v
 [human reviews the plan]
     |
     v
-Initialize-AzureDevOpsWorkItems.ps1 (new, mutation, ShouldProcess-gated, one prompt per Epic)
-    |  creates/updates each Create/Update Epic; reads back each one against the reviewed plan
+Initialize-AzureDevOpsWorkItems.ps1            (same script, no -WhatIf; ShouldProcess-gated, one prompt per Epic)
+    |  creates/updates each Create/Update Epic; adds the Hyperlink relation; reads back each one against the reviewed plan
     v
-Get-AzureDevOpsWorkItemPlan.ps1 (re-run, zero-mutation)  -- read-back proof, all 19 now Existing
+Initialize-AzureDevOpsWorkItems.ps1 -WhatIf    (re-run, zero-mutation)  -- read-back proof, all 19 now Existing
 ```
 
 ## Components
 
 | File | Responsibility |
 |---|---|
-| `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-HrIdeaPortfolio.ps1` (new) | Parses `hr/docs/ideas/README.md`'s tables (MVP, by-wave, by-journey-stage) plus each `uc-*.md` file's title, and returns one `[pscustomobject]` per idea: `UseCaseId`, `Title`, `Status` (`MVP`/`MVP-Candidate`/`Candidate`), `JourneyStage`, `SourcePath` (repo-relative), `Summary` (one line). Pure parsing, no network/API calls — testable against fixture markdown content. |
-| `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-AzureDevOpsProcessCapabilities.ps1` (new) | Reads the Azure DevOps project's process template and its work item types via the existing `-AzureDevOpsRequest` adapter pattern; returns whether an `Epic` type exists and its exact field reference names (`System.Title`, `System.Description`, `System.Tags`). Throws a named, actionable error if `Epic` is absent. |
-| `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-AzureDevOpsWorkItemPlan.ps1` (new) | Combines the two functions above with a WIQL query for existing work items tagged with each `UC-nnnn`, and produces the `Existing`/`Create` plan per idea (mirroring `Add-PlanItem`'s shape from `Initialize-TenantTrust.ps1`), including the exact `Description` text and `Hyperlink` relation URL each item must carry. Zero mutation; supports `-PlanOutputPath` with the same temp-directory restriction. |
-| `infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1` (new) | CLI entry point. Reads a plan (or computes a fresh one), and for each `Create`/`Update` item, calls `az boards work-item create`/`update` behind `$PSCmdlet.ShouldProcess(...)` to set `Title`, `Description`, and `Tags`, then a follow-up `relations add` call for the `Hyperlink`, then reads the created/updated item back (including its `relations` array) and asserts `Title`, `Description`, `Tags`, and the `Hyperlink` URL all match the plan exactly. `[CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]`, same interactive-context pattern as `Initialize-TenantTrust.ps1`. |
-| `infra/tests/pester/AzureBoardsPopulation.Tests.ps1` (new) | Injected-adapter Pester coverage for all four functions above: portfolio parsing against fixture markdown, process-capability detection (Epic present/absent), plan computation (all-Create, all-Existing, mixed, tag-mismatch-is-ambiguous), and mutation with read-back-mismatch-throws. Zero live calls, matching every existing test file in this repository. |
+| `infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1` (new) | Single self-contained top-level script, sized and structured like `Initialize-TenantTrust.ps1`. Internal functions (not exported, defined at the top of this file): `Get-HrIdeaPortfolioItems` (reads each of the 19 idea files under `-IdeasRoot` and parses `UseCaseId`/`Title` from the H1 line and the `Status`/`JourneyStage` tags from the standard blockquote each file already carries — see Ruling 3 — no network, pure file parsing, testable against a `$TestDrive` fixture tree); `Get-AzureDevOpsProcessCapabilities` (reads the project's process template and work item types via the injectable `-AzureDevOpsRequest` adapter; throws a named error if no `Epic` type exists); `Get-AzureDevOpsWorkItemPlan` (WIQL query for existing work items tagged with each `UC-nnnn`; computes the `Existing`/`Create` decision per idea, mirroring `Add-PlanItem`'s shape). The script's main body wires these together, writes the plan JSON (same temp-directory restriction as `Initialize-TenantTrust.ps1`'s `-PlanOutputPath`), and — only when not `-WhatIf` — creates/updates each `Create`/`Update` Epic (`Title`, `Description`, `Tags` via `az boards work-item create`/`update`, then the `Hyperlink` relation via `az boards work-item relation add`), each behind `$PSCmdlet.ShouldProcess(...)`, then reads every mutated item back (`az boards work-item show --expand all`) and asserts `Title`, `Description`, `Tags`, and the `Hyperlink` URL all match the plan exactly. `[CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]`, same interactive-context assertion pattern as `Initialize-TenantTrust.ps1`. |
+| `infra/tests/pester/AzureBoardsPopulation.Tests.ps1` (new) | Injected-adapter Pester coverage, invoking the script directly (`& $ScriptPath @parameters`, mirroring `TenantTrust.Tests.ps1`) rather than `InModuleScope` — this script is standalone, not a module member. |
 | `infra/docs/21-azure-boards-population-runbook.md` (new) | Operator runbook, mirroring `infra/docs/20-tenant-trust-activation-runbook.md`'s structure: prerequisites, plan-review step, execute step, partial-failure handling, final read-back, explicit "what this does not do" table, troubleshooting. |
 
 ## Testing
 
-Every new function is covered the same way as this repository's existing discovery and trust functions: injected `-AzureDevOpsRequest` (and, for portfolio parsing, injected file content) fakes, zero live calls. Specific cases the plan must cover: process template missing `Epic` (fails closed, named error); a `UC-nnnn` tag matching more than one existing work item (ambiguous, fails closed — never picks the first match, mirroring `Assert-ReviewedStableId`'s pattern); an idea whose source markdown is missing a required section (fails closed rather than writing a blank Description); a full 19-item Create plan; a full 19-item all-`Existing` plan (idempotent re-run); a mutation whose read-back Title/Tags/Hyperlink relation do not match the plan (throws, never silently accepts).
+Covered the same way `infra/tests/pester/TenantTrust.Tests.ps1` covers `Initialize-TenantTrust.ps1`: the test file invokes `Initialize-AzureDevOpsWorkItems.ps1` directly (`& $script:ScriptPath @parameters`) with injected `-AzureDevOpsRequest` and `-NativeCommandRunner` scriptblocks, and an injected `-IdeasRoot` path so portfolio parsing can be tested against a `$TestDrive` fixture tree instead of this repository's real `hr/docs/ideas/`. Zero live calls anywhere. Specific cases the plan must cover: process template missing `Epic` (fails closed, named error); a `UC-nnnn` tag matching more than one existing work item (ambiguous, fails closed — never picks the first match, mirroring `Assert-ReviewedStableId`'s pattern); an idea whose source markdown is missing a required section (fails closed rather than writing a blank Description); a full 19-item Create plan; a full 19-item all-`Existing` plan (idempotent re-run); a mutation whose read-back Title/Tags/Hyperlink relation do not match the plan (throws, never silently accepts).
 
 ## Runbook (Attended, Not Executed by This Sub-Project)
 
