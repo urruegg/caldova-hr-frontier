@@ -86,6 +86,19 @@ Describe 'Core repository safety validation' {
         $output -join "`n" | Should -Match 'Prohibited bootstrap command or credential pattern found'
     }
 
+    It 'rejects workstation security-policy weakening' -TestCases @(
+        @{ Content = 'Set-ExecutionPolicy Unrestricted -Force' }
+        @{ Content = 'Set-MpPreference -DisableRealtimeMonitoring $true' }
+        @{ Content = 'Start-Process powershell.exe -Verb RunAs' }
+    ) {
+        param([string]$Content)
+
+        $fixtureRoot = New-SafetyFixture -Content $Content
+        $output = @(& $script:validatorPath -RepositoryRoot $fixtureRoot 2>&1 | ForEach-Object ToString)
+        $LASTEXITCODE | Should -Be 1
+        $output -join "`n" | Should -Match 'Prohibited bootstrap command or credential pattern found'
+    }
+
     It 'scans every repository workflow' {
         $fixtureRoot = New-SafetyFixture
         $workflowPath = Join-Path $fixtureRoot '.github\workflows\other.yml'
