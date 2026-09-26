@@ -20,7 +20,14 @@ function Assert-RunbookEvidencePropertyNames {
 function Assert-RunbookDisplaySafeScalar {
     param([AllowNull()] [object]$Value)
     if ($null -eq $Value) { return }
-    if ($Value -is [Collections.IEnumerable] -and $Value -isnot [string]) {
+
+    $allowedTypes = @(
+        [string], [char], [bool],
+        [byte], [sbyte], [int16], [uint16], [int32], [uint32], [int64], [uint64],
+        [single], [double], [decimal],
+        [datetime], [datetimeoffset], [guid], [timespan], [version]
+    )
+    if ($allowedTypes -notcontains $Value.GetType()) {
         throw 'Evidence values must be display-safe scalars.'
     }
     if ($Value -is [string] -and ($Value.Length -gt 2048 -or $Value -match '[\x00-\x08\x0B\x0C\x0E-\x1F]')) {

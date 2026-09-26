@@ -37,15 +37,7 @@ function Test-RunbookExecutionManifest {
     Assert-RunbookClosedObject -InputObject $Manifest.target `
         -AllowedProperties @('type', 'stableId') -RequiredProperties @('type', 'stableId') `
         -ErrorMessage 'Execution manifest contains an unrecognized property.'
-    $authenticationProperties = @(
-        'executionHost', 'mode', 'accountId', 'tenantId', 'subscriptionId',
-        'githubHost', 'githubLogin', 'azureDevOpsOrganizationUrl',
-        'azureDevOpsActingUserId', 'azureDevOpsProjectId',
-        'powerPlatformProfileName', 'powerPlatformEnvironmentId'
-    )
-    Assert-RunbookClosedObject -InputObject $Manifest.authentication `
-        -AllowedProperties $authenticationProperties -RequiredProperties @('executionHost', 'mode') `
-        -ErrorMessage 'Execution manifest contains an unrecognized property.'
+    Assert-RunbookAuthenticationContext -AuthenticationContext $Manifest.authentication
     $actionProperties = @(
         'action', 'targetId', 'service', 'method', 'uri', 'bodyDigest',
         'packageSource', 'packageId', 'scope', 'requiredVersion',

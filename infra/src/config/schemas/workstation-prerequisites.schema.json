@@ -49,7 +49,8 @@
     },
     "tools": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 11,
+      "maxItems": 11,
       "uniqueItems": true,
       "items": { "$ref": "#/$defs/tool" }
     },
@@ -147,43 +148,162 @@
       ]
     },
     "tool": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "id",
-        "command",
-        "versionArguments",
-        "versionPolicy",
-        "installDisposition",
-        "install",
-        "reference"
-      ],
-      "properties": {
-        "id": { "type": "string", "minLength": 1 },
-        "command": { "type": "string", "minLength": 1 },
-        "versionArguments": {
-          "type": "array",
-          "minItems": 1,
-          "items": { "type": "string" }
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "command", "versionArguments", "versionPolicy", "installDisposition", "install", "reference"],
+          "properties": {
+            "id": { "const": "PowerShell7" },
+            "command": { "const": "pwsh.exe" },
+            "versionArguments": { "const": ["--NoLogo", "--NoProfile", "--Command", "$PSVersionTable.PSVersion.ToString()"] },
+            "versionPolicy": { "const": { "mode": "Present" } },
+            "installDisposition": { "const": "Automated" },
+            "install": { "const": { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.PowerShell", "scope": "machine" } },
+            "reference": { "const": "https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-windows" }
+          }
         },
-        "versionPolicy": { "$ref": "#/$defs/versionPolicy" },
-        "installDisposition": { "enum": ["Automated", "Manual"] },
-        "install": { "$ref": "#/$defs/install" },
-        "reference": { "type": "string", "format": "uri" }
-      },
-      "not": {
-        "required": ["installDisposition", "install"],
-        "properties": {
-          "installDisposition": { "enum": ["Manual"] },
-          "install": {
-            "type": "object",
-            "required": ["kind"],
-            "properties": {
-              "kind": { "enum": ["WinGet", "PowerShellGallery", "AzureCliComponent"] }
-            }
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "command", "versionArguments", "versionPolicy", "installDisposition", "install", "reference"],
+          "properties": {
+            "id": { "const": "WindowsPowerShell" },
+            "command": { "const": "powershell.exe" },
+            "versionArguments": { "const": ["-NoLogo", "-NoProfile", "-Command", "$PSVersionTable.PSVersion.ToString()"] },
+            "versionPolicy": { "const": { "mode": "Exact", "value": "5.1" } },
+            "installDisposition": { "const": "Manual" },
+            "install": { "const": { "kind": "None" } },
+            "reference": { "const": "https://learn.microsoft.com/en-us/powershell/scripting/what-is-windows-powershell" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "command", "versionArguments", "versionPolicy", "installDisposition", "install", "reference"],
+          "properties": {
+            "id": { "const": "Git" },
+            "command": { "const": "git.exe" },
+            "versionArguments": { "const": ["--version"] },
+            "versionPolicy": { "const": { "mode": "Present" } },
+            "installDisposition": { "const": "Automated" },
+            "install": { "const": { "kind": "WinGet", "source": "winget", "packageId": "Git.Git", "scope": "machine" } },
+            "reference": { "const": "https://docs.github.com/en/get-started/getting-started-with-git/set-up-git" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "command", "versionArguments", "versionPolicy", "installDisposition", "install", "reference"],
+          "properties": {
+            "id": { "const": "VisualStudioCode" },
+            "command": { "const": "code.cmd" },
+            "versionArguments": { "const": ["--version"] },
+            "versionPolicy": { "const": { "mode": "Present" } },
+            "installDisposition": { "const": "Automated" },
+            "install": { "const": { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.VisualStudioCode", "scope": "machine" } },
+            "reference": { "const": "https://code.visualstudio.com/docs/setup/windows" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "command", "versionArguments", "versionPolicy", "installDisposition", "install", "reference"],
+          "properties": {
+            "id": { "const": "GitHubCli" },
+            "command": { "const": "gh.exe" },
+            "versionArguments": { "const": ["--version"] },
+            "versionPolicy": { "const": { "mode": "Present" } },
+            "installDisposition": { "const": "Automated" },
+            "install": { "const": { "kind": "WinGet", "source": "winget", "packageId": "GitHub.cli", "scope": "machine" } },
+            "reference": { "const": "https://docs.github.com/en/github-cli/github-cli/quickstart" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "command", "versionArguments", "versionPolicy", "installDisposition", "install", "reference"],
+          "properties": {
+            "id": { "const": "AzureCli" },
+            "command": { "const": "az.cmd" },
+            "versionArguments": { "const": ["version", "--output", "json"] },
+            "versionPolicy": { "const": { "mode": "Present" } },
+            "installDisposition": { "const": "Automated" },
+            "install": { "const": { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.AzureCLI", "scope": "machine" } },
+            "reference": { "const": "https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-windows" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "command", "versionArguments", "versionPolicy", "installDisposition", "install", "reference"],
+          "properties": {
+            "id": { "const": "AzureDeveloperCli" },
+            "command": { "const": "azd.exe" },
+            "versionArguments": { "const": ["version"] },
+            "versionPolicy": { "const": { "mode": "Present" } },
+            "installDisposition": { "const": "Automated" },
+            "install": { "const": { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.Azd", "scope": "machine" } },
+            "reference": { "const": "https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "command", "versionArguments", "versionPolicy", "installDisposition", "install", "reference"],
+          "properties": {
+            "id": { "const": "PowerPlatformCli" },
+            "command": { "const": "pac.exe" },
+            "versionArguments": { "const": ["help"] },
+            "versionPolicy": { "const": { "mode": "Present" } },
+            "installDisposition": { "const": "Automated" },
+            "install": { "const": { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.PowerAppsCLI", "scope": "machine" } },
+            "reference": { "const": "https://learn.microsoft.com/en-us/power-platform/developer/cli/introduction" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "command", "versionArguments", "versionPolicy", "installDisposition", "install", "reference"],
+          "properties": {
+            "id": { "const": "Bicep" },
+            "command": { "const": "az.cmd" },
+            "versionArguments": { "const": ["bicep", "version"] },
+            "versionPolicy": { "const": { "mode": "Present" } },
+            "installDisposition": { "const": "Automated" },
+            "install": { "const": { "kind": "AzureCliComponent", "arguments": ["bicep", "install"] } },
+            "reference": { "const": "https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/install" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "command", "versionArguments", "versionPolicy", "installDisposition", "install", "reference"],
+          "properties": {
+            "id": { "const": "Pester" },
+            "command": { "const": "powershell.exe" },
+            "versionArguments": { "const": ["-NoProfile", "-Command", "(Get-Module -ListAvailable Pester | Where-Object Version -eq ([version]'5.7.1') | Select-Object -First 1).Version.ToString()"] },
+            "versionPolicy": { "const": { "mode": "Exact", "value": "5.7.1" } },
+            "installDisposition": { "const": "Automated" },
+            "install": { "const": { "kind": "PowerShellGallery", "repository": "PSGallery", "moduleName": "Pester", "requiredVersion": "5.7.1", "scope": "CurrentUser" } },
+            "reference": { "const": "https://www.powershellgallery.com/packages/Pester/5.7.1" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "command", "versionArguments", "versionPolicy", "installDisposition", "install", "reference"],
+          "properties": {
+            "id": { "const": "GitHubCopilotCli" },
+            "command": { "const": "copilot.exe" },
+            "versionArguments": { "const": ["--version"] },
+            "versionPolicy": { "const": { "mode": "Present" } },
+            "installDisposition": { "const": "Automated" },
+            "install": { "const": { "kind": "WinGet", "source": "winget", "packageId": "GitHub.Copilot", "scope": "user" } },
+            "reference": { "const": "https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli" }
           }
         }
-      }
+      ]
     },
     "azureCliExtension": {
       "type": "object",

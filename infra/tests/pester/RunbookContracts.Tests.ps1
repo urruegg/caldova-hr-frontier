@@ -92,6 +92,54 @@ Describe 'Shared runbook output contracts' {
                     -NowUtc ([datetime]'2026-09-26T05:10:00Z') } | Should -Throw
         }
 
+        It 'rejects a recomputed manifest with an unsupported execution host' {
+            $manifest = New-RunbookExecutionManifest -RunId ([guid]::NewGuid()) -Kind Workstation `
+                    -TargetStableId 'SYNTHETIC-WORKSTATION\operator' `
+                    -SourceCommit ('a' * 40) -AssessmentDigest ('b' * 64) `
+                    -AuthenticationContext ([pscustomobject]@{
+                        executionHost = 'InteractiveWindows11PowerShell'; mode = 'NotRequired'
+                    }) -AllowedActions @([pscustomobject]@{
+                        action = 'InstallPesterExact'; targetId = 'Pester'
+                    }) -ToolVersions @{} -GeneratedAtUtc ([datetime]'2026-09-26T05:00:00Z')
+            $manifest.authentication.executionHost = 'UnattendedPipeline'
+            $unsigned = [ordered]@{}
+            foreach ($property in $manifest.PSObject.Properties.Name | Where-Object { $_ -ne 'digest' }) {
+                    $unsigned[$property] = $manifest.$property
+            }
+            $manifest.digest = Get-RunbookContentDigest -InputObject $unsigned
+
+            { Test-RunbookExecutionManifest -Manifest $manifest -ApprovedDigest $manifest.digest `
+                    -CurrentSourceCommit ('a' * 40) -CurrentAssessmentDigest ('b' * 64) `
+                    -CurrentAuthenticationContext $manifest.authentication `
+                    -AllowedActionNames @('InstallPesterExact') `
+                    -NowUtc ([datetime]'2026-09-26T05:10:00Z') } |
+                    Should -Throw '*authentication host*'
+        }
+
+        It 'rejects a recomputed manifest with an unsupported authentication mode' {
+            $manifest = New-RunbookExecutionManifest -RunId ([guid]::NewGuid()) -Kind Workstation `
+                    -TargetStableId 'SYNTHETIC-WORKSTATION\operator' `
+                    -SourceCommit ('a' * 40) -AssessmentDigest ('b' * 64) `
+                    -AuthenticationContext ([pscustomobject]@{
+                        executionHost = 'InteractiveWindows11PowerShell'; mode = 'NotRequired'
+                    }) -AllowedActions @([pscustomobject]@{
+                        action = 'InstallPesterExact'; targetId = 'Pester'
+                    }) -ToolVersions @{} -GeneratedAtUtc ([datetime]'2026-09-26T05:00:00Z')
+            $manifest.authentication.mode = 'ClientSecret'
+            $unsigned = [ordered]@{}
+            foreach ($property in $manifest.PSObject.Properties.Name | Where-Object { $_ -ne 'digest' }) {
+                    $unsigned[$property] = $manifest.$property
+            }
+            $manifest.digest = Get-RunbookContentDigest -InputObject $unsigned
+
+            { Test-RunbookExecutionManifest -Manifest $manifest -ApprovedDigest $manifest.digest `
+                    -CurrentSourceCommit ('a' * 40) -CurrentAssessmentDigest ('b' * 64) `
+                    -CurrentAuthenticationContext $manifest.authentication `
+                    -AllowedActionNames @('InstallPesterExact') `
+                    -NowUtc ([datetime]'2026-09-26T05:10:00Z') } |
+                    Should -Throw '*authentication mode*'
+        }
+
         It 'never copies arbitrary input into evidence' {
             $record = ConvertTo-RunbookEvidenceRecord -RunId ([guid]::NewGuid()) `
                 -GeneratedAtUtc ([datetime]'2026-09-26T05:00:00Z') -SourceCommit ('a' * 40) `
@@ -150,6 +198,61 @@ Describe 'Shared runbook output contracts' {
                         sharePointSiteId = 'site'; sharePointWebUrl = 'https://example.invalid/site'
                     }
                 }) } | Should -Throw
+        }
+
+        It 'rejects nested objects in ToolVersions' {
+            { ConvertTo-RunbookEvidenceRecord `
+                -RunId ([guid]::NewGuid()) -GeneratedAtUtc ([datetime]'2026-09-26T05:00:00Z') `
+                -SourceCommit ('a' * 40) -AssessmentDigest ('b' * 64) `
+                -OperatorId 'synthetic-operator' -Operation 'AssessTool' `
+                -Classification NoChange -Status Verified -ShouldProcessDecision NotApplicable `
+                -ToolVersions ([ordered]@{ PowerShell7 = [pscustomobject]@{ version = '7.5.3' } }) } |
+                Should -Throw '*display-safe scalar*'
+        }
+
+        It 'rejects nested objects in ReadBack and FinalContext scalar fields' {
+            $common = @{
+                RunId = [guid]::NewGuid()
+                GeneratedAtUtc = [datetime]'2026-09-26T05:00:00Z'
+                SourceCommit = ('a' * 40)
+                AssessmentDigest = ('b' * 64)
+                OperatorId = 'synthetic-operator'
+                Operation = 'AssessTool'
+                Classification = 'NoChange'
+                Status = 'Verified'
+                ShouldProcessDecision = 'NotApplicable'
+            }
+            { ConvertTo-RunbookEvidenceRecord @common `
+                -ReadBack ([pscustomobject]@{ status = [pscustomobject]@{ value = 'Verified' } }) } |
+                Should -Throw '*display-safe scalar*'
+            { ConvertTo-RunbookEvidenceRecord @common `
+                -FinalContext ([pscustomobject]@{ principalId = [pscustomobject]@{ value = 'principal' } }) } |
+                Should -Throw '*display-safe scalar*'
+        }
+
+        It 'rejects nested objects in manual and recovery item scalar fields' {
+            $common = @{
+                RunId = [guid]::NewGuid()
+                GeneratedAtUtc = [datetime]'2026-09-26T05:00:00Z'
+                SourceCommit = ('a' * 40)
+                AssessmentDigest = ('b' * 64)
+                OperatorId = 'synthetic-operator'
+                Operation = 'AssessTool'
+                Classification = 'NoChange'
+                Status = 'Verified'
+                ShouldProcessDecision = 'NotApplicable'
+            }
+            { ConvertTo-RunbookEvidenceRecord @common -ManualItems @([pscustomobject]@{
+                    service = 'Azure'; targetId = 'target'; condition = 'Review'
+                    owner = 'Owner'; diagnostic = [pscustomobject]@{ value = 'Nested' }
+                    recovery = 'Review the item.'
+                }) } | Should -Throw '*display-safe scalar*'
+            { ConvertTo-RunbookEvidenceRecord @common -RecoveryItems @([pscustomobject]@{
+                    service = 'Azure'; targetId = 'target'; lastProvenState = 'Unknown'
+                    safeDiagnostic = [pscustomobject]@{ value = 'Nested' }; owner = 'Owner'
+                    nextAction = 'Reassess.'; requiresNewPlan = $true
+                    requiresNewApproval = $true
+                }) } | Should -Throw '*display-safe scalar*'
         }
     }
 

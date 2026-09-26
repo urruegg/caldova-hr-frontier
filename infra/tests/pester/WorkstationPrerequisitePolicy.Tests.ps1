@@ -21,6 +21,20 @@ Describe 'Workstation prerequisite policy' {
             if (Test-Json -Json (Get-Content -Raw $fixture) -SchemaFile $schema -ErrorAction SilentlyContinue) { exit 1 }
         } -args $script:InvalidPath, $script:SchemaPath
         $LASTEXITCODE | Should -Be 0
+
+        $rootOnlyInvalid = Get-Content -Raw $script:InvalidPath | ConvertFrom-Json
+        $rootOnlyInvalid.PSObject.Properties.Remove('unexpected')
+        $withoutUnexpectedPath = Join-Path $TestDrive 'workstation-prerequisites.without-unexpected.json'
+        [IO.File]::WriteAllText(
+            $withoutUnexpectedPath,
+            ($rootOnlyInvalid | ConvertTo-Json -Depth 20),
+            [Text.UTF8Encoding]::new($false)
+        )
+        & $script:Pwsh -NoProfile -Command {
+            param($fixture, $schema)
+            if (-not (Test-Json -Json (Get-Content -Raw $fixture) -SchemaFile $schema -ErrorAction SilentlyContinue)) { exit 1 }
+        } -args $withoutUnexpectedPath, $script:SchemaPath
+        $LASTEXITCODE | Should -Be 0
     }
 
     It 'contains the exact reviewed tool and extension allowlists' {
@@ -36,6 +50,50 @@ Describe 'Workstation prerequisite policy' {
             'ms-azuretools.azure-dev', 'microsoft-IsvExpTools.powerplatform-vscode',
             'GitHub.copilot'
         )
+    }
+
+    It 'rejects cross-wired and arbitrary tool contracts' {
+        $crossWired = Get-Content -Raw $script:PolicyPath | ConvertFrom-Json
+        $crossWired.tools[0].command = 'git.exe'
+        $crossWiredPath = Join-Path $TestDrive 'workstation-prerequisites.cross-wired.json'
+        [IO.File]::WriteAllText(
+            $crossWiredPath,
+            ($crossWired | ConvertTo-Json -Depth 20),
+            [Text.UTF8Encoding]::new($false)
+        )
+        & $script:Pwsh -NoProfile -Command {
+            param($fixture, $schema)
+            if (Test-Json -Json (Get-Content -Raw $fixture) -SchemaFile $schema -ErrorAction SilentlyContinue) { exit 1 }
+        } -args $crossWiredPath, $script:SchemaPath
+        $LASTEXITCODE | Should -Be 0
+
+        $arbitrary = Get-Content -Raw $script:PolicyPath | ConvertFrom-Json
+        $arbitrary.tools[0].id = 'ArbitraryTool'
+        $arbitraryPath = Join-Path $TestDrive 'workstation-prerequisites.arbitrary.json'
+        [IO.File]::WriteAllText(
+            $arbitraryPath,
+            ($arbitrary | ConvertTo-Json -Depth 20),
+            [Text.UTF8Encoding]::new($false)
+        )
+        & $script:Pwsh -NoProfile -Command {
+            param($fixture, $schema)
+            if (Test-Json -Json (Get-Content -Raw $fixture) -SchemaFile $schema -ErrorAction SilentlyContinue) { exit 1 }
+        } -args $arbitraryPath, $script:SchemaPath
+        $LASTEXITCODE | Should -Be 0
+
+        $missing = Get-Content -Raw $script:PolicyPath | ConvertFrom-Json
+        $missing.tools = @($missing.tools | Select-Object -Skip 1)
+        $missingPath = Join-Path $TestDrive 'workstation-prerequisites.missing-tool.json'
+        [IO.File]::WriteAllText(
+            $missingPath,
+            ($missing | ConvertTo-Json -Depth 20),
+            [Text.UTF8Encoding]::new($false)
+        )
+        & $script:Pwsh -NoProfile -Command {
+            param($fixture, $schema)
+            if (Test-Json -Json (Get-Content -Raw $fixture) -SchemaFile $schema -ErrorAction SilentlyContinue) { exit 1 }
+        } -args $missingPath, $script:SchemaPath
+        $LASTEXITCODE | Should -Be 0
     }
 
     It 'treats repository skills agents and plugins as verification-only assets' {

@@ -34,20 +34,8 @@ function Assert-RunbookClosedObject {
     }
 }
 
-function New-RunbookExecutionManifest {
-    [CmdletBinding()]
-    [OutputType([pscustomobject])]
-    param(
-        [Parameter(Mandatory)] [guid]$RunId,
-        [Parameter(Mandatory)] [ValidateSet('Workstation', 'CloudFoundation', 'CustomerExport')] [string]$Kind,
-        [Parameter(Mandatory)] [ValidateNotNullOrEmpty()] [string]$TargetStableId,
-        [Parameter(Mandatory)] [ValidatePattern('^[0-9a-fA-F]{40}$')] [string]$SourceCommit,
-        [Parameter(Mandatory)] [ValidatePattern('^[0-9a-fA-F]{64}$')] [string]$AssessmentDigest,
-        [Parameter(Mandatory)] [object]$AuthenticationContext,
-        [Parameter(Mandatory)] [object[]]$AllowedActions,
-        [Parameter(Mandatory)] [object]$ToolVersions,
-        [Parameter(Mandatory)] [datetime]$GeneratedAtUtc
-    )
+function Assert-RunbookAuthenticationContext {
+    param([Parameter(Mandatory)] [object]$AuthenticationContext)
 
     $authenticationProperties = @(
         'executionHost', 'mode', 'accountId', 'tenantId', 'subscriptionId',
@@ -74,6 +62,24 @@ function New-RunbookExecutionManifest {
     if ($allowedModes -notcontains [string]$AuthenticationContext.mode) {
         throw 'Execution manifest authentication mode is not supported.'
     }
+}
+
+function New-RunbookExecutionManifest {
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param(
+        [Parameter(Mandatory)] [guid]$RunId,
+        [Parameter(Mandatory)] [ValidateSet('Workstation', 'CloudFoundation', 'CustomerExport')] [string]$Kind,
+        [Parameter(Mandatory)] [ValidateNotNullOrEmpty()] [string]$TargetStableId,
+        [Parameter(Mandatory)] [ValidatePattern('^[0-9a-fA-F]{40}$')] [string]$SourceCommit,
+        [Parameter(Mandatory)] [ValidatePattern('^[0-9a-fA-F]{64}$')] [string]$AssessmentDigest,
+        [Parameter(Mandatory)] [object]$AuthenticationContext,
+        [Parameter(Mandatory)] [object[]]$AllowedActions,
+        [Parameter(Mandatory)] [object]$ToolVersions,
+        [Parameter(Mandatory)] [datetime]$GeneratedAtUtc
+    )
+
+    Assert-RunbookAuthenticationContext -AuthenticationContext $AuthenticationContext
 
     $actionProperties = @(
         'action', 'targetId', 'service', 'method', 'uri', 'bodyDigest',
