@@ -107,6 +107,33 @@ $Summary
 
             { & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $root -RepositoryRootOverride $root -ReturnPortfolioOnly } | Should -Throw '*Status*'
         }
+
+        It 'throws a clear error when an idea file has no Journey stage blockquote line' {
+            $root = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+            New-Item -ItemType Directory -Path $root -Force | Out-Null
+            [System.IO.File]::WriteAllText((Join-Path $root 'uc-0001-broken.md'), "# UC-0001 — Broken`n`n> **Status:** Idea`n", [System.Text.UTF8Encoding]::new($false))
+
+            { & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $root -ReturnPortfolioOnly } | Should -Throw '*Journey stage*'
+        }
+
+        It 'throws a clear error when an idea file has no summary paragraph after the Idea heading' {
+            $root = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+            New-Item -ItemType Directory -Path $root -Force | Out-Null
+            [System.IO.File]::WriteAllText((Join-Path $root 'uc-0001-broken.md'), "# UC-0001 — Broken`n`n> **Status:** Idea`n> **Journey stage:** Hire`n`n## 1. The Idea`n", [System.Text.UTF8Encoding]::new($false))
+
+            { & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $root -ReturnPortfolioOnly } | Should -Throw '*summary*'
+        }
+
+        It 'retains a parent-directory prefix in SourcePath when RepositoryRootOverride is one level above IdeasRoot' {
+            $ideasRoot = New-FixtureIdeasRoot
+            $parentRoot = Split-Path -Parent $ideasRoot
+            $ideasFolderName = Split-Path -Leaf $ideasRoot
+
+            $items = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $parentRoot -ReturnPortfolioOnly
+
+            $uc0001 = $items | Where-Object UseCaseId -eq 'UC-0001'
+            $uc0001.SourcePath | Should -Be "$ideasFolderName/uc-0001-fixture-folder/uc-0001-fixture-folder.md"
+        }
     }
 
     Context 'Get-AzureDevOpsProcessCapabilities' {
@@ -286,6 +313,7 @@ $Summary
             $uc0001Fields['Title'] | Should -Be 'Fixture MVP Selected'
             $uc0001Fields['Tags'] | Should -Be 'UC-0001; MVP; Pre-board'
             $captured.RelationAddedById[9001]['Url'] | Should -Be 'https://github.com/urruegg/caldova-hr-frontier/blob/main/uc-0001-fixture-folder/uc-0001-fixture-folder.md'
+            $uc0001Fields['WorkItemType'] | Should -Be 'Epic'
         }
 
         It 'throws when the read-back does not match the plan' {

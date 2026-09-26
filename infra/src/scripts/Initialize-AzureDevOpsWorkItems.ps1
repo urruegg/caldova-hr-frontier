@@ -17,9 +17,6 @@ param(
     [switch]$ReturnWorkItemPlanOnly,
 
     [Parameter(DontShow)]
-    [scriptblock]$AzRequest,
-
-    [Parameter(DontShow)]
     [scriptblock]$AzureDevOpsRequest,
 
     [Parameter(DontShow)]
@@ -427,31 +424,16 @@ function Get-AzureDevOpsWorkItemPlan {
     @($plan)
 }
 
-$nativeCommandRunner = if ($NativeCommandRunner) { $NativeCommandRunner } else { New-DefaultNativeCommandRunner }
-$azureDevOpsRequest = if ($AzureDevOpsRequest) { $AzureDevOpsRequest } else { New-DefaultAzureDevOpsRequest -NativeRunner $nativeCommandRunner }
+function ConvertFrom-AzureDevOpsHtmlText {
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string]$Text
+    )
 
-$resolvedIdeasRoot = if ([string]::IsNullOrWhiteSpace($IdeasRoot)) { Get-DefaultIdeasRoot } else { $IdeasRoot }
-$portfolio = Get-HrIdeaPortfolioItems -IdeasRoot $resolvedIdeasRoot -RepositoryRoot $RepositoryRootOverride
-
-if ($ReturnPortfolioOnly) {
-    Write-Output -NoEnumerate $portfolio
-    return
-}
-
-$organizationUrl = "https://dev.azure.com/$TenantAlias/"
-$projectName = 'Caldova HR Frontier'
-
-$capabilities = Get-AzureDevOpsProcessCapabilities -OrganizationUrl $organizationUrl -ProjectName $projectName -Request $azureDevOpsRequest
-
-if ($ReturnProcessCapabilitiesOnly) {
-    Write-Output -NoEnumerate $capabilities
-    return
-}
-
-if ($ReturnWorkItemPlanOnly) {
-    $workItemPlan = Get-AzureDevOpsWorkItemPlan -OrganizationUrl $organizationUrl -ProjectName $projectName -PortfolioItems $portfolio -Request $azureDevOpsRequest
-    Write-Output -NoEnumerate $workItemPlan
-    return
+    $decoded = $Text -replace '<[^>]+>', ''
+    $decoded = $decoded -replace '&lt;', '<' -replace '&gt;', '>' -replace '&quot;', '"' -replace '&#39;', "'" -replace '&amp;', '&'
+    $decoded.Trim()
 }
 
 function Assert-WorkItemReadBack {
@@ -477,11 +459,17 @@ function Assert-WorkItemReadBack {
     if ([string]$fields['System.Title'] -cne $ExpectedTitle) {
         throw "Work item read-back Title mismatch: expected '$ExpectedTitle', observed '$([string]$fields['System.Title'])'."
     }
-    if ([string]$fields['System.Description'] -cne $ExpectedDescription) {
+
+    $normalizedExpectedDescription = ConvertFrom-AzureDevOpsHtmlText -Text $ExpectedDescription
+    $normalizedObservedDescription = ConvertFrom-AzureDevOpsHtmlText -Text ([string]$fields['System.Description'])
+    if ($normalizedObservedDescription -cne $normalizedExpectedDescription) {
         throw "Work item read-back Description mismatch: expected '$ExpectedDescription', observed '$([string]$fields['System.Description'])'."
     }
-    if ([string]$fields['System.Tags'] -cne $ExpectedTags) {
-        throw "Work item read-back Tags mismatch: expected '$ExpectedTags', observed '$([string]$fields['System.Tags'])'."
+
+    $expectedTagSet = @($ExpectedTags -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' } | Sort-Object)
+    $observedTagSet = @([string]$fields['System.Tags'] -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' } | Sort-Object)
+    if (($observedTagSet -join '|') -cne ($expectedTagSet -join '|')) {
+        throw "Work item read-back Tags mismatch: expected set '$($expectedTagSet -join ', ')', observed set '$($observedTagSet -join ', ')'."
     }
 
     $relations = if ($readBackTable.ContainsKey('relations')) { @($readBackTable['relations']) } else { @() }
@@ -492,6 +480,33 @@ function Assert-WorkItemReadBack {
     if ($hyperlinkMatch.Count -eq 0) {
         throw "Work item read-back is missing the expected Hyperlink relation to '$ExpectedHyperlinkUrl'."
     }
+}
+
+$nativeCommandRunner = if ($NativeCommandRunner) { $NativeCommandRunner } else { New-DefaultNativeCommandRunner }
+$azureDevOpsRequest = if ($AzureDevOpsRequest) { $AzureDevOpsRequest } else { New-DefaultAzureDevOpsRequest -NativeRunner $nativeCommandRunner }
+
+$resolvedIdeasRoot = if ([string]::IsNullOrWhiteSpace($IdeasRoot)) { Get-DefaultIdeasRoot } else { $IdeasRoot }
+$portfolio = Get-HrIdeaPortfolioItems -IdeasRoot $resolvedIdeasRoot -RepositoryRoot $RepositoryRootOverride
+
+if ($ReturnPortfolioOnly) {
+    Write-Output -NoEnumerate $portfolio
+    return
+}
+
+$organizationUrl = "https://dev.azure.com/$TenantAlias/"
+$projectName = 'Caldova HR Frontier'
+
+$capabilities = Get-AzureDevOpsProcessCapabilities -OrganizationUrl $organizationUrl -ProjectName $projectName -Request $azureDevOpsRequest
+
+if ($ReturnProcessCapabilitiesOnly) {
+    Write-Output -NoEnumerate $capabilities
+    return
+}
+
+if ($ReturnWorkItemPlanOnly) {
+    $workItemPlan = Get-AzureDevOpsWorkItemPlan -OrganizationUrl $organizationUrl -ProjectName $projectName -PortfolioItems $portfolio -Request $azureDevOpsRequest
+    Write-Output -NoEnumerate $workItemPlan
+    return
 }
 
 $workItemPlan = Get-AzureDevOpsWorkItemPlan -OrganizationUrl $organizationUrl -ProjectName $projectName -PortfolioItems $portfolio -Request $azureDevOpsRequest
@@ -538,7 +553,7 @@ foreach ($planItem in $workItemPlan) {
     $createResponse = & $azureDevOpsRequest 'CreateWorkItem' @{ 
         OrganizationUrl = $organizationUrl
         ProjectName = $projectName
-        WorkItemType = 'Epic'
+        WorkItemType = $capabilities.EpicWorkItemTypeName
         Title = $planItem.Title
         Description = $planItem.Summary
         Tags = $tags
