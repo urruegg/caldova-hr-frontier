@@ -18,5 +18,9 @@ Export-ModuleMember -Function @(
     'Get-GitHubOidcSubject',
     'Test-DiscoveryEvidence',
     'Test-TenantIntent',
-    'Remove-TemporaryRoleAssignments'
+    'Remove-TemporaryRoleAssignments',
+    'Resolve-RunbookReportPath',
+    'Write-CanonicalJson',
+    'Get-RunbookContentDigest',
+    'Update-RunbookProcessPath'
 )
