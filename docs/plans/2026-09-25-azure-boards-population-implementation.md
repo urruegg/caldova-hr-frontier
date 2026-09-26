@@ -1219,9 +1219,9 @@ Create `infra/docs/21-azure-boards-population-runbook.md`:
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure (Tenant 1) |
-| **References** | [Azure Boards Population Design](../../docs/specs/2026-09-25-azure-boards-population-design.md), [Tenant Trust Activation Runbook](./20-tenant-trust-activation-runbook.md) |
+| **References** | [Azure Boards Population Design](../../docs/specs/2026-09-25-azure-boards-population-design.md), [Tenant Trust Activation Runbook](../../infra/docs/20-tenant-trust-activation-runbook.md) |
 
-This runbook populates Azure DevOps Boards with one `Epic` per HR use-case idea (19 total), using `infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1`. It assumes Tenant 1's trust is already active — see the [Tenant Trust Activation Runbook](./20-tenant-trust-activation-runbook.md) — and that you have an authenticated Azure DevOps session (either the same OIDC trust that runbook establishes, or your own `az devops login`).
+This runbook populates Azure DevOps Boards with one `Epic` per HR use-case idea (19 total), using `infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1`. It assumes Tenant 1's trust is already active — see the [Tenant Trust Activation Runbook](../../infra/docs/20-tenant-trust-activation-runbook.md) — and that you have an authenticated Azure DevOps session (either the same OIDC trust that runbook establishes, or your own `az devops login`).
 
 ## Who Can Run This
 
@@ -1252,7 +1252,7 @@ This runbook populates Azure DevOps Boards with one `Epic` per HR use-case idea 
    .\infra\src\scripts\Initialize-AzureDevOpsWorkItems.ps1 -TenantAlias caldova25156897 -PlanOutputPath $planPath
    ```
 
-   PowerShell's default confirmation preference (`High`, matching the script's declared `ConfirmImpact = 'High'`) prompts once per `Create`-mode Epic before creating it. Answer `Y` for each one you approve; never answer `A` ("Yes to All") — the same reasoning as the [Tenant Trust Activation Runbook](./20-tenant-trust-activation-runbook.md) Step 3 applies here too: a single blanket approval silently skips reviewing the remaining items.
+   PowerShell's default confirmation preference (`High`, matching the script's declared `ConfirmImpact = 'High'`) prompts once per `Create`-mode Epic before creating it. Answer `Y` for each one you approve; never answer `A` ("Yes to All") — the same reasoning as the [Tenant Trust Activation Runbook](../../infra/docs/20-tenant-trust-activation-runbook.md) Step 3 applies here too: a single blanket approval silently skips reviewing the remaining items.
 
 3. **Handle a partial failure.**
 
@@ -1274,7 +1274,7 @@ This runbook populates Azure DevOps Boards with one `Epic` per HR use-case idea 
 | Creating Features, User Stories, Tasks, or Bugs under any Epic | Deliberately out of scope — see the spec's Ruling 1; only `UC-0001` has a PRD, and even its Definition of Ready is not yet met |
 | Azure DevOps project configuration (area paths, iterations, delivery plans, Azure Repos repurposing) | Tracked as a separate, not-yet-started sub-project |
 | The Azure Boards↔GitHub App connection and the `AB#` commit convention | Attended-only (one-time browser OAuth); see `docs/specs/2026-09-24-azure-devops-github-single-source-of-truth-design.md` |
-| Activating Tenant 1's trust in the first place | [Tenant Trust Activation Runbook](./20-tenant-trust-activation-runbook.md) — must already be complete before this runbook can authenticate |
+| Activating Tenant 1's trust in the first place | [Tenant Trust Activation Runbook](../../infra/docs/20-tenant-trust-activation-runbook.md) — must already be complete before this runbook can authenticate |
 
 ## Troubleshooting
 
