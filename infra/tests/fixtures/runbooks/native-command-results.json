@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0",
+  "results": {
+    "pwsh.exe|--NoLogo --NoProfile --Command $PSVersionTable.PSVersion.ToString()": { "exitCode": 0, "stdout": ["7.5.3"], "stderr": [] },
+    "powershell.exe|-NoLogo -NoProfile -Command $PSVersionTable.PSVersion.ToString()": { "exitCode": 0, "stdout": ["5.1.26100.6584"], "stderr": [] },
+    "git.exe|--version": { "exitCode": 0, "stdout": ["git version 2.51.0.windows.1"], "stderr": [] },
+    "az.cmd|bicep version": { "exitCode": 0, "stdout": ["Bicep CLI version 0.38.33"], "stderr": [] },
+    "az.cmd|extension list --output json": { "exitCode": 0, "stdout": ["[{\"name\":\"azure-devops\",\"version\":\"1.0.2\"}]"], "stderr": [] },
+    "code.cmd|--list-extensions": { "exitCode": 0, "stdout": ["ms-vscode.powershell", "ms-azuretools.vscode-bicep", "github.copilot"], "stderr": [] }
+  }
+}

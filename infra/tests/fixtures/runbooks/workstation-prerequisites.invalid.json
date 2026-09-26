@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0",
+  "platform": {
+    "productName": "Windows 11",
+    "minimumBuild": 22000
+  },
+  "interactiveAuthentication": {
+    "executionHost": "InteractiveWindows11PowerShell",
+    "allowUnattendedExecution": false,
+    "allowOidcWorkloadIdentity": false,
+    "allowCredentialParameters": false,
+    "methods": [
+      {
+        "service": "Azure",
+        "mode": "DeviceCode",
+        "loginCommand": "az login --tenant <tenantId> --use-device-code",
+        "readBackCommand": "az account show --output json",
+        "cleanupCommands": ["az logout", "az account clear"]
+      },
+      {
+        "service": "GitHub",
+        "mode": "WebDevice",
+        "loginCommand": "gh auth login --hostname github.com --git-protocol https --web --clipboard",
+        "readBackCommand": "gh auth status --hostname github.com",
+        "cleanupCommands": ["gh auth logout --hostname github.com"]
+      },
+      {
+        "service": "AzureDevOps",
+        "mode": "AzureCliDelegatedContext",
+        "loginCommand": "None",
+        "readBackCommand": "az devops project show --organization <organizationUrl> --project <projectName> --output json",
+        "cleanupCommands": ["az logout", "az account clear"]
+      },
+      {
+        "service": "PowerPlatform",
+        "mode": "PacNamedDeviceCodeProfile",
+        "loginCommand": "pac auth create --name <hr-TenantAlias-stage> --environment <environmentUrl> --deviceCode",
+        "readBackCommand": "pac auth list",
+        "cleanupCommands": ["pac auth delete --index <exactCreatedProfileIndex>"]
+      }
+    ]
+  },
+  "tools": [
+    {
+      "id": "Synthetic",
+      "command": "synthetic.exe",
+      "versionArguments": ["--version"],
+      "versionPolicy": { "mode": "Present" },
+      "installDisposition": "Manual",
+      "install": { "kind": "None" },
+      "reference": "https://example.invalid/synthetic"
+    }
+  ],
+  "azureCliExtensions": [],
+  "vsCodeExtensions": [],
+  "repositoryAssets": [],
+  "allowedActions": [],
+  "unexpected": true
+}

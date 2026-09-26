@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "platform",
+    "interactiveAuthentication",
+    "tools",
+    "azureCliExtensions",
+    "vsCodeExtensions",
+    "repositoryAssets",
+    "allowedActions"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0" },
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["productName", "minimumBuild"],
+      "properties": {
+        "productName": { "const": "Windows 11" },
+        "minimumBuild": { "type": "integer", "minimum": 22000 }
+      }
+    },
+    "interactiveAuthentication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "executionHost",
+        "allowUnattendedExecution",
+        "allowOidcWorkloadIdentity",
+        "allowCredentialParameters",
+        "methods"
+      ],
+      "properties": {
+        "executionHost": { "const": "InteractiveWindows11PowerShell" },
+        "allowUnattendedExecution": { "const": false },
+        "allowOidcWorkloadIdentity": { "const": false },
+        "allowCredentialParameters": { "const": false },
+        "methods": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/authenticationMethod" }
+        }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/tool" }
+    },
+    "azureCliExtensions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/azureCliExtension" }
+    },
+    "vsCodeExtensions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/vsCodeExtension" }
+    },
+    "repositoryAssets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/repositoryAsset" }
+    },
+    "allowedActions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "WinGetInstallExact",
+          "InstallPesterExact",
+          "InstallBicepComponent",
+          "InstallAzureCliExtensionExact",
+          "InstallVsCodeExtensionExact"
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "authenticationMethod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["service", "mode", "loginCommand", "readBackCommand", "cleanupCommands"],
+      "properties": {
+        "service": { "enum": ["Azure", "GitHub", "AzureDevOps", "PowerPlatform"] },
+        "mode": { "enum": ["DeviceCode", "WebDevice", "AzureCliDelegatedContext", "PacNamedDeviceCodeProfile"] },
+        "loginCommand": {
+          "enum": [
+            "az login --tenant <tenantId> --use-device-code",
+            "gh auth login --hostname github.com --git-protocol https --web --clipboard",
+            "None",
+            "pac auth create --name <hr-TenantAlias-stage> --environment <environmentUrl> --deviceCode"
+          ]
+        },
+        "readBackCommand": {
+          "enum": [
+            "az account show --output json",
+            "gh auth status --hostname github.com",
+            "az devops project show --organization <organizationUrl> --project <projectName> --output json",
+            "pac auth list"
+          ]
+        },
+        "cleanupCommands": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "az logout",
+              "az account clear",
+              "gh auth logout --hostname github.com",
+              "pac auth delete --index <exactCreatedProfileIndex>"
+            ]
+          }
+        }
+      }
+    },
+    "versionPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["Present", "Exact"] },
+        "value": { "enum": ["5.1", "5.7.1"] }
+      },
+      "enum": [
+        { "mode": "Present" },
+        { "mode": "Exact", "value": "5.1" },
+        { "mode": "Exact", "value": "5.7.1" }
+      ]
+    },
+    "install": {
+      "enum": [
+        { "kind": "None" },
+        { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.PowerShell", "scope": "machine" },
+        { "kind": "WinGet", "source": "winget", "packageId": "Git.Git", "scope": "machine" },
+        { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.VisualStudioCode", "scope": "machine" },
+        { "kind": "WinGet", "source": "winget", "packageId": "GitHub.cli", "scope": "machine" },
+        { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.AzureCLI", "scope": "machine" },
+        { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.Azd", "scope": "machine" },
+        { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.PowerAppsCLI", "scope": "machine" },
+        { "kind": "WinGet", "source": "winget", "packageId": "GitHub.Copilot", "scope": "user" },
+        { "kind": "PowerShellGallery", "repository": "PSGallery", "moduleName": "Pester", "requiredVersion": "5.7.1", "scope": "CurrentUser" },
+        { "kind": "AzureCliComponent", "arguments": ["bicep", "install"] }
+      ]
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "command",
+        "versionArguments",
+        "versionPolicy",
+        "installDisposition",
+        "install",
+        "reference"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "command": { "type": "string", "minLength": 1 },
+        "versionArguments": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "versionPolicy": { "$ref": "#/$defs/versionPolicy" },
+        "installDisposition": { "enum": ["Automated", "Manual"] },
+        "install": { "$ref": "#/$defs/install" },
+        "reference": { "type": "string", "format": "uri" }
+      },
+      "not": {
+        "required": ["installDisposition", "install"],
+        "properties": {
+          "installDisposition": { "enum": ["Manual"] },
+          "install": {
+            "type": "object",
+            "required": ["kind"],
+            "properties": {
+              "kind": { "enum": ["WinGet", "PowerShellGallery", "AzureCliComponent"] }
+            }
+          }
+        }
+      }
+    },
+    "azureCliExtension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "versionPolicy", "installDisposition", "reference"],
+      "properties": {
+        "name": { "const": "azure-devops" },
+        "versionPolicy": { "$ref": "#/$defs/versionPolicy" },
+        "installDisposition": { "const": "Automated" },
+        "reference": { "type": "string", "format": "uri" }
+      }
+    },
+    "vsCodeExtension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "installDisposition"],
+      "properties": {
+        "id": {
+          "enum": [
+            "ms-vscode.PowerShell",
+            "ms-azuretools.vscode-bicep",
+            "ms-azuretools.azure-dev",
+            "microsoft-IsvExpTools.powerplatform-vscode",
+            "GitHub.copilot"
+          ]
+        },
+        "installDisposition": { "const": "Recommended" }
+      }
+    },
+    "repositoryAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path", "expected", "installDisposition"],
+      "properties": {
+        "kind": { "enum": ["Skills", "Agents", "Plugins"] },
+        "path": { "enum": [".github/skills", ".github/agents", ".github/plugins"] },
+        "expected": { "enum": ["Present", "Absent"] },
+        "installDisposition": { "const": "VerifyOnly" }
+      }
+    }
+  }
+}
