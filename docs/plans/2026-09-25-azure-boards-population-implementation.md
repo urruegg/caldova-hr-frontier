@@ -1,5 +1,14 @@
 # Azure Boards Population Implementation Plan
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-25 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Draft |
+| **Scope** | Infrastructure (Tenant 1) |
+| **References** | [Azure Boards Population Design](../specs/2026-09-25-azure-boards-population-design.md) |
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build one self-contained, tested PowerShell script that populates Azure DevOps Boards for Tenant 1 with one `Epic` per HR use-case idea (19 total), each tagged with its real status/journey-stage and linked to its GitHub source via a native `Hyperlink` relation — following the same discover → plan → attended-execute → read-back pattern already used by `Initialize-TenantTrust.ps1`.
