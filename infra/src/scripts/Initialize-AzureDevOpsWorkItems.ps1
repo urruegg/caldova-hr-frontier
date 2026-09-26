@@ -550,7 +550,7 @@ foreach ($planItem in $workItemPlan) {
 
     $tags = "$($planItem.UseCaseId); $($planItem.Status); $($planItem.JourneyStage)"
     Write-Verbose "Creating work item for '$($planItem.Title)'"
-    $createResponse = & $azureDevOpsRequest 'CreateWorkItem' @{ 
+    $createResponse = & $azureDevOpsRequest 'CreateWorkItem' @{
         OrganizationUrl = $organizationUrl
         ProjectName = $projectName
         WorkItemType = $capabilities.EpicWorkItemTypeName
