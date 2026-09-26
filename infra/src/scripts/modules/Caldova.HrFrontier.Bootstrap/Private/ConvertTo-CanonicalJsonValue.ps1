@@ -33,7 +33,7 @@ function ConvertTo-CanonicalJsonValue {
     }
 
     $properties = @($Value.PSObject.Properties | Where-Object MemberType -In NoteProperty, Property)
-    $names = @($properties.Name)
+    $names = @($properties | ForEach-Object Name)
     [Array]::Sort($names, [StringComparer]::Ordinal)
     $object = [ordered]@{}
     foreach ($name in $names) {

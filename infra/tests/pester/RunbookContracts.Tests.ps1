@@ -140,6 +140,37 @@ Describe 'Shared runbook output contracts' {
                     Should -Throw '*authentication mode*'
         }
 
+        It 'validates a manifest with empty tool versions after canonical JSON round-trip' {
+            $manifest = New-RunbookExecutionManifest `
+                -RunId ([guid]'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee') `
+                -Kind Workstation `
+                -TargetStableId 'SYNTHETIC-WORKSTATION\operator' `
+                -SourceCommit ('a' * 40) `
+                -AssessmentDigest ('b' * 64) `
+                -AuthenticationContext ([pscustomobject]@{
+                    executionHost = 'InteractiveWindows11PowerShell'
+                    mode = 'NotRequired'
+                }) `
+                -AllowedActions @([pscustomobject]@{
+                    action = 'InstallVsCodeExtensionExact'
+                    targetId = 'GitHub.copilot'
+                    expectedPostcondition = 'VS Code reports extension GitHub.copilot'
+                }) `
+                -ToolVersions @{} `
+                -GeneratedAtUtc ([datetime]'2026-09-26T05:00:00Z')
+            $path = Join-Path $TestDrive 'empty-toolversions-manifest.json'
+            Write-CanonicalJson -InputObject $manifest -Path $path | Out-Null
+            $roundTrip = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
+
+            { Test-RunbookExecutionManifest -Manifest $roundTrip -ApprovedDigest $roundTrip.digest `
+                -CurrentSourceCommit ('a' * 40) -CurrentAssessmentDigest ('b' * 64) `
+                -CurrentAuthenticationContext ([pscustomobject]@{
+                    executionHost = 'InteractiveWindows11PowerShell'; mode = 'NotRequired'
+                }) `
+                -AllowedActionNames @('InstallVsCodeExtensionExact') `
+                -NowUtc ([datetime]'2026-09-26T05:10:00Z') } | Should -Not -Throw
+        }
+
         It 'never copies arbitrary input into evidence' {
             $record = ConvertTo-RunbookEvidenceRecord -RunId ([guid]::NewGuid()) `
                 -GeneratedAtUtc ([datetime]'2026-09-26T05:00:00Z') -SourceCommit ('a' * 40) `
