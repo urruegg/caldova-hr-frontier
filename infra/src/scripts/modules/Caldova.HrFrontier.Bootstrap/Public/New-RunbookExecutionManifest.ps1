@@ -74,7 +74,7 @@ function New-RunbookExecutionManifest {
         [Parameter(Mandatory)] [ValidatePattern('^[0-9a-fA-F]{40}$')] [string]$SourceCommit,
         [Parameter(Mandatory)] [ValidatePattern('^[0-9a-fA-F]{64}$')] [string]$AssessmentDigest,
         [Parameter(Mandatory)] [object]$AuthenticationContext,
-        [Parameter(Mandatory)] [object[]]$AllowedActions,
+        [Parameter(Mandatory)] [AllowEmptyCollection()] [object[]]$AllowedActions,
         [Parameter(Mandatory)] [object]$ToolVersions,
         [Parameter(Mandatory)] [datetime]$GeneratedAtUtc
     )

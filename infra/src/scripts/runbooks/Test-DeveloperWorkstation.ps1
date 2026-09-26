@@ -418,6 +418,7 @@ function Get-ToolAssessment {
             installDisposition = [string]$ToolPolicy.installDisposition
             reference = [string]$ToolPolicy.reference
         }
+
     }
 
     $native = Invoke-NativeCommand -Runner $Runner -FilePath $identity.path -ArgumentList @($ToolPolicy.versionArguments)
@@ -445,6 +446,45 @@ function Get-ToolAssessment {
     }
 }
 
+function Get-PackageManagerAssessment {
+    param(
+        [Parameter(Mandatory)][scriptblock]$Resolver,
+        [Parameter(Mandatory)][scriptblock]$IdentityProvider,
+        [Parameter(Mandatory)][scriptblock]$Runner
+    )
+
+    $identity = Resolve-ExecutableIdentity -CommandName 'winget.exe' -Resolver $Resolver -IdentityProvider $IdentityProvider
+    if ($identity.status -ne 'Ready') {
+        return [pscustomobject][ordered]@{
+            status = [string]$identity.status
+            path = $null
+            sha256 = $null
+            version = $null
+            diagnostic = [string]$identity.diagnostic
+        }
+    }
+
+    $native = Invoke-NativeCommand -Runner $Runner -FilePath $identity.path -ArgumentList @('--version')
+    $observedVersion = Get-ObservedVersion -ToolId 'WinGet' -Result $native
+    if ($native.exitCode -ne 0 -or [string]::IsNullOrWhiteSpace($observedVersion)) {
+        return [pscustomobject][ordered]@{
+            status = 'Blocked'
+            path = $null
+            sha256 = $null
+            version = $null
+            diagnostic = 'Reviewed WinGet version probe failed.'
+        }
+    }
+
+    [pscustomobject][ordered]@{
+        status = 'Ready'
+        path = [string]$identity.path
+        sha256 = [string]$identity.sha256
+        version = [string]$observedVersion
+        diagnostic = $null
+    }
+}
+
 function Get-AzureCliExtensionAssessments {
     param(
         [Parameter(Mandatory)][object[]]$ExtensionPolicies,
@@ -452,7 +492,7 @@ function Get-AzureCliExtensionAssessments {
         [Parameter(Mandatory)][scriptblock]$Runner
     )
 
-    $azureCli = $ToolAssessments | Where-Object id -eq 'AzureCli' | Select-Object -First 1
+    $azureCli = $ToolAssessments | Where-Object { [string]$_.id -ceq 'AzureCli' } | Select-Object -First 1
     if ($null -eq $azureCli -or $azureCli.status -ne 'Ready') {
         return @(
             foreach ($policy in $ExtensionPolicies) {
@@ -501,7 +541,7 @@ function Get-VsCodeExtensionAssessments {
         [Parameter(Mandatory)][scriptblock]$Runner
     )
 
-    $code = $ToolAssessments | Where-Object id -eq 'VisualStudioCode' | Select-Object -First 1
+    $code = $ToolAssessments | Where-Object { [string]$_.id -ceq 'VisualStudioCode' } | Select-Object -First 1
     if ($null -eq $code -or $code.status -ne 'Ready') {
         return @(
             foreach ($policy in $ExtensionPolicies) {
@@ -537,7 +577,7 @@ function Get-RepositoryState {
         [Parameter(Mandatory)][scriptblock]$Runner
     )
 
-    $git = $ToolAssessments | Where-Object id -eq 'Git' | Select-Object -First 1
+    $git = $ToolAssessments | Where-Object { [string]$_.id -ceq 'Git' } | Select-Object -First 1
     $state = [ordered]@{
         root = $RepositoryRootPath
         sourceCommit = $null
@@ -548,20 +588,21 @@ function Get-RepositoryState {
         return [pscustomobject]$state
     }
 
-    $rootResult = Invoke-NativeCommand -Runner $Runner -FilePath $git.executablePath -ArgumentList @('rev-parse', '--show-toplevel')
+    $rootResult = Invoke-NativeCommand -Runner $Runner -FilePath $git.executablePath -ArgumentList @('-C', $RepositoryRootPath, 'rev-parse', '--show-toplevel')
     if ($rootResult.exitCode -ne 0) {
         $state.diagnostic = 'git rev-parse --show-toplevel failed.'
         return [pscustomobject]$state
     }
 
-    $reportedRoot = [IO.Path]::GetFullPath((($rootResult.stdout | Select-Object -First 1).Trim()))
-    if ($reportedRoot -cne $RepositoryRootPath) {
+    $expectedRoot = [IO.Path]::GetFullPath($RepositoryRootPath).TrimEnd('\')
+    $reportedRoot = [IO.Path]::GetFullPath((($rootResult.stdout | Select-Object -First 1).Trim())).TrimEnd('\')
+    if (-not $reportedRoot.Equals($expectedRoot, [StringComparison]::OrdinalIgnoreCase)) {
         $state.diagnostic = 'The reviewed repository root does not match the current Git working tree.'
         return [pscustomobject]$state
     }
 
-    $headResult = Invoke-NativeCommand -Runner $Runner -FilePath $git.executablePath -ArgumentList @('rev-parse', 'HEAD')
-    $statusResult = Invoke-NativeCommand -Runner $Runner -FilePath $git.executablePath -ArgumentList @('status', '--porcelain')
+    $headResult = Invoke-NativeCommand -Runner $Runner -FilePath $git.executablePath -ArgumentList @('-C', $RepositoryRootPath, 'rev-parse', 'HEAD')
+    $statusResult = Invoke-NativeCommand -Runner $Runner -FilePath $git.executablePath -ArgumentList @('-C', $RepositoryRootPath, 'status', '--porcelain')
     if ($headResult.exitCode -ne 0 -or $statusResult.exitCode -ne 0) {
         $state.diagnostic = 'Git repository read-back failed.'
         return [pscustomobject]$state
@@ -587,6 +628,7 @@ function Test-SkillsIntegrity {
     }
 
     $lines = Get-Content -LiteralPath $manifestPath
+    $seenPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($line in $lines) {
         if ([string]::IsNullOrWhiteSpace($line)) { continue }
         $match = [regex]::Match($line, '^(?<hash>[0-9a-f]{64})\s{2}(?<path>.+)$')
@@ -600,6 +642,10 @@ function Test-SkillsIntegrity {
         $fullPath = [IO.Path]::GetFullPath((Join-Path $skillsRoot $relativePath))
         if (-not $fullPath.StartsWith($skillsRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) {
             return [pscustomobject]@{ status = 'Mismatch'; diagnostic = $relativePath }
+        }
+        $normalizedRelativePath = $fullPath.Substring($skillsRoot.TrimEnd('\').Length + 1).Replace('\', '/')
+        if (-not $seenPaths.Add($normalizedRelativePath)) {
+            return [pscustomobject]@{ status = 'Mismatch'; diagnostic = 'SUPERPOWERS_SHA256SUMS' }
         }
         if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
             return [pscustomobject]@{ status = 'Mismatch'; diagnostic = $relativePath }
@@ -698,7 +744,7 @@ $policy = Get-Content -Raw -LiteralPath $PolicyPath | ConvertFrom-Json
 Assert-WorkstationPolicy -Policy $policy
 $policyDigest = Get-RunbookContentDigest -InputObject $policy
 
-$packageManagerIdentity = Resolve-ExecutableIdentity -CommandName 'winget.exe' -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider
+$packageManagerIdentity = Get-PackageManagerAssessment -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider -Runner $NativeCommandRunner
 $toolAssessments = @(
     foreach ($tool in @($policy.tools)) {
         Get-ToolAssessment -ToolPolicy $tool -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider -Runner $NativeCommandRunner
@@ -757,7 +803,7 @@ if ([string]::IsNullOrWhiteSpace([string]$repository.sourceCommit)) {
 $overallStatus = $(if ($manualItems.Count -eq 0) { 'Ready' } else { 'Blocked' })
 $safeToolVersions = [ordered]@{}
 if ($packageManagerIdentity.status -eq 'Ready') {
-    $safeToolVersions['WinGet'] = $packageManagerIdentity.sha256
+    $safeToolVersions['WinGet'] = $packageManagerIdentity.version
 }
 foreach ($tool in $toolAssessments | Where-Object { $_.status -eq 'Ready' -and -not [string]::IsNullOrWhiteSpace($_.version) }) {
     $safeToolVersions[$tool.id] = $tool.version
@@ -773,6 +819,7 @@ $platform = [pscustomobject][ordered]@{
     packageManager = [pscustomobject][ordered]@{
         executablePath = $(if ($packageManagerIdentity.status -eq 'Ready') { $packageManagerIdentity.path } else { $null })
         executableSha256 = $(if ($packageManagerIdentity.status -eq 'Ready') { $packageManagerIdentity.sha256 } else { $null })
+        version = $(if ($packageManagerIdentity.status -eq 'Ready') { $packageManagerIdentity.version } else { $null })
     }
 }
 

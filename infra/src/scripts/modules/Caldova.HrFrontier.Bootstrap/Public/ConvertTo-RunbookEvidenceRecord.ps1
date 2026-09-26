@@ -66,7 +66,7 @@ function ConvertTo-RunbookEvidenceRecord {
         [Parameter(Mandatory)] [ValidateNotNullOrEmpty()] [string]$OperatorId,
         [Parameter(Mandatory)] [ValidateNotNullOrEmpty()] [string]$Operation,
         [Parameter(Mandatory)] [ValidateSet('NoChange', 'Create', 'Update', 'Manual', 'Blocked', 'Refused')] [string]$Classification,
-        [Parameter(Mandatory)] [ValidateSet('Planned', 'Applied', 'Verified', 'Failed', 'Refused')] [string]$Status,
+        [Parameter(Mandatory)] [ValidateSet('Planned', 'Applied', 'Verified', 'Failed', 'Refused', 'Manual')] [string]$Status,
         [Parameter(Mandatory)] [ValidateSet('NotApplicable', 'Approved', 'Declined', 'WhatIf')] [string]$ShouldProcessDecision,
         [string]$TargetId,
         [object]$ToolVersions,
@@ -173,6 +173,7 @@ function ConvertTo-RunbookEvidenceRecord {
     $manualFields = @('service', 'targetId', 'condition', 'owner', 'diagnostic', 'recovery')
     $safeManualItems = @(
         foreach ($item in @($ManualItems)) {
+            if ($null -eq $item) { continue }
             ConvertTo-RunbookClosedProjection -InputObject $item -Allowed $manualFields -Required $manualFields
         }
     )
@@ -182,6 +183,7 @@ function ConvertTo-RunbookEvidenceRecord {
     )
     $safeRecoveryItems = @(
         foreach ($item in @($RecoveryItems)) {
+            if ($null -eq $item) { continue }
             $safe = ConvertTo-RunbookClosedProjection -InputObject $item -Allowed $recoveryFields -Required $recoveryFields
             if ($safe.requiresNewPlan -isnot [bool] -or $safe.requiresNewApproval -isnot [bool] -or
                 -not $safe.requiresNewPlan -or -not $safe.requiresNewApproval) {

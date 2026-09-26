@@ -121,6 +121,16 @@ function New-DefaultFileIdentityProvider {
     }.GetNewClosure()
 }
 
+function Get-CurrentProcessElevationState {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+    $isElevated = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    [pscustomobject]@{
+        isElevated = $isElevated
+        reason = $(if ($isElevated) { 'AdministratorToken' } else { 'StandardUserToken' })
+    }
+}
+
 function Get-DefaultInteractiveHostState {
     $reasons = [Collections.Generic.List[string]]::new()
 
@@ -237,7 +247,9 @@ function Assert-AllowedPolicyActions {
 }
 
 function Show-RunbookChangeSummary {
-    param([Parameter(Mandatory)][object[]]$Operations, [Parameter(Mandatory)][scriptblock]$Writer)
+    param([AllowEmptyCollection()][object[]]$Operations, [Parameter(Mandatory)][scriptblock]$Writer)
+
+    if (@($Operations).Count -eq 0) { return }
 
     $displayRows = foreach ($operation in $Operations) {
         $propertyNames = @($operation.PSObject.Properties | ForEach-Object Name)
@@ -362,6 +374,27 @@ function New-Operation {
     }
 }
 
+function Get-ToolStatusClassification {
+    param(
+        [Parameter(Mandatory)][object]$CurrentState,
+        [Parameter(Mandatory)][string]$InstallDisposition
+    )
+
+    if ([string]$CurrentState.status -eq 'Missing') {
+        return 'Create'
+    }
+    if ([string]$CurrentState.status -eq 'Blocked' -and
+        [string]$InstallDisposition -ceq 'Manual') {
+        return 'Manual'
+    }
+    if ([string]$CurrentState.status -eq 'Blocked' -and
+        -not [string]::IsNullOrWhiteSpace([string]$CurrentState.diagnostic) -and
+        [string]$CurrentState.diagnostic -like 'Reviewed version policy failed*') {
+        return 'Update'
+    }
+    return 'Blocked'
+}
+
 function Get-PlannedOperations {
     param(
         [Parameter(Mandatory)][object]$Policy,
@@ -370,10 +403,12 @@ function Get-PlannedOperations {
 
     $operations = [Collections.Generic.List[object]]::new()
     foreach ($tool in @($Policy.tools)) {
-        $current = @($Assessment.tools | Where-Object id -eq [string]$tool.id) | Select-Object -First 1
+        $current = @($Assessment.tools | Where-Object { [string]$_.id -ceq [string]$tool.id }) | Select-Object -First 1
         if ($null -eq $current -or $current.status -eq 'Ready') {
             continue
         }
+
+        $classification = Get-ToolStatusClassification -CurrentState $current -InstallDisposition ([string]$tool.installDisposition)
 
         switch ([string]$tool.install.kind) {
             'WinGet' {
@@ -381,7 +416,7 @@ function Get-PlannedOperations {
                     'Git' { 'git.exe resolves and git --version exits 0' }
                     default { "$($tool.id) resolves uniquely with the reviewed executable identity and version policy" }
                 }
-                [void]$operations.Add((New-Operation -Classification 'Create' -Action ([pscustomobject][ordered]@{
+                [void]$operations.Add((New-Operation -Classification $classification -RequiresElevation ([string]$tool.install.scope -ceq 'machine') -Action ([pscustomobject][ordered]@{
                     action = 'WinGetInstallExact'
                     targetId = [string]$tool.install.packageId
                     packageSource = [string]$tool.install.source
@@ -391,7 +426,7 @@ function Get-PlannedOperations {
                 })))
             }
             'PowerShellGallery' {
-                [void]$operations.Add((New-Operation -Classification 'Create' -Action ([pscustomobject][ordered]@{
+                [void]$operations.Add((New-Operation -Classification $classification -Action ([pscustomobject][ordered]@{
                     action = 'InstallPesterExact'
                     targetId = [string]$tool.install.moduleName
                     packageSource = [string]$tool.install.repository
@@ -401,10 +436,17 @@ function Get-PlannedOperations {
                 })))
             }
             'AzureCliComponent' {
-                [void]$operations.Add((New-Operation -Classification 'Create' -Action ([pscustomobject][ordered]@{
+                [void]$operations.Add((New-Operation -Classification $classification -Action ([pscustomobject][ordered]@{
                     action = 'InstallBicepComponent'
                     targetId = [string]$tool.id
                     expectedPostcondition = 'az bicep version exits 0'
+                })))
+            }
+            'None' {
+                [void]$operations.Add((New-Operation -Classification $classification -Action ([pscustomobject][ordered]@{
+                    action = 'ManualReview'
+                    targetId = [string]$tool.id
+                    expectedPostcondition = [string]$current.diagnostic
                 })))
             }
         }
@@ -419,6 +461,15 @@ function Get-PlannedOperations {
             [void]$operations.Add((New-Operation -Classification 'Create' -Action ([pscustomobject][ordered]@{
                 action = 'InstallAzureCliExtensionExact'
                 targetId = [string]$extension.name
+                requiredVersion = $(if ($extension.PSObject.Properties.Name -contains 'version') { [string]$extension.version } else { $null })
+                expectedPostcondition = "Azure CLI extension $($extension.name) resolves at the reviewed version"
+            })))
+        }
+        elseif ($extension.status -ne 'Ready') {
+            [void]$operations.Add((New-Operation -Classification 'Blocked' -Action ([pscustomobject][ordered]@{
+                action = 'InstallAzureCliExtensionExact'
+                targetId = [string]$extension.name
+                requiredVersion = $(if ($extension.PSObject.Properties.Name -contains 'version') { [string]$extension.version } else { $null })
                 expectedPostcondition = "Azure CLI extension $($extension.name) resolves at the reviewed version"
             })))
         }
@@ -430,6 +481,13 @@ function Get-PlannedOperations {
     foreach ($extension in $vsCodeExtensions) {
         if ($extension.status -eq 'Missing') {
             [void]$operations.Add((New-Operation -Classification 'Create' -Action ([pscustomobject][ordered]@{
+                action = 'InstallVsCodeExtensionExact'
+                targetId = [string]$extension.id
+                expectedPostcondition = "VS Code reports extension $($extension.id)"
+            })))
+        }
+        elseif ($extension.status -ne 'Ready') {
+            [void]$operations.Add((New-Operation -Classification 'Blocked' -Action ([pscustomobject][ordered]@{
                 action = 'InstallVsCodeExtensionExact'
                 targetId = [string]$extension.id
                 expectedPostcondition = "VS Code reports extension $($extension.id)"
@@ -493,13 +551,96 @@ function Get-ToolPolicyForAction {
     }
 }
 
-function Assert-ExecutableIdentityUnchanged {
+function Get-HostToolRuntimeState {
+    param(
+        [Parameter(Mandatory)][object]$Assessment,
+        [Parameter(Mandatory)][string]$ActionName
+    )
+
+    switch ($ActionName) {
+        'WinGetInstallExact' {
+            $command = if (-not [string]::IsNullOrWhiteSpace([string]$Assessment.platform.packageManager.executablePath)) {
+                Split-Path -Path ([string]$Assessment.platform.packageManager.executablePath) -Leaf
+            }
+            else {
+                'winget.exe'
+            }
+            [pscustomobject][ordered]@{
+                id = 'WinGet'
+                command = $command
+                versionArguments = @('--version')
+                expectedPath = [string]$Assessment.platform.packageManager.executablePath
+                expectedSha256 = [string]$Assessment.platform.packageManager.executableSha256
+                expectedVersion = [string]$Assessment.platform.packageManager.version
+            }
+        }
+        'InstallPesterExact' {
+            $tool = @($Assessment.tools | Where-Object { [string]$_.id -ceq 'WindowsPowerShell' }) | Select-Object -First 1
+            $command = if (-not [string]::IsNullOrWhiteSpace([string]$tool.executablePath)) {
+                Split-Path -Path ([string]$tool.executablePath) -Leaf
+            }
+            else {
+                'powershell.exe'
+            }
+            [pscustomobject][ordered]@{
+                id = 'WindowsPowerShell'
+                command = $command
+                versionArguments = @('-NoLogo', '-NoProfile', '-Command', '$PSVersionTable.PSVersion.ToString()')
+                expectedPath = [string]$tool.executablePath
+                expectedSha256 = [string]$tool.executableSha256
+                expectedVersion = [string]$tool.version
+            }
+        }
+        'InstallBicepComponent' { Get-HostToolRuntimeState -Assessment $Assessment -ActionName 'InstallAzureCliExtensionExact' }
+        'InstallAzureCliExtensionExact' {
+            $tool = @($Assessment.tools | Where-Object { [string]$_.id -ceq 'AzureCli' }) | Select-Object -First 1
+            $command = if (-not [string]::IsNullOrWhiteSpace([string]$tool.executablePath)) {
+                Split-Path -Path ([string]$tool.executablePath) -Leaf
+            }
+            else {
+                'az.cmd'
+            }
+            [pscustomobject][ordered]@{
+                id = 'AzureCli'
+                command = $command
+                versionArguments = @('version', '--output', 'json')
+                expectedPath = [string]$tool.executablePath
+                expectedSha256 = [string]$tool.executableSha256
+                expectedVersion = [string]$tool.version
+            }
+        }
+        'InstallVsCodeExtensionExact' {
+            $tool = @($Assessment.tools | Where-Object { [string]$_.id -ceq 'VisualStudioCode' }) | Select-Object -First 1
+            $command = if (-not [string]::IsNullOrWhiteSpace([string]$tool.executablePath)) {
+                Split-Path -Path ([string]$tool.executablePath) -Leaf
+            }
+            else {
+                'code.cmd'
+            }
+            [pscustomobject][ordered]@{
+                id = 'VisualStudioCode'
+                command = $command
+                versionArguments = @('--version')
+                expectedPath = [string]$tool.executablePath
+                expectedSha256 = [string]$tool.executableSha256
+                expectedVersion = [string]$tool.version
+            }
+        }
+        default { $null }
+    }
+}
+
+function Assert-ExecutableStateUnchanged {
     param(
         [Parameter(Mandatory)][string]$ExpectedPath,
         [Parameter(Mandatory)][string]$ExpectedSha256,
+        [Parameter(Mandatory)][string]$ExpectedVersion,
+        [Parameter(Mandatory)][string[]]$VersionArguments,
+        [Parameter(Mandatory)][string]$ToolId,
         [Parameter(Mandatory)][string]$CommandName,
         [Parameter(Mandatory)][scriptblock]$Resolver,
-        [Parameter(Mandatory)][scriptblock]$IdentityProvider
+        [Parameter(Mandatory)][scriptblock]$IdentityProvider,
+        [Parameter(Mandatory)][scriptblock]$Runner
     )
 
     $identity = Resolve-ExecutableIdentity -CommandName $CommandName -Resolver $Resolver -IdentityProvider $IdentityProvider
@@ -509,7 +650,113 @@ function Assert-ExecutableIdentityUnchanged {
         throw 'A reviewed executable identity changed before mutation.'
     }
 
+    $versionResult = Invoke-NativeCommand -Runner $Runner -FilePath $identity.path -ArgumentList $VersionArguments
+    $observedVersion = Get-ObservedVersion -ToolId $ToolId -Result $versionResult
+    if ($versionResult.exitCode -ne 0 -or
+        [string]::IsNullOrWhiteSpace($observedVersion) -or
+        $observedVersion -cne $ExpectedVersion) {
+        throw 'A reviewed executable state changed before mutation.'
+    }
+
     $identity
+}
+
+function New-ReadBackFailure {
+    param(
+        [Parameter(Mandatory)][string]$Service,
+        [Parameter(Mandatory)][string]$TargetId,
+        [Parameter(Mandatory)][string]$ExpectedPostcondition,
+        [Parameter(Mandatory)][string]$Diagnostic
+    )
+
+    [pscustomobject][ordered]@{
+        status = 'Failed'
+        errorCategory = 'ReadBack'
+        readBack = [pscustomobject][ordered]@{
+            service = $Service
+            targetId = $TargetId
+            status = 'Failed'
+            expectedPostcondition = $ExpectedPostcondition
+        }
+        recoveryItems = @([pscustomobject][ordered]@{
+            service = $Service
+            targetId = $TargetId
+            lastProvenState = 'Command returned without proving the reviewed postcondition.'
+            safeDiagnostic = $Diagnostic
+            owner = 'Workstation administrator'
+            nextAction = 'Reassess the workstation and generate a new approved manifest.'
+            requiresNewPlan = $true
+            requiresNewApproval = $true
+        })
+    }
+}
+
+function Get-AzureCliExtensionReadBack {
+    param(
+        [Parameter(Mandatory)][string]$ExtensionName,
+        [Parameter(Mandatory)][object[]]$ToolAssessments,
+        [Parameter(Mandatory)][scriptblock]$Runner
+    )
+
+    $azureCli = $ToolAssessments | Where-Object { [string]$_.id -ceq 'AzureCli' } | Select-Object -First 1
+    if ($null -eq $azureCli -or $azureCli.status -ne 'Ready') {
+        return [pscustomobject][ordered]@{
+            name = $ExtensionName
+            status = 'Blocked'
+            version = $null
+            diagnostic = 'Azure CLI is not ready for extension read-back.'
+        }
+    }
+
+    $native = Invoke-NativeCommand -Runner $Runner -FilePath ([string]$azureCli.executablePath) -ArgumentList @('extension', 'list', '--output', 'json')
+    $installed = @()
+    if ($native.exitCode -eq 0) {
+        try {
+            $installed = @((($native.stdout -join "`n") | ConvertFrom-Json))
+        }
+        catch {
+            $installed = @()
+        }
+    }
+
+    $match = $installed | Where-Object { [string]$_.name -ceq $ExtensionName } | Select-Object -First 1
+    [pscustomobject][ordered]@{
+        name = $ExtensionName
+        status = $(if ($native.exitCode -ne 0) { 'Blocked' } elseif ($null -eq $match) { 'Missing' } else { 'Ready' })
+        version = $(if ($null -ne $match) { [string]$match.version } else { $null })
+        diagnostic = $(if ($native.exitCode -ne 0) { 'Azure CLI extension list probe failed.' } elseif ($null -eq $match) { 'Reviewed Azure CLI extension is not installed.' } else { $null })
+    }
+}
+
+function Get-VsCodeExtensionReadBack {
+    param(
+        [Parameter(Mandatory)][string]$ExtensionId,
+        [Parameter(Mandatory)][object[]]$ToolAssessments,
+        [Parameter(Mandatory)][scriptblock]$Runner
+    )
+
+    $code = $ToolAssessments | Where-Object { [string]$_.id -ceq 'VisualStudioCode' } | Select-Object -First 1
+    if ($null -eq $code -or $code.status -ne 'Ready') {
+        return [pscustomobject][ordered]@{
+            id = $ExtensionId
+            status = 'Blocked'
+            diagnostic = 'Visual Studio Code is not ready for extension read-back.'
+        }
+    }
+
+    $native = Invoke-NativeCommand -Runner $Runner -FilePath ([string]$code.executablePath) -ArgumentList @('--list-extensions')
+    $installed = @($native.stdout | ForEach-Object { [string]$_ })
+    $present = @($installed | Where-Object { $_ -ceq $ExtensionId }).Count -gt 0
+    [pscustomobject][ordered]@{
+        id = $ExtensionId
+        status = $(if ($native.exitCode -ne 0) { 'Blocked' } elseif ($present) { 'Ready' } else { 'Missing' })
+        diagnostic = $(if ($native.exitCode -ne 0) { 'VS Code extension list probe failed.' } elseif ($present) { $null } else { 'Reviewed VS Code extension is not installed.' })
+    }
+}
+
+function Get-ExecutableOperations {
+    param([AllowEmptyCollection()][object[]]$Operations)
+    @($Operations | Where-Object { $_.classification -in @('Create', 'Update') })
 }
 
 function New-EvidenceRecord {
@@ -567,6 +814,7 @@ $reportDirectory = Resolve-RunbookReportPath -RunId $runId -Path $ReportPath -Re
 [IO.Directory]::CreateDirectory($reportDirectory) | Out-Null
 
 $operations = Get-PlannedOperations -Policy $policy -Assessment $assessment
+$executableOperations = Get-ExecutableOperations -Operations @($operations)
 $planProjection = [pscustomobject][ordered]@{
     schemaVersion = '1.0'
     runId = $runId.ToString('D')
@@ -579,7 +827,7 @@ $planDigest = Get-RunbookContentDigest -InputObject $planProjection
 $manifest = New-RunbookExecutionManifest -RunId $runId -Kind Workstation `
     -SourceCommit ([string]$assessment.repository.sourceCommit) -AssessmentDigest ([string]$assessment.assessmentDigest) `
     -TargetStableId ([string]$assessment.platform.stableId) -AuthenticationContext (Get-CurrentAuthenticationContext) `
-    -AllowedActions @($operations | ForEach-Object {
+    -AllowedActions @($executableOperations | ForEach-Object {
         [pscustomobject][ordered]@{
             action = [string]$_.action
             targetId = [string]$_.targetId
@@ -623,6 +871,12 @@ Test-RunbookExecutionManifest -Manifest $manifestContent -ApprovedDigest $Approv
 Assert-WorkstationStableId -Expected ([string]$manifestContent.target.stableId) -Actual ([string]$assessment.platform.stableId)
 $approvedActions = Assert-AllowedPolicyActions -Manifest $manifestContent -Policy $policy
 Show-RunbookChangeSummary -Operations @($approvedActions.Values) -Writer $SummaryWriter
+$currentOperations = Get-PlannedOperations -Policy $policy -Assessment $assessment
+$currentOperationMap = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
+foreach ($operation in @($currentOperations)) {
+    $currentOperationMap["$($operation.action)|$($operation.targetId)"] = $operation
+}
+$elevationState = Get-CurrentProcessElevationState
 
 if (-not [bool]$assessment.repository.clean) {
     throw 'The current source commit is dirty and must be reassessed before Apply.'
@@ -634,11 +888,14 @@ $toolVersions = [ordered]@{}
 foreach ($action in @($manifestContent.allowedActions)) {
     $key = "$($action.action)|$($action.targetId)"
     $policyAction = $approvedActions[$key]
+    $plannedOperation = $currentOperationMap[$key]
     $decision = 'Declined'
     $readBack = $null
     $status = 'Refused'
     $errorCategory = $null
     $recoveryItems = @()
+    $classification = $(if ($null -ne $plannedOperation) { [string]$plannedOperation.classification } else { 'Create' })
+    $hostTool = Get-HostToolRuntimeState -Assessment $assessment -ActionName ([string]$action.action)
 
     switch ([string]$action.action) {
         'WinGetInstallExact' {
@@ -646,11 +903,28 @@ foreach ($action in @($manifestContent.allowedActions)) {
                 'install', '--exact', '--id', $policyAction.packageId,
                 '--source', $policyAction.packageSource, '--scope', $policyAction.scope
             )
-            if ($PSCmdlet.ShouldProcess($policyAction.targetId, "Install exact WinGet package $($policyAction.packageId)")) {
+            if ($null -ne $plannedOperation -and $plannedOperation.requiresElevation -and -not $elevationState.isElevated) {
                 $decision = 'Approved'
-                Assert-ExecutableIdentityUnchanged -ExpectedPath ([string]$assessment.platform.packageManager.executablePath) `
-                    -ExpectedSha256 ([string]$assessment.platform.packageManager.executableSha256) `
-                    -CommandName 'winget.exe' -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider | Out-Null
+                $status = 'Manual'
+                $errorCategory = 'Elevation'
+                $recoveryItems = @([pscustomobject][ordered]@{
+                    service = 'WorkstationTooling'
+                    targetId = [string]$policyAction.targetId
+                    lastProvenState = 'The current token is not elevated for the reviewed machine-scope operation.'
+                    safeDiagnostic = [string]$elevationState.reason
+                    owner = 'Workstation administrator'
+                    nextAction = 'Restart the attended run in an already elevated PowerShell session and generate a new approved manifest.'
+                    requiresNewPlan = $true
+                    requiresNewApproval = $true
+                })
+            }
+            elseif ($PSCmdlet.ShouldProcess($policyAction.targetId, "Install exact WinGet package $($policyAction.packageId)")) {
+                $decision = 'Approved'
+                Assert-ExecutableStateUnchanged -ExpectedPath ([string]$hostTool.expectedPath) `
+                    -ExpectedSha256 ([string]$hostTool.expectedSha256) -ExpectedVersion ([string]$hostTool.expectedVersion) `
+                    -VersionArguments @($hostTool.versionArguments) -ToolId ([string]$hostTool.id) `
+                    -CommandName 'winget.exe' -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider `
+                    -Runner $NativeCommandRunner | Out-Null
                 $nativeResult = Invoke-NativeCommand -Runner $NativeCommandRunner `
                     -FilePath ([string]$assessment.platform.packageManager.executablePath) `
                     -ArgumentList $arguments
@@ -721,19 +995,39 @@ foreach ($action in @($manifestContent.allowedActions)) {
                 '-NoProfile', '-Command',
                 "Install-Module '$($policyAction.targetId)' -RequiredVersion '$($policyAction.requiredVersion)' -Repository '$($policyAction.packageSource)' -Scope '$($policyAction.scope)'"
             )
-            $tool = @($assessment.tools | Where-Object id -eq 'WindowsPowerShell') | Select-Object -First 1
+            $tool = @($assessment.tools | Where-Object { [string]$_.id -ceq 'WindowsPowerShell' }) | Select-Object -First 1
             if ($PSCmdlet.ShouldProcess(
                 "$($policyAction.targetId) $($policyAction.requiredVersion)",
                 "Install exact module from $($policyAction.packageSource) in $($policyAction.scope) scope"
             )) {
                 $decision = 'Approved'
+                Assert-ExecutableStateUnchanged -ExpectedPath ([string]$hostTool.expectedPath) `
+                    -ExpectedSha256 ([string]$hostTool.expectedSha256) -ExpectedVersion ([string]$hostTool.expectedVersion) `
+                    -VersionArguments @($hostTool.versionArguments) -ToolId ([string]$hostTool.id) `
+                    -CommandName 'powershell.exe' -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider `
+                    -Runner $NativeCommandRunner | Out-Null
                 $nativeResult = Invoke-NativeCommand -Runner $NativeCommandRunner -FilePath ([string]$tool.executablePath) -ArgumentList $arguments
-                $status = $(if ($nativeResult.exitCode -eq 0) { 'Applied' } else { 'Failed' })
+                $toolPolicy = Get-ToolPolicyForAction -Policy $policy -Action $policyAction
+                $readBackResult = Invoke-NativeCommand -Runner $NativeCommandRunner -FilePath ([string]$tool.executablePath) -ArgumentList @($toolPolicy.versionArguments)
+                $observedVersion = Get-ObservedVersion -ToolId ([string]$toolPolicy.id) -Result $readBackResult
+                $verified = ($nativeResult.exitCode -eq 0 -and $readBackResult.exitCode -eq 0 -and
+                    (Test-VersionPolicy -ObservedVersion $observedVersion -VersionPolicy $toolPolicy.versionPolicy))
+                $status = $(if ($verified) { 'Verified' } else { 'Failed' })
                 $readBack = [pscustomobject][ordered]@{
                     service = 'WorkstationTooling'
                     targetId = [string]$policyAction.targetId
                     status = $status
                     expectedPostcondition = [string]$policyAction.expectedPostcondition
+                    version = $observedVersion
+                    path = [string]$tool.executablePath
+                    exitCode = [int]$readBackResult.exitCode
+                }
+                if (-not $verified) {
+                    $failure = New-ReadBackFailure -Service 'WorkstationTooling' -TargetId ([string]$policyAction.targetId) `
+                        -ExpectedPostcondition ([string]$policyAction.expectedPostcondition) -Diagnostic ([string]$policyAction.expectedPostcondition)
+                    $errorCategory = [string]$failure.errorCategory
+                    $recoveryItems = @($failure.recoveryItems)
+                    $readBack = $failure.readBack
                 }
             }
             else {
@@ -741,16 +1035,36 @@ foreach ($action in @($manifestContent.allowedActions)) {
             }
         }
         'InstallBicepComponent' {
-            $tool = @($assessment.tools | Where-Object id -eq 'AzureCli') | Select-Object -First 1
+            $tool = @($assessment.tools | Where-Object { [string]$_.id -ceq 'AzureCli' }) | Select-Object -First 1
             if ($PSCmdlet.ShouldProcess('Azure CLI Bicep component', 'Install')) {
                 $decision = 'Approved'
+                Assert-ExecutableStateUnchanged -ExpectedPath ([string]$hostTool.expectedPath) `
+                    -ExpectedSha256 ([string]$hostTool.expectedSha256) -ExpectedVersion ([string]$hostTool.expectedVersion) `
+                    -VersionArguments @($hostTool.versionArguments) -ToolId ([string]$hostTool.id) `
+                    -CommandName 'az.cmd' -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider `
+                    -Runner $NativeCommandRunner | Out-Null
                 $nativeResult = Invoke-NativeCommand -Runner $NativeCommandRunner -FilePath ([string]$tool.executablePath) -ArgumentList @('bicep', 'install')
-                $status = $(if ($nativeResult.exitCode -eq 0) { 'Applied' } else { 'Failed' })
+                $toolPolicy = Get-ToolPolicyForAction -Policy $policy -Action $policyAction
+                $readBackResult = Invoke-NativeCommand -Runner $NativeCommandRunner -FilePath ([string]$tool.executablePath) -ArgumentList @($toolPolicy.versionArguments)
+                $observedVersion = Get-ObservedVersion -ToolId ([string]$toolPolicy.id) -Result $readBackResult
+                $verified = ($nativeResult.exitCode -eq 0 -and $readBackResult.exitCode -eq 0 -and
+                    (Test-VersionPolicy -ObservedVersion $observedVersion -VersionPolicy $toolPolicy.versionPolicy))
+                $status = $(if ($verified) { 'Verified' } else { 'Failed' })
                 $readBack = [pscustomobject][ordered]@{
                     service = 'WorkstationTooling'
                     targetId = [string]$policyAction.targetId
                     status = $status
                     expectedPostcondition = [string]$policyAction.expectedPostcondition
+                    version = $observedVersion
+                    path = [string]$tool.executablePath
+                    exitCode = [int]$readBackResult.exitCode
+                }
+                if (-not $verified) {
+                    $failure = New-ReadBackFailure -Service 'WorkstationTooling' -TargetId ([string]$policyAction.targetId) `
+                        -ExpectedPostcondition ([string]$policyAction.expectedPostcondition) -Diagnostic ([string]$policyAction.expectedPostcondition)
+                    $errorCategory = [string]$failure.errorCategory
+                    $recoveryItems = @($failure.recoveryItems)
+                    $readBack = $failure.readBack
                 }
             }
             else {
@@ -758,16 +1072,32 @@ foreach ($action in @($manifestContent.allowedActions)) {
             }
         }
         'InstallAzureCliExtensionExact' {
-            $tool = @($assessment.tools | Where-Object id -eq 'AzureCli') | Select-Object -First 1
+            $tool = @($assessment.tools | Where-Object { [string]$_.id -ceq 'AzureCli' }) | Select-Object -First 1
             if ($PSCmdlet.ShouldProcess('azure-devops', 'Install exact Azure CLI extension')) {
                 $decision = 'Approved'
+                Assert-ExecutableStateUnchanged -ExpectedPath ([string]$hostTool.expectedPath) `
+                    -ExpectedSha256 ([string]$hostTool.expectedSha256) -ExpectedVersion ([string]$hostTool.expectedVersion) `
+                    -VersionArguments @($hostTool.versionArguments) -ToolId ([string]$hostTool.id) `
+                    -CommandName 'az.cmd' -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider `
+                    -Runner $NativeCommandRunner | Out-Null
                 $nativeResult = Invoke-NativeCommand -Runner $NativeCommandRunner -FilePath ([string]$tool.executablePath) -ArgumentList @('extension', 'add', '--name', $policyAction.targetId)
-                $status = $(if ($nativeResult.exitCode -eq 0) { 'Applied' } else { 'Failed' })
+                $extensionState = Get-AzureCliExtensionReadBack -ExtensionName ([string]$policyAction.targetId) `
+                    -ToolAssessments @($assessment.tools) -Runner $NativeCommandRunner
+                $verified = ($nativeResult.exitCode -eq 0 -and $extensionState.status -eq 'Ready')
+                $status = $(if ($verified) { 'Verified' } else { 'Failed' })
                 $readBack = [pscustomobject][ordered]@{
                     service = 'AzureCliExtension'
                     targetId = [string]$policyAction.targetId
                     status = $status
                     expectedPostcondition = [string]$policyAction.expectedPostcondition
+                    version = [string]$extensionState.version
+                }
+                if (-not $verified) {
+                    $failure = New-ReadBackFailure -Service 'AzureCliExtension' -TargetId ([string]$policyAction.targetId) `
+                        -ExpectedPostcondition ([string]$policyAction.expectedPostcondition) -Diagnostic ([string]$policyAction.expectedPostcondition)
+                    $errorCategory = [string]$failure.errorCategory
+                    $recoveryItems = @($failure.recoveryItems)
+                    $readBack = $failure.readBack
                 }
             }
             else {
@@ -775,16 +1105,31 @@ foreach ($action in @($manifestContent.allowedActions)) {
             }
         }
         'InstallVsCodeExtensionExact' {
-            $tool = @($assessment.tools | Where-Object id -eq 'VisualStudioCode') | Select-Object -First 1
+            $tool = @($assessment.tools | Where-Object { [string]$_.id -ceq 'VisualStudioCode' }) | Select-Object -First 1
             if ($PSCmdlet.ShouldProcess($policyAction.targetId, 'Install reviewed VS Code extension')) {
                 $decision = 'Approved'
+                Assert-ExecutableStateUnchanged -ExpectedPath ([string]$hostTool.expectedPath) `
+                    -ExpectedSha256 ([string]$hostTool.expectedSha256) -ExpectedVersion ([string]$hostTool.expectedVersion) `
+                    -VersionArguments @($hostTool.versionArguments) -ToolId ([string]$hostTool.id) `
+                    -CommandName 'code.cmd' -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider `
+                    -Runner $NativeCommandRunner | Out-Null
                 $nativeResult = Invoke-NativeCommand -Runner $NativeCommandRunner -FilePath ([string]$tool.executablePath) -ArgumentList @('--install-extension', $policyAction.targetId)
-                $status = $(if ($nativeResult.exitCode -eq 0) { 'Applied' } else { 'Failed' })
+                $extensionState = Get-VsCodeExtensionReadBack -ExtensionId ([string]$policyAction.targetId) `
+                    -ToolAssessments @($assessment.tools) -Runner $NativeCommandRunner
+                $verified = ($nativeResult.exitCode -eq 0 -and $extensionState.status -eq 'Ready')
+                $status = $(if ($verified) { 'Verified' } else { 'Failed' })
                 $readBack = [pscustomobject][ordered]@{
                     service = 'VsCodeExtension'
                     targetId = [string]$policyAction.targetId
                     status = $status
                     expectedPostcondition = [string]$policyAction.expectedPostcondition
+                }
+                if (-not $verified) {
+                    $failure = New-ReadBackFailure -Service 'VsCodeExtension' -TargetId ([string]$policyAction.targetId) `
+                        -ExpectedPostcondition ([string]$policyAction.expectedPostcondition) -Diagnostic ([string]$policyAction.expectedPostcondition)
+                    $errorCategory = [string]$failure.errorCategory
+                    $recoveryItems = @($failure.recoveryItems)
+                    $readBack = $failure.readBack
                 }
             }
             else {
@@ -799,7 +1144,7 @@ foreach ($action in @($manifestContent.allowedActions)) {
     [void]$records.Add((New-EvidenceRecord -RunId $runId -GeneratedAtUtc $NowUtc `
         -SourceCommit ([string]$assessment.repository.sourceCommit) -AssessmentDigest ([string]$assessment.assessmentDigest) `
         -PlanDigest $planDigest -ManifestDigest ([string]$manifestContent.digest) -OperatorId ([string]$assessment.platform.stableId) `
-        -Operation ([string]$action.action) -Classification 'Create' -Status $status `
+        -Operation ([string]$action.action) -Classification $classification -Status $status `
         -ShouldProcessDecision $decision -TargetId ([string]$action.targetId) -ToolVersions $toolVersions `
         -ReadBack $readBack -FinalContext (Get-FinalWorkstationContext) -RecoveryItems $recoveryItems -ErrorCategory $errorCategory))
 
