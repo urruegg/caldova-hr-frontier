@@ -22,5 +22,8 @@ Export-ModuleMember -Function @(
     'Resolve-RunbookReportPath',
     'Write-CanonicalJson',
     'Get-RunbookContentDigest',
-    'Update-RunbookProcessPath'
+    'Update-RunbookProcessPath',
+    'New-RunbookExecutionManifest',
+    'Test-RunbookExecutionManifest',
+    'ConvertTo-RunbookEvidenceRecord'
 )
