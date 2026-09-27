@@ -56,7 +56,7 @@ function Assert-RunbookAuthenticationContext {
         throw 'Execution manifest authentication host is not supported.'
     }
     $allowedModes = @(
-        'NotRequired', 'DeviceCode', 'WebDevice',
+        'NotRequired', 'NotApplicable', 'DeviceCode', 'WebDevice',
         'AzureCliDelegatedContext', 'PacNamedDeviceCodeProfile'
     )
     if ($allowedModes -notcontains [string]$AuthenticationContext.mode) {

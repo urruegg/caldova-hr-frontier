@@ -29,6 +29,10 @@
         'New-CloudFoundationActionPlan'
         'Invoke-CloudFoundationAction'
         'Import-CustomerExportManifest'
+        'Resolve-CustomerExportExecutable'
+        'Get-CustomerExportSourceSnapshot'
+        'Get-CustomerSourceMarkerCatalog'
+        'Get-CustomerExportAssessment'
     )
     CmdletsToExport = @()
     VariablesToExport = @()
