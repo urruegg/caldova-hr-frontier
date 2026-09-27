@@ -53,7 +53,7 @@ function New-CustomerExportAutomaticCandidate {
 function Get-CustomerExportKeyValueCandidatesFromJson {
     param(
         [AllowNull()][object]$Value,
-        [Parameter(Mandatory)][System.Collections.ArrayList]$Candidates
+        [Parameter(Mandatory)][AllowEmptyCollection()][System.Collections.ArrayList]$Candidates
     )
 
     if ($null -eq $Value) { return }
