@@ -1,5 +1,14 @@
 # Customer Repository Export and Handover Implementation Plan
 
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-27 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Draft |
+| **Scope** | Infrastructure (all tenants) |
+| **References** | [Customer Repository Export and Handover design](../specs/2026-09-27-customer-repository-export-and-handover-design.md) |
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a tenant-agnostic clean-up script and two runbooks (Repository Clean-Up, Customer Repository Export and Handover) that let Tenant 2's owner and, later, Tenant 3's owner turn a seeded copy of this repository into their own tenant-dedicated repository — and prove Tenant 1's own manifest/evidence blueprint is internally consistent before anyone follows those runbooks.
