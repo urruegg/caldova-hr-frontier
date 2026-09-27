@@ -12,6 +12,9 @@ Describe 'Developer workstation assessment' {
         if (-not $script:GitPath) {
             throw 'git.exe is required for DeveloperWorkstationAssessment.Tests.ps1.'
         }
+        $script:Windows11PlatformProbe = {
+            [pscustomobject]@{ productName = 'Windows 11'; build = 26100 }
+        }
 
         function script:New-FixtureRunner {
             param([Parameter(Mandatory)][string]$FixturePath)
@@ -86,6 +89,7 @@ Describe 'Developer workstation assessment' {
         $result = & $script:ScriptPath -RepositoryRoot $script:RepositoryRoot `
             -NativeCommandRunner $runner `
             -InteractiveHostProbe { [pscustomobject]@{ isInteractive = $true; reason = 'TestHost' } } `
+            -PlatformProbe $script:Windows11PlatformProbe `
             -NowUtc ([datetime]'2026-09-26T05:00:00Z')
 
         $result.schemaVersion | Should -Be '1.0'
@@ -99,10 +103,12 @@ Describe 'Developer workstation assessment' {
         $first = & $script:ScriptPath -RepositoryRoot $script:RepositoryRoot `
             -NativeCommandRunner $runner `
             -InteractiveHostProbe { [pscustomobject]@{ isInteractive = $true; reason = 'TestHost' } } `
+            -PlatformProbe $script:Windows11PlatformProbe `
             -NowUtc ([datetime]'2026-09-26T05:00:00Z')
         $second = & $script:ScriptPath -RepositoryRoot $script:RepositoryRoot `
             -NativeCommandRunner $runner `
             -InteractiveHostProbe { [pscustomobject]@{ isInteractive = $true; reason = 'TestHost' } } `
+            -PlatformProbe $script:Windows11PlatformProbe `
             -NowUtc ([datetime]'2026-09-26T05:20:00Z')
 
         $first.runId | Should -Not -Be $second.runId
@@ -112,13 +118,28 @@ Describe 'Developer workstation assessment' {
 
     It 'refuses a non-Windows-11 platform before probing tools' {
         $calls = [Collections.Generic.List[string]]::new()
+        $platformProbeCalls = [Collections.Generic.List[string]]::new()
+        $platformProbe = {
+            [void]$platformProbeCalls.Add('called')
+            [pscustomobject]@{ productName = 'Windows 10'; build = 19045 }
+        }.GetNewClosure()
 
-        {
+        $exception = $null
+        try {
             & $script:ScriptPath -RepositoryRoot $script:RepositoryRoot `
                 -NativeCommandRunner { param($f, $a) [void]$calls.Add($f) } `
-                -PlatformProbe { [pscustomobject]@{ productName = 'Windows 10'; build = 19045 } }
-        } | Should -Throw '*Windows 11*'
+                -InteractiveHostProbe {
+                    [pscustomobject]@{ isInteractive = $true; reason = 'TestHost' }
+                } `
+                -PlatformProbe $platformProbe
+        }
+        catch {
+            $exception = $_.Exception
+        }
 
+        $exception | Should -Not -BeNullOrEmpty
+        $exception.Message | Should -BeExactly 'This runbook requires Windows 11 build 22000 or later.'
+        $platformProbeCalls.Count | Should -Be 1
         $calls.Count | Should -Be 0
     }
 
@@ -130,6 +151,7 @@ Describe 'Developer workstation assessment' {
                 -InteractiveHostProbe {
                     [pscustomobject]@{ isInteractive = $false; reason = 'CI runner' }
                 } `
+                -PlatformProbe $script:Windows11PlatformProbe `
                 -NativeCommandRunner { param($f, $a) [void]$calls.Add($f) }
         } | Should -Throw '*interactive Windows 11 PowerShell session*'
 
@@ -151,6 +173,7 @@ Describe 'Developer workstation assessment' {
             } `
             -FileIdentityProvider { param($path) [pscustomobject]@{ path = $path; sha256 = ('a' * 64) } } `
             -InteractiveHostProbe { [pscustomobject]@{ isInteractive = $true; reason = 'TestHost' } } `
+            -PlatformProbe $script:Windows11PlatformProbe `
             -NativeCommandRunner { param($f, $a) [void]$calls.Add($f) }
 
         ($result.tools | Where-Object id -eq 'Git').status | Should -Be 'Blocked'
@@ -166,6 +189,7 @@ Describe 'Developer workstation assessment' {
             -NativeCommandRunner $fixtureRunner `
             -ReportPath $reportPath `
             -InteractiveHostProbe { [pscustomobject]@{ isInteractive = $true; reason = 'TestHost' } } `
+            -PlatformProbe $script:Windows11PlatformProbe `
             -NowUtc ([datetime]'2026-09-26T05:00:00Z')
 
         $assessmentPath = Join-Path $reportPath 'workstation-assessment.json'
@@ -218,6 +242,7 @@ Describe 'Developer workstation assessment' {
                     }
                 } `
                 -InteractiveHostProbe { [pscustomobject]@{ isInteractive = $true; reason = 'TestHost' } } `
+                -PlatformProbe $script:Windows11PlatformProbe `
                 -NowUtc ([datetime]'2026-09-26T05:00:00Z')
         }
         finally {
@@ -265,6 +290,7 @@ Describe 'Developer workstation assessment' {
                 }
             } `
             -InteractiveHostProbe { [pscustomobject]@{ isInteractive = $true; reason = 'TestHost' } } `
+            -PlatformProbe $script:Windows11PlatformProbe `
             -NowUtc ([datetime]'2026-09-26T05:00:00Z')
 
         ($result.repositoryAssets | Where-Object path -eq '.github/skills' | Select-Object -First 1).status | Should -Be 'Mismatch'
@@ -306,6 +332,7 @@ Describe 'Developer workstation assessment' {
                 }
             } `
             -InteractiveHostProbe { [pscustomobject]@{ isInteractive = $true; reason = 'TestHost' } } `
+            -PlatformProbe $script:Windows11PlatformProbe `
             -NowUtc ([datetime]'2026-09-26T05:00:00Z')
 
         ($result.repositoryAssets | Where-Object path -eq '.github/skills' | Select-Object -First 1).status | Should -Be 'Mismatch'
