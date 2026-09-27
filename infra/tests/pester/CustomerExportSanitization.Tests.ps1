@@ -46,6 +46,16 @@ Describe 'Customer export sanitization' {
             } }
     }
 
+    function script:Get-CustomerExportResidualArtifacts {
+        param(
+            [Parameter(Mandatory)][string]$Root,
+            [string[]]$Extensions = @('.tmp', '.bak')
+        )
+
+        @(Get-ChildItem -LiteralPath $Root -File -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.Extension -in $Extensions })
+    }
+
     It 'changes only one JSON Pointer and logs digests rather than values' {
         $path = Join-Path $TestDrive 'config.json'
         [IO.File]::WriteAllText($path, '{"tenant":{"alias":"source-lab"},"text":"source-lab"}', [Text.UTF8Encoding]::new($false))
@@ -141,7 +151,7 @@ Describe 'Customer export sanitization' {
         } | Should -Throw '*restored*'
 
         [IO.File]::ReadAllText($target) | Should -Be $original
-        @(Get-ChildItem -LiteralPath $caseRoot -Include '*.tmp', '*.bak' -File -Recurse -ErrorAction SilentlyContinue).Count | Should -Be 0
+        @(Get-CustomerExportResidualArtifacts -Root $caseRoot).Count | Should -Be 0
     }
 
     It 'keeps the restored-result exception when restore-backup cleanup fails' {
@@ -233,7 +243,7 @@ Describe 'Customer export sanitization' {
         } | Should -Throw ("*{0}*" -f [WildcardPattern]::Escape($state.backupPath))
 
         $state.backupPath | Should -Exist
-        @(Get-ChildItem -LiteralPath $caseRoot -Filter '*.tmp' -File -Recurse -ErrorAction SilentlyContinue).Count | Should -Be 0
+        @(Get-CustomerExportResidualArtifacts -Root $caseRoot -Extensions @('.tmp')).Count | Should -Be 0
     }
 
     It 'does not let finally temp cleanup failures replace the restoration exception' {
@@ -392,7 +402,7 @@ Describe 'Customer export sanitization' {
             requiredCount = 2
         }) -WarningVariable warnings -WarningAction Continue | Out-Null
 
-        @(Get-ChildItem -LiteralPath $caseRoot -Include '*.tmp', '*.bak' -File -Recurse -ErrorAction SilentlyContinue).Count | Should -Be 0
+        @(Get-CustomerExportResidualArtifacts -Root $caseRoot).Count | Should -Be 0
         $warnings | Should -BeNullOrEmpty
     }
 

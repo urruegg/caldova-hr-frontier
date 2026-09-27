@@ -55,7 +55,25 @@ function Resolve-CustomerExportGitDirectory {
         throw 'Source repository metadata is invalid.'
     }
 
-    return [IO.Path]::GetFullPath((Join-Path $RepositoryRoot $Matches[1].Trim()))
+    $gitDirectory = $Matches[1].Trim()
+    if ([IO.Path]::IsPathRooted($gitDirectory)) {
+        return [IO.Path]::GetFullPath($gitDirectory)
+    }
+
+    return [IO.Path]::GetFullPath((Join-Path $RepositoryRoot $gitDirectory))
+}
+
+function Resolve-CustomerExportRepositoryRelativePath {
+    param(
+        [Parameter(Mandatory)][string]$RepositoryRoot,
+        [Parameter(Mandatory)][string]$Path
+    )
+
+    if ([IO.Path]::IsPathRooted($Path)) {
+        return [IO.Path]::GetFullPath($Path)
+    }
+
+    return [IO.Path]::GetFullPath((Join-Path $RepositoryRoot $Path))
 }
 
 function Get-CustomerExportFileDigest {
@@ -205,13 +223,13 @@ function Get-CustomerExportSourceSnapshot {
     if ($commonDirectoryResult.exitCode -ne 0 -or [string]::IsNullOrWhiteSpace([string]$commonDirectoryResult.stdout)) {
         throw 'Customer export source common Git directory could not be read.'
     }
-    $gitCommonDirectory = [IO.Path]::GetFullPath([string]$commonDirectoryResult.stdout.Trim())
+    $gitCommonDirectory = Resolve-CustomerExportRepositoryRelativePath -RepositoryRoot $repository -Path ([string]$commonDirectoryResult.stdout.Trim())
 
     $indexPathResult = Invoke-Git -Arguments @('rev-parse', '--git-path', 'index')
     if ($indexPathResult.exitCode -ne 0 -or [string]::IsNullOrWhiteSpace([string]$indexPathResult.stdout)) {
         throw 'Customer export source index path could not be read.'
     }
-    $indexPath = [IO.Path]::GetFullPath([string]$indexPathResult.stdout.Trim())
+    $indexPath = Resolve-CustomerExportRepositoryRelativePath -RepositoryRoot $repository -Path ([string]$indexPathResult.stdout.Trim())
     if (-not (Test-Path -LiteralPath $indexPath -PathType Leaf)) {
         throw 'Customer export source index could not be read.'
     }

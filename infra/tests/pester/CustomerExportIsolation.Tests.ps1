@@ -67,6 +67,17 @@ Describe 'Customer export source isolation' {
         Import-Module $script:Module -Force
     }
 
+    It 'resolves rooted gitdir metadata consistently across Windows PowerShell 5.1 and PowerShell 7' {
+        $fixture = New-SnapshotFixture
+
+        $resolved = & (Get-Module Caldova.HrFrontier.Bootstrap) {
+            param($repositoryRoot)
+            Resolve-CustomerExportGitDirectory -RepositoryRoot $repositoryRoot
+        } $fixture.RepositoryRoot
+
+        $resolved | Should -Be ([IO.Path]::GetFullPath($fixture.GitDirectory))
+    }
+
     It 'refuses a dirty source and a destination below it' {
         $root = [IO.Path]::GetFullPath($TestDrive)
         $runner = {
