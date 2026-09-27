@@ -33,6 +33,9 @@
         'Get-CustomerExportSourceSnapshot'
         'Get-CustomerSourceMarkerCatalog'
         'Get-CustomerExportAssessment'
+        'Convert-CustomerExportBlob'
+        'Invoke-CustomerStructuredReplacement'
+        'Get-CustomerExportResidual'
     )
     CmdletsToExport = @()
     VariablesToExport = @()

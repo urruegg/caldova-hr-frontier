@@ -181,7 +181,7 @@ function Get-CustomerExportSourceSnapshot {
     $workflowRoot = Join-Path $repository '.github\workflows'
     if (Test-Path -LiteralPath $workflowRoot -PathType Container) {
         foreach ($workflow in Get-ChildItem -LiteralPath $workflowRoot -File -Recurse | Sort-Object FullName) {
-            $relative = [IO.Path]::GetRelativePath($repository, $workflow.FullName).Replace('\', '/')
+            $relative = Get-RunbookRelativePath -Root $repository -Path $workflow.FullName
             $workflowRecords += [pscustomobject]@{
                 path = $relative
                 sha256 = (Get-FileHash -LiteralPath $workflow.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
