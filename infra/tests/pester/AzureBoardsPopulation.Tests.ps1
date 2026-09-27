@@ -183,6 +183,30 @@ $Summary
         }
     }
 
+    Context 'New-DefaultAzureDevOpsRequest (real az-invoking path, no -AzureDevOpsRequest override)' {
+        It 'resolves Invoke-NativeJsonCommand and returns parsed JSON when only -NativeCommandRunner is faked' {
+            # Regression test: every other test in this file supplies -AzureDevOpsRequest, which
+            # bypasses New-DefaultAzureDevOpsRequest entirely. That function's returned scriptblock
+            # is created with .GetNewClosure(), which runs in an isolated dynamic module when this
+            # script is invoked as "./Initialize-AzureDevOpsWorkItems.ps1 ..." (exactly how the
+            # runbook, CI, and this test invoke it via $script:ScriptPath) - a bare call to the
+            # "Invoke-NativeJsonCommand" function by name previously failed there with
+            # CommandNotFoundException. This test exercises that real path by faking only the
+            # native process boundary (-NativeCommandRunner), not the request dispatcher.
+            $result = & $script:ScriptPath -TenantAlias 'caldova25156897' -ReturnProcessCapabilitiesOnly `
+                -NativeCommandRunner {
+                    param($FilePath, $ArgumentList)
+                    [pscustomobject]@{
+                        ExitCode = 0
+                        StdOut = '{"count":1,"value":[{"name":"Epic"}]}'
+                        StdErr = ''
+                    }
+                }
+
+            $result.EpicWorkItemTypeName | Should -Be 'Epic'
+        }
+    }
+
     Context 'Get-AzureDevOpsWorkItemPlan' {
         It 'marks an idea Create when the WIQL query returns no matching work item' {
             $wiqlEmptyFixture = [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ workItems = @() } }
