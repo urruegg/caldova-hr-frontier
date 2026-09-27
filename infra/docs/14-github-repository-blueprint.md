@@ -11,6 +11,8 @@
 
 This source-derived Proposed Baseline describes intended GitHub repository architecture and governance. It does not prove that any ruleset, branch protection, Environment, reviewer, variable, workflow, check, app registration, or service integration is currently configured.
 
+> **Pending supersession.** [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) (status: Proposed) replaces the "One Shared Repository" section below with one repository per tenant. That ADR is not yet ratified, so this document still describes the shared-repository design as the current Proposed Baseline. Once ADR-0012 is accepted, this section must be rewritten rather than amended in place — see this repository's own evidence rule against silently reconciling drift between an ADR and narrative documentation.
+
 ## One Shared Repository
 
 Caldova HR Frontier uses the existing shared repository `urruegg/caldova-hr-frontier` for all three independent tenant manifests and common automation. The design does not create one repository copy per tenant.
