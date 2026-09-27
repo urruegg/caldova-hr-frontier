@@ -104,27 +104,111 @@ Describe 'Customer export sanitization' {
         [IO.File]::ReadAllBytes($target) | Should -Be $before
     }
 
-    It 'preserves the original target and cleans temporary files when atomic replacement fails' {
-        $target = Join-Path $TestDrive 'atomic-failure.md'
+    It 'restores the original target bytes and cleans temp files after replace failure' {
+        $caseRoot = Join-Path $TestDrive 'replace-failure'
+        [IO.Directory]::CreateDirectory($caseRoot) | Out-Null
+        $target = Join-Path $caseRoot 'atomic-failure.md'
         $original = "Source Reference Organization`r`nContact Source Reference Organization`r`n"
         [IO.File]::WriteAllText($target, $original, [Text.UTF8Encoding]::new($false))
-
-        InModuleScope Caldova.HrFrontier.Bootstrap {
-            Mock Publish-CustomerStructuredReplacementBytes { throw 'synthetic atomic failure' }
-            {
-                Invoke-CustomerStructuredReplacement -StagingRoot $TestDrive -Path 'atomic-failure.md' -Rules @([pscustomobject]@{
-                    id = 'customer-name-atomic'
-                    path = 'atomic-failure.md'
-                    format = 'MarkdownExact'
-                    expectedOldText = 'Source Reference Organization'
-                    newText = 'Customer Example Organization'
-                    requiredCount = 2
-                })
-            } | Should -Throw '*atomic failure*'
+        $state = [pscustomobject]@{ replaceCalls = 0 }
+        $ops = [pscustomobject]@{
+            WriteAllBytes = { param($path, [byte[]]$bytes) [IO.File]::WriteAllBytes($path, $bytes) }
+            ReadAllBytes = { param($path) [IO.File]::ReadAllBytes($path) }
+            Exists = { param($path) Test-Path -LiteralPath $path }
+            Delete = { param($path) Remove-Item -LiteralPath $path -Force }
+            Move = { param($source, $destination) [IO.File]::Move($source, $destination) }
+            Replace = {
+                param($source, $destination, $backup)
+                $state.replaceCalls++
+                if ($state.replaceCalls -eq 1) {
+                    [IO.File]::Copy($destination, $backup, $true)
+                    Remove-Item -LiteralPath $destination -Force
+                    throw 'synthetic replace failure'
+                }
+                [IO.File]::Move($source, $destination)
+            }.GetNewClosure()
         }
 
+        {
+            Invoke-CustomerStructuredReplacement -StagingRoot $caseRoot -Path 'atomic-failure.md' -Rules @([pscustomobject]@{
+                id = 'customer-name-atomic'
+                path = 'atomic-failure.md'
+                format = 'MarkdownExact'
+                expectedOldText = 'Source Reference Organization'
+                newText = 'Customer Example Organization'
+                requiredCount = 2
+            }) -FileOperations $ops
+        } | Should -Throw '*restored*'
+
         [IO.File]::ReadAllText($target) | Should -Be $original
-        @(Get-ChildItem -LiteralPath $TestDrive -Filter '*.tmp' -File -ErrorAction SilentlyContinue).Count | Should -Be 0
+        @(Get-ChildItem -LiteralPath $caseRoot -Include '*.tmp', '*.bak' -File -Recurse -ErrorAction SilentlyContinue).Count | Should -Be 0
+    }
+
+    It 'retains the backup and reports the safe recovery path when restoration fails' {
+        $caseRoot = Join-Path $TestDrive 'restore-failure'
+        [IO.Directory]::CreateDirectory($caseRoot) | Out-Null
+        $target = Join-Path $caseRoot 'restore-failure.md'
+        $original = "Source Reference Organization`r`nContact Source Reference Organization`r`n"
+        [IO.File]::WriteAllText($target, $original, [Text.UTF8Encoding]::new($false))
+        $state = [pscustomobject]@{ replaceCalls = 0; backupPath = $null }
+        $ops = [pscustomobject]@{
+            WriteAllBytes = { param($path, [byte[]]$bytes) [IO.File]::WriteAllBytes($path, $bytes) }
+            ReadAllBytes = { param($path) [IO.File]::ReadAllBytes($path) }
+            Exists = { param($path) Test-Path -LiteralPath $path }
+            Delete = { param($path) Remove-Item -LiteralPath $path -Force }
+            Move = {
+                param($source, $destination)
+                if ($source -like '*.restore.tmp') {
+                    throw 'synthetic restoration failure'
+                }
+                [IO.File]::Move($source, $destination)
+            }
+            Replace = {
+                param($source, $destination, $backup)
+                $state.replaceCalls++
+                if ($state.replaceCalls -eq 1) {
+                    $state.backupPath = $backup
+                    [IO.File]::Copy($destination, $backup, $true)
+                    Remove-Item -LiteralPath $destination -Force
+                    throw 'synthetic replace failure'
+                }
+                [IO.File]::Move($source, $destination)
+            }.GetNewClosure()
+        }
+
+        {
+            Invoke-CustomerStructuredReplacement -StagingRoot $caseRoot -Path 'restore-failure.md' -Rules @([pscustomobject]@{
+                id = 'customer-name-restore'
+                path = 'restore-failure.md'
+                format = 'MarkdownExact'
+                expectedOldText = 'Source Reference Organization'
+                newText = 'Customer Example Organization'
+                requiredCount = 2
+            }) -FileOperations $ops
+        } | Should -Throw ("*{0}*" -f [WildcardPattern]::Escape($state.backupPath))
+
+        $state.backupPath | Should -Exist
+        @(Get-ChildItem -LiteralPath $caseRoot -Filter '*.tmp' -File -Recurse -ErrorAction SilentlyContinue).Count | Should -Be 0
+    }
+
+    It 'leaves no temp or backup files after a successful atomic publish' {
+        $caseRoot = Join-Path $TestDrive 'atomic-success'
+        [IO.Directory]::CreateDirectory($caseRoot) | Out-Null
+        $target = Join-Path $caseRoot 'atomic-success.md'
+        [IO.File]::WriteAllText($target,
+            "Source Reference Organization`r`nContact Source Reference Organization`r`n",
+            [Text.UTF8Encoding]::new($false))
+
+        Invoke-CustomerStructuredReplacement -StagingRoot $caseRoot -Path 'atomic-success.md' -Rules @([pscustomobject]@{
+            id = 'customer-name-success'
+            path = 'atomic-success.md'
+            format = 'MarkdownExact'
+            expectedOldText = 'Source Reference Organization'
+            newText = 'Customer Example Organization'
+            requiredCount = 2
+        }) | Out-Null
+
+        @(Get-ChildItem -LiteralPath $caseRoot -Include '*.tmp', '*.bak' -File -Recurse -ErrorAction SilentlyContinue).Count | Should -Be 0
     }
 
     It 'classifies inspectable non-NUL binary content only when explicitly allowlisted' {
