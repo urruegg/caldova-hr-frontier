@@ -206,18 +206,20 @@ $Summary
             $result.EpicWorkItemTypeName | Should -Be 'Epic'
         }
 
-        It 'creates a work item over a raw HTTP call with a UTF-8 charset instead of az devops invoke' {
-            # Regression test: az CLI - both "az devops invoke" (including with an explicit
-            # --encoding utf-8) and the native "az boards work-item create" command - sends work
-            # item create requests in a way the Azure DevOps service decodes incorrectly for any
-            # non-ASCII character. Confirmed live against Tenant 1: an em dash (U+2014) in a work
+        It 'creates and reads back a work item over raw HTTP calls with a UTF-8 charset instead of az' {
+            # Regression test: az CLI - "az devops invoke" (including with an explicit --encoding
+            # utf-8), the native "az boards work-item create" command, and "az boards work-item
+            # show" - all handle non-ASCII characters incorrectly, both encoding requests and
+            # decoding responses. Confirmed live against Tenant 1: an em dash (U+2014) in a work
             # item Description became U+FFFD REPLACEMENT CHARACTER through every az CLI code path
-            # tried. A raw HTTP call that declares "charset=utf-8" on the Content-Type header
-            # round-trips the same text correctly - also confirmed live. CreateWorkItem now gets a
-            # bearer token via "az account get-access-token" (ASCII-only, no risk) and sends the
-            # work item body itself via -HttpCommandRunner, bypassing az's broken transport. This
-            # test uses a real non-ASCII character (an em dash, matching UC-0001's actual summary)
-            # to prove the bytes sent are correct UTF-8, not just that a call was made.
+            # tried, including reading back data that a raw REST call proved was stored correctly.
+            # A raw HTTP call that declares "charset=utf-8" on the Content-Type header round-trips
+            # the same text correctly - also confirmed live. CreateWorkItem and ShowWorkItem now
+            # get a bearer token via "az account get-access-token" (ASCII-only, no risk) and send
+            # /receive the work item body itself via -HttpCommandRunner, bypassing az's broken
+            # transport entirely. This test uses a real non-ASCII character (an em dash, matching
+            # UC-0001's actual summary) to prove the bytes sent and read back are correct UTF-8,
+            # not just that a call was made.
             # Uses a bespoke single-idea fixture (rather than New-FixtureIdeasRoot's shared fixtures)
             # so the summary can contain a real em dash (—, U+2014) - matching UC-0001's actual
             # production summary - without touching the shared fixture text other tests assert on.
@@ -249,33 +251,33 @@ $Summary
                         $relationUrlById[[int]$ArgumentList[$idIndex + 1]] = $ArgumentList[$urlIndex + 1]
                         return [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' }
                     }
-                    if ($FilePath -eq 'az' -and $ArgumentList -contains 'show') {
-                        $idIndex = [array]::IndexOf($ArgumentList, '--id')
-                        $id = [int]$ArgumentList[$idIndex + 1]
-                        $fieldsByPath = $createdById[$id]
-                        $bodyJson = @{
-                            id = $id
-                            fields = @{
-                                'System.Title' = $fieldsByPath['/fields/System.Title']
-                                'System.Description' = $fieldsByPath['/fields/System.Description']
-                                'System.Tags' = $fieldsByPath['/fields/System.Tags']
-                            }
-                            relations = @(@{ rel = 'Hyperlink'; url = $relationUrlById[$id] })
-                        } | ConvertTo-Json -Compress
-                        return [pscustomobject]@{ ExitCode = 0; StdOut = $bodyJson; StdErr = '' }
-                    }
                     throw "Unexpected native command: $FilePath $($ArgumentList -join ' ')"
                 }.GetNewClosure() `
                 -HttpCommandRunner {
                     param($Method, $Uri, $AccessToken, $BodyBytes, $ContentType)
-                    $capturedHttpCalls.Add([pscustomobject]@{ Method = $Method; Uri = $Uri; AccessToken = $AccessToken; BodyBytes = $BodyBytes; ContentType = $ContentType })
-                    $bodyText = [System.Text.Encoding]::UTF8.GetString($BodyBytes)
-                    $patchOps = $bodyText | ConvertFrom-Json
-                    $id = $nextId
-                    $nextId++
-                    $fieldsByPath = @{}
-                    foreach ($patchOp in $patchOps) { $fieldsByPath[$patchOp.path] = $patchOp.value }
-                    $createdById[$id] = $fieldsByPath
+                    if ($Method -eq 'POST') {
+                        $capturedHttpCalls.Add([pscustomobject]@{ Method = $Method; Uri = $Uri; AccessToken = $AccessToken; BodyBytes = $BodyBytes; ContentType = $ContentType })
+                        $bodyText = [System.Text.Encoding]::UTF8.GetString($BodyBytes)
+                        $patchOps = $bodyText | ConvertFrom-Json
+                        $id = $nextId
+                        $nextId++
+                        $fieldsByPath = @{}
+                        foreach ($patchOp in $patchOps) { $fieldsByPath[$patchOp.path] = $patchOp.value }
+                        $createdById[$id] = $fieldsByPath
+                        return [pscustomobject]@{
+                            id = $id
+                            fields = [pscustomobject]@{
+                                'System.Title' = $fieldsByPath['/fields/System.Title']
+                                'System.Description' = $fieldsByPath['/fields/System.Description']
+                                'System.Tags' = $fieldsByPath['/fields/System.Tags']
+                            }
+                        }
+                    }
+                    # GET: ShowWorkItem read-back, also bypasses az (its response decoding has the
+                    # same non-ASCII corruption as its request encoding - confirmed live).
+                    $idMatch = [regex]::Match($Uri, 'workitems/(\d+)\?')
+                    $id = [int]$idMatch.Groups[1].Value
+                    $fieldsByPath = $createdById[$id]
                     [pscustomobject]@{
                         id = $id
                         fields = [pscustomobject]@{
@@ -283,6 +285,7 @@ $Summary
                             'System.Description' = $fieldsByPath['/fields/System.Description']
                             'System.Tags' = $fieldsByPath['/fields/System.Tags']
                         }
+                        relations = @([pscustomobject]@{ rel = 'Hyperlink'; url = $relationUrlById[$id] })
                     }
                 }.GetNewClosure()
 

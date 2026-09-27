@@ -291,14 +291,18 @@ function New-DefaultHttpCommandRunner {
             [Parameter(Mandatory)]
             [string]$AccessToken,
 
-            [Parameter(Mandatory)]
             [byte[]]$BodyBytes,
 
-            [Parameter(Mandatory)]
             [string]$ContentType
         )
 
-        Invoke-RestMethod -Uri $Uri -Method $Method -Headers @{ Authorization = "Bearer $AccessToken" } -Body $BodyBytes -ContentType $ContentType
+        $headers = @{ Authorization = "Bearer $AccessToken" }
+        if ($null -ne $BodyBytes) {
+            Invoke-RestMethod -Uri $Uri -Method $Method -Headers $headers -Body $BodyBytes -ContentType $ContentType
+        }
+        else {
+            Invoke-RestMethod -Uri $Uri -Method $Method -Headers $headers
+        }
     }
 }
 
@@ -316,20 +320,27 @@ function Invoke-AzureDevOpsRestJsonCommand {
         [Parameter(Mandatory)]
         [string]$Uri,
 
-        [Parameter(Mandatory)]
         [string]$BodyJson
     )
 
     # Bypasses az CLI's own HTTP transport for this call. az devops invoke (and even the native
-    # "az boards work-item create" command) sends a request body that the Azure DevOps service
-    # decodes incorrectly for any non-ASCII character (confirmed live: an em dash in a work item
+    # "az boards work-item create" command, and "az boards work-item show" for reading a work item
+    # back) handles non-ASCII characters incorrectly (confirmed live: an em dash in a work item
     # Description became U+FFFD REPLACEMENT CHARACTER through every az CLI code path tried,
-    # including --in-file with an explicit --encoding utf-8). A raw HTTP call that declares
-    # "charset=utf-8" on the Content-Type header round-trips the same text correctly - confirmed
-    # live against Tenant 1. az is still used, only to mint the bearer token (ASCII-only, no risk).
+    # including --in-file with an explicit --encoding utf-8, and this affects az's decoding of
+    # response bodies just as much as its encoding of request bodies - a raw REST GET against the
+    # same work item confirmed the data was actually stored correctly; only az's own read-back was
+    # wrong). A raw HTTP call that declares "charset=utf-8" on the Content-Type header round-trips
+    # the same text correctly - confirmed live against Tenant 1. az is still used, only to mint the
+    # bearer token (ASCII-only, no risk).
     $accessToken = Get-AzureDevOpsAccessToken -Runner $NativeRunner
-    $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($BodyJson)
-    $body = & $HttpRunner -Method $Method -Uri $Uri -AccessToken $accessToken -BodyBytes $bodyBytes -ContentType 'application/json-patch+json; charset=utf-8'
+    if ($PSBoundParameters.ContainsKey('BodyJson')) {
+        $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($BodyJson)
+        $body = & $HttpRunner -Method $Method -Uri $Uri -AccessToken $accessToken -BodyBytes $bodyBytes -ContentType 'application/json-patch+json; charset=utf-8'
+    }
+    else {
+        $body = & $HttpRunner -Method $Method -Uri $Uri -AccessToken $accessToken
+    }
 
     [pscustomobject]@{
         StatusCode = 200
@@ -432,13 +443,8 @@ function New-DefaultAzureDevOpsRequest {
                 ))
             }
             'ShowWorkItem' {
-                return (& $invokeNativeJsonCommandRef -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
-                    'boards', 'work-item', 'show',
-                    '--id', [string]$Arguments['WorkItemId'],
-                    '--expand', 'all',
-                    '--organization', [string]$Arguments['OrganizationUrl'],
-                    '--output', 'json'
-                ))
+                $uri = "$([string]$Arguments['OrganizationUrl'])_apis/wit/workitems/$([string]$Arguments['WorkItemId'])?`$expand=all&api-version=7.1"
+                return (& $invokeAzureDevOpsRestJsonCommandRef -NativeRunner $NativeRunner -HttpRunner $HttpRunner -Method 'GET' -Uri $uri)
             }
             default {
                 throw "Unsupported AzureDevOps operation '$Operation'."
