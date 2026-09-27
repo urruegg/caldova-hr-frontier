@@ -25,6 +25,8 @@
         'ConvertTo-RunbookEvidenceRecord'
         'Resolve-CloudNativeTool'
         'Test-CloudDelegatedContext'
+        'Get-CloudFoundationAssessment'
+        'New-CloudFoundationActionPlan'
     )
     CmdletsToExport = @()
     VariablesToExport = @()

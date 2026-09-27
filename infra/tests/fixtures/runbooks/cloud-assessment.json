@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0",
+  "tenantAlias": "synthetic",
+  "assessedAtUtc": "2026-09-26T06:00:00.0000000Z",
+  "contextDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "services": {
+    "github": {
+      "repository": { "state": "Exact", "id": "67890", "uri": "repos/synthetic-owner/synthetic-repository" },
+      "ruleset": {
+        "state": "Drift",
+        "id": "321",
+        "uri": "repos/synthetic-owner/synthetic-repository/rulesets/321",
+        "providerInput": { "name": "main", "target": "branch", "enforcement": "active", "rules": [{ "type": "deletion" }, { "type": "non_fast_forward" }] }
+      }
+    },
+    "azure": {
+      "state": "Drift",
+      "targetId": "11111111-1111-1111-1111-111111111111",
+      "uri": "azure://subscriptions/11111111-1111-1111-1111-111111111111/deployments/cf-synthetic-0123456789ab",
+      "providerInput": {
+        "templateDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "parameterDigest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "whatIfDigest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "sourceDigest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "location": "switzerlandnorth",
+        "deploymentName": "cf-synthetic-0123456789ab",
+        "validationPrincipalId": "55555555-5555-5555-5555-555555555555"
+      }
+    },
+    "azureDevOps": {
+      "state": "Missing",
+      "projectIntent": "Create",
+      "targetId": "azuredevops://https://dev.azure.com/synthetic/SyntheticProject",
+      "providerInput": {
+        "organizationUrl": "https://dev.azure.com/synthetic/",
+        "name": "SyntheticProject",
+        "processId": "process-agile-synthetic",
+        "processName": "Agile",
+        "sourceControl": "git",
+        "visibility": "private"
+      }
+    },
+    "entra": {
+      "application": {
+        "state": "Missing",
+        "targetId": "entra://applications/Synthetic Target App",
+        "applicationExactNameMatchCount": 0,
+        "providerInput": { "displayName": "Synthetic Target App", "signInAudience": "AzureADMyOrg" }
+      },
+      "servicePrincipal": { "state": "Blocked", "servicePrincipalExactAppIdMatchCount": 0 }
+    }
+  },
+  "permissionDelta": [
+    { "service": "GitHub", "targetId": "67890", "capability": "RepositoryMetadataRead", "status": "Satisfied" }
+  ],
+  "manualItems": [
+    {
+      "service": "AzureDevOps",
+      "targetId": "azuredevops://https://dev.azure.com/synthetic/SyntheticProject/github-connection",
+      "condition": "The first Azure Boards GitHub connection requires attended authorization.",
+      "owner": "Azure DevOps organization administrator",
+      "diagnostic": "ConnectionNotVerified",
+      "recovery": "Authorize and read back the reviewed connection, then generate a new plan."
+    }
+  ],
+  "blockedItems": [
+    { "service": "GitHub", "reason": "GitHub Environment operations are excluded from the local cloud-foundation kit." }
+  ],
+  "toolVersions": {
+    "az": { "name": "az", "path": "C:\\SyntheticTools\\az.cmd", "version": "2.77.0", "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+    "gh": { "name": "gh", "path": "C:\\SyntheticTools\\gh.exe", "version": "2.80.0", "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+    "pac": { "name": "pac", "path": "C:\\SyntheticTools\\pac.exe", "version": "1.46.0", "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" },
+    "git": { "name": "git", "path": "C:\\SyntheticTools\\git.exe", "version": "2.51.0", "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd" }
+  },
+  "sourceCommit": "0123456789abcdef0123456789abcdef01234567",
+  "overallStatus": "Ready",
+  "assessmentDigest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+}

@@ -28,4 +28,6 @@ Export-ModuleMember -Function @(
     'ConvertTo-RunbookEvidenceRecord'
     'Resolve-CloudNativeTool'
     'Test-CloudDelegatedContext'
+    'Get-CloudFoundationAssessment'
+    'New-CloudFoundationActionPlan'
 )
