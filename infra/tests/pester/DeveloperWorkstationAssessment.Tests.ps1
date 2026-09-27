@@ -5,7 +5,13 @@ Describe 'Developer workstation assessment' {
         $script:ScriptPath = Join-Path $PSScriptRoot '..\..\src\scripts\runbooks\Test-DeveloperWorkstation.ps1'
         $script:FixturePath = Join-Path $PSScriptRoot '..\fixtures\runbooks\native-command-results.json'
         $script:RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
-        $script:GitPath = (Get-Command git.exe -CommandType Application | Select-Object -First 1).Source
+        $script:GitPath = @(
+            (Get-Command git.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source,
+            'C:\Program Files\Git\cmd\git.exe'
+        ) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) } | Select-Object -First 1
+        if (-not $script:GitPath) {
+            throw 'git.exe is required for DeveloperWorkstationAssessment.Tests.ps1.'
+        }
 
         function script:New-FixtureRunner {
             param([Parameter(Mandatory)][string]$FixturePath)

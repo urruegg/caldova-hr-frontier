@@ -74,7 +74,9 @@ Describe 'Cloud foundation static safety' {
 
     It 'keeps every cloud file outside workflow paths' {
         foreach($path in $script:CloudFiles) {
-            $relative=[IO.Path]::GetRelativePath($script:RepositoryRoot,$path).Replace('\','/')
+            $relativeBase = [Uri](([IO.Path]::GetFullPath($script:RepositoryRoot).TrimEnd('\') + '\').Replace('\', '/'))
+            $relativePath = [Uri]([IO.Path]::GetFullPath($path).Replace('\', '/'))
+            $relative = $relativeBase.MakeRelativeUri($relativePath).ToString()
             $relative | Should -Not -Match '^(?i)\.github/workflows/'
         }
         $git=Resolve-StaticTestGitPath

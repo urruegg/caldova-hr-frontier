@@ -1519,7 +1519,14 @@ Describe 'Set-DocumentationMetadata.ps1' {
 Describe 'Repository documentation inventory' {
 	It 'has valid metadata on every eligible tracked Markdown file' -Tag 'RepositoryInventory' {
 		$repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
-		$gitOutput = @(& git -C $repositoryRoot ls-files -- '*.md' 2>&1)
+		$gitPath = @(
+			(Get-Command git.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source,
+			'C:\Program Files\Git\cmd\git.exe'
+		) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) } | Select-Object -First 1
+		if (-not $gitPath) {
+			throw 'git.exe is required for DocumentationMetadata.Tests.ps1.'
+		}
+		$gitOutput = @(& $gitPath -C $repositoryRoot ls-files -- '*.md' 2>&1)
 		$gitExitCode = $LASTEXITCODE
 		if ($gitExitCode -ne 0) {
 			throw "Unable to enumerate tracked Markdown with Git (exit $gitExitCode): $($gitOutput -join ' ')"

@@ -104,7 +104,7 @@ Describe 'Cloud foundation planning' {
         $runDirectory = Join-Path $TestDrive 'live-assessment'
         New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
         $sourcePath = Join-Path $runDirectory 'main.bicep'
-        Set-Content -LiteralPath $sourcePath -Value 'targetScope = ''subscription''' -Encoding utf8NoBOM
+        [IO.File]::WriteAllText($sourcePath, "targetScope = 'subscription'`n", [Text.UTF8Encoding]::new($false))
         $rulesetInput = [pscustomobject][ordered]@{
             name='Synthetic non-Actions protection';target='branch';enforcement='active'
             conditions=[pscustomobject]@{ref_name=[pscustomobject]@{include=@('~DEFAULT_BRANCH');exclude=@()}}
@@ -188,7 +188,7 @@ Describe 'Cloud foundation planning' {
             }
             if ($command -like 'bicep build *') {
                 $outputIndex = [Array]::IndexOf($ArgumentList,'--outfile')
-                Set-Content -LiteralPath $ArgumentList[$outputIndex + 1] -Value '{"resources":[]}' -Encoding utf8NoBOM
+                [IO.File]::WriteAllText($ArgumentList[$outputIndex + 1], "{`"resources`":[]}`n", [Text.UTF8Encoding]::new($false))
                 return [pscustomobject]@{exitCode=0;stdout='';stderr=''}
             }
             if ($command -like 'deployment sub what-if *') {

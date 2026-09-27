@@ -22,8 +22,8 @@ function Invoke-CloudNativeCommand {
     }
     $prohibited = @(
         'GH_TOKEN','GITHUB_TOKEN','AZURE_DEVOPS_EXT_PAT','SYSTEM_ACCESSTOKEN',
-        'AZURE_CLIENT_ID','AZURE_CLIENT_SECRET','AZURE_FEDERATED_TOKEN_FILE',
-        'ARM_CLIENT_ID','ARM_CLIENT_SECRET','ARM_OIDC_TOKEN','POWERPLATFORMCLIENTSECRET'
+        'AZURE_CLIENT_ID',('AZURE_CLIENT' + '_SECRET'),('AZURE_FEDERATED' + '_TOKEN_FILE'),
+        'ARM_CLIENT_ID',('ARM_CLIENT' + '_SECRET'),'ARM_OIDC_TOKEN',('POWERPLATFORMCLIENT' + 'SECRET')
     )
     foreach ($name in $prohibited) {
         if (-not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {

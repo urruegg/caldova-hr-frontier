@@ -3,6 +3,7 @@ Set-StrictMode -Version Latest
 Describe 'Shared runbook output contracts' {
     BeforeAll {
         $script:ModulePath = Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
+        @(Get-Module Caldova.HrFrontier.Bootstrap -All) | Remove-Module -Force -ErrorAction SilentlyContinue
         Import-Module $script:ModulePath -Force
     }
 
