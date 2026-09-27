@@ -124,15 +124,21 @@ Describe 'Developer workstation assessment' {
             [pscustomobject]@{ productName = 'Windows 10'; build = 19045 }
         }.GetNewClosure()
 
-        {
+        $exception = $null
+        try {
             & $script:ScriptPath -RepositoryRoot $script:RepositoryRoot `
                 -NativeCommandRunner { param($f, $a) [void]$calls.Add($f) } `
                 -InteractiveHostProbe {
                     [pscustomobject]@{ isInteractive = $true; reason = 'TestHost' }
                 } `
                 -PlatformProbe $platformProbe
-        } | Should -Throw '*Windows 11 build 22000 or later*'
+        }
+        catch {
+            $exception = $_.Exception
+        }
 
+        $exception | Should -Not -BeNullOrEmpty
+        $exception.Message | Should -BeExactly 'This runbook requires Windows 11 build 22000 or later.'
         $platformProbeCalls.Count | Should -Be 1
         $calls.Count | Should -Be 0
     }
