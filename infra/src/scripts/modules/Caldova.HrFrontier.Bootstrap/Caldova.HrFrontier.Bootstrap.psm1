@@ -30,4 +30,5 @@ Export-ModuleMember -Function @(
     'Test-CloudDelegatedContext'
     'Get-CloudFoundationAssessment'
     'New-CloudFoundationActionPlan'
+    'Invoke-CloudFoundationAction'
 )

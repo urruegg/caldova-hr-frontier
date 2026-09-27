@@ -27,6 +27,7 @@
         'Test-CloudDelegatedContext'
         'Get-CloudFoundationAssessment'
         'New-CloudFoundationActionPlan'
+        'Invoke-CloudFoundationAction'
     )
     CmdletsToExport = @()
     VariablesToExport = @()
