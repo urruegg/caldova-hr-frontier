@@ -22,7 +22,18 @@ Describe 'Cloud foundation planning' {
                 PowerPlatformEnvironmentTest=[pscustomobject]@{Mode='Existing';Id='pp-env-test-synthetic'}
                 PowerPlatformEnvironmentProd=[pscustomobject]@{Mode='Existing';Id='pp-env-prod-synthetic'}
             }
+
         }
+    }
+
+    It 'provides the read-only digest-bound cloud plan entry point' {
+        $path = Join-Path $PSScriptRoot '..\..\src\scripts\runbooks\Get-CloudFoundationPlan.ps1'
+        Test-Path -LiteralPath $path | Should -BeTrue
+        $command = Get-Command $path
+        @($command.Parameters.Keys) | Should -Contain 'TenantAlias'
+        @($command.Parameters.Keys) | Should -Contain 'ReportPath'
+        @($command.Parameters.Keys) | Should -Contain 'Stages'
+        @($command.Parameters.Keys) | Should -Not -Contain 'Apply'
     }
 
     It 'maps exact IDs, supported drift, manual surfaces, and exclusions to the closed classification set' {
