@@ -71,4 +71,6 @@ Repository-bundled Superpowers skills and custom agents are integrity and presen
 | Runbook | Scope | Status |
 |---|---|---|
 | [Developer Workstation](01-developer-workstation.md) | Independently runnable assessment, preview, approval, apply, read-back, and recovery for one approved Windows 11 administrator workstation. | In scope now |
+| [Cloud Service Foundation Runbook](02-cloud-service-foundation.md) | Independently runnable local attended assessment, digest approval, apply, evidence, and recovery for the reviewed cloud-service foundation. | In scope now |
+| [Customer Repository Handover](03-customer-handover.md) | Independently runnable local attended customer export assessment, approval, apply, independent validation, and human review after workstation prerequisites. | In scope now |
 | Future tenant trust, cloud foundation, publication, export, and production deployment runbooks | Later attended tenant operations that consume this workstation baseline. | Out of scope in this increment |

@@ -413,4 +413,25 @@ Describe 'Test-CustomerRepositoryExport validator' {
                 -PlatformProbe $fixture.PlatformProbe -OperatorIdProvider $fixture.OperatorIdProvider
         } | Should -Throw
     }
+
+    It 'documents the attended handover runbook and script links' {
+        $path = Join-Path ([IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))) 'infra\docs\runbooks\03-customer-handover.md'
+        $path | Should -Exist
+        $content = Get-Content -Raw -LiteralPath $path
+        foreach ($heading in @(
+            'Purpose','Roles and prerequisites','Assessment and shared execution manifest','Approve the digest',
+            'Apply with ShouldProcess','Independent validation','Human review','Publication boundary',
+            'Evidence','Failure and recovery','Definition of Done'
+        )) {
+            $content | Should -Match ("(?m)^## {0}\r?$" -f [regex]::Escape($heading))
+        }
+        foreach ($literal in @(
+            'New-CustomerRepositoryExport.ps1','Test-CustomerRepositoryExport.ps1',
+            'customer-export-assessment.json','customer-export-execution-manifest.json',
+            'customer-export-evidence.json','customer-export-validation.json',
+            'customer-export-validation-evidence.json'
+        )) {
+            $content | Should -Match ([regex]::Escape($literal))
+        }
+    }
 }

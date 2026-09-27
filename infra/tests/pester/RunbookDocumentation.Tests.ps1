@@ -40,7 +40,8 @@ Describe 'Runbook documentation contracts' {
         foreach ($relative in @(
             'infra/docs/runbooks/README.md',
             'infra/docs/runbooks/01-developer-workstation.md',
-            'infra/docs/runbooks/02-cloud-service-foundation.md'
+            'infra/docs/runbooks/02-cloud-service-foundation.md',
+            'infra/docs/runbooks/03-customer-handover.md'
         )) {
             $path = Join-Path $script:repositoryRoot $relative
             $path | Should -Exist
@@ -108,13 +109,15 @@ Describe 'Runbook documentation contracts' {
 
         $readme | Should -Match '\[Operational Runbooks\]\(docs/runbooks/README\.md\)'
         $readme | Should -Match '\[Developer Workstation\]\(docs/runbooks/01-developer-workstation\.md\)'
+        $readme | Should -Match '\[Customer Repository Handover\]\(docs/runbooks/03-customer-handover\.md\)'
     }
 
     It 'resolves every local markdown destination referenced by the runbook documents' {
         foreach ($relative in @(
             'infra/docs/runbooks/README.md',
             'infra/docs/runbooks/01-developer-workstation.md',
-            'infra/docs/runbooks/02-cloud-service-foundation.md'
+            'infra/docs/runbooks/02-cloud-service-foundation.md',
+            'infra/docs/runbooks/03-customer-handover.md'
         )) {
             $path = Join-Path $script:repositoryRoot $relative
             foreach ($link in @(Get-MarkdownRelativeLinks -Path $path)) {

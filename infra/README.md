@@ -81,6 +81,7 @@ A path shown here is an ownership boundary, not evidence that its artifact alrea
 | [Operational Runbooks](docs/runbooks/README.md) | Defines the shared preview, approval, evidence, manual-step, read-back, and recovery contract. |
 | [Developer Workstation](docs/runbooks/01-developer-workstation.md) | Assesses and explicitly initializes an approved Windows 11 administrator workstation. |
 | [Cloud Service Foundation Runbook](docs/runbooks/02-cloud-service-foundation.md) | Defines local attended delegated assessment, digest-bound approval, exact target read-back, manual boundaries, evidence, and recovery. |
+| [Customer Repository Handover](docs/runbooks/03-customer-handover.md) | Defines local attended synthetic customer export assessment, digest approval, apply, independent validation, and handover boundaries. |
 | [Infrastructure Solution Sources](src/solutions/README.md) | Defines ownership and exclusions for future unpacked solution source. |
 
 ## Conventions
