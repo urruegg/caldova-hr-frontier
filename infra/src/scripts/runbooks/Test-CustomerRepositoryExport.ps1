@@ -197,15 +197,29 @@ function Get-ExecutableVersion {
     $stdout.Trim()
 }
 function New-ToolIdentities {
-    param([string[]]$ValidationSuites,[scriptblock]$Resolver,[scriptblock]$IdentityProvider,[scriptblock]$Runner)
+    param([string[]]$ValidationSuites,[scriptblock]$Resolver,[scriptblock]$IdentityProvider,[scriptblock]$Runner,[object]$ApprovedIdentities)
     $tools = [ordered]@{}
     foreach ($toolName in @('git.exe','powershell.exe')) {
         $resolved = Resolve-CustomerExportExecutable -Name $toolName -CommandResolver $Resolver -FileIdentityProvider $IdentityProvider
         $key = if ($toolName -eq 'git.exe') { 'Git' } else { 'WindowsPowerShell' }
+        if ($null -ne $ApprovedIdentities) {
+            $expected = $ApprovedIdentities.PSObject.Properties[$key]
+            if ($null -eq $expected -or [string]$expected.Value.path -cne [string]$resolved.path -or
+                [string]$expected.Value.sha256 -cne [string]$resolved.sha256) {
+                throw 'Required executable identity changed before approved manifest validation.'
+            }
+        }
         $tools[$key] = [pscustomobject]@{ path = $resolved.path; sha256 = $resolved.sha256; version = Get-ExecutableVersion -Name $toolName -Path $resolved.path -Runner $Runner }
     }
     if (@($ValidationSuites | Where-Object { $_ -ceq 'BicepBuild' }).Count -gt 0) {
         $resolved = Resolve-CustomerExportExecutable -Name 'az.cmd' -CommandResolver $Resolver -FileIdentityProvider $IdentityProvider
+        if ($null -ne $ApprovedIdentities) {
+            $expected = $ApprovedIdentities.PSObject.Properties['AzureCli']
+            if ($null -eq $expected -or [string]$expected.Value.path -cne [string]$resolved.path -or
+                [string]$expected.Value.sha256 -cne [string]$resolved.sha256) {
+                throw 'Required executable identity changed before approved manifest validation.'
+            }
+        }
         $tools['AzureCli'] = [pscustomobject]@{ path = $resolved.path; sha256 = $resolved.sha256; version = Get-ExecutableVersion -Name 'az.cmd' -Path $resolved.path -Runner $Runner }
     }
     [pscustomobject]$tools
@@ -265,7 +279,8 @@ Test-RunbookExecutionManifest -Manifest $executionManifest -ApprovedDigest $Appr
     -AllowedActionNames @('CreateCustomerExport','CopyTrackedBlob','ApplyStructuredReplacement','ValidateCustomerExport','PromoteCustomerExport') `
     -NowUtc $NowUtc -MaximumAge ([timespan]::FromMinutes(30)) | Out-Null
 $toolIdentities = New-ToolIdentities -ValidationSuites @($manifest.validationSuites) `
-    -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider -Runner $NativeCommandRunner
+    -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider -Runner $NativeCommandRunner `
+    -ApprovedIdentities $executionManifest.toolVersions
 foreach ($tool in @($executionManifest.toolVersions.PSObject.Properties.Name)) {
     if ($null -eq $toolIdentities.PSObject.Properties[$tool] -or
         -not (Test-ExactToolIdentity -Expected $executionManifest.toolVersions.$tool -Actual $toolIdentities.$tool)) {
@@ -286,7 +301,8 @@ Test-RunbookExecutionManifest -Manifest $executionManifest -ApprovedDigest $Appr
     -CurrentAuthenticationContext $authentication -AllowedActionNames @('CreateCustomerExport','CopyTrackedBlob','ApplyStructuredReplacement','ValidateCustomerExport','PromoteCustomerExport') `
     -NowUtc $NowUtc -MaximumAge ([timespan]::FromMinutes(30)) | Out-Null
 
-$currentToolIdentities = New-ToolIdentities -ValidationSuites @($manifest.validationSuites) -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider -Runner $NativeCommandRunner
+$currentToolIdentities = New-ToolIdentities -ValidationSuites @($manifest.validationSuites) -Resolver $CommandResolver `
+    -IdentityProvider $FileIdentityProvider -Runner $NativeCommandRunner -ApprovedIdentities $executionManifest.toolVersions
 foreach ($tool in @($toolIdentities.PSObject.Properties.Name)) {
     if (-not (Test-ExactToolIdentity -Expected $toolIdentities.$tool -Actual $currentToolIdentities.$tool) -or
         -not (Test-ExactToolIdentity -Expected $assessment.toolIdentities.$tool -Actual $currentToolIdentities.$tool)) {

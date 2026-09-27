@@ -440,6 +440,36 @@ $result = & $runner $GitPath @('-C', $RepositoryRoot, 'sparse-checkout', 'list')
 }
 
 Describe 'New-CustomerRepositoryExport gates' {
+    It 'does not invoke a locally resolved Git executable before its approved identity matches' {
+        $fixture = New-CustomerExportFixture
+        & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
+            -DestinationRoot $fixture.Destination -ManifestPath $fixture.ManifestPath -ReportPath $fixture.Report `
+            -NativeCommandRunner $fixture.NativeCommandRunner -CommandResolver $fixture.CommandResolver `
+            -FileIdentityProvider $fixture.FileIdentityProvider -GitBlobReader $fixture.GitBlobReader `
+            -ValidationRunner $fixture.ValidationRunner -InteractiveHostProbe $fixture.InteractiveHostProbe `
+            -PlatformProbe $fixture.PlatformProbe -OperatorIdProvider $fixture.OperatorIdProvider | Out-Null
+
+        $calls = [Collections.Generic.List[string]]::new()
+        $recordingRunner = {
+            param($file, $arguments)
+            [void]$calls.Add([string]$file)
+            [pscustomobject]@{ exitCode = 0; stdout = 'unexpected invocation'; stderr = '' }
+        }.GetNewClosure()
+
+        {
+            & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
+                -DestinationRoot $fixture.Destination -ManifestPath $fixture.ManifestPath -ReportPath $fixture.Report `
+                -ExecutionManifestPath (Join-Path $fixture.Report 'customer-export-execution-manifest.json') `
+                -ApprovedDigest ((Get-Content -Raw (Join-Path $fixture.Report 'customer-export-execution-manifest.json') | ConvertFrom-Json).digest) `
+                -Apply -Confirm:$false -NativeCommandRunner $recordingRunner `
+                -CommandResolver { param($name) if ($name -ceq 'git.exe') { @('C:\Unapproved\git.exe') } else { @("C:\Approved\$name") } } `
+                -FileIdentityProvider $fixture.FileIdentityProvider -GitBlobReader $fixture.GitBlobReader `
+                -ValidationRunner $fixture.ValidationRunner -InteractiveHostProbe $fixture.InteractiveHostProbe `
+                -PlatformProbe $fixture.PlatformProbe -OperatorIdProvider $fixture.OperatorIdProvider
+        } | Should -Throw '*executable identity changed*'
+        $calls.Count | Should -Be 0
+    }
+
     It 'never executes a manifest-supplied Git path before approval validation' {
         foreach ($scriptName in @('New-CustomerRepositoryExport', 'Test-CustomerRepositoryExport')) {
             $fixture = New-CustomerExportFixture
@@ -635,6 +665,38 @@ Describe 'New-CustomerRepositoryExport gates' {
 }
 
 Describe 'Test-CustomerRepositoryExport validator' {
+    It 'does not invoke a locally resolved Git executable before its approved identity matches' {
+        $fixture = New-CustomerExportFixture
+        & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
+            -DestinationRoot $fixture.Destination -ManifestPath $fixture.ManifestPath -ReportPath $fixture.Report `
+            -NativeCommandRunner $fixture.NativeCommandRunner -CommandResolver $fixture.CommandResolver `
+            -FileIdentityProvider $fixture.FileIdentityProvider -GitBlobReader $fixture.GitBlobReader `
+            -ValidationRunner $fixture.ValidationRunner -InteractiveHostProbe $fixture.InteractiveHostProbe `
+            -PlatformProbe $fixture.PlatformProbe -OperatorIdProvider $fixture.OperatorIdProvider | Out-Null
+
+        $executionManifestPath = Join-Path $fixture.Report 'customer-export-execution-manifest.json'
+        $approvedDigest = (Get-Content -Raw $executionManifestPath | ConvertFrom-Json).digest
+        $calls = [Collections.Generic.List[string]]::new()
+        $recordingRunner = {
+            param($file, $arguments)
+            [void]$calls.Add([string]$file)
+            [pscustomobject]@{ exitCode = 0; stdout = 'unexpected invocation'; stderr = '' }
+        }.GetNewClosure()
+
+        {
+            & $global:CustomerExportValidatorPath -SourceRoot $fixture.Source -DestinationRoot $fixture.Destination `
+                -ExpectedSourceCommit $fixture.ExpectedSourceCommit -ManifestPath $fixture.ManifestPath `
+                -ExecutionManifestPath $executionManifestPath -ApprovedDigest $approvedDigest `
+                -ReportPath (Join-Path (Split-Path $fixture.Report -Parent) 'validation-unapproved-git') `
+                -NativeCommandRunner $recordingRunner `
+                -CommandResolver { param($name) if ($name -ceq 'git.exe') { @('C:\Unapproved\git.exe') } else { @("C:\Approved\$name") } } `
+                -FileIdentityProvider $fixture.FileIdentityProvider -GitBlobReader $fixture.GitBlobReader `
+                -ValidationRunner $fixture.ValidationRunner -InteractiveHostProbe $fixture.InteractiveHostProbe `
+                -PlatformProbe $fixture.PlatformProbe -OperatorIdProvider $fixture.OperatorIdProvider
+        } | Should -Throw '*executable identity changed*'
+        $calls.Count | Should -Be 0
+    }
+
     It 'uses the production default validation suite mapping' {
         $fixture = New-CustomerExportFixture
         & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `

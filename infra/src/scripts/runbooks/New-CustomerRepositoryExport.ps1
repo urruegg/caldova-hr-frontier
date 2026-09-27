@@ -243,13 +243,21 @@ function New-ToolIdentities {
         [Parameter(Mandatory)][string[]]$ValidationSuites,
         [Parameter(Mandatory)][scriptblock]$Resolver,
         [Parameter(Mandatory)][scriptblock]$IdentityProvider,
-        [Parameter(Mandatory)][scriptblock]$Runner
+        [Parameter(Mandatory)][scriptblock]$Runner,
+        [object]$ApprovedIdentities
     )
 
     $tools = [ordered]@{}
     foreach ($toolName in @('git.exe', 'powershell.exe')) {
         $resolved = Resolve-CustomerExportExecutable -Name $toolName -CommandResolver $Resolver -FileIdentityProvider $IdentityProvider
         $key = if ($toolName -eq 'git.exe') { 'Git' } else { 'WindowsPowerShell' }
+        if ($null -ne $ApprovedIdentities) {
+            $expected = $ApprovedIdentities.PSObject.Properties[$key]
+            if ($null -eq $expected -or [string]$expected.Value.path -cne [string]$resolved.path -or
+                [string]$expected.Value.sha256 -cne [string]$resolved.sha256) {
+                throw 'Required executable identity changed before approved manifest validation.'
+            }
+        }
         $tools[$key] = [pscustomobject]@{
             path = $resolved.path
             sha256 = $resolved.sha256
@@ -258,6 +266,13 @@ function New-ToolIdentities {
     }
     if (@($ValidationSuites | Where-Object { $_ -ceq 'BicepBuild' }).Count -gt 0) {
         $resolved = Resolve-CustomerExportExecutable -Name 'az.cmd' -CommandResolver $Resolver -FileIdentityProvider $IdentityProvider
+        if ($null -ne $ApprovedIdentities) {
+            $expected = $ApprovedIdentities.PSObject.Properties['AzureCli']
+            if ($null -eq $expected -or [string]$expected.Value.path -cne [string]$resolved.path -or
+                [string]$expected.Value.sha256 -cne [string]$resolved.sha256) {
+                throw 'Required executable identity changed before approved manifest validation.'
+            }
+        }
         $tools['AzureCli'] = [pscustomobject]@{
             path = $resolved.path
             sha256 = $resolved.sha256
@@ -332,7 +347,8 @@ if ($Apply) {
         -AllowedActionNames @('CreateCustomerExport', 'CopyTrackedBlob', 'ApplyStructuredReplacement', 'ValidateCustomerExport', 'PromoteCustomerExport') `
         -NowUtc $NowUtc -MaximumAge ([timespan]::FromMinutes(30)) | Out-Null
     $toolIdentities = New-ToolIdentities -ValidationSuites @($manifest.validationSuites) `
-        -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider -Runner $NativeCommandRunner
+        -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider -Runner $NativeCommandRunner `
+        -ApprovedIdentities $loadedExecutionManifest.toolVersions
     foreach ($tool in @($loadedExecutionManifest.toolVersions.PSObject.Properties.Name)) {
         if ($null -eq $toolIdentities.PSObject.Properties[$tool] -or
             -not (Test-ExactToolIdentity -Expected $loadedExecutionManifest.toolVersions.$tool -Actual $toolIdentities.$tool)) {
@@ -379,7 +395,8 @@ Test-RunbookExecutionManifest -Manifest $loadedExecutionManifest -ApprovedDigest
     -AllowedActionNames @('CreateCustomerExport', 'CopyTrackedBlob', 'ApplyStructuredReplacement', 'ValidateCustomerExport', 'PromoteCustomerExport') `
     -NowUtc $NowUtc -MaximumAge ([timespan]::FromMinutes(30)) | Out-Null
 
-$currentToolIdentities = New-ToolIdentities -ValidationSuites @($manifest.validationSuites) -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider -Runner $NativeCommandRunner
+$currentToolIdentities = New-ToolIdentities -ValidationSuites @($manifest.validationSuites) -Resolver $CommandResolver `
+    -IdentityProvider $FileIdentityProvider -Runner $NativeCommandRunner -ApprovedIdentities $loadedExecutionManifest.toolVersions
 foreach ($tool in @($assessment.toolIdentities.PSObject.Properties.Name)) {
     if (-not (Test-ExactToolIdentity -Expected $assessment.toolIdentities.$tool -Actual $currentToolIdentities.$tool) -or
         -not (Test-ExactToolIdentity -Expected $loadedExecutionManifest.toolVersions.$tool -Actual $currentToolIdentities.$tool)) {
