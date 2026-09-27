@@ -338,22 +338,53 @@ function script:New-RealGitCustomerExportFixture {
 }
 
 Describe 'Customer export production default native command runners' {
-    It '<ScriptName> returns nonzero Git stderr in Windows PowerShell without terminating' -TestCases @(
-        @{ ScriptName = 'New-CustomerRepositoryExport'; ScriptPath = $global:CustomerExportEntryPath }
-        @{ ScriptName = 'Test-CustomerRepositoryExport'; ScriptPath = $global:CustomerExportValidatorPath }
-    ) {
-        param($ScriptName, $ScriptPath)
+    $powerShellHosts = @(
+        @{
+            HostName = 'Windows PowerShell 5.1'
+            HostPath = (Get-Command powershell.exe -CommandType Application -ErrorAction Stop).Source
+            EnableNativeErrorPreference = $false
+        }
+    )
+    $pwsh = Get-Command pwsh.exe -CommandType Application -ErrorAction SilentlyContinue
+    if ($null -ne $pwsh) {
+        $powerShellHosts += @{
+            HostName = 'PowerShell 7'
+            HostPath = $pwsh.Source
+            EnableNativeErrorPreference = $true
+        }
+    }
+    $testCases = foreach ($powerShellHost in $powerShellHosts) {
+        foreach ($scriptUnderTest in @(
+            @{ ScriptName = 'New-CustomerRepositoryExport'; ScriptPath = $global:CustomerExportEntryPath }
+            @{ ScriptName = 'Test-CustomerRepositoryExport'; ScriptPath = $global:CustomerExportValidatorPath }
+        )) {
+            @{
+                ScriptName = $scriptUnderTest.ScriptName
+                ScriptPath = $scriptUnderTest.ScriptPath
+                HostName = $powerShellHost.HostName
+                HostPath = $powerShellHost.HostPath
+                EnableNativeErrorPreference = $powerShellHost.EnableNativeErrorPreference
+            }
+        }
+    }
+
+    It '<ScriptName> returns exact nonzero Git stderr in <HostName> without terminating' -TestCases $testCases {
+        param($ScriptName, $ScriptPath, $HostPath, $EnableNativeErrorPreference)
 
         $fixture = New-RealGitCustomerExportFixture
-        $harnessPath = Join-Path $TestDrive "$ScriptName-default-runner.ps1"
+        $harnessPath = Join-Path $TestDrive "$ScriptName-$([IO.Path]::GetFileNameWithoutExtension($HostPath))-default-runner.ps1"
         @'
 param(
     [Parameter(Mandatory)][string]$ProductionScriptPath,
     [Parameter(Mandatory)][string]$GitPath,
-    [Parameter(Mandatory)][string]$RepositoryRoot
+    [Parameter(Mandatory)][string]$RepositoryRoot,
+    [switch]$EnableNativeErrorPreference
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+if ($EnableNativeErrorPreference) {
+    $PSNativeCommandUseErrorActionPreference = $true
+}
 $tokens = $null
 $errors = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile(
@@ -369,14 +400,27 @@ $functionAst = @($ast.FindAll({
 }, $true))[0]
 . ([scriptblock]::Create($functionAst.Extent.Text))
 $runner = New-DefaultNativeCommandRunner
-(& $runner $GitPath @('-C', $RepositoryRoot, 'sparse-checkout', 'list')) | ConvertTo-Json -Compress
+$result = & $runner $GitPath @('-C', $RepositoryRoot, 'sparse-checkout', 'list')
+[pscustomobject]@{
+    result = $result
+    nativeErrorPreference = if (Test-Path Variable:PSNativeCommandUseErrorActionPreference) {
+        $PSNativeCommandUseErrorActionPreference
+    } else {
+        $null
+    }
+} | ConvertTo-Json -Compress
 '@ | Set-Content -LiteralPath $harnessPath -Encoding UTF8
 
         $previousErrorActionPreference = $ErrorActionPreference
         try {
             $ErrorActionPreference = 'Continue'
-            $output = @(& powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $harnessPath `
-                -ProductionScriptPath $ScriptPath -GitPath (Get-ApprovedGitPath) -RepositoryRoot $fixture.Source 2>&1)
+            $arguments = @(
+                '-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $harnessPath,
+                '-ProductionScriptPath', $ScriptPath, '-GitPath', (Get-ApprovedGitPath),
+                '-RepositoryRoot', $fixture.Source
+            )
+            if ($EnableNativeErrorPreference) { $arguments += '-EnableNativeErrorPreference' }
+            $output = @(& $HostPath @arguments 2>&1)
             $processExitCode = $LASTEXITCODE
         }
         finally {
@@ -384,10 +428,14 @@ $runner = New-DefaultNativeCommandRunner
         }
 
         $processExitCode | Should -Be 0 -Because ($output -join [Environment]::NewLine)
-        $result = ($output -join [Environment]::NewLine) | ConvertFrom-Json
+        $harnessResult = ($output -join [Environment]::NewLine) | ConvertFrom-Json
+        $result = $harnessResult.result
         $result.exitCode | Should -Not -Be 0
-        $result.stdout | Should -Match 'fatal: this worktree is not sparse'
+        $result.stdout | Should -Be 'fatal: this worktree is not sparse'
         $result.stderr | Should -Be ''
+        if ($EnableNativeErrorPreference) {
+            $harnessResult.nativeErrorPreference | Should -BeTrue
+        }
     }
 }
 
