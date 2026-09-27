@@ -337,6 +337,212 @@ function script:New-RealGitCustomerExportFixture {
     }
 }
 
+function script:Invoke-CustomerExportIdentityGateHostCase {
+    param(
+        [Parameter(Mandatory)][string]$ScriptName,
+        [Parameter(Mandatory)][string]$ScriptPath,
+        [Parameter(Mandatory)][string]$HostPath,
+        [Parameter(Mandatory)][object]$Fixture,
+        [Parameter(Mandatory)][ValidateSet('CanonicalPathMismatch','Sha256Mismatch','AmbiguousResolution','InvalidStructure','InvalidDigest')]
+        [string]$Scenario
+    )
+
+    $sourceManifestPath = Join-Path $Fixture.Report 'customer-export-execution-manifest.json'
+    $executionManifest = Get-Content -Raw -LiteralPath $sourceManifestPath | ConvertFrom-Json
+    $approvedDigest = [string]$executionManifest.digest
+    $caseManifestPath = Join-Path $TestDrive "$ScriptName-$Scenario-execution-manifest.json"
+    if ($Scenario -eq 'InvalidStructure') {
+        $executionManifest.PSObject.Properties.Remove('toolVersions')
+        $unsignedManifest = [ordered]@{}
+        foreach ($property in $executionManifest.PSObject.Properties) {
+            if ($property.Name -cne 'digest') {
+                $unsignedManifest[$property.Name] = $property.Value
+            }
+        }
+        $executionManifest.digest = Get-RunbookContentDigest -InputObject $unsignedManifest
+        $approvedDigest = [string]$executionManifest.digest
+    }
+    elseif ($Scenario -eq 'InvalidDigest') {
+        $executionManifest.digest = 'f' * 64
+        $approvedDigest = [string]$executionManifest.digest
+    }
+    [IO.File]::WriteAllText(
+        $caseManifestPath,
+        ($executionManifest | ConvertTo-Json -Depth 30),
+        [Text.UTF8Encoding]::new($false)
+    )
+
+    $harnessPath = Join-Path $TestDrive "$ScriptName-$Scenario-$([IO.Path]::GetFileNameWithoutExtension($HostPath))-identity-gate.ps1"
+    @'
+param(
+    [Parameter(Mandatory)][string]$ScriptName,
+    [Parameter(Mandatory)][string]$ScriptPath,
+    [Parameter(Mandatory)][string]$Scenario,
+    [Parameter(Mandatory)][string]$SourceRoot,
+    [Parameter(Mandatory)][string]$DestinationRoot,
+    [Parameter(Mandatory)][string]$ManifestPath,
+    [Parameter(Mandatory)][string]$ExecutionManifestPath,
+    [Parameter(Mandatory)][string]$ApprovedDigest,
+    [Parameter(Mandatory)][string]$ExpectedSourceCommit,
+    [Parameter(Mandatory)][string]$ReportPath
+)
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+$executionManifest = Get-Content -Raw -LiteralPath $ExecutionManifestPath | ConvertFrom-Json
+$approvedTools = if ($executionManifest.PSObject.Properties.Name -contains 'toolVersions') {
+    $executionManifest.toolVersions
+}
+else {
+    [pscustomobject]@{
+        Git = [pscustomobject]@{ path = 'C:\Approved\git.exe'; sha256 = 'a' * 64 }
+        WindowsPowerShell = [pscustomobject]@{ path = 'C:\Approved\powershell.exe'; sha256 = 'b' * 64 }
+        AzureCli = [pscustomobject]@{ path = 'C:\Approved\az.cmd'; sha256 = 'c' * 64 }
+    }
+}
+$script:nativeRunnerInvocations = 0
+$nativeRunner = {
+    param($file, $arguments)
+    $script:nativeRunnerInvocations++
+    [pscustomobject]@{ exitCode = 0; stdout = 'unexpected invocation'; stderr = '' }
+}
+$commandResolver = {
+    param($name)
+    $key = switch ($name) {
+        'git.exe' { 'Git' }
+        'powershell.exe' { 'WindowsPowerShell' }
+        'az.cmd' { 'AzureCli' }
+    }
+    if ($Scenario -eq 'CanonicalPathMismatch' -and $name -ceq 'git.exe') {
+        return @('C:\Unapproved\git.exe')
+    }
+    if ($Scenario -eq 'AmbiguousResolution' -and $name -ceq 'git.exe') {
+        return @([string]$approvedTools.$key.path, 'C:\Second\git.exe')
+    }
+    @([string]$approvedTools.$key.path)
+}.GetNewClosure()
+$identityProvider = {
+    param($path)
+    $key = if ([IO.Path]::GetFileName($path) -ceq 'powershell.exe') {
+        'WindowsPowerShell'
+    }
+    elseif ([IO.Path]::GetFileName($path) -ceq 'az.cmd') {
+        'AzureCli'
+    }
+    else {
+        'Git'
+    }
+    $sha256 = [string]$approvedTools.$key.sha256
+    if ($Scenario -eq 'Sha256Mismatch' -and $key -ceq 'Git') {
+        $sha256 = if ($sha256 -ceq ('0' * 64)) { '1' * 64 } else { '0' * 64 }
+    }
+    [pscustomobject]@{ path = [IO.Path]::GetFullPath($path); sha256 = $sha256 }
+}.GetNewClosure()
+$common = @{
+    SourceRoot = $SourceRoot
+    DestinationRoot = $DestinationRoot
+    ExpectedSourceCommit = $ExpectedSourceCommit
+    ManifestPath = $ManifestPath
+    ExecutionManifestPath = $ExecutionManifestPath
+    ApprovedDigest = $ApprovedDigest
+    ReportPath = $ReportPath
+    NativeCommandRunner = $nativeRunner
+    CommandResolver = $commandResolver
+    FileIdentityProvider = $identityProvider
+    GitBlobReader = { throw 'Git blob reader must not be reached by the identity gate.' }
+    ValidationRunner = { throw 'Validation runner must not be reached by the identity gate.' }
+    InteractiveHostProbe = { [pscustomobject]@{ isInteractive = $true; reason = 'InteractiveWindows11PowerShell' } }
+    PlatformProbe = { [pscustomobject]@{ productName = 'Windows 11'; build = 26100 } }
+    OperatorIdProvider = { 'SYNTHETIC\operator' }
+}
+$threw = $false
+$message = ''
+try {
+    if ($ScriptName -ceq 'New-CustomerRepositoryExport') {
+        & $ScriptPath @common -Apply -Confirm:$false | Out-Null
+    }
+    else {
+        & $ScriptPath @common | Out-Null
+    }
+}
+catch {
+    $threw = $true
+    $message = $_.Exception.Message
+}
+[pscustomobject]@{
+    threw = $threw
+    message = $message
+    nativeRunnerInvocations = $script:nativeRunnerInvocations
+} | ConvertTo-Json -Compress
+'@ | Set-Content -LiteralPath $harnessPath -Encoding UTF8
+
+    $output = @(
+        & $HostPath -NoLogo -NoProfile -ExecutionPolicy Bypass -File $harnessPath `
+            -ScriptName $ScriptName -ScriptPath $ScriptPath -Scenario $Scenario `
+            -SourceRoot $Fixture.Source -DestinationRoot $Fixture.Destination `
+            -ManifestPath $Fixture.ManifestPath -ExecutionManifestPath $caseManifestPath `
+            -ApprovedDigest $approvedDigest -ExpectedSourceCommit $Fixture.ExpectedSourceCommit `
+            -ReportPath (Join-Path (Split-Path $Fixture.Report -Parent) "$ScriptName-$Scenario-validation") 2>&1
+    )
+    $LASTEXITCODE | Should -Be 0 -Because ($output -join [Environment]::NewLine)
+    ($output -join [Environment]::NewLine) | ConvertFrom-Json
+}
+
+Describe 'Customer export pre-execution identity gates across PowerShell hosts' {
+    $powerShellHosts = @(
+        @{
+            HostName = 'Windows PowerShell 5.1'
+            HostPath = (Get-Command powershell.exe -CommandType Application -ErrorAction Stop).Source
+        }
+    )
+    $pwsh = Get-Command pwsh.exe -CommandType Application -ErrorAction SilentlyContinue
+    if ($null -ne $pwsh) {
+        $powerShellHosts += @{
+            HostName = 'PowerShell 7'
+            HostPath = $pwsh.Source
+        }
+    }
+    $testCases = foreach ($powerShellHost in $powerShellHosts) {
+        foreach ($scriptUnderTest in @(
+            @{ ScriptName = 'New-CustomerRepositoryExport'; ScriptPath = $global:CustomerExportEntryPath }
+            @{ ScriptName = 'Test-CustomerRepositoryExport'; ScriptPath = $global:CustomerExportValidatorPath }
+        )) {
+            foreach ($scenario in @('CanonicalPathMismatch','Sha256Mismatch','AmbiguousResolution','InvalidStructure','InvalidDigest')) {
+                @{
+                    ScriptName = $scriptUnderTest.ScriptName
+                    ScriptPath = $scriptUnderTest.ScriptPath
+                    HostName = $powerShellHost.HostName
+                    HostPath = $powerShellHost.HostPath
+                    Scenario = $scenario
+                }
+            }
+        }
+    }
+
+    BeforeAll {
+        $script:identityGateFixture = New-CustomerExportFixture
+        & $global:CustomerExportEntryPath -SourceRoot $script:identityGateFixture.Source `
+            -ExpectedSourceCommit $script:identityGateFixture.ExpectedSourceCommit `
+            -DestinationRoot $script:identityGateFixture.Destination -ManifestPath $script:identityGateFixture.ManifestPath `
+            -ReportPath $script:identityGateFixture.Report -NativeCommandRunner $script:identityGateFixture.NativeCommandRunner `
+            -CommandResolver $script:identityGateFixture.CommandResolver `
+            -FileIdentityProvider $script:identityGateFixture.FileIdentityProvider `
+            -GitBlobReader $script:identityGateFixture.GitBlobReader `
+            -ValidationRunner $script:identityGateFixture.ValidationRunner `
+            -InteractiveHostProbe $script:identityGateFixture.InteractiveHostProbe `
+            -PlatformProbe $script:identityGateFixture.PlatformProbe `
+            -OperatorIdProvider $script:identityGateFixture.OperatorIdProvider | Out-Null
+    }
+
+    It '<ScriptName> rejects <Scenario> before native execution in <HostName>' -TestCases $testCases {
+        param($ScriptName, $ScriptPath, $HostName, $HostPath, $Scenario)
+
+        $result = Invoke-CustomerExportIdentityGateHostCase -ScriptName $ScriptName -ScriptPath $ScriptPath `
+            -HostPath $HostPath -Fixture $script:identityGateFixture -Scenario $Scenario
+        $result.threw | Should -BeTrue -Because "$ScriptName must reject $Scenario in $HostName"
+        $result.nativeRunnerInvocations | Should -Be 0 -Because "$ScriptName must reject $Scenario before native execution in $HostName"
+    }
+}
+
 Describe 'Customer export production default native command runners' {
     $powerShellHosts = @(
         @{
@@ -440,36 +646,6 @@ $result = & $runner $GitPath @('-C', $RepositoryRoot, 'sparse-checkout', 'list')
 }
 
 Describe 'New-CustomerRepositoryExport gates' {
-    It 'does not invoke a locally resolved Git executable before its approved identity matches' {
-        $fixture = New-CustomerExportFixture
-        & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
-            -DestinationRoot $fixture.Destination -ManifestPath $fixture.ManifestPath -ReportPath $fixture.Report `
-            -NativeCommandRunner $fixture.NativeCommandRunner -CommandResolver $fixture.CommandResolver `
-            -FileIdentityProvider $fixture.FileIdentityProvider -GitBlobReader $fixture.GitBlobReader `
-            -ValidationRunner $fixture.ValidationRunner -InteractiveHostProbe $fixture.InteractiveHostProbe `
-            -PlatformProbe $fixture.PlatformProbe -OperatorIdProvider $fixture.OperatorIdProvider | Out-Null
-
-        $calls = [Collections.Generic.List[string]]::new()
-        $recordingRunner = {
-            param($file, $arguments)
-            [void]$calls.Add([string]$file)
-            [pscustomobject]@{ exitCode = 0; stdout = 'unexpected invocation'; stderr = '' }
-        }.GetNewClosure()
-
-        {
-            & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
-                -DestinationRoot $fixture.Destination -ManifestPath $fixture.ManifestPath -ReportPath $fixture.Report `
-                -ExecutionManifestPath (Join-Path $fixture.Report 'customer-export-execution-manifest.json') `
-                -ApprovedDigest ((Get-Content -Raw (Join-Path $fixture.Report 'customer-export-execution-manifest.json') | ConvertFrom-Json).digest) `
-                -Apply -Confirm:$false -NativeCommandRunner $recordingRunner `
-                -CommandResolver { param($name) if ($name -ceq 'git.exe') { @('C:\Unapproved\git.exe') } else { @("C:\Approved\$name") } } `
-                -FileIdentityProvider $fixture.FileIdentityProvider -GitBlobReader $fixture.GitBlobReader `
-                -ValidationRunner $fixture.ValidationRunner -InteractiveHostProbe $fixture.InteractiveHostProbe `
-                -PlatformProbe $fixture.PlatformProbe -OperatorIdProvider $fixture.OperatorIdProvider
-        } | Should -Throw '*executable identity changed*'
-        $calls.Count | Should -Be 0
-    }
-
     It 'never executes a manifest-supplied Git path before approval validation' {
         foreach ($scriptName in @('New-CustomerRepositoryExport', 'Test-CustomerRepositoryExport')) {
             $fixture = New-CustomerExportFixture
@@ -530,7 +706,7 @@ Describe 'New-CustomerRepositoryExport gates' {
                 { & $global:CustomerExportValidatorPath @common } |
                     Should -Throw '*executable identity changed*'
             }
-            $calls | Should -Not -Contain 'C:\Malicious\payload.exe'
+            $calls.Count | Should -Be 0
         }
     }
 
@@ -665,38 +841,6 @@ Describe 'New-CustomerRepositoryExport gates' {
 }
 
 Describe 'Test-CustomerRepositoryExport validator' {
-    It 'does not invoke a locally resolved Git executable before its approved identity matches' {
-        $fixture = New-CustomerExportFixture
-        & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
-            -DestinationRoot $fixture.Destination -ManifestPath $fixture.ManifestPath -ReportPath $fixture.Report `
-            -NativeCommandRunner $fixture.NativeCommandRunner -CommandResolver $fixture.CommandResolver `
-            -FileIdentityProvider $fixture.FileIdentityProvider -GitBlobReader $fixture.GitBlobReader `
-            -ValidationRunner $fixture.ValidationRunner -InteractiveHostProbe $fixture.InteractiveHostProbe `
-            -PlatformProbe $fixture.PlatformProbe -OperatorIdProvider $fixture.OperatorIdProvider | Out-Null
-
-        $executionManifestPath = Join-Path $fixture.Report 'customer-export-execution-manifest.json'
-        $approvedDigest = (Get-Content -Raw $executionManifestPath | ConvertFrom-Json).digest
-        $calls = [Collections.Generic.List[string]]::new()
-        $recordingRunner = {
-            param($file, $arguments)
-            [void]$calls.Add([string]$file)
-            [pscustomobject]@{ exitCode = 0; stdout = 'unexpected invocation'; stderr = '' }
-        }.GetNewClosure()
-
-        {
-            & $global:CustomerExportValidatorPath -SourceRoot $fixture.Source -DestinationRoot $fixture.Destination `
-                -ExpectedSourceCommit $fixture.ExpectedSourceCommit -ManifestPath $fixture.ManifestPath `
-                -ExecutionManifestPath $executionManifestPath -ApprovedDigest $approvedDigest `
-                -ReportPath (Join-Path (Split-Path $fixture.Report -Parent) 'validation-unapproved-git') `
-                -NativeCommandRunner $recordingRunner `
-                -CommandResolver { param($name) if ($name -ceq 'git.exe') { @('C:\Unapproved\git.exe') } else { @("C:\Approved\$name") } } `
-                -FileIdentityProvider $fixture.FileIdentityProvider -GitBlobReader $fixture.GitBlobReader `
-                -ValidationRunner $fixture.ValidationRunner -InteractiveHostProbe $fixture.InteractiveHostProbe `
-                -PlatformProbe $fixture.PlatformProbe -OperatorIdProvider $fixture.OperatorIdProvider
-        } | Should -Throw '*executable identity changed*'
-        $calls.Count | Should -Be 0
-    }
-
     It 'uses the production default validation suite mapping' {
         $fixture = New-CustomerExportFixture
         & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
