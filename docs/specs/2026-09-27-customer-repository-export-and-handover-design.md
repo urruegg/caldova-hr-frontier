@@ -87,7 +87,7 @@ Tenant 2's owner (Andrea Rizzi) runs this runbook as a genuine end-to-end user, 
 
 - Runbook numbering: assigned as `infra/docs/22-repository-cleanup-runbook.md` and `infra/docs/23-customer-repository-export-and-handover-runbook.md`.
 - The Tenant 1 Blueprint Verification was folded into `infra/docs/18-multi-tenant-provisioning.md` (a new "Tenant 1 Blueprint Verification" section) plus a dedicated Pester suite (`infra/tests/pester/TenantBlueprintVerification.Tests.ps1`), rather than becoming a fourth standalone document.
-- The Repository Clean-Up Runbook's artifact list is exhaustive as of 2026-09-27: tenant config manifests, discovery evidence files, and Bicep parameter files. No other tenant-scoped, removable file type exists in this repository today; `infra/src/scripts/Remove-OtherTenantArtifacts.ps1` checks all three defensively even though Bicep parameter files do not yet exist for any tenant.
+- The Repository Clean-Up Runbook's artifact list is exhaustive only for the three *removable file types* it deletes (tenant config manifests, discovery evidence files, Bicep parameter files) -- not for every tenant-scoped reference in the repository. The runbook's Step 3 now carries an accurate checklist of files with tenant-scoped references that are not removed and must be manually reviewed per tenant; see [`infra/docs/22-repository-cleanup-runbook.md`](../../infra/docs/22-repository-cleanup-runbook.md).
 
 ## Verification Plan
 

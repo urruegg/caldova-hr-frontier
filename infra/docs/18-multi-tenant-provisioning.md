@@ -64,7 +64,7 @@ Managed identities remain future workload identities and are not shared bootstra
 
 | Tenant | Repository | Status | Allowed activity |
 |---|---|---|---|
-| Tenant 1 (`caldova25156897`) | `urruegg/caldova-hr-frontier` (this repository) | Reviewed discovery evidence and bootstrap intent | Bootstrap validation and subscription `what-if` only |
+| Tenant 1 (`caldova25156897`) | `urruegg/caldova-hr-frontier` (this repository) | Reviewed discovery evidence and bootstrap intent. GitHub-to-Boards connection verified live and valid. | Bootstrap validation and subscription `what-if` only |
 | Tenant 2 (`caldova25668747`) | `AndreaRizzi/caldova-hr-frontier` (not yet created) | Reviewed discovery manifest with optional SharePoint metadata scope; still hosted in this repository until its own repository exists | Attended read-only discovery only |
 | Tenant 3 (Georg Fischer) | New organization-owned repository (not yet created) | Schema-ready; no manifest | No live action |
 

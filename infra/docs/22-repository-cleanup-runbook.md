@@ -41,13 +41,32 @@ This runbook removes every other tenant's configuration manifest, discovery evid
 
    This is a local file deletion, not a Git operation -- nothing is committed yet. If you make a mistake here, `git checkout -- .` (before staging anything) restores every removed file from the last commit.
 
-3. **Verify nothing else references the removed tenant.**
+3. **Review the remaining tenant-scoped references this runbook does not remove.**
+
+   `Remove-OtherTenantArtifacts.ps1` only ever deletes whole files: tenant config manifests, discovery evidence, and Bicep parameter files. It is a file-removal script, not a text-substitution tool, and it does not know about every place a tenant's alias, name, or URL appears in prose or in other tenant-agnostic-looking files. The artifact list this runbook removes is **not exhaustive of every tenant-scoped reference in the repository** -- it is exhaustive only of the three removable file types listed above. The following files are known to carry a Tenant-1-scoped reference and are **not removed** by this runbook; each must be manually reviewed and adapted for the destination tenant before that reference is trusted:
+
+   | File | What it hard-codes |
+   |---|---|
+   | `.github/cli/verify-repository-setup.ps1` | A hard-coded list of required tenant manifest files, including Tenant 1's alias |
+   | `.github/workflows/bootstrap-tenant.yml` | Tenant-specific paths/values used by the bootstrap workflow |
+   | `.github/workflows/discover-tenant.yml` | Tenant-specific paths/values used by the discovery workflow |
+   | `.github/ISSUE_TEMPLATE/config.yml` | A link to Tenant 1's Azure DevOps organization |
+   | `.github/cli/tests/IssueFormContract.Tests.ps1` | A reference to Tenant 1's alias |
+   | `hr/tests/pester/SolutionLifecycle.Tests.ps1` | A reference to Tenant 1's alias |
+   | `hr/src/scripts/README.md` | A reference to Tenant 1's alias |
+   | root `README.md` | A reference to Tenant 1's alias |
+
+   Fully automating these into tenant-agnostic form is **out of scope for this runbook** -- it is a separate, larger piece of work. This runbook documents a manual, reviewed handover, not a zero-touch pipeline. Confirm each file above has been reviewed and, where it names a tenant, updated to name the destination tenant instead, before treating the clean-up as complete.
+
+   `infra/tests/pester/TenantBlueprintVerification.Tests.ps1` is a related but separate case: it is Tenant-1-specific and now skips gracefully (rather than failing) once Tenant 1's manifest and evidence files are removed by Step 2 above, so it is not a blocker to clean-up. The destination repository may eventually want its own equivalent verification suite for its own tenant, but writing one is not required by this runbook.
+
+   You may still use `git grep` to locate any other occurrence of the removed tenant's alias for your own awareness:
 
    ```powershell
    git grep -l '<removed-tenant-alias>' -- . ':!docs' ':!infra/docs'
    ```
 
-   Expect no output outside `docs/` and `infra/docs/` -- those folders describe the whole multi-tenant family's design and correctly continue to mention every tenant by name; they are never scrubbed per-repository. Any match outside those two folders is a genuinely tenant-scoped reference this runbook's script did not yet know to remove -- treat it as a defect in this runbook or the script, not something to silently work around.
+   `docs/` and `infra/docs/` describe the whole multi-tenant family's design and correctly continue to mention every tenant by name; they are never scrubbed per-repository. Any match outside those two folders and outside the checklist above may be a tenant-scoped reference this runbook does not yet document -- treat it as a possible gap in this checklist, not a script defect to silently patch around.
 
 4. **Run the full test suite to prove nothing broke.**
 
@@ -71,9 +90,11 @@ This runbook removes every other tenant's configuration manifest, discovery evid
 | Creating the destination repository or seeding it with this repository's content | [Customer Repository Export and Handover Runbook](./23-customer-repository-export-and-handover-runbook.md), Step 2 |
 | Correcting the kept tenant's own manifest fields (for example `GitHub.Owner`) | [Customer Repository Export and Handover Runbook](./23-customer-repository-export-and-handover-runbook.md), Step 4 |
 | Removing prose mentions of other tenants from `docs/` or `infra/docs/` | Deliberately out of scope -- those documents describe the shared multi-tenant design and remain identical across every tenant's repository |
+| Rewriting `.github/cli/verify-repository-setup.ps1`, the `bootstrap-tenant.yml`/`discover-tenant.yml` workflows, or `.github/ISSUE_TEMPLATE/config.yml` to be dynamically tenant-agnostic | Not automated by any runbook today -- Step 3's checklist above lists what must be manually reviewed and adapted per tenant; making these tenant-agnostic is a separate, larger piece of work |
 
 ## Troubleshooting
 
 - **The script lists a file you did not expect.** `Remove-OtherTenantArtifacts.ps1` only ever looks at `infra/src/config/tenants/*.psd1`, `infra/evidence/discovery/*.json`, and `infra/src/bicep/params/*.bicepparam`. If you see an unexpected file, check whether a new tenant-scoped artifact type has been added to the repository since this runbook was last reviewed -- that is a real gap to fix in the script, not something to remove by hand and move on.
 - **`Test-Path` still shows the other tenant's file after Step 2.** Confirm you ran the script without `-WhatIf` and answered any `ShouldProcess` prompt with `Y` (or passed `-Confirm:$false`, as shown above, for a fully unattended run in an already-reviewed context).
-- **Step 4's test run fails after removal.** Do not attempt to patch the failure by re-adding the removed file -- first read the failing test's name and message; it usually names exactly what still depends on the removed tenant's data.
+- **Step 4's test run fails after removal.** Do not attempt to patch the failure by re-adding the removed file -- first read the failing test's name and message; it usually names exactly what still depends on the removed tenant's data. `infra/tests/pester/TenantBlueprintVerification.Tests.ps1` is expected to *skip* (not fail) once Tenant 1's manifest and evidence are removed; a failure there, rather than a skip, is a real regression to investigate.
+- **You found a tenant-scoped reference not listed in Step 3's checklist.** The checklist is a best-effort inventory as of this runbook's last review, not a guaranteed-exhaustive scan of every file in the repository. Add the file to the checklist (as a documentation fix) and review it for the current handover; this runbook does not attempt to auto-discover every possible reference.

@@ -31,19 +31,19 @@ function Get-OtherTenantArtifacts {
 
     if (Test-Path -LiteralPath $manifestRoot) {
         Get-ChildItem -LiteralPath $manifestRoot -Filter '*.psd1' -File |
-            Where-Object { $_.BaseName -cne $TenantAliasToKeep -and $_.BaseName -cne '_template' } |
+            Where-Object { $_.BaseName -ne $TenantAliasToKeep -and $_.BaseName -ne '_template' } |
             ForEach-Object { $artifacts.Add($_.FullName) }
     }
 
     if (Test-Path -LiteralPath $evidenceRoot) {
         Get-ChildItem -LiteralPath $evidenceRoot -Filter '*.json' -File |
-            Where-Object { $_.BaseName -cne $TenantAliasToKeep } |
+            Where-Object { $_.BaseName -ne $TenantAliasToKeep } |
             ForEach-Object { $artifacts.Add($_.FullName) }
     }
 
     if (Test-Path -LiteralPath $bicepParamsRoot) {
         Get-ChildItem -LiteralPath $bicepParamsRoot -Filter '*.bicepparam' -File |
-            Where-Object { $_.BaseName -cne $TenantAliasToKeep } |
+            Where-Object { $_.BaseName -ne $TenantAliasToKeep } |
             ForEach-Object { $artifacts.Add($_.FullName) }
     }
 
@@ -54,7 +54,16 @@ $resolvedRepositoryRoot = if ([string]::IsNullOrWhiteSpace($RepositoryRootOverri
     Get-RepositoryRoot
 }
 else {
-    [System.IO.Path]::GetFullPath($RepositoryRootOverride)
+    # Resolve against the caller's current PowerShell location, not the
+    # process's current working directory -- these can differ, and a
+    # relative override resolved the wrong way could silently target an
+    # unintended directory.
+    $PSCmdlet.GetUnresolvedProviderPathFromPSPath($RepositoryRootOverride)
+}
+
+$tenantManifestPath = Join-Path $resolvedRepositoryRoot "infra\src\config\tenants\$TenantAliasToKeep.psd1"
+if (-not (Test-Path -LiteralPath $tenantManifestPath)) {
+    throw "No manifest found for -TenantAliasToKeep '$TenantAliasToKeep' at '$tenantManifestPath'. Refusing to proceed -- an alias that does not match any tenant manifest would cause every tenant's files to be treated as 'other tenant' and removed."
 }
 
 $artifacts = @(Get-OtherTenantArtifacts -TenantAliasToKeep $TenantAliasToKeep -RepositoryRoot $resolvedRepositoryRoot)

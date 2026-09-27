@@ -25,9 +25,11 @@ This runbook is the end-to-end procedure a new tenant owner follows to turn a co
 
 ## Steps
 
-1. **Create the destination repository.**
+1. **Create the destination repository using GitHub's "Use this template" (generate-from-template).**
 
-   Using GitHub's "Use this template" (if the source repository is marked as a template) or by forking the source repository and then transferring/detaching it to the destination account -- either produces a repository with the source's full current history and content, owned by your account, with no ongoing live link back to the source repository. Name it to match the source repository unless you have a specific reason not to.
+   Use GitHub's "Use this template" button (requires the source repository to be marked as a template) to generate a brand-new repository, owned by your account, seeded with only the source repository's current file content as a single fresh initial commit -- with **no shared commit history** and no ongoing live link back to the source repository. Name it to match the source repository unless you have a specific reason not to.
+
+   **Do not fork the source repository and detach it instead.** Forking preserves the source repository's *entire* commit history, including every prior tenant's tenant IDs, admin UPNs, and subscription IDs that ever appeared in any commit -- even after a later clean-up commit removes them from the current working tree, they remain fully recoverable from git history and `git blame`. For a real customer handover, this is a genuine data-exposure risk that "Use this template" avoids entirely by starting with no history at all. If "Use this template" is not available for some reason, treat fork-then-detach as a fallback that requires an explicit, documented decision to accept that history-based exposure -- not an equally-good alternative.
 
 2. **Clone the new repository locally and confirm it is the destination, not the source.**
 
@@ -55,13 +57,17 @@ This runbook is the end-to-end procedure a new tenant owner follows to turn a co
    Set-Content -LiteralPath $manifestPath -Value $content -NoNewline
    ```
 
-   `RepositoryId` cannot be corrected this way -- it is the *new* repository's own immutable numeric ID, obtained live:
+   `RepositoryId` and `OwnerId` cannot be corrected this way -- both are the *new* owner's and repository's own immutable numeric IDs, obtained live:
 
    ```powershell
    gh api repos/<your-account>/<your-repository> --jq '.id'
+   # For a personal account owner:
+   gh api users/<your-account> --jq '.id'
+   # For a GitHub Organization owner:
+   gh api orgs/<your-organization> --jq '.id'
    ```
 
-   Paste that value into the manifest's `GitHub.RepositoryId` field by hand, then re-run the Tenant 1 Blueprint Verification suite's pattern against your own manifest and evidence once your own discovery evidence exists (see Step 6).
+   Paste those values into the manifest's `GitHub.RepositoryId` and `GitHub.OwnerId` fields by hand. `GitHub.OwnerId` matters as much as the other three GitHub fields: it feeds the federated-credential subject computed by [`Get-GitHubOidcSubject.ps1`](../src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Get-GitHubOidcSubject.ps1), and `Initialize-TenantTrust.ps1` throws on a mismatch -- an unset or stale `OwnerId` will surface as a trust-activation failure, not a manifest-validation one. Correct all four GitHub fields (`Owner`, `OwnerId`, `Repository`, `RepositoryId`) together, then re-run the Tenant 1 Blueprint Verification suite's pattern against your own manifest and evidence once your own discovery evidence exists (produced by attended tenant discovery per [`infra/docs/17-bootstrap-and-provisioning.md`](./17-bootstrap-and-provisioning.md) -- not a step in this runbook).
 
    Commit this correction as its own commit, separate from the clean-up commit:
 
@@ -72,7 +78,7 @@ This runbook is the end-to-end procedure a new tenant owner follows to turn a co
 
 5. **Install the Azure Boards GitHub App, connected to your own Azure DevOps organization.**
 
-   From `https://github.com/marketplace/azure-boards`, install and authorize the app against your new repository, then complete the Azure DevOps side by selecting **your own** organization and project -- never a different tenant's. Full step-by-step detail (GitHub Marketplace install, organization access grant, third-party OAuth app policy) is in this platform's existing guidance for installing the Azure Boards app; the values are tenant-specific, the procedure is not.
+   From [`https://github.com/marketplace/azure-boards`](https://github.com/marketplace/azure-boards), install and authorize the app against your new repository, then complete the Azure DevOps side by selecting **your own** organization and project -- never a different tenant's. GitHub Marketplace install, organization access grant, and third-party OAuth app policy are each a single confirmation step in that flow; the values you select are tenant-specific, the procedure is not.
 
 6. **Verify the connection live.**
 
@@ -107,5 +113,5 @@ This runbook is the end-to-end procedure a new tenant owner follows to turn a co
 ## Troubleshooting
 
 - **Step 3's clean-up runbook lists a file for a tenant you don't recognize.** The source repository may have onboarded a tenant after this runbook was written. Do not remove it blindly -- confirm with the source repository's own `infra/docs/18-multi-tenant-provisioning.md` Tenant Status table before proceeding.
-- **Step 6's live check shows `"count": 0` after apparently completing Step 5.** The GitHub App installation and the Azure DevOps side's project/organization selection are two separate actions -- confirm both were completed, not just the GitHub-side install. See the Repository Clean-Up Runbook's own Troubleshooting section for the equivalent pattern if the connection still will not register.
+- **Step 6's live check shows `"count": 0` after apparently completing Step 5.** The GitHub App installation and the Azure DevOps side's project/organization selection are two separate actions -- confirm both were completed, not just the GitHub-side install. Re-open the Azure Boards GitHub App's settings from your repository (GitHub Settings > Integrations > Applications, or the app's own configuration page) and confirm the connection lists your Azure DevOps organization and project; if it does not, repeat Step 5's authorization flow rather than re-running the live check, which only observes the connection and cannot create it.
 - **You are not sure whether you're looking at your own tenant's Azure DevOps organization or another tenant's.** Run `az account show` before any tenant-scoped command and confirm the authenticated tenant ID matches your own manifest's `TenantId` field exactly -- never proceed on an assumption here.
