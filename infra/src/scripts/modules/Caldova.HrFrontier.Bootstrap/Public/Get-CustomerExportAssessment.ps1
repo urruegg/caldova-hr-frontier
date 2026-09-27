@@ -11,7 +11,8 @@ function Get-CustomerExportAssessment {
         [Parameter(Mandatory)][object]$ToolIdentities,
         [Parameter(Mandatory)][object]$MarkerCatalogProof,
         [Parameter(Mandatory)][object]$GitExecutable,
-        [Parameter(Mandatory)][scriptblock]$GitBlobReader
+        [Parameter(Mandatory)][scriptblock]$GitBlobReader,
+        [switch]$AllowExistingDestination
     )
 
     $canonicalSource = [IO.Path]::GetFullPath($SourceRoot)
@@ -22,7 +23,7 @@ function Get-CustomerExportAssessment {
         throw 'Customer export destination must be outside the source repository.'
     }
 
-    if (Test-Path -LiteralPath $canonicalDestination) {
+    if (-not $AllowExistingDestination -and (Test-Path -LiteralPath $canonicalDestination)) {
         throw 'Customer export destination must not already exist.'
     }
 
