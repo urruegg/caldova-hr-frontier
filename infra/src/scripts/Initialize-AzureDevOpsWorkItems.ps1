@@ -237,7 +237,12 @@ function Invoke-NativeJsonCommand {
     [pscustomobject]@{
         StatusCode = 200
         Headers = @{}
-        Body = if ([string]::IsNullOrWhiteSpace($commandResult.StdOut)) { $null } else { $commandResult.StdOut | ConvertFrom-Json }
+        # -AsHashtable: the Azure DevOps workitemtypes API returns a "transitions" map keyed by an
+        # empty string for the initial (no prior state) transition. Default ConvertFrom-Json cannot
+        # represent an empty-string property name as a PSCustomObject property and throws; hashtables
+        # have no such restriction. Every downstream consumer already normalizes through
+        # ConvertTo-Hashtable, which passes hashtables through unchanged, so this is safe everywhere.
+        Body = if ([string]::IsNullOrWhiteSpace($commandResult.StdOut)) { $null } else { $commandResult.StdOut | ConvertFrom-Json -AsHashtable }
     }
 }
 

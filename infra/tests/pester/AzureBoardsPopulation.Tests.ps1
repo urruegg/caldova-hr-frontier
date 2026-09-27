@@ -205,6 +205,45 @@ $Summary
 
             $result.EpicWorkItemTypeName | Should -Be 'Epic'
         }
+
+        It 'parses a real Azure DevOps workitemtypes response containing an empty-string transitions key' {
+            # Regression test: the live Azure DevOps workitemtypes API returns each work item type's
+            # "transitions" map keyed by an empty string for the initial (no prior state) transition.
+            # Default ConvertFrom-Json cannot represent an empty-string property name on a
+            # PSCustomObject and throws "The provided JSON includes a property whose name is an empty
+            # string, this is only supported using the -AsHashTable switch." This was discovered
+            # live-testing a -WhatIf preview against Tenant 1's real Azure DevOps project.
+            $realShapedJson = @'
+{
+  "count": 1,
+  "value": [
+    {
+      "name": "Epic",
+      "referenceName": "Microsoft.VSTS.WorkItemTypes.Epic",
+      "states": [
+        { "category": "Proposed", "color": "b2b2b2", "name": "To Do" }
+      ],
+      "transitions": {
+        "": [ { "actions": null, "to": "To Do" } ],
+        "To Do": [ { "actions": null, "to": "To Do" } ]
+      }
+    }
+  ]
+}
+'@
+
+            $result = & $script:ScriptPath -TenantAlias 'caldova25156897' -ReturnProcessCapabilitiesOnly `
+                -NativeCommandRunner {
+                    param($FilePath, $ArgumentList)
+                    [pscustomobject]@{
+                        ExitCode = 0
+                        StdOut = $realShapedJson
+                        StdErr = ''
+                    }
+                }
+
+            $result.EpicWorkItemTypeName | Should -Be 'Epic'
+        }
     }
 
     Context 'Get-AzureDevOpsWorkItemPlan' {
