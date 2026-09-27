@@ -241,7 +241,7 @@ git commit -m "feat(infra): add Remove-OtherTenantArtifacts script and tests"
 
 Create `infra/docs/22-repository-cleanup-runbook.md`:
 
-```markdown
+````markdown
 # Repository Clean-Up Runbook
 
 | Field | Value |
@@ -320,7 +320,7 @@ This runbook removes every other tenant's configuration manifest, discovery evid
 - **The script lists a file you did not expect.** `Remove-OtherTenantArtifacts.ps1` only ever looks at `infra/src/config/tenants/*.psd1`, `infra/evidence/discovery/*.json`, and `infra/src/bicep/params/*.bicepparam`. If you see an unexpected file, check whether a new tenant-scoped artifact type has been added to the repository since this runbook was last reviewed — that is a real gap to fix in the script, not something to remove by hand and move on.
 - **`Test-Path` still shows the other tenant's file after Step 2.** Confirm you ran the script without `-WhatIf` and answered any `ShouldProcess` prompt with `Y` (or passed `-Confirm:$false`, as shown above, for a fully unattended run in an already-reviewed context).
 - **Step 4's test run fails after removal.** Do not attempt to patch the failure by re-adding the removed file — first read the failing test's name and message; it usually names exactly what still depends on the removed tenant's data.
-```
+````
 
 - [ ] **Step 2: Verify the documentation metadata check passes**
 
@@ -487,7 +487,7 @@ git commit -m "test(infra): add Tenant 1 blueprint verification suite"
 
 Create `infra/docs/23-customer-repository-export-and-handover-runbook.md`:
 
-```markdown
+````markdown
 # Customer Repository Export and Handover Runbook
 
 | Field | Value |
@@ -599,7 +599,7 @@ This runbook is the end-to-end procedure a new tenant owner follows to turn a co
 - **Step 3's clean-up runbook lists a file for a tenant you don't recognize.** The source repository may have onboarded a tenant after this runbook was written. Do not remove it blindly — confirm with the source repository's own `infra/docs/18-multi-tenant-provisioning.md` Tenant Status table before proceeding.
 - **Step 6's live check shows `"count": 0` after apparently completing Step 5.** The GitHub App installation and the Azure DevOps side's project/organization selection are two separate actions — confirm both were completed, not just the GitHub-side install. See the Repository Clean-Up Runbook's own Troubleshooting section for the equivalent pattern if the connection still will not register.
 - **You are not sure whether you're looking at your own tenant's Azure DevOps organization or another tenant's.** Run `az account show` before any tenant-scoped command and confirm the authenticated tenant ID matches your own manifest's `TenantId` field exactly — never proceed on an assumption here.
-```
+````
 
 - [ ] **Step 2: Verify the documentation metadata check passes**
 
