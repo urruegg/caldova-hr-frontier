@@ -234,10 +234,26 @@ function Invoke-NativeJsonCommand {
         throw "$FilePath $($ArgumentList -join ' ') failed with exit code $($commandResult.ExitCode): $($commandResult.StdErr)"
     }
 
+    # The Azure DevOps workitemtypes API returns a "transitions" map keyed by an empty string for
+    # the initial (no prior state) transition. Default ConvertFrom-Json cannot represent an
+    # empty-string property name as a PSCustomObject property and throws "The provided JSON
+    # includes a property whose name is an empty string...". ConvertFrom-Json's -AsHashtable switch
+    # would fix this but does not exist in Windows PowerShell 5.1, which is what this repository's
+    # CI runs (see "Repository setup validation" using powershell.exe, not pwsh). An empty string
+    # can only appear followed by ':' in valid JSON when it is an object key (a value is always
+    # followed by ',', '}', or ']'), so this substitution is unambiguous. This script never reads
+    # "transitions" data, so renaming the key is safe.
+    $sanitizedStdOut = if ([string]::IsNullOrWhiteSpace($commandResult.StdOut)) {
+        $null
+    }
+    else {
+        $commandResult.StdOut -replace '""(\s*):', '"_emptyKey"$1:'
+    }
+
     [pscustomobject]@{
         StatusCode = 200
         Headers = @{}
-        Body = if ([string]::IsNullOrWhiteSpace($commandResult.StdOut)) { $null } else { $commandResult.StdOut | ConvertFrom-Json }
+        Body = if ($null -eq $sanitizedStdOut) { $null } else { $sanitizedStdOut | ConvertFrom-Json }
     }
 }
 
@@ -266,12 +282,20 @@ function New-DefaultAzureDevOpsRequest {
         [scriptblock]$NativeRunner
     )
 
+    # Captured as a variable (not called by name) so GetNewClosure() below carries it into the
+    # closure's isolated dynamic module. GetNewClosure() only guarantees closed-over *variables*
+    # are visible inside the returned scriptblock; a bare call to the "Invoke-NativeJsonCommand"
+    # function by name fails there with a CommandNotFoundException when this script is invoked as
+    # "./Initialize-AzureDevOpsWorkItems.ps1 ..." (the closure runs in its own dynamic module that
+    # does not see this script's function table).
+    $invokeNativeJsonCommandRef = ${function:Invoke-NativeJsonCommand}
+
     {
         param($Operation, $Arguments)
 
         switch ($Operation) {
             'ListWorkItemTypes' {
-                return (Invoke-NativeJsonCommand -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
+                return (& $invokeNativeJsonCommandRef -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
                     'devops', 'invoke',
                     '--organization', [string]$Arguments['OrganizationUrl'],
                     '--area', 'wit',
@@ -287,7 +311,7 @@ function New-DefaultAzureDevOpsRequest {
                 $tempFile = [System.IO.Path]::GetTempFileName()
                 try {
                     [System.IO.File]::WriteAllText($tempFile, $wiqlBody)
-                    return (Invoke-NativeJsonCommand -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
+                    return (& $invokeNativeJsonCommandRef -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
                         'devops', 'invoke',
                         '--organization', [string]$Arguments['OrganizationUrl'],
                         '--area', 'wit',
@@ -312,7 +336,7 @@ function New-DefaultAzureDevOpsRequest {
                 $tempFile = [System.IO.Path]::GetTempFileName()
                 try {
                     [System.IO.File]::WriteAllText($tempFile, $patchBody)
-                    return (Invoke-NativeJsonCommand -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
+                    return (& $invokeNativeJsonCommandRef -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
                         'devops', 'invoke',
                         '--organization', [string]$Arguments['OrganizationUrl'],
                         '--area', 'wit',
@@ -329,7 +353,7 @@ function New-DefaultAzureDevOpsRequest {
                 }
             }
             'AddHyperlinkRelation' {
-                return (Invoke-NativeJsonCommand -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
+                return (& $invokeNativeJsonCommandRef -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
                     'boards', 'work-item', 'relation', 'add',
                     '--id', [string]$Arguments['WorkItemId'],
                     '--relation-type', 'Hyperlink',
@@ -339,7 +363,7 @@ function New-DefaultAzureDevOpsRequest {
                 ))
             }
             'ShowWorkItem' {
-                return (Invoke-NativeJsonCommand -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
+                return (& $invokeNativeJsonCommandRef -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
                     'boards', 'work-item', 'show',
                     '--id', [string]$Arguments['WorkItemId'],
                     '--expand', 'all',

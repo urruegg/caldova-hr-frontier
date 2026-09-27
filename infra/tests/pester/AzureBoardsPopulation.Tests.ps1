@@ -183,6 +183,69 @@ $Summary
         }
     }
 
+    Context 'New-DefaultAzureDevOpsRequest (real az-invoking path, no -AzureDevOpsRequest override)' {
+        It 'resolves Invoke-NativeJsonCommand and returns parsed JSON when only -NativeCommandRunner is faked' {
+            # Regression test: every other test in this file supplies -AzureDevOpsRequest, which
+            # bypasses New-DefaultAzureDevOpsRequest entirely. That function's returned scriptblock
+            # is created with .GetNewClosure(), which runs in an isolated dynamic module when this
+            # script is invoked as "./Initialize-AzureDevOpsWorkItems.ps1 ..." (exactly how the
+            # runbook, CI, and this test invoke it via $script:ScriptPath) - a bare call to the
+            # "Invoke-NativeJsonCommand" function by name previously failed there with
+            # CommandNotFoundException. This test exercises that real path by faking only the
+            # native process boundary (-NativeCommandRunner), not the request dispatcher.
+            $result = & $script:ScriptPath -TenantAlias 'caldova25156897' -ReturnProcessCapabilitiesOnly `
+                -NativeCommandRunner {
+                    param($FilePath, $ArgumentList)
+                    [pscustomobject]@{
+                        ExitCode = 0
+                        StdOut = '{"count":1,"value":[{"name":"Epic"}]}'
+                        StdErr = ''
+                    }
+                }
+
+            $result.EpicWorkItemTypeName | Should -Be 'Epic'
+        }
+
+        It 'parses a real Azure DevOps workitemtypes response containing an empty-string transitions key' {
+            # Regression test: the live Azure DevOps workitemtypes API returns each work item type's
+            # "transitions" map keyed by an empty string for the initial (no prior state) transition.
+            # Default ConvertFrom-Json cannot represent an empty-string property name on a
+            # PSCustomObject and throws "The provided JSON includes a property whose name is an empty
+            # string, this is only supported using the -AsHashTable switch." This was discovered
+            # live-testing a -WhatIf preview against Tenant 1's real Azure DevOps project.
+            $realShapedJson = @'
+{
+  "count": 1,
+  "value": [
+    {
+      "name": "Epic",
+      "referenceName": "Microsoft.VSTS.WorkItemTypes.Epic",
+      "states": [
+        { "category": "Proposed", "color": "b2b2b2", "name": "To Do" }
+      ],
+      "transitions": {
+        "": [ { "actions": null, "to": "To Do" } ],
+        "To Do": [ { "actions": null, "to": "To Do" } ]
+      }
+    }
+  ]
+}
+'@
+
+            $result = & $script:ScriptPath -TenantAlias 'caldova25156897' -ReturnProcessCapabilitiesOnly `
+                -NativeCommandRunner {
+                    param($FilePath, $ArgumentList)
+                    [pscustomobject]@{
+                        ExitCode = 0
+                        StdOut = $realShapedJson
+                        StdErr = ''
+                    }
+                }
+
+            $result.EpicWorkItemTypeName | Should -Be 'Epic'
+        }
+    }
+
     Context 'Get-AzureDevOpsWorkItemPlan' {
         It 'marks an idea Create when the WIQL query returns no matching work item' {
             $wiqlEmptyFixture = [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ workItems = @() } }
