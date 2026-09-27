@@ -2,22 +2,24 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
-| **References** | [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json) |
+| **References** | [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json), [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) |
 
 This source-derived Proposed Baseline describes intended GitHub repository architecture and governance. It does not prove that any ruleset, branch protection, Environment, reviewer, variable, workflow, check, app registration, or service integration is currently configured.
 
-> **Pending supersession.** [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) (status: Proposed) replaces the "One Shared Repository" section below with one repository per tenant. That ADR is not yet ratified, so this document still describes the shared-repository design as the current Proposed Baseline. Once ADR-0012 is accepted, this section must be rewritten rather than amended in place — see this repository's own evidence rule against silently reconciling drift between an ADR and narrative documentation.
+## Revision Note (v1.1)
 
-## One Shared Repository
+This section previously described one shared repository serving all three tenants. [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) replaced that with one repository per tenant, after confirming live that the Azure Boards GitHub App enforces a real platform constraint — one repository connects to exactly one Azure DevOps organization at a time — which the shared-repository design silently violated for any second tenant. This document is rewritten below to match; see ADR-0012 for the full rationale and the alternatives considered.
 
-Caldova HR Frontier uses the existing shared repository `urruegg/caldova-hr-frontier` for all three independent tenant manifests and common automation. The design does not create one repository copy per tenant.
+## One Repository Per Tenant
 
-A workflow run selects exactly one tenant and binds to exactly one tenant-specific Environment. Repository compromise risk is constrained through reviewed manifests, Environment approval, exact OIDC subjects, per-tenant applications, evidence gates, and one-tenant concurrency rather than repository duplication.
+Caldova HR Frontier is Tenant 1's dedicated repository — `urruegg/caldova-hr-frontier`, this repository. Tenant 2 and Tenant 3 (Georg Fischer) each receive their own dedicated repository, seeded from this one as a one-time copy, never a live fork or automatic sync. See [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) for the account-type decision per tenant and the seeding mechanism, and the [Customer Repository Export and Handover design](../../docs/specs/2026-09-27-customer-repository-export-and-handover-design.md) for the runbooks that carry this out.
+
+A workflow run in any tenant's repository selects that repository's own single tenant and binds to that tenant's own `bootstrap-${tenantAlias}` Environment. Repository compromise risk is constrained through reviewed manifests, Environment approval, exact OIDC subjects, per-tenant applications, and evidence gates — the same controls as before, now paired with genuine repository isolation rather than shared-repository discipline standing in for it.
 
 ## Repository Ownership
 

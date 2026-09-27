@@ -11,7 +11,7 @@
 
 ## Status
 
-Proposed Baseline. This document operationalizes ADR-0012 (itself still Proposed) into a concrete delivery sprint. It introduces no new architectural decision — the one-repository-per-tenant topology is already recorded — and instead designs the two runbooks and the Tenant 1 completion work needed to execute it safely.
+Proposed Baseline. This document operationalizes ADR-0012 (itself still Proposed Baseline) into a concrete delivery sprint. It introduces no new architectural decision — the one-repository-per-tenant topology is already recorded — and instead designs the two runbooks and the Tenant 1 completion work needed to execute it safely.
 
 ## Objective
 
