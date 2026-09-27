@@ -11,6 +11,8 @@
 
 This source-derived Proposed Baseline describes intended multi-tenant onboarding. It does not prove that Tenant 1, Tenant 2, Tenant 3, or any associated Azure, Entra, Azure DevOps, Power Platform, GitHub, pipeline, identity, or service configuration currently exists.
 
+> **Pending supersession.** [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) (status: Proposed) replaces the Shared-Repository Model below with one repository per tenant. That ADR is not yet ratified, so this document still describes the shared-repository design as the current Proposed Baseline. Once ADR-0012 is accepted, this section must be rewritten to describe per-tenant repositories rather than amended in place — see this repository's own evidence rule: an Accepted ADR outranks narrative text elsewhere, and drift must be reported, not silently reconciled.
+
 ## Shared-Repository Model
 
 Exactly three independent tenants use one shared GitHub repository, one schema, and common automation. The design does not create one repository copy per tenant.
