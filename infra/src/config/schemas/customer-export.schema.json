@@ -1,0 +1,280 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://caldova.example.invalid/schemas/customer-export.schema.json",
+  "title": "Customer Repository Export Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "tenantAlias",
+    "customerScope",
+    "retainedTenantArtifacts",
+    "replacements",
+    "residualMarkers",
+    "sourceMarkerCatalog",
+    "residualDispositions",
+    "syntheticDataPolicy",
+    "fileClassifications",
+    "inspectableBinaries",
+    "validationSuites"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "tenantAlias": {
+      "type": "string",
+      "minLength": 1
+    },
+    "customerScope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "retainedTenantArtifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "artifactKind",
+          "customerScope"
+        ],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "artifactKind": { "type": "string", "minLength": 1 },
+          "customerScope": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "replacements": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "path",
+              "format",
+              "selector",
+              "expectedOldValue",
+              "newValue",
+              "requiredCount"
+            ],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{2,63}$" },
+              "path": { "type": "string", "pattern": "^.+\\.json$" },
+              "format": { "const": "Json" },
+              "selector": { "type": "string", "pattern": "^/.+" },
+              "expectedOldValue": {},
+              "newValue": {},
+              "requiredCount": { "const": 1 }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "path",
+              "format",
+              "expectedOldText",
+              "newText",
+              "requiredCount"
+            ],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{2,63}$" },
+              "path": { "type": "string", "pattern": "^.+\\.md$" },
+              "format": { "const": "MarkdownExact" },
+              "expectedOldText": { "type": "string", "minLength": 1 },
+              "newText": { "type": "string", "minLength": 1 },
+              "requiredCount": { "type": "integer", "minimum": 1 }
+            }
+          }
+        ]
+      }
+    },
+    "residualMarkers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/marker" }
+    },
+    "sourceMarkerCatalog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "category",
+          "value",
+          "comparison",
+          "sources"
+        ],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "category": { "$ref": "#/$defs/category" },
+          "value": { "type": "string", "minLength": 1 },
+          "comparison": { "$ref": "#/$defs/comparison" },
+          "sources": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "blobSha256",
+                "occurrenceCount"
+              ],
+              "properties": {
+                "path": { "type": "string", "minLength": 1 },
+                "blobSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+                "occurrenceCount": { "type": "integer", "minimum": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "residualDispositions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "markerId",
+          "reason"
+        ],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "markerId": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "syntheticDataPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reservedNames",
+        "reservedDomains",
+        "reservedIdPrefixes"
+      ],
+      "properties": {
+        "reservedNames": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "reservedDomains": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "example.com",
+              "example.org",
+              "example.net",
+              "example.invalid"
+            ]
+          }
+        },
+        "reservedIdPrefixes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^synthetic-[a-z0-9-]*$"
+          }
+        }
+      }
+    },
+    "fileClassifications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sourceBlobSha256",
+          "expectedOutputSha256",
+          "classification",
+          "reason"
+        ],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "sourceBlobSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "expectedOutputSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "classification": {
+            "enum": [
+              "SyntheticFixture",
+              "ReviewedNonPersonal"
+            ]
+          },
+          "reason": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "inspectableBinaries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256",
+          "reason"
+        ],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "reason": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "validationSuites": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "Pester",
+          "RepositorySafety",
+          "BicepBuild"
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "category": {
+      "enum": [
+        "TenantAlias",
+        "StableId",
+        "Domain",
+        "Url",
+        "EmailSuffix",
+        "CompanyName",
+        "OtherTenantIdentifier"
+      ]
+    },
+    "comparison": {
+      "enum": [
+        "Ordinal",
+        "OrdinalIgnoreCase"
+      ]
+    },
+    "marker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "category",
+        "value",
+        "comparison"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "category": { "$ref": "#/$defs/category" },
+        "value": { "type": "string", "minLength": 1 },
+        "comparison": { "$ref": "#/$defs/comparison" }
+      }
+    }
+  }
+}

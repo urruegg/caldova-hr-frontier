@@ -28,6 +28,7 @@
         'Get-CloudFoundationAssessment'
         'New-CloudFoundationActionPlan'
         'Invoke-CloudFoundationAction'
+        'Import-CustomerExportManifest'
     )
     CmdletsToExport = @()
     VariablesToExport = @()

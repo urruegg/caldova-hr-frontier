@@ -31,4 +31,5 @@ Export-ModuleMember -Function @(
     'Get-CloudFoundationAssessment'
     'New-CloudFoundationActionPlan'
     'Invoke-CloudFoundationAction'
+    'Import-CustomerExportManifest'
 )
