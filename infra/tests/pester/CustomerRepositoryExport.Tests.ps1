@@ -10,7 +10,11 @@ function script:New-CustomerExportFixture {
     $destination = Join-Path $root 'export'
     [IO.Directory]::CreateDirectory($source) | Out-Null
     [IO.Directory]::CreateDirectory((Join-Path $source '.git\hooks')) | Out-Null
+    [IO.Directory]::CreateDirectory((Join-Path $source '.git\logs\refs\heads')) | Out-Null
     [IO.Directory]::CreateDirectory((Join-Path $source '.github\workflows')) | Out-Null
+    [IO.File]::WriteAllText((Join-Path $source '.git\index'), 'synthetic-index', [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $source '.git\logs\HEAD'), 'synthetic-head-log', [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $source '.git\logs\refs\heads\main'), 'synthetic-main-log', [Text.UTF8Encoding]::new($false))
 
     $tenantPath = Join-Path $source 'infra\src\config\tenants\customer-synthetic.json'
     $readmePath = Join-Path $source 'README.md'
@@ -114,6 +118,8 @@ function script:New-CustomerExportFixture {
         if ($argsText -match 'status --porcelain=v1 --untracked-files=all') { return [pscustomobject]@{ exitCode = 0; stdout = ''; stderr = '' } }
         if ($argsText -match 'rev-parse HEAD') { return [pscustomobject]@{ exitCode = 0; stdout = $gitCommit; stderr = '' } }
         if ($argsText -match 'rev-parse --show-toplevel') { return [pscustomobject]@{ exitCode = 0; stdout = $source; stderr = '' } }
+        if ($argsText -match 'rev-parse --git-common-dir') { return [pscustomobject]@{ exitCode = 0; stdout = (Join-Path $source '.git'); stderr = '' } }
+        if ($argsText -match 'rev-parse --git-path index') { return [pscustomobject]@{ exitCode = 0; stdout = (Join-Path $source '.git\index'); stderr = '' } }
         if ($argsText -match 'sparse-checkout list') { return [pscustomobject]@{ exitCode = 1; stdout = ''; stderr = '' } }
         if ($argsText -match 'ls-tree -r -z --full-tree HEAD') {
             $entries = @(
@@ -126,6 +132,17 @@ function script:New-CustomerExportFixture {
         if ($argsText -match 'for-each-ref') { return [pscustomobject]@{ exitCode = 0; stdout = "refs/heads/main$([char]0)$gitCommit"; stderr = '' } }
         if ($argsText -match 'remote -v') { return [pscustomobject]@{ exitCode = 0; stdout = "origin https://example.invalid/repo (fetch)`norigin https://example.invalid/repo (push)"; stderr = '' } }
         if ($argsText -match 'config --local --list --null') { return [pscustomobject]@{ exitCode = 0; stdout = "core.repositoryformatversion=0$([char]0)"; stderr = '' } }
+        if ($argsText -match 'cat-file --batch-all-objects') {
+            return [pscustomobject]@{
+                exitCode = 0
+                stdout = @(
+                    "$('1' * 40) blob 13",
+                    "$('2' * 40) blob 29",
+                    "$('3' * 40) blob 77"
+                ) -join [Environment]::NewLine
+                stderr = ''
+            }
+        }
         if ($argsText -match '--version') { return [pscustomobject]@{ exitCode = 0; stdout = 'tool version'; stderr = '' } }
         if ($argsText -match '\$PSVersionTable\.PSVersion') { return [pscustomobject]@{ exitCode = 0; stdout = '5.1.26100.6584'; stderr = '' } }
         return [pscustomobject]@{ exitCode = 0; stdout = ''; stderr = '' }
@@ -167,7 +184,171 @@ function script:New-CustomerExportFixture {
     }
 }
 
+function script:Get-ApprovedGitPath {
+    foreach ($candidate in @(
+        'C:\Program Files\Git\cmd\git.exe',
+        (Get-Command git.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source)
+    )) {
+        if (-not [string]::IsNullOrWhiteSpace($candidate) -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+            return [IO.Path]::GetFullPath($candidate)
+        }
+    }
+
+    throw 'git.exe is required for production-default customer export tests.'
+}
+
+function script:New-RealGitCustomerExportFixture {
+    $root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+    $source = Join-Path $root 'source'
+    $report = Join-Path $root 'report'
+    $destination = Join-Path $root 'export'
+    [IO.Directory]::CreateDirectory($source) | Out-Null
+    $git = Get-ApprovedGitPath
+
+    $tenantPath = Join-Path $source 'infra\src\config\tenants\customer-synthetic.json'
+    $readmePath = Join-Path $source 'README.md'
+    [IO.Directory]::CreateDirectory((Split-Path $tenantPath -Parent)) | Out-Null
+    [IO.File]::WriteAllText($tenantPath, '{"tenantAlias":"source-lab"}', [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText($readmePath,
+        "Owner: Source Reference Organization`r`nContact Source Reference Organization`r`n",
+        [Text.UTF8Encoding]::new($false))
+
+    & $git -C $source init --quiet | Out-Null
+    & $git -C $source config user.name 'Synthetic Tester' | Out-Null
+    & $git -C $source config user.email 'synthetic.tester@example.invalid' | Out-Null
+    & $git -C $source config core.autocrlf false | Out-Null
+    & $git -C $source add . | Out-Null
+    & $git -C $source commit --quiet -m 'Synthetic export fixture' | Out-Null
+    $gitCommit = (& $git -C $source rev-parse HEAD).Trim().ToLowerInvariant()
+    $powershellPath = (Get-Command powershell.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1 -ExpandProperty Source)
+    $azureCliPath = @(
+        Get-Command az.cmd -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source
+        Get-Command az.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
+    if ([string]::IsNullOrWhiteSpace($azureCliPath)) {
+        $azureCliPath = $powershellPath
+    }
+
+    $tenantDigest = (Get-FileHash -LiteralPath $tenantPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $readmeDigest = (Get-FileHash -LiteralPath $readmePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $readmeExpected = [Text.UTF8Encoding]::new($false).GetBytes(
+        "Owner: Customer Example Organization`r`nContact Customer Example Organization`r`n")
+    $readmeExpectedDigest = (Get-FileHash -InputStream ([IO.MemoryStream]::new($readmeExpected)) -Algorithm SHA256).Hash.ToLowerInvariant()
+
+    $manifestPath = Join-Path $root 'customer-export.json'
+    $manifest = @"
+{
+  "schemaVersion": "1.0",
+  "tenantAlias": "source-lab",
+  "customerScope": "Synthetic export",
+  "retainedTenantArtifacts": [
+    {
+      "path": "infra/src/config/tenants/customer-synthetic.json",
+      "artifactKind": "TenantManifest",
+      "customerScope": "Synthetic target tenant intent"
+    }
+  ],
+  "replacements": [
+    {
+      "id": "tenant-alias-json",
+      "path": "infra/src/config/tenants/customer-synthetic.json",
+      "format": "Json",
+      "selector": "/tenantAlias",
+      "expectedOldValue": "source-lab",
+      "newValue": "customer-synthetic",
+      "requiredCount": 1
+    },
+    {
+      "id": "customer-name-readme",
+      "path": "README.md",
+      "format": "MarkdownExact",
+      "expectedOldText": "Source Reference Organization",
+      "newText": "Customer Example Organization",
+      "requiredCount": 2
+    }
+  ],
+  "residualMarkers": [
+    { "id": "source-alias", "category": "TenantAlias", "value": "source-lab", "comparison": "OrdinalIgnoreCase" },
+    { "id": "source-customer-name", "category": "CompanyName", "value": "Source Reference Organization", "comparison": "Ordinal" }
+  ],
+  "sourceMarkerCatalog": [
+    {
+      "id": "source-alias",
+      "category": "TenantAlias",
+      "value": "source-lab",
+      "comparison": "OrdinalIgnoreCase",
+      "sources": [ { "path": "infra/src/config/tenants/customer-synthetic.json", "blobSha256": "$tenantDigest", "occurrenceCount": 1 } ]
+    },
+    {
+      "id": "source-customer-name",
+      "category": "CompanyName",
+      "value": "Source Reference Organization",
+      "comparison": "Ordinal",
+      "sources": [ { "path": "README.md", "blobSha256": "$readmeDigest", "occurrenceCount": 2 } ]
+    }
+  ],
+  "residualDispositions": [],
+  "syntheticDataPolicy": {
+    "reservedNames": [ "Customer Example Organization", "Synthetic Reviewer" ],
+    "reservedDomains": [ "example.com", "example.org", "example.net", "example.invalid" ],
+    "reservedIdPrefixes": [ "synthetic-" ]
+  },
+  "fileClassifications": [
+    {
+      "path": "README.md",
+      "sourceBlobSha256": "$readmeDigest",
+      "expectedOutputSha256": "$readmeExpectedDigest",
+      "classification": "ReviewedNonPersonal",
+      "reason": "Repository introduction contains organization names only."
+    }
+  ],
+  "inspectableBinaries": [],
+  "validationSuites": [ "Pester", "RepositorySafety", "BicepBuild" ]
+}
+"@
+    [IO.File]::WriteAllText($manifestPath, $manifest, [Text.UTF8Encoding]::new($false))
+
+    [pscustomobject]@{
+        Source = $source
+        Destination = $destination
+        Report = $report
+        ManifestPath = $manifestPath
+        ExpectedSourceCommit = $gitCommit
+        CommandResolver = {
+            param($name)
+            switch ($name) {
+                'git.exe' { @($git) }
+                'powershell.exe' { @($powershellPath) }
+                'az.cmd' { @($azureCliPath) }
+                default { @() }
+            }
+        }.GetNewClosure()
+        FileIdentityProvider = {
+            param($path)
+            [pscustomobject]@{
+                path = [IO.Path]::GetFullPath($path)
+                sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+            }
+        }
+        InteractiveHostProbe = { [pscustomobject]@{ isInteractive = $true; reason = 'InteractiveWindows11PowerShell' } }
+        PlatformProbe = { [pscustomobject]@{ productName = 'Windows 11'; build = 26100 } }
+        OperatorIdProvider = { 'SYNTHETIC\operator' }
+        ValidationRunner = { param($id,$file,$arguments,$root) [pscustomobject]@{ suite = $id; executablePath = $file; exitCode = 0; status = 'Passed' } }
+    }
+}
+
 Describe 'New-CustomerRepositoryExport gates' {
+    It 'plans with the production default Git blob reader' {
+        $fixture = New-RealGitCustomerExportFixture
+        & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
+            -DestinationRoot $fixture.Destination -ManifestPath $fixture.ManifestPath -ReportPath $fixture.Report `
+            -CommandResolver $fixture.CommandResolver -FileIdentityProvider $fixture.FileIdentityProvider `
+            -InteractiveHostProbe $fixture.InteractiveHostProbe -PlatformProbe $fixture.PlatformProbe `
+            -OperatorIdProvider $fixture.OperatorIdProvider | Out-Null
+
+        Test-Path (Join-Path $fixture.Report 'customer-export-assessment.json') | Should -BeTrue
+    }
+
     It 'plans without creating destination' {
         $fixture = New-CustomerExportFixture
         & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
@@ -263,9 +444,90 @@ Describe 'New-CustomerRepositoryExport gates' {
         } | Should -Throw '*executable identity changed*'
         Test-Path $fixture.Destination | Should -BeFalse
     }
+
+    It 'applies with the production default validation runner' {
+        $fixture = New-CustomerExportFixture
+        & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
+            -DestinationRoot $fixture.Destination -ManifestPath $fixture.ManifestPath -ReportPath $fixture.Report `
+            -NativeCommandRunner $fixture.NativeCommandRunner -CommandResolver $fixture.CommandResolver `
+            -FileIdentityProvider $fixture.FileIdentityProvider -GitBlobReader $fixture.GitBlobReader `
+            -InteractiveHostProbe $fixture.InteractiveHostProbe -PlatformProbe $fixture.PlatformProbe `
+            -OperatorIdProvider $fixture.OperatorIdProvider | Out-Null
+        $approvedDigest = (Get-Content -Raw (Join-Path $fixture.Report 'customer-export-execution-manifest.json') | ConvertFrom-Json).digest
+
+        & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
+            -DestinationRoot $fixture.Destination -ManifestPath $fixture.ManifestPath -ReportPath $fixture.Report `
+            -ExecutionManifestPath (Join-Path $fixture.Report 'customer-export-execution-manifest.json') `
+            -ApprovedDigest $approvedDigest -Apply -Confirm:$false `
+            -NativeCommandRunner $fixture.NativeCommandRunner -CommandResolver $fixture.CommandResolver `
+            -FileIdentityProvider $fixture.FileIdentityProvider -GitBlobReader $fixture.GitBlobReader `
+            -InteractiveHostProbe $fixture.InteractiveHostProbe -PlatformProbe $fixture.PlatformProbe `
+            -OperatorIdProvider $fixture.OperatorIdProvider | Out-Null
+
+        Test-Path (Join-Path $fixture.Destination 'README.md') | Should -BeTrue
+    }
 }
 
 Describe 'Test-CustomerRepositoryExport validator' {
+    It 'uses the production default validation suite mapping' {
+        $fixture = New-CustomerExportFixture
+        & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
+            -DestinationRoot $fixture.Destination -ManifestPath $fixture.ManifestPath -ReportPath $fixture.Report `
+            -NativeCommandRunner $fixture.NativeCommandRunner -CommandResolver $fixture.CommandResolver `
+            -FileIdentityProvider $fixture.FileIdentityProvider -GitBlobReader $fixture.GitBlobReader `
+            -InteractiveHostProbe $fixture.InteractiveHostProbe -PlatformProbe $fixture.PlatformProbe `
+            -OperatorIdProvider $fixture.OperatorIdProvider | Out-Null
+        $approvedDigest = (Get-Content -Raw (Join-Path $fixture.Report 'customer-export-execution-manifest.json') | ConvertFrom-Json).digest
+        & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
+            -DestinationRoot $fixture.Destination -ManifestPath $fixture.ManifestPath -ReportPath $fixture.Report `
+            -ExecutionManifestPath (Join-Path $fixture.Report 'customer-export-execution-manifest.json') `
+            -ApprovedDigest $approvedDigest -Apply -Confirm:$false `
+            -NativeCommandRunner $fixture.NativeCommandRunner -CommandResolver $fixture.CommandResolver `
+            -FileIdentityProvider $fixture.FileIdentityProvider -GitBlobReader $fixture.GitBlobReader `
+            -InteractiveHostProbe $fixture.InteractiveHostProbe -PlatformProbe $fixture.PlatformProbe `
+            -OperatorIdProvider $fixture.OperatorIdProvider | Out-Null
+
+        $result = & $global:CustomerExportValidatorPath -SourceRoot $fixture.Source -DestinationRoot $fixture.Destination `
+            -ExpectedSourceCommit $fixture.ExpectedSourceCommit -ManifestPath $fixture.ManifestPath `
+            -ExecutionManifestPath (Join-Path $fixture.Report 'customer-export-execution-manifest.json') `
+            -ApprovedDigest $approvedDigest -ReportPath (Join-Path (Split-Path $fixture.Report -Parent) 'validation-suite-map') `
+            -NativeCommandRunner $fixture.NativeCommandRunner -CommandResolver $fixture.CommandResolver `
+            -FileIdentityProvider $fixture.FileIdentityProvider -GitBlobReader $fixture.GitBlobReader `
+            -InteractiveHostProbe $fixture.InteractiveHostProbe -PlatformProbe $fixture.PlatformProbe `
+            -OperatorIdProvider $fixture.OperatorIdProvider
+
+        (@($result.suiteResults | Where-Object suite -eq 'Pester')[0]).executablePath | Should -Be 'C:\Approved\powershell.exe'
+        (@($result.suiteResults | Where-Object suite -eq 'RepositorySafety')[0]).executablePath | Should -Be 'C:\Approved\powershell.exe'
+        (@($result.suiteResults | Where-Object suite -eq 'BicepBuild')[0]).executablePath | Should -Be 'C:\Approved\az.cmd'
+    }
+
+    It 'uses the production default Git blob reader' {
+        $fixture = New-RealGitCustomerExportFixture
+        & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
+            -DestinationRoot $fixture.Destination -ManifestPath $fixture.ManifestPath -ReportPath $fixture.Report `
+            -CommandResolver $fixture.CommandResolver -FileIdentityProvider $fixture.FileIdentityProvider `
+            -ValidationRunner $fixture.ValidationRunner -InteractiveHostProbe $fixture.InteractiveHostProbe `
+            -PlatformProbe $fixture.PlatformProbe -OperatorIdProvider $fixture.OperatorIdProvider | Out-Null
+        $approvedDigest = (Get-Content -Raw (Join-Path $fixture.Report 'customer-export-execution-manifest.json') | ConvertFrom-Json).digest
+        & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
+            -DestinationRoot $fixture.Destination -ManifestPath $fixture.ManifestPath -ReportPath $fixture.Report `
+            -ExecutionManifestPath (Join-Path $fixture.Report 'customer-export-execution-manifest.json') `
+            -ApprovedDigest $approvedDigest -Apply -Confirm:$false `
+            -CommandResolver $fixture.CommandResolver -FileIdentityProvider $fixture.FileIdentityProvider `
+            -ValidationRunner $fixture.ValidationRunner -InteractiveHostProbe $fixture.InteractiveHostProbe `
+            -PlatformProbe $fixture.PlatformProbe -OperatorIdProvider $fixture.OperatorIdProvider | Out-Null
+
+        $result = & $global:CustomerExportValidatorPath -SourceRoot $fixture.Source -DestinationRoot $fixture.Destination `
+            -ExpectedSourceCommit $fixture.ExpectedSourceCommit -ManifestPath $fixture.ManifestPath `
+            -ExecutionManifestPath (Join-Path $fixture.Report 'customer-export-execution-manifest.json') `
+            -ApprovedDigest $approvedDigest -ReportPath (Join-Path (Split-Path $fixture.Report -Parent) 'validation-default-git') `
+            -CommandResolver $fixture.CommandResolver -FileIdentityProvider $fixture.FileIdentityProvider `
+            -ValidationRunner $fixture.ValidationRunner -InteractiveHostProbe $fixture.InteractiveHostProbe `
+            -PlatformProbe $fixture.PlatformProbe -OperatorIdProvider $fixture.OperatorIdProvider
+
+        $result.publishReady | Should -BeTrue
+    }
+
     It 'returns publishReady only for a clean export and unchanged source' {
         $fixture = New-CustomerExportFixture
         & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
@@ -366,14 +628,18 @@ Describe 'Test-CustomerRepositoryExport validator' {
             -PlatformProbe $fixture.PlatformProbe -OperatorIdProvider $fixture.OperatorIdProvider | Out-Null
         [IO.File]::AppendAllText((Join-Path $fixture.Destination 'README.md'), "Unreviewed line`r`n", [Text.UTF8Encoding]::new($false))
 
-        $result = & $global:CustomerExportValidatorPath -SourceRoot $fixture.Source -DestinationRoot $fixture.Destination `
-            -ExpectedSourceCommit $fixture.ExpectedSourceCommit -ManifestPath $fixture.ManifestPath `
-            -ExecutionManifestPath (Join-Path $fixture.Report 'customer-export-execution-manifest.json') `
-            -ApprovedDigest $approvedDigest -ReportPath (Join-Path (Split-Path $fixture.Report -Parent) 'validation-3') `
-            -NativeCommandRunner $fixture.NativeCommandRunner -CommandResolver $fixture.CommandResolver `
-            -FileIdentityProvider $fixture.FileIdentityProvider -GitBlobReader $fixture.GitBlobReader `
-            -ValidationRunner $fixture.ValidationRunner -InteractiveHostProbe $fixture.InteractiveHostProbe `
-            -PlatformProbe $fixture.PlatformProbe -OperatorIdProvider $fixture.OperatorIdProvider
+        $validationReport = Join-Path (Split-Path $fixture.Report -Parent) 'validation-3'
+        {
+            & $global:CustomerExportValidatorPath -SourceRoot $fixture.Source -DestinationRoot $fixture.Destination `
+                -ExpectedSourceCommit $fixture.ExpectedSourceCommit -ManifestPath $fixture.ManifestPath `
+                -ExecutionManifestPath (Join-Path $fixture.Report 'customer-export-execution-manifest.json') `
+                -ApprovedDigest $approvedDigest -ReportPath $validationReport `
+                -NativeCommandRunner $fixture.NativeCommandRunner -CommandResolver $fixture.CommandResolver `
+                -FileIdentityProvider $fixture.FileIdentityProvider -GitBlobReader $fixture.GitBlobReader `
+                -ValidationRunner $fixture.ValidationRunner -InteractiveHostProbe $fixture.InteractiveHostProbe `
+                -PlatformProbe $fixture.PlatformProbe -OperatorIdProvider $fixture.OperatorIdProvider
+        } | Should -Throw '*publish-ready*'
+        $result = Get-Content -Raw (Join-Path $validationReport 'customer-export-validation.json') | ConvertFrom-Json
         $result.publishReady | Should -BeFalse
         @($result.failures | Where-Object category -eq 'ExpectedOutputMismatch').Count | Should -Be 1
     }

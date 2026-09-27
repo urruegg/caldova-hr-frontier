@@ -58,6 +58,41 @@ function Resolve-CustomerExportGitDirectory {
     return [IO.Path]::GetFullPath((Join-Path $RepositoryRoot $Matches[1].Trim()))
 }
 
+function Get-CustomerExportFileDigest {
+    param([Parameter(Mandatory)][string]$Path)
+
+    (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+
+function Get-CustomerExportReflogRecords {
+    param(
+        [Parameter(Mandatory)][string]$GitDirectory,
+        [Parameter(Mandatory)][string]$GitCommonDirectory
+    )
+
+    $records = [Collections.Generic.List[object]]::new()
+    $seenRoots = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($root in @($GitDirectory, $GitCommonDirectory)) {
+        if (-not $seenRoots.Add([IO.Path]::GetFullPath($root))) {
+            continue
+        }
+        $logsRoot = Join-Path $root 'logs'
+        if (-not (Test-Path -LiteralPath $logsRoot -PathType Container)) {
+            continue
+        }
+        foreach ($logFile in Get-ChildItem -LiteralPath $logsRoot -Recurse -File | Sort-Object FullName) {
+            $relative = Get-RunbookRelativePath -Root $logsRoot -Path $logFile.FullName
+            $records.Add([pscustomobject]@{
+                root = [IO.Path]::GetFullPath($root)
+                path = $relative
+                sha256 = Get-CustomerExportFileDigest -Path $logFile.FullName
+            })
+        }
+    }
+
+    @($records | Sort-Object root, path)
+}
+
 function Get-CustomerExportSourceSnapshot {
     [CmdletBinding()]
     [OutputType([pscustomobject])]
@@ -166,13 +201,28 @@ function Get-CustomerExportSourceSnapshot {
     $configEntries = @($config.stdout -split [char]0 | Where-Object { $_ } | Sort-Object)
 
     $gitDirectory = Resolve-CustomerExportGitDirectory -RepositoryRoot $repository
+    $commonDirectoryResult = Invoke-Git -Arguments @('rev-parse', '--git-common-dir')
+    if ($commonDirectoryResult.exitCode -ne 0 -or [string]::IsNullOrWhiteSpace([string]$commonDirectoryResult.stdout)) {
+        throw 'Customer export source common Git directory could not be read.'
+    }
+    $gitCommonDirectory = [IO.Path]::GetFullPath([string]$commonDirectoryResult.stdout.Trim())
+
+    $indexPathResult = Invoke-Git -Arguments @('rev-parse', '--git-path', 'index')
+    if ($indexPathResult.exitCode -ne 0 -or [string]::IsNullOrWhiteSpace([string]$indexPathResult.stdout)) {
+        throw 'Customer export source index path could not be read.'
+    }
+    $indexPath = [IO.Path]::GetFullPath([string]$indexPathResult.stdout.Trim())
+    if (-not (Test-Path -LiteralPath $indexPath -PathType Leaf)) {
+        throw 'Customer export source index could not be read.'
+    }
+
     $hookRecords = @()
-    $hooksRoot = Join-Path $gitDirectory 'hooks'
+    $hooksRoot = Join-Path $gitCommonDirectory 'hooks'
     if (Test-Path -LiteralPath $hooksRoot -PathType Container) {
         foreach ($hook in Get-ChildItem -LiteralPath $hooksRoot -File | Sort-Object Name) {
             $hookRecords += [pscustomobject]@{
                 name = $hook.Name
-                sha256 = (Get-FileHash -LiteralPath $hook.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+                sha256 = Get-CustomerExportFileDigest -Path $hook.FullName
             }
         }
     }
@@ -184,10 +234,29 @@ function Get-CustomerExportSourceSnapshot {
             $relative = Get-RunbookRelativePath -Root $repository -Path $workflow.FullName
             $workflowRecords += [pscustomobject]@{
                 path = $relative
-                sha256 = (Get-FileHash -LiteralPath $workflow.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+                sha256 = Get-CustomerExportFileDigest -Path $workflow.FullName
             }
         }
     }
+
+    $objectInventory = Invoke-Git -Arguments @('cat-file', '--batch-all-objects', '--batch-check=%(objectname) %(objecttype) %(objectsize)')
+    if ($objectInventory.exitCode -ne 0) {
+        throw 'Customer export source object inventory could not be read.'
+    }
+    $objectRecords = @(
+        foreach ($line in @([string]$objectInventory.stdout -split "`r?`n" | Where-Object { $_ })) {
+            $parts = @($line -split '\s+')
+            if ($parts.Count -lt 3) {
+                throw 'Customer export source object inventory is invalid.'
+            }
+            [pscustomobject]@{
+                objectId = [string]$parts[0]
+                objectType = [string]$parts[1]
+                objectSize = [string]$parts[2]
+            }
+        }
+    )
+    $reflogRecords = Get-CustomerExportReflogRecords -GitDirectory $gitDirectory -GitCommonDirectory $gitCommonDirectory
 
     $trackedArray = @($trackedFiles | Sort-Object path)
     return [pscustomobject][ordered]@{
@@ -200,5 +269,8 @@ function Get-CustomerExportSourceSnapshot {
         configDigest = Get-RunbookContentDigest -InputObject $configEntries
         hooksDigest = Get-RunbookContentDigest -InputObject @($hookRecords)
         workflowDigest = Get-RunbookContentDigest -InputObject @($workflowRecords)
+        indexDigest = Get-CustomerExportFileDigest -Path $indexPath
+        objectStoreDigest = Get-RunbookContentDigest -InputObject @($objectRecords | Sort-Object objectId, objectType, objectSize)
+        reflogDigest = Get-RunbookContentDigest -InputObject @($reflogRecords)
     }
 }

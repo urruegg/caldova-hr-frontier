@@ -1,3 +1,38 @@
+function Get-CustomerExportValidationCommand {
+    param(
+        [Parameter(Mandatory)][string]$Suite,
+        [Parameter(Mandatory)][object]$ToolIdentities
+    )
+
+    switch ($Suite) {
+        'Pester' {
+            return [pscustomobject]@{
+                filePath = [string]$ToolIdentities.WindowsPowerShell.path
+                arguments = @(
+                    '-NoProfile',
+                    '-Command',
+                    'Import-Module Pester -RequiredVersion 5.7.1 -Force; Invoke-Pester infra/tests/pester,hr/tests/pester,.github/cli/tests -Output Detailed -CI'
+                )
+            }
+        }
+        'RepositorySafety' {
+            return [pscustomobject]@{
+                filePath = [string]$ToolIdentities.WindowsPowerShell.path
+                arguments = @('-NoProfile', '-File', '.github/cli/verify-repository-safety.ps1')
+            }
+        }
+        'BicepBuild' {
+            return [pscustomobject]@{
+                filePath = [string]$ToolIdentities.AzureCli.path
+                arguments = @('bicep', 'build', '--file', 'infra/src/bicep/main.bicep', '--stdout')
+            }
+        }
+        default {
+            throw "Customer export validation suite '$Suite' is not supported."
+        }
+    }
+}
+
 function Test-CustomerExportContent {
     [CmdletBinding()]
     [OutputType([pscustomobject])]
@@ -63,7 +98,11 @@ function Test-CustomerExportContent {
 
     $suiteResults = [Collections.Generic.List[object]]::new()
     foreach ($suite in @($Manifest.validationSuites)) {
-        $result = & $ValidationRunner $suite $Assessment.toolIdentities.WindowsPowerShell.path @() $root
+        $command = Get-CustomerExportValidationCommand -Suite ([string]$suite) -ToolIdentities $Assessment.toolIdentities
+        if (-not [IO.Path]::IsPathRooted([string]$command.filePath)) {
+            throw "Customer export validation suite '$suite' resolved a non-rooted executable path."
+        }
+        $result = & $ValidationRunner $suite $command.filePath @($command.arguments) $root
         $suiteResults.Add($result)
         if ([int]$result.exitCode -ne 0) {
             $failures.Add([pscustomobject]@{ category = 'ValidationSuiteFailed'; path = $null; suite = $suite })

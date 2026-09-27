@@ -1,5 +1,66 @@
 Set-StrictMode -Version Latest
 
+function script:New-SnapshotFixture {
+    param(
+        [string]$IndexContent = 'index-v1',
+        [string]$HeadLogContent = 'head-log-v1',
+        [string]$MainLogContent = 'main-log-v1',
+        [string]$ObjectInventory = "1111111111111111111111111111111111111111 blob 5"
+    )
+
+    $root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+    $repo = Join-Path $root 'repo'
+    $common = Join-Path $root 'common'
+    $gitDir = Join-Path $common 'worktrees\repo'
+    [IO.Directory]::CreateDirectory($repo) | Out-Null
+    [IO.Directory]::CreateDirectory($common) | Out-Null
+    [IO.Directory]::CreateDirectory($gitDir) | Out-Null
+    [IO.Directory]::CreateDirectory((Join-Path $common 'hooks')) | Out-Null
+    [IO.Directory]::CreateDirectory((Join-Path $common 'logs\refs\heads')) | Out-Null
+    [IO.Directory]::CreateDirectory((Join-Path $gitDir 'logs')) | Out-Null
+    [IO.Directory]::CreateDirectory((Join-Path $repo '.github\workflows')) | Out-Null
+
+    [IO.File]::WriteAllText((Join-Path $repo '.git'), ('gitdir: ' + $gitDir), [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $common 'hooks\pre-commit'), 'echo hook', [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $gitDir 'index'), $IndexContent, [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $gitDir 'logs\HEAD'), $HeadLogContent, [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $common 'logs\refs\heads\main'), $MainLogContent, [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $repo '.github\workflows\sentinel.yml'), 'name: sentinel', [Text.UTF8Encoding]::new($false))
+
+    $runner = {
+        param($file, $arguments)
+        $effective = @($arguments)
+        if ($effective.Count -eq 1 -and $effective[0] -is [array]) {
+            $effective = @($effective[0])
+        }
+        $effective = if (@($effective).Count -ge 3 -and $effective[0] -eq '-C') { @($effective)[2..(@($effective).Count - 1)] } else { @($effective) }
+        $joined = (@($effective) | ForEach-Object { [string]$_ }) -join ' '
+        if ($joined -match '^status --porcelain=v1 --untracked-files=all$') { return [pscustomobject]@{ exitCode = 0; stdout = ''; stderr = '' } }
+        if ($joined -match '^rev-parse HEAD$') { return [pscustomobject]@{ exitCode = 0; stdout = ('a' * 40); stderr = '' } }
+        if ($joined -match '^rev-parse --show-toplevel$') { return [pscustomobject]@{ exitCode = 0; stdout = $repo; stderr = '' } }
+        if ($joined -match '^rev-parse --git-common-dir$') { return [pscustomobject]@{ exitCode = 0; stdout = $common; stderr = '' } }
+        if ($joined -match '^rev-parse --git-path index$') { return [pscustomobject]@{ exitCode = 0; stdout = (Join-Path $gitDir 'index'); stderr = '' } }
+        if ($joined -match '^sparse-checkout list$') { return [pscustomobject]@{ exitCode = 1; stdout = ''; stderr = '' } }
+        if ($joined -match '^ls-tree -r -z --full-tree HEAD$') {
+            return [pscustomobject]@{ exitCode = 0; stdout = ("100644 blob $('1' * 40)`tREADME.md" + [char]0); stderr = '' }
+        }
+        if ($joined -match '^for-each-ref ') { return [pscustomobject]@{ exitCode = 0; stdout = "refs/heads/main$([char]0)$('a' * 40)"; stderr = '' } }
+        if ($joined -match '^remote -v$') { return [pscustomobject]@{ exitCode = 0; stdout = ''; stderr = '' } }
+        if ($joined -match '^config --local --list --null$') { return [pscustomobject]@{ exitCode = 0; stdout = "core.repositoryformatversion=0$([char]0)"; stderr = '' } }
+        if ($joined -match '^cat-file --batch-all-objects ') { return [pscustomobject]@{ exitCode = 0; stdout = $ObjectInventory; stderr = '' } }
+        return [pscustomobject]@{ exitCode = 0; stdout = ''; stderr = '' }
+    }.GetNewClosure()
+
+    [pscustomobject]@{
+        RepositoryRoot = $repo
+        GitExecutable = [pscustomobject]@{ path = 'C:\Approved\git.exe'; sha256 = ('c' * 64) }
+        NativeCommandRunner = $runner
+        GitBlobReader = { param($gitPath, $repositoryRoot, $commit, $path) [Text.UTF8Encoding]::new($false).GetBytes('Synthetic Reviewer') }
+        CommonDirectory = $common
+        GitDirectory = $gitDir
+    }
+}
+
 Describe 'Customer export source isolation' {
     BeforeAll {
         $script:Module = Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
@@ -48,6 +109,46 @@ Describe 'Customer export source isolation' {
                 }
         } | Should -Throw '*ambiguous*'
         $calls.Count | Should -Be 0
+    }
+
+    It 'binds the git index, object inventory, and reflogs for a worktree snapshot' {
+        $fixture = New-SnapshotFixture
+        $snapshot = Get-CustomerExportSourceSnapshot -RepositoryRoot $fixture.RepositoryRoot `
+            -GitExecutable $fixture.GitExecutable -NativeCommandRunner $fixture.NativeCommandRunner `
+            -GitBlobReader $fixture.GitBlobReader
+
+        $snapshot.indexDigest | Should -Match '^[0-9a-f]{64}$'
+        $snapshot.objectStoreDigest | Should -Match '^[0-9a-f]{64}$'
+        $snapshot.reflogDigest | Should -Match '^[0-9a-f]{64}$'
+    }
+
+    It 'changes the index and reflog digests when worktree metadata drifts' {
+        $fixture = New-SnapshotFixture
+        $before = Get-CustomerExportSourceSnapshot -RepositoryRoot $fixture.RepositoryRoot `
+            -GitExecutable $fixture.GitExecutable -NativeCommandRunner $fixture.NativeCommandRunner `
+            -GitBlobReader $fixture.GitBlobReader
+
+        [IO.File]::WriteAllText((Join-Path $fixture.GitDirectory 'index'), 'index-v2', [Text.UTF8Encoding]::new($false))
+        [IO.File]::WriteAllText((Join-Path $fixture.CommonDirectory 'logs\refs\heads\main'), 'main-log-v2', [Text.UTF8Encoding]::new($false))
+        $after = Get-CustomerExportSourceSnapshot -RepositoryRoot $fixture.RepositoryRoot `
+            -GitExecutable $fixture.GitExecutable -NativeCommandRunner $fixture.NativeCommandRunner `
+            -GitBlobReader $fixture.GitBlobReader
+
+        $after.indexDigest | Should -Not -Be $before.indexDigest
+        $after.reflogDigest | Should -Not -Be $before.reflogDigest
+    }
+
+    It 'changes the object store digest when the object inventory changes' {
+        $beforeFixture = New-SnapshotFixture -ObjectInventory "1111111111111111111111111111111111111111 blob 5"
+        $before = Get-CustomerExportSourceSnapshot -RepositoryRoot $beforeFixture.RepositoryRoot `
+            -GitExecutable $beforeFixture.GitExecutable -NativeCommandRunner $beforeFixture.NativeCommandRunner `
+            -GitBlobReader $beforeFixture.GitBlobReader
+        $afterFixture = New-SnapshotFixture -ObjectInventory ("1111111111111111111111111111111111111111 blob 5" + [Environment]::NewLine + "2222222222222222222222222222222222222222 tree 42")
+        $after = Get-CustomerExportSourceSnapshot -RepositoryRoot $afterFixture.RepositoryRoot `
+            -GitExecutable $afterFixture.GitExecutable -NativeCommandRunner $afterFixture.NativeCommandRunner `
+            -GitBlobReader $afterFixture.GitBlobReader
+
+        $after.objectStoreDigest | Should -Not -Be $before.objectStoreDigest
     }
 
     It 'binds the shared CustomerExport manifest to the assessment and destination target' {

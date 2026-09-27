@@ -1,3 +1,33 @@
+function Publish-CustomerStructuredReplacementBytes {
+    param(
+        [Parameter(Mandatory)][string]$TargetPath,
+        [Parameter(Mandatory)][byte[]]$Bytes
+    )
+
+    $parent = Split-Path -Parent $TargetPath
+    $temporary = Join-Path $parent (([guid]::NewGuid().ToString('N')) + '.tmp')
+    $backup = Join-Path $parent (([guid]::NewGuid().ToString('N')) + '.bak')
+    try {
+        [IO.File]::WriteAllBytes($temporary, [byte[]]$Bytes)
+        if (Test-Path -LiteralPath $TargetPath -PathType Leaf) {
+            [IO.File]::Replace($temporary, $TargetPath, $backup, $false)
+            if (Test-Path -LiteralPath $backup) {
+                Remove-Item -LiteralPath $backup -Force
+            }
+        }
+        else {
+            [IO.File]::Move($temporary, $TargetPath)
+        }
+    }
+    finally {
+        foreach ($path in @($temporary, $backup)) {
+            if (Test-Path -LiteralPath $path) {
+                Remove-Item -LiteralPath $path -Force
+            }
+        }
+    }
+}
+
 function Invoke-CustomerStructuredReplacement {
     [CmdletBinding()]
     [OutputType([object[]])]
@@ -16,16 +46,7 @@ function Invoke-CustomerStructuredReplacement {
 
     $originalBytes = [IO.File]::ReadAllBytes($target)
     $result = Convert-CustomerExportBlob -Path $normalizedPath -OriginalBytes $originalBytes -Rules $Rules
-    $temporary = Join-Path (Split-Path -Parent $target) (([guid]::NewGuid().ToString('N')) + '.tmp')
-    try {
-        [IO.File]::WriteAllBytes($temporary, [byte[]]$result.bytes)
-        [IO.File]::Copy($temporary, $target, $true)
-    }
-    finally {
-        if (Test-Path -LiteralPath $temporary) {
-            Remove-Item -LiteralPath $temporary -Force
-        }
-    }
+    Publish-CustomerStructuredReplacementBytes -TargetPath $target -Bytes $result.bytes
 
     return @($result.replacementLog)
 }

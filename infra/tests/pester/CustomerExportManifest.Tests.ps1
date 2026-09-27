@@ -25,6 +25,42 @@ Describe 'Customer export manifest contract' {
         } | Should -Throw '*exact path*'
     }
 
+    It 'rejects duplicate JSON properties in both PowerShell hosts when available' {
+        $path = Join-Path $TestDrive 'duplicate-property.json'
+        [IO.File]::WriteAllText($path, '{"schemaVersion":"1.0","schemaVersion":"1.0"}', [Text.UTF8Encoding]::new($false))
+
+        { Import-CustomerExportManifest -Path $path } | Should -Throw '*duplicate JSON property*'
+
+        $pwsh = Get-Command pwsh.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -ne $pwsh) {
+            $command = @(
+                "`$ErrorActionPreference='Stop'"
+                "Import-Module '$script:Module' -Force"
+                "try { Import-CustomerExportManifest -Path '$path' | Out-Null; exit 0 } catch { Write-Host `$_.Exception.Message; exit 1 }"
+            ) -join '; '
+            $result = & $pwsh.Source -NoProfile -Command $command 2>&1
+            $LASTEXITCODE | Should -Be 1
+            ($result -join [Environment]::NewLine) | Should -Match 'duplicate JSON property'
+        }
+    }
+
+    It 'imports the sample manifest in PowerShell 7 when available' {
+        $pwsh = Get-Command pwsh.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -eq $pwsh) {
+            Set-ItResult -Skipped -Because 'pwsh.exe is not installed on this workstation.'
+            return
+        }
+
+        $command = @(
+            "`$ErrorActionPreference='Stop'"
+            "Import-Module '$script:Module' -Force"
+            "`$manifest = Import-CustomerExportManifest -Path '$script:Sample'"
+            "if (`$manifest.schemaVersion -ne '1.0') { throw 'schemaVersion mismatch' }"
+        ) -join '; '
+        & $pwsh.Source -NoProfile -Command $command
+        $LASTEXITCODE | Should -Be 0
+    }
+
     It 'rejects Markdown wildcard regex and prohibited-path options' {
         $value = Get-Content -Raw $script:Sample | ConvertFrom-Json
         $rule = $value.replacements | Where-Object format -eq 'MarkdownExact'

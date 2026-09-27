@@ -275,6 +275,17 @@ function ConvertTo-CustomerExportJsonValue {
     param([AllowNull()][object]$Value)
 
     if ($null -eq $Value) { return $null }
+    if ($Value -is [psobject] -and $Value.PSObject.Properties.Count -gt 0 -and $Value -isnot [string]) {
+        $ordered = [ordered]@{}
+        foreach ($property in $Value.PSObject.Properties) {
+            if ($property.MemberType -in @('NoteProperty', 'Property', 'ScriptProperty')) {
+                $ordered[$property.Name] = ConvertTo-CustomerExportJsonValue -Value $property.Value
+            }
+        }
+        if ($ordered.Count -gt 0) {
+            return [pscustomobject]$ordered
+        }
+    }
     if ($Value -is [System.Collections.IDictionary]) {
         $ordered = [ordered]@{}
         foreach ($key in $Value.Keys) {
@@ -302,10 +313,13 @@ function ConvertFrom-CustomerExportJson {
         throw 'Customer export manifest is not valid JSON.'
     }
 
-    Add-Type -AssemblyName System.Web.Extensions
-    $serializer = [System.Web.Script.Serialization.JavaScriptSerializer]::new()
-    $serializer.MaxJsonLength = [int]::MaxValue
-    return ConvertTo-CustomerExportJsonValue -Value ($serializer.DeserializeObject($Text))
+    $json = if ($PSVersionTable.PSVersion.Major -ge 6) {
+        ConvertFrom-Json -InputObject $Text -Depth 100
+    }
+    else {
+        ConvertFrom-Json -InputObject $Text
+    }
+    return ConvertTo-CustomerExportJsonValue -Value $json
 }
 
 function Test-CustomerExportPathHasEvidenceSegment {

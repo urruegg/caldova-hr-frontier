@@ -104,6 +104,52 @@ Describe 'Customer export sanitization' {
         [IO.File]::ReadAllBytes($target) | Should -Be $before
     }
 
+    It 'preserves the original target and cleans temporary files when atomic replacement fails' {
+        $target = Join-Path $TestDrive 'atomic-failure.md'
+        $original = "Source Reference Organization`r`nContact Source Reference Organization`r`n"
+        [IO.File]::WriteAllText($target, $original, [Text.UTF8Encoding]::new($false))
+
+        InModuleScope Caldova.HrFrontier.Bootstrap {
+            Mock Publish-CustomerStructuredReplacementBytes { throw 'synthetic atomic failure' }
+            {
+                Invoke-CustomerStructuredReplacement -StagingRoot $TestDrive -Path 'atomic-failure.md' -Rules @([pscustomobject]@{
+                    id = 'customer-name-atomic'
+                    path = 'atomic-failure.md'
+                    format = 'MarkdownExact'
+                    expectedOldText = 'Source Reference Organization'
+                    newText = 'Customer Example Organization'
+                    requiredCount = 2
+                })
+            } | Should -Throw '*atomic failure*'
+        }
+
+        [IO.File]::ReadAllText($target) | Should -Be $original
+        @(Get-ChildItem -LiteralPath $TestDrive -Filter '*.tmp' -File -ErrorAction SilentlyContinue).Count | Should -Be 0
+    }
+
+    It 'classifies inspectable non-NUL binary content only when explicitly allowlisted' {
+        InModuleScope Caldova.HrFrontier.Bootstrap {
+            $bytes = [byte[]](0x1B, 0x50, 0x4B, 0x03)
+            $digest = Get-CustomerExportSha256 -Bytes $bytes
+            $result = Get-CustomerExportTextKind -Path 'docs/diagram.bin' -Bytes $bytes -InspectableBinaries @([pscustomobject]@{
+                path = 'docs/diagram.bin'
+                sha256 = $digest
+                reason = 'Reviewed synthetic binary fixture.'
+            })
+            $result.kind | Should -Be 'InspectableBinary'
+            { Get-CustomerExportTextKind -Path 'docs/diagram.bin' -Bytes $bytes -InspectableBinaries @() } | Should -Throw '*allowlisted*'
+        }
+    }
+
+    It 'rejects UTF-8 BOM, UTF-16 BOM, invalid UTF-8, and mixed newline text' {
+        InModuleScope Caldova.HrFrontier.Bootstrap {
+            { Get-CustomerExportTextKind -Path 'docs/bom.md' -Bytes ([byte[]](0xEF,0xBB,0xBF,0x41)) -InspectableBinaries @() } | Should -Throw '*UTF-8 without BOM*'
+            { Get-CustomerExportTextKind -Path 'docs/utf16.md' -Bytes ([byte[]](0xFF,0xFE,0x41,0x00)) -InspectableBinaries @() } | Should -Throw '*UTF-8 without BOM*'
+            { Get-CustomerExportTextKind -Path 'docs/invalid.md' -Bytes ([byte[]](0xC3,0x28)) -InspectableBinaries @() } | Should -Throw '*valid UTF-8*'
+            { Get-CustomerExportTextKind -Path 'docs/mixed.md' -Bytes ([Text.UTF8Encoding]::new($false).GetBytes("line1`r`nline2`n")) -InspectableBinaries @() } | Should -Throw '*newline*'
+        }
+    }
+
     It 'reports every undisposed name and content residual' {
         $residualRoot = Join-Path $TestDrive 'residual-case'
         New-Item -ItemType Directory (Join-Path $residualRoot 'source-lab') -Force | Out-Null

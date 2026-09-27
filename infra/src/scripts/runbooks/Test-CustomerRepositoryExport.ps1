@@ -30,6 +30,137 @@ function New-DefaultNativeCommandRunner {
 }
 function New-DefaultCommandResolver { { param($name) @(Get-Command $name -All -CommandType Application -ErrorAction SilentlyContinue | ForEach-Object Source) }.GetNewClosure() }
 function New-DefaultFileIdentityProvider { { param($path) [pscustomobject]@{ path=[IO.Path]::GetFullPath($path); sha256=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() } }.GetNewClosure() }
+function ConvertTo-WindowsProcessArgument {
+    param([AllowEmptyString()][string]$Value)
+
+    if ($null -eq $Value) { return '""' }
+    if ($Value -notmatch '[\s"]') { return $Value }
+
+    $builder = [Text.StringBuilder]::new('"')
+    $backslashCount = 0
+    foreach ($character in $Value.ToCharArray()) {
+        if ($character -eq '\') {
+            $backslashCount++
+            continue
+        }
+        if ($character -eq '"') {
+            [void]$builder.Append(('\' * (($backslashCount * 2) + 1)))
+            [void]$builder.Append('"')
+            $backslashCount = 0
+            continue
+        }
+        if ($backslashCount -gt 0) {
+            [void]$builder.Append(('\' * $backslashCount))
+            $backslashCount = 0
+        }
+        [void]$builder.Append($character)
+    }
+    if ($backslashCount -gt 0) {
+        [void]$builder.Append(('\' * ($backslashCount * 2)))
+    }
+    [void]$builder.Append('"')
+    $builder.ToString()
+}
+function Join-WindowsProcessArguments {
+    param([Parameter(Mandatory)][string[]]$ArgumentList)
+
+    (@($ArgumentList) | ForEach-Object { ConvertTo-WindowsProcessArgument -Value ([string]$_) }) -join ' '
+}
+function New-DefaultGitBlobReader {
+    {
+        param([string]$GitPath, [string]$RepositoryRoot, [string]$Commit, [string]$Path)
+
+        function Join-Arguments {
+            param([string[]]$Values)
+            function Quote-Argument {
+                param([AllowEmptyString()][string]$Value)
+                if ($null -eq $Value) { return '""' }
+                if ($Value -notmatch '[\s"]') { return $Value }
+
+                $builder = [Text.StringBuilder]::new('"')
+                $backslashCount = 0
+                foreach ($character in $Value.ToCharArray()) {
+                    if ($character -eq '\') { $backslashCount++; continue }
+                    if ($character -eq '"') {
+                        [void]$builder.Append(('\' * (($backslashCount * 2) + 1)))
+                        [void]$builder.Append('"')
+                        $backslashCount = 0
+                        continue
+                    }
+                    if ($backslashCount -gt 0) {
+                        [void]$builder.Append(('\' * $backslashCount))
+                        $backslashCount = 0
+                    }
+                    [void]$builder.Append($character)
+                }
+                if ($backslashCount -gt 0) {
+                    [void]$builder.Append(('\' * ($backslashCount * 2)))
+                }
+                [void]$builder.Append('"')
+                $builder.ToString()
+            }
+
+            (@($Values) | ForEach-Object { Quote-Argument -Value ([string]$_) }) -join ' '
+        }
+
+        $process = [System.Diagnostics.Process]::new()
+        $process.StartInfo = [System.Diagnostics.ProcessStartInfo]::new()
+        $process.StartInfo.FileName = [IO.Path]::GetFullPath($GitPath)
+        $process.StartInfo.Arguments = Join-Arguments -Values @('-C', [IO.Path]::GetFullPath($RepositoryRoot), 'show', '--no-textconv', ('{0}:{1}' -f $Commit, $Path))
+        $process.StartInfo.UseShellExecute = $false
+        $process.StartInfo.RedirectStandardOutput = $true
+        $process.StartInfo.RedirectStandardError = $true
+
+        try {
+            [void]$process.Start()
+            $stream = $process.StandardOutput.BaseStream
+            $buffer = New-Object byte[] 4096
+            $memory = [IO.MemoryStream]::new()
+            try {
+                while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                    $memory.Write($buffer, 0, $read)
+                }
+                $process.WaitForExit()
+                $stderr = $process.StandardError.ReadToEnd()
+                if ($process.ExitCode -ne 0) {
+                    throw "Git commit blob read failed: $stderr"
+                }
+                return $memory.ToArray()
+            }
+            finally {
+                $memory.Dispose()
+            }
+        }
+        finally {
+            $process.Dispose()
+        }
+    }.GetNewClosure()
+}
+function New-DefaultValidationRunner {
+    param([Parameter(Mandatory)][scriptblock]$Runner)
+
+    {
+        param([string]$id, [string]$file, [string[]]$arguments, [string]$root)
+
+        Push-Location -LiteralPath $root
+        try {
+            $nativeResult = & $Runner $file @($arguments)
+        }
+        finally {
+            Pop-Location
+        }
+
+        if ($null -eq $nativeResult) {
+            $nativeResult = [pscustomobject]@{ exitCode = 1; stdout = ''; stderr = 'runner returned no result' }
+        }
+        [pscustomobject]@{
+            suite = $id
+            executablePath = $file
+            exitCode = [int]$nativeResult.exitCode
+            status = if ([int]$nativeResult.exitCode -eq 0) { 'Passed' } else { 'Failed' }
+        }
+    }.GetNewClosure()
+}
 function Get-DefaultInteractiveHostState { [pscustomobject]@{ isInteractive = [Environment]::UserInteractive -and [string]::IsNullOrWhiteSpace($env:CI); reason = 'InteractiveWindows11PowerShell' } }
 function Get-DefaultPlatformState { $os = Get-CimInstance Win32_OperatingSystem; [pscustomobject]@{ productName = $(if ([string]$os.Caption -match 'Windows 11') { 'Windows 11' } else { [string]$os.Caption }); build = [int]$os.BuildNumber } }
 function Get-ExecutableVersion {
@@ -90,10 +221,11 @@ Import-Module $modulePath -Force
 if ($null -eq $NativeCommandRunner) { $NativeCommandRunner = New-DefaultNativeCommandRunner }
 if ($null -eq $CommandResolver) { $CommandResolver = New-DefaultCommandResolver }
 if ($null -eq $FileIdentityProvider) { $FileIdentityProvider = New-DefaultFileIdentityProvider }
+if ($null -eq $GitBlobReader) { $GitBlobReader = New-DefaultGitBlobReader }
 if ($null -eq $InteractiveHostProbe) { $InteractiveHostProbe = { Get-DefaultInteractiveHostState } }
 if ($null -eq $PlatformProbe) { $PlatformProbe = { Get-DefaultPlatformState } }
 if ($null -eq $OperatorIdProvider) { $OperatorIdProvider = { [Security.Principal.WindowsIdentity]::GetCurrent().Name } }
-if ($null -eq $ValidationRunner) { $ValidationRunner = { param($id,$file,$arguments,$root) [pscustomobject]@{ suite = $id; executablePath = $file; exitCode = 0 } } }
+if ($null -eq $ValidationRunner) { $ValidationRunner = New-DefaultValidationRunner -Runner $NativeCommandRunner }
 
 $interactiveState = & $InteractiveHostProbe
 if (-not [bool]$interactiveState.isInteractive) { throw 'This runbook requires an interactive Windows 11 PowerShell session.' }
@@ -181,5 +313,9 @@ $evidence = ConvertTo-RunbookEvidenceRecord -RunId ([guid]$executionManifest.run
     -FinalContext ([pscustomobject]@{ status = 'SourceSnapshotMatched' }) `
     -ErrorCategory $(if ($result.publishReady) { $null } else { 'ExportValidationFailed' })
 Write-CanonicalJson -InputObject $evidence -Path (Join-Path $reportRoot 'customer-export-validation-evidence.json') -Replace | Out-Null
+
+if (-not $result.publishReady) {
+    throw 'Customer export validation did not produce a publish-ready result.'
+}
 
 $result
