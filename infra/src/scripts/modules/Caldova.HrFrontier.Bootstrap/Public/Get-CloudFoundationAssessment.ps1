@@ -6,11 +6,19 @@ function Get-CloudFoundationAssessment {
         [Parameter(Mandatory)] [object]$VerifiedContext,
         [Parameter(Mandatory)] [object]$ToolResolutions,
         [Parameter(Mandatory)] [string]$RunDirectory,
+        [Parameter(Mandatory)] [string]$RepositoryRoot,
         [Parameter(Mandatory)] [scriptblock]$NativeCommandRunner,
         [scriptblock]$WhatIfValidator,
         [datetime]$NowUtc = [datetime]::UtcNow
     )
 
+    if (-not [IO.Path]::IsPathRooted($RepositoryRoot)) {
+        throw 'Cloud assessment repository root must be an absolute path.'
+    }
+    $canonicalRepositoryRoot=[IO.Path]::GetFullPath($RepositoryRoot)
+    if (-not (Test-Path -LiteralPath $canonicalRepositoryRoot -PathType Container)) {
+        throw 'Cloud assessment repository root does not exist.'
+    }
     if ([string]$VerifiedContext.overallStatus -cne 'Verified') {
         throw 'Cloud assessment requires a verified delegated context.'
     }
@@ -49,7 +57,7 @@ function Get-CloudFoundationAssessment {
         -VerifiedContext $VerifiedContext -ToolResolutions $ToolResolutions `
         -RunDirectory $RunDirectory -NativeCommandRunner $NativeCommandRunner
     $gitResult = Invoke-CloudNativeCommand -ToolResolution $ToolResolutions.git `
-        -ArgumentList @('rev-parse','HEAD') -Runner $NativeCommandRunner
+        -ArgumentList @('-C',$canonicalRepositoryRoot,'rev-parse','HEAD') -Runner $NativeCommandRunner
     $sourceCommit = $gitResult.Trim().ToLowerInvariant()
     if ($sourceCommit -notmatch '^[0-9a-f]{40}$') { throw 'Source commit is not a full Git object ID.' }
 
@@ -116,6 +124,7 @@ function Get-CloudFoundationAssessment {
 
     $entraApplication = [pscustomobject][ordered]@{
         state='Blocked';targetId='';applicationExactNameMatchCount=0;providerInput=$null
+        symmetricAuthCount=0;asymmetricAuthCount=0
         reason='Reviewed Entra application intent is unavailable.'
     }
     $entraServicePrincipal = [pscustomobject][ordered]@{
@@ -167,12 +176,25 @@ function Get-CloudFoundationAssessment {
         $desiredDisplayName=if([string]::IsNullOrWhiteSpace($displayName)){
             [string]$app.displayName
         }else{$displayName}
+        $hasCredentialReadBack=(
+            $app.PSObject.Properties.Name -contains 'passwordCredentials' -and
+            $app.PSObject.Properties.Name -contains 'keyCredentials'
+        )
+        $symmetricAuthCount=if($hasCredentialReadBack){@($app.passwordCredentials).Count}else{-1}
+        $asymmetricAuthCount=if($hasCredentialReadBack){@($app.keyCredentials).Count}else{-1}
+        $credentialFree=($hasCredentialReadBack -and
+            $symmetricAuthCount -eq 0 -and $asymmetricAuthCount -eq 0)
         $entraApplication = [pscustomobject][ordered]@{
-            state=$(if([string]$app.displayName -ceq $desiredDisplayName){'Exact'}
+            state=$(if(-not $credentialFree){'Blocked'}
+                elseif([string]$app.displayName -ceq $desiredDisplayName){'Exact'}
                 elseif($entraWriteReady){'Drift'}else{'Blocked'})
             targetId=[string]$app.id;applicationExactNameMatchCount=1
             providerInput=[pscustomobject][ordered]@{displayName=$desiredDisplayName}
-            appId=[string]$app.appId;reason=''
+            appId=[string]$app.appId
+            symmetricAuthCount=$symmetricAuthCount;asymmetricAuthCount=$asymmetricAuthCount
+            reason=$(if(-not $credentialFree){
+                'Entra application is not proven credential-free.'
+            }else{''})
         }
     }
     if ($null -ne $spComponent -and [string]$spComponent.Mode -ceq 'Existing') {
@@ -355,6 +377,7 @@ function Get-CloudFoundationAssessment {
         manualItems=@($manual)
         blockedItems=@($blocked)
         toolVersions=[pscustomobject]$safeTools
+        repositoryRoot=$canonicalRepositoryRoot
         sourceCommit=$sourceCommit
         overallStatus=$(if ($azure.state -in @('Missing','Drift','Exact') -and
             $adoState -in @('Missing','Exact') -and

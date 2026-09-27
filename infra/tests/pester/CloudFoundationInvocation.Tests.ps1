@@ -88,7 +88,8 @@ Describe 'Cloud foundation invocation' {
                 }
             }
             permissionDelta=@();manualItems=@();blockedItems=@();toolVersions=[pscustomobject]$tools
-            sourceCommit=('b'*40);overallStatus='Ready';assessmentDigest=('c'*64)
+            repositoryRoot=$repositoryRoot;sourceCommit=('b'*40)
+            overallStatus='Ready';assessmentDigest=('c'*64)
         }
         $plan=New-CloudFoundationActionPlan -TenantConfiguration $tenant -Assessment $assessment
         $authentication=[pscustomobject][ordered]@{
@@ -114,6 +115,7 @@ Describe 'Cloud foundation invocation' {
         (Get-RunbookContentDigest $reloadedPlan.manifestActions) |
             Should -BeExactly (Get-RunbookContentDigest $manifest.allowedActions)
         $calls=[Collections.Generic.List[string]]::new()
+        $sourceState=[pscustomobject]@{commit=$assessment.sourceCommit}
         $runner={
             param($FilePath,$ArgumentList)
             $command=$ArgumentList -join ' ';$calls.Add($command)
@@ -129,16 +131,42 @@ Describe 'Cloud foundation invocation' {
             if($command -like 'devops security permission list *'){return [pscustomobject]@{exitCode=0;stdout='[{"token":"$PROJECT:vstfs:///Classification/TeamProject/","acesDictionary":{"aad.synthetic-descriptor":{"allow":0,"deny":4}}}]';stderr=''}}
             if($command -eq 'auth list --json'){return [pscustomobject]@{exitCode=0;stdout='[{"name":"hr-caldova25156897-dev","selected":true}]';stderr=''}}
             if($command -like 'org who *'){return [pscustomobject]@{exitCode=0;stdout=("{`"environmentUrl`":`"$($tenant.PowerPlatform.DevUrl)`",`"environmentId`":`"$($tenant.Components.PowerPlatformEnvironmentDev.Id)`",`"user`":`"$($tenant.AdminUpn)`"}");stderr=''}}
-            if($command -eq 'rev-parse HEAD'){return [pscustomobject]@{exitCode=0;stdout=$assessment.sourceCommit;stderr=''}}
+            if($command -eq "-C $repositoryRoot rev-parse HEAD"){return [pscustomobject]@{exitCode=0;stdout=$sourceState.commit;stderr=''}}
             throw "Unexpected command: $command"
         }.GetNewClosure()
 
+        $otherCwd=Join-Path $TestDrive 'different-caller-repository'
+        [IO.Directory]::CreateDirectory($otherCwd) | Out-Null
+        Push-Location $otherCwd
+        try {
+            { & $script:InvokeScript -TenantAlias $tenant.TenantAlias -TenantConfigurationPath $tenantPath `
+                -ExecutionManifestPath $manifestPath -AssessmentPath $assessmentPath -ReportPath $runDirectory `
+                -ApprovedDigest $manifest.digest -Stages DEV -Apply -Confirm:$false `
+                -NativeToolResolver $resolver -NativeCommandRunner $runner `
+                -InteractiveHostProbe { [pscustomobject]@{isInteractive=$true;platform='Windows 11'} } -NowUtc $now } |
+                Should -Throw '*permission changed before Apply*'
+        }
+        finally { Pop-Location }
+        ($calls -join "`n") | Should -Not -Match '(api --method (PUT|POST|PATCH|DELETE)|ad app create|deployment sub create|devops project create)'
+        $calls | Should -Contain "-C $repositoryRoot rev-parse HEAD"
+
+        $assessment.repositoryRoot='C:\different-repository'
+        Write-CanonicalJson $assessment $assessmentPath -Replace | Out-Null
         { & $script:InvokeScript -TenantAlias $tenant.TenantAlias -TenantConfigurationPath $tenantPath `
             -ExecutionManifestPath $manifestPath -AssessmentPath $assessmentPath -ReportPath $runDirectory `
             -ApprovedDigest $manifest.digest -Stages DEV -Apply -Confirm:$false `
             -NativeToolResolver $resolver -NativeCommandRunner $runner `
             -InteractiveHostProbe { [pscustomobject]@{isInteractive=$true;platform='Windows 11'} } -NowUtc $now } |
-            Should -Throw '*permission changed before Apply*'
-        ($calls -join "`n") | Should -Not -Match '(api --method (PUT|POST|PATCH|DELETE)|ad app create|deployment sub create|devops project create)'
+            Should -Throw '*repository root*'
+
+        $assessment.repositoryRoot=$repositoryRoot
+        Write-CanonicalJson $assessment $assessmentPath -Replace | Out-Null
+        $sourceState.commit=('d'*40)
+        { & $script:InvokeScript -TenantAlias $tenant.TenantAlias -TenantConfigurationPath $tenantPath `
+            -ExecutionManifestPath $manifestPath -AssessmentPath $assessmentPath -ReportPath $runDirectory `
+            -ApprovedDigest $manifest.digest -Stages DEV -Apply -Confirm:$false `
+            -NativeToolResolver $resolver -NativeCommandRunner $runner `
+            -InteractiveHostProbe { [pscustomobject]@{isInteractive=$true;platform='Windows 11'} } -NowUtc $now } |
+            Should -Throw '*source commit*'
     }
 }

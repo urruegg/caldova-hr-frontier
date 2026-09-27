@@ -41,12 +41,21 @@ function Invoke-AzureFoundationMutation {
             $read = Invoke-CloudNativeCommand -ToolResolution $ToolResolution -ArgumentList @(
                 'ad','app','show','--id',[string]$created.id,'--output','json'
             ) -Runner $NativeCommandRunner -Json
-            if ([string]$read.displayName -cne $name) { throw 'Entra application postcondition failed.' }
+            if ($read.PSObject.Properties.Name -notcontains 'passwordCredentials' -or
+                $read.PSObject.Properties.Name -notcontains 'keyCredentials') {
+                throw 'Entra application credential-free postcondition was unavailable.'
+            }
+            $symmetricAuthCount=@($read.passwordCredentials).Count
+            $asymmetricAuthCount=@($read.keyCredentials).Count
+            if ([string]$read.displayName -cne $name -or
+                $symmetricAuthCount -ne 0 -or $asymmetricAuthCount -ne 0) {
+                throw 'Entra application postcondition failed.'
+            }
             [pscustomobject]@{status='Changed';readBack=[pscustomobject]@{
                 service='Entra';targetId=[string]$Action.targetId;status='Changed'
                 objectId=[string]$read.id;appId=[string]$read.appId;displayName=[string]$read.displayName
-                symmetricAuthCount=@($read.passwordCredentials).Count
-                asymmetricAuthCount=@($read.keyCredentials).Count
+                symmetricAuthCount=$symmetricAuthCount
+                asymmetricAuthCount=$asymmetricAuthCount
             }}
         }
         'UpdateEntraTargetApplication' {
@@ -57,8 +66,21 @@ function Invoke-AzureFoundationMutation {
             $read = Invoke-CloudNativeCommand -ToolResolution $ToolResolution -ArgumentList @(
                 'ad','app','show','--id',[string]$Action.targetId,'--output','json'
             ) -Runner $NativeCommandRunner -Json
+            if ($read.PSObject.Properties.Name -notcontains 'passwordCredentials' -or
+                $read.PSObject.Properties.Name -notcontains 'keyCredentials') {
+                throw 'Entra application credential-free postcondition was unavailable.'
+            }
+            $symmetricAuthCount=@($read.passwordCredentials).Count
+            $asymmetricAuthCount=@($read.keyCredentials).Count
+            if ([string]$read.displayName -cne [string]$Action.providerInput.displayName -or
+                $symmetricAuthCount -ne 0 -or $asymmetricAuthCount -ne 0) {
+                throw 'Entra application postcondition failed.'
+            }
             [pscustomobject]@{status='Changed';readBack=[pscustomobject]@{
-                service='Entra';targetId=[string]$Action.targetId;status='Changed';objectId=[string]$read.id
+                service='Entra';targetId=[string]$Action.targetId;status='Changed'
+                objectId=[string]$read.id;appId=[string]$read.appId;displayName=[string]$read.displayName
+                symmetricAuthCount=$symmetricAuthCount
+                asymmetricAuthCount=$asymmetricAuthCount
             }}
         }
         'CreateEntraTargetServicePrincipal' {

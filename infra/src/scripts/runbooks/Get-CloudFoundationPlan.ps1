@@ -82,7 +82,8 @@ $context = Test-CloudDelegatedContext -TenantConfiguration $tenant -Stages $Stag
     -InteractiveHostProbe $InteractiveHostProbe
 $assessment = Get-CloudFoundationAssessment -TenantConfiguration $tenant `
     -VerifiedContext $context -ToolResolutions ([pscustomobject]$toolResolutions) `
-    -RunDirectory $resolvedReportPath -NativeCommandRunner $NativeCommandRunner -NowUtc $NowUtc
+    -RunDirectory $resolvedReportPath -RepositoryRoot $repositoryRoot `
+    -NativeCommandRunner $NativeCommandRunner -NowUtc $NowUtc
 $actionPlan = New-CloudFoundationActionPlan -TenantConfiguration $tenant -Assessment $assessment
 $planDigest = Get-RunbookContentDigest -InputObject $actionPlan
 

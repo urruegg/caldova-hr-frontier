@@ -121,13 +121,22 @@ $tenant = Import-TenantConfiguration -Path $tenantPath -ValidationStage Bootstra
 $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
 $assessment = Get-Content -Raw -LiteralPath $assessmentFile | ConvertFrom-Json
 if ([string]$manifest.digest -cne $ApprovedDigest) { throw 'Approved digest does not match the execution manifest.' }
+if ($assessment.PSObject.Properties.Name -notcontains 'repositoryRoot' -or
+    -not [IO.Path]::IsPathRooted([string]$assessment.repositoryRoot) -or
+    -not ([IO.Path]::GetFullPath([string]$assessment.repositoryRoot)).Equals(
+        $repositoryRoot,[StringComparison]::OrdinalIgnoreCase
+    )) {
+    throw 'Approved assessment repository root does not match this runbook repository root.'
+}
 
 $approvedTools = Assert-ApprovedCloudToolResolutions -Approved $manifest.toolVersions `
     -NativeToolResolver $NativeToolResolver
 $initialContext = Test-CloudDelegatedContext -TenantConfiguration $tenant -Stages $Stages `
     -ToolResolutions $approvedTools -NativeCommandRunner $NativeCommandRunner `
     -InteractiveHostProbe $InteractiveHostProbe
-$gitResult = & $NativeCommandRunner ([string]$approvedTools.git.path) @('rev-parse','HEAD')
+$gitResult = & $NativeCommandRunner ([string]$approvedTools.git.path) @(
+    '-C',$repositoryRoot,'rev-parse','HEAD'
+)
 if ($null -eq $gitResult -or [int]$gitResult.exitCode -ne 0) {
     throw 'The current source commit could not be read.'
 }

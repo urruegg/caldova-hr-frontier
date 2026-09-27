@@ -34,6 +34,7 @@ Describe 'Cloud foundation planning' {
         @($command.Parameters.Keys) | Should -Contain 'ReportPath'
         @($command.Parameters.Keys) | Should -Contain 'Stages'
         @($command.Parameters.Keys) | Should -Not -Contain 'Apply'
+        @($command.Parameters.Keys) | Should -Not -Contain 'RepositoryRoot'
     }
 
     It 'maps exact IDs, supported drift, manual surfaces, and exclusions to the closed classification set' {
@@ -103,7 +104,9 @@ Describe 'Cloud foundation planning' {
     It 'feeds an eligible live assessment into the planner without fixture-shape translation' {
         $runDirectory = Join-Path $TestDrive 'live-assessment'
         New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
-        $sourcePath = Join-Path $runDirectory 'main.bicep'
+        $repositoryRoot = Join-Path $TestDrive 'validated-repository'
+        New-Item -ItemType Directory -Path $repositoryRoot -Force | Out-Null
+        $sourcePath = Join-Path $repositoryRoot 'main.bicep'
         [IO.File]::WriteAllText($sourcePath, "targetScope = 'subscription'`n", [Text.UTF8Encoding]::new($false))
         $rulesetInput = [pscustomobject][ordered]@{
             name='Synthetic non-Actions protection';target='branch';enforcement='active'
@@ -194,20 +197,29 @@ Describe 'Cloud foundation planning' {
             if ($command -like 'deployment sub what-if *') {
                 return [pscustomobject]@{exitCode=0;stdout='{"status":"Accepted","properties":{"changes":[]}}';stderr=''}
             }
-            if ($command -eq 'rev-parse HEAD') {
+            if ($command -eq "-C $repositoryRoot rev-parse HEAD") {
                 return [pscustomobject]@{exitCode=0;stdout=('b' * 40);stderr=''}
             }
             throw "Unexpected command: $command"
         }
 
-        $assessment = Get-CloudFoundationAssessment -TenantConfiguration $tenant `
-            -VerifiedContext $context -ToolResolutions $tools -RunDirectory $runDirectory `
-            -NativeCommandRunner $runner -WhatIfValidator { param($Path) $true } `
-            -NowUtc ([datetime]'2026-09-26T12:00:00Z')
+        $otherCwd=Join-Path $TestDrive 'other-repository'
+        New-Item -ItemType Directory -Path $otherCwd -Force | Out-Null
+        Push-Location $otherCwd
+        try {
+            $assessment = Get-CloudFoundationAssessment -TenantConfiguration $tenant `
+                -VerifiedContext $context -ToolResolutions $tools -RunDirectory $runDirectory `
+                -RepositoryRoot $repositoryRoot -NativeCommandRunner $runner `
+                -WhatIfValidator { param($Path) $true } `
+                -NowUtc ([datetime]'2026-09-26T12:00:00Z')
+        }
+        finally { Pop-Location }
+        $assessment.repositoryRoot | Should -BeExactly ([IO.Path]::GetFullPath($repositoryRoot))
         $staleContext=$context.PSObject.Copy()
         $staleContext.verifiedAtUtc='2026-09-26T11:54:59Z'
         { Get-CloudFoundationAssessment -TenantConfiguration $tenant -VerifiedContext $staleContext `
-            -ToolResolutions $tools -RunDirectory $runDirectory -NativeCommandRunner $runner `
+            -ToolResolutions $tools -RunDirectory $runDirectory -RepositoryRoot $repositoryRoot `
+            -NativeCommandRunner $runner `
             -WhatIfValidator { $true } -NowUtc ([datetime]'2026-09-26T12:00:00Z') } |
             Should -Throw '*older than five minutes*'
         $plan = New-CloudFoundationActionPlan -TenantConfiguration $tenant -Assessment $assessment
@@ -238,6 +250,7 @@ Describe 'Cloud foundation planning' {
             }.GetNewClosure()
             $blockedAssessment = Get-CloudFoundationAssessment -TenantConfiguration $tenant `
                 -VerifiedContext $context -ToolResolutions $tools -RunDirectory $runDirectory `
+                -RepositoryRoot $repositoryRoot `
                 -NativeCommandRunner $permissionRunner -WhatIfValidator { param($Path) $true } `
                 -NowUtc ([datetime]'2026-09-26T12:00:00Z')
             $blockedPlan = New-CloudFoundationActionPlan -TenantConfiguration $tenant -Assessment $blockedAssessment
@@ -257,6 +270,7 @@ Describe 'Cloud foundation planning' {
         }.GetNewClosure()
         $withoutFormat=Get-CloudFoundationAssessment -TenantConfiguration $tenant `
             -VerifiedContext $context -ToolResolutions $tools -RunDirectory $runDirectory `
+            -RepositoryRoot $repositoryRoot `
             -NativeCommandRunner $withoutFormatRunner -WhatIfValidator { param($Path) $true } `
             -NowUtc ([datetime]'2026-09-26T12:00:00Z')
         $withoutFormat.services.azure.state | Should -BeExactly 'Drift'
@@ -275,6 +289,7 @@ Describe 'Cloud foundation planning' {
             }.GetNewClosure()
             $failedAssessment=Get-CloudFoundationAssessment -TenantConfiguration $tenant `
                 -VerifiedContext $context -ToolResolutions $tools -RunDirectory $runDirectory `
+                -RepositoryRoot $repositoryRoot `
                 -NativeCommandRunner $failureRunner -WhatIfValidator { param($Path) $true } `
                 -NowUtc ([datetime]'2026-09-26T12:00:00Z')
             if($failure.Service -eq 'entra'){
@@ -283,6 +298,39 @@ Describe 'Cloud foundation planning' {
                 $failedAssessment.services.github.ruleset.state | Should -BeExactly 'Blocked'
             }
             $failedAssessment.overallStatus | Should -BeExactly 'Blocked'
+        }
+
+        $existingTenant=$tenant | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+        $existingTenant.Components.EntraApplication.Mode='Existing'
+        $existingTenant.Components.EntraApplication.Id='app-object-id'
+        foreach($credentialCase in @(
+            @{Name='clean';Passwords=@();Keys=@();Expected='Exact';Symmetric=0;Asymmetric=0},
+            @{Name='secret';Passwords=@(@{id='secret'});Keys=@();Expected='Blocked';Symmetric=1;Asymmetric=0},
+            @{Name='certificate';Passwords=@();Keys=@(@{id='cert'});Expected='Blocked';Symmetric=0;Asymmetric=1},
+            @{Name='both';Passwords=@(@{id='secret'});Keys=@(@{id='cert'});Expected='Blocked';Symmetric=1;Asymmetric=1}
+        )){
+            $case=$credentialCase
+            $baseRunner=$runner
+            $credentialRunner={
+                param($FilePath,$ArgumentList)
+                if(($ArgumentList -join ' ') -eq 'ad app show --id app-object-id --output json'){
+                    $payload=[pscustomobject]@{
+                        id='app-object-id';appId='44444444-4444-4444-4444-444444444444'
+                        displayName='Synthetic target application'
+                        passwordCredentials=$case.Passwords;keyCredentials=$case.Keys
+                    }
+                    return [pscustomobject]@{exitCode=0;stdout=($payload|ConvertTo-Json -Depth 8 -Compress);stderr=''}
+                }
+                & $baseRunner $FilePath $ArgumentList
+            }.GetNewClosure()
+            $credentialAssessment=Get-CloudFoundationAssessment -TenantConfiguration $existingTenant `
+                -VerifiedContext $context -ToolResolutions $tools -RunDirectory $runDirectory `
+                -RepositoryRoot $repositoryRoot -NativeCommandRunner $credentialRunner `
+                -WhatIfValidator { $true } -NowUtc ([datetime]'2026-09-26T12:00:00Z')
+            $app=$credentialAssessment.services.entra.application
+            $app.state | Should -BeExactly $case.Expected -Because $case.Name
+            $app.symmetricAuthCount | Should -Be $case.Symmetric
+            $app.asymmetricAuthCount | Should -Be $case.Asymmetric
         }
     }
 }

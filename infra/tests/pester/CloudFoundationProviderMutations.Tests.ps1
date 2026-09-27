@@ -17,6 +17,7 @@ Describe 'Cloud foundation provider mutations' {
             github=[pscustomobject]@{login='synthetic-admin';repositoryId='67890'}
             azure=[pscustomobject]@{subscriptionId=$script:Tenant.SubscriptionId;userType='user'}
             azureDevOps=[pscustomobject]@{organizationUrl=$script:Tenant.AzureDevOps.OrganizationUrl;actingUserId='ado-user-synthetic'}
+            entra=[pscustomobject]@{activeDirectoryRoleTemplateIds=@('cf1c38e5-3621-4004-a7cb-879624dced7c')}
         }
         $script:Tools = [pscustomobject]@{
             gh=[pscustomobject]@{name='gh';path='C:\SyntheticTools\gh.exe';version='2.80.0';sha256=('b'*64)}
@@ -138,6 +139,67 @@ Describe 'Cloud foundation provider mutations' {
                 -VerifiedContext $script:Context -ToolResolutions $script:Tools `
                 -RunDirectory $script:RunDirectory -RepositoryRoot $script:RepositoryRoot `
                 -NativeCommandRunner { throw 'must not execute' } } | Should -Throw
+        }
+    }
+
+    It 'requires credential-free exact Entra application create and update read-back' {
+            foreach($actionName in @('CreateEntraTargetApplication','UpdateEntraTargetApplication')){
+                foreach($drift in @('displayName','secret','certificate','both')){
+                    $input=[pscustomobject]@{displayName='Synthetic target application'}
+                    $action=[pscustomobject]@{
+                        service='Azure';targetType='EntraApplication';targetId='app-object-id'
+                        classification=$(if($actionName -eq 'CreateEntraTargetApplication'){'Create'}else{'Update'})
+                        action=$actionName;method='AZCLI';uri='entra://applications'
+                        providerInput=$input;bodyDigest=Get-RunbookContentDigest $input
+                    }
+                    $runner={
+                        param($FilePath,$ArgumentList)
+                        $command=$ArgumentList -join ' '
+                        if($command -like 'ad app list *'){return [pscustomobject]@{exitCode=0;stdout='[]';stderr=''}}
+                        if($command -like 'ad app create *'){return [pscustomobject]@{exitCode=0;stdout='{"id":"app-object-id"}';stderr=''}}
+                        if($command -like 'ad app update *'){return [pscustomobject]@{exitCode=0;stdout='';stderr=''}}
+                        if($command -like 'ad app show *'){
+                            $payload=[pscustomobject]@{
+                                id='app-object-id';appId='44444444-4444-4444-4444-444444444444'
+                                displayName=$(if($drift -eq 'displayName'){'Drifted'}else{'Synthetic target application'})
+                                passwordCredentials=$(if($drift -in @('secret','both')){@(@{id='secret'})}else{@()})
+                                keyCredentials=$(if($drift -in @('certificate','both')){@(@{id='cert'})}else{@()})
+                            }
+                            return [pscustomobject]@{exitCode=0;stdout=($payload|ConvertTo-Json -Depth 8 -Compress);stderr=''}
+                        }
+                        throw "Unexpected command: $command"
+                    }.GetNewClosure()
+                    { Invoke-CloudFoundationAction -Action $action -TenantConfiguration $script:Tenant `
+                        -VerifiedContext $script:Context -ToolResolutions $script:Tools `
+                        -RunDirectory $script:RunDirectory -RepositoryRoot $script:RepositoryRoot `
+                        -NativeCommandRunner $runner } | Should -Throw '*postcondition*'
+            }
+
+            foreach($actionName in @('CreateEntraTargetApplication','UpdateEntraTargetApplication')){
+                $input=[pscustomobject]@{displayName='Synthetic target application'}
+                $action=[pscustomobject]@{
+                    service='Azure';targetType='EntraApplication';targetId='app-object-id'
+                    classification=$(if($actionName -eq 'CreateEntraTargetApplication'){'Create'}else{'Update'})
+                    action=$actionName;method='AZCLI';uri='entra://applications'
+                    providerInput=$input;bodyDigest=Get-RunbookContentDigest $input
+                }
+                $runner={
+                    param($FilePath,$ArgumentList)
+                    $command=$ArgumentList -join ' '
+                    if($command -like 'ad app list *'){return [pscustomobject]@{exitCode=0;stdout='[]';stderr=''}}
+                    if($command -like 'ad app create *'){return [pscustomobject]@{exitCode=0;stdout='{"id":"app-object-id"}';stderr=''}}
+                    if($command -like 'ad app update *'){return [pscustomobject]@{exitCode=0;stdout='';stderr=''}}
+                    if($command -like 'ad app show *'){return [pscustomobject]@{exitCode=0;stdout='{"id":"app-object-id","appId":"44444444-4444-4444-4444-444444444444","displayName":"Synthetic target application","passwordCredentials":[],"keyCredentials":[]}';stderr=''}}
+                    throw "Unexpected command: $command"
+                }
+                $result=Invoke-CloudFoundationAction -Action $action -TenantConfiguration $script:Tenant `
+                    -VerifiedContext $script:Context -ToolResolutions $script:Tools `
+                    -RunDirectory $script:RunDirectory -RepositoryRoot $script:RepositoryRoot `
+                    -NativeCommandRunner $runner
+                $result.readBack.symmetricAuthCount | Should -Be 0
+                $result.readBack.asymmetricAuthCount | Should -Be 0
+                $result.readBack.displayName | Should -BeExactly 'Synthetic target application'
+            }
         }
     }
 
