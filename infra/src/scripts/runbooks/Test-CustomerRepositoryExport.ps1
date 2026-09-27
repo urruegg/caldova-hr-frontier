@@ -257,7 +257,21 @@ if ([string]::IsNullOrWhiteSpace($operatorId) -or $operatorId -match '[\x00-\x1F
 $manifest = Import-CustomerExportManifest -Path $ManifestPath
 $manifestDigest = Get-RunbookContentDigest -InputObject $manifest
 $executionManifest = Get-Content -Raw -LiteralPath $ExecutionManifestPath | ConvertFrom-Json
-$toolIdentities = $executionManifest.toolVersions
+$authentication = [pscustomobject]@{ executionHost = 'InteractiveWindows11PowerShell'; mode = 'NotApplicable' }
+Test-RunbookExecutionManifest -Manifest $executionManifest -ApprovedDigest $ApprovedDigest `
+    -CurrentSourceCommit ([string]$executionManifest.sourceCommit) `
+    -CurrentAssessmentDigest ([string]$executionManifest.assessmentDigest) `
+    -CurrentAuthenticationContext $executionManifest.authentication `
+    -AllowedActionNames @('CreateCustomerExport','CopyTrackedBlob','ApplyStructuredReplacement','ValidateCustomerExport','PromoteCustomerExport') `
+    -NowUtc $NowUtc -MaximumAge ([timespan]::FromMinutes(30)) | Out-Null
+$toolIdentities = New-ToolIdentities -ValidationSuites @($manifest.validationSuites) `
+    -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider -Runner $NativeCommandRunner
+foreach ($tool in @($executionManifest.toolVersions.PSObject.Properties.Name)) {
+    if ($null -eq $toolIdentities.PSObject.Properties[$tool] -or
+        -not (Test-ExactToolIdentity -Expected $executionManifest.toolVersions.$tool -Actual $toolIdentities.$tool)) {
+        throw 'Required executable identity changed before approved manifest validation.'
+    }
+}
 $gitExecutable = [pscustomobject]@{ path = $toolIdentities.Git.path; sha256 = $toolIdentities.Git.sha256 }
 $sourceSnapshot = Get-CustomerExportSourceSnapshot -RepositoryRoot $SourceRoot -GitExecutable $gitExecutable -NativeCommandRunner $NativeCommandRunner -GitBlobReader $GitBlobReader
 $markerCatalog = Get-CustomerSourceMarkerCatalog -RepositoryRoot $SourceRoot -ExpectedSourceCommit $ExpectedSourceCommit -TrackedFiles @($sourceSnapshot.trackedFiles) `
@@ -267,7 +281,6 @@ $assessment = Get-CustomerExportAssessment -SourceRoot $SourceRoot -ExpectedSour
     -DestinationRoot $DestinationRoot -Manifest $manifest -ManifestDigest $manifestDigest -SourceSnapshot $sourceSnapshot `
     -ToolIdentities $toolIdentities -MarkerCatalogProof $markerCatalog -GitExecutable $gitExecutable -GitBlobReader $GitBlobReader `
     -AllowExistingDestination
-$authentication = [pscustomobject]@{ executionHost = 'InteractiveWindows11PowerShell'; mode = 'NotApplicable' }
 Test-RunbookExecutionManifest -Manifest $executionManifest -ApprovedDigest $ApprovedDigest `
     -CurrentSourceCommit $assessment.sourceCommit -CurrentAssessmentDigest $assessment.digest `
     -CurrentAuthenticationContext $authentication -AllowedActionNames @('CreateCustomerExport','CopyTrackedBlob','ApplyStructuredReplacement','ValidateCustomerExport','PromoteCustomerExport') `

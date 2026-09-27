@@ -521,6 +521,25 @@ Describe 'Customer export sanitization' {
         @($result.findings | Select-Object -ExpandProperty category -Unique) | Should -Contain 'Contact'
     }
 
+    It 'requires exact reviewed classification for unsupported UTF-8 text formats' {
+        $root = Join-Path $TestDrive 'unsupported-text'
+        [IO.Directory]::CreateDirectory($root) | Out-Null
+        $path = Join-Path $root 'records.csv'
+        [IO.File]::WriteAllText($path, "employeeId,name`n4711,Jane Doe", [Text.UTF8Encoding]::new($false))
+        $digest = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+
+        $result = Test-CustomerExportSyntheticData -StagingRoot $root -SourceCommit ('a' * 40) `
+            -SyntheticDataPolicy $script:SyntheticPolicy -FileClassifications @() `
+            -FileDigests @{ 'records.csv' = [pscustomobject]@{
+                sourceBlobSha256 = $digest
+                expectedOutputSha256 = $digest
+            } }
+
+        $result.status | Should -Be 'Failed'
+        @($result.findings | Where-Object category -eq 'ReviewedNonPersonalClassificationRequired').Count |
+            Should -Be 1
+    }
+
     It 'requires an exact digest-bound classification for an inconclusive file' {
         $classification = [pscustomobject]@{
             path = 'docs/reviewed-example.md'

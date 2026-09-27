@@ -102,6 +102,17 @@ function Invoke-GitHubFoundationMutation {
         ) -Runner $NativeCommandRunner -Json | Out-Null
         $final = Invoke-CloudNativeCommand -ToolResolution $ToolResolution `
             -ArgumentList @('api',$repositoryUri) -Runner $NativeCommandRunner -Json
+        $finalMetadata = [ordered]@{}
+        foreach ($key in $Action.providerInput.PSObject.Properties.Name) {
+            if ($final.PSObject.Properties.Name -notcontains $key) {
+                throw 'GitHub repository metadata postcondition failed.'
+            }
+            $finalMetadata[$key] = $final.$key
+        }
+        if ([string]$final.id -cne [string]$Action.targetId -or
+            (Get-RunbookContentDigest ([pscustomobject]$finalMetadata)) -cne [string]$Action.bodyDigest) {
+            throw 'GitHub repository metadata postcondition failed.'
+        }
         [pscustomobject][ordered]@{
             status='Changed'
             readBack=[pscustomobject][ordered]@{

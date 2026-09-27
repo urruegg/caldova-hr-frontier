@@ -126,6 +126,52 @@ Describe 'Cloud foundation provider mutations' {
         $result.readBack.rulesetId | Should -BeExactly '444'
     }
 
+    It 'refuses repository metadata when approved fields differ after PATCH' {
+        $input = [pscustomobject][ordered]@{
+            description = 'Approved description'
+            has_issues = $true
+        }
+        $action = [pscustomobject][ordered]@{
+            service = 'GitHub'
+            targetType = 'GitHubRepository'
+            targetId = '67890'
+            classification = 'Update'
+            action = 'UpdateGitHubRepositoryMetadata'
+            method = 'PATCH'
+            uri = 'repos/synthetic-owner/synthetic-repository'
+            providerInput = $input
+            bodyDigest = Get-RunbookContentDigest $input
+        }
+        $repositoryReads = 0
+        $runner = {
+            param($FilePath,$ArgumentList)
+            $command = $ArgumentList -join ' '
+            if ($command -eq 'api repos/synthetic-owner/synthetic-repository') {
+                $repositoryReads++
+                $description = if ($repositoryReads -eq 1) { 'Before' } else { 'Provider changed value' }
+                return [pscustomobject]@{
+                    exitCode = 0
+                    stdout = (@{
+                        id = 67890
+                        permissions = @{ admin = $true }
+                        description = $description
+                        has_issues = $true
+                    } | ConvertTo-Json -Compress)
+                    stderr = ''
+                }
+            }
+            if ($command -match '^api --method PATCH ') {
+                return [pscustomobject]@{exitCode=0;stdout='{"id":67890}';stderr=''}
+            }
+            throw "Unexpected command: $command"
+        }.GetNewClosure()
+
+        { Invoke-CloudFoundationAction -Action $action -TenantConfiguration $script:Tenant `
+            -VerifiedContext $script:Context -ToolResolutions $script:Tools `
+            -RunDirectory $script:RunDirectory -RepositoryRoot $script:RepositoryRoot `
+            -NativeCommandRunner $runner } | Should -Throw '*metadata postcondition*'
+    }
+
     It 'rejects unknown, non-mutating, and body-tampered actions before provider execution' {
         foreach ($change in @(
             @{action='Unknown';service='GitHub'},

@@ -321,10 +321,24 @@ $resolvedReportPath = Resolve-RunbookReportPath -RunId $runId -Path $ReportPath 
 
 $manifest = Import-CustomerExportManifest -Path $ManifestPath
 $manifestDigest = Get-RunbookContentDigest -InputObject $manifest
+$authentication = [pscustomobject]@{ executionHost = 'InteractiveWindows11PowerShell'; mode = 'NotApplicable' }
 $loadedExecutionManifest = $null
 if ($Apply) {
     $loadedExecutionManifest = Get-Content -Raw -LiteralPath $ExecutionManifestPath | ConvertFrom-Json
-    $toolIdentities = $loadedExecutionManifest.toolVersions
+    Test-RunbookExecutionManifest -Manifest $loadedExecutionManifest -ApprovedDigest $ApprovedDigest `
+        -CurrentSourceCommit ([string]$loadedExecutionManifest.sourceCommit) `
+        -CurrentAssessmentDigest ([string]$loadedExecutionManifest.assessmentDigest) `
+        -CurrentAuthenticationContext $loadedExecutionManifest.authentication `
+        -AllowedActionNames @('CreateCustomerExport', 'CopyTrackedBlob', 'ApplyStructuredReplacement', 'ValidateCustomerExport', 'PromoteCustomerExport') `
+        -NowUtc $NowUtc -MaximumAge ([timespan]::FromMinutes(30)) | Out-Null
+    $toolIdentities = New-ToolIdentities -ValidationSuites @($manifest.validationSuites) `
+        -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider -Runner $NativeCommandRunner
+    foreach ($tool in @($loadedExecutionManifest.toolVersions.PSObject.Properties.Name)) {
+        if ($null -eq $toolIdentities.PSObject.Properties[$tool] -or
+            -not (Test-ExactToolIdentity -Expected $loadedExecutionManifest.toolVersions.$tool -Actual $toolIdentities.$tool)) {
+            throw 'Required executable identity changed before approved manifest validation.'
+        }
+    }
 }
 else {
     $toolIdentities = New-ToolIdentities -ValidationSuites @($manifest.validationSuites) -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider -Runner $NativeCommandRunner
@@ -342,7 +356,6 @@ $assessment = Get-CustomerExportAssessment -SourceRoot $SourceRoot -ExpectedSour
     -SourceSnapshot $sourceSnapshot -ToolIdentities $toolIdentities -MarkerCatalogProof $markerCatalog `
     -GitExecutable $gitExecutable -GitBlobReader $GitBlobReader
 $evidenceToolVersions = ConvertTo-EvidenceToolVersions -ToolIdentities $assessment.toolIdentities
-$authentication = [pscustomobject]@{ executionHost = 'InteractiveWindows11PowerShell'; mode = 'NotApplicable' }
 $executionManifest = New-RunbookExecutionManifest -RunId $runId -Kind CustomerExport `
     -TargetStableId $assessment.destinationStableId -SourceCommit $assessment.sourceCommit `
     -AssessmentDigest $assessment.digest -AuthenticationContext $authentication `

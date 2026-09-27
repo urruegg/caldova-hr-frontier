@@ -20,6 +20,8 @@ function Test-CustomerExportSyntheticBytes {
     }
 
     $text = [string]$textKind.text
+    $isJson = $Path.EndsWith('.json', [StringComparison]::OrdinalIgnoreCase)
+    $isMarkdown = $Path.EndsWith('.md', [StringComparison]::OrdinalIgnoreCase)
     $reservedNames = @($SyntheticDataPolicy.reservedNames)
     $reservedDomains = @($SyntheticDataPolicy.reservedDomains)
     $reservedPrefixes = @($SyntheticDataPolicy.reservedIdPrefixes)
@@ -45,7 +47,7 @@ function Test-CustomerExportSyntheticBytes {
         return $false
     }
 
-    if ($Path.EndsWith('.json', [StringComparison]::OrdinalIgnoreCase)) {
+    if ($isJson) {
         try {
             $document = ConvertFrom-CustomerExportJson -Text $text
             $stack = [Collections.Generic.Stack[object]]::new()
@@ -89,6 +91,13 @@ function Test-CustomerExportSyntheticBytes {
         catch {
             return [pscustomobject]@{ status = 'Inconclusive'; findings = @([pscustomobject]@{ path = $Path; category = 'Parse'; reason = 'Structured file could not be parsed.' }) }
         }
+    }
+    elseif (-not $isMarkdown) {
+        $findings.Add([pscustomobject]@{
+            path = $Path
+            category = 'UnsupportedTextFormat'
+            reason = 'Unsupported UTF-8 text format requires reviewed classification.'
+        })
     }
 
     foreach ($match in [regex]::Matches($text, '[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}', 'IgnoreCase')) {

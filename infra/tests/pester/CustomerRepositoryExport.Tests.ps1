@@ -440,6 +440,70 @@ $result = & $runner $GitPath @('-C', $RepositoryRoot, 'sparse-checkout', 'list')
 }
 
 Describe 'New-CustomerRepositoryExport gates' {
+    It 'never executes a manifest-supplied Git path before approval validation' {
+        foreach ($scriptName in @('New-CustomerRepositoryExport', 'Test-CustomerRepositoryExport')) {
+            $fixture = New-CustomerExportFixture
+            & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
+                -DestinationRoot $fixture.Destination -ManifestPath $fixture.ManifestPath -ReportPath $fixture.Report `
+                -NativeCommandRunner $fixture.NativeCommandRunner -CommandResolver $fixture.CommandResolver `
+                -FileIdentityProvider $fixture.FileIdentityProvider -GitBlobReader $fixture.GitBlobReader `
+                -ValidationRunner $fixture.ValidationRunner -InteractiveHostProbe $fixture.InteractiveHostProbe `
+                -PlatformProbe $fixture.PlatformProbe -OperatorIdProvider $fixture.OperatorIdProvider | Out-Null
+
+            $executionManifestPath = Join-Path $fixture.Report 'customer-export-execution-manifest.json'
+            $executionManifest = Get-Content -Raw -LiteralPath $executionManifestPath | ConvertFrom-Json
+            $executionManifest.toolVersions.Git.path = 'C:\Malicious\payload.exe'
+            $unsignedManifest = [ordered]@{}
+            foreach ($property in $executionManifest.PSObject.Properties) {
+                if ($property.Name -cne 'digest') {
+                    $unsignedManifest[$property.Name] = $property.Value
+                }
+            }
+            $executionManifest.digest = Get-RunbookContentDigest -InputObject $unsignedManifest
+            $approvedDigest = [string]$executionManifest.digest
+            [IO.File]::WriteAllText(
+                $executionManifestPath,
+                ($executionManifest | ConvertTo-Json -Depth 30),
+                [Text.UTF8Encoding]::new($false)
+            )
+            $calls = [Collections.Generic.List[string]]::new()
+            $fixtureRunner = $fixture.NativeCommandRunner
+            $recordingRunner = {
+                param($file, $arguments)
+                [void]$calls.Add([string]$file)
+                & $fixtureRunner $file $arguments
+            }.GetNewClosure()
+
+            $common = @{
+                SourceRoot = $fixture.Source
+                ExpectedSourceCommit = $fixture.ExpectedSourceCommit
+                DestinationRoot = $fixture.Destination
+                ManifestPath = $fixture.ManifestPath
+                ExecutionManifestPath = $executionManifestPath
+                ApprovedDigest = $approvedDigest
+                NativeCommandRunner = $recordingRunner
+                CommandResolver = $fixture.CommandResolver
+                FileIdentityProvider = $fixture.FileIdentityProvider
+                GitBlobReader = $fixture.GitBlobReader
+                ValidationRunner = $fixture.ValidationRunner
+                InteractiveHostProbe = $fixture.InteractiveHostProbe
+                PlatformProbe = $fixture.PlatformProbe
+                OperatorIdProvider = $fixture.OperatorIdProvider
+            }
+            if ($scriptName -eq 'New-CustomerRepositoryExport') {
+                $common.ReportPath = $fixture.Report
+                { & $global:CustomerExportEntryPath @common -Apply -Confirm:$false } |
+                    Should -Throw '*executable identity changed*'
+            }
+            else {
+                $common.ReportPath = Join-Path (Split-Path $fixture.Report -Parent) 'validation'
+                { & $global:CustomerExportValidatorPath @common } |
+                    Should -Throw '*executable identity changed*'
+            }
+            $calls | Should -Not -Contain 'C:\Malicious\payload.exe'
+        }
+    }
+
     It 'plans with the production default Git blob reader' {
         $fixture = New-RealGitCustomerExportFixture
         & $global:CustomerExportEntryPath -SourceRoot $fixture.Source -ExpectedSourceCommit $fixture.ExpectedSourceCommit `
