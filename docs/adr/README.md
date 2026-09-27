@@ -30,6 +30,7 @@
 | [0009](0009-workday-access-via-connector-behind-governed-layer.md) | Workday access through the Microsoft connector, behind a governed access layer | Accepted |
 | [0010](0010-organizational-data-service-as-people-context.md) | Organizational Data Service as people context, not an integration path | **Proposed** |
 | [0011](0011-workflow-first-process-architecture.md) | Workflow-first process architecture — the workflow owns the process, the agent owns the judgement | Accepted |
+| [0012](0012-per-tenant-github-repository-and-account-topology.md) | Per-tenant GitHub repository and account topology — one repository, one Azure DevOps organization, per tenant | Proposed |
 
 ADRs 0001–0004 are Proposed Baseline candidates from the infrastructure/governance intake (Phase 1); they are not yet accepted repository decisions. ADRs 0005–0011 are the HR solution architecture set from the Phase 4 intake; their own "Accepted"/"Proposed" status reflects the design package's internal decision tracking and is likewise pending repository-level ratification. All Accepted records among 0005–0011 are **pending GF ratification** — accepted as the design position of this package, not yet countersigned by GF.
 
