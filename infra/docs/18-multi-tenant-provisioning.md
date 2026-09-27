@@ -70,6 +70,14 @@ Managed identities remain future workload identities and are not shared bootstra
 
 Tenant 2 has one reviewed discovery manifest. Its discovery evidence, stable component IDs, explicit intent, and Bicep parameters remain absent until attended discovery and review. Tenant 3 artifacts remain absent and must not be created as placeholders or speculative configuration.
 
+## Tenant 1 Blueprint Verification
+
+`infra/tests/pester/TenantBlueprintVerification.Tests.ps1` proves Tenant 1's manifest and discovery evidence are consistent: every component the manifest declares `Mode = 'Existing'` has a matching, `Status: 'Found'` resource in `infra/evidence/discovery/caldova25156897.json`, by both `Type` and stable `Id`. Re-run this suite whenever Tenant 1's manifest or evidence file changes, and before pointing Tenant 2's or Tenant 3's owner at this repository as the reference blueprint.
+
+This proves the manifest and evidence agree with each other. It does not prove the underlying Azure, Azure DevOps, or GitHub resources still exist - that requires fresh, live discovery, which remains a separate, attended action.
+
+Separately, `infra/src/scripts/Initialize-TenantTrust.ps1` was reviewed (2026-09-27) against Tenant 1's six remaining `Mode = 'Create'` components (`EntraApplication`, `EntraServicePrincipal`, `EntraFederatedIdentityCredential`, `GitHubEnvironment`, `AzureDevOpsServicePrincipalEntitlement`, `AzureDevOpsReadersMembership`) and confirmed complete and gap-free: each has its own plan item, mutation-queue entry, and `ShouldProcess`-gated execution block in that script. Running it live remains a separate, attended activity - this review only confirms the path exists and is correct, not that it has been executed.
+
 ## Future Onboarding Sequence
 
 For one approved tenant at a time:
