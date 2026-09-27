@@ -2,14 +2,18 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
-| **References** | [Approved Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../reviews/2026-09-17-architecture-baseline-source-inventory.json) |
+| **References** | [Approved Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../reviews/2026-09-17-architecture-baseline-source-inventory.json), [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) |
 
 This candidate is not an accepted repository decision until attended review approves it.
+
+## Revision Note (v1.1)
+
+The "One organisation only" item under Consequences → Negative, below, was originally recorded as a limitation to accept while one repository served multiple tenants. Live verification later confirmed it is a real, enforced platform constraint, not a soft preference, and [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) has since turned it around: rather than a cost of a shared repository, it is now the reason each tenant gets its own dedicated repository. This ADR's original text is left intact below — the reasoning stays useful even though the multi-tenant repository assumption it was written against has changed; read the "One organisation only" line together with ADR-0012.
 
 ## Context
 

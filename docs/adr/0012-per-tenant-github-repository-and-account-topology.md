@@ -5,7 +5,7 @@
 | **Version** | 1.0 |
 | **Date** | 2026-09-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed |
+| **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
 | **References** | [ADR-0001](0001-azure-devops-as-engineering-control-plane.md), [ADR-0002](0002-github-first-bootstrap-and-the-role-of-azure-repos.md), [ADR-0004](0004-domain-solution-architecture-and-publisher.md), [Azure DevOps and GitHub single source of truth design](../specs/2026-09-24-azure-devops-github-single-source-of-truth-design.md) |
 
