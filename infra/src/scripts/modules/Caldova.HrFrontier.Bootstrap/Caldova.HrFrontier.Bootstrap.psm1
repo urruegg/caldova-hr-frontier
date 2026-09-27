@@ -39,4 +39,6 @@ Export-ModuleMember -Function @(
     'Convert-CustomerExportBlob'
     'Invoke-CustomerStructuredReplacement'
     'Get-CustomerExportResidual'
+    'Test-CustomerExportSyntheticData'
+    'Test-CustomerExportContent'
 )

@@ -158,4 +158,99 @@ Describe 'Customer export source isolation' {
                 -GitBlobReader ({ param($gitPath, $root, $commit, $path) $bytes }.GetNewClosure())
         } | Should -Throw '*catalog source assertion*'
     }
+
+    It 'excludes an inconclusive file without an exact reviewed classification' {
+        $bytes = [Text.UTF8Encoding]::new($false).GetBytes('Reviewer name: Synthetic Reviewer')
+        $blobSha = (Get-FileHash -InputStream ([IO.MemoryStream]::new($bytes)) -Algorithm SHA256).Hash.ToLowerInvariant()
+        $snapshot = [pscustomobject]@{
+            trackedFiles = @([pscustomobject]@{ path = 'docs/reviewed-example.md'; mode = '100644'; blobSha256 = $blobSha })
+        }
+        $manifest = [pscustomobject]@{
+            retainedTenantArtifacts = @()
+            fileClassifications = @()
+            replacements = @()
+            syntheticDataPolicy = [pscustomobject]@{
+                reservedNames = @('Synthetic Reviewer')
+                reservedDomains = @('example.invalid')
+                reservedIdPrefixes = @('synthetic-')
+            }
+        }
+        $assessment = Get-CustomerExportAssessment -SourceRoot $TestDrive -ExpectedSourceCommit ('a' * 40) `
+            -DestinationRoot (Join-Path ([IO.Path]::GetFullPath($TestDrive)) '..\export') `
+            -Manifest $manifest -ManifestDigest ('b' * 64) -SourceSnapshot $snapshot `
+            -ToolIdentities ([pscustomobject]@{ Git = [pscustomobject]@{ path='C:\Approved\git.exe'; sha256=('c' * 64) } }) `
+            -MarkerCatalogProof ([pscustomobject]@{ digest=('d' * 64) }) `
+            -GitExecutable ([pscustomobject]@{ path='C:\Approved\git.exe'; sha256=('c' * 64) }) `
+            -GitBlobReader ({ param($gitPath,$root,$commit,$path) $bytes }.GetNewClosure())
+
+        @($assessment.copyFiles) | Should -Be @()
+        @($assessment.exclusions | Where-Object reason -eq 'ReviewedNonPersonalClassificationRequired').Count | Should -Be 1
+    }
+
+    It 'refuses a classification whose expected output digest does not match the computed staged bytes' {
+        $bytes = [Text.UTF8Encoding]::new($false).GetBytes('Reviewer name: Synthetic Reviewer')
+        $blobSha = (Get-FileHash -InputStream ([IO.MemoryStream]::new($bytes)) -Algorithm SHA256).Hash.ToLowerInvariant()
+        $manifest = [pscustomobject]@{
+            retainedTenantArtifacts = @()
+            replacements = @()
+            syntheticDataPolicy = [pscustomobject]@{
+                reservedNames = @('Synthetic Reviewer')
+                reservedDomains = @('example.invalid')
+                reservedIdPrefixes = @('synthetic-')
+            }
+            fileClassifications = @([pscustomobject]@{
+                path = 'docs/reviewed-example.md'
+                sourceBlobSha256 = $blobSha
+                expectedOutputSha256 = ('f' * 64)
+                classification = 'ReviewedNonPersonal'
+                reason = 'Reviewed narrative.'
+            })
+        }
+        $snapshot = [pscustomobject]@{
+            trackedFiles = @([pscustomobject]@{ path = 'docs/reviewed-example.md'; mode = '100644'; blobSha256 = $blobSha })
+        }
+        {
+            Get-CustomerExportAssessment -SourceRoot $TestDrive -ExpectedSourceCommit ('a' * 40) `
+                -DestinationRoot (Join-Path ([IO.Path]::GetFullPath($TestDrive)) '..\export-mismatch') `
+                -Manifest $manifest -ManifestDigest ('b' * 64) -SourceSnapshot $snapshot `
+                -ToolIdentities ([pscustomobject]@{ Git = [pscustomobject]@{ path='C:\Approved\git.exe'; sha256=('c' * 64) } }) `
+                -MarkerCatalogProof ([pscustomobject]@{ digest=('d' * 64) }) `
+                -GitExecutable ([pscustomobject]@{ path='C:\Approved\git.exe'; sha256=('c' * 64) }) `
+                -GitBlobReader ({ param($gitPath,$root,$commit,$path) $bytes }.GetNewClosure())
+        } | Should -Throw '*expected output digest*'
+    }
+
+    It 'includes the same path only when both source and output digests match exactly' {
+        $bytes = [Text.UTF8Encoding]::new($false).GetBytes('Reviewer name: Synthetic Reviewer')
+        $blobSha = (Get-FileHash -InputStream ([IO.MemoryStream]::new($bytes)) -Algorithm SHA256).Hash.ToLowerInvariant()
+        $manifest = [pscustomobject]@{
+            retainedTenantArtifacts = @()
+            replacements = @()
+            syntheticDataPolicy = [pscustomobject]@{
+                reservedNames = @('Synthetic Reviewer')
+                reservedDomains = @('example.invalid')
+                reservedIdPrefixes = @('synthetic-')
+            }
+            fileClassifications = @([pscustomobject]@{
+                path = 'docs/reviewed-example.md'
+                sourceBlobSha256 = $blobSha
+                expectedOutputSha256 = $blobSha
+                classification = 'ReviewedNonPersonal'
+                reason = 'Reviewed narrative.'
+            })
+        }
+        $snapshot = [pscustomobject]@{
+            trackedFiles = @([pscustomobject]@{ path = 'docs/reviewed-example.md'; mode = '100644'; blobSha256 = $blobSha })
+        }
+        $assessment = Get-CustomerExportAssessment -SourceRoot $TestDrive -ExpectedSourceCommit ('a' * 40) `
+            -DestinationRoot (Join-Path ([IO.Path]::GetFullPath($TestDrive)) '..\export-match') `
+            -Manifest $manifest -ManifestDigest ('b' * 64) -SourceSnapshot $snapshot `
+            -ToolIdentities ([pscustomobject]@{ Git = [pscustomobject]@{ path='C:\Approved\git.exe'; sha256=('c' * 64) } }) `
+            -MarkerCatalogProof ([pscustomobject]@{ digest=('d' * 64) }) `
+            -GitExecutable ([pscustomobject]@{ path='C:\Approved\git.exe'; sha256=('c' * 64) }) `
+            -GitBlobReader ({ param($gitPath,$root,$commit,$path) $bytes }.GetNewClosure())
+
+        @($assessment.copyFiles) | Should -Be @('docs/reviewed-example.md')
+        $assessment.fileDigests.'docs/reviewed-example.md'.expectedOutputSha256 | Should -Be $blobSha
+    }
 }

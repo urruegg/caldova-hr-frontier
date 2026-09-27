@@ -36,6 +36,8 @@
         'Convert-CustomerExportBlob'
         'Invoke-CustomerStructuredReplacement'
         'Get-CustomerExportResidual'
+        'Test-CustomerExportSyntheticData'
+        'Test-CustomerExportContent'
     )
     CmdletsToExport = @()
     VariablesToExport = @()

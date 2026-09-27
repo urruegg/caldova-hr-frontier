@@ -55,7 +55,9 @@ function Get-CustomerExportAssessment {
     }
 
     $fixtureClassifications = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
+    $classificationByPath = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
     foreach ($classification in @($Manifest.fileClassifications)) {
+        $classificationByPath[(Test-CustomerExportRelativePath -Path ([string]$classification.path))] = $classification
         if ([string]$classification.classification -ceq 'SyntheticFixture') {
             $fixtureClassifications[(Test-CustomerExportRelativePath -Path ([string]$classification.path))] = $classification
         }
@@ -63,6 +65,7 @@ function Get-CustomerExportAssessment {
 
     $copyFiles = [Collections.Generic.List[string]]::new()
     $exclusions = [Collections.Generic.List[object]]::new()
+    $fileDigests = [ordered]@{}
     foreach ($path in @($trackedByPath.Keys | Sort-Object)) {
         $reason = $null
         if ($path.StartsWith('.github/workflows/', [StringComparison]::OrdinalIgnoreCase)) {
@@ -94,6 +97,41 @@ function Get-CustomerExportAssessment {
             $exclusions.Add([pscustomobject]@{ path = $path; reason = $reason })
             continue
         }
+
+        $originalBytes = [byte[]]@(& $GitBlobReader ([string]$GitExecutable.path) $canonicalSource $ExpectedSourceCommit.ToLowerInvariant() $path)
+        $replacementRules = @($Manifest.replacements | Where-Object { ([string]$_.path) -ceq $path })
+        $converted = Convert-CustomerExportBlob -Path $path -OriginalBytes $originalBytes -Rules $replacementRules
+        $sourceBlobSha256 = [string]$trackedByPath[$path].blobSha256
+        $expectedOutputSha256 = Get-CustomerExportSha256 -Bytes $converted.bytes
+        $fileDigests[$path] = [pscustomobject]@{
+            sourceBlobSha256 = $sourceBlobSha256
+            expectedOutputSha256 = $expectedOutputSha256
+        }
+
+        $classification = $null
+        $classificationByPath.TryGetValue($path, [ref]$classification) | Out-Null
+        $classificationResult = Test-CustomerExportSyntheticBytes -Path $path -Bytes $converted.bytes -SyntheticDataPolicy $Manifest.syntheticDataPolicy
+
+        if ([string]$classificationResult.status -ceq 'Failed') {
+            throw 'Customer export expected output contains non-synthetic content.'
+        }
+
+        if ($null -ne $classification) {
+            if ([string]$classification.sourceBlobSha256 -cne $sourceBlobSha256) {
+                throw 'Customer export classification source digest does not match the tracked blob.'
+            }
+            if ([string]$classification.expectedOutputSha256 -cne $expectedOutputSha256) {
+                throw 'Customer export classification expected output digest does not match the computed staged bytes.'
+            }
+        }
+
+        if ([string]$classificationResult.status -ceq 'Inconclusive') {
+            if ($null -eq $classification -or [string]$classification.classification -cne 'ReviewedNonPersonal') {
+                $exclusions.Add([pscustomobject]@{ path = $path; reason = 'ReviewedNonPersonalClassificationRequired' })
+                continue
+            }
+        }
+
         $copyFiles.Add($path)
     }
 
@@ -183,7 +221,15 @@ function Get-CustomerExportAssessment {
         sourceSnapshot = $SourceSnapshot
         toolIdentities = $ToolIdentities
         markerCatalogProof = $MarkerCatalogProof
-        fileClassifications = @($Manifest.fileClassifications | Sort-Object path)
+        fileClassifications = @(
+            $Manifest.fileClassifications |
+                Where-Object {
+                    $resolved = Test-CustomerExportRelativePath -Path ([string]$_.path)
+                    @($copyFiles).Contains($resolved)
+                } |
+                Sort-Object path
+        )
+        fileDigests = [pscustomobject]$fileDigests
         copyFiles = @($copyFiles | Sort-Object)
         exclusions = @($exclusions | Sort-Object path, reason)
         replacements = $replacementMetadata
