@@ -118,13 +118,22 @@ Describe 'Developer workstation assessment' {
 
     It 'refuses a non-Windows-11 platform before probing tools' {
         $calls = [Collections.Generic.List[string]]::new()
+        $platformProbeCalls = [Collections.Generic.List[string]]::new()
+        $platformProbe = {
+            [void]$platformProbeCalls.Add('called')
+            [pscustomobject]@{ productName = 'Windows 10'; build = 19045 }
+        }.GetNewClosure()
 
         {
             & $script:ScriptPath -RepositoryRoot $script:RepositoryRoot `
                 -NativeCommandRunner { param($f, $a) [void]$calls.Add($f) } `
-                -PlatformProbe { [pscustomobject]@{ productName = 'Windows 10'; build = 19045 } }
-        } | Should -Throw '*Windows 11*'
+                -InteractiveHostProbe {
+                    [pscustomobject]@{ isInteractive = $true; reason = 'TestHost' }
+                } `
+                -PlatformProbe $platformProbe
+        } | Should -Throw '*Windows 11 build 22000 or later*'
 
+        $platformProbeCalls.Count | Should -Be 1
         $calls.Count | Should -Be 0
     }
 
