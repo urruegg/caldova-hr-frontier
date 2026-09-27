@@ -35,11 +35,10 @@ function Publish-CustomerStructuredReplacementBytes {
     function Remove-CustomerStructuredReplacementArtifactSafe {
         param([string]$Path)
 
-        if (-not (& $FileOperations.Exists $Path)) {
-            return
-        }
-
         try {
+            if (-not (& $FileOperations.Exists $Path)) {
+                return
+            }
             & $FileOperations.Delete $Path
         }
         catch {
@@ -95,7 +94,7 @@ function Publish-CustomerStructuredReplacementBytes {
     }
 
     foreach ($warning in $cleanupWarnings) {
-        Write-Warning $warning
+        Write-Warning -Message $warning -WarningAction Continue
     }
 
     if ($null -ne $primaryFailure) {

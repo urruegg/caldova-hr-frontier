@@ -282,6 +282,98 @@ Describe 'Customer export sanitization' {
         [IO.File]::ReadAllText($target) | Should -Be $original
     }
 
+    It 'does not let finally exists failures replace the restoration exception' {
+        $caseRoot = Join-Path $TestDrive 'finally-exists-failure'
+        [IO.Directory]::CreateDirectory($caseRoot) | Out-Null
+        $target = Join-Path $caseRoot 'finally-exists-failure.md'
+        $original = "Source Reference Organization`r`nContact Source Reference Organization`r`n"
+        [IO.File]::WriteAllText($target, $original, [Text.UTF8Encoding]::new($false))
+        $state = [pscustomobject]@{ replaceCalls = 0; existsFailureSeen = $false }
+        $ops = [pscustomobject]@{
+            WriteAllBytes = { param($path, [byte[]]$bytes) [IO.File]::WriteAllBytes($path, $bytes) }
+            ReadAllBytes = { param($path) [IO.File]::ReadAllBytes($path) }
+            Exists = {
+                param($path)
+                if (($path -like '*.tmp') -and (-not $state.existsFailureSeen)) {
+                    $state.existsFailureSeen = $true
+                    throw 'synthetic exists failure'
+                }
+                Test-Path -LiteralPath $path
+            }.GetNewClosure()
+            Delete = { param($path) Remove-Item -LiteralPath $path -Force }
+            Move = { param($source, $destination) [IO.File]::Move($source, $destination) }
+            Replace = {
+                param($source, $destination, $backup)
+                $state.replaceCalls++
+                if ($state.replaceCalls -eq 1) {
+                    [IO.File]::Copy($destination, $backup, $true)
+                    Remove-Item -LiteralPath $destination -Force
+                    throw 'synthetic replace failure'
+                }
+                [IO.File]::Move($source, $destination)
+            }.GetNewClosure()
+        }
+
+        {
+            Invoke-CustomerStructuredReplacement -StagingRoot $caseRoot -Path 'finally-exists-failure.md' -Rules @([pscustomobject]@{
+                id = 'customer-name-finally-exists-failure'
+                path = 'finally-exists-failure.md'
+                format = 'MarkdownExact'
+                expectedOldText = 'Source Reference Organization'
+                newText = 'Customer Example Organization'
+                requiredCount = 2
+            }) -FileOperations $ops -WarningAction Continue
+        } | Should -Throw '*restored*'
+
+        [IO.File]::ReadAllText($target) | Should -Be $original
+    }
+
+    It 'does not let warning action stop replace the primary restoration exception' {
+        $caseRoot = Join-Path $TestDrive 'warning-stop-cleanup'
+        [IO.Directory]::CreateDirectory($caseRoot) | Out-Null
+        $target = Join-Path $caseRoot 'warning-stop-cleanup.md'
+        $original = "Source Reference Organization`r`nContact Source Reference Organization`r`n"
+        [IO.File]::WriteAllText($target, $original, [Text.UTF8Encoding]::new($false))
+        $state = [pscustomobject]@{ replaceCalls = 0; cleanupFailureSeen = $false }
+        $ops = [pscustomobject]@{
+            WriteAllBytes = { param($path, [byte[]]$bytes) [IO.File]::WriteAllBytes($path, $bytes) }
+            ReadAllBytes = { param($path) [IO.File]::ReadAllBytes($path) }
+            Exists = { param($path) Test-Path -LiteralPath $path }
+            Delete = {
+                param($path)
+                if (($path -like '*.tmp') -and (-not $state.cleanupFailureSeen)) {
+                    $state.cleanupFailureSeen = $true
+                    throw 'synthetic temp cleanup failure'
+                }
+                Remove-Item -LiteralPath $path -Force
+            }.GetNewClosure()
+            Move = { param($source, $destination) [IO.File]::Move($source, $destination) }
+            Replace = {
+                param($source, $destination, $backup)
+                $state.replaceCalls++
+                if ($state.replaceCalls -eq 1) {
+                    [IO.File]::Copy($destination, $backup, $true)
+                    Remove-Item -LiteralPath $destination -Force
+                    throw 'synthetic replace failure'
+                }
+                [IO.File]::Move($source, $destination)
+            }.GetNewClosure()
+        }
+
+        {
+            Invoke-CustomerStructuredReplacement -StagingRoot $caseRoot -Path 'warning-stop-cleanup.md' -Rules @([pscustomobject]@{
+                id = 'customer-name-warning-stop-cleanup'
+                path = 'warning-stop-cleanup.md'
+                format = 'MarkdownExact'
+                expectedOldText = 'Source Reference Organization'
+                newText = 'Customer Example Organization'
+                requiredCount = 2
+            }) -FileOperations $ops -WarningAction Stop
+        } | Should -Throw '*restored*'
+
+        [IO.File]::ReadAllText($target) | Should -Be $original
+    }
+
     It 'leaves no temp or backup files after a successful atomic publish' {
         $caseRoot = Join-Path $TestDrive 'atomic-success'
         [IO.Directory]::CreateDirectory($caseRoot) | Out-Null
