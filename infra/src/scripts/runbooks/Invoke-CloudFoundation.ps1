@@ -25,6 +25,7 @@ param(
     [scriptblock]$NativeToolResolver,
     [scriptblock]$NativeCommandRunner,
     [scriptblock]$InteractiveHostProbe,
+    [scriptblock]$WhatIfValidator,
     [datetime]$NowUtc = [datetime]::UtcNow
 )
 
@@ -162,6 +163,10 @@ if ((Get-RunbookContentDigest $plan.manifestActions) -cne
 $providerOrder=@{GitHub=1;Entra=2;Azure=3;AzureDevOps=4}
 $mutations=@($plan.actions | Where-Object classification -in @('Create','Update') |
     Sort-Object @{Expression={$providerOrder[[string]$_.service]}},service,targetId)
+if (@($mutations | Where-Object action -ceq 'CreateAzureDevOpsProject').Count -gt 0 -and
+    [string]$initialContext.azureDevOps.createProjectPermission -cne 'Allowed') {
+    throw 'Azure DevOps Create new projects permission changed before Apply; no provider mutation was attempted.'
+}
 $safeReadBack=[Collections.Generic.List[object]]::new()
 $recovery=[Collections.Generic.List[object]]::new()
 $changedCount=0
@@ -182,7 +187,7 @@ foreach($action in $mutations) {
         $result=Invoke-CloudFoundationAction -Action $action -TenantConfiguration $tenant `
             -VerifiedContext $currentContext -ToolResolutions $freshTools `
             -RunDirectory $runDirectory -RepositoryRoot $repositoryRoot `
-            -NativeCommandRunner $NativeCommandRunner -NowUtc $NowUtc
+            -NativeCommandRunner $NativeCommandRunner -WhatIfValidator $WhatIfValidator -NowUtc $NowUtc
         $safeReadBack.Add($result.readBack)
         if($result.status -eq 'Changed'){$changedCount++}
     }
@@ -193,6 +198,30 @@ foreach($action in $mutations) {
             -Diagnostic 'Read the exact provider target by stable ID.' -Owner 'Cloud foundation administrator' `
             -Next 'Read back the exact target, rerun assessment, regenerate all digests, and obtain new approval.'))
         break
+    }
+}
+if($null -eq $failureCategory -and $shouldProcessDecision -eq 'Approved') {
+    try {
+        $finalTools=Assert-ApprovedCloudToolResolutions -Approved $manifest.toolVersions `
+            -NativeToolResolver $NativeToolResolver
+        $finalContext=Test-CloudDelegatedContext -TenantConfiguration $tenant -Stages $Stages `
+            -ToolResolutions $finalTools -NativeCommandRunner $NativeCommandRunner `
+            -InteractiveHostProbe $InteractiveHostProbe
+        if([string]$finalContext.principal.id -cne [string]$initialContext.principal.id -or
+            [string]$finalContext.azure.tenantId -cne [string]$initialContext.azure.tenantId -or
+            [string]$finalContext.azure.subscriptionId -cne [string]$initialContext.azure.subscriptionId -or
+            [string]$finalContext.github.login -cne [string]$initialContext.github.login -or
+            [string]$finalContext.azureDevOps.actingUserId -cne [string]$initialContext.azureDevOps.actingUserId) {
+            throw 'Final delegated context differs from the initial verified identity.'
+        }
+    }
+    catch {
+        $failureCategory=if($changedCount -gt 0){'PartialMutation'}else{'FinalVerificationFailed'}
+        $recovery.Add((New-CloudRecoveryItem -Service 'CloudFoundation' `
+            -TargetId ([string]$manifest.target.stableId) -State 'Final context not verified' `
+            -Diagnostic 'Re-read every exact provider target and delegated identity.' `
+            -Owner 'Cloud foundation administrator' `
+            -Next 'Reassess the tenant, regenerate all digests, and obtain new approval.'))
     }
 }
 

@@ -39,6 +39,16 @@
     "stdout": "[]",
     "stderr": ""
   },
+  "C:\\SyntheticTools\\az.cmd|devops security permission namespace list --organization https://dev.azure.com/synthetic/ --output json": {
+    "exitCode": 0,
+    "stdout": "[{\"namespaceId\":\"52d39943-cb85-4d7f-8fa8-c6baac873819\",\"actions\":[{\"bit\":4,\"displayName\":\"Create new projects\"}]}]",
+    "stderr": ""
+  },
+  "C:\\SyntheticTools\\az.cmd|devops security permission list --organization https://dev.azure.com/synthetic/ --id 52d39943-cb85-4d7f-8fa8-c6baac873819 --subject aad.synthetic-descriptor --token $PROJECT:vstfs:///Classification/TeamProject/ --output json": {
+    "exitCode": 0,
+    "stdout": "[{\"token\":\"$PROJECT:vstfs:///Classification/TeamProject/\",\"acesDictionary\":{\"aad.synthetic-descriptor\":{\"allow\":4,\"deny\":0}}}]",
+    "stderr": ""
+  },
   "C:\\SyntheticTools\\pac.exe|auth list --json": {
     "exitCode": 0,
     "stdout": "[{\"name\":\"hr-synthetic-dev\",\"selected\":true,\"user\":\"admin@example.invalid\"},{\"name\":\"hr-synthetic-test\",\"selected\":false,\"user\":\"admin@example.invalid\"},{\"name\":\"hr-synthetic-prod\",\"selected\":false,\"user\":\"admin@example.invalid\"}]",

@@ -32,33 +32,52 @@ function Invoke-GitHubFoundationMutation {
                     throw 'Only reviewed non-Actions rules are supported.'
                 }
             }
-            $current = Invoke-CloudNativeCommand -ToolResolution $ToolResolution `
-                -ArgumentList @('api',[string]$Action.uri) -Runner $NativeCommandRunner -Json
-            $currentInput = [ordered]@{}
-            foreach ($key in $allowedKeys) {
-                if ($current.PSObject.Properties.Name -contains $key) { $currentInput[$key]=$current.$key }
+            $readBackUri=[string]$Action.uri
+            if ([string]$Action.method -ceq 'POST') {
+                $currentRulesets=@(Invoke-CloudNativeCommand -ToolResolution $ToolResolution `
+                    -ArgumentList @('api',[string]$Action.uri) -Runner $NativeCommandRunner -Json)
+                if (@($currentRulesets | Where-Object {
+                    [string]$_.name -ceq [string]$Action.providerInput.name
+                }).Count -ne 0) {
+                    throw 'GitHub ruleset exact-name absence is not proven.'
+                }
             }
-            if ((Get-RunbookContentDigest ([pscustomobject]$currentInput)) -ceq [string]$Action.bodyDigest) {
-                return [pscustomobject][ordered]@{
-                    status='NoChange'
-                    readBack=[pscustomobject][ordered]@{
-                        service='GitHub';targetId=[string]$Action.targetId;status='NoChange'
-                        rulesetId=[string]$current.id;bodyDigest=[string]$Action.bodyDigest
+            else {
+                $current = Invoke-CloudNativeCommand -ToolResolution $ToolResolution `
+                    -ArgumentList @('api',[string]$Action.uri) -Runner $NativeCommandRunner -Json
+                $currentInput = [ordered]@{}
+                foreach ($key in $allowedKeys) {
+                    if ($current.PSObject.Properties.Name -contains $key) { $currentInput[$key]=$current.$key }
+                }
+                if ((Get-RunbookContentDigest ([pscustomobject]$currentInput)) -ceq [string]$Action.bodyDigest) {
+                    return [pscustomobject][ordered]@{
+                        status='NoChange'
+                        readBack=[pscustomobject][ordered]@{
+                            service='GitHub';targetId=[string]$Action.targetId;status='NoChange'
+                            rulesetId=[string]$current.id;bodyDigest=[string]$Action.bodyDigest
+                        }
                     }
                 }
             }
             Write-CanonicalJson -InputObject $Action.providerInput -Path $payloadPath | Out-Null
-            Invoke-CloudNativeCommand -ToolResolution $ToolResolution -ArgumentList @(
+            $mutated=Invoke-CloudNativeCommand -ToolResolution $ToolResolution -ArgumentList @(
                 'api','--method',[string]$Action.method,[string]$Action.uri,'--input',$payloadPath
-            ) -Runner $NativeCommandRunner -Json | Out-Null
+            ) -Runner $NativeCommandRunner -Json
+            if ([string]$Action.method -ceq 'POST') {
+                if ([string]::IsNullOrWhiteSpace([string]$mutated.id)) {
+                    throw 'GitHub ruleset create returned no stable ID.'
+                }
+                $readBackUri="$($Action.uri)/$($mutated.id)"
+            }
             $readBack = Invoke-CloudNativeCommand -ToolResolution $ToolResolution `
-                -ArgumentList @('api',[string]$Action.uri) -Runner $NativeCommandRunner -Json
+                -ArgumentList @('api',$readBackUri) -Runner $NativeCommandRunner -Json
             $readInput = [ordered]@{}
             foreach ($key in $allowedKeys) {
                 if ($readBack.PSObject.Properties.Name -contains $key) { $readInput[$key]=$readBack.$key }
             }
             if ((Get-RunbookContentDigest ([pscustomobject]$readInput)) -cne [string]$Action.bodyDigest -or
-                [string]$readBack.id -cne [string]$Action.targetId) {
+                ([string]$Action.method -cne 'POST' -and
+                 [string]$readBack.id -cne [string]$Action.targetId)) {
                 throw 'GitHub ruleset postcondition failed.'
             }
             return [pscustomobject][ordered]@{

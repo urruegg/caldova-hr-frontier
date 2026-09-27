@@ -6,12 +6,27 @@ function Invoke-AzureFoundationMutation {
         [Parameter(Mandatory)] [object]$VerifiedContext,
         [Parameter(Mandatory)] [object]$ToolResolution,
         [Parameter(Mandatory)] [string]$RunDirectory,
-        [Parameter(Mandatory)] [scriptblock]$NativeCommandRunner
+        [Parameter(Mandatory)] [string]$RepositoryRoot,
+        [Parameter(Mandatory)] [scriptblock]$NativeCommandRunner,
+        [scriptblock]$WhatIfValidator
     )
 
     if ([string]$VerifiedContext.azure.userType -cne 'user' -or
         [string]$VerifiedContext.azure.subscriptionId -cne [string]$TenantConfiguration.SubscriptionId) {
         throw 'Azure delegated context changed before mutation.'
+    }
+    if ([string]$Action.action -in @(
+        'CreateEntraTargetApplication','UpdateEntraTargetApplication',
+        'CreateEntraTargetServicePrincipal'
+    )) {
+        $eligibleRoles=@(
+            'cf1c38e5-3621-4004-a7cb-879624dced7c',
+            '158c047a-c907-4556-b7ef-446551a6b5f7'
+        )
+        if(@($VerifiedContext.entra.activeDirectoryRoleTemplateIds |
+            Where-Object { $_ -cin $eligibleRoles }).Count -eq 0) {
+            throw 'An active delegated Entra application-administrator role is required.'
+        }
     }
     switch ([string]$Action.action) {
         'CreateEntraTargetApplication' {
@@ -62,20 +77,36 @@ function Invoke-AzureFoundationMutation {
             }}
         }
         'DeployAzureFoundation' {
+            $sourcePath = [IO.Path]::GetFullPath([string]$Action.providerInput.sourcePath)
             $templatePath = [IO.Path]::GetFullPath([string]$Action.providerInput.templatePath)
             $parameterPath = [IO.Path]::GetFullPath([string]$Action.providerInput.parameterPath)
+            $whatIfPath = [IO.Path]::GetFullPath([string]$Action.providerInput.whatIfPath)
             if (-not (Test-RunbookPathWithin -Path $templatePath -Root $RunDirectory) -or
-                -not (Test-RunbookPathWithin -Path $parameterPath -Root $RunDirectory)) {
+                -not (Test-RunbookPathWithin -Path $parameterPath -Root $RunDirectory) -or
+                -not (Test-RunbookPathWithin -Path $whatIfPath -Root $RunDirectory) -or
+                (-not (Test-RunbookPathWithin -Path $sourcePath -Root $RunDirectory) -and
+                 -not (Test-RunbookPathWithin -Path $sourcePath -Root $RepositoryRoot))) {
                 throw 'Azure deployment artifacts must remain in RunDirectory.'
             }
-            if ((Get-FileHash $templatePath -Algorithm SHA256).Hash.ToLowerInvariant() -cne [string]$Action.providerInput.templateDigest -or
-                (Get-FileHash $parameterPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne [string]$Action.providerInput.parameterDigest) {
+            if ((Get-FileHash $sourcePath -Algorithm SHA256).Hash.ToLowerInvariant() -cne [string]$Action.providerInput.sourceDigest -or
+                (Get-FileHash $templatePath -Algorithm SHA256).Hash.ToLowerInvariant() -cne [string]$Action.providerInput.templateDigest -or
+                (Get-FileHash $parameterPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne [string]$Action.providerInput.parameterDigest -or
+                (Get-FileHash $whatIfPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne [string]$Action.providerInput.whatIfDigest) {
                 throw 'Azure deployment bytes changed after approval.'
             }
+            $valid = if ($null -ne $WhatIfValidator) {
+                & $WhatIfValidator $whatIfPath
+            } else {
+                $validatorPath=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..\Test-WhatIfBoundary.ps1'))
+                & $validatorPath -WhatIfPayloadPath $whatIfPath `
+                    -ExpectedPrincipalObjectId ([string]$Action.providerInput.validationPrincipalId)
+                $true
+            }
+            if (-not $valid) { throw 'Azure what-if boundary validation failed.' }
             $deployment = Invoke-CloudNativeCommand -ToolResolution $ToolResolution -ArgumentList @(
                 'deployment','sub','create','--name',[string]$Action.providerInput.deploymentName,
                 '--location',[string]$Action.providerInput.location,'--template-file',$templatePath,
-                '--parameters',$parameterPath,'--output','json'
+                '--parameters',"@$parameterPath",'--output','json'
             ) -Runner $NativeCommandRunner -Json
             $read = Invoke-CloudNativeCommand -ToolResolution $ToolResolution -ArgumentList @(
                 'deployment','sub','show','--name',[string]$Action.providerInput.deploymentName,

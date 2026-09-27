@@ -8,6 +8,7 @@ function Invoke-CloudFoundationAction {
         [Parameter(Mandatory)] [object]$ToolResolutions,
         [Parameter(Mandatory)] [string]$RunDirectory,
         [Parameter(Mandatory)] [scriptblock]$NativeCommandRunner,
+        [scriptblock]$WhatIfValidator,
         [string]$RepositoryRoot = (Get-Location).Path,
         [datetime]$NowUtc = [datetime]::UtcNow
     )
@@ -49,7 +50,8 @@ function Invoke-CloudFoundationAction {
         'Azure' {
             Invoke-AzureFoundationMutation -Action $Action -TenantConfiguration $TenantConfiguration `
                 -VerifiedContext $VerifiedContext -ToolResolution $ToolResolutions.az `
-                -RunDirectory $resolvedRunDirectory -NativeCommandRunner $NativeCommandRunner
+                -RunDirectory $resolvedRunDirectory -RepositoryRoot $RepositoryRoot `
+                -NativeCommandRunner $NativeCommandRunner -WhatIfValidator $WhatIfValidator
         }
         'AzureDevOps' {
             Invoke-AzureDevOpsFoundationMutation -Action $Action -TenantConfiguration $TenantConfiguration `

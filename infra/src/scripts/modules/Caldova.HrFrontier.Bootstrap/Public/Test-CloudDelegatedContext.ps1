@@ -115,6 +115,13 @@ function Test-CloudDelegatedContext {
         $ado.requestedProjectName = $projectName
         $ado.exactNameMatchCount = $matches.Count
         if ($matches.Count -eq 1) { $ado.conflictingProjectId = [string]$matches[0].id }
+        $permission = Get-AzureDevOpsCreateProjectPermission -OrganizationUrl $organizationUrl `
+            -SubjectDescriptor ([string]$adoUser.subjectDescriptor) -ToolResolution $az `
+            -NativeCommandRunner $NativeCommandRunner
+        $ado.createProjectPermission = [string]$permission.state
+        $ado.createProjectPermissionBit = $permission.permissionBit
+        $ado.createProjectPermissionNamespaceId = [string]$permission.namespaceId
+        $ado.createProjectPermissionToken = [string]$permission.token
     }
     else {
         throw 'Azure DevOps project intent must be Existing or Create.'
@@ -161,6 +168,7 @@ function Test-CloudDelegatedContext {
 
     [pscustomobject][ordered]@{
         overallStatus = 'Verified'
+        tenantAlias = [string]$TenantConfiguration.TenantAlias
         verifiedAtUtc = [datetime]::UtcNow.ToString('o')
         principal = [pscustomobject][ordered]@{
             id = [string]$signedInUser.id

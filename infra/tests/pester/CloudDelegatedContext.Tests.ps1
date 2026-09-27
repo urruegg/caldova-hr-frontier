@@ -59,8 +59,34 @@ Describe 'Cloud delegated context' {
         $result.azureDevOps.actingUserId | Should -BeExactly 'ado-user-synthetic'
         $result.azureDevOps.projectIntent | Should -BeExactly 'Create'
         $result.azureDevOps.exactNameMatchCount | Should -Be 0
+        $result.azureDevOps.createProjectPermission | Should -BeExactly 'Allowed'
         $result.powerPlatform[0].profileName | Should -BeExactly 'hr-synthetic-dev'
         @($script:Calls.FilePath | Where-Object { -not [IO.Path]::IsPathRooted($_) }).Count | Should -Be 0
+    }
+
+    It 'blocks denied unavailable and ambiguous Azure DevOps create permission' {
+        $permissionCommand = 'devops security permission list --organization https://dev.azure.com/synthetic/ --id 52d39943-cb85-4d7f-8fa8-c6baac873819 --subject aad.synthetic-descriptor --token $PROJECT:vstfs:///Classification/TeamProject/ --output json'
+        foreach ($case in @(
+            @{ Name='denied'; Result=[pscustomobject]@{exitCode=0;stdout='[{"token":"$PROJECT:vstfs:///Classification/TeamProject/","acesDictionary":{"aad.synthetic-descriptor":{"allow":0,"deny":4}}}]';stderr=''} },
+            @{ Name='unavailable'; Result=[pscustomobject]@{exitCode=1;stdout='';stderr='denied'} },
+            @{ Name='ambiguous'; Result=[pscustomobject]@{exitCode=0;stdout='[{"token":"$PROJECT:vstfs:///Classification/TeamProject/","acesDictionary":{"aad.synthetic-descriptor":{"allow":4,"deny":0}}},{"token":"$PROJECT:vstfs:///Classification/TeamProject/","acesDictionary":{"aad.synthetic-descriptor":{"allow":4,"deny":0}}}]';stderr=''} }
+        )) {
+            $result = $case.Result
+            $fixture = $script:Fixture
+            $runner = {
+                param($FilePath,$ArgumentList)
+                $key = "$FilePath|$($ArgumentList -join ' ')"
+                if (($ArgumentList -join ' ') -eq $permissionCommand) { return $result }
+                $fixture.PSObject.Properties[$key].Value
+            }.GetNewClosure()
+            $context = Test-CloudDelegatedContext -TenantConfiguration $script:Tenant -Stages DEV `
+                -ToolResolutions $script:Tools -NativeCommandRunner $runner `
+                -InteractiveHostProbe $script:Interactive
+            $expected = if ($case.Name -eq 'denied') { 'Denied' } `
+                elseif ($case.Name -eq 'unavailable') { 'Unavailable' } `
+                else { 'Ambiguous' }
+            $context.azureDevOps.createProjectPermission | Should -BeExactly $expected
+        }
     }
 
     It 'refuses before repository metadata when the GitHub login differs' {

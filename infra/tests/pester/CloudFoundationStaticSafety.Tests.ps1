@@ -114,6 +114,7 @@ Describe 'Cloud foundation static safety' {
         $apply | Should -Match 'CurrentAuthenticationContext'
         $apply | Should -Not -Match 'Expected(SourceCommit|AssessmentDigest|Authentication)'
         ([regex]::Matches($apply,'Assert-ApprovedCloudToolResolutions')).Count | Should -BeGreaterOrEqual 3
+        ([regex]::Matches($apply,'Test-CloudDelegatedContext')).Count | Should -BeGreaterOrEqual 3
         $apply | Should -Match '\$PSCmdlet\.ShouldProcess'
     }
 
