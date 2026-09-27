@@ -26,4 +26,6 @@ Export-ModuleMember -Function @(
     'New-RunbookExecutionManifest',
     'Test-RunbookExecutionManifest',
     'ConvertTo-RunbookEvidenceRecord'
+    'Resolve-CloudNativeTool'
+    'Test-CloudDelegatedContext'
 )

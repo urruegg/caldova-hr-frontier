@@ -1,0 +1,62 @@
+{
+  "C:\\SyntheticTools\\az.cmd|account show --output json": {
+    "exitCode": 0,
+    "stdout": "{\"id\":\"11111111-1111-1111-1111-111111111111\",\"tenantId\":\"22222222-2222-2222-2222-222222222222\",\"user\":{\"name\":\"admin@example.invalid\",\"type\":\"user\"}}",
+    "stderr": ""
+  },
+  "C:\\SyntheticTools\\az.cmd|ad signed-in-user show --output json": {
+    "exitCode": 0,
+    "stdout": "{\"id\":\"user-object-synthetic\",\"userPrincipalName\":\"admin@example.invalid\"}",
+    "stderr": ""
+  },
+  "C:\\SyntheticTools\\az.cmd|rest --method get --url https://graph.microsoft.com/v1.0/me/transitiveMemberOf/microsoft.graph.directoryRole?$select=id,displayName,roleTemplateId --output json": {
+    "exitCode": 0,
+    "stdout": "{\"value\":[{\"id\":\"role-synthetic\",\"displayName\":\"Application Administrator\",\"roleTemplateId\":\"cf1c38e5-3621-4004-a7cb-879624dced7c\"}]}",
+    "stderr": ""
+  },
+  "C:\\SyntheticTools\\gh.exe|auth status --hostname github.com": {
+    "exitCode": 0,
+    "stdout": "Logged in to github.com account synthetic-admin",
+    "stderr": ""
+  },
+  "C:\\SyntheticTools\\gh.exe|api user": {
+    "exitCode": 0,
+    "stdout": "{\"id\":12345,\"login\":\"synthetic-admin\"}",
+    "stderr": ""
+  },
+  "C:\\SyntheticTools\\gh.exe|api repos/synthetic-owner/synthetic-repository": {
+    "exitCode": 0,
+    "stdout": "{\"id\":67890,\"name\":\"synthetic-repository\",\"full_name\":\"synthetic-owner/synthetic-repository\",\"owner\":{\"id\":54321,\"login\":\"synthetic-owner\"},\"permissions\":{\"admin\":true}}",
+    "stderr": ""
+  },
+  "C:\\SyntheticTools\\az.cmd|devops invoke --organization https://dev.azure.com/synthetic/ --area location --resource connectionData --api-version 7.1-preview.1 --output json": {
+    "exitCode": 0,
+    "stdout": "{\"authenticatedUser\":{\"id\":\"ado-user-synthetic\",\"subjectDescriptor\":\"aad.synthetic-descriptor\",\"properties\":{\"Account\":{\"$value\":\"admin@example.invalid\"}}}}",
+    "stderr": ""
+  },
+  "C:\\SyntheticTools\\az.cmd|devops project list --organization https://dev.azure.com/synthetic/ --query value[?name=='SyntheticProject'].{id:id,name:name,state:state,visibility:visibility} --output json": {
+    "exitCode": 0,
+    "stdout": "[]",
+    "stderr": ""
+  },
+  "C:\\SyntheticTools\\pac.exe|auth list --json": {
+    "exitCode": 0,
+    "stdout": "[{\"name\":\"hr-synthetic-dev\",\"selected\":true,\"user\":\"admin@example.invalid\"},{\"name\":\"hr-synthetic-test\",\"selected\":false,\"user\":\"admin@example.invalid\"},{\"name\":\"hr-synthetic-prod\",\"selected\":false,\"user\":\"admin@example.invalid\"}]",
+    "stderr": ""
+  },
+  "C:\\SyntheticTools\\pac.exe|org who --environment https://synthetic-dev.crm.dynamics.com/ --json": {
+    "exitCode": 0,
+    "stdout": "{\"environmentId\":\"pp-env-dev-synthetic\",\"environmentUrl\":\"https://synthetic-dev.crm.dynamics.com/\",\"user\":\"admin@example.invalid\"}",
+    "stderr": ""
+  },
+  "C:\\SyntheticTools\\pac.exe|org who --environment https://synthetic-test.crm.dynamics.com/ --json": {
+    "exitCode": 0,
+    "stdout": "{\"environmentId\":\"pp-env-test-synthetic\",\"environmentUrl\":\"https://synthetic-test.crm.dynamics.com/\",\"user\":\"admin@example.invalid\"}",
+    "stderr": ""
+  },
+  "C:\\SyntheticTools\\pac.exe|org who --environment https://synthetic-prod.crm.dynamics.com/ --json": {
+    "exitCode": 0,
+    "stdout": "{\"environmentId\":\"pp-env-prod-synthetic\",\"environmentUrl\":\"https://synthetic-prod.crm.dynamics.com/\",\"user\":\"admin@example.invalid\"}",
+    "stderr": ""
+  }
+}

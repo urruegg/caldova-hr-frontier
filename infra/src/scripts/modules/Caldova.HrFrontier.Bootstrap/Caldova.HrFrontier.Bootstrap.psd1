@@ -23,6 +23,8 @@
         'New-RunbookExecutionManifest',
         'Test-RunbookExecutionManifest',
         'ConvertTo-RunbookEvidenceRecord'
+        'Resolve-CloudNativeTool'
+        'Test-CloudDelegatedContext'
     )
     CmdletsToExport = @()
     VariablesToExport = @()
