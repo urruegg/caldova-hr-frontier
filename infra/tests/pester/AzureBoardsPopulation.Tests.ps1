@@ -206,6 +206,106 @@ $Summary
             $result.EpicWorkItemTypeName | Should -Be 'Epic'
         }
 
+        It 'creates a work item over a raw HTTP call with a UTF-8 charset instead of az devops invoke' {
+            # Regression test: az CLI - both "az devops invoke" (including with an explicit
+            # --encoding utf-8) and the native "az boards work-item create" command - sends work
+            # item create requests in a way the Azure DevOps service decodes incorrectly for any
+            # non-ASCII character. Confirmed live against Tenant 1: an em dash (U+2014) in a work
+            # item Description became U+FFFD REPLACEMENT CHARACTER through every az CLI code path
+            # tried. A raw HTTP call that declares "charset=utf-8" on the Content-Type header
+            # round-trips the same text correctly - also confirmed live. CreateWorkItem now gets a
+            # bearer token via "az account get-access-token" (ASCII-only, no risk) and sends the
+            # work item body itself via -HttpCommandRunner, bypassing az's broken transport. This
+            # test uses a real non-ASCII character (an em dash, matching UC-0001's actual summary)
+            # to prove the bytes sent are correct UTF-8, not just that a call was made.
+            # Uses a bespoke single-idea fixture (rather than New-FixtureIdeasRoot's shared fixtures)
+            # so the summary can contain a real em dash (—, U+2014) - matching UC-0001's actual
+            # production summary - without touching the shared fixture text other tests assert on.
+            $ideasRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+            New-Item -ItemType Directory -Path $ideasRoot -Force | Out-Null
+            New-IdeaFixtureFile -Root $ideasRoot -RelativePath 'uc-0001-encoding-fixture.md' -UseCaseId 'UC-0001' -Title 'Encoding Fixture' -StatusLine '**Selected as MVP**' -JourneyStage 'Pre-board' -Summary 'Adds missing approved values only — never overwriting anything that already has a value.'
+            $capturedTokenArgumentLists = [System.Collections.Generic.List[object]]::new()
+            $capturedHttpCalls = [System.Collections.Generic.List[object]]::new()
+            $createdById = @{}
+            $relationUrlById = @{}
+            $nextId = 9001
+
+            & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -Confirm:$false `
+                -NativeCommandRunner {
+                    param($FilePath, $ArgumentList)
+                    if ($ArgumentList -contains 'workitemtypes') {
+                        return [pscustomobject]@{ ExitCode = 0; StdOut = '{"count":1,"value":[{"name":"Epic"}]}'; StdErr = '' }
+                    }
+                    if ($ArgumentList -contains 'wiql') {
+                        return [pscustomobject]@{ ExitCode = 0; StdOut = '{"workItems":[]}'; StdErr = '' }
+                    }
+                    if ($ArgumentList -contains 'get-access-token') {
+                        $capturedTokenArgumentLists.Add($ArgumentList)
+                        return [pscustomobject]@{ ExitCode = 0; StdOut = 'fake-bearer-token'; StdErr = '' }
+                    }
+                    if ($FilePath -eq 'az' -and $ArgumentList -contains 'add') {
+                        $idIndex = [array]::IndexOf($ArgumentList, '--id')
+                        $urlIndex = [array]::IndexOf($ArgumentList, '--target-url')
+                        $relationUrlById[[int]$ArgumentList[$idIndex + 1]] = $ArgumentList[$urlIndex + 1]
+                        return [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' }
+                    }
+                    if ($FilePath -eq 'az' -and $ArgumentList -contains 'show') {
+                        $idIndex = [array]::IndexOf($ArgumentList, '--id')
+                        $id = [int]$ArgumentList[$idIndex + 1]
+                        $fieldsByPath = $createdById[$id]
+                        $bodyJson = @{
+                            id = $id
+                            fields = @{
+                                'System.Title' = $fieldsByPath['/fields/System.Title']
+                                'System.Description' = $fieldsByPath['/fields/System.Description']
+                                'System.Tags' = $fieldsByPath['/fields/System.Tags']
+                            }
+                            relations = @(@{ rel = 'Hyperlink'; url = $relationUrlById[$id] })
+                        } | ConvertTo-Json -Compress
+                        return [pscustomobject]@{ ExitCode = 0; StdOut = $bodyJson; StdErr = '' }
+                    }
+                    throw "Unexpected native command: $FilePath $($ArgumentList -join ' ')"
+                }.GetNewClosure() `
+                -HttpCommandRunner {
+                    param($Method, $Uri, $AccessToken, $BodyBytes, $ContentType)
+                    $capturedHttpCalls.Add([pscustomobject]@{ Method = $Method; Uri = $Uri; AccessToken = $AccessToken; BodyBytes = $BodyBytes; ContentType = $ContentType })
+                    $bodyText = [System.Text.Encoding]::UTF8.GetString($BodyBytes)
+                    $patchOps = $bodyText | ConvertFrom-Json
+                    $id = $nextId
+                    $nextId++
+                    $fieldsByPath = @{}
+                    foreach ($patchOp in $patchOps) { $fieldsByPath[$patchOp.path] = $patchOp.value }
+                    $createdById[$id] = $fieldsByPath
+                    [pscustomobject]@{
+                        id = $id
+                        fields = [pscustomobject]@{
+                            'System.Title' = $fieldsByPath['/fields/System.Title']
+                            'System.Description' = $fieldsByPath['/fields/System.Description']
+                            'System.Tags' = $fieldsByPath['/fields/System.Tags']
+                        }
+                    }
+                }.GetNewClosure()
+
+            $capturedTokenArgumentLists.Count | Should -BeGreaterThan 0
+            $capturedTokenArgumentLists[0] | Should -Contain '499b84ac-1321-427f-aa17-267ca6975798'
+
+            $capturedHttpCalls.Count | Should -BeGreaterThan 0
+            foreach ($httpCall in $capturedHttpCalls) {
+                $httpCall.Method | Should -Be 'POST'
+                $httpCall.Uri | Should -Match '_apis/wit/workitems/\$Epic\?api-version=7\.1$'
+                $httpCall.ContentType | Should -Be 'application/json-patch+json; charset=utf-8'
+                $httpCall.AccessToken | Should -Be 'fake-bearer-token'
+            }
+
+            # Confirm the exact UTF-8 byte sequence for the em dash (E2 80 94) appears verbatim in
+            # what was actually sent over HTTP - proof this is genuine byte-correct UTF-8, not
+            # merely a call that happened to succeed.
+            $emDashUtf8Bytes = [System.Text.Encoding]::UTF8.GetBytes([string][char]0x2014)
+            $bodyBytesText = ($capturedHttpCalls[0].BodyBytes | ForEach-Object { $_.ToString('X2') }) -join ''
+            $emDashHex = ($emDashUtf8Bytes | ForEach-Object { $_.ToString('X2') }) -join ''
+            $bodyBytesText | Should -Match $emDashHex
+        }
+
         It 'parses a real Azure DevOps workitemtypes response containing an empty-string transitions key' {
             # Regression test: the live Azure DevOps workitemtypes API returns each work item type's
             # "transitions" map keyed by an empty string for the initial (no prior state) transition.
