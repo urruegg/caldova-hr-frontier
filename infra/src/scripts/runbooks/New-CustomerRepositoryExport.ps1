@@ -25,8 +25,16 @@ $ErrorActionPreference = 'Stop'
 function New-DefaultNativeCommandRunner {
     {
         param([string]$FilePath, [string[]]$ArgumentList)
-        $output = @(& $FilePath @ArgumentList 2>&1 | ForEach-Object { $_.ToString() })
-        [pscustomobject]@{ exitCode = $(if ($null -ne $LASTEXITCODE) { [int]$LASTEXITCODE } else { 0 }); stdout = ($output -join [Environment]::NewLine); stderr = '' }
+        $previousErrorActionPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            $output = @(& $FilePath @ArgumentList 2>&1 | ForEach-Object { $_.ToString() })
+            $exitCode = if ($null -ne $LASTEXITCODE) { [int]$LASTEXITCODE } else { 0 }
+        }
+        finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
+        [pscustomobject]@{ exitCode = $exitCode; stdout = ($output -join [Environment]::NewLine); stderr = '' }
     }.GetNewClosure()
 }
 

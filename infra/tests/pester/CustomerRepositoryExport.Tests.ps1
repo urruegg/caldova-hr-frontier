@@ -337,6 +337,60 @@ function script:New-RealGitCustomerExportFixture {
     }
 }
 
+Describe 'Customer export production default native command runners' {
+    It '<ScriptName> returns nonzero Git stderr in Windows PowerShell without terminating' -TestCases @(
+        @{ ScriptName = 'New-CustomerRepositoryExport'; ScriptPath = $global:CustomerExportEntryPath }
+        @{ ScriptName = 'Test-CustomerRepositoryExport'; ScriptPath = $global:CustomerExportValidatorPath }
+    ) {
+        param($ScriptName, $ScriptPath)
+
+        $fixture = New-RealGitCustomerExportFixture
+        $harnessPath = Join-Path $TestDrive "$ScriptName-default-runner.ps1"
+        @'
+param(
+    [Parameter(Mandatory)][string]$ProductionScriptPath,
+    [Parameter(Mandatory)][string]$GitPath,
+    [Parameter(Mandatory)][string]$RepositoryRoot
+)
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+$tokens = $null
+$errors = $null
+$ast = [Management.Automation.Language.Parser]::ParseFile(
+    $ProductionScriptPath,
+    [ref]$tokens,
+    [ref]$errors
+)
+if ($errors.Count -ne 0) { throw "Could not parse production script '$ProductionScriptPath'." }
+$functionAst = @($ast.FindAll({
+    param($node)
+    $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
+    $node.Name -eq 'New-DefaultNativeCommandRunner'
+}, $true))[0]
+. ([scriptblock]::Create($functionAst.Extent.Text))
+$runner = New-DefaultNativeCommandRunner
+(& $runner $GitPath @('-C', $RepositoryRoot, 'sparse-checkout', 'list')) | ConvertTo-Json -Compress
+'@ | Set-Content -LiteralPath $harnessPath -Encoding UTF8
+
+        $previousErrorActionPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            $output = @(& powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $harnessPath `
+                -ProductionScriptPath $ScriptPath -GitPath (Get-ApprovedGitPath) -RepositoryRoot $fixture.Source 2>&1)
+            $processExitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
+
+        $processExitCode | Should -Be 0 -Because ($output -join [Environment]::NewLine)
+        $result = ($output -join [Environment]::NewLine) | ConvertFrom-Json
+        $result.exitCode | Should -Not -Be 0
+        $result.stdout | Should -Match 'fatal: this worktree is not sparse'
+        $result.stderr | Should -Be ''
+    }
+}
+
 Describe 'New-CustomerRepositoryExport gates' {
     It 'plans with the production default Git blob reader' {
         $fixture = New-RealGitCustomerExportFixture
