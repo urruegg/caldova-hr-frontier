@@ -31,7 +31,8 @@ Describe 'Developer workstation assessment' {
         function script:New-MinimalReviewedRepository {
             param(
                 [Parameter(Mandatory)][string]$Root,
-                [switch]$DuplicateSkillManifestPath
+                [switch]$DuplicateSkillManifestPath,
+                [switch]$CaseVariantDuplicateSkillManifestPath
             )
 
             [void](New-Item -ItemType Directory -Path $Root -Force)
@@ -50,6 +51,9 @@ Describe 'Developer workstation assessment' {
             $manifestLines = @("$hash  $relative")
             if ($DuplicateSkillManifestPath) {
                 $manifestLines += "$hash  $relative"
+            }
+            if ($CaseVariantDuplicateSkillManifestPath) {
+                $manifestLines += "$hash  ALPHA/SKILL.md"
             }
             Set-Content -LiteralPath (Join-Path $Root '.github\skills\SUPERPOWERS_SHA256SUMS') -Value $manifestLines -Encoding UTF8
             Set-Content -LiteralPath (Join-Path $Root 'README.md') -Value 'root' -Encoding UTF8
@@ -222,6 +226,47 @@ Describe 'Developer workstation assessment' {
     It 'rejects duplicate normalized SUPERPOWERS_SHA256SUMS paths as mismatch' {
         $fixtureRunner = New-FixtureRunner -FixturePath $script:FixturePath
         $repositoryRoot = New-MinimalReviewedRepository -Root (Join-Path $TestDrive 'duplicate-skills-repo') -DuplicateSkillManifestPath
+        $gitPath = $script:GitPath
+        $runner = {
+            param($file, $arguments)
+            if ($file -ceq $gitPath) {
+                $output = @(& $file @arguments 2>&1 | ForEach-Object { $_.ToString() })
+                return [pscustomobject]@{
+                    exitCode = $(if ($null -ne $LASTEXITCODE) { [int]$LASTEXITCODE } else { 0 })
+                    stdout = $output
+                    stderr = @()
+                }
+            }
+            & $fixtureRunner $file $arguments
+        }.GetNewClosure()
+
+        $result = & $script:ScriptPath -RepositoryRoot $repositoryRoot `
+            -NativeCommandRunner $runner `
+            -CommandResolver {
+                param($name)
+                if ($name -eq 'git.exe') { @($gitPath) } else { @($name) }
+            }.GetNewClosure() `
+            -FileIdentityProvider {
+                param($path)
+                if ($path -ceq $gitPath) {
+                    [pscustomobject]@{
+                        path = $path
+                        sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+                    }
+                }
+                else {
+                    [pscustomobject]@{ path = $path; sha256 = ('a' * 64) }
+                }
+            } `
+            -InteractiveHostProbe { [pscustomobject]@{ isInteractive = $true; reason = 'TestHost' } } `
+            -NowUtc ([datetime]'2026-09-26T05:00:00Z')
+
+        ($result.repositoryAssets | Where-Object path -eq '.github/skills' | Select-Object -First 1).status | Should -Be 'Mismatch'
+    }
+
+    It 'rejects case-variant normalized SUPERPOWERS_SHA256SUMS paths as mismatch on Windows' {
+        $fixtureRunner = New-FixtureRunner -FixturePath $script:FixturePath
+        $repositoryRoot = New-MinimalReviewedRepository -Root (Join-Path $TestDrive 'case-duplicate-skills-repo') -CaseVariantDuplicateSkillManifestPath
         $gitPath = $script:GitPath
         $runner = {
             param($file, $arguments)

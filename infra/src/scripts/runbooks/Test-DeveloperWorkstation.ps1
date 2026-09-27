@@ -628,7 +628,7 @@ function Test-SkillsIntegrity {
     }
 
     $lines = Get-Content -LiteralPath $manifestPath
-    $seenPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $seenPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     foreach ($line in $lines) {
         if ([string]::IsNullOrWhiteSpace($line)) { continue }
         $match = [regex]::Match($line, '^(?<hash>[0-9a-f]{64})\s{2}(?<path>.+)$')
