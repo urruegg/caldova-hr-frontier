@@ -20,7 +20,10 @@ param(
     [scriptblock]$AzureDevOpsRequest,
 
     [Parameter(DontShow)]
-    [scriptblock]$NativeCommandRunner
+    [scriptblock]$NativeCommandRunner,
+
+    [Parameter(DontShow)]
+    [scriptblock]$HttpCommandRunner
 )
 
 Set-StrictMode -Version Latest
@@ -257,6 +260,95 @@ function Invoke-NativeJsonCommand {
     }
 }
 
+function Get-AzureDevOpsAccessToken {
+    param(
+        [Parameter(Mandatory)]
+        [scriptblock]$Runner
+    )
+
+    $tokenResult = Invoke-NativeCommand -Runner $Runner -FilePath 'az' -ArgumentList @(
+        'account', 'get-access-token',
+        '--resource', '499b84ac-1321-427f-aa17-267ca6975798',
+        '--query', 'accessToken',
+        '--output', 'tsv'
+    )
+    if ($tokenResult.ExitCode -ne 0) {
+        throw "az account get-access-token failed with exit code $($tokenResult.ExitCode): $($tokenResult.StdErr)"
+    }
+
+    $tokenResult.StdOut.Trim()
+}
+
+function New-DefaultHttpCommandRunner {
+    {
+        param(
+            [Parameter(Mandatory)]
+            [string]$Method,
+
+            [Parameter(Mandatory)]
+            [string]$Uri,
+
+            [Parameter(Mandatory)]
+            [string]$AccessToken,
+
+            [byte[]]$BodyBytes,
+
+            [string]$ContentType
+        )
+
+        $headers = @{ Authorization = "Bearer $AccessToken" }
+        if ($null -ne $BodyBytes) {
+            Invoke-RestMethod -Uri $Uri -Method $Method -Headers $headers -Body $BodyBytes -ContentType $ContentType
+        }
+        else {
+            Invoke-RestMethod -Uri $Uri -Method $Method -Headers $headers
+        }
+    }
+}
+
+function Invoke-AzureDevOpsRestJsonCommand {
+    param(
+        [Parameter(Mandatory)]
+        [scriptblock]$NativeRunner,
+
+        [Parameter(Mandatory)]
+        [scriptblock]$HttpRunner,
+
+        [Parameter(Mandatory)]
+        [string]$Method,
+
+        [Parameter(Mandatory)]
+        [string]$Uri,
+
+        [string]$BodyJson
+    )
+
+    # Bypasses az CLI's own HTTP transport for this call. az devops invoke (and even the native
+    # "az boards work-item create" command, and "az boards work-item show" for reading a work item
+    # back) handles non-ASCII characters incorrectly (confirmed live: an em dash in a work item
+    # Description became U+FFFD REPLACEMENT CHARACTER through every az CLI code path tried,
+    # including --in-file with an explicit --encoding utf-8, and this affects az's decoding of
+    # response bodies just as much as its encoding of request bodies - a raw REST GET against the
+    # same work item confirmed the data was actually stored correctly; only az's own read-back was
+    # wrong). A raw HTTP call that declares "charset=utf-8" on the Content-Type header round-trips
+    # the same text correctly - confirmed live against Tenant 1. az is still used, only to mint the
+    # bearer token (ASCII-only, no risk).
+    $accessToken = Get-AzureDevOpsAccessToken -Runner $NativeRunner
+    if ($PSBoundParameters.ContainsKey('BodyJson')) {
+        $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($BodyJson)
+        $body = & $HttpRunner -Method $Method -Uri $Uri -AccessToken $accessToken -BodyBytes $bodyBytes -ContentType 'application/json-patch+json; charset=utf-8'
+    }
+    else {
+        $body = & $HttpRunner -Method $Method -Uri $Uri -AccessToken $accessToken
+    }
+
+    [pscustomobject]@{
+        StatusCode = 200
+        Headers = @{}
+        Body = $body
+    }
+}
+
 function New-DefaultNativeCommandRunner {
     {
         param(
@@ -279,16 +371,20 @@ function New-DefaultNativeCommandRunner {
 function New-DefaultAzureDevOpsRequest {
     param(
         [Parameter(Mandatory)]
-        [scriptblock]$NativeRunner
+        [scriptblock]$NativeRunner,
+
+        [Parameter(Mandatory)]
+        [scriptblock]$HttpRunner
     )
 
-    # Captured as a variable (not called by name) so GetNewClosure() below carries it into the
+    # Captured as variables (not called by name) so GetNewClosure() below carries them into the
     # closure's isolated dynamic module. GetNewClosure() only guarantees closed-over *variables*
-    # are visible inside the returned scriptblock; a bare call to the "Invoke-NativeJsonCommand"
-    # function by name fails there with a CommandNotFoundException when this script is invoked as
+    # are visible inside the returned scriptblock; a bare call to either function by name fails
+    # there with a CommandNotFoundException when this script is invoked as
     # "./Initialize-AzureDevOpsWorkItems.ps1 ..." (the closure runs in its own dynamic module that
     # does not see this script's function table).
     $invokeNativeJsonCommandRef = ${function:Invoke-NativeJsonCommand}
+    $invokeAzureDevOpsRestJsonCommandRef = ${function:Invoke-AzureDevOpsRestJsonCommand}
 
     {
         param($Operation, $Arguments)
@@ -333,24 +429,8 @@ function New-DefaultAzureDevOpsRequest {
                     @{ op = 'add'; path = '/fields/System.Description'; value = [string]$Arguments['Description'] }
                     @{ op = 'add'; path = '/fields/System.Tags'; value = [string]$Arguments['Tags'] }
                 ) | ConvertTo-Json -Compress
-                $tempFile = [System.IO.Path]::GetTempFileName()
-                try {
-                    [System.IO.File]::WriteAllText($tempFile, $patchBody)
-                    return (& $invokeNativeJsonCommandRef -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
-                        'devops', 'invoke',
-                        '--organization', [string]$Arguments['OrganizationUrl'],
-                        '--area', 'wit',
-                        '--resource', 'workitems',
-                        '--route-parameters', "project=$([string]$Arguments['ProjectName'])", "type=$([string]$Arguments['WorkItemType'])",
-                        '--http-method', 'POST',
-                        '--in-file', $tempFile,
-                        '--api-version', '7.1',
-                        '--output', 'json'
-                    ))
-                }
-                finally {
-                    Remove-Item -LiteralPath $tempFile -Force -ErrorAction SilentlyContinue
-                }
+                $uri = "$([string]$Arguments['OrganizationUrl'])$([uri]::EscapeDataString([string]$Arguments['ProjectName']))/_apis/wit/workitems/`$$([uri]::EscapeDataString([string]$Arguments['WorkItemType']))?api-version=7.1"
+                return (& $invokeAzureDevOpsRestJsonCommandRef -NativeRunner $NativeRunner -HttpRunner $HttpRunner -Method 'POST' -Uri $uri -BodyJson $patchBody)
             }
             'AddHyperlinkRelation' {
                 return (& $invokeNativeJsonCommandRef -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
@@ -363,13 +443,8 @@ function New-DefaultAzureDevOpsRequest {
                 ))
             }
             'ShowWorkItem' {
-                return (& $invokeNativeJsonCommandRef -Runner $NativeRunner -FilePath 'az' -ArgumentList @(
-                    'boards', 'work-item', 'show',
-                    '--id', [string]$Arguments['WorkItemId'],
-                    '--expand', 'all',
-                    '--organization', [string]$Arguments['OrganizationUrl'],
-                    '--output', 'json'
-                ))
+                $uri = "$([string]$Arguments['OrganizationUrl'])_apis/wit/workitems/$([string]$Arguments['WorkItemId'])?`$expand=all&api-version=7.1"
+                return (& $invokeAzureDevOpsRestJsonCommandRef -NativeRunner $NativeRunner -HttpRunner $HttpRunner -Method 'GET' -Uri $uri)
             }
             default {
                 throw "Unsupported AzureDevOps operation '$Operation'."
@@ -507,7 +582,8 @@ function Assert-WorkItemReadBack {
 }
 
 $nativeCommandRunner = if ($NativeCommandRunner) { $NativeCommandRunner } else { New-DefaultNativeCommandRunner }
-$azureDevOpsRequest = if ($AzureDevOpsRequest) { $AzureDevOpsRequest } else { New-DefaultAzureDevOpsRequest -NativeRunner $nativeCommandRunner }
+$httpCommandRunner = if ($HttpCommandRunner) { $HttpCommandRunner } else { New-DefaultHttpCommandRunner }
+$azureDevOpsRequest = if ($AzureDevOpsRequest) { $AzureDevOpsRequest } else { New-DefaultAzureDevOpsRequest -NativeRunner $nativeCommandRunner -HttpRunner $httpCommandRunner }
 
 $resolvedIdeasRoot = if ([string]::IsNullOrWhiteSpace($IdeasRoot)) { Get-DefaultIdeasRoot } else { $IdeasRoot }
 $portfolio = Get-HrIdeaPortfolioItems -IdeasRoot $resolvedIdeasRoot -RepositoryRoot $RepositoryRootOverride

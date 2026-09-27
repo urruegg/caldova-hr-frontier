@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.2 |
+| **Date** | 2026-09-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
-| **References** | [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json) |
+| **References** | [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json), [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) |
 
 This source-derived Proposed Baseline describes intended bootstrap and validation operations. It does not prove that any tenant, Azure resource, Azure DevOps object, Power Platform environment, GitHub control, pipeline, identity, role, or service is currently deployed or configured.
 
@@ -15,7 +15,7 @@ This source-derived Proposed Baseline describes intended bootstrap and validatio
 
 Bootstrap establishes and validates the control plane needed for secretless discovery and future provisioning. In this sprint it may later create or validate explicitly approved GitHub, Entra, Power Platform access, and Azure authorization objects needed for trust and least-privilege validation. It does not deploy the Azure platform resources modeled by Bicep.
 
-The shared repository supports three independent tenants. Each selected tenant uses one reviewed manifest, one `bootstrap-${tenantAlias}` Environment, one dedicated single-tenant app and service principal, one normalized discovery record, and one explicit set of `Existing` or `Create` decisions.
+Each tenant now has its own dedicated repository (see [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md)); Tenant 2 and Tenant 3 remain hosted in this repository only until their own repositories exist. Each selected tenant uses one reviewed manifest, one `bootstrap-${tenantAlias}` Environment, one dedicated single-tenant app and service principal, one normalized discovery record, and one explicit set of `Existing` or `Create` decisions.
 
 ## Evidence-Gated State Machine
 

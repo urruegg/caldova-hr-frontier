@@ -2,14 +2,18 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
-| **References** | [Approved Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../reviews/2026-09-17-architecture-baseline-source-inventory.json) |
+| **References** | [Approved Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../reviews/2026-09-17-architecture-baseline-source-inventory.json), [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) |
 
 This candidate is not an accepted repository decision until attended review approves it.
+
+## Revision Note (v1.1)
+
+Proposed Decision §1 below names `dev.azure.com/caldova25156897` — Tenant 1's specific organization — inside what was meant to describe the general bootstrap pattern for any tenant. [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) makes explicit what was only implicit here: each tenant runs this bootstrap workflow from **its own** dedicated repository, provisioning **its own** Azure DevOps organization — not one shared workflow provisioning one shared organization from one shared repository. Read `caldova25156897` below as Tenant 1's worked example, not as evidence that one bootstrap workflow serves multiple tenants' organizations.
 
 ## Context
 
