@@ -1,6 +1,13 @@
 BeforeAll {
     $script:repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
     $script:repositoryPrefix = $script:repositoryRoot.TrimEnd('\') + '\'
+    $script:gitPath = @(
+        (Get-Command git.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source,
+        'C:\Program Files\Git\cmd\git.exe'
+    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) } | Select-Object -First 1
+    if (-not $script:gitPath) {
+        throw 'git.exe is required for DocumentationLinks.Tests.ps1.'
+    }
 
     function Remove-MarkdownFencedCode {
         param(
@@ -58,7 +65,7 @@ BeforeAll {
 
 Describe 'Repository documentation links' {
     It 'resolves every tracked local Markdown link within the repository' {
-        $gitOutput = @(& git -C $script:repositoryRoot ls-files -- '*.md' 2>&1)
+        $gitOutput = @(& $script:gitPath -C $script:repositoryRoot ls-files -- '*.md' 2>&1)
         $gitExitCode = $LASTEXITCODE
         $gitExitCode | Should -Be 0 -Because (
             'git ls-files must enumerate the tracked Markdown inventory: {0}' -f

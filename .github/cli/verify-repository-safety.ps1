@@ -17,7 +17,7 @@ if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) {
     $RepositoryRoot = Join-Path $scriptDirectory '..\..'
 }
 $repositoryRootPath = [IO.Path]::GetFullPath($RepositoryRoot)
-$prohibitedPattern = 'az\s+deployment\s+sub\s+create|New-AzSubscriptionDeployment|client[_-]?secret|AZURE_CLIENT_SECRET|--password'
+$prohibitedPattern = 'az\s+deployment\s+sub\s+create|New-AzSubscriptionDeployment|client[_-]?secret|AZURE_CLIENT_SECRET|--password|Set-ExecutionPolicy\s+(?:Unrestricted|Bypass)|Set-MpPreference\s+-DisableRealtimeMonitoring|Start-Process[^\r\n]+-Verb\s+RunAs'
 $failures = [Collections.Generic.List[string]]::new()
 $paths = [Collections.Generic.List[string]]::new()
 $scriptRoot = Join-Path $repositoryRootPath 'infra\src\scripts'

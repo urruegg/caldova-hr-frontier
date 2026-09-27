@@ -1,6 +1,13 @@
 BeforeAll {
     $script:repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
     $script:validatorPath = Join-Path $script:repositoryRoot '.github\cli\verify-repository-safety.ps1'
+    $script:gitPath = @(
+        (Get-Command git.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source,
+        'C:\Program Files\Git\cmd\git.exe'
+    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) } | Select-Object -First 1
+    if (-not $script:gitPath) {
+        throw 'git.exe is required for RepositorySafety.Tests.ps1.'
+    }
 
     function script:New-SafetyFixture {
                 param(
@@ -41,7 +48,7 @@ Describe 'Core repository safety validation' {
         $pdfPath = 'hr/docs/ideas/uc-0001-personal-master-data-completion-agent/gf-aib-fixed-template/documents/a-personalblatt/a01-CAND-2026-0411-brunner.pdf'
 
         $attributes = @(
-            & git -C $script:repositoryRoot check-attr text diff merge -- $pdfPath
+            & $script:gitPath -C $script:repositoryRoot check-attr text diff merge -- $pdfPath
         )
 
         $LASTEXITCODE | Should -Be 0
@@ -82,6 +89,19 @@ Describe 'Core repository safety validation' {
         $fixtureRoot = New-SafetyFixture -Content $Content
         $output = @(& $script:validatorPath -RepositoryRoot $fixtureRoot 2>&1 | ForEach-Object { $_.ToString() })
 
+        $LASTEXITCODE | Should -Be 1
+        $output -join "`n" | Should -Match 'Prohibited bootstrap command or credential pattern found'
+    }
+
+    It 'rejects workstation security-policy weakening' -TestCases @(
+        @{ Content = 'Set-ExecutionPolicy Unrestricted -Force' }
+        @{ Content = 'Set-MpPreference -DisableRealtimeMonitoring $true' }
+        @{ Content = 'Start-Process powershell.exe -Verb RunAs' }
+    ) {
+        param([string]$Content)
+
+        $fixtureRoot = New-SafetyFixture -Content $Content
+        $output = @(& $script:validatorPath -RepositoryRoot $fixtureRoot 2>&1 | ForEach-Object ToString)
         $LASTEXITCODE | Should -Be 1
         $output -join "`n" | Should -Match 'Prohibited bootstrap command or credential pattern found'
     }

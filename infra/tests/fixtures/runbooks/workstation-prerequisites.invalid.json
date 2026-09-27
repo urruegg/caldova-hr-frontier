@@ -1,0 +1,149 @@
+{
+  "schemaVersion": "1.0",
+  "platform": {
+    "productName": "Windows 11",
+    "minimumBuild": 22000
+  },
+  "interactiveAuthentication": {
+    "executionHost": "InteractiveWindows11PowerShell",
+    "allowUnattendedExecution": false,
+    "allowOidcWorkloadIdentity": false,
+    "allowCredentialParameters": false,
+    "methods": [
+      {
+        "service": "Azure",
+        "mode": "DeviceCode",
+        "loginCommand": "az login --tenant <tenantId> --use-device-code",
+        "readBackCommand": "az account show --output json",
+        "cleanupCommands": ["az logout", "az account clear"]
+      },
+      {
+        "service": "GitHub",
+        "mode": "WebDevice",
+        "loginCommand": "gh auth login --hostname github.com --git-protocol https --web --clipboard",
+        "readBackCommand": "gh auth status --hostname github.com",
+        "cleanupCommands": ["gh auth logout --hostname github.com"]
+      },
+      {
+        "service": "AzureDevOps",
+        "mode": "AzureCliDelegatedContext",
+        "loginCommand": "None",
+        "readBackCommand": "az devops project show --organization <organizationUrl> --project <projectName> --output json",
+        "cleanupCommands": ["az logout", "az account clear"]
+      },
+      {
+        "service": "PowerPlatform",
+        "mode": "PacNamedDeviceCodeProfile",
+        "loginCommand": "pac auth create --name <hr-TenantAlias-stage> --environment <environmentUrl> --deviceCode",
+        "readBackCommand": "pac auth list",
+        "cleanupCommands": ["pac auth delete --index <exactCreatedProfileIndex>"]
+      }
+    ]
+  },
+  "tools": [
+    {
+      "id": "PowerShell7",
+      "command": "pwsh.exe",
+      "versionArguments": ["--NoLogo", "--NoProfile", "--Command", "$PSVersionTable.PSVersion.ToString()"],
+      "versionPolicy": { "mode": "Present" },
+      "installDisposition": "Automated",
+      "install": { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.PowerShell", "scope": "machine" },
+      "reference": "https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-windows"
+    },
+    {
+      "id": "WindowsPowerShell",
+      "command": "powershell.exe",
+      "versionArguments": ["-NoLogo", "-NoProfile", "-Command", "$PSVersionTable.PSVersion.ToString()"],
+      "versionPolicy": { "mode": "Exact", "value": "5.1" },
+      "installDisposition": "Manual",
+      "install": { "kind": "None" },
+      "reference": "https://learn.microsoft.com/en-us/powershell/scripting/what-is-windows-powershell"
+    },
+    {
+      "id": "Git",
+      "command": "git.exe",
+      "versionArguments": ["--version"],
+      "versionPolicy": { "mode": "Present" },
+      "installDisposition": "Automated",
+      "install": { "kind": "WinGet", "source": "winget", "packageId": "Git.Git", "scope": "machine" },
+      "reference": "https://docs.github.com/en/get-started/getting-started-with-git/set-up-git"
+    },
+    {
+      "id": "VisualStudioCode",
+      "command": "code.cmd",
+      "versionArguments": ["--version"],
+      "versionPolicy": { "mode": "Present" },
+      "installDisposition": "Automated",
+      "install": { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.VisualStudioCode", "scope": "machine" },
+      "reference": "https://code.visualstudio.com/docs/setup/windows"
+    },
+    {
+      "id": "GitHubCli",
+      "command": "gh.exe",
+      "versionArguments": ["--version"],
+      "versionPolicy": { "mode": "Present" },
+      "installDisposition": "Automated",
+      "install": { "kind": "WinGet", "source": "winget", "packageId": "GitHub.cli", "scope": "machine" },
+      "reference": "https://docs.github.com/en/github-cli/github-cli/quickstart"
+    },
+    {
+      "id": "AzureCli",
+      "command": "az.cmd",
+      "versionArguments": ["version", "--output", "json"],
+      "versionPolicy": { "mode": "Present" },
+      "installDisposition": "Automated",
+      "install": { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.AzureCLI", "scope": "machine" },
+      "reference": "https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-windows"
+    },
+    {
+      "id": "AzureDeveloperCli",
+      "command": "azd.exe",
+      "versionArguments": ["version"],
+      "versionPolicy": { "mode": "Present" },
+      "installDisposition": "Automated",
+      "install": { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.Azd", "scope": "machine" },
+      "reference": "https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd"
+    },
+    {
+      "id": "PowerPlatformCli",
+      "command": "pac.exe",
+      "versionArguments": ["help"],
+      "versionPolicy": { "mode": "Present" },
+      "installDisposition": "Automated",
+      "install": { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.PowerAppsCLI", "scope": "machine" },
+      "reference": "https://learn.microsoft.com/en-us/power-platform/developer/cli/introduction"
+    },
+    {
+      "id": "Bicep",
+      "command": "az.cmd",
+      "versionArguments": ["bicep", "version"],
+      "versionPolicy": { "mode": "Present" },
+      "installDisposition": "Automated",
+      "install": { "kind": "AzureCliComponent", "arguments": ["bicep", "install"] },
+      "reference": "https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/install"
+    },
+    {
+      "id": "Pester",
+      "command": "powershell.exe",
+      "versionArguments": ["-NoProfile", "-Command", "(Get-Module -ListAvailable Pester | Where-Object Version -eq ([version]'5.7.1') | Select-Object -First 1).Version.ToString()"],
+      "versionPolicy": { "mode": "Exact", "value": "5.7.1" },
+      "installDisposition": "Automated",
+      "install": { "kind": "PowerShellGallery", "repository": "PSGallery", "moduleName": "Pester", "requiredVersion": "5.7.1", "scope": "CurrentUser" },
+      "reference": "https://www.powershellgallery.com/packages/Pester/5.7.1"
+    },
+    {
+      "id": "GitHubCopilotCli",
+      "command": "copilot.exe",
+      "versionArguments": ["--version"],
+      "versionPolicy": { "mode": "Present" },
+      "installDisposition": "Automated",
+      "install": { "kind": "WinGet", "source": "winget", "packageId": "GitHub.Copilot", "scope": "user" },
+      "reference": "https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli"
+    }
+  ],
+  "azureCliExtensions": [],
+  "vsCodeExtensions": [],
+  "repositoryAssets": [],
+  "allowedActions": [],
+  "unexpected": true
+}

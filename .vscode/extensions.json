@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "ms-vscode.PowerShell",
+    "ms-azuretools.vscode-bicep",
+    "ms-azuretools.azure-dev",
+    "microsoft-IsvExpTools.powerplatform-vscode",
+    "GitHub.copilot"
+  ],
+  "unwantedRecommendations": []
+}
