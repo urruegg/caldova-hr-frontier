@@ -141,4 +141,9 @@ Describe 'Cloud foundation static safety' {
                 Should -Be @('service','targetId','condition','owner','diagnostic','recovery')
         }
     }
+
+    It 'links the cloud service foundation runbook from the infrastructure map' {
+        $content = Get-Content -Raw (Join-Path $script:RepositoryRoot 'infra\README.md')
+        $content | Should -Match '\[Cloud Service Foundation Runbook\]\(docs/runbooks/02-cloud-service-foundation\.md\)'
+    }
 }
