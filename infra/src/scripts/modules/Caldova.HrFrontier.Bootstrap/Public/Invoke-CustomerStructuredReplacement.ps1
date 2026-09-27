@@ -21,8 +21,31 @@ function Publish-CustomerStructuredReplacementBytes {
     $backup = Join-Path $parent (([guid]::NewGuid().ToString('N')) + '.bak')
     $restoreTemporary = Join-Path $parent (([guid]::NewGuid().ToString('N')) + '.restore.tmp')
     $restoreBackup = Join-Path $parent (([guid]::NewGuid().ToString('N')) + '.restore.bak')
-    $keepBackup = $false
-    $restoredOriginal = $false
+    $preserveBackup = $false
+    $primaryFailure = $null
+    $cleanupWarnings = [System.Collections.Generic.List[string]]::new()
+    $cleanupWarningText = 'Customer export replacement cleanup could not remove one or more disposable local artifacts.'
+
+    function Add-CustomerStructuredReplacementCleanupWarning {
+        if (-not $cleanupWarnings.Contains($cleanupWarningText)) {
+            $cleanupWarnings.Add($cleanupWarningText) | Out-Null
+        }
+    }
+
+    function Remove-CustomerStructuredReplacementArtifactSafe {
+        param([string]$Path)
+
+        if (-not (& $FileOperations.Exists $Path)) {
+            return
+        }
+
+        try {
+            & $FileOperations.Delete $Path
+        }
+        catch {
+            Add-CustomerStructuredReplacementCleanupWarning
+        }
+    }
 
     try {
         & $FileOperations.WriteAllBytes $temporary ([byte[]]$Bytes)
@@ -40,26 +63,21 @@ function Publish-CustomerStructuredReplacementBytes {
                         else {
                             & $FileOperations.Move $restoreTemporary $TargetPath
                         }
-
-                        $restoredOriginal = $true
-                        if (& $FileOperations.Exists $backup) {
-                            & $FileOperations.Delete $backup
-                        }
-                        if (& $FileOperations.Exists $restoreBackup) {
-                            & $FileOperations.Delete $restoreBackup
-                        }
+                        $primaryFailure = 'Customer export replacement publish failed after the original target bytes were restored.'
                     }
                     catch {
-                        $keepBackup = $true
-                        throw ("Customer export replacement publish failed. Recover from local backup path '{0}'." -f $backup)
+                        if (& $FileOperations.Exists $backup) {
+                            $preserveBackup = $true
+                            $primaryFailure = ("Customer export replacement publish failed. Recover from local backup path '{0}'." -f $backup)
+                        }
+                        else {
+                            $primaryFailure = 'Customer export replacement publish failed and automatic restoration did not complete.'
+                        }
                     }
                 }
-
-                if ($restoredOriginal) {
-                    throw 'Customer export replacement publish failed after the original target bytes were restored.'
+                else {
+                    $primaryFailure = $_
                 }
-
-                throw
             }
         }
         else {
@@ -68,14 +86,20 @@ function Publish-CustomerStructuredReplacementBytes {
     }
     finally {
         foreach ($path in @($temporary, $restoreTemporary, $restoreBackup)) {
-            if (& $FileOperations.Exists $path) {
-                & $FileOperations.Delete $path
-            }
+            Remove-CustomerStructuredReplacementArtifactSafe -Path $path
         }
 
-        if ((-not $keepBackup) -and (& $FileOperations.Exists $backup)) {
-            & $FileOperations.Delete $backup
+        if (-not $preserveBackup) {
+            Remove-CustomerStructuredReplacementArtifactSafe -Path $backup
         }
+    }
+
+    foreach ($warning in $cleanupWarnings) {
+        Write-Warning $warning
+    }
+
+    if ($null -ne $primaryFailure) {
+        throw $primaryFailure
     }
 }
 

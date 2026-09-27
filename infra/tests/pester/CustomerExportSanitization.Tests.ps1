@@ -144,6 +144,51 @@ Describe 'Customer export sanitization' {
         @(Get-ChildItem -LiteralPath $caseRoot -Include '*.tmp', '*.bak' -File -Recurse -ErrorAction SilentlyContinue).Count | Should -Be 0
     }
 
+    It 'keeps the restored-result exception when restore-backup cleanup fails' {
+        $caseRoot = Join-Path $TestDrive 'restore-backup-delete-failure'
+        [IO.Directory]::CreateDirectory($caseRoot) | Out-Null
+        $target = Join-Path $caseRoot 'restore-backup-delete-failure.md'
+        $original = "Source Reference Organization`r`nContact Source Reference Organization`r`n"
+        [IO.File]::WriteAllText($target, $original, [Text.UTF8Encoding]::new($false))
+        $state = [pscustomobject]@{ replaceCalls = 0; restoreBackupPath = $null }
+        $ops = [pscustomobject]@{
+            WriteAllBytes = { param($path, [byte[]]$bytes) [IO.File]::WriteAllBytes($path, $bytes) }
+            ReadAllBytes = { param($path) [IO.File]::ReadAllBytes($path) }
+            Exists = { param($path) Test-Path -LiteralPath $path }
+            Delete = {
+                param($path)
+                if ($path -eq $state.restoreBackupPath) {
+                    throw 'synthetic restore-backup cleanup failure'
+                }
+                Remove-Item -LiteralPath $path -Force
+            }.GetNewClosure()
+            Move = { param($source, $destination) [IO.File]::Move($source, $destination) }
+            Replace = {
+                param($source, $destination, $backup)
+                $state.replaceCalls++
+                if ($state.replaceCalls -eq 1) {
+                    [IO.File]::Copy($destination, $backup, $true)
+                    throw 'synthetic replace failure'
+                }
+                $state.restoreBackupPath = $backup
+                [IO.File]::Replace($source, $destination, $backup, $false)
+            }.GetNewClosure()
+        }
+
+        {
+            Invoke-CustomerStructuredReplacement -StagingRoot $caseRoot -Path 'restore-backup-delete-failure.md' -Rules @([pscustomobject]@{
+                id = 'customer-name-restore-backup-delete-failure'
+                path = 'restore-backup-delete-failure.md'
+                format = 'MarkdownExact'
+                expectedOldText = 'Source Reference Organization'
+                newText = 'Customer Example Organization'
+                requiredCount = 2
+            }) -FileOperations $ops -WarningAction Continue
+        } | Should -Throw '*restored*'
+
+        [IO.File]::ReadAllText($target) | Should -Be $original
+    }
+
     It 'retains the backup and reports the safe recovery path when restoration fails' {
         $caseRoot = Join-Path $TestDrive 'restore-failure'
         [IO.Directory]::CreateDirectory($caseRoot) | Out-Null
@@ -191,6 +236,52 @@ Describe 'Customer export sanitization' {
         @(Get-ChildItem -LiteralPath $caseRoot -Filter '*.tmp' -File -Recurse -ErrorAction SilentlyContinue).Count | Should -Be 0
     }
 
+    It 'does not let finally temp cleanup failures replace the restoration exception' {
+        $caseRoot = Join-Path $TestDrive 'finally-delete-failure'
+        [IO.Directory]::CreateDirectory($caseRoot) | Out-Null
+        $target = Join-Path $caseRoot 'finally-delete-failure.md'
+        $original = "Source Reference Organization`r`nContact Source Reference Organization`r`n"
+        [IO.File]::WriteAllText($target, $original, [Text.UTF8Encoding]::new($false))
+        $state = [pscustomobject]@{ replaceCalls = 0; failedDeletePath = $null }
+        $ops = [pscustomobject]@{
+            WriteAllBytes = { param($path, [byte[]]$bytes) [IO.File]::WriteAllBytes($path, $bytes) }
+            ReadAllBytes = { param($path) [IO.File]::ReadAllBytes($path) }
+            Exists = { param($path) Test-Path -LiteralPath $path }
+            Delete = {
+                param($path)
+                if ($path -like '*.tmp' -and $null -eq $state.failedDeletePath) {
+                    $state.failedDeletePath = $path
+                    throw 'synthetic temp cleanup failure'
+                }
+                Remove-Item -LiteralPath $path -Force
+            }.GetNewClosure()
+            Move = { param($source, $destination) [IO.File]::Move($source, $destination) }
+            Replace = {
+                param($source, $destination, $backup)
+                $state.replaceCalls++
+                if ($state.replaceCalls -eq 1) {
+                    [IO.File]::Copy($destination, $backup, $true)
+                    Remove-Item -LiteralPath $destination -Force
+                    throw 'synthetic replace failure'
+                }
+                [IO.File]::Move($source, $destination)
+            }.GetNewClosure()
+        }
+
+        {
+            Invoke-CustomerStructuredReplacement -StagingRoot $caseRoot -Path 'finally-delete-failure.md' -Rules @([pscustomobject]@{
+                id = 'customer-name-finally-delete-failure'
+                path = 'finally-delete-failure.md'
+                format = 'MarkdownExact'
+                expectedOldText = 'Source Reference Organization'
+                newText = 'Customer Example Organization'
+                requiredCount = 2
+            }) -FileOperations $ops -WarningAction Continue
+        } | Should -Throw '*restored*'
+
+        [IO.File]::ReadAllText($target) | Should -Be $original
+    }
+
     It 'leaves no temp or backup files after a successful atomic publish' {
         $caseRoot = Join-Path $TestDrive 'atomic-success'
         [IO.Directory]::CreateDirectory($caseRoot) | Out-Null
@@ -199,6 +290,7 @@ Describe 'Customer export sanitization' {
             "Source Reference Organization`r`nContact Source Reference Organization`r`n",
             [Text.UTF8Encoding]::new($false))
 
+        $warnings = @()
         Invoke-CustomerStructuredReplacement -StagingRoot $caseRoot -Path 'atomic-success.md' -Rules @([pscustomobject]@{
             id = 'customer-name-success'
             path = 'atomic-success.md'
@@ -206,9 +298,10 @@ Describe 'Customer export sanitization' {
             expectedOldText = 'Source Reference Organization'
             newText = 'Customer Example Organization'
             requiredCount = 2
-        }) | Out-Null
+        }) -WarningVariable warnings -WarningAction Continue | Out-Null
 
         @(Get-ChildItem -LiteralPath $caseRoot -Include '*.tmp', '*.bak' -File -Recurse -ErrorAction SilentlyContinue).Count | Should -Be 0
+        $warnings | Should -BeNullOrEmpty
     }
 
     It 'classifies inspectable non-NUL binary content only when explicitly allowlisted' {
