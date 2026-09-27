@@ -221,11 +221,16 @@ $Summary
             # UC-0001's actual summary) to prove the bytes sent and read back are correct UTF-8,
             # not just that a call was made.
             # Uses a bespoke single-idea fixture (rather than New-FixtureIdeasRoot's shared fixtures)
-            # so the summary can contain a real em dash (—, U+2014) - matching UC-0001's actual
+            # so the summary can contain a real em dash (U+2014) - matching UC-0001's actual
             # production summary - without touching the shared fixture text other tests assert on.
+            # The em dash is built from [char]0x2014, not a literal character, because this repo's
+            # Pester test files are tracked without a UTF-8 BOM (see the sibling commit that removed
+            # one from this same file) and Windows PowerShell 5.1 - CI's runtime - misreads a literal
+            # non-ASCII byte in a non-BOM file, corrupting the character before the test even runs.
+            $emDash = [string][char]0x2014
             $ideasRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString())
             New-Item -ItemType Directory -Path $ideasRoot -Force | Out-Null
-            New-IdeaFixtureFile -Root $ideasRoot -RelativePath 'uc-0001-encoding-fixture.md' -UseCaseId 'UC-0001' -Title 'Encoding Fixture' -StatusLine '**Selected as MVP**' -JourneyStage 'Pre-board' -Summary 'Adds missing approved values only — never overwriting anything that already has a value.'
+            New-IdeaFixtureFile -Root $ideasRoot -RelativePath 'uc-0001-encoding-fixture.md' -UseCaseId 'UC-0001' -Title 'Encoding Fixture' -StatusLine '**Selected as MVP**' -JourneyStage 'Pre-board' -Summary "Adds missing approved values only $emDash never overwriting anything that already has a value."
             $capturedTokenArgumentLists = [System.Collections.Generic.List[object]]::new()
             $capturedHttpCalls = [System.Collections.Generic.List[object]]::new()
             $createdById = @{}
