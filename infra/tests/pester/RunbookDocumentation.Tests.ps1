@@ -39,12 +39,53 @@ Describe 'Runbook documentation contracts' {
     It 'includes metadata-compliant infrastructure runbooks in the documentation set' {
         foreach ($relative in @(
             'infra/docs/runbooks/README.md',
-            'infra/docs/runbooks/01-developer-workstation.md'
+            'infra/docs/runbooks/01-developer-workstation.md',
+            'infra/docs/runbooks/02-cloud-service-foundation.md'
         )) {
             $path = Join-Path $script:repositoryRoot $relative
             $path | Should -Exist
             @(Test-DocumentationMetadataContent -Content (Get-Content -Raw $path) -DocumentRelativePath $relative).Count | Should -Be 0
         }
+
+    }
+
+    It 'documents the attended cloud service foundation operating contract' {
+        $path = Join-Path $script:repositoryRoot 'infra\docs\runbooks\02-cloud-service-foundation.md'
+        $path | Should -Exist
+        $content = Get-Content -Raw -LiteralPath $path
+        foreach ($heading in @(
+            'Purpose and Status','Operator, Scope, and Preconditions','Attended Authentication',
+            'Permission Matrix','Assessment and Plan','Approval and Apply',
+            'Manual and Blocking Actions','Evidence','Recovery','Cleanup and Sign-out',
+            'Definition of Done'
+        )) {
+            $content | Should -Match ("(?m)^## {0}\r?$" -f [regex]::Escape($heading))
+        }
+        foreach ($literal in @(
+            'Get-CloudFoundationPlan.ps1','Invoke-CloudFoundation.ps1',
+            'hr-<TenantAlias>-<stage>','-Apply','-WhatIf','ShouldProcess',
+            'az login --tenant <tenantId> --use-device-code',
+            'gh auth login --hostname github.com --web --clipboard',
+            'pac auth create --name <profile> --environment <url> --deviceCode',
+            "Status = 'Planned'","ShouldProcessDecision = 'NotApplicable'",
+            'PartialMutation','IncompleteManualActions','BlockedOperation','RunDirectory',
+            'az bicep format --file <absoluteSource> --stdout',
+            'service,targetId,condition,owner,diagnostic,recovery'
+        )) {
+            $content | Should -Match ([regex]::Escape($literal))
+        }
+        foreach ($url in @(
+            'https://docs.github.com/en/rest/repos/repos#update-a-repository',
+            'https://docs.github.com/en/rest/repos/rules#create-a-repository-ruleset',
+            'https://docs.github.com/en/rest/repos/rules#update-a-repository-ruleset',
+            'https://learn.microsoft.com/en-us/cli/azure/deployment/sub#az-deployment-sub-create',
+            'https://learn.microsoft.com/en-us/cli/azure/ad/app',
+            'https://learn.microsoft.com/en-us/cli/azure/ad/sp',
+            'https://learn.microsoft.com/en-us/cli/azure/devops/project'
+        )) {
+            $content | Should -Match ([regex]::Escape($url))
+        }
+        $content | Should -Match '\]\(\.\./19-bootstrap-recovery\.md\)'
     }
 
     It 'documents local attended authentication and rejects workload execution' {
@@ -72,7 +113,8 @@ Describe 'Runbook documentation contracts' {
     It 'resolves every local markdown destination referenced by the runbook documents' {
         foreach ($relative in @(
             'infra/docs/runbooks/README.md',
-            'infra/docs/runbooks/01-developer-workstation.md'
+            'infra/docs/runbooks/01-developer-workstation.md',
+            'infra/docs/runbooks/02-cloud-service-foundation.md'
         )) {
             $path = Join-Path $script:repositoryRoot $relative
             foreach ($link in @(Get-MarkdownRelativeLinks -Path $path)) {
