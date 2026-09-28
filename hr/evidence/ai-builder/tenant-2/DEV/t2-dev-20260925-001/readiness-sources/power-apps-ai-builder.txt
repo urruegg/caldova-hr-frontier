@@ -11,4 +11,13 @@ authorization. The older pre-existing draft 048a9ae4-5a09-4db8-b2b2-b6de33b53893
 was not changed.
 
 Create access was observed. Train, publish, and add-to-solution controls were not
-all observed, so maker authorization remains unknown.
+all directly visible before a model reaches the applicable lifecycle state.
+
+A read-only Dataverse role query confirmed that the attended account has the
+System Administrator role. Microsoft AI Builder security guidance states that
+System Administrators can create models and access all AI models in the
+environment:
+https://learn.microsoft.com/en-us/ai-builder/security
+
+The observed create access and documented System Administrator authorization
+provide the pre-creation authorization evidence. No role was granted or changed.

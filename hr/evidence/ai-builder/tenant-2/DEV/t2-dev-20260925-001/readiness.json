@@ -1,11 +1,8 @@
 {
   "schema_version": "1.0",
   "run_id": "t2-dev-20260925-001",
-  "status": "blocked",
-  "failed_gates": [
-    "maker_authorization",
-    "capacity"
-  ],
+  "status": "passed",
+  "failed_gates": [],
   "checks": [
     {
       "id": "environment",
@@ -25,11 +22,11 @@
     },
     {
       "id": "maker_authorization",
-      "status": "unknown",
-      "observation": "Create-model access was observed, but train, publish, and add-to-solution controls were not all observed without advancing the model lifecycle.",
-      "source": "Power Apps AI hub controls; readiness-sources\\power-apps-ai-builder.txt",
+      "status": "passed",
+      "observation": "Create-model access was observed and the attended account has the Dataverse System Administrator role, which Microsoft documents as authorized to create and access all AI Builder models in the environment.",
+      "source": "Power Apps AI hub controls, pac role query, and Microsoft AI Builder security guidance; readiness-sources\\power-apps-ai-builder.txt; readiness-sources\\pac-maker-roles.txt",
       "operator": "admin@caldova25668747.onmicrosoft.com",
-      "observed_at_utc": "2026-09-28T14:42:05.5745087Z"
+      "observed_at_utc": "2026-09-28T15:07:06.2557610Z"
     },
     {
       "id": "ai_builder_available",
@@ -41,11 +38,11 @@
     },
     {
       "id": "capacity",
-      "status": "failed",
-      "observation": "Tenant capacity is 20,740,000, but 0 is assigned and calhrfrontierdev shows no allocated capacity; the required non-zero environment allocation is absent.",
+      "status": "passed",
+      "observation": "Tenant capacity is 20,740,000 and the enabled tenant setting allows environments without assigned capacity, including calhrfrontierdev, to consume unassigned AI Builder credits.",
       "source": "Power Platform admin center capacity; readiness-sources\\power-platform-capacity.txt",
       "operator": "admin@caldova25668747.onmicrosoft.com",
-      "observed_at_utc": "2026-09-28T14:42:05.5745087Z"
+      "observed_at_utc": "2026-09-28T15:04:37.5228967Z"
     },
     {
       "id": "data_policy",
