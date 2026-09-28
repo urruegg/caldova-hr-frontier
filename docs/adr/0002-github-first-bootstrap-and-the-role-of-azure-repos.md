@@ -48,6 +48,7 @@ Tenant 1 private configuration is an ignored local file with an encrypted,
 restore-tested backup outside Git. A private Azure Repo, OIDC bootstrap,
 `bootstrap-tenant1` Environment, cloud workflow retrieval, and Basic-to-Agile
 conversion are not current targets.
+No initial or current mirror is approved.
 
 The tracked `_template.psd1` remains synthetic. Every attended live command receives
 the ignored `infra/src/config/tenants/tenant1.local.psd1` through an explicit

@@ -31,7 +31,7 @@ That leaves an unavoidable question: where does the backlog live, and where does
 
 Three options were considered.
 
-### Option A — Everything in Azure DevOps
+### Historical alternative — Everything in Azure DevOps
 
 Azure Repos for source, Azure Boards for work, Azure Pipelines for delivery.
 
@@ -39,7 +39,7 @@ Azure Repos for source, Azure Boards for work, Azure Pipelines for delivery.
 - But: GitHub Copilot CLI, Copilot cloud agent, `copilot-instructions.md`, `AGENTS.md`, rulesets, secret scanning and push protection are GitHub features. Building with Copilot CLI against Azure Repos loses the repository-native Copilot surface that the showcase is partly meant to demonstrate.
 - Azure DevOps **public projects are retired and can no longer be created**, so the "build in the open" objective is not achievable there.
 
-### Option B — Everything in GitHub
+### Historical alternative — Everything in GitHub
 
 GitHub Issues and GitHub Projects for work, GitHub for source and Actions.
 
@@ -47,7 +47,7 @@ GitHub Issues and GitHub Projects for work, GitHub for source and Actions.
 - But: **issue types are an organisation-level feature** and `urruegg` is a personal account, so work item typing degrades to labels. There are no iterations, no delivery plans, and no approval checks that pipeline authors provably cannot modify.
 - It also removes Azure DevOps from a showcase whose stated scope explicitly includes it.
 
-### Option C — Azure Boards plans, GitHub hosts source, Azure Pipelines delivers
+### Historical alternative — Azure Boards plans, GitHub hosts source, Azure Pipelines delivers
 
 Azure Boards owns the backlog, iterations, delivery plans and deployment approvals. GitHub owns product source, pull requests, and agent definitions. GitHub Actions owns repository validation, while Azure Pipelines owns HR solution CI/CD and controlled TEST-to-PROD delivery. The systems are joined by `AB#<work-item-id>` references.
 
