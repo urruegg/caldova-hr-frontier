@@ -49,10 +49,24 @@ $inventoryPath = Join-Path $OutputDirectory 'model-inventory.json'
 
 if (-not (Test-Path -LiteralPath $fixedReviewPath -PathType Leaf) -or
     -not (Test-Path -LiteralPath $generalReviewPath -PathType Leaf)) {
-    New-HrAiBuilderCorpusReviewTemplate -PackagePath $fixedPackagePath -OutputPath $fixedReviewPath | Out-Null
-    New-HrAiBuilderCorpusReviewTemplate -PackagePath $generalPackagePath -OutputPath $generalReviewPath | Out-Null
+    if (-not (Test-Path -LiteralPath $fixedReviewPath -PathType Leaf)) {
+        New-HrAiBuilderCorpusReviewTemplate -PackagePath $fixedPackagePath -OutputPath $fixedReviewPath | Out-Null
+    }
+
+    if (-not (Test-Path -LiteralPath $generalReviewPath -PathType Leaf)) {
+        New-HrAiBuilderCorpusReviewTemplate -PackagePath $generalPackagePath -OutputPath $generalReviewPath | Out-Null
+    }
+
     Write-Output 'Visual corpus review is required before qualification.'
     exit 1
+}
+
+if (Test-Path -LiteralPath $manifestPath -PathType Leaf) {
+    throw "Run manifest file '$manifestPath' already exists."
+}
+
+if (Test-Path -LiteralPath $inventoryPath -PathType Leaf) {
+    throw "Model inventory file '$inventoryPath' already exists."
 }
 
 $fixedResult = Test-HrAiBuilderCorpus -PackagePath $fixedPackagePath -ModelKind Fixed -ReviewPath $fixedReviewPath -FieldContractPath $contractPath

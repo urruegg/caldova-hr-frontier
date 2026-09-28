@@ -54,7 +54,31 @@ function Complete-HrAiBuilderRunManifest {
         'blocked'
     }
 
-    $manifest.models = @($inventory.models)
+    $inventoryByName = @{}
+    foreach ($inventoryModel in @($inventory.models)) {
+        $inventoryByName[[string]$inventoryModel.display_name] = $inventoryModel
+    }
+
+    $manifest.models = @(
+        foreach ($manifestModel in @($manifest.models)) {
+            $inventoryModel = $inventoryByName[[string]$manifestModel.display_name]
+            if (-not $inventoryModel) {
+                $manifestModel
+                continue
+            }
+
+            [ordered]@{
+                display_name = [string]$inventoryModel.display_name
+                model_kind = [string]$inventoryModel.model_kind
+                model_id = [string]$inventoryModel.model_id
+                version = [string]$inventoryModel.version
+                lifecycle_stage = [string]$inventoryModel.lifecycle_stage
+                documents = @($manifestModel.documents)
+                ground_truth_hashes = $manifestModel.ground_truth_hashes
+                lifecycle_history = @($inventoryModel.lifecycle_history)
+            }
+        }
+    )
     $manifest.solution_version = $SolutionVersion
     $manifest.completed_at_utc = [datetime]::UtcNow.ToString('o')
     $manifest.overall_status = $overallStatus

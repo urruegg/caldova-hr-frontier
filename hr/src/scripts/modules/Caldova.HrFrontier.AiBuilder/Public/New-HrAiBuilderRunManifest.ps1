@@ -51,6 +51,14 @@ function New-HrAiBuilderRunManifest {
         [string]$ModelInventoryPath
     )
 
+    if (Test-Path -LiteralPath $OutputPath -PathType Leaf) {
+        throw "Run manifest file '$OutputPath' already exists."
+    }
+
+    if (Test-Path -LiteralPath $ModelInventoryPath -PathType Leaf) {
+        throw "Model inventory file '$ModelInventoryPath' already exists."
+    }
+
     $knownModels = @(Get-HrAiBuilderKnownModels)
     $modelsByName = @{}
     foreach ($model in $Models) {
