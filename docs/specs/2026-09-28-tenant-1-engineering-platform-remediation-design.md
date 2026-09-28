@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-09-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
@@ -16,6 +16,8 @@ Approved through attended design review on 2026-09-28.
 This specification approves the remediation design and its sequencing. It does not itself authorize an unplanned live mutation, approve a plan whose hash has changed, or prove that any target control is already configured.
 
 ADR-0001, ADR-0002, and ADR-0012 remain **Proposed Baseline** at the time of publication. Wave 0 must update their decision text, metadata statuses, catalogue entries, and cross-references through attended review before anyone describes those ADRs as approved or accepted. Approval of this specification approves the remediation direction; it does not silently perform or pre-approve those ADR mutations.
+
+Version 1.1 records the attended transition decision for existing Tenant 2 data: Slice 1 migrates and removes Tenant 1 private values, but preserves the existing Tenant 2 manifest and discovery evidence until Slice 5 hands them to Tenant 2's own repository. Slice 1 may add only the neutral public-key metadata needed to keep existing explicit-path tooling valid, then pins both files by hash. This temporary exception does not weaken the final one-repository-per-tenant target.
 
 ## Objective
 
@@ -132,13 +134,13 @@ All checkpoints are mandatory and run in order. A checkpoint is complete only wh
 | Checkpoint | Approved work | Acceptance |
 |---|---|---|
 | **A — Pre-state and rollback evidence** | Resolve the exact authenticated contexts and stable resource IDs; collect the allowlisted pre-state; hash it; identify rollback or forward-recovery operations and their limits; and produce the immutable mutation plan. | The reviewed context, IDs, pre-state hash, plan hash, rollback evidence, and recovery owner exist before mutation. Evidence contains no secret or unrestricted membership list. Any resource without a safe, approved recovery path remains unchanged. |
-| **B — Private configuration boundary and overlay migration** | Rename the empty Azure Repo to `caldova-hr-frontier-config`; establish its allowlisted content boundary; move tenant-private overlays out of the public GitHub repository; and retain only the safe public source and contracts required there. | API read-back confirms the exact repository name and boundary. A public-repository scan finds no prohibited tenant-private overlay. The Azure Repo contains only tenant-private configuration, governed templates, runbooks, schemas, and sanitized evidence; it contains no product source, credential, bidirectional sync, or disaster-recovery mirror. |
+| **B — Private configuration boundary and overlay migration** | Rename the empty Azure Repo to `caldova-hr-frontier-config`; establish its allowlisted content boundary; move Tenant 1 private overlays out of the public GitHub repository; and retain safe public source plus the explicitly allowlisted Tenant 2 transition files. | API read-back confirms the exact repository name and boundary. A public-repository scan finds no Tenant 1 private overlay and no tenant-private file except the exact Tenant 2 manifest and discovery evidence recorded by reviewed hash. The only permitted Tenant 2 file change is neutral public-key metadata required by the explicit-path contract. The Azure Repo contains only Tenant 1 private configuration, governed templates, runbooks, schemas, and sanitized evidence; it contains no Tenant 2 data, product source, credential, bidirectional sync, or disaster-recovery mirror. |
 | **C — Bootstrap trust** | Use the existing `Initialize-TenantTrust` `WhatIf` and read-back pattern for the dedicated bootstrap trust. Create the exact `bootstrap-<tenant>` GitHub Environment, restrict it to `main`, require the approved reviewer, prevent self-review, and store only reviewed non-secret identifiers as Environment variables. Review the zero-mutation plan, approve its exact hash, perform each approved mutation under the fail-closed contract, and re-run read-back. | The approved plan hash equals the executed plan hash. The application, service principal, federated credential, Azure DevOps entitlement, GitHub Environment, branch restriction, reviewer, self-review setting, and non-secret variables all read back with the planned stable IDs and complete postconditions; every item is then reported as existing on the final zero-mutation run. A step without supported complete read-back is not executed. |
 | **D — GitHub governance** | Run `Enable-GitHubGovernance` to apply the approved repository settings and active `main` ruleset. | Read-back proves squash-only normal merge, merged-branch deletion, GitHub Projects disabled, Dependabot security updates enabled, and an active `main` ruleset requiring a pull request, one approval, stale-review dismissal, CODEOWNERS review, resolved conversations, repository validation, the `AB#` traceability check, force-push blocking, deletion blocking, and repository-owner bypass in pull-request-only mode. Applicable merge and governance negative tests are rejected. |
 | **E — Azure Boards foundation** | Inventory existing work items and configuration; perform the attended Basic-to-Agile process conversion; retain one default team on the root area; create six contiguous 14-day iterations from the attended first-start input; and create the durable Epic, Feature, and User Stories for the approved work. | Pre-existing work is accounted for without silent deletion. Read-back proves the built-in Agile process, one default team, the root area, all six iteration dates, and the reviewed durable hierarchy and assignments. No second team or speculative area exists. |
 | **F — Real Wave 1 pull request** | Use a real current-sprint User Story and a real change in the authoritative GitHub repository. Put `Fixes AB#<work-item-id>` in the pull request, satisfy the active ruleset, and merge normally by squash. | Azure Boards and GitHub read-back show the intended branch, commit, pull-request, and merge linkage to the durable work item; the predeclared work-item transition occurred; all required checks and review passed; and the merged branch was deleted. This is not a disposable synthetic transaction. |
 
-The current sprint is accepted only when Wave 0 and checkpoints A through F all pass and the evidence proves that no Azure Pipeline, managed artifact, Power Platform import, or deployment was created.
+The current sprint is accepted only when Wave 0 and checkpoints A through F all pass and the evidence proves that no Azure Pipeline, managed artifact, Power Platform import, or deployment was created. This acceptance is explicitly transitional: the full public/private-boundary and single-tenant controls remain open while the hash-pinned Tenant 2 files remain in this repository.
 
 ## Slice 2: Azure Pipelines Identity and Resource Foundation
 
@@ -201,6 +203,8 @@ A new tenant starts from a one-time detached copy, not a live fork and not an au
 6. retain only sanitized conformance evidence.
 
 Changes shared after seeding are deliberate pull requests to each affected tenant repository. There is no automatic backport, upstream merge, bidirectional synchronization, or shared branch. If repeated deliberate backports become unsustainable, that is a future shared-component design decision, not permission to add synchronization here.
+
+For Tenant 2, Slice 5 begins by proving that the exact hash-pinned transition manifest and discovery evidence still match the files preserved during Slice 1. The handoff copies them to Tenant 2's private boundary and removes them from Tenant 1 only after destination read-back succeeds. Until then, no script or workflow may treat the retained Tenant 2 files as Tenant 1 configuration or add another Tenant 2 private artifact to this public repository.
 
 ## Fail-Closed Mutation Contract
 
@@ -267,7 +271,7 @@ Read-back is not replaced by unit tests, screenshots, successful command exit co
 The remediation program is accepted only when all of the following are true:
 
 1. ADR-0001, ADR-0002, and ADR-0012 have been reconciled through attended Wave 0 review, their own statuses and catalogue entries reflect that review, and all maintained references describe one consistent per-tenant topology.
-2. Current-sprint checkpoints A through F pass, including the private configuration boundary, active GitHub governance, Agile Boards foundation, and real `Fixes AB#` transaction.
+2. Current-sprint checkpoints A through F pass, including the transitional Tenant 1 private configuration boundary, active GitHub governance, Agile Boards foundation, and real `Fixes AB#` transaction.
 3. Bootstrap, non-production delivery, and production delivery identities are separate, minimum-scope, and proven by read-back; the Azure Boards and Azure Pipelines GitHub Apps are separate and restricted to their approved purposes.
 4. The private configuration repository, stage-specific service connections, non-secret variable groups, federation exceptions, TEST and PROD environments, checks, required template, and explicit pipeline authorizations pass read-back and negative authorization tests.
 5. An approved GitHub commit passes HR Solution CI and produces exactly one immutable managed artifact with complete provenance and checksum, without an automatic DEV export.
@@ -292,3 +296,4 @@ The remediation program is accepted only when all of the following are true:
 - Creating a second team or area before a real second team exists.
 - Starting a later slice while the preceding slice has an incomplete read-back, failed negative test, unresolved mismatch, or untested recovery path.
 - Describing a Proposed Baseline ADR as approved before its own attended Wave 0 status update is complete.
+- Deleting or modifying the hash-pinned Tenant 2 transition files before Tenant 2 destination read-back proves their successful handoff.
