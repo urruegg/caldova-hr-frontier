@@ -186,6 +186,84 @@
                      }
                  ],
     "screenshots":  [
-
+                        {
+                            "file":  "01-azure-boards-github-app-connection.png",
+                            "observedUtc":  "2026-09-28T10:47:16.0825899Z",
+                            "caption":  "Azure Boards shows a GitHub App connection scoped to the approved repository.",
+                            "supportsControls":  [
+                                                     "GH-012",
+                                                     "ADO-004",
+                                                     "ADO-005"
+                                                 ],
+                            "redactions":  [
+                                               "tenant-bearing organization breadcrumb",
+                                               "connection account display identity and avatar",
+                                               "administrator display identity and avatar"
+                                           ]
+                        },
+                        {
+                            "file":  "02-azure-repo-settings.png",
+                            "observedUtc":  "2026-09-28T10:47:16.0825899Z",
+                            "caption":  "The separate Azure Repo settings surface is present; API read-back proves the repository is empty and not the product source.",
+                            "supportsControls":  [
+                                                     "ADO-008"
+                                                 ],
+                            "redactions":  [
+                                               "tenant-bearing organization breadcrumb",
+                                               "account avatar"
+                                           ]
+                        },
+                        {
+                            "file":  "03-azure-repo-branch-policy-state.png",
+                            "observedUtc":  "2026-09-28T10:47:16.0825899Z",
+                            "caption":  "The empty Azure Repo has no visible branch policy configuration; GitHub governance is assessed separately through API read-back.",
+                            "supportsControls":  [
+                                                     "ADO-008"
+                                                 ],
+                            "redactions":  [
+                                               "tenant-bearing organization breadcrumb",
+                                               "account avatar"
+                                           ]
+                        },
+                        {
+                            "file":  "04-azure-repo-permission-state.png",
+                            "observedUtc":  "2026-09-28T10:47:16.0825899Z",
+                            "caption":  "Azure Repo permissions are inherited and a detailed sanitized permission export is still required for least-privilege proof.",
+                            "supportsControls":  [
+                                                     "ADO-009"
+                                                 ],
+                            "redactions":  [
+                                               "tenant-bearing organization breadcrumb",
+                                               "account avatar",
+                                               "build-service identity"
+                                           ]
+                        },
+                        {
+                            "file":  "05-azure-repos-migration-surface.png",
+                            "observedUtc":  "2026-09-28T10:47:16.0825899Z",
+                            "caption":  "The Azure Repos migration surface is unrelated to the required GitHub-first Boards and Pipelines integrations.",
+                            "supportsControls":  [
+                                                     "ADO-008",
+                                                     "PIPE-002"
+                                                 ],
+                            "redactions":  [
+                                               "tenant-bearing organization breadcrumb",
+                                               "account avatar"
+                                           ]
+                        },
+                        {
+                            "file":  "06-migration-dialog-mismatch.png",
+                            "observedUtc":  "2026-09-28T10:47:16.0825899Z",
+                            "caption":  "The migration dialog would move Azure Repos content to GitHub and is not the configuration path for an already GitHub-first repository.",
+                            "supportsControls":  [
+                                                     "ADO-008",
+                                                     "PIPE-002"
+                                                 ],
+                            "redactions":  [
+                                               "browser address bar",
+                                               "tenant-bearing organization breadcrumb",
+                                               "account avatar"
+                                           ]
+                        }
                     ]
 }
