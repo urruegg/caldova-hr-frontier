@@ -4,7 +4,6 @@
   "additionalProperties": false,
   "required": [
     "SchemaVersion",
-    "PublicTenantKey",
     "TenantAlias",
     "DisplayName",
     "TenantId",

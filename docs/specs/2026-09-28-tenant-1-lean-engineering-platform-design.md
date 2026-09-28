@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-09-28 |
+| **Version** | 1.3 |
+| **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Tenant 1 lean engineering platform foundation |
@@ -13,7 +13,7 @@
 
 The user explicitly confirmed **Option A — Lean single-tenant platform** through attended approval on 2026-09-28. That approval selects the lean Tenant 1 target and the control dispositions in this document.
 
-Version 1.2 records the pragmatic solo-owner review profile: pull requests and successful validation remain mandatory, while required approvals and required CODEOWNERS review are deferred until a second eligible maintainer exists. This prevents a governance deadlock in the current one-collaborator repository.
+Version 1.3 records the pragmatic solo-owner review profile and the attended-access ruling. Pull requests and successful validation remain mandatory, while required approvals and required CODEOWNERS review are deferred until a second eligible maintainer exists. Local validation uses the attended operator's pre-existing, separately approved least-privilege access and performs no role mutation. This prevents a governance deadlock without creating a current-sprint bootstrap privilege path.
 
 This design supersedes the broader [Tenant 1 Engineering Platform Remediation Design](2026-09-28-tenant-1-engineering-platform-remediation-design.md) and stops the associated [Engineering Control Plane Foundation Implementation Plan](../plans/2026-09-28-tenant-1-engineering-control-plane-foundation-implementation.md).
 
@@ -43,7 +43,7 @@ The current and future responsibilities are deliberately narrow:
 
 ```mermaid
 flowchart LR
-    LOCAL["Attended local operator<br/>explicit private Tenant 1 configuration"] --> CHECKS["Discovery, review, Bicep build,<br/>subscription what-if, boundary validation"]
+    LOCAL["Attended local operator<br/>explicit private Tenant 1 configuration<br/>pre-existing approved minimum access"] --> CHECKS["Context and access preflight,<br/>discovery, review, Bicep build,<br/>subscription what-if, boundary validation"]
     GH["GitHub<br/>sole product source and PR authority"] --> VALIDATE["GitHub Actions<br/>Repository setup validation"]
     GH --> BOARDSAPP["Azure Boards GitHub App"]
     BOARDSAPP --> BOARDS["Azure Boards<br/>single Basic backlog"]
@@ -160,16 +160,16 @@ Future Azure Pipelines connects directly to GitHub. If later evidence establishe
 
 The local sequence is fixed:
 
-1. **Discovery** — use the explicit private configuration and read current Tenant 1 state without mutation.
-2. **Sanitized review** — inspect the discovery result locally, remove private values from any shareable summary, and confirm the intended subscription and boundary.
-3. **Bicep build** — compile the maintained Bicep entry points before contacting the deployment API.
-4. **Subscription `what-if`** — run subscription-scope `what-if` only; do not execute deployment create.
-5. **Boundary validation** — prove no Tenant 1 private value is tracked, Tenant 2 files were not changed or selected, and all operations remained in the approved Tenant 1 scope.
-6. **Exact temporary-role cleanup** — remove only the temporary role assignment identified for this attended run and verify its absence.
+1. **Attended-context and minimum-access preflight** — identify the signed-in user, confirm the exact Tenant 1 tenant and subscription, and verify that separately approved pre-existing access is available before discovery or `what-if`.
+2. **Discovery** — use the explicit private configuration and read current Tenant 1 state without mutation.
+3. **Sanitized review** — inspect the discovery result locally, remove private values from any shareable summary, and confirm the intended subscription and boundary.
+4. **Bicep build** — compile the maintained Bicep entry points before contacting the deployment API.
+5. **Subscription `what-if`** — use the attended operator's pre-existing, separately approved least-privilege access to run subscription-scope `what-if` only; do not execute deployment create.
+6. **Boundary and access read-back** — prove no Tenant 1 private value is tracked, Tenant 2 files were not changed or selected, the attended principal and subscription did not change, and all operations remained in the approved Tenant 1 scope.
 
-Local scripts fail closed on missing explicit configuration, tenant or subscription mismatch, ambiguous resource resolution, failed authentication, incomplete read-back, timeout, unsupported capability, or an unexpected plan. They do not interpret `403`, `404`, an empty response, or an indeterminate result as permission to continue.
+Local scripts fail closed on missing explicit configuration, tenant or subscription mismatch, missing or excessive access evidence, ambiguous resource resolution, failed authentication, incomplete read-back, timeout, unsupported capability, or an unexpected plan. They do not interpret `403`, `404`, an empty response, or an indeterminate result as permission to continue.
 
-Any temporary role assignment requires separate attended authorization and an exact assignment identifier recorded outside Git before use. Cleanup runs even after validation failure, targets only that identifier, and reports a cleanup failure as an unresolved security condition. Broad role removal is prohibited.
+This sprint creates, changes, and deletes no role assignment. The operator's access is provisioned and approved outside this sprint; the preflight and read-back validate context and minimum necessary capability without making authorization changes.
 
 No command in this sequence creates a deployment. `what-if` output is reviewed and sanitized; it is not proof that resources were deployed.
 
@@ -193,7 +193,7 @@ The proof fails if the work item is synthetic or deleted, the link or transition
 
 | Disposition | Controls |
 |---|---|
-| **Retained now** | No secrets or Tenant 1 private values in Git; pull requests; CODEOWNERS ownership mapping; resolved conversations; required repository validation; force-push and deletion protection; exact temporary-role cleanup; subscription `what-if`; post-action read-back; Azure Boards GitHub App; future independent PROD approval. Required repository approval is deferred until a second eligible maintainer exists. |
+| **Retained now** | No secrets or Tenant 1 private values in Git; pull requests; CODEOWNERS ownership mapping; resolved conversations; required repository validation; force-push and deletion protection; attended-context and minimum-access preflight/read-back; subscription `what-if`; post-action read-back; Azure Boards GitHub App; future independent PROD approval. Required repository approval is deferred until a second eligible maintainer exists. |
 | **Removed from the current sprint and deferred** | OIDC bootstrap and the `bootstrap-tenant1` Environment; workflow-hosted cloud discovery; cloud bootstrap; advisory audit workflow; separate traceability workflow; private configuration Azure Repo; Azure DevOps Required template delivery control; Basic-to-Agile conversion; multi-iteration automation; separate bootstrap, non-production, and production identities. |
 | **Retained but dormant** | Existing trust code that has a plausible future use and can remain without becoming an active dependency. |
 
@@ -208,7 +208,7 @@ All deferred controls require measurable need and a new review. Their prior pres
 | Pull-request template and human `AB#` review | Traceability syntax can be missed before review; the real Boards transaction and reviewer are the control rather than a second workflow. |
 | No advisory audit workflow | There is no scheduled repository audit. Required validation on changes, ruleset read-back, and attended local checks carry the current risk. |
 | Basic Boards | The backlog lacks Agile Feature/User Story semantics and generated cadence, but matches the current project and avoids disruptive conversion. |
-| No current OIDC or bootstrap identity | There is no unattended cloud bootstrap or cloud configuration retrieval; the attended operator remains a privileged dependency. |
+| No current OIDC or bootstrap identity | There is no unattended cloud bootstrap, role mutation, or cloud configuration retrieval; the attended operator's separately approved pre-existing access remains a dependency. |
 | No private Azure Repo | Tenant configuration is not centrally versioned. The secure local backup and recovery check are mandatory compensating controls. |
 | Dormant trust code | Dormant code may drift. It must remain outside the active dependency graph and be reassessed before reuse. |
 | Deferred multi-tenant automation | A new tenant or rebuild takes longer and requires an attended design; current complexity and privilege are lower. |
@@ -231,19 +231,19 @@ No step above is a live or destructive authorization. In particular, this docume
 | Owner | Responsibility |
 |---|---|
 | Repository owner | GitHub workflow inventory, ruleset and settings, source authority, and recovery of repository-only changes. |
-| Tenant 1 attended operator | Local configuration, encrypted backup and recovery test, discovery, Bicep build, `what-if`, sanitized review, and exact temporary-role cleanup. |
+| Tenant 1 attended operator | Local configuration, encrypted backup and recovery test, attended-context and minimum-access preflight/read-back, discovery, Bicep build, `what-if`, and sanitized review. |
 | Azure DevOps project administrator | Basic Boards settings, current sprint dates, Azure Boards GitHub App read-back, and any separately approved empty-repository deletion. |
 | Pull-request author and attended repository owner | Correct `Fixes AB#` reference, conversation resolution, successful validation, and final proof completeness. |
 | Future release owner and independent approver | A later Azure Pipelines and PROD-approval design; no current-sprint deployment responsibility is implied. |
 
-Raw discovery, local configuration, tenant identifiers, unrestricted identity listings, tokens, and role-assignment details remain outside Git. Repository evidence is limited to sanitized outcomes needed to prove the acceptance criteria. Private-file hashes remain with the protected backup unless a separate evidence review determines that publishing a hash cannot disclose or correlate private state. The active audit review and its generated evidence are not edited by this design.
+Raw discovery, local configuration, tenant identifiers, unrestricted identity listings, tokens, and access-assignment details remain outside Git. Repository evidence is limited to sanitized outcomes needed to prove the acceptance criteria. Private-file hashes remain with the protected backup unless a separate evidence review determines that publishing a hash cannot disclose or correlate private state. The active audit review and its generated evidence are not edited by this design.
 
 | Risk | Owner | Required response |
 |---|---|---|
 | Local configuration or workstation loss | Tenant 1 attended operator | Maintain an encrypted backup in a separate failure domain and prove restore by hash before tracked files are removed. |
 | Private Tenant 1 value enters Git | Repository owner | Fail validation, block merge, remove the value from history through a separately approved incident procedure, and rotate any exposed credential. |
 | Wrong tenant or subscription is targeted | Tenant 1 attended operator | Require explicit path and context match; stop before external action on mismatch or ambiguity. |
-| Temporary access survives the run | Tenant 1 attended operator | Remove the exact assignment in cleanup, verify absence, and treat failed cleanup as an unresolved security incident. |
+| Attended access is missing, excessive, or changes during validation | Tenant 1 attended operator | Stop before `what-if`, preserve the separately approved access record outside Git, and require a matching minimum-access preflight and post-operation read-back. Do not mutate roles in this sprint. |
 | Human `AB#` review is missed | Pull-request author and reviewer | Block approval until corrected and require real Boards link/state read-back in final proof. |
 | One large validation workflow becomes slow or brittle | Repository owner | Measure duration and failure causes; split it only after evidence shows a need and the required-check contract is redesigned. |
 | Dormant trust code is mistaken for supported behavior | Repository owner | Remove active references and test invocations; require a new design before reuse. |
@@ -269,7 +269,7 @@ The lean foundation is accepted only when all of the following are true:
 - exactly one active GitHub Actions workflow exists: `.github/workflows/validate-repository.yml`;
 - the minimal `main` ruleset and repository settings are active and read back;
 - the Azure Boards GitHub App connection and one real `Fixes AB#` link and state transition are proven;
-- attended local discovery, Bicep build, subscription `what-if`, boundary validation, and exact temporary-role cleanup pass;
+- attended-context and minimum-access preflight/read-back, local discovery, Bicep build, subscription `what-if`, and boundary validation pass without role mutation;
 - no Tenant 1 private value, local configuration, or raw discovery evidence is tracked;
 - no bootstrap identity, federated credential, `bootstrap-tenant1` Environment, or cloud configuration retrieval is required;
 - the final pull request is approved, squash-merged, its branch is deleted, and `main` is green; and

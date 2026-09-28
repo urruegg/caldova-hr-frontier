@@ -43,11 +43,9 @@ Describe 'Cloud foundation invocation' {
         $tenantSource = Join-Path $repositoryRoot 'infra\src\config\tenants\caldova25156897.psd1'
         $tenantPath = Join-Path $TestDrive 'tenant.psd1'
         $tenantText = (Get-Content -Raw $tenantSource) `
-            -replace "SchemaVersion = '1.0'","SchemaVersion = '1.0'`r`n    PublicTenantKey = 'tenant1'" `
             -replace "Mode = 'Existing'\r?\n\s+Id = 'f250378e-597d-487b-854a-fb8338962822'","Mode = 'Create'"
         [IO.File]::WriteAllText($tenantPath,$tenantText,[Text.UTF8Encoding]::new($false))
-        $tenant = Import-TenantConfiguration -Path $tenantPath -ValidationStage Bootstrap `
-            -ExpectedPublicTenantKey tenant1
+        $tenant = Import-TenantConfiguration -Path $tenantPath -ValidationStage Bootstrap
         $runDirectory = Join-Path $TestDrive 'invoke'
         [IO.Directory]::CreateDirectory($runDirectory) | Out-Null
         $toolPaths=[ordered]@{}

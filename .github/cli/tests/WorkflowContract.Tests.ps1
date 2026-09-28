@@ -1,6 +1,7 @@
 BeforeAll {
     $script:repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
     $script:workflowPath = Join-Path $script:repositoryRoot '.github\workflows\validate-repository.yml'
+    $script:validatorPath = Join-Path $script:repositoryRoot '.github\cli\verify-repository-setup.ps1'
 }
 
 Describe 'Lean repository validation workflow' {
@@ -27,5 +28,32 @@ Describe 'Lean repository validation workflow' {
         $content | Should -Match 'git merge-base'
         $content | Should -Match 'git diff --check'
         $content | Should -Not -Match 'HEAD~\d+'
+    }
+
+    It 'requires both tracked Tenant 1 artifacts until the attended removal commit' {
+        $tokens = $null
+        $parseErrors = $null
+        $validatorAst = [System.Management.Automation.Language.Parser]::ParseFile(
+            $script:validatorPath,
+            [ref]$tokens,
+            [ref]$parseErrors
+        )
+        $parseErrors.Count | Should -Be 0
+        $requiredPathsAssignment = $validatorAst.Find({
+            param($node)
+
+            $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+            $node.Left -is [System.Management.Automation.Language.VariableExpressionAst] -and
+            $node.Left.VariablePath.UserPath -ceq 'phase3RequiredPaths'
+        }, $true)
+        $requiredPathsAssignment | Should -Not -BeNullOrEmpty
+
+        $requiredPaths = @($requiredPathsAssignment.Right.FindAll({
+            param($node)
+
+            $node -is [System.Management.Automation.Language.StringConstantExpressionAst]
+        }, $true) | ForEach-Object Value)
+        $requiredPaths | Should -Contain 'infra/src/config/tenants/caldova25156897.psd1'
+        $requiredPaths | Should -Contain 'infra/evidence/discovery/caldova25156897.json'
     }
 }

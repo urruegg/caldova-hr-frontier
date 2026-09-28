@@ -52,7 +52,6 @@ Import-Module $moduleManifestPath -Force
 $tenantProfile = switch ($TenantAlias) {
     'caldova25156897' {
         [ordered]@{
-            PublicTenantKey = 'tenant1'
             DisplayName = 'Caldova25156897'
             TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
             AdminUpn = 'admin@Caldova25156897.onmicrosoft.com'
@@ -72,7 +71,6 @@ $tenantProfile = switch ($TenantAlias) {
     }
     'caldova25668747' {
         [ordered]@{
-            PublicTenantKey = 'tenant2'
             DisplayName = 'Caldova25668747'
             TenantId = '4682b8db-586c-4602-ad98-d29e4018fd5b'
             AdminUpn = 'admin@caldova25668747.onmicrosoft.com'
@@ -111,7 +109,6 @@ $suffix = New-TenantSuffix
 $namingRoot = '{0}-hr-agentic-{1}' -f $tenantProfile.CompanyTla, $suffix
 $manifest = [ordered]@{
     SchemaVersion = '1.0'
-    PublicTenantKey = $tenantProfile.PublicTenantKey
     TenantAlias = $TenantAlias
     DisplayName = $tenantProfile.DisplayName
     TenantId = $tenantProfile.TenantId
@@ -146,8 +143,7 @@ $tempPath = Join-Path $tenantDirectory ('.{0}.{1}.tmp' -f $TenantAlias, [guid]::
 try {
     $content = ConvertTo-Psd1Literal -Value $manifest
     [System.IO.File]::WriteAllText($tempPath, $content, [System.Text.UTF8Encoding]::new($false))
-    Import-TenantConfiguration -Path $tempPath -ValidationStage Discovery `
-        -ExpectedPublicTenantKey $tenantProfile.PublicTenantKey | Out-Null
+    Import-TenantConfiguration -Path $tempPath -ValidationStage Discovery | Out-Null
     Move-Item -LiteralPath $tempPath -Destination $targetPath
 }
 catch {

@@ -4,40 +4,10 @@ Describe 'Task 6 temporary role cleanup' {
     BeforeAll {
         $script:RepositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
         $script:ModuleManifestPath = Join-Path $script:RepositoryRoot 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
-        $script:SourceGrantScriptPath = Join-Path $script:RepositoryRoot 'infra\src\scripts\Grant-TemporaryBootstrapRoles.ps1'
-        $script:SourceStateScriptPath = Join-Path $script:RepositoryRoot 'infra\src\scripts\Get-TemporaryBootstrapRoleState.ps1'
+        $script:GrantScriptPath = Join-Path $script:RepositoryRoot 'infra\src\scripts\Grant-TemporaryBootstrapRoles.ps1'
+        $script:StateScriptPath = Join-Path $script:RepositoryRoot 'infra\src\scripts\Get-TemporaryBootstrapRoleState.ps1'
         $script:BootstrapResultSchemaPath = Join-Path $script:RepositoryRoot 'infra\src\config\schemas\bootstrap-result.schema.json'
         Import-Module $script:ModuleManifestPath -Force
-
-        $script:HarnessRoot = Join-Path $TestDrive 'role-harness'
-        foreach ($relativePath in @(
-            'infra\src\scripts\Grant-TemporaryBootstrapRoles.ps1',
-            'infra\src\scripts\Get-TemporaryBootstrapRoleState.ps1',
-            'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap',
-            'infra\src\config\schemas\tenant.schema.json'
-        )) {
-            $sourcePath = Join-Path $script:RepositoryRoot $relativePath
-            $targetPath = Join-Path $script:HarnessRoot $relativePath
-            $targetParent = Split-Path -Parent $targetPath
-            [void](New-Item -ItemType Directory -Path $targetParent -Force)
-            if (Test-Path -LiteralPath $sourcePath -PathType Container) {
-                Copy-Item -LiteralPath $sourcePath -Destination $targetParent -Recurse -Force
-            }
-            else {
-                Copy-Item -LiteralPath $sourcePath -Destination $targetPath -Force
-            }
-        }
-        [System.IO.File]::WriteAllText(
-            (Join-Path $script:HarnessRoot '.gitignore'),
-            "infra/src/config/tenants/*.local.psd1$([Environment]::NewLine)",
-            [System.Text.UTF8Encoding]::new($false)
-        )
-        & git -C $script:HarnessRoot init --quiet
-        if ($LASTEXITCODE -ne 0) {
-            throw 'Could not initialize the isolated role repository.'
-        }
-        $script:GrantScriptPath = Join-Path $script:HarnessRoot 'infra\src\scripts\Grant-TemporaryBootstrapRoles.ps1'
-        $script:StateScriptPath = Join-Path $script:HarnessRoot 'infra\src\scripts\Get-TemporaryBootstrapRoleState.ps1'
 
         function script:New-BootstrapResult {
             param(
@@ -76,12 +46,10 @@ Describe 'Task 6 temporary role cleanup' {
         }
 
         function script:New-TenantConfigurationFile {
-            $path = Join-Path $script:HarnessRoot 'infra\src\config\tenants\tenant1.local.psd1'
-            [void](New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force)
+            $path = Join-Path $TestDrive ([guid]::NewGuid().ToString() + '.psd1')
             $content = @"
 @{
     SchemaVersion = '1.0'
-    PublicTenantKey = 'tenant1'
     TenantAlias = 'caldova25156897'
     DisplayName = 'Caldova25156897'
     TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
@@ -112,36 +80,13 @@ Describe 'Task 6 temporary role cleanup' {
     Components = @{
         EntraServicePrincipal = @{
             Mode = 'Existing'
-            Id = '88888888-8888-8888-8888-888888888888'
+            Id = '55555555-5555-5555-5555-555555555555'
         }
     }
 }
 "@
             [System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))
             $path
-        }
-
-        function script:Get-AttendedNativeRunner {
-            {
-                param([string]$FilePath, [string[]]$ArgumentList)
-
-                if (($ArgumentList -join ' ') -ceq 'account show --output json') {
-                    return [pscustomobject]@{
-                        ExitCode = 0
-                        StdOut = '{"tenantId":"e2312862-df63-440c-8bcf-007a2c52859d","id":"edb45a24-408d-47c4-bbc7-685b9b3fc017","user":{"type":"user"}}'
-                        StdErr = ''
-                    }
-                }
-                if (($ArgumentList -join ' ') -ceq 'ad signed-in-user show --output json') {
-                    return [pscustomobject]@{
-                        ExitCode = 0
-                        StdOut = '{"id":"55555555-5555-5555-5555-555555555555"}'
-                        StdErr = ''
-                    }
-                }
-
-                throw "Unexpected attended-context command: $FilePath $($ArgumentList -join ' ')"
-            }
         }
 
         function script:New-AssignmentObject {
@@ -181,8 +126,8 @@ Describe 'Task 6 temporary role cleanup' {
     It 'defines the tracked Task 6 cleanup surface before implementation' {
         @(
             $script:BootstrapResultSchemaPath,
-            $script:SourceGrantScriptPath,
-            $script:SourceStateScriptPath,
+            $script:GrantScriptPath,
+            $script:StateScriptPath,
             (Join-Path $script:RepositoryRoot 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Public\Remove-TemporaryRoleAssignments.ps1')
         ) | ForEach-Object {
             Test-Path -LiteralPath $_ | Should -BeTrue
@@ -239,7 +184,7 @@ Describe 'Task 6 temporary role cleanup' {
             }
         }
 
-        $result = & $script:GrantScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -OutputPath $outputPath -AzRequest $azRequest -NativeCommandRunner (Get-AttendedNativeRunner) -Confirm:$false
+        $result = & $script:GrantScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $outputPath -AzRequest $azRequest -Confirm:$false
 
         $result.Assignments.Count | Should -Be 2
         @($result.Assignments.RoleName) | Should -Be @('Contributor', 'Role Based Access Control Administrator')
@@ -274,7 +219,7 @@ Describe 'Task 6 temporary role cleanup' {
         }
 
         {
-            & $script:StateScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -OutputPath $statePath -AzRequest $azRequest -NativeCommandRunner (Get-AttendedNativeRunner)
+            & $script:StateScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $statePath -AzRequest $azRequest
         } | Should -Throw '*exactly one*Contributor*'
     }
 
@@ -300,7 +245,7 @@ Describe 'Task 6 temporary role cleanup' {
         }
 
         {
-            & $script:StateScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -OutputPath $statePath -AzRequest $azRequest -NativeCommandRunner (Get-AttendedNativeRunner)
+            & $script:StateScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $statePath -AzRequest $azRequest
         } | Should -Throw '*Unexpected scope*00000000-0000-0000-0000-000000000000*'
     }
 
@@ -634,8 +579,8 @@ Describe 'Task 6 temporary role cleanup' {
                 $payload = [pscustomobject]@{
                     id = $assignmentId
                     properties = [pscustomobject]@{
-                        principalId = '99999999-9999-9999-9999-999999999999'
-                        principalType = 'User'
+                        principalId = '55555555-5555-5555-5555-555555555555'
+                        principalType = 'ServicePrincipal'
                         roleDefinitionId = $roleDefinitionId
                         scope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
                     }
@@ -646,19 +591,18 @@ Describe 'Task 6 temporary role cleanup' {
             throw "Unexpected native command: $FilePath $($ArgumentList -join ' ')"
         }
 
-        $result = & $script:GrantScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -OutputPath $outputPath -NativeCommandRunner $nativeRunner -Confirm:$false
+        $result = & $script:GrantScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $outputPath -NativeCommandRunner $nativeRunner -Confirm:$false
 
         $result.Assignments.Count | Should -Be 2
-        $result.PrincipalObjectId | Should -Be '99999999-9999-9999-9999-999999999999'
         $calls[0].FilePath | Should -BeExactly 'az'
         $calls[0].ArgumentList | Should -Be @('account', 'show', '--output', 'json')
         $calls[1].ArgumentList | Should -Be @('ad', 'signed-in-user', 'show', '--output', 'json')
         $calls[2].ArgumentList | Should -Be @('role', 'assignment', 'list', '--assignee-object-id', '99999999-9999-9999-9999-999999999999', '--scope', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017', '--output', 'json')
         $calls[3].ArgumentList | Should -Be @('role', 'definition', 'list', '--name', 'Contributor', '--scope', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017', '--output', 'json')
-        $calls[4].ArgumentList | Should -Be @('role', 'assignment', 'create', '--assignee-object-id', '99999999-9999-9999-9999-999999999999', '--assignee-principal-type', 'User', '--role', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c', '--scope', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017', '--output', 'json')
+        $calls[4].ArgumentList | Should -Be @('role', 'assignment', 'create', '--assignee-object-id', '55555555-5555-5555-5555-555555555555', '--assignee-principal-type', 'ServicePrincipal', '--role', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c', '--scope', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017', '--output', 'json')
         $calls[5].ArgumentList | Should -Be @('rest', '--method', 'get', '--url', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?api-version=2022-04-01', '--output', 'json')
         $calls[6].ArgumentList | Should -Be @('role', 'definition', 'list', '--name', 'Role Based Access Control Administrator', '--scope', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017', '--output', 'json')
-        $calls[7].ArgumentList | Should -Be @('role', 'assignment', 'create', '--assignee-object-id', '99999999-9999-9999-9999-999999999999', '--assignee-principal-type', 'User', '--role', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168', '--scope', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017', '--output', 'json')
+        $calls[7].ArgumentList | Should -Be @('role', 'assignment', 'create', '--assignee-object-id', '55555555-5555-5555-5555-555555555555', '--assignee-principal-type', 'ServicePrincipal', '--role', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168', '--scope', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017', '--output', 'json')
         $calls[8].ArgumentList | Should -Be @('rest', '--method', 'get', '--url', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?api-version=2022-04-01', '--output', 'json')
         $calls[6].ArgumentList[4] | Should -BeExactly 'Role Based Access Control Administrator'
     }
@@ -669,7 +613,7 @@ Describe 'Task 6 temporary role cleanup' {
         $mutationCalls = [System.Collections.Generic.List[string]]::new()
 
         {
-            & $script:GrantScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -OutputPath $outputPath -NativeCommandRunner {
+            & $script:GrantScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $outputPath -NativeCommandRunner {
                 param([string]$FilePath, [string[]]$ArgumentList)
 
                 if ($ArgumentList[0] -ceq 'account') {
@@ -704,10 +648,7 @@ Describe 'Task 6 temporary role cleanup' {
 
             $joined = $ArgumentList -join ' '
             if ($joined -eq 'account show --output json') {
-                return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"e2312862-df63-440c-8bcf-007a2c52859d","id":"edb45a24-408d-47c4-bbc7-685b9b3fc017","user":{"type":"user"}}'; StdErr = '' }
-            }
-            if ($joined -eq 'ad signed-in-user show --output json') {
-                return [pscustomobject]@{ ExitCode = 0; StdOut = '{"id":"55555555-5555-5555-5555-555555555555"}'; StdErr = '' }
+                return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"e2312862-df63-440c-8bcf-007a2c52859d","id":"edb45a24-408d-47c4-bbc7-685b9b3fc017","user":{"type":"servicePrincipal"}}'; StdErr = '' }
             }
 
             if ($joined -match 'role assignment list --assignee-object-id 55555555-5555-5555-5555-555555555555 --scope /subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017 --output json$') {
@@ -734,48 +675,7 @@ Describe 'Task 6 temporary role cleanup' {
         }
 
         {
-            & $script:StateScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -OutputPath $statePath -NativeCommandRunner $nativeRunner
+            & $script:StateScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $statePath -NativeCommandRunner $nativeRunner
         } | Should -Throw '*Unexpected role assignment Reader*'
-    }
-
-    It 'requires explicit local configuration external output and an attended user for both role commands' {
-        foreach ($path in @($script:SourceGrantScriptPath, $script:SourceStateScriptPath)) {
-            $tokens = $null
-            $parseErrors = $null
-            $entryPointAst = [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$parseErrors)
-            $parseErrors.Count | Should -Be 0
-            $parameters = @{}
-            foreach ($parameter in $entryPointAst.ParamBlock.Parameters) {
-                $parameters[$parameter.Name.VariablePath.UserPath] = $parameter
-            }
-            foreach ($name in @('PublicTenantKey', 'TenantConfigurationPath', 'OutputPath')) {
-                $parameters.ContainsKey($name) | Should -BeTrue
-                @($parameters[$name].Attributes | Where-Object {
-                    $_ -is [System.Management.Automation.Language.AttributeAst] -and
-                    $_.TypeName.FullName -ceq 'Parameter' -and
-                    $_.NamedArguments.ArgumentName -contains 'Mandatory'
-                }).Count | Should -Be 1
-            }
-            $parameters.ContainsKey('TenantAlias') | Should -BeFalse
-        }
-
-        $tenantConfigurationPath = New-TenantConfigurationFile
-        {
-            & $script:StateScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath `
-                -OutputPath (Join-Path $script:HarnessRoot 'forbidden-state.json') `
-                -NativeCommandRunner (Get-AttendedNativeRunner)
-        } | Should -Throw '*outside the repository*'
-
-        {
-            & $script:StateScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath `
-                -OutputPath (Join-Path $TestDrive 'non-user-state.json') `
-                -NativeCommandRunner {
-                    [pscustomobject]@{
-                        ExitCode = 0
-                        StdOut = '{"tenantId":"e2312862-df63-440c-8bc7-685b9b3fc017","id":"edb45a24-408d-47c4-bbc7-685b9b3fc017","user":{"type":"servicePrincipal"}}'
-                        StdErr = ''
-                    }
-                }
-        } | Should -Throw '*attended user context*'
     }
 }

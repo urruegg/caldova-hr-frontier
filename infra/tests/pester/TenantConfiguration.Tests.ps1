@@ -109,12 +109,60 @@ Describe 'Tenant configuration' {
         foreach ($scriptName in @(
             'Invoke-TenantDiscovery.ps1',
             'New-TenantBicepParameters.ps1',
-            'Grant-TemporaryBootstrapRoles.ps1',
-            'Get-TemporaryBootstrapRoleState.ps1',
             'Invoke-TenantBootstrap.ps1'
         )) {
             $path = Join-Path $script:RepositoryRoot "infra\src\scripts\$scriptName"
             { & $path -PublicTenantKey tenant1 } | Should -Throw '*TenantConfigurationPath*'
+        }
+    }
+
+    It 'imports both preserved tracked manifests without a public tenant key probe' {
+        $preservedManifests = [ordered]@{
+            'infra\src\config\tenants\caldova25156897.psd1' = 'caldova25156897'
+            'infra\src\config\tenants\caldova25668747.psd1' = 'caldova25668747'
+        }
+
+        foreach ($entry in $preservedManifests.GetEnumerator()) {
+            $configuration = Import-TenantConfiguration `
+                -Path (Join-Path $script:RepositoryRoot $entry.Key) `
+                -ValidationStage Discovery
+            $configuration.TenantAlias | Should -BeExactly $entry.Value
+        }
+    }
+
+    It 'requires the public tenant key only when a live boundary is requested' {
+        $withoutPublicKey = (New-TestTenantConfigurationContent) `
+            -replace "(?m)^\s*PublicTenantKey\s*=.*\r?\n", ''
+        $path = New-TestTenantConfigurationFile -Content $withoutPublicKey
+
+        $configuration = Import-TenantConfiguration -Path $path -ValidationStage Discovery
+        $configuration.TenantAlias | Should -BeExactly 'caldova25156897'
+        {
+            Import-TenantConfiguration -Path $path -ValidationStage Discovery `
+                -ExpectedPublicTenantKey tenant1
+        } | Should -Throw '*PublicTenantKey*required*'
+        {
+            Import-TenantConfiguration -Path $path -ValidationStage Discovery `
+                -RequireLocalUntracked
+        } | Should -Throw '*ExpectedPublicTenantKey*required*'
+    }
+
+    It 'rejects uppercase public tenant keys before live script execution' {
+        $uppercasePath = New-TestTenantConfigurationFile -Content (
+            New-TestTenantConfigurationContent -PublicTenantKey 'Tenant1'
+        )
+        {
+            Import-TenantConfiguration -Path $uppercasePath -ValidationStage Discovery `
+                -ExpectedPublicTenantKey Tenant1
+        } | Should -Throw '*case-sensitive lowercase*'
+
+        foreach ($scriptName in @(
+            'Invoke-TenantDiscovery.ps1',
+            'New-TenantBicepParameters.ps1',
+            'Invoke-TenantBootstrap.ps1'
+        )) {
+            $path = Join-Path $script:RepositoryRoot "infra\src\scripts\$scriptName"
+            { & $path -PublicTenantKey Tenant1 } | Should -Throw '*case-sensitive lowercase*'
         }
     }
 

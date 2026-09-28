@@ -4,9 +4,6 @@ param(
     [ValidatePattern('^[a-z0-9]+$')]
     [string]$TenantAlias,
 
-    [ValidatePattern('^tenant[1-9][0-9]*$')]
-    [string]$PublicTenantKey = 'tenant1',
-
     [string]$TenantConfigurationPath,
     [string]$ReportPath,
 
@@ -68,8 +65,7 @@ if ($null -eq $InteractiveHostProbe) {
 $resolvedTenantPath = if ([string]::IsNullOrWhiteSpace($TenantConfigurationPath)) {
     Join-Path $repositoryRoot "infra\src\config\tenants\$TenantAlias.psd1"
 } else { [IO.Path]::GetFullPath($TenantConfigurationPath) }
-$tenant = Import-TenantConfiguration -Path $resolvedTenantPath -ValidationStage Bootstrap `
-    -ExpectedPublicTenantKey $PublicTenantKey
+$tenant = Import-TenantConfiguration -Path $resolvedTenantPath -ValidationStage Bootstrap
 if ([string]$tenant.TenantAlias -cne $TenantAlias) {
     throw 'Tenant configuration alias does not match the requested alias.'
 }

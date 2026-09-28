@@ -80,7 +80,7 @@ function Assert-SchemaString {
         throw "$Path must be one of: $(@($Schema.enum) -join ', ')."
     }
 
-    if ($schemaProperties -contains 'pattern' -and $Value -notmatch [string]$Schema.pattern) {
+    if ($schemaProperties -contains 'pattern' -and $Value -cnotmatch [string]$Schema.pattern) {
         throw "$Path does not match the required pattern."
     }
 
@@ -330,8 +330,12 @@ function Import-TenantConfiguration {
         [ValidateSet('Discovery', 'Bootstrap')]
         [string]$ValidationStage = 'Discovery',
 
-        [Parameter(Mandatory)]
-        [ValidatePattern('^tenant[1-9][0-9]*$')]
+        [ValidateScript({
+            if ($_ -cnotmatch '^tenant[1-9][0-9]*$') {
+                throw 'ExpectedPublicTenantKey must use the case-sensitive lowercase tenant key format.'
+            }
+            $true
+        })]
         [string]$ExpectedPublicTenantKey,
 
         [switch]$RequireLocalUntracked
@@ -344,8 +348,18 @@ function Import-TenantConfiguration {
     Assert-SchemaValue -Value $configuration -Schema $schema -Path 'Configuration'
     Assert-TenantConfigurationContract -Configuration $configuration -ValidationStage $ValidationStage
 
-    if ([string]$configuration.PublicTenantKey -cne $ExpectedPublicTenantKey) {
-        throw "Configuration.PublicTenantKey must equal '$ExpectedPublicTenantKey'."
+    $expectsPublicTenantKey = $PSBoundParameters.ContainsKey('ExpectedPublicTenantKey')
+    if ($RequireLocalUntracked -and -not $expectsPublicTenantKey) {
+        throw 'ExpectedPublicTenantKey is required when RequireLocalUntracked is used.'
+    }
+    if ($expectsPublicTenantKey -or $RequireLocalUntracked) {
+        $configurationEntries = Get-ObjectEntryTable $configuration
+        if (-not $configurationEntries.Contains('PublicTenantKey')) {
+            throw 'Configuration.PublicTenantKey is required for a live tenant boundary.'
+        }
+        if ([string]$configuration.PublicTenantKey -cne $ExpectedPublicTenantKey) {
+            throw "Configuration.PublicTenantKey must equal '$ExpectedPublicTenantKey'."
+        }
     }
 
     if ($RequireLocalUntracked) {

@@ -1,7 +1,12 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidatePattern('^tenant[1-9][0-9]*$')]
+    [ValidateScript({
+        if ($_ -cnotmatch '^tenant[1-9][0-9]*$') {
+            throw 'PublicTenantKey must use the case-sensitive lowercase tenant key format.'
+        }
+        $true
+    })]
     [string]$PublicTenantKey,
 
     [Parameter(Mandatory)]
@@ -214,8 +219,8 @@ function Get-ValidatedRoleState {
     }
     [datetime]::Parse([string]$roleState.CreatedUtc).ToUniversalTime() | Out-Null
 
-    $expectedPrincipalObjectId = [string]$roleState.PrincipalObjectId
-    if ($expectedPrincipalObjectId -cnotmatch '^[0-9a-fA-F-]{36}$') {
+    $expectedPrincipalObjectId = [guid]::Empty
+    if (-not [guid]::TryParse([string]$roleState.PrincipalObjectId, [ref]$expectedPrincipalObjectId)) {
         throw 'TemporaryRoleState.PrincipalObjectId must be a GUID.'
     }
 
@@ -404,6 +409,10 @@ $attendedPrincipalObjectId = if ($effectiveAttendedUserContextValidator) {
 else {
     Get-DefaultAttendedUserPrincipal -TenantConfiguration $tenantConfiguration
 }
+$validatedAttendedPrincipalObjectId = [guid]::Empty
+if (-not [guid]::TryParse([string]$attendedPrincipalObjectId, [ref]$validatedAttendedPrincipalObjectId)) {
+    throw 'AttendedUserContextValidator must return a GUID principal object id.'
+}
 
 $roleState = if ($effectiveRoleStateLoader) {
     & $effectiveRoleStateLoader $resolvedTemporaryRoleStatePath
@@ -412,10 +421,11 @@ else {
     Get-ValidatedRoleState -Path $resolvedTemporaryRoleStatePath -TenantConfiguration $tenantConfiguration
 }
 
-if ([string]::IsNullOrWhiteSpace([string]$attendedPrincipalObjectId)) {
-    $attendedPrincipalObjectId = [string]$roleState.PrincipalObjectId
+$validatedRoleStatePrincipalObjectId = [guid]::Empty
+if (-not [guid]::TryParse([string]$roleState.PrincipalObjectId, [ref]$validatedRoleStatePrincipalObjectId)) {
+    throw 'TemporaryRoleState.PrincipalObjectId must be a GUID.'
 }
-if ([string]$roleState.PrincipalObjectId -cne [string]$attendedPrincipalObjectId) {
+if ($validatedRoleStatePrincipalObjectId -ne $validatedAttendedPrincipalObjectId) {
     throw 'TemporaryRoleState.PrincipalObjectId must match the attended signed-in user.'
 }
 

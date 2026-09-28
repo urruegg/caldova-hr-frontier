@@ -274,7 +274,7 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
         $cleanupCalls = [System.Collections.Generic.List[string]]::new()
 
         {
-            & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -WhatIfOnly -ConfirmRoleCleanup $Confirmation -BootstrapRunId $RunId -ApprovedRoleAssignmentIds $ApprovedIds -DiscoveryEvidenceValidator { } -IntentValidator { } -AttendedUserContextValidator { } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
+            & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -WhatIfOnly -ConfirmRoleCleanup $Confirmation -BootstrapRunId $RunId -ApprovedRoleAssignmentIds $ApprovedIds -DiscoveryEvidenceValidator { } -IntentValidator { } -AttendedUserContextValidator { '55555555-5555-5555-5555-555555555555' } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
                 param([string]$FilePath, [string[]]$ArgumentList)
                 $nativeCalls.Add($FilePath) | Out-Null
                 throw 'native runner must not be reached'
@@ -286,6 +286,39 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
 
         $nativeCalls.Count | Should -Be 0
         $cleanupCalls.Count | Should -Be 0
+    }
+
+    It 'rejects <Case> from an injected attended-user validator before native execution' -ForEach @(
+        @{ Case = 'a missing principal'; ValidatorResult = $null },
+        @{ Case = 'a malformed principal'; ValidatorResult = 'not-a-guid' }
+    ) {
+        param($Case, $ValidatorResult)
+
+        $tenantConfigurationPath = New-TenantConfigurationFile
+        $evidencePath = New-PlaceholderFile -Name ("{0}-attended-evidence.json" -f ([guid]::NewGuid()).Guid) -Content '{}'
+        $parameterFile = New-PlaceholderFile -Name ("{0}-attended-main.bicepparam" -f ([guid]::NewGuid()).Guid) -Content "using 'main.bicep'"
+        $roleStatePath = New-RoleStateFile
+        $validator = { $ValidatorResult }.GetNewClosure()
+
+        {
+            & $script:BootstrapScriptPath `
+                -PublicTenantKey tenant1 `
+                -TenantConfigurationPath $tenantConfigurationPath `
+                -EvidencePath $evidencePath `
+                -ParameterFile $parameterFile `
+                -TemporaryRoleStatePath $roleStatePath `
+                -ConfirmRoleCleanup $true `
+                -BootstrapRunId $script:BootstrapRunId `
+                -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds `
+                -WhatIfOnly `
+                -DiscoveryEvidenceValidator { } `
+                -IntentValidator { } `
+                -AttendedUserContextValidator $validator `
+                -BicepValidator { } `
+                -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } `
+                -NativeCommandRunner { throw 'native runner must not be reached' } `
+                -CleanupRunner { throw 'cleanup runner must not be reached' }
+        } | Should -Throw '*AttendedUserContextValidator*GUID*'
     }
 
     It 'runs cleanup after <FailureStage> failure' -ForEach @(
@@ -321,7 +354,7 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
                 ApprovedRoleAssignmentIds = $script:ApprovedRoleAssignmentIds
                 DiscoveryEvidenceValidator = { }
                 IntentValidator = { }
-                AttendedUserContextValidator = { }
+                AttendedUserContextValidator = { '55555555-5555-5555-5555-555555555555' }
                 BicepValidator = {
                     if ($FailureStage -eq 'Bicep build') {
                         throw 'simulated Bicep build failure'
@@ -366,7 +399,7 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
         $events = [System.Collections.Generic.List[string]]::new()
 
         {
-            & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { $events.Add('evidence') | Out-Null } -IntentValidator { $events.Add('intent') | Out-Null } -AttendedUserContextValidator { $events.Add('oidc') | Out-Null } -BicepValidator { $events.Add('bicep') | Out-Null } -RoleStateLoader { param([string]$Path) $events.Add('state') | Out-Null; Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
+            & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { $events.Add('evidence') | Out-Null } -IntentValidator { $events.Add('intent') | Out-Null } -AttendedUserContextValidator { $events.Add('oidc') | Out-Null; '55555555-5555-5555-5555-555555555555' } -BicepValidator { $events.Add('bicep') | Out-Null } -RoleStateLoader { param([string]$Path) $events.Add('state') | Out-Null; Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
                 param([string]$FilePath, [string[]]$ArgumentList)
 
                 $events.Add(($FilePath + ' ' + ($ArgumentList -join ' '))) | Out-Null
@@ -384,7 +417,7 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
         $roleStatePath = New-RoleStateFile
         $fixturePath = $script:FixturePath
         {
-            & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { } -IntentValidator { } -AttendedUserContextValidator { } -BicepValidator { } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
+            & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { } -IntentValidator { } -AttendedUserContextValidator { '55555555-5555-5555-5555-555555555555' } -BicepValidator { } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
                 param([string]$FilePath, [string[]]$ArgumentList)
 
                 @{ ExitCode = 0; StdOut = (Get-Content -Raw -LiteralPath $fixturePath); StdErr = '' }
@@ -405,7 +438,7 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
 
         try {
             Remove-Item Env:GITHUB_RUN_ID -ErrorAction SilentlyContinue
-            & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { } -IntentValidator { } -AttendedUserContextValidator { } -BicepValidator { } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
+            & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { } -IntentValidator { } -AttendedUserContextValidator { '55555555-5555-5555-5555-555555555555' } -BicepValidator { } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
                 param([string]$FilePath, [string[]]$ArgumentList)
 
                 $global:Task6CapturedCommand = [pscustomobject]@{

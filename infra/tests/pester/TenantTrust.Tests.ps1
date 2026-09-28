@@ -50,7 +50,6 @@ Describe 'Tenant trust bootstrap' {
             @"
 @{
     SchemaVersion = '1.0'
-    PublicTenantKey = 'tenant1'
     TenantAlias = 'caldova25156897'
     DisplayName = 'Caldova25156897'
     TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'

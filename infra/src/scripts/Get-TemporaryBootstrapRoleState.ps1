@@ -1,13 +1,11 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidatePattern('^tenant[1-9][0-9]*$')]
-    [string]$PublicTenantKey,
+    [ValidatePattern('^[a-z0-9]+$')]
+    [string]$TenantAlias,
 
-    [Parameter(Mandatory)]
     [string]$TenantConfigurationPath,
 
-    [Parameter(Mandatory)]
     [string]$OutputPath,
 
     [Parameter(DontShow)]
@@ -16,7 +14,8 @@ param(
     [Parameter(DontShow)]
     [scriptblock]$NativeCommandRunner,
 
-    [guid]$RunId
+    [Parameter(DontShow)]
+    [string]$RunId
 )
 
 Set-StrictMode -Version Latest
@@ -26,8 +25,10 @@ function Get-ModuleManifestPath {
     Join-Path $PSScriptRoot 'modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
 }
 
-function Get-RepositoryRoot {
-    [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+function Get-DefaultTenantConfigurationPath {
+    param([string]$TenantAliasValue)
+
+    Join-Path $PSScriptRoot "..\config\tenants\$TenantAliasValue.psd1"
 }
 
 function ConvertTo-OrderedDictionary {
@@ -148,35 +149,25 @@ function Invoke-AzOperation {
 
 Import-Module (Get-ModuleManifestPath) -Force
 
-$repositoryRoot = Get-RepositoryRoot
-$resolvedOutputPath = [System.IO.Path]::GetFullPath($OutputPath)
-$normalizedRepositoryRoot = $repositoryRoot.TrimEnd('\')
-$repositoryPrefix = $normalizedRepositoryRoot + '\'
-if ($resolvedOutputPath.TrimEnd('\') -ieq $normalizedRepositoryRoot -or
-    $resolvedOutputPath.StartsWith($repositoryPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
-    throw 'OutputPath must resolve outside the repository.'
+$resolvedTenantConfigurationPath = if ([string]::IsNullOrWhiteSpace($TenantConfigurationPath)) {
+    Get-DefaultTenantConfigurationPath -TenantAliasValue $TenantAlias
+}
+else {
+    [System.IO.Path]::GetFullPath($TenantConfigurationPath)
 }
 
-$tenantConfiguration = Import-TenantConfiguration `
-    -Path ([System.IO.Path]::GetFullPath($TenantConfigurationPath)) `
-    -ValidationStage Bootstrap `
-    -ExpectedPublicTenantKey $PublicTenantKey `
-    -RequireLocalUntracked
+$resolvedOutputPath = if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+    $basePath = if (-not [string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { $env:RUNNER_TEMP } else { [System.IO.Path]::GetTempPath() }
+    Join-Path $basePath ("bootstrap-role-state-{0}.json" -f $TenantAlias)
+}
+else {
+    [System.IO.Path]::GetFullPath($OutputPath)
+}
 
-$account = Invoke-NativeJsonCommand -ArgumentList @('account', 'show', '--output', 'json')
-if ([string]$account.user.type -cne 'user') {
-    throw 'Temporary role operations require an attended user context.'
-}
-if ([string]$account.tenantId -cne [string]$tenantConfiguration.TenantId) {
-    throw 'Signed-in tenant does not match the reviewed tenant manifest.'
-}
-if ([string]$account.id -cne [string]$tenantConfiguration.SubscriptionId) {
-    throw 'Signed-in subscription does not match the reviewed tenant manifest.'
-}
-$caller = Invoke-NativeJsonCommand -ArgumentList @('ad', 'signed-in-user', 'show', '--output', 'json')
-$principalObjectId = [string]$caller.id
-if ($principalObjectId -cnotmatch '^[0-9a-fA-F-]{36}$') {
-    throw 'Signed-in user discovery did not return a GUID object id.'
+$tenantConfiguration = Import-TenantConfiguration -Path $resolvedTenantConfigurationPath -ValidationStage 'Bootstrap'
+$principalObjectId = [string]$tenantConfiguration.Components.EntraServicePrincipal.Id
+if ([string]::IsNullOrWhiteSpace($principalObjectId)) {
+    throw 'Components.EntraServicePrincipal.Id is required for temporary bootstrap role discovery.'
 }
 
 $subscriptionId = [string]$tenantConfiguration.SubscriptionId
@@ -188,6 +179,14 @@ $assignments = if ($AzRequest) {
     }).Body)
 }
 else {
+    $account = Invoke-NativeJsonCommand -ArgumentList @('account', 'show', '--output', 'json')
+    if ([string]$account.tenantId -cne [string]$tenantConfiguration.TenantId) {
+        throw 'Signed-in tenant does not match the reviewed tenant manifest.'
+    }
+    if ([string]$account.id -cne $subscriptionId) {
+        throw 'Signed-in subscription does not match the reviewed tenant manifest.'
+    }
+
     @(Invoke-NativeJsonCommand -ArgumentList @('role', 'assignment', 'list', '--assignee-object-id', $principalObjectId, '--scope', $scope, '--output', 'json'))
 }
 $allowedRoleNames = @('Contributor', 'Role Based Access Control Administrator')
@@ -236,7 +235,7 @@ foreach ($roleName in $allowedRoleNames) {
     }
 }
 
-$effectiveRunId = if ($PSBoundParameters.ContainsKey('RunId')) { $RunId.Guid } elseif ([guid]::TryParse([string]$env:GITHUB_RUN_ID, [ref]([guid]::Empty))) { [string]$env:GITHUB_RUN_ID } else { ([guid]::NewGuid()).Guid }
+$effectiveRunId = if ([guid]::TryParse([string]$RunId, [ref]([guid]::Empty))) { [string]$RunId } elseif ([guid]::TryParse([string]$env:GITHUB_RUN_ID, [ref]([guid]::Empty))) { [string]$env:GITHUB_RUN_ID } else { ([guid]::NewGuid()).Guid }
 $createdUtc = [datetime]::UtcNow.ToString('o')
 $resultAssignments = foreach ($roleName in $allowedRoleNames) {
     $assignment = @($byRoleName[$roleName])[0]

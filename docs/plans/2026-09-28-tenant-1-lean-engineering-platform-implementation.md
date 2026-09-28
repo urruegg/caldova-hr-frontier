@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-28 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Tenant 1 lean engineering platform, current sprint only |
@@ -13,7 +13,7 @@
 
 **Goal:** Establish the approved lean Tenant 1 engineering foundation with one comprehensive GitHub validator, minimal GitHub governance, local attended Tenant 1 validation, a Basic Azure Boards traceability Issue, and one real governed `Fixes AB#` transaction.
 
-**Architecture:** Start from the reviewed Task 1 head in a new clean worktree so the superseded 112-file Task 2 change and its partial uncommitted repair never enter the lean branch. GitHub remains the sole product-source and pull-request authority; Azure Boards remains the Basic-process backlog; ignored local Tenant 1 configuration drives attended discovery and subscription `what-if`; one GitHub Actions job validates all maintained repository surfaces. Live changes are separated by attended checkpoints, use exact stable identifiers, fail closed on incomplete read-back, and never create an Azure deployment, Azure Pipeline, or Power Platform deployment.
+**Architecture:** Start from the reviewed Task 1 head in a new clean worktree so the superseded 112-file Task 2 change and its partial uncommitted repair never enter the lean branch. GitHub remains the sole product-source and pull-request authority; Azure Boards remains the Basic-process backlog; ignored local Tenant 1 configuration and the attended operator's pre-existing, separately approved least-privilege access drive discovery and subscription `what-if`; one GitHub Actions job validates all maintained repository surfaces. Live changes are separated by attended checkpoints, use exact stable identifiers, fail closed on incomplete read-back, perform no role mutation, and never create an Azure deployment, Azure Pipeline, or Power Platform deployment.
 
 **Tech Stack:** Windows PowerShell 5.1, Pester 5.7.1, Git, GitHub CLI, Azure CLI, Azure DevOps CLI extension 1.0.8, Azure DevOps REST API 7.1, GitHub REST API `2022-11-28`, JSON Schema draft 2020-12, Bicep CLI.
 
@@ -30,10 +30,10 @@
 - Keep `infra/src/config/tenants/_template.psd1` tracked and synthetic. Keep Tenant 1 configuration only at ignored path `infra/src/config/tenants/tenant1.local.psd1`.
 - Preserve these exact Tenant 2 blobs unchanged from the clean base: `f4b2dfed2f42d1d9d95d51dddaeaaedf4d8b6dce` at `infra/src/config/tenants/caldova25668747.psd1` and `c2d4d66f4f812fc449752c275845fac5a713915e` at `infra/evidence/discovery/caldova25668747.json`.
 - Do not create a tenant catalogue, legacy-transition manifest, private overlay, transition package, handoff package, or automation for Tenant 2.
-- Local configuration contains values only, never credentials or tokens. Raw discovery, role-assignment state, generated parameters, `what-if` output, hashes, and backups remain outside Git.
+- Local configuration contains values only, never credentials or tokens. Raw discovery, access-preflight detail, generated parameters, `what-if` output, hashes, and backups remain outside Git.
 - All live scripts require explicit `-PublicTenantKey tenant1` and `-TenantConfigurationPath 'infra\src\config\tenants\tenant1.local.psd1'`; they fail before external access if the path is missing, tracked, the template, outside the exact ignored boundary, unreadable, schema-invalid, or identifies another public tenant.
 - `403`, `404`, an empty response, malformed JSON, ambiguity, timeout, unsupported capability, or failed read-back is a blocking error. Only an explicitly documented post-delete `404` proves a separately approved Azure Repo deletion.
-- Temporary role cleanup targets only the two exact assignment IDs recorded for the attended run. Cleanup runs in `finally`; cleanup failure remains an unresolved security condition even when the original validation also failed.
+- Local validation uses the attended operator's pre-existing, separately approved least-privilege access. This sprint creates, changes, and deletes no role assignment; context and minimum-access preflight/read-back fail closed on mismatch or insufficient evidence.
 - GitHub governance mutation requires a successful completed run of `.github/workflows/validate-repository.yml` on the current `main` SHA and the exact job/check `Repository setup validation`.
 - Azure Boards remains on the built-in Basic process, existing team, and project-root area. Do not convert to Agile, create six iterations, create a second team or area, or alter the optional 19-Epic portfolio tooling.
 - Every implementation change follows red/green/refactor, a scoped review, and a scoped commit. Every new commit uses `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>`.
@@ -88,8 +88,8 @@ Never use `HEAD~5`, `HEAD~7`, or another fixed history depth for task or final r
 |---|---|---|
 | Clean execution and decisions | `docs/adr/0001-azure-devops-as-engineering-control-plane.md`, `docs/adr/0002-github-first-bootstrap-and-the-role-of-azure-repos.md`, `docs/adr/0012-per-tenant-github-repository-and-account-topology.md`, `docs/adr/README.md`, `docs/README.md`, `README.md`, `infra/tests/pester/EngineeringControlPlaneDocumentation.Tests.ps1` | Reconcile current authority to Option A without rewriting historical review evidence. |
 | Single validator | `.github/workflows/validate-repository.yml`, `.github/workflows/audit-repository.yml`, `.github/workflows/discover-tenant.yml`, `.github/workflows/bootstrap-tenant.yml`, `.github/workflows/README.md`, `.github/cli/tests/WorkflowContract.Tests.ps1`, `.github/cli/verify-repository-setup.ps1`, `infra/tests/pester/WorkflowContract.Tests.ps1`, `infra/src/config/github/action-pins.json` | Leave one workflow and one check named exactly `Repository setup validation`; retire workflow-only contracts and pins. |
-| Local boundary | `.gitignore`, `infra/src/config/tenants/_template.psd1`, `infra/src/config/schemas/tenant.schema.json`, `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Import-TenantConfiguration.ps1`, module manifests, five active scripts and their focused tests | Require explicit ignored Tenant 1 local configuration and reject template, tracked, wrong-tenant, or implicit paths. |
-| Attended validation | `infra/src/scripts/Invoke-TenantBootstrap.ps1`, `infra/tests/pester/Idempotency.Tests.ps1`, `infra/tests/pester/TemporaryRoleCleanup.Tests.ps1`, `infra/tests/pester/WhatIfBoundary.Tests.ps1`, `infra/docs/24-tenant-1-lean-platform-runbook.md`, active infrastructure documentation | Execute discovery, sanitized review, Bicep build, subscription `what-if`, boundary validation, and exact cleanup locally; never deploy. |
+| Local boundary | `.gitignore`, `infra/src/config/tenants/_template.psd1`, `infra/src/config/schemas/tenant.schema.json`, `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Import-TenantConfiguration.ps1`, module manifests, three active scripts and their focused tests | Require explicit ignored Tenant 1 local configuration and reject template, tracked, wrong-tenant, or implicit paths. |
+| Attended validation | `infra/src/scripts/Invoke-TenantBootstrap.ps1`, `infra/tests/pester/Idempotency.Tests.ps1`, `infra/tests/pester/WhatIfBoundary.Tests.ps1`, `infra/docs/24-tenant-1-lean-platform-runbook.md`, active infrastructure documentation | Execute attended-context and minimum-access preflight/read-back, discovery, sanitized review, Bicep build, subscription `what-if`, and boundary validation locally; never mutate roles or deploy. Dormant role scripts remain outside this dependency graph. |
 | GitHub governance | `infra/src/config/github/main-ruleset.json`, `infra/src/config/schemas/github-ruleset.schema.json`, `infra/src/scripts/Enable-GitHubGovernance.ps1`, `infra/tests/pester/GitHubGovernance.Tests.ps1`, `.github/CODEOWNERS`, `.github/pull_request_template.md` | Gate mutation only on current-main validation, apply minimal rules/settings/security updates, and perform exact read-back. |
 | Basic Boards | `infra/src/scripts/Initialize-AzureBoardsLeanSprint.ps1`, `infra/tests/pester/AzureBoardsLeanSprint.Tests.ps1`, `infra/docs/21-azure-boards-population-runbook.md`, lean operator runbook | Verify Basic/team/root area, optionally set approved current-sprint dates, and create or reuse one durable Issue without changing the 19-Epic tool. |
 | Acceptance and safety | `.github/cli/verify-repository-safety.ps1`, `.github/cli/tests/RepositorySafety.Tests.ps1`, `infra/tests/pester/CloudFoundationStaticSafety.Tests.ps1`, `infra/tests/pester/RunbookDocumentation.Tests.ps1`, `docs/reviews/2026-09-28-tenant-1-lean-engineering-platform-acceptance-review.md`, `docs/reviews/README.md` | Enforce the private boundary, remove fixed-depth history assumptions, record only sanitized evidenced outcomes, and prove acceptance. |
@@ -120,23 +120,12 @@ New-TenantBicepParameters.ps1
   -PublicTenantKey [string] -TenantConfigurationPath [string]
   -ValidationPrincipalId [guid] -OutputPath [string] [-Replace]
 
-Grant-TemporaryBootstrapRoles.ps1
-  -PublicTenantKey [string] -TenantConfigurationPath [string]
-  -OutputPath [string] [-WhatIf] [-Confirm]
-
-Get-TemporaryBootstrapRoleState.ps1
-  -PublicTenantKey [string] -TenantConfigurationPath [string]
-  -OutputPath [string] [-RunId [guid]]
-
 Invoke-TenantBootstrap.ps1
   -PublicTenantKey [string] -TenantConfigurationPath [string]
-  -EvidencePath [string] -ParameterFile [string]
-  -TemporaryRoleStatePath [string] -ConfirmRoleCleanup [bool]
-  -BootstrapRunId [guid] -ApprovedRoleAssignmentIds [string[2]]
-  -WhatIfOnly
+  -EvidencePath [string] -ParameterFile [string] -WhatIfOnly
 ```
 
-The three output paths resolve outside the repository. The grant and state scripts identify the attended signed-in user with `az ad signed-in-user show`; they do not read a bootstrap service-principal ID from the manifest. `Invoke-TenantBootstrap.ps1` validates a user context, never an OIDC workload context.
+Discovery evidence and generated parameters resolve outside the repository. `Invoke-TenantBootstrap.ps1` validates the attended signed-in user, exact tenant and subscription, separately approved pre-existing minimum access, and post-operation context; it never uses an OIDC workload context and performs no role mutation.
 
 ### Minimal governance
 
@@ -188,7 +177,7 @@ Both sprint dates are supplied together or both are omitted. The script produces
 | Owner | Current-sprint responsibility | Approval that cannot be delegated |
 |---|---|---|
 | Repository owner | Lean branch history, one-workflow inventory, source changes, GitHub pre-state, governance proposal, and rollback branch | Approve governance mutation only after tool changes are on `main` and the current-main validator is green |
-| Tenant 1 attended operator | Own `tenant1.local.psd1`, restrict its access, maintain the encrypted external backup in a separate failure domain, prove restore/hash/schema, run discovery and `what-if`, and clean up exact temporary roles | Approve the exact temporary-role grant tuple and confirm public Tenant 1 file removal only after backup proof |
+| Tenant 1 attended operator | Own `tenant1.local.psd1`, restrict its access, maintain the encrypted external backup in a separate failure domain, prove restore/hash/schema, and run attended-context/minimum-access preflight, discovery, `what-if`, and read-back | Provide the separate approval record for pre-existing minimum access and confirm public Tenant 1 file removal only after backup proof |
 | Azure DevOps project administrator | Verify Basic process/team/root area, approve optional current-sprint dates, read back the Boards GitHub App, and inspect the empty Azure Repo proof | Approve the exact Azure Repo deletion separately; no other checkpoint implies this approval |
 | Pull-request author and attended repository owner | Use the real `Fixes AB#` reference, pass validation, resolve conversations, and complete the governed proof | Confirm the solo-owner gate and squash-merge the real proof pull request |
 | Future release owner and independent approver | Design a later GitHub-sourced Azure Pipeline and TEST-to-PROD path | No current-sprint deployment or release approval exists |
@@ -197,7 +186,7 @@ Both sprint dates are supplied together or both are omitted. The script produces
 
 - A cherry-pick conflict aborts Task 1. Run `git cherry-pick --abort`, preserve both worktrees, and return for review; do not resolve an approved decision patch by improvisation.
 - A failed local backup or restore/hash/schema check blocks removal of committed Tenant 1 files.
-- A failed local operation still attempts cleanup of the exact recorded assignment IDs. If cleanup also fails, report both errors and stop all later checkpoints.
+- A failed local operation records the attended principal, tenant, subscription, and access preflight state, performs no role mutation, and stops all later checkpoints.
 - A GitHub or Azure Boards pre-state mismatch causes zero mutation. A post-mutation mismatch stops subsequent mutations and requires attended rollback from captured pre-state.
 - Repository source rollback uses a reviewed revert or corrective pull request; never reset protected history.
 - GitHub settings rollback restores captured repository settings and the exact prior ruleset payload by stable ruleset ID, then reads both back.
@@ -546,13 +535,10 @@ Expected: one workflow remains. Review `$TaskBase..HEAD` before Task 3.
 - Modify: `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Caldova.HrFrontier.Bootstrap.psd1`
 - Modify: `infra/src/scripts/Invoke-TenantDiscovery.ps1`
 - Modify: `infra/src/scripts/New-TenantBicepParameters.ps1`
-- Modify: `infra/src/scripts/Grant-TemporaryBootstrapRoles.ps1`
-- Modify: `infra/src/scripts/Get-TemporaryBootstrapRoleState.ps1`
 - Modify: `infra/src/scripts/Invoke-TenantBootstrap.ps1`
 - Modify: `infra/tests/pester/TenantConfiguration.Tests.ps1`
 - Modify: `infra/tests/pester/DiscoveryNormalization.Tests.ps1`
 - Modify: `infra/tests/pester/BicepComposition.Tests.ps1`
-- Modify: `infra/tests/pester/TemporaryRoleCleanup.Tests.ps1`
 - Modify: `infra/tests/pester/Idempotency.Tests.ps1`
 - Delete after attended backup: the one tracked Tenant 1 manifest resolved by excluding `_template.psd1` and the protected Tenant 2 blob from the clean-base inventory
 - Delete after attended backup: the one tracked Tenant 1 discovery record resolved by excluding the protected Tenant 2 blob from the clean-base inventory
@@ -590,8 +576,6 @@ It 'requires the explicit local configuration parameter on every active command'
     foreach ($scriptName in @(
         'Invoke-TenantDiscovery.ps1',
         'New-TenantBicepParameters.ps1',
-        'Grant-TemporaryBootstrapRoles.ps1',
-        'Get-TemporaryBootstrapRoleState.ps1',
         'Invoke-TenantBootstrap.ps1'
     )) {
         $path = Join-Path $script:RepositoryRoot "infra\src\scripts\$scriptName"
@@ -607,7 +591,6 @@ Invoke-Pester -Path @(
     'infra\tests\pester\TenantConfiguration.Tests.ps1'
     'infra\tests\pester\DiscoveryNormalization.Tests.ps1'
     'infra\tests\pester\BicepComposition.Tests.ps1'
-    'infra\tests\pester\TemporaryRoleCleanup.Tests.ps1'
     'infra\tests\pester\Idempotency.Tests.ps1'
 ) -Output Detailed
 ```
@@ -623,25 +606,39 @@ Append once to `.gitignore`:
 infra/src/config/tenants/*.local.psd1
 ```
 
-No exception is needed because `_template.psd1` does not match `*.local.psd1`. Add `PublicTenantKey = 'tenant1'` to the synthetic template and a required schema property matching `^tenant[1-9][0-9]*$`. Do not add a tenant catalogue or change either Tenant 2 file.
+No exception is needed because `_template.psd1` does not match `*.local.psd1`. Add `PublicTenantKey = 'tenant1'` to the synthetic template and an optional generic schema property matching `^tenant[1-9][0-9]*$`. Require the property only when `ExpectedPublicTenantKey` or `RequireLocalUntracked` activates the live boundary. Do not add a tenant catalogue or change either Tenant 2 file.
 
 - [ ] **Step 4: Implement the fail-closed import boundary**
 
 Extend `Import-TenantConfiguration` with:
 
 ```powershell
-[Parameter(Mandatory)]
-[ValidatePattern('^tenant[1-9][0-9]*$')]
+[ValidateScript({
+    if ($_ -cnotmatch '^tenant[1-9][0-9]*$') {
+        throw 'ExpectedPublicTenantKey must use the case-sensitive lowercase tenant key format.'
+    }
+    $true
+})]
 [string]$ExpectedPublicTenantKey,
 
 [switch]$RequireLocalUntracked
 ```
 
-After schema validation, enforce:
+After schema validation, enforce the property only for a live boundary and use exact case-sensitive matching. `RequireLocalUntracked` without `ExpectedPublicTenantKey` is invalid:
 
 ```powershell
-if ([string]$configuration.PublicTenantKey -cne $ExpectedPublicTenantKey) {
-    throw "Configuration.PublicTenantKey must equal '$ExpectedPublicTenantKey'."
+$expectsPublicTenantKey = $PSBoundParameters.ContainsKey('ExpectedPublicTenantKey')
+if ($RequireLocalUntracked -and -not $expectsPublicTenantKey) {
+    throw 'ExpectedPublicTenantKey is required when RequireLocalUntracked is used.'
+}
+if ($expectsPublicTenantKey -or $RequireLocalUntracked) {
+    $configurationEntries = Get-ObjectEntryTable $configuration
+    if (-not $configurationEntries.Contains('PublicTenantKey')) {
+        throw 'Configuration.PublicTenantKey is required for a live tenant boundary.'
+    }
+    if ([string]$configuration.PublicTenantKey -cne $ExpectedPublicTenantKey) {
+        throw "Configuration.PublicTenantKey must equal '$ExpectedPublicTenantKey'."
+    }
 }
 
 if ($RequireLocalUntracked) {
@@ -669,7 +666,7 @@ if ($RequireLocalUntracked) {
 
 Resolve `git.exe` as one application command with `Get-Command ... | Select-Object -First 1`; fail if Git is absent or ambiguous after resolution. Preserve the module's read-only return conversion.
 
-- [ ] **Step 5: Update all five active script signatures and output boundaries**
+- [ ] **Step 5: Update the three active script signatures and output boundaries**
 
 Remove every `Get-DefaultTenantConfigurationPath`. Add mandatory `-PublicTenantKey`, `-TenantConfigurationPath`, and mandatory external output path as defined in Locked Interfaces. Each script calls:
 
@@ -681,21 +678,29 @@ $tenantConfiguration = Import-TenantConfiguration `
     -RequireLocalUntracked
 ```
 
-Discovery may use `Discovery` rather than `Bootstrap`. Reject an output path when it starts with the normalized repository root plus `\`. `Invoke-TenantBootstrap.ps1` applies the same rejection to `EvidencePath`, `ParameterFile`, and `TemporaryRoleStatePath`, because all three contain private run material even though the orchestrator consumes them as inputs. In the role scripts, obtain and validate the attended principal:
+Discovery may use `Discovery` rather than `Bootstrap`. Reject an output path when it starts with the normalized repository root plus `\`. `Invoke-TenantBootstrap.ps1` applies the same rejection to `EvidencePath` and `ParameterFile`, because both contain private run material even though the orchestrator consumes them as inputs. Historical authorization scripts remain dormant and unchanged; they are not active Task 3 dependencies.
+
+Use case-sensitive lowercase validation on every live public key:
 
 ```powershell
-$account = Invoke-NativeJsonCommand -ArgumentList @('account', 'show', '--output', 'json')
-if ([string]$account.user.type -cne 'user') {
-    throw 'Temporary role operations require an attended user context.'
-}
-$caller = Invoke-NativeJsonCommand -ArgumentList @('ad', 'signed-in-user', 'show', '--output', 'json')
-$principalObjectId = [string]$caller.id
-if ($principalObjectId -cnotmatch '^[0-9a-fA-F-]{36}$') {
-    throw 'Signed-in user discovery did not return a GUID object id.'
-}
+[ValidateScript({
+    if ($_ -cnotmatch '^tenant[1-9][0-9]*$') {
+        throw 'PublicTenantKey must use the case-sensitive lowercase tenant key format.'
+    }
+    $true
+})]
+[string]$PublicTenantKey
 ```
 
-Do not read `Components.EntraServicePrincipal.Id`. Keep the exact two roles and subscription scope unchanged.
+The three active scripts are:
+
+```text
+Invoke-TenantDiscovery.ps1
+New-TenantBicepParameters.ps1
+Invoke-TenantBootstrap.ps1
+```
+
+Task 4 removes the remaining historical authorization-mutation tuple from the bootstrap interface. No Task 3 step grants, discovers, or removes a role assignment.
 
 - [ ] **Step 6: Run the focused tests and verify green**
 
@@ -704,12 +709,11 @@ Invoke-Pester -Path @(
     'infra\tests\pester\TenantConfiguration.Tests.ps1'
     'infra\tests\pester\DiscoveryNormalization.Tests.ps1'
     'infra\tests\pester\BicepComposition.Tests.ps1'
-    'infra\tests\pester\TemporaryRoleCleanup.Tests.ps1'
     'infra\tests\pester\Idempotency.Tests.ps1'
 ) -Output Detailed
 ```
 
-Expected: PASS using synthetic `TestDrive` configurations; no test reads either real tenant file.
+Expected: PASS using synthetic `TestDrive` configurations for live-boundary behavior plus read-only import probes for both preserved tracked manifests. Tests do not print private values.
 
 - [ ] **Step 7: Commit the local-boundary implementation before private-file removal**
 
@@ -851,12 +855,11 @@ Expected: the commit deletes exactly the Tenant 1 manifest/evidence. Review both
 
 ---
 
-### Task 4: Make Validation Local, Attended, What-If-Only, and Cleanup-Safe
+### Task 4: Make Validation Local, Attended, What-If-Only, and Minimum-Access-Safe
 
 **Files:**
 - Modify: `infra/src/scripts/Invoke-TenantBootstrap.ps1`
 - Modify: `infra/tests/pester/Idempotency.Tests.ps1`
-- Modify: `infra/tests/pester/TemporaryRoleCleanup.Tests.ps1`
 - Modify: `infra/tests/pester/WhatIfBoundary.Tests.ps1`
 - Delete: `infra/tests/pester/TenantTrust.Tests.ps1`
 - Create: `infra/docs/24-tenant-1-lean-platform-runbook.md`
@@ -873,42 +876,42 @@ Expected: the commit deletes exactly the Tenant 1 manifest/evidence. Review both
 
 **Interfaces:**
 - Consumes: Task 3 local configuration and active script contracts.
-- Produces: fixed local sequence `discovery -> sanitized review -> Bicep build -> subscription what-if -> boundary validation -> exact cleanup`, with no trust activation or deployment creation.
+- Produces: fixed local sequence `attended context -> minimum-access preflight -> discovery -> sanitized review -> Bicep build -> subscription what-if -> boundary and access read-back`, with no role mutation, trust activation, or deployment creation.
 
 - [ ] **Step 1: Write failing attended-context and runbook contracts**
 
 Add to `infra/tests/pester/Idempotency.Tests.ps1`:
 
 ```powershell
-It 'requires an attended user context and has no OIDC or deployment-create path' {
+It 'requires attended minimum access and has no role-mutation OIDC or deployment-create path' {
     $content = Get-Content -Raw -LiteralPath $script:BootstrapScriptPath
     $content | Should -Match 'user\.type.+user'
+    $content | Should -Match 'AttendedUserContextValidator'
+    $content | Should -Match 'AccessPreflightValidator'
     $content | Should -Match "'deployment',\s*'sub',\s*'what-if'"
-    $content | Should -Match 'finally'
-    $content | Should -Match 'ApprovedRoleAssignmentIds'
+    $content | Should -Not -Match 'role.+assignment.+(create|delete)'
     $content | Should -Not -Match 'OidcContextValidator|AZURE_CLIENT_ID|federated'
     $content | Should -Not -Match "'deployment',\s*'sub',\s*'create'|New-AzSubscriptionDeployment"
 }
 ```
 
-Add a `RunbookDocumentation.Tests.ps1` case requiring headings `Private Configuration and Backup`, `Local Discovery`, `Sanitized Review`, `Bicep Build`, `Subscription What-If`, `Boundary Validation`, `Exact Cleanup`, `GitHub Governance`, `Basic Boards`, `Empty Azure Repo Checkpoint`, `Final Governed Transaction`, `Failure and Recovery`, and `Acceptance`.
+Add a `RunbookDocumentation.Tests.ps1` case requiring headings `Private Configuration and Backup`, `Attended Context and Minimum Access`, `Local Discovery`, `Sanitized Review`, `Bicep Build`, `Subscription What-If`, `Boundary and Access Read-Back`, `GitHub Governance`, `Basic Boards`, `Empty Azure Repo Checkpoint`, `Final Governed Transaction`, `Failure and Recovery`, and `Acceptance`.
 
 - [ ] **Step 2: Run focused tests and verify red**
 
 ```powershell
 Invoke-Pester -Path @(
     'infra\tests\pester\Idempotency.Tests.ps1'
-    'infra\tests\pester\TemporaryRoleCleanup.Tests.ps1'
     'infra\tests\pester\WhatIfBoundary.Tests.ps1'
     'infra\tests\pester\RunbookDocumentation.Tests.ps1'
 ) -Output Detailed
 ```
 
-Expected: FAIL because bootstrap still requires an OIDC service principal and the lean runbook does not exist.
+Expected: FAIL because bootstrap still exposes the historical authorization-mutation interface, lacks minimum-access preflight/read-back, and the lean runbook does not exist.
 
-- [ ] **Step 3: Replace OIDC validation with attended-user validation**
+- [ ] **Step 3: Replace authorization mutation with attended-user and minimum-access validation**
 
-Rename `Test-DefaultOidcContext` and the injected `OidcContextValidator` to `Test-DefaultAttendedContext` and `AttendedContextValidator`. The default validator must:
+Rename `Test-DefaultOidcContext` and the injected `OidcContextValidator` to `Get-DefaultAttendedUserPrincipal` and `AttendedUserContextValidator`. Remove the historical authorization-mutation parameters, state loading, and mutation recovery from the active bootstrap interface. The default attended-context validator must:
 
 ```powershell
 $account = Invoke-NativeJsonCommand -FilePath 'az' -ArgumentList @('account', 'show', '--output', 'json')
@@ -921,9 +924,16 @@ if ([string]$account.tenantId -cne [string]$TenantConfiguration.TenantId) {
 if ([string]$account.id -cne [string]$TenantConfiguration.SubscriptionId) {
     throw 'Signed-in subscription does not match the local Tenant 1 configuration.'
 }
+$caller = Invoke-NativeJsonCommand -FilePath 'az' -ArgumentList @('ad', 'signed-in-user', 'show', '--output', 'json')
+$principalObjectId = [guid]::Empty
+if (-not [guid]::TryParse([string]$caller.id, [ref]$principalObjectId)) {
+    throw 'Signed-in user discovery did not return a GUID object id.'
+}
 ```
 
-Derive cleanup principal and scope from the validated role-state tuple. Keep the `-WhatIfOnly` hard failure, Bicep build, `az deployment sub what-if`, `Test-WhatIfBoundary.ps1`, and cleanup `finally`. If both validation and cleanup fail, preserve both messages in the thrown error.
+Add an injected `AccessPreflightValidator` for tests and a default read-only preflight that records the exact attended principal, tenant, subscription, and separately approved access evidence outside Git. It may list effective assignments and role definitions at the exact subscription scope, but it must not create, update, or delete an assignment. Fail when no separately approved pre-existing access can execute the reviewed `what-if`.
+
+Keep the `-WhatIfOnly` hard failure, Bicep build, `az deployment sub what-if`, and `Test-WhatIfBoundary.ps1`. After `what-if`, repeat `az account show` and signed-in-user discovery and require the same principal, tenant, and subscription. Any context or access drift blocks acceptance. This sprint performs no role mutation.
 
 - [ ] **Step 4: Retire trust activation from the active dependency graph**
 
@@ -939,7 +949,6 @@ $OperatorRoot = Join-Path $env:LOCALAPPDATA 'Caldova\HrFrontier\tenant1'
 $ConfigPath = Join-Path $RepositoryRoot 'infra\src\config\tenants\tenant1.local.psd1'
 $DiscoveryPath = Join-Path $OperatorRoot 'discovery.json'
 $ParameterRoot = Join-Path $OperatorRoot 'parameters'
-$RoleStatePath = Join-Path $OperatorRoot 'temporary-role-state.json'
 [void](New-Item -ItemType Directory -Path $OperatorRoot -Force)
 [void](New-Item -ItemType Directory -Path $ParameterRoot -Force)
 ```
@@ -954,22 +963,35 @@ Discovery:
     -OutputPath $DiscoveryPath
 ```
 
-After local sanitized review and any separately authorized temporary grants, derive the exact principal from role state, generate parameters, and execute only:
+After local sanitized review, confirm the separately approved pre-existing minimum access outside Git and derive the exact attended principal without changing roles:
+
+```powershell
+$Account = az account show --output json | ConvertFrom-Json
+if ([string]$Account.user.type -cne 'user') { throw 'An attended user context is required.' }
+$Caller = az ad signed-in-user show --output json | ConvertFrom-Json
+$ValidationPrincipalId = [guid]$Caller.id
+
+.\infra\src\scripts\New-TenantBicepParameters.ps1 `
+    -PublicTenantKey tenant1 `
+    -TenantConfigurationPath $ConfigPath `
+    -ValidationPrincipalId $ValidationPrincipalId `
+    -OutputPath $ParameterRoot
+$ParameterFile = @(Get-ChildItem -LiteralPath $ParameterRoot -Filter '*.bicepparam' -File)
+if ($ParameterFile.Count -ne 1) { throw 'Expected exactly one generated parameter file.' }
+```
+
+Execute only:
 
 ```powershell
 .\infra\src\scripts\Invoke-TenantBootstrap.ps1 `
     -PublicTenantKey tenant1 `
     -TenantConfigurationPath $ConfigPath `
     -EvidencePath $DiscoveryPath `
-    -ParameterFile $ParameterFile `
-    -TemporaryRoleStatePath $RoleStatePath `
-    -ConfirmRoleCleanup $true `
-    -BootstrapRunId $RoleState.RunId `
-    -ApprovedRoleAssignmentIds @($RoleState.Assignments.Id) `
+    -ParameterFile $ParameterFile[0].FullName `
     -WhatIfOnly
 ```
 
-The runbook must say that temporary role grant is not automatic: capture attended authorization and exact IDs outside Git first. It must also say `what-if` is not deployment evidence.
+The runbook must say that access is provisioned and approved separately before this sprint, the sprint performs no role mutation, context and access are read back after `what-if`, and `what-if` is not deployment evidence.
 
 - [ ] **Step 6: Remove active cloud-bootstrap claims from maintained docs**
 
@@ -980,7 +1002,6 @@ Update the listed infrastructure documents to the lean topology. Active text mus
 ```powershell
 Invoke-Pester -Path @(
     'infra\tests\pester\Idempotency.Tests.ps1'
-    'infra\tests\pester\TemporaryRoleCleanup.Tests.ps1'
     'infra\tests\pester\WhatIfBoundary.Tests.ps1'
     'infra\tests\pester\RunbookDocumentation.Tests.ps1'
 ) -Output Detailed
@@ -1401,7 +1422,7 @@ It 'documents the irreversible checkpoint order without claiming execution' {
     $headings = @(
         'Merge Tool Changes',
         'Current-Main Validator',
-        'Local Discovery Through Cleanup',
+        'Local Validation and Access Read-Back',
         'GitHub Governance',
         'Basic Boards Issue',
         'Empty Azure Repo Checkpoint',
@@ -1440,7 +1461,7 @@ Create `docs/reviews/2026-09-28-tenant-1-lean-engineering-platform-acceptance-re
 - local discovery;
 - every maintained Bicep build;
 - subscription `what-if`;
-- exact cleanup;
+- attended-context and minimum-access preflight/read-back;
 - GitHub settings/ruleset/Dependabot;
 - Basic Boards Issue;
 - optional empty Azure Repo decision;
@@ -1575,7 +1596,7 @@ Update `New-SafetyFixture` to create the two tenant directories, copy the exact 
 Verify `docs/reviews/2026-09-28-tenant-1-lean-engineering-platform-acceptance-review.md` still has Status `Draft`. Keep the existing configuration review and generated evidence immutable. The new review contains:
 
 - control, owner, required evidence, observed sanitized evidence, and outcome;
-- separate outcomes for workflow, local backup, discovery, Bicep build, `what-if`, cleanup, governance, Boards, traceability, branch deletion, and main-green state;
+- separate outcomes for workflow, local backup, attended context, minimum-access preflight, discovery, Bicep build, `what-if`, access read-back, governance, Boards, traceability, branch deletion, and main-green state;
 - `Not Run` until a checkpoint has actual read-back;
 - explicit non-claims for Azure Pipeline, Power Platform deployment, and infrastructure deployment; and
 - rollback status for every mutated surface.
@@ -1700,9 +1721,9 @@ if ($LASTEXITCODE -ne 0) { throw 'Cannot read the validator run.' }
 
 The attended reviewer confirms workflow `Validate repository`, branch `main`, current `main` SHA, status `completed`, conclusion `success`, and job `Repository setup validation` success.
 
-- [ ] **Step 13: Run local discovery through exact cleanup**
+- [ ] **Step 13: Run attended local validation through access read-back**
 
-Follow the runbook in order. Before any role grant, record separate attended authorization outside Git. After `Invoke-TenantBootstrap.ps1`, independently query each recorded assignment ID and require absence. Sanitize `what-if` output locally. Stop on unexpected resource type, scope, deletion, replacement, tenant, subscription, or cleanup state. Do not run deployment create.
+Follow the runbook in order. Before local validation, confirm the separately approved pre-existing minimum-access record outside Git. After `Invoke-TenantBootstrap.ps1`, read back the attended principal, tenant, subscription, and effective minimum-access context and require an exact match. Sanitize `what-if` output locally. Stop on unexpected resource type, scope, deletion, replacement, tenant, subscription, principal, or access state. Do not mutate roles or run deployment create.
 
 - [ ] **Step 14: Apply and read back minimal GitHub governance**
 
@@ -1786,7 +1807,7 @@ Do not change the acceptance review from `Draft` to repository-supported status 
 - The encrypted external Tenant 1 backup, SHA-256 comparison, separate restore, schema parse, and ignored local file are proven before public Tenant 1 artifact deletion.
 - Tenant 1 committed manifest/evidence are absent; the exact Tenant 2 manifest/evidence blobs are unchanged and never selected by Tenant 1 operations.
 - Every active live script requires explicit local configuration, rejects tracked/template/wrong-tenant paths, writes private outputs outside Git, and uses an attended user.
-- Local discovery, sanitized review, every maintained Bicep build, subscription `what-if`, boundary validation, and exact-ID cleanup pass; no deployment is created.
+- Attended-context and minimum-access preflight/read-back, local discovery, sanitized review, every maintained Bicep build, subscription `what-if`, and boundary validation pass; no role mutation or deployment is created.
 - `Initialize-TenantTrust.ps1` is dormant, not run by validation, and not presented as supported.
 - The minimal `main` ruleset enforces PRs, resolved conversations, the sole required check, force-push block, deletion block, and squash only. It requires zero approvals and no CODEOWNERS review under the recorded solo-owner profile.
 - Repository settings delete merged branches, disable Projects, disable merge/rebase, enable squash, and enable Dependabot security updates; exact read-back passes.

@@ -137,7 +137,6 @@ Describe 'Tenant manifest generation' {
         $content = [System.Text.Encoding]::UTF8.GetString($bytes)
         $expectedOrder = @(
             "SchemaVersion = '1.0'",
-            "PublicTenantKey = 'tenant1'",
             "TenantAlias = 'caldova25156897'",
             "DisplayName = 'Caldova25156897'",
             "TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'",
@@ -165,8 +164,7 @@ Describe 'Tenant manifest generation' {
         $modulePath = Join-Path $root 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
         Remove-Module Caldova.HrFrontier.Bootstrap -Force -ErrorAction SilentlyContinue
         Import-Module $modulePath -Force
-        $config = Import-TenantConfiguration -Path $manifestPath -ValidationStage Discovery `
-            -ExpectedPublicTenantKey tenant1
+        $config = Import-TenantConfiguration -Path $manifestPath -ValidationStage Discovery
         @($config.Components | Get-Member -MemberType NoteProperty, Property, ScriptProperty).Count | Should -Be 0
     }
 

@@ -1,7 +1,12 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidatePattern('^tenant[1-9][0-9]*$')]
+    [ValidateScript({
+        if ($_ -cnotmatch '^tenant[1-9][0-9]*$') {
+            throw 'PublicTenantKey must use the case-sensitive lowercase tenant key format.'
+        }
+        $true
+    })]
     [string]$PublicTenantKey,
 
     [Parameter(Mandatory)]
