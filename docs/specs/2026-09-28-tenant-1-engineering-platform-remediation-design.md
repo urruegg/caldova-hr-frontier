@@ -2,16 +2,19 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Date** | 2026-09-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Approved |
+| **Status** | Superseded |
 | **Scope** | Tenant 1 engineering platform and HR solution delivery control plane |
-| **References** | [Active Tenant 1 Configuration Review](../reviews/2026-09-28-tenant-1-engineering-platform-configuration-review.md), [ADR-0001](../adr/0001-azure-devops-as-engineering-control-plane.md), [ADR-0002](../adr/0002-github-first-bootstrap-and-the-role-of-azure-repos.md), [ADR-0012](../adr/0012-per-tenant-github-repository-and-account-topology.md), [Tenant 1 Engineering Platform Configuration Review Design](2026-09-28-tenant-1-engineering-platform-configuration-review-design.md) |
+| **References** | [Approved Lean Engineering Platform Design](2026-09-28-tenant-1-lean-engineering-platform-design.md), [Active Tenant 1 Configuration Review](../reviews/2026-09-28-tenant-1-engineering-platform-configuration-review.md), [ADR-0001](../adr/0001-azure-devops-as-engineering-control-plane.md), [ADR-0002](../adr/0002-github-first-bootstrap-and-the-role-of-azure-repos.md), [ADR-0012](../adr/0012-per-tenant-github-repository-and-account-topology.md), [Tenant 1 Engineering Platform Configuration Review Design](2026-09-28-tenant-1-engineering-platform-configuration-review-design.md) |
+
+> **Superseded:** The [Tenant 1 Lean Engineering Platform Design](2026-09-28-tenant-1-lean-engineering-platform-design.md) replaced this design on 2026-09-28. Do not use this document to authorize or plan implementation. Its original content is retained below as historical decision context; the active read-only configuration review remains valid evidence.
 
 ## Status and Authority
 
-Approved through attended design review on 2026-09-28.
+This design was approved through attended design review on 2026-09-28 and was later superseded the same day by the approved lean design linked above.
+All present-tense approvals and requirements below describe the superseded target and have no current implementation authority.
 
 This specification approves the remediation design and its sequencing. It does not itself authorize an unplanned live mutation, approve a plan whose hash has changed, or prove that any target control is already configured.
 

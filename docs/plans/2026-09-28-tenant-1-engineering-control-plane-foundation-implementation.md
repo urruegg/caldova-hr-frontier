@@ -2,12 +2,14 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-09-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Draft |
+| **Status** | Superseded |
 | **Scope** | Tenant 1, Slice 1 Engineering Control Plane Foundation only |
-| **References** | [Tenant 1 Engineering Platform Remediation Design](../specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md), [Tenant 1 Configuration Review](../reviews/2026-09-28-tenant-1-engineering-platform-configuration-review.md), [Tenant Trust Activation Plan](2026-09-24-tenant-trust-activation-runbook-implementation.md), [Azure Boards Population Plan](2026-09-25-azure-boards-population-implementation.md) |
+| **References** | [Approved Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Superseded Tenant 1 Engineering Platform Remediation Design](../specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md), [Tenant 1 Configuration Review](../reviews/2026-09-28-tenant-1-engineering-platform-configuration-review.md), [Tenant Trust Activation Plan](2026-09-24-tenant-trust-activation-runbook-implementation.md), [Azure Boards Population Plan](2026-09-25-azure-boards-population-implementation.md) |
+
+> **STOP — SUPERSEDED PLAN:** Do not resume this plan. Tasks 3-12 must not execute. Preserve Task 1's decision history, but revise the affected ADRs through the lean design. Task 2 implementation commit `6b9eaa6` is subject to selective revert, and its current uncommitted fix must be discarded only through the separately attended migration defined by the [approved lean design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md). This notice does not authorize a revert, worktree discard, deletion, cloud mutation, or any other destructive action. All instructions and unchecked boxes below are retained only as historical plan content.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
