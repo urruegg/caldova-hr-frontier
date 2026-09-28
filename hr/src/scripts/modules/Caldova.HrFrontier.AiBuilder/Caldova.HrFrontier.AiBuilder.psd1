@@ -15,7 +15,11 @@
         'Set-HrAiBuilderModelRecord',
         'Complete-HrAiBuilderRunManifest',
         'New-HrAiBuilderReadinessRecord',
-        'New-HrAiBuilderTestCapabilityRecord'
+        'New-HrAiBuilderTestCapabilityRecord',
+        'ConvertTo-HrAiBuilderNormalizedValue',
+        'Measure-HrAiBuilderEvaluation',
+        'New-HrAiBuilderModelSchemaRecord',
+        'Test-HrAiBuilderStrictGates'
     )
     CmdletsToExport = @()
     VariablesToExport = @()

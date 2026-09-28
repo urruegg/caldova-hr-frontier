@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI Builder model schema record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "model_name",
+    "model_id",
+    "observed_model_version",
+    "operator",
+    "observed_at_utc",
+    "fields",
+    "source_evidence_path",
+    "source_evidence_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "model_name": {
+      "enum": [
+        "PersonalMasterDataFixed",
+        "PersonalMasterDataGeneral"
+      ]
+    },
+    "model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "observed_model_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operator": {
+      "type": "string",
+      "minLength": 1
+    },
+    "observed_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "ai_builder_type"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ai_builder_type": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "source_evidence_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_evidence_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

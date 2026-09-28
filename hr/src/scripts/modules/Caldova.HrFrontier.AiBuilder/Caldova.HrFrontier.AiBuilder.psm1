@@ -71,6 +71,82 @@ function Get-HrAiBuilderKnownReadinessCheckIds {
     )
 }
 
+function Get-HrAiBuilderKnownFieldNames {
+    @(
+        'candidate_id',
+        'last_name',
+        'first_name',
+        'dob',
+        'nationality',
+        'marital',
+        'heimatort',
+        'permit',
+        'street',
+        'plz',
+        'city',
+        'ahv',
+        'iban',
+        'phone',
+        'email',
+        'ec_name',
+        'ec_phone'
+    )
+}
+
+function Get-HrAiBuilderMetricValue {
+    param(
+        [Parameter(Mandatory)]
+        [double]$Numerator,
+
+        [Parameter(Mandatory)]
+        [double]$Denominator
+    )
+
+    if ($Denominator -eq 0) {
+        return $null
+    }
+
+    return ($Numerator / $Denominator)
+}
+
+function Get-HrAiBuilderConfidenceSummary {
+    param(
+        [AllowEmptyCollection()]
+        [object[]]$Records
+    )
+
+    $numericConfidence = @(
+        $Records |
+            Where-Object {
+                $_ -and
+                $_.PSObject.Properties.Name.Contains('confidence') -and
+                (
+                    $_.confidence -is [double] -or
+                    $_.confidence -is [decimal] -or
+                    $_.confidence -is [single] -or
+                    $_.confidence -is [int]
+                )
+            } |
+            ForEach-Object { [double]$_.confidence }
+    )
+
+    if ($numericConfidence.Count -eq 0) {
+        return [ordered]@{
+            count = 0
+            minimum = $null
+            maximum = $null
+            mean = $null
+        }
+    }
+
+    return [ordered]@{
+        count = $numericConfidence.Count
+        minimum = ($numericConfidence | Measure-Object -Minimum).Minimum
+        maximum = ($numericConfidence | Measure-Object -Maximum).Maximum
+        mean = ($numericConfidence | Measure-Object -Average).Average
+    }
+}
+
 function Get-HrAiBuilderStringSha256 {
     param(
         [Parameter(Mandatory)]
@@ -226,5 +302,9 @@ Export-ModuleMember -Function @(
     'Set-HrAiBuilderModelRecord',
     'Complete-HrAiBuilderRunManifest',
     'New-HrAiBuilderReadinessRecord',
-    'New-HrAiBuilderTestCapabilityRecord'
+    'New-HrAiBuilderTestCapabilityRecord',
+    'ConvertTo-HrAiBuilderNormalizedValue',
+    'Measure-HrAiBuilderEvaluation',
+    'New-HrAiBuilderModelSchemaRecord',
+    'Test-HrAiBuilderStrictGates'
 )

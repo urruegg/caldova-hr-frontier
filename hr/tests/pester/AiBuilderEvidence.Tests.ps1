@@ -683,4 +683,615 @@ Describe 'AI Builder field and corpus contracts' {
             ) | Should -Be @($expected | Sort-Object)
         }
     }
+
+    Describe 'AI Builder normalization and evaluation' {
+        BeforeAll {
+            $script:ModulePath = Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.AiBuilder\Caldova.HrFrontier.AiBuilder.psd1'
+            Import-Module $script:ModulePath -Force
+
+            function New-TestAiBuilderGateSource {
+                $contract = Get-Content -LiteralPath $script:ContractPath -Raw | ConvertFrom-Json
+                $fixtureRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+                New-Item -ItemType Directory -Path $fixtureRoot -Force | Out-Null
+                $rawExportPath = Join-Path $fixtureRoot 'held.json'
+                $schemaEvidencePath = Join-Path $fixtureRoot 'model-schema-fixed.png'
+                '{"source":"adapter"}' | Set-Content -LiteralPath $rawExportPath -Encoding UTF8
+                'schema-evidence' | Set-Content -LiteralPath $schemaEvidencePath -Encoding UTF8
+
+                $fields = [ordered]@{}
+                foreach ($field in $contract.fields) {
+                    $fields[$field.name] = [pscustomobject]@{ value = $null; confidence = $null }
+                }
+
+                $rows = @(
+                    foreach ($field in $contract.fields) {
+                        [pscustomobject]@{
+                            run_id = 'test-run-001'
+                            model_name = 'PersonalMasterDataFixed'
+                            model_version = '1'
+                            document = 'held.pdf'
+                            collection_or_family = 'a-personalblatt'
+                            field_name = $field.name
+                            field_type = $field.ai_builder_type
+                            expected_raw = $null
+                            actual_raw = $null
+                            expected_normalized = $null
+                            actual_normalized = $null
+                            confidence = $null
+                            expected_present = $false
+                            actual_present = $false
+                            exact_match = $true
+                            error_class = $null
+                        }
+                    }
+                )
+
+                @{
+                    CorpusQualification = [pscustomobject]@{
+                        status = 'passed'
+                        documents = @([pscustomobject]@{
+                            document = 'held.pdf'
+                            assignment = 'held-out'
+                            sha256 = (Get-FileHash -LiteralPath $rawExportPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                            collection_or_family = 'a-personalblatt'
+                        })
+                    }
+                    FieldContract = $contract
+                    ModelSchemaRecord = [pscustomobject]@{
+                        model_name = 'PersonalMasterDataFixed'
+                        model_id = 'model-fixed-001'
+                        observed_model_version = 'draft-1'
+                        observed_at_utc = '2026-09-25T08:15:00Z'
+                        operator = 'operator@example.invalid'
+                        fields = @($contract.fields | Select-Object name, ai_builder_type)
+                        source_evidence_path = $schemaEvidencePath
+                        source_evidence_sha256 = (Get-FileHash -LiteralPath $schemaEvidencePath -Algorithm SHA256).Hash.ToLowerInvariant()
+                    }
+                    RunManifest = [pscustomobject]@{
+                        run_id = 'test-run-001'
+                        operator = 'operator@example.invalid'
+                        models = @([pscustomobject]@{
+                            display_name = 'PersonalMasterDataFixed'
+                            model_id = 'model-fixed-001'
+                            version = '1'
+                            documents = @([pscustomobject]@{
+                                document = 'held.pdf'
+                                assignment = 'held-out'
+                                sha256 = (Get-FileHash -LiteralPath $rawExportPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                                collection_or_family = 'a-personalblatt'
+                            })
+                        })
+                    }
+                    PredictionCapture = [pscustomobject]@{
+                        schema_version = '1.0'
+                        run_id = 'test-run-001'
+                        model_name = 'PersonalMasterDataFixed'
+                        model_version = '1'
+                        capture_mechanism = 'AI Builder Quick Test'
+                        adapter_version = 'test-adapter-1.0'
+                        operator = 'operator@example.invalid'
+                        documents = @([pscustomobject]@{
+                            document = 'held.pdf'
+                            document_sha256 = (Get-FileHash -LiteralPath $rawExportPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                            collection_or_family = 'a-personalblatt'
+                            source_export_path = $rawExportPath
+                            source_export_sha256 = (Get-FileHash -LiteralPath $rawExportPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                            captured_at_utc = '2026-09-25T08:20:00Z'
+                            fields = [pscustomobject]$fields
+                        })
+                    }
+                    ValidationRecords = $rows
+                }
+            }
+        }
+
+        It 'records the observed schema without coercing incorrect field names or types' {
+            $schemaEvidencePath = Join-Path $TestDrive 'model-schema-observation.txt'
+            'observed schema' | Set-Content -LiteralPath $schemaEvidencePath -Encoding UTF8
+            $outputPath = Join-Path $TestDrive 'model-schema-record.json'
+            $observedFields = @(
+                [pscustomobject]@{ name = 'candidate_id'; ai_builder_type = 'Text' }
+                [pscustomobject]@{ name = 'wrong_name'; ai_builder_type = 'Date' }
+            )
+
+            $record = New-HrAiBuilderModelSchemaRecord `
+                -ModelName 'PersonalMasterDataFixed' `
+                -ModelId 'model-fixed-001' `
+                -ObservedModelVersion 'draft-1' `
+                -Operator 'operator@example.invalid' `
+                -ObservedAtUtc ([datetime]'2026-09-25T08:15:00Z') `
+                -Fields $observedFields `
+                -SourceEvidencePath $schemaEvidencePath `
+                -OutputPath $outputPath
+
+            $record.fields.Count | Should -Be 2
+            $record.fields[1].name | Should -Be 'wrong_name'
+            $record.fields[1].ai_builder_type | Should -Be 'Date'
+            $record.source_evidence_sha256 | Should -Be (
+                (Get-FileHash -LiteralPath $schemaEvidencePath -Algorithm SHA256).Hash.ToLowerInvariant()
+            )
+        }
+
+        It 'normalizes text narrowly and preserves case, accents, and punctuation' {
+            ConvertTo-HrAiBuilderNormalizedValue -Value "  Céline   O'Neil  " -FieldType Text |
+                Should -Be "Céline O'Neil"
+        }
+
+        It 'normalizes DD.MM.YYYY dates to ISO and rejects invalid dates' {
+            ConvertTo-HrAiBuilderNormalizedValue -Value '14.03.1994' -FieldType Date |
+                Should -Be '1994-03-14'
+            { ConvertTo-HrAiBuilderNormalizedValue -Value '31.02.1994' -FieldType Date } |
+                Should -Throw '*Invalid Date value*'
+        }
+
+        It 'classifies match, missing, incorrect, and false-value outcomes' {
+            $rows = @(
+                [pscustomobject]@{ expected_raw = 'A'; actual_raw = 'A'; expected_present = $true; actual_present = $true; exact_match = $true; error_class = $null; confidence = 0.99; field_name = 'first_name'; collection_or_family = 'fixture' },
+                [pscustomobject]@{ expected_raw = 'B'; actual_raw = $null; expected_present = $true; actual_present = $false; exact_match = $false; error_class = 'missing'; confidence = $null; field_name = 'first_name'; collection_or_family = 'fixture' },
+                [pscustomobject]@{ expected_raw = $null; actual_raw = 'Invented'; expected_present = $false; actual_present = $true; exact_match = $false; error_class = 'false_value'; confidence = 0.88; field_name = 'first_name'; collection_or_family = 'fixture' },
+                [pscustomobject]@{ expected_raw = $null; actual_raw = $null; expected_present = $false; actual_present = $false; exact_match = $true; error_class = $null; confidence = $null; field_name = 'first_name'; collection_or_family = 'fixture' }
+            )
+
+            $metrics = Measure-HrAiBuilderEvaluation -ValidationRecords $rows
+
+            $metrics.exact_match_accuracy | Should -Be 0.5
+            $metrics.precision | Should -Be 0.5
+            $metrics.recall | Should -Be 0.5
+            $metrics.missing_field_precision | Should -Be 0.5
+            $metrics.false_value_rate | Should -Be 0.5
+        }
+
+        It 'derives strict gates from source evidence and blocks false values' {
+            $source = New-TestAiBuilderGateSource
+            $source.ValidationRecords[0].actual_present = $true
+            $source.ValidationRecords[0].actual_raw = 'Invented'
+            $source.ValidationRecords[0].actual_normalized = 'Invented'
+            $source.ValidationRecords[0].exact_match = $false
+            $source.ValidationRecords[0].error_class = 'false_value'
+            $source.PredictionCapture.documents[0].fields.candidate_id.value = 'Invented'
+            $source.PredictionCapture.documents[0].fields.candidate_id.confidence = 0.88
+
+            $gate = Test-HrAiBuilderStrictGates @source
+
+            $gate.status | Should -Be 'blocked'
+            $gate.expected_validation_record_count | Should -Be 17
+            $gate.failed_gates | Should -Contain 'zero_false_values'
+        }
+
+        It 'blocks contract, attribution, and raw-provenance mismatches' {
+            $source = New-TestAiBuilderGateSource
+            $source.ModelSchemaRecord.fields[0].name = 'wrong_name'
+            (Test-HrAiBuilderStrictGates @source).failed_gates |
+                Should -Contain 'exact_field_contract'
+
+            $source = New-TestAiBuilderGateSource
+            $source.PredictionCapture.model_version = 'wrong-version'
+            (Test-HrAiBuilderStrictGates @source).failed_gates |
+                Should -Contain 'complete_attribution'
+
+            $source = New-TestAiBuilderGateSource
+            $source.PredictionCapture.documents[0].source_export_sha256 = (('0' * 64) -join '')
+            (Test-HrAiBuilderStrictGates @source).failed_gates |
+                Should -Contain 'raw_export_provenance'
+        }
+
+        It 'rejects a returned value without numeric per-field confidence' {
+            $source = New-TestAiBuilderGateSource
+            $source.PredictionCapture.documents[0].fields.first_name.value = 'Livia'
+            $source.PredictionCapture.documents[0].fields.first_name.confidence = $null
+
+            (Test-HrAiBuilderStrictGates @source).failed_gates |
+                Should -Contain 'prediction_capture_schema'
+        }
+    }
+
+    Describe 'AI Builder import and evaluation scripts' {
+        BeforeAll {
+            $script:ModulePath = Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.AiBuilder\Caldova.HrFrontier.AiBuilder.psd1'
+            $script:RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+            $script:ImportQuickTestResultsPath = Join-Path $script:RepositoryRoot 'hr\src\scripts\Import-AiBuilderQuickTestResults.ps1'
+            $script:MeasureEvaluationPath = Join-Path $script:RepositoryRoot 'hr\src\scripts\Measure-AiBuilderEvaluation.ps1'
+            $script:FieldContractPath = Join-Path $script:RepositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
+            $script:FieldContract = Get-Content -LiteralPath $script:FieldContractPath -Raw | ConvertFrom-Json
+            Import-Module $script:ModulePath -Force
+
+            function New-TestAiBuilderConfirmedCorpusResult {
+                param(
+                    [Parameter(Mandatory)]
+                    [string]$PackagePath,
+
+                    [Parameter(Mandatory)]
+                    [string]$ModelKind
+                )
+
+                $reviewPath = Join-Path $TestDrive ([guid]::NewGuid().ToString() + '-review.json')
+                New-HrAiBuilderCorpusReviewTemplate -PackagePath $PackagePath -OutputPath $reviewPath | Out-Null
+                $review = Get-Content -LiteralPath $reviewPath -Raw | ConvertFrom-Json
+                foreach ($document in $review.documents) {
+                    $document.status = 'confirmed'
+                    $document.values_visible = $true
+                    $document.absences_confirmed = $true
+                    $document.reviewer = 'test-reviewer'
+                }
+                $review | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $reviewPath -Encoding UTF8
+
+                return Test-HrAiBuilderCorpus -PackagePath $PackagePath -ModelKind $ModelKind `
+                    -ReviewPath $reviewPath -FieldContractPath $script:FieldContractPath
+            }
+
+            $fixedPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template'
+            $generalPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-general-documents'
+            $script:FixedCorpusResult = New-TestAiBuilderConfirmedCorpusResult -PackagePath $fixedPackagePath -ModelKind Fixed
+            $script:GeneralCorpusResult = New-TestAiBuilderConfirmedCorpusResult -PackagePath $generalPackagePath -ModelKind General
+
+            function New-TestAiBuilderAdapterScript {
+                param(
+                    [Parameter(Mandatory)]
+                    [string]$Path
+                )
+
+                @'
+param(
+    [Parameter(Mandatory)][string]$RawExportDirectory,
+    [Parameter(Mandatory)][string]$ModelName,
+    [Parameter(Mandatory)][string]$ModelVersion,
+    [Parameter(Mandatory)][string]$RunId,
+    [Parameter(Mandatory)][string]$Operator,
+    [Parameter(Mandatory)][string]$OutputPath
+)
+
+Set-StrictMode -Version Latest
+
+$documents = @(
+    Get-ChildItem -LiteralPath $RawExportDirectory -Filter '*.json' |
+        Sort-Object Name |
+        ForEach-Object {
+            $json = Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json
+            [ordered]@{
+                document = [string]$json.document
+                document_sha256 = [string]$json.document_sha256
+                collection_or_family = [string]$json.collection_or_family
+                source_export_path = $_.FullName
+                source_export_sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+                captured_at_utc = '2026-09-25T09:00:00Z'
+                fields = $json.fields
+            }
+        }
+)
+
+$capture = [ordered]@{
+    schema_version = '1.0'
+    run_id = $RunId
+    model_name = $ModelName
+    model_version = $ModelVersion
+    capture_mechanism = 'AI Builder Quick Test'
+    adapter_version = 'test-adapter-1.0'
+    operator = $Operator
+    documents = @($documents)
+}
+
+$capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Encoding UTF8
+'@ | Set-Content -LiteralPath $Path -Encoding UTF8
+
+                return $Path
+            }
+
+            function New-TestAiBuilderEvaluationFixture {
+                param(
+                    [Parameter(Mandatory)]
+                    [ValidateSet('PersonalMasterDataFixed', 'PersonalMasterDataGeneral')]
+                    [string]$ModelName,
+
+                    [switch]$UseUnexpectedDocument,
+
+                    [switch]$MissingConfidence
+                )
+
+                $root = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+                $inputRoot = Join-Path $root 'input'
+                $evidenceRoot = Join-Path $root 'evidence'
+                $rawExportDirectory = Join-Path $root 'raw'
+                New-Item -ItemType Directory -Path $inputRoot, $evidenceRoot, $rawExportDirectory -Force | Out-Null
+
+                $fixedModel = [pscustomobject]@{ display_name = 'PersonalMasterDataFixed'; model_kind = 'Fixed' }
+                $generalModel = [pscustomobject]@{ display_name = 'PersonalMasterDataGeneral'; model_kind = 'General' }
+                $manifestPath = Join-Path $inputRoot 'run-manifest.json'
+                $inventoryPath = Join-Path $inputRoot 'model-inventory.json'
+                New-HrAiBuilderRunManifest -RunId 'test-run-001' -TenantKey 'tenant-2' `
+                    -EnvironmentId '84ad4c54-41d9-e5df-ba07-188b4719594a' -EnvironmentStage DEV `
+                    -SolutionUniqueName 'caldovahrfrontier' -SolutionVersion '0.0.0.1' `
+                    -OperatorUpn 'operator@example.invalid' `
+                    -StartedAtUtc ([datetime]'2026-09-25T08:00:00Z') `
+                    -CorpusRevision (('a' * 64) -join '') -GeneratorRevision (('b' * 64) -join '') `
+                    -FieldContractVersion '0.1' -Models @($fixedModel, $generalModel) `
+                    -CorpusResults @($script:FixedCorpusResult, $script:GeneralCorpusResult) `
+                    -OutputPath $manifestPath -ModelInventoryPath $inventoryPath | Out-Null
+
+                foreach ($modelSpec in @(
+                    @{ Name = 'PersonalMasterDataFixed'; Id = 'model-fixed-001'; Version = '1' }
+                    @{ Name = 'PersonalMasterDataGeneral'; Id = 'model-general-001'; Version = '1' }
+                )) {
+                    foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained') {
+                        Set-HrAiBuilderModelRecord -RunManifestPath $manifestPath `
+                            -ModelInventoryPath $inventoryPath -ModelName $modelSpec.Name `
+                            -ModelId $modelSpec.Id -ModelVersion $modelSpec.Version `
+                            -LifecycleStage $stage | Out-Null
+                    }
+                }
+
+                $corpusResult = if ($ModelName -eq 'PersonalMasterDataFixed') { $script:FixedCorpusResult } else { $script:GeneralCorpusResult }
+                $groundTruthRoot = if ($ModelName -eq 'PersonalMasterDataFixed') {
+                    Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template'
+                }
+                else {
+                    Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-general-documents'
+                }
+                $groundTruthPath = Join-Path $groundTruthRoot 'ground-truth.json'
+                $groundTruth = Get-Content -LiteralPath $groundTruthPath -Raw | ConvertFrom-Json
+
+                $heldOutRows = @()
+                foreach ($heldOutDocument in @($corpusResult.documents | Where-Object assignment -eq 'held-out')) {
+                    $heldOutRows += @($groundTruth.documents | Where-Object document -eq $heldOutDocument.document)
+                }
+
+                foreach ($row in $heldOutRows) {
+                    $fieldMap = [ordered]@{}
+                    foreach ($field in $script:FieldContract.fields) {
+                        $value = [string]$row.($field.name)
+                        if ([string]::IsNullOrWhiteSpace($value)) {
+                            $fieldMap[$field.name] = [ordered]@{ value = $null; confidence = $null }
+                        }
+                        else {
+                            $fieldMap[$field.name] = [ordered]@{ value = $value; confidence = 0.95 }
+                        }
+                    }
+
+                    if ($MissingConfidence -and $row.document -eq $heldOutRows[0].document) {
+                        $fieldMap['first_name'] = [ordered]@{
+                            value = [string]$row.first_name
+                            confidence = $null
+                        }
+                    }
+
+                    $documentName = if ($UseUnexpectedDocument -and $row.document -eq $heldOutRows[0].document) {
+                        'unexpected.pdf'
+                    }
+                    else {
+                        [string]$row.document
+                    }
+
+                    $rawExport = [ordered]@{
+                        document = $documentName
+                        document_sha256 = [string]@($corpusResult.documents | Where-Object document -eq $row.document)[0].sha256
+                        collection_or_family = [string]$row.collection_or_layout
+                        fields = $fieldMap
+                    }
+                    $rawExportPath = Join-Path $rawExportDirectory ($documentName -replace '\.pdf$', '.json')
+                    $rawExport | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $rawExportPath -Encoding UTF8
+                }
+
+                $schemaEvidencePath = Join-Path $inputRoot 'model-schema-observation.txt'
+                'observed schema' | Set-Content -LiteralPath $schemaEvidencePath -Encoding UTF8
+                $modelSchemaRecordPath = Join-Path $inputRoot 'model-schema-record.json'
+                $modelId = if ($ModelName -eq 'PersonalMasterDataFixed') {
+                    'model-fixed-001'
+                }
+                else {
+                    'model-general-001'
+                }
+                New-HrAiBuilderModelSchemaRecord -ModelName $ModelName `
+                    -ModelId $modelId `
+                    -ObservedModelVersion 'draft-1' `
+                    -Operator 'operator@example.invalid' `
+                    -ObservedAtUtc ([datetime]'2026-09-25T08:15:00Z') `
+                    -Fields @($script:FieldContract.fields | Select-Object name, ai_builder_type) `
+                    -SourceEvidencePath $schemaEvidencePath `
+                    -OutputPath $modelSchemaRecordPath | Out-Null
+
+                $corpusQualityPath = Join-Path $inputRoot 'corpus-quality.json'
+                @{
+                    schema_version = '1.0'
+                    run_id = 'test-run-001'
+                    status = 'passed'
+                    passed = $true
+                    corpora = @($script:FixedCorpusResult, $script:GeneralCorpusResult)
+                    documents = @($corpusResult.documents)
+                } | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $corpusQualityPath -Encoding UTF8
+
+                $adapterPath = New-TestAiBuilderAdapterScript -Path (Join-Path $inputRoot 'TestAdapter.ps1')
+                $predictionCapturePath = Join-Path $inputRoot 'prediction-capture.json'
+
+                return [pscustomobject]@{
+                    Root = $root
+                    InputRoot = $inputRoot
+                    EvidenceRoot = $evidenceRoot
+                    RawExportDirectory = $rawExportDirectory
+                    RunManifestPath = $manifestPath
+                    ModelSchemaRecordPath = $modelSchemaRecordPath
+                    CorpusQualityPath = $corpusQualityPath
+                    GroundTruthPath = $groundTruthPath
+                    AdapterPath = $adapterPath
+                    PredictionCapturePath = $predictionCapturePath
+                    ModelName = $ModelName
+                    HeldOutCount = @($corpusResult.documents | Where-Object assignment -eq 'held-out').Count
+                    ExpectedValidationRecordCount = @($corpusResult.documents | Where-Object assignment -eq 'held-out').Count * 17
+                }
+            }
+
+            function Write-TestAiBuilderPredictionCapture {
+                param(
+                    [Parameter(Mandatory)]
+                    [object]$Fixture
+                )
+
+                $rawExports = @(
+                    Get-ChildItem -LiteralPath $Fixture.RawExportDirectory -Filter '*.json' |
+                        Sort-Object Name
+                )
+                $documents = @(
+                    foreach ($rawExport in $rawExports) {
+                        $json = Get-Content -LiteralPath $rawExport.FullName -Raw | ConvertFrom-Json
+                        [ordered]@{
+                            document = [string]$json.document
+                            document_sha256 = [string]$json.document_sha256
+                            collection_or_family = [string]$json.collection_or_family
+                            source_export_path = $rawExport.FullName
+                            source_export_sha256 = (Get-FileHash -LiteralPath $rawExport.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+                            captured_at_utc = '2026-09-25T09:00:00Z'
+                            fields = $json.fields
+                        }
+                    }
+                )
+
+                @{
+                    schema_version = '1.0'
+                    run_id = 'test-run-001'
+                    model_name = $Fixture.ModelName
+                    model_version = '1'
+                    capture_mechanism = 'AI Builder Quick Test'
+                    adapter_version = 'test-adapter-1.0'
+                    operator = 'operator@example.invalid'
+                    documents = $documents
+                } | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $Fixture.PredictionCapturePath -Encoding UTF8
+
+                return $Fixture.PredictionCapturePath
+            }
+        }
+
+        It 'imports retained Quick Test exports into a prediction capture' {
+            $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed'
+
+            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:ImportQuickTestResultsPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -RawExportDirectory $fixture.RawExportDirectory `
+                -AdapterScriptPath $fixture.AdapterPath `
+                -TargetModelName $fixture.ModelName `
+                -OutputPath $fixture.PredictionCapturePath 2>&1
+            $exitCode = $LASTEXITCODE
+
+            $exitCode | Should -Be 0
+            $fixture.PredictionCapturePath | Should -Exist
+            @((Get-Content -LiteralPath $fixture.PredictionCapturePath -Raw | ConvertFrom-Json).documents).Count |
+                Should -Be $fixture.HeldOutCount
+        }
+
+        It 'rejects a capture document not present in the held-out allocation' {
+            $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed' -UseUnexpectedDocument
+
+            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:ImportQuickTestResultsPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -RawExportDirectory $fixture.RawExportDirectory `
+                -AdapterScriptPath $fixture.AdapterPath `
+                -TargetModelName $fixture.ModelName `
+                -OutputPath $fixture.PredictionCapturePath 2>&1
+            $exitCode = $LASTEXITCODE
+
+            $exitCode | Should -Not -Be 0
+            ($output -join [Environment]::NewLine) | Should -Match 'held-out allocation'
+        }
+
+        It 'derives <ExpectedValidationRecordCount> validation rows for <ModelName>' -TestCases @(
+            @{ ModelName = 'PersonalMasterDataFixed'; ExpectedValidationRecordCount = 68 }
+            @{ ModelName = 'PersonalMasterDataGeneral'; ExpectedValidationRecordCount = 136 }
+        ) {
+            param($ModelName, $ExpectedValidationRecordCount)
+
+            $fixture = New-TestAiBuilderEvaluationFixture -ModelName $ModelName
+            Write-TestAiBuilderPredictionCapture -Fixture $fixture | Out-Null
+
+            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:MeasureEvaluationPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -CorpusQualityPath $fixture.CorpusQualityPath `
+                -FieldContractPath $script:FieldContractPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -PredictionCapturePath $fixture.PredictionCapturePath `
+                -GroundTruthPath $fixture.GroundTruthPath `
+                -EvidenceDirectory $fixture.EvidenceRoot 2>&1
+            $exitCode = $LASTEXITCODE
+
+            $exitCode | Should -Be 0
+            $results = Get-Content -LiteralPath (Join-Path $fixture.EvidenceRoot 'validation-results.json') -Raw | ConvertFrom-Json
+            @($results.models)[0].validation_record_count | Should -Be $ExpectedValidationRecordCount
+        }
+
+        It 'merges fixed and general model evidence without overwriting either model record' {
+            $evidenceDirectory = Join-Path $TestDrive 'combined-evidence'
+            New-Item -ItemType Directory -Path $evidenceDirectory -Force | Out-Null
+            $fixedFixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed'
+            $generalFixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataGeneral'
+            Write-TestAiBuilderPredictionCapture -Fixture $fixedFixture | Out-Null
+            Write-TestAiBuilderPredictionCapture -Fixture $generalFixture | Out-Null
+
+            foreach ($fixture in @($fixedFixture, $generalFixture)) {
+                $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:MeasureEvaluationPath `
+                    -RunManifestPath $fixture.RunManifestPath `
+                    -CorpusQualityPath $fixture.CorpusQualityPath `
+                    -FieldContractPath $script:FieldContractPath `
+                    -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                    -PredictionCapturePath $fixture.PredictionCapturePath `
+                    -GroundTruthPath $fixture.GroundTruthPath `
+                    -EvidenceDirectory $evidenceDirectory 2>&1
+                $LASTEXITCODE | Should -Be 0
+            }
+
+            $results = Get-Content -LiteralPath (Join-Path $evidenceDirectory 'validation-results.json') -Raw | ConvertFrom-Json
+            @($results.models.model_name | Sort-Object) | Should -Be @('PersonalMasterDataFixed', 'PersonalMasterDataGeneral')
+            $metrics = Get-Content -LiteralPath (Join-Path $evidenceDirectory 'evaluation-metrics.json') -Raw | ConvertFrom-Json
+            @($metrics.models.display_name | Sort-Object) | Should -Be @('PersonalMasterDataFixed', 'PersonalMasterDataGeneral')
+        }
+
+        It 'rejects a second write for the same run model and version' {
+            $evidenceDirectory = Join-Path $TestDrive 'duplicate-evidence'
+            New-Item -ItemType Directory -Path $evidenceDirectory -Force | Out-Null
+            $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed'
+            Write-TestAiBuilderPredictionCapture -Fixture $fixture | Out-Null
+
+            $null = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:MeasureEvaluationPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -CorpusQualityPath $fixture.CorpusQualityPath `
+                -FieldContractPath $script:FieldContractPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -PredictionCapturePath $fixture.PredictionCapturePath `
+                -GroundTruthPath $fixture.GroundTruthPath `
+                -EvidenceDirectory $evidenceDirectory 2>&1
+
+            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:MeasureEvaluationPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -CorpusQualityPath $fixture.CorpusQualityPath `
+                -FieldContractPath $script:FieldContractPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -PredictionCapturePath $fixture.PredictionCapturePath `
+                -GroundTruthPath $fixture.GroundTruthPath `
+                -EvidenceDirectory $evidenceDirectory 2>&1
+            $exitCode = $LASTEXITCODE
+
+            $exitCode | Should -Not -Be 0
+            ($output -join [Environment]::NewLine) | Should -Match 'already exists'
+            @((Get-Content -LiteralPath (Join-Path $evidenceDirectory 'evaluation-metrics.json') -Raw | ConvertFrom-Json).models).Count |
+                Should -Be 1
+        }
+
+        It 'writes a blocked summary before returning non-zero from an invalid capture' {
+            $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed' -MissingConfidence
+            Write-TestAiBuilderPredictionCapture -Fixture $fixture | Out-Null
+
+            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:MeasureEvaluationPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -CorpusQualityPath $fixture.CorpusQualityPath `
+                -FieldContractPath $script:FieldContractPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -PredictionCapturePath $fixture.PredictionCapturePath `
+                -GroundTruthPath $fixture.GroundTruthPath `
+                -EvidenceDirectory $fixture.EvidenceRoot 2>&1
+            $exitCode = $LASTEXITCODE
+
+            $exitCode | Should -Not -Be 0
+            (Join-Path $fixture.EvidenceRoot 'evaluation-summary.md') | Should -Exist
+            $summary = Get-Content -LiteralPath (Join-Path $fixture.EvidenceRoot 'evaluation-summary.md') -Raw
+            $summary | Should -Match 'Blocked'
+            $summary | Should -Match 'prediction_capture_schema'
+        }
+    }
 }
