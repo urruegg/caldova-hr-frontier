@@ -2,14 +2,24 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-27 |
+| **Version** | 2.0 |
+| **Date** | 2026-09-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed Baseline |
+| **Status** | Approved |
 | **Scope** | Cross-cutting (all solution domains) |
-| **References** | [ADR-0001](0001-azure-devops-as-engineering-control-plane.md), [ADR-0002](0002-github-first-bootstrap-and-the-role-of-azure-repos.md), [ADR-0004](0004-domain-solution-architecture-and-publisher.md), [Azure DevOps and GitHub single source of truth design](../specs/2026-09-24-azure-devops-github-single-source-of-truth-design.md) |
+| **References** | [Tenant 1 Engineering Platform Remediation Design](../specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md), [ADR-0001](0001-azure-devops-as-engineering-control-plane.md), [ADR-0002](0002-github-first-bootstrap-and-the-role-of-azure-repos.md), [ADR-0004](0004-domain-solution-architecture-and-publisher.md), [Azure DevOps and GitHub single source of truth design](../specs/2026-09-24-azure-devops-github-single-source-of-truth-design.md) |
 
-This candidate is not an accepted repository decision until attended review approves it.
+## Attended Decision
+
+Approved on 2026-09-28 for the Tenant 1 remediation baseline defined by
+[Tenant 1 Engineering Platform Remediation Design](../specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md).
+Acceptance establishes one tenant-dedicated GitHub product-source repository, one Azure DevOps project and Boards backlog,
+and one tenant-private Azure Repo named `caldova-hr-frontier-config`. It does not approve a shared source repository,
+an initial mirror, synchronization, or a live mutation whose reviewed plan hash has changed.
+
+## Revision Note (v2.0)
+
+Version 2.0 records the attended Wave 0 approval and the transitional exception for existing Tenant 2 files. Tenant 2's manifest and discovery evidence remain in this repository until Slice 5 verifies their handoff to Tenant 2's repository; that temporary exception does not weaken the approved one-repository-per-tenant target.
 
 ## Context
 
@@ -33,9 +43,9 @@ Continuing to host Tenant 1 and Tenant 2 from the same repository means only one
 
 ---
 
-## Proposed Decision
+## Decision
 
-**Adopt one repository per tenant, with account type varying by tenant, not by a shared repository.**
+**Adopt one GitHub product-source repository, one Azure DevOps organization and project, and one tenant-private Azure Repo per tenant, with GitHub account type varying by tenant, not by a shared repository.**
 
 | Tenant | GitHub location | Account type | Status |
 |---|---|---|---|
@@ -43,10 +53,10 @@ Continuing to host Tenant 1 and Tenant 2 from the same repository means only one
 | Tenant 2 | `AndreaRizzi/caldova-hr-frontier` | Personal (different individual) | Not yet created |
 | Tenant 3 (Georg Fischer) | A new organization-owned repository, org not yet named | GitHub Organization | Not yet created |
 
-1. **This repository becomes single-tenant, scoped to Tenant 1 only.** Tenant 2's configuration and discovery evidence are removed from it once Tenant 2's own repository exists to receive them — never before, so nothing is lost in the gap.
+1. **This repository becomes single-tenant, scoped to Tenant 1 only.** As a temporary transition, Tenant 2's manifest and discovery evidence remain here until Slice 5 hands them to Tenant 2's repository and destination read-back verifies the copy. They are removed only after that proof, never before.
 2. **Tenant 2 gets its own personal-account repository**, seeded from this repository's current content as a one-time copy (see Seeding Strategy below), with its tenant manifest corrected to `GitHub.Owner = 'AndreaRizzi'`.
 3. **Tenant 3 gets its own organization-owned repository**, in a new GitHub Organization created for Georg Fischer, seeded the same way, with a fresh tenant manifest once its Azure AD tenant and Azure DevOps organization details are known.
-4. **The rule is symmetric across all three tenants regardless of account type**: one GitHub repository, one Azure DevOps organization and project, one live Boards connection. Account type (personal vs. organization) is a per-tenant choice, not an exception to the topology rule.
+4. **The rule is symmetric across all three tenants regardless of account type**: one GitHub product-source repository, one Azure DevOps organization and project, one tenant-private Azure Repo, and one live Boards connection. Account type (personal vs. organization) is a per-tenant choice, not an exception to the topology rule.
 
 ### Seeding strategy
 
@@ -106,17 +116,18 @@ Each new tenant repository (Tenant 2, Tenant 3) is seeded as a **one-time copy**
 
 A future change should be able to answer:
 
-1. Does every tenant still have exactly one repository connected to exactly one Azure DevOps organization and project?
+1. Does every tenant still have exactly one GitHub product-source repository connected to exactly one Azure DevOps organization and project, plus one tenant-private Azure Repo?
 2. Was a new tenant repository seeded as a one-time copy, with every other tenant's manifest and evidence removed before first use?
 3. If a fix was made in one tenant's repository, was a corresponding backport pull request at least considered for the others?
-4. Does removing a tenant's configuration from a repository happen only after that tenant's destination repository already exists and holds a verified copy — never before?
+4. Does removing a tenant's configuration from a repository happen only in Slice 5, after that tenant's destination repository already exists and holds a verified copy — never before?
 
 ---
 
 ## References
 
-- [ADR-0001](0001-azure-devops-as-engineering-control-plane.md) — recorded the one-repository-one-organization constraint as a consequence, not yet as a designed-for rule
-- [ADR-0002](0002-github-first-bootstrap-and-the-role-of-azure-repos.md) — established the attended, no-automatic-synchronization philosophy this ADR's seeding strategy follows
+- [ADR-0001](0001-azure-devops-as-engineering-control-plane.md) — approves the one-repository-one-organization control-plane rule
+- [ADR-0002](0002-github-first-bootstrap-and-the-role-of-azure-repos.md) — approves the private configuration boundary and no-automatic-synchronization rule
 - [ADR-0004](0004-domain-solution-architecture-and-publisher.md) — an existing precedent distinguishing Tenant 1 & 2 from Tenant 3 at the Dataverse publisher level, for a related but distinct concern
 - [Azure DevOps and GitHub single source of truth design](../specs/2026-09-24-azure-devops-github-single-source-of-truth-design.md) — confirmed live, in this session, that the Boards↔GitHub connection is per-repository
+- [Tenant 1 Engineering Platform Remediation Design](../specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md)
 - [Connect Azure Boards to GitHub](https://learn.microsoft.com/en-us/azure/devops/boards/github/connect-to-github) — Microsoft's own guidance: "You shouldn't connect a GitHub repository to more than one Azure DevOps organization."

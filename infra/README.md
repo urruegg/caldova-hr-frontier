@@ -2,23 +2,23 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
-| **References** | [Approved Intake Design](../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json) |
+| **References** | [Tenant 1 Engineering Platform Remediation Design](../docs/specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md), [Approved Intake Design](../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json) |
 
 This source-derived Proposed Baseline describes intended infrastructure architecture and operations. It does not prove that any tenant, Azure resource, Azure DevOps object, Power Platform environment, GitHub governance control, pipeline, identity, or service is currently deployed or configured.
 
 ## Purpose
 
-The `infra/` domain owns future tenant manifests, normalized discovery evidence, subscription-scope Bicep, bootstrap scripts, infrastructure tests, and unpacked Infrastructure Power Platform solution source. All executable artifacts are introduced by later reviewed tasks; Phase 3 Task 1 imports documentation only.
+The `infra/` domain owns public infrastructure source, normalized sanitized discovery evidence, subscription-scope Bicep, bootstrap scripts, infrastructure tests, and unpacked Infrastructure Power Platform solution source. Tenant-private configuration belongs at an attended private path in `caldova-hr-frontier-config`; it is not a second product source. This documentation-only task performs no file or platform mutation.
 
-Caldova HR Frontier uses one shared GitHub repository. Each independent tenant receives:
+Caldova HR Frontier uses one tenant-dedicated GitHub product-source repository and one Azure DevOps project per tenant. For Tenant 1, this repository is the sole product source and `caldova-hr-frontier-config` is the tenant-private Azure Repo. The private repository contains no product source, credential, unrestricted membership export, synchronization, or initial disaster-recovery mirror. Tenant 2's existing manifest and discovery evidence remain here as the explicit hash-pinned transition exception until Slice 5 verifies their handoff.
 
-- one reviewed data-only manifest at `infra/src/config/tenants/<tenantAlias>.psd1`;
-- one GitHub Environment named `bootstrap-${tenantAlias}`;
+- one reviewed Tenant 1 configuration overlay at an approved private path in `caldova-hr-frontier-config`;
+- one GitHub Environment named `bootstrap-tenant1`, restricted to `main`, with the approved reviewer and self-review disabled;
 - one dedicated single-tenant Microsoft Entra application and service principal for this repository;
 - one normalized, read-only discovery record;
 - explicit reviewed `Existing` or `Create` intent for every managed component.
@@ -38,7 +38,7 @@ No resource group, Log Analytics workspace, custom role, policy, Key Vault, stor
 | Tool | Intended responsibility | Sprint boundary |
 |---|---|---|
 | Bicep | Model the approved subscription baseline | Format, build, and subscription `what-if` only; no deployment |
-| PowerShell | Validate manifests and evidence; orchestrate attended trust, discovery, validation, and exact-ID cleanup | Fail closed; no inferred intent and no secret material |
+| PowerShell | Validate private configuration, transition manifests, and evidence; orchestrate attended trust, discovery, validation, and exact-ID cleanup | Fail closed; no inferred intent and no secret material |
 | GitHub Actions | Select one tenant and bind to its exact Environment subject | Manual dispatch, OIDC, read-only discovery, validation, and `what-if` only |
 | Service APIs | Read stable identifiers and verify attended control-plane changes | Discovery is read-only; mutation requires the explicit gate owned by its later task |
 
@@ -55,7 +55,7 @@ infra/
 |-- evidence/discovery/
 |-- src/
 |   |-- bicep/
-|   |-- config/tenants/
+|   |-- config/                    public schemas, samples, and hash-pinned transition files only
 |   |-- scripts/
 |   `-- solutions/
 `-- tests/pester/
@@ -67,15 +67,15 @@ A path shown here is an ownership boundary, not evidence that its artifact alrea
 
 | Document | Purpose |
 |---|---|
-| [Tenant Setup and Configuration](docs/10-tenant-setup-and-configuration.md) | Defines the reviewed manifest, evidence, intent, and tenant-stage boundaries. |
+| [Tenant Setup and Configuration](docs/10-tenant-setup-and-configuration.md) | Defines reviewed private configuration, sanitized evidence, explicit intent, and tenant-stage boundaries. |
 | [Identity and Access](docs/11-identity-and-access.md) | Defines attended administration, per-tenant bootstrap identity, OIDC, and least privilege. |
 | [Power Platform Environments and ALM](docs/12-power-platform-environments-and-alm.md) | Defines the future DEV-to-TEST-to-PROD solution lifecycle. |
-| [Azure DevOps Engineering Control Plane](docs/13-azure-devops-engineering-control-plane.md) | Describes the proposed backlog and delivery control-plane integration. |
-| [GitHub Repository Blueprint](docs/14-github-repository-blueprint.md) | Describes the one-repository collaboration and governance target. |
+| [Azure DevOps Engineering Control Plane](docs/13-azure-devops-engineering-control-plane.md) | Describes the approved Azure Boards single backlog and GitHub sole-product-source integration. |
+| [GitHub Repository Blueprint](docs/14-github-repository-blueprint.md) | Describes the Tenant 1 repository, `bootstrap-tenant1`, no-self-review, and governance target. |
 | [Agent and Workload Configuration](docs/15-agent-workload-configuration.md) | Describes future workload packaging, grounding, and release controls. |
 | [Security, Governance and Compliance](docs/16-security-governance-and-compliance.md) | Describes proposed technical controls and evidence requirements. |
 | [Bootstrap and Provisioning](docs/17-bootstrap-and-provisioning.md) | Defines the evidence-gated, no-deployment bootstrap sequence. |
-| [Multi-Tenant Provisioning](docs/18-multi-tenant-provisioning.md) | Defines isolation for three independent tenants in one repository. |
+| [Multi-Tenant Provisioning](docs/18-multi-tenant-provisioning.md) | Defines one repository and one Azure DevOps project per tenant, plus the Tenant 2 transition exception through Slice 5. |
 | [Bootstrap Recovery](docs/19-bootstrap-recovery.md) | Defines attended recovery without bypassing validation or approvals. |
 | [Tenant Trust Activation Runbook](docs/20-tenant-trust-activation-runbook.md) | Operator runbook for activating a tenant's Entra/GitHub/Azure DevOps trust using the existing Initialize-TenantTrust.ps1. |
 | [Operational Runbooks](docs/runbooks/README.md) | Defines the shared preview, approval, evidence, manual-step, read-back, and recovery contract. |
@@ -90,7 +90,7 @@ A path shown here is an ownership boundary, not evidence that its artifact alrea
 2. Keep tenant IDs, subscription IDs, project names, and approved service URLs as reviewed non-secret metadata when needed for cross-checking.
 3. Never commit tokens, credentials, private keys, connection strings, environment-specific solution values, or personal HR data.
 4. Keep `DEV`, `TEST`, and `PROD` exclusive to Power Platform ALM. They are not Azure infrastructure environments.
-5. Use deterministic names derived from the reviewed tenant manifest; never generate a second suffix during recovery.
+5. Use deterministic names derived from reviewed tenant-private configuration; never generate a second suffix during recovery.
 6. Treat local documentation links as current contracts. Refer to future paths as inline code until later tasks create them.
 
-The proposed Bicep and PowerShell split follows [ADR-0003](../docs/adr/0003-bicep-and-powershell-for-infrastructure-as-code.md). That ADR remains a candidate until separately accepted.
+The proposed Bicep and PowerShell split follows [ADR-0003](../docs/adr/0003-bicep-and-powershell-for-infrastructure-as-code.md). That ADR remains a candidate until separately approved.

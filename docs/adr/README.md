@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
-| **References** | [HR Solution Functional Design Intake](../specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+| **References** | [Tenant 1 Engineering Platform Remediation Design](../specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md), [HR Solution Functional Design Intake](../specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 
 **Purpose.** The decisions that are expensive or impossible to reverse, each recorded with the options rejected and the price paid. **This folder answers *why*.** Every other folder answers *what*.
 
@@ -19,8 +19,8 @@
 
 | ADR | Decision | Status |
 |---|---|---|
-| [0001](0001-azure-devops-as-engineering-control-plane.md) | Azure DevOps as the Engineering Control Plane, GitHub as the Digital Factory | Proposed Baseline |
-| [0002](0002-github-first-bootstrap-and-the-role-of-azure-repos.md) | GitHub-First Bootstrap, and the Role of Azure Repos | Proposed Baseline |
+| [0001](0001-azure-devops-as-engineering-control-plane.md) | Azure DevOps as the Engineering Control Plane, GitHub as the Digital Factory | Approved |
+| [0002](0002-github-first-bootstrap-and-the-role-of-azure-repos.md) | GitHub-First Bootstrap, and the Role of Azure Repos | Approved |
 | [0003](0003-bicep-and-powershell-for-infrastructure-as-code.md) | Bicep and PowerShell for Infrastructure as Code | Proposed Baseline |
 | [0004](0004-domain-solution-architecture-and-publisher.md) | Domain Solution Architecture, Naming and Publisher — adopt the tenant's supplied publisher; realized as `calhr` for Tenant 1 & 2, `gfhr` for Tenant 3 | Proposed Baseline |
 | [0005](0005-workday-as-system-of-record.md) | Workday is the system of record for employee master data | Accepted |
@@ -30,9 +30,9 @@
 | [0009](0009-workday-access-via-connector-behind-governed-layer.md) | Workday access through the Microsoft connector, behind a governed access layer | Accepted |
 | [0010](0010-organizational-data-service-as-people-context.md) | Organizational Data Service as people context, not an integration path | **Proposed** |
 | [0011](0011-workflow-first-process-architecture.md) | Workflow-first process architecture — the workflow owns the process, the agent owns the judgement | Accepted |
-| [0012](0012-per-tenant-github-repository-and-account-topology.md) | Per-tenant GitHub repository and account topology — one repository, one Azure DevOps organization, per tenant | Proposed Baseline |
+| [0012](0012-per-tenant-github-repository-and-account-topology.md) | Per-tenant GitHub repository and account topology — one product-source repository, one Azure DevOps project, and one private configuration repository per tenant | Approved |
 
-ADRs 0001–0004 are Proposed Baseline candidates from the infrastructure/governance intake (Phase 1); they are not yet accepted repository decisions. ADRs 0005–0011 are the HR solution architecture set from the Phase 4 intake; their own "Accepted"/"Proposed" status reflects the design package's internal decision tracking and is likewise pending repository-level ratification. All Accepted records among 0005–0011 are **pending GF ratification** — accepted as the design position of this package, not yet countersigned by GF.
+ADRs 0001, 0002, and 0012 are repository-level **Approved** decisions from the attended Wave 0 review on 2026-09-28. ADRs 0003 and 0004 remain Proposed Baseline candidates from the infrastructure/governance intake. ADRs 0005–0011 are the HR solution architecture set from the Phase 4 intake; their own "Accepted"/"Proposed" status reflects the design package's internal decision tracking and remains pending repository-level ratification. All Accepted records among 0005–0011 are **pending GF ratification** — accepted as the design position of that package, not yet countersigned by GF.
 
 ---
 
@@ -54,7 +54,7 @@ Each record carries the same sections, and two of them carry most of the value:
 
 ## Evidence rules for agents
 
-**1. An Accepted ADR outranks narrative text anywhere else.** If `solution-design.md` and an Accepted ADR conflict, the ADR is correct and the design document has drifted. Report the drift rather than reconciling it silently.
+**1. A repository-level Approved ADR outranks narrative text anywhere else.** If `solution-design.md` and an Approved ADR conflict, the ADR is correct and the design document has drifted. Report the drift rather than reconciling it silently. Legacy "Accepted" statuses in the Phase 4 HR package remain package decisions pending repository-level ratification.
 
 **2. Status is not decoration.** ADR-0010 is **Proposed** — the Organizational Data Service is not confirmed by GF, and nothing depends on it. Do not describe it as part of the platform.
 
@@ -83,7 +83,7 @@ Each record carries the same sections, and two of them carry most of the value:
 1. Take the next number. **Numbers are never reused**, including after a record is superseded.
 2. Name it `adr-<nnnn>-<context>.md`, lowercase, hyphenated.
 3. Follow the existing section structure. **Options considered and Consequences are not optional** — a record without them documents an outcome, not a decision.
-4. Set Status to `Proposed` until it is agreed. Supersede rather than edit an Accepted record: mark the old one `Superseded by ADR-nnnn` and leave its text intact, because the reasoning stays useful even when the decision does not.
+4. Set Status to `Proposed` until it is agreed. Supersede rather than edit an Approved record: mark the old one `Superseded by ADR-nnnn` and leave its text intact, because the reasoning stays useful even when the decision does not.
 5. Link it from `docs/README.md`, the package `README.md`, and any document whose behaviour it changes.
 
 **What deserves an ADR:** anything expensive to reverse — a system of record, a data boundary, an enforcement mechanism, a publisher prefix, a harness choice, a process shape. **What does not:** anything a pull request can undo.

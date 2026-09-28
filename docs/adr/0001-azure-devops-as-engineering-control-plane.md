@@ -2,22 +2,28 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-27 |
+| **Version** | 2.0 |
+| **Date** | 2026-09-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed Baseline |
+| **Status** | Approved |
 | **Scope** | Cross-cutting (all solution domains) |
-| **References** | [Approved Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../reviews/2026-09-17-architecture-baseline-source-inventory.json), [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) |
+| **References** | [Approved Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md), [Tenant 1 Engineering Platform Remediation Design](../specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md), [Source Inventory](../reviews/2026-09-17-architecture-baseline-source-inventory.json), [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) |
 
-This candidate is not an accepted repository decision until attended review approves it.
+## Attended Decision
 
-## Revision Note (v1.1)
+Approved on 2026-09-28 for the Tenant 1 remediation baseline defined by
+[Tenant 1 Engineering Platform Remediation Design](../specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md).
+Acceptance establishes one tenant-dedicated GitHub product-source repository, one Azure DevOps project and Boards backlog,
+and one tenant-private Azure Repo named `caldova-hr-frontier-config`. It does not approve a shared source repository,
+an initial mirror, synchronization, or a live mutation whose reviewed plan hash has changed.
 
-The "One organisation only" item under Consequences → Negative, below, was originally recorded as a limitation to accept while one repository served multiple tenants. Live verification later confirmed it is a real, enforced platform constraint, not a soft preference, and [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) has since turned it around: rather than a cost of a shared repository, it is now the reason each tenant gets its own dedicated repository. This ADR's original text is left intact below — the reasoning stays useful even though the multi-tenant repository assumption it was written against has changed; read the "One organisation only" line together with ADR-0012.
+## Revision Note (v2.0)
+
+Version 2.0 records the attended Wave 0 approval and reconciles the control-plane split with [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md). The enforced one-organization connection constraint now defines a per-tenant topology: one tenant-dedicated GitHub product-source repository connects to one Azure DevOps organization and project. GitHub is the sole product source and Azure Boards is the single backlog.
 
 ## Context
 
-Caldova HR Frontier must be built by an **external GitHub identity** (`github.com/urruegg`, a personal account outside the demo tenant) using GitHub Copilot CLI, while delivery is proposed to be planned and governed inside the tenant's Azure DevOps organisation (`dev.azure.com/caldova25156897`).
+Caldova HR Frontier must be built by an **external GitHub identity** (`github.com/urruegg`, a personal account outside the demo tenant) using GitHub Copilot CLI, while delivery is planned and governed inside the tenant's Azure DevOps organisation (`dev.azure.com/caldova25156897`).
 
 That leaves an unavoidable question: where does the backlog live, and where does the code live?
 
@@ -45,13 +51,13 @@ Azure Boards owns the backlog, iterations, delivery plans and deployment approva
 
 ---
 
-## Proposed Decision
+## Decision
 
-**The proposed baseline adopts Option C.**
+**This decision adopts Option C.**
 
 - **Azure DevOps** is the Engineering Control Plane: Epics, Features, User Stories, Tasks, Bugs, iterations, Delivery Plans, and the PROD approval gate.
-- **GitHub** is the Digital Factory: the public repository, pull requests, GitHub Actions, releases, `.github/agents/`, Copilot instructions and Copilot CLI.
-- **Azure Boards is the proposed single backlog.** GitHub Projects is not part of the proposed operating model. GitHub Issues exist only as an intake funnel that is triaged into Azure Boards.
+- **GitHub** is the Digital Factory and sole product source: the tenant-dedicated repository, pull requests, GitHub Actions, releases, `.github/agents/`, Copilot instructions and Copilot CLI.
+- **Azure Boards is the single backlog.** GitHub Projects is not part of the operating model. GitHub Issues exist only as an intake funnel that is triaged into Azure Boards.
 - Linkage is the `AB#` convention, to be enforced mechanically by a ruleset commit-message pattern and by the pull request template.
 - The connection uses the **Azure Boards GitHub App**, not a personal access token.
 
@@ -85,10 +91,10 @@ Azure Boards owns the backlog, iterations, delivery plans and deployment approva
 
 ### Mitigations
 
-- The proposed commit-message ruleset rejects a push without `AB#`, so the convention cannot silently lapse.
+- The commit-message ruleset must reject a push without `AB#`, so the convention cannot silently lapse.
 - The pull request template requires the work item reference as its first field.
-- `.github/copilot-instructions.md` and `AGENTS.md` state the proposed rule so that agent-produced commits comply.
-- The proposed "unlinked work" board query is built on `External Link Count = 0`.
+- `.github/copilot-instructions.md` and `AGENTS.md` state the rule so that agent-produced commits comply.
+- The "unlinked work" board query is built on `External Link Count = 0`.
 
 ---
 
@@ -106,3 +112,4 @@ Microsoft endorses this split **implicitly** through the Azure Boards + GitHub i
 - [Approvals and checks](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals?view=azure-devops)
 - [Choose a process](https://learn.microsoft.com/en-us/azure/devops/boards/work-items/guidance/choose-process?view=azure-devops)
 - [Approved Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md); Infrastructure detail enters in Phase 3.
+- [Tenant 1 Engineering Platform Remediation Design](../specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md)

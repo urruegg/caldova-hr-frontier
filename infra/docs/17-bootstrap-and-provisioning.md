@@ -2,20 +2,20 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-09-27 |
+| **Version** | 1.3 |
+| **Date** | 2026-09-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
-| **References** | [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json), [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) |
+| **References** | [Tenant 1 Engineering Platform Remediation Design](../../docs/specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md), [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json), [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) |
 
-This source-derived Proposed Baseline describes intended bootstrap and validation operations. It does not prove that any tenant, Azure resource, Azure DevOps object, Power Platform environment, GitHub control, pipeline, identity, role, or service is currently deployed or configured.
+This document applies the approved Wave 0 topology to the Proposed Baseline bootstrap and validation operations. It does not prove that any tenant, Azure resource, Azure DevOps object, Power Platform environment, GitHub control, pipeline, identity, role, or service is currently deployed or configured.
 
 ## Meaning of Bootstrap
 
 Bootstrap establishes and validates the control plane needed for secretless discovery and future provisioning. In this sprint it may later create or validate explicitly approved GitHub, Entra, Power Platform access, and Azure authorization objects needed for trust and least-privilege validation. It does not deploy the Azure platform resources modeled by Bicep.
 
-Each tenant now has its own dedicated repository (see [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md)); Tenant 2 and Tenant 3 remain hosted in this repository only until their own repositories exist. Each selected tenant uses one reviewed manifest, one `bootstrap-${tenantAlias}` Environment, one dedicated single-tenant app and service principal, one normalized discovery record, and one explicit set of `Existing` or `Create` decisions.
+Each tenant has its own dedicated product-source repository, Azure DevOps project, and private configuration repository (see [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md)). This repository bootstraps only Tenant 1 using the approved private configuration path, the `bootstrap-tenant1` Environment with self-review disabled, one dedicated single-tenant app and service principal, one normalized discovery record, and one explicit set of `Existing` or `Create` decisions. Tenant 2's existing manifest and discovery evidence remain hash-pinned here until Slice 5 verifies their handoff; they are not eligible for bootstrap.
 
 ## Evidence-Gated State Machine
 
@@ -35,7 +35,7 @@ Every transition validates the preceding state and produces reviewable evidence.
 
 ## Planned Sequence
 
-1. Validate the data-only tenant manifest.
+1. Validate Tenant 1 configuration from the approved private path in `caldova-hr-frontier-config`.
 2. Collect attended read-only discovery from GitHub, Entra, Azure, Azure DevOps, and Power Platform.
 3. Normalize allowlisted evidence and reject prohibited data.
 4. Review stable IDs and commit explicit `Existing` or `Create` intent.
@@ -53,7 +53,7 @@ Tenant 1 is the only tenant eligible for bootstrap validation. Tenant 2 is eligi
 
 ## Desired State and Discovery
 
-The desired `.psd1` manifest is reviewed non-secret intent. The normalized JSON inventory is observed read-only evidence. The manifest is never rewritten automatically from discovery.
+The desired Tenant 1 configuration at the approved private path is reviewed non-secret intent. The normalized JSON inventory is observed read-only evidence. Discovery never rewrites private configuration automatically.
 
 Every managed component has one reviewed mode:
 
@@ -71,7 +71,7 @@ The GitHub OIDC trust uses:
 ```text
 Issuer: https://token.actions.githubusercontent.com
 Audience: api://AzureADTokenExchange
-Subject: repo:${owner}@${ownerId}/${repository}@${repositoryId}:environment:bootstrap-${tenantAlias}
+Subject: repo:${owner}@${ownerId}/${repository}@${repositoryId}:environment:bootstrap-tenant1
 ```
 
 The trust setup first reads GitHub repository metadata and OIDC customization. It requires reviewed owner and repository names and IDs, immutable subjects enabled, and an exact `sub_claim_prefix` match before deriving the Environment context. The attended setup creates no stored credential and reads back all reviewed fields. Any tenant, repository, immutable ID, prefix, Environment, issuer, audience, subject, client, or subscription mismatch stops the process.
@@ -85,20 +85,21 @@ Documented Azure CLI examples in this sprint are limited to:
 - Bicep format and build;
 - subscription-scope `what-if`.
 
-The validation shape is:
+The private Tenant 1 parameters path is supplied by the attended operator and is never committed to this product-source repository. The validation shape is:
 
 ```powershell
+$privateTenant1ParametersPath = '<approved-private-path>\tenant1.bicepparam'
 az bicep format --file infra/src/bicep/main.bicep
 az bicep build --file infra/src/bicep/main.bicep --stdout
 az deployment sub what-if `
   --location switzerlandnorth `
   --template-file infra/src/bicep/main.bicep `
-  --parameters infra/src/bicep/params/<tenantAlias>.bicepparam `
+  --parameters $privateTenant1ParametersPath `
   --result-format FullResourcePayloads `
   --no-pretty-print
 ```
 
-The parameter and Bicep paths above are future Task 5 artifacts and therefore appear as inline code, not current links. No Azure deployment command is allowed in this sprint.
+The private parameter path and Bicep entry point above are later-slice artifacts and therefore appear as inline code, not current links. No Azure deployment command is allowed in this sprint.
 
 ## Approved `what-if` Boundary
 
