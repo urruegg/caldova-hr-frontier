@@ -2,27 +2,33 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.2 |
+| **Date** | 2026-09-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
-| **References** | [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json) |
+| **References** | [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json), [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) |
 
 This source-derived Proposed Baseline describes intended multi-tenant onboarding. It does not prove that Tenant 1, Tenant 2, Tenant 3, or any associated Azure, Entra, Azure DevOps, Power Platform, GitHub, pipeline, identity, or service configuration currently exists.
 
-## Shared-Repository Model
+> **Revision note.** This section previously described one shared repository serving all three tenants. [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) replaced that with one repository per tenant, after confirming live that the Azure Boards GitHub App enforces a real platform constraint - one repository connects to exactly one Azure DevOps organization at a time - which the shared-repository design silently violated for any second tenant. Rewritten below to match.
 
-Exactly three independent tenants use one shared GitHub repository, one schema, and common automation. The design does not create one repository copy per tenant.
+## Per-Tenant Repository Model
+
+Each tenant has its own dedicated GitHub repository, seeded from Tenant 1's repository as a one-time copy - never a live fork, never automatic sync. See [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) for the account-type decision per tenant, and the [Customer Repository Export and Handover design](../../docs/specs/2026-09-27-customer-repository-export-and-handover-design.md) for the runbooks that carry out the seeding and clean-up.
 
 ```text
-urruegg/caldova-hr-frontier
-|-- manifest for Tenant 1 -> bootstrap-caldova25156897 -> dedicated Tenant 1 app/SP
-|-- future manifest for Tenant 2 -> bootstrap-${tenantAlias} -> dedicated Tenant 2 app/SP
-`-- future manifest for Tenant 3 -> bootstrap-${tenantAlias} -> dedicated Tenant 3 app/SP
+urruegg/caldova-hr-frontier (Tenant 1)
+`-- manifest for Tenant 1 -> bootstrap-caldova25156897 -> dedicated Tenant 1 app/SP
+
+AndreaRizzi/caldova-hr-frontier (Tenant 2, not yet created)
+`-- manifest for Tenant 2 -> bootstrap-caldova25668747 -> dedicated Tenant 2 app/SP
+
+<Georg Fischer's GitHub Organization>/<repository> (Tenant 3, not yet created)
+`-- manifest for Tenant 3 -> bootstrap-${tenantAlias} -> dedicated Tenant 3 app/SP
 ```
 
-A workflow run selects one alias and one Environment. Matrix execution across tenants is prohibited. Each tenant's application, variables, evidence, stable IDs, temporary roles, approvals, and results remain isolated.
+A workflow run in any tenant's repository selects that repository's own single tenant alias and binds to that tenant's own Environment - there is no cross-tenant selection to prohibit, because no other tenant's manifest exists in the same repository to select by mistake. Each tenant's application, variables, evidence, stable IDs, temporary roles, approvals, and results are isolated by repository boundary, not merely by naming convention.
 
 ## Per-Tenant Contract
 
@@ -54,17 +60,25 @@ Tenant IDs, subscription IDs, stable object IDs, project names, and approved ser
 
 Managed identities remain future workload identities and are not shared bootstrap identities.
 
-## Tenant Status in This Sprint
+## Tenant Status
 
-| Tenant | Status | Allowed activity |
-|---|---|---|
-| Tenant 1 (`caldova25156897`) | Reviewed discovery evidence and bootstrap intent | Bootstrap validation and subscription `what-if` only |
-| Tenant 2 (`caldova25668747`) | Reviewed discovery manifest with optional SharePoint metadata scope | Attended read-only discovery only |
-| Tenant 3 | Schema-ready; no manifest | No live action |
-| Tenant 2 | Schema- and workflow-ready concept only | No manifest, Environment, app, discovery, or provisioning |
-| Tenant 3 | Schema- and workflow-ready concept only | No manifest, Environment, app, discovery, or provisioning |
+| Tenant | Repository | Status | Allowed activity |
+|---|---|---|---|
+| Tenant 1 (`caldova25156897`) | `urruegg/caldova-hr-frontier` (this repository) | Reviewed discovery evidence and bootstrap intent. GitHub-to-Boards connection verified live and valid. | Bootstrap validation and subscription `what-if` only |
+| Tenant 2 (`caldova25668747`) | `AndreaRizzi/caldova-hr-frontier` (not yet created) | Reviewed discovery manifest with optional SharePoint metadata scope; still hosted in this repository until its own repository exists | Attended read-only discovery only |
+| Tenant 3 (Georg Fischer) | New organization-owned repository (not yet created) | Schema-ready; no manifest | No live action |
 
 Tenant 2 has one reviewed discovery manifest. Its discovery evidence, stable component IDs, explicit intent, and Bicep parameters remain absent until attended discovery and review. Tenant 3 artifacts remain absent and must not be created as placeholders or speculative configuration.
+
+## Tenant 1 Blueprint Verification
+
+`infra/tests/pester/TenantBlueprintVerification.Tests.ps1` proves Tenant 1's manifest and discovery evidence are consistent: every component the manifest declares `Mode = 'Existing'` has a matching, `Status: 'Found'` resource in `infra/evidence/discovery/caldova25156897.json`, by both `Type` and stable `Id`. Re-run this suite whenever Tenant 1's manifest or evidence file changes, and before pointing Tenant 2's or Tenant 3's owner at this repository as the reference blueprint.
+
+This proves the manifest and evidence agree with each other. It does not prove the underlying Azure, Azure DevOps, or GitHub resources still exist - that requires fresh, live discovery, which remains a separate, attended action.
+
+Separately, `infra/src/scripts/Initialize-TenantTrust.ps1` was reviewed (2026-09-27) against Tenant 1's six remaining `Mode = 'Create'` components (`EntraApplication`, `EntraServicePrincipal`, `EntraFederatedIdentityCredential`, `GitHubEnvironment`, `AzureDevOpsServicePrincipalEntitlement`, `AzureDevOpsReadersMembership`) and confirmed complete and gap-free: each has its own plan item, mutation-queue entry, and `ShouldProcess`-gated execution block in that script. Running it live remains a separate, attended activity - this review only confirms the path exists and is correct, not that it has been executed.
+
+For the concrete, tenant-agnostic procedure - not just the sequence below - see the [Customer Repository Export and Handover Runbook](./23-customer-repository-export-and-handover-runbook.md), which in turn uses the [Repository Clean-Up Runbook](./22-repository-cleanup-runbook.md).
 
 ## Future Onboarding Sequence
 

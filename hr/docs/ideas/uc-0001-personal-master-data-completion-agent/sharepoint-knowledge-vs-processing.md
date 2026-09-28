@@ -1,12 +1,15 @@
 # SharePoint setup — separating Knowledge Base from Document Processing
 
-| | |
+| Field | Value |
 |---|---|
-| **Status** | Idea — design proposal for review |
-| **Date** | 25 September 2026 |
-| **Owner** | DAAI and HR Operations, with IT for provisioning and Security/Privacy for the controls |
-| **Corrects** | [`document-intake-architecture.md`](document-intake-architecture.md) §5 — the "no personal data in metadata" rule was over-applied |
-| **Would generate** | **ADR-0008** — see §11 |
+| **Version** | 0.1 |
+| **Date** | 2026-09-25 |
+| **Author** | DAAI and HR Operations |
+| **Status** | Draft |
+| **Scope** | Separation of SharePoint knowledge and HR document-processing sites |
+| **References** | [Document intake architecture](document-intake-architecture.md), [ADR-0007](../../../../docs/adr/0007-dataverse-process-state-boundary.md) |
+
+IT owns provisioning and Security/Privacy own the controls. This proposal corrects the over-applied "no personal data in metadata" rule in [Document intake architecture §5](document-intake-architecture.md). Acceptance would require a newly allocated ADR number; ADR-0008 is already assigned to another decision.
 
 ---
 
@@ -16,7 +19,7 @@ An earlier draft carried this rule:
 
 > ~~"No personal data in any folder name, file name or column."~~
 
-**That rule is wrong as stated, and applying it would make document processing impossible.** It took [ADR-0003](../../docs/adr/adr-0003-dataverse-process-state-boundary.md) — which is about *Dataverse process state* — and generalised it to all SharePoint content. Those are different problems.
+**That rule is wrong as stated, and applying it would make document processing impossible.** It took [ADR-0007](../../../../docs/adr/0007-dataverse-process-state-boundary.md) — which is about *Dataverse process state* — and generalised it to all SharePoint content. Those are different problems.
 
 The real distinction is not *where the data sits*. It is **what the library is for**:
 
@@ -135,7 +138,7 @@ Apply **all four**. They are cheap relative to the failure in §2.
 └── Drafts/            ← NoCrawl ON. Not yet approved, must not ground
 ```
 
-**`Drafts/` is the one library on this site that is not indexed.** [UC-0020 Knowledge Curation](ideas/uc-0020-hr-knowledge-curation-agent.md) proposes candidates into it; a named human reviews, approves and moves the item into `Policies/`, `Guides/` or `FAQ/`. **The move into an indexed library is the act of publishing** — which is exactly the propose-only control UC-0020 requires, expressed as architecture rather than as a promise.
+**`Drafts/` is the one library on this site that is not indexed.** The UC-0020 Knowledge Curation candidate proposes candidates into it; a named human reviews, approves and moves the item into `Policies/`, `Guides/` or `FAQ/`. **The move into an indexed library is the act of publishing** — which is exactly the propose-only control UC-0020 requires, expressed as architecture rather than as a promise.
 
 ### Metadata
 
@@ -145,7 +148,7 @@ Apply **all four**. They are cheap relative to the failure in §2.
 | `gf_ContentOwner` | Named human. Content without an owner is content nobody trusts |
 | `gf_ReviewDate` | Unreviewed items expire out of grounding scope |
 | `gf_ApprovedBy` · `gf_ApprovedOn` | The audit trail for publication |
-| `gf_IntentTags` | Links to the intent taxonomy in the [closed-loop model](closed-loop-service-model.md) |
+| `gf_IntentTags` | Links to the intent taxonomy in the closed-loop model |
 
 ### The PII rule that does apply here — absolutely
 
@@ -170,7 +173,7 @@ Content carries personal data. That is the point. The remaining question is meta
 
 Two conditions on B:
 
-1. **It is a snapshot, never authoritative.** The name in metadata is what the document said at intake. It drifts the moment someone marries. **Workday is the system of record** ([ADR-0001](../../docs/adr/adr-0001-workday-as-system-of-record.md)); the control plane resolves names live. Metadata is a label to help a human find a row, not a source of truth.
+1. **It is a snapshot, never authoritative.** The name in metadata is what the document said at intake. It drifts the moment someone marries. **Workday is the system of record** ([ADR-0005](../../../../docs/adr/0005-workday-as-system-of-record.md)); the control plane resolves names live. Metadata is a label to help a human find a row, not a source of truth.
 2. **Surname + initial, not full identity.** `Ochsner, T.` is enough to work a queue. Date of birth, AHV number, address and IBAN never appear in metadata under any option — they are in the document, where permissions and labels protect them.
 
 > **Why this is safe here and was not safe as a blanket rule:** the processing site is `NoCrawl`'d, RCD-enabled and DLP-protected. Its metadata is not indexed tenant-wide and not reachable by an agent. The knowledge site, which *is* reachable, carries no personal data at all.
@@ -235,9 +238,9 @@ Three rules govern the only permitted path:
 | Document | Change |
 |---|---|
 | [`document-intake-architecture.md`](document-intake-architecture.md) §5 | The blanket "no personal data in metadata" rule is replaced by §6 above |
-| [UC-0020](ideas/uc-0020-hr-knowledge-curation-agent.md) | The `Drafts/` → indexed-library move **is** the propose-only control, now architectural |
-| [UC-0002](ideas/uc-0002-hr-policy-chat-assistant.md) | Grounding scope names the knowledge libraries explicitly — never a hub or a broad scope |
-| [Solution Design §4.5](../../docs/solution-design.md) | SharePoint Advanced Management is a **licensing prerequisite** for RCD, alongside the Copilot licence |
+| UC-0020 | The `Drafts/` → indexed-library move **is** the propose-only control, now architectural |
+| [UC-0002](../uc-0002-hr-policy-chat-assistant.md) | Grounding scope names the knowledge libraries explicitly — never a hub or a broad scope |
+| [Solution Design §4.5](../../../../docs/solution-design.md) | SharePoint Advanced Management is a **licensing prerequisite** for RCD, alongside the Copilot licence |
 
 ---
 
@@ -247,7 +250,7 @@ Three rules govern the only permitted path:
 |---|---|---|
 | **KB-01** | Is **SharePoint Advanced Management** licensed? RCD requires it. If not, controls 1, 2 and 4 must carry the load | IT |
 | **KB-02** | Option A or B metadata on `Exceptions/` — does HR Operations work the queue in the control plane app, or directly in SharePoint? | HR Operations |
-| **KB-03** | Knowledge source of truth — this site or the Workday Help KB? **Still open from the [closed-loop analysis](closed-loop-service-model.md).** Maintaining both guarantees drift | HRIS / DAAI |
+| **KB-03** | Knowledge source of truth — this site or the Workday Help KB? **Still open from the closed-loop analysis.** Maintaining both guarantees drift | HRIS / DAAI |
 | **KB-04** | Does a second jurisdiction get its own knowledge site, or jurisdiction-scoped libraries within one? | HR Operations / Legal |
 | **KB-05** | Who runs the §8 verification test, and on what cadence after go-live? | Security |
 

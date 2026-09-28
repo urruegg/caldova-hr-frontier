@@ -1,17 +1,21 @@
 # Establishing and testing the AI Builder extraction models in DEV
 
-| | |
+| Field | Value |
 |---|---|
-| **Status** | Draft 0.1 — build procedure |
-| **Owner** | DAAI, with IT / Platform Owners for the environment and licensing |
-| **Serves** | [UC-0001](ideas/uc-0001-personal-master-data-completion-agent/README.md) **Tier 1** extraction · open decision **D-17** |
-| **Test data** | `test-data/ai-builder/pkg-fixed-template.zip` · `pkg-general-documents.zip` |
+| **Version** | 0.1 |
+| **Date** | 2026-09-25 |
+| **Author** | DAAI |
+| **Status** | Draft |
+| **Scope** | UC-0001 Tier 1 extraction model build and evaluation |
+| **References** | [UC-0001](./README.md), [ADR-0011](../../../../docs/adr/0011-workflow-first-process-architecture.md) |
+
+IT and the Platform Owners own environment and licensing prerequisites. The controlled test data is in [the fixed-template package](./gf-aib-fixed-template/) and [the general-documents package](./gf-aib-general-documents/).
 
 ---
 
 ## 1. What you are building and why
 
-[ADR-0007](../../docs/adr/adr-0007-workflow-first-process-architecture.md) splits document extraction into two tiers:
+[ADR-0011](../../../../docs/adr/0011-workflow-first-process-architecture.md) splits document extraction into two tiers:
 
 ```text
 WORKFLOW  →  TIER 1   AI Builder document processing     ← this guide
@@ -33,7 +37,7 @@ You will build **two** models and compare them. That comparison is the evidence 
 
 ---
 
-## 2. ⚠️ Read this before you train anything
+## 2. Read this before you train anything
 
 Three AI Builder ALM facts that are easy to discover too late, and one of them is close to unrecoverable.
 
@@ -60,12 +64,12 @@ Two further constraints that shape the procedure:
 
 | # | Prerequisite | Owner | Note |
 |---|---|---|---|
-| 1 | **DEV environment with Dataverse** | IT | Per [30 — Environment Setup](../../infra/docs/30-environment-setup.md) Stage 1.1 |
-| 2 | **AI Builder credits allocated to DEV** | IT | AI Builder is **Premium** — it is on the conditional list in [Solution Design §4.5](../../docs/solution-design.md) and becomes required the moment you take this path |
+| 1 | **DEV environment with Dataverse** | IT | Per [Power Platform Environments and ALM](../../../../infra/docs/12-power-platform-environments-and-alm.md) |
+| 2 | **AI Builder credits allocated to DEV** | IT | AI Builder is **Premium** — it is on the conditional list in [Solution Design §4.5](../../../../docs/solution-design.md) and becomes required the moment you take this path |
 | 3 | **DLP policy applied**, AI Builder in the same data group as Dataverse, SharePoint and Workday | IT / Security | Stage 1.2. Doing this after the flow is built makes the flow un-runnable with no warning |
 | 4 | **Publisher `gf_` exists** | IT | Stage 1.3. Cannot be changed later |
 | 5 | **`GFHRPlatformCore` unmanaged solution in DEV** | DAAI | The models go here, not in the agent solution — see §4 |
-| 6 | **Test packages unzipped locally** | DAAI | `test-data/ai-builder/` |
+| 6 | **Synthetic test packages available locally** | DAAI | [`gf-aib-fixed-template/`](./gf-aib-fixed-template/) and [`gf-aib-general-documents/`](./gf-aib-general-documents/) |
 
 ---
 
@@ -81,7 +85,7 @@ Put both models in **`GFHRPlatformCore`**, not in `GFHRMasterDataAgent`.
 
 ## 5. Build the fixed-template model
 
-**Test data:** `pkg-fixed-template.zip` — 24 PDFs in 4 collections of 6.
+**Test data:** [`gf-aib-fixed-template/`](./gf-aib-fixed-template/) — 24 PDFs in 4 collections of 6.
 
 ### 5.1 Create
 
@@ -129,7 +133,7 @@ Tag each field in each document, then **Train**. Fixed-template training is quic
 
 ## 6. Build the general-documents model
 
-**Test data:** `pkg-general-documents.zip` — 24 PDFs across 8 layout families.
+**Test data:** [`gf-aib-general-documents/`](./gf-aib-general-documents/) — 24 PDFs across 8 layout families.
 
 Same field definitions. Two differences that matter:
 
@@ -215,7 +219,7 @@ Collection B is the *Anmeldung Gemeinde*. The control-plane mockup reports *"12 
 
 This follows directly from §2. Because the model can only ever be trained in DEV and the training data does not travel:
 
-1. **The training documents are version-controlled** in `test-data/ai-builder/`. They are not a scratch upload.
+1. **The training documents are version-controlled** in [`gf-aib-fixed-template/`](./gf-aib-fixed-template/) and [`gf-aib-general-documents/`](./gf-aib-general-documents/). They are not a scratch upload.
 2. **Real PeopleDoc documents never join them.** These packages are synthetic for exactly that reason — a training set in version control must contain no personal data. When GF eventually tags real documents, those stay in the DEV environment and are governed as personal data, **never committed**.
 3. **Record which documents trained which model version**, so a rebuild is reproducible.
 4. **A DEV reset is a model loss event.** Plan for it before it happens.

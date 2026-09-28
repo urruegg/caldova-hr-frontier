@@ -1,19 +1,28 @@
 # AI Builder test package — Fixed template documents
 
+| Field | Value |
+|---|---|
+| **Version** | 0.1 |
+| **Date** | 2026-09-25 |
+| **Author** | DAAI |
+| **Status** | Draft |
+| **Scope** | UC-0001 synthetic fixed-template AI Builder test data |
+| **References** | [UC-0001](../README.md), [ADR-0011](../../../../../docs/adr/0011-workflow-first-process-architecture.md) |
+
 **24 synthetic PDFs in 4 collections, for training and testing an AI Builder *Fixed template documents* model** against the UC-0001 approved master-data field set.
 
-> ⚠️ **Every person, address, AHV number, IBAN and phone number in this package is fictional.** No real employee data is present, and none may be added. AHV numbers and IBANs carry **valid check digits** so format validation can be tested — they identify nobody.
+> **Every person, address, AHV number, IBAN and phone number in this package is fictional.** No real employee data is present, and none may be added. AHV numbers and IBANs carry **valid check digits** so format validation can be tested — they identify nobody.
 
 ---
 
 ## Why this package exists
 
-[UC-0001](../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/README.md) extracts approved personal master data from new-joiner documents. [ADR-0007](../../docs/adr/adr-0007-workflow-first-process-architecture.md) splits that extraction in two:
+[UC-0001](../README.md) extracts approved personal master data from new-joiner documents. [ADR-0011](../../../../../docs/adr/0011-workflow-first-process-architecture.md) splits that extraction in two:
 
 | Tier | Does what | This package |
 |---|---|---|
 | **Tier 1** — deterministic | AI Builder document processing on well-formed documents | **What you are testing here** |
-| **Tier 2** — agent node | Reasoning over what Tier 1 could not handle | The [general-documents package](../pkg-general/README.md) |
+| **Tier 2** — agent node | Reasoning over what Tier 1 could not handle | The [general-documents package](../gf-aib-general-documents/README.md) |
 
 Raising Tier 1 coverage cuts credit consumption *and* narrows the prompt-injection surface, so how well this model performs is a direct input to **D-17**, the two-tier confidence threshold.
 
@@ -91,15 +100,15 @@ Fixed-template models do very well on this kind of document. If accuracy on coll
 
 ## Two things worth testing deliberately
 
-**① The D-03 matching-key weakness — this package can demonstrate it.**
+**1. The D-03 matching-key weakness — this package can demonstrate it.**
 
 `CAND-2026-0412` and `CAND-2026-0434` are **both "Tobias Ochsner", both at postal code 8200 Schaffhausen**, with different dates of birth, AHV numbers and IBANs. They are two different people.
 
 > Under the currently proposed matching key — **Last Name + First Name + Postal Code** — these two records are indistinguishable. A run would return a `Multiple Match` at best, and write one person's bank details onto the other's record at worst.
 >
-> **`candidate_id` is in the document set precisely because it is the proposed fix.** Extract it, match on it, and the collision disappears. That is the evidence to put in front of HRIS when [D-03](../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) is decided — the highest-risk open item in the MVP.
+> **`candidate_id` is in the document set precisely because it is the proposed fix.** Extract it, match on it, and the collision disappears. That is the evidence to put in front of HRIS when [D-03](../prd-0001-personal-master-data-completion-agent.md) is decided — the highest-risk open item in the MVP.
 
-**② Collection B is the *Anmeldung Gemeinde* template.** The control-plane mockup shows a Refine insight reporting *"12 Low Confidence on Postal Code — 9 from the same document template, Anmeldung Gemeinde changed layout ~15 Sep."* If you want to reproduce that scenario, retrain with a modified B layout and watch confidence drop on `plz`. It is the clearest demonstration of why fix-once beats working twelve exceptions.
+**2. Collection B is the *Anmeldung Gemeinde* template.** The control-plane mockup shows a Refine insight reporting *"12 Low Confidence on Postal Code — 9 from the same document template, Anmeldung Gemeinde changed layout ~15 Sep."* If you want to reproduce that scenario, retrain with a modified B layout and watch confidence drop on `plz`. It is the clearest demonstration of why fix-once beats working twelve exceptions.
 
 ---
 

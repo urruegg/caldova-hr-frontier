@@ -660,23 +660,23 @@ Describe 'Final GitHub governance activation' {
         }, $true))
         $runnerFunction | Should -HaveCount 1
         Invoke-Expression $runnerFunction[0].Extent.Text
-        $existingGh = Get-Item -LiteralPath Function:\gh -ErrorAction SilentlyContinue
+        $existingWhere = Get-Item -LiteralPath Function:\where -ErrorAction SilentlyContinue
         try {
-            Set-Item -LiteralPath Function:\gh -Value { 'forged' } -Force
+            Set-Item -LiteralPath Function:\where -Value { 'forged' } -Force
             $runner = New-DefaultNativeCommandRunner
 
-            $result = & $runner -FilePath 'gh' -ArgumentList @('--version')
+            $result = & $runner -FilePath 'where.exe' -ArgumentList @('powershell.exe')
 
             $result.ExitCode | Should -Be 0
-            $result.StdOut | Should -Match '^gh version '
+            $result.StdOut | Should -Match '(?im)powershell\.exe'
             $result.StdOut | Should -Not -BeExactly 'forged'
         }
         finally {
-            if ($existingGh) {
-                Set-Item -LiteralPath Function:\gh -Value $existingGh.ScriptBlock -Force
+            if ($existingWhere) {
+                Set-Item -LiteralPath Function:\where -Value $existingWhere.ScriptBlock -Force
             }
             else {
-                Remove-Item -LiteralPath Function:\gh -Force -ErrorAction SilentlyContinue
+                Remove-Item -LiteralPath Function:\where -Force -ErrorAction SilentlyContinue
             }
         }
     }

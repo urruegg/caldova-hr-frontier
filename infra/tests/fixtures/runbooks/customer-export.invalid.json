@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0",
+  "tenantAlias": "source-lab",
+  "customerScope": "Synthetic customer repository export",
+  "retainedTenantArtifacts": [
+    {
+      "path": "infra/src/config/tenants/customer-synthetic.json",
+      "artifactKind": "TenantManifest",
+      "customerScope": "Synthetic target tenant intent"
+    }
+  ],
+  "replacements": [
+    {
+      "id": "tenant-alias-json",
+      "path": "infra/src/config/tenants/customer-synthetic.json",
+      "format": "Json",
+      "selector": "/tenantAlias",
+      "expectedOldValue": "source-lab",
+      "newValue": "customer-synthetic",
+      "requiredCount": 1
+    }
+  ],
+  "residualMarkers": [
+    {
+      "id": "source-alias",
+      "category": "TenantAlias",
+      "value": "source-lab",
+      "comparison": "OrdinalIgnoreCase"
+    }
+  ],
+  "sourceMarkerCatalog": [
+    {
+      "id": "source-alias",
+      "category": "TenantAlias",
+      "value": "source-lab",
+      "comparison": "OrdinalIgnoreCase",
+      "sources": [
+        {
+          "path": "infra/src/config/tenants/customer-synthetic.json",
+          "blobSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "occurrenceCount": 1
+        }
+      ]
+    }
+  ],
+  "residualDispositions": [
+    {
+      "path": "docs/**",
+      "markerId": "source-alias",
+      "reason": "Invalid wildcard path."
+    }
+  ],
+  "syntheticDataPolicy": {
+    "reservedNames": [
+      "Customer Example Organization"
+    ],
+    "reservedDomains": [
+      "example.com"
+    ],
+    "reservedIdPrefixes": [
+      "synthetic-"
+    ]
+  },
+  "fileClassifications": [],
+  "inspectableBinaries": [],
+  "validationSuites": [
+    "Invoke-CustomerCommand"
+  ]
+}

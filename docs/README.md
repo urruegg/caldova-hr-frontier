@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -22,6 +22,20 @@ All maintained repository documentation is written in English, stored as UTF-8, 
 The header and language policy do not modify vendored files below `.github/skills/{vendored-skill}/`, licenses, generated evidence, machine-readable manifests, or externally owned immutable text.
 
 The [Docs Agent](../.github/agents/docs-agent.agent.md) owns metadata, placement, references, English-language review, and catalogue maintenance.
+
+### Visual communication
+
+Use Mermaid diagrams when flows, states, sequences, relationships, or architecture are materially easier to understand visually than through prose or tables alone. A short document, decision record, requirement list, or catalogue does not need a diagram when one would add no explanatory value.
+
+A Mermaid diagram supplements the written record. It does not replace authoritative tables, requirements, stable identifiers, or prose. Every diagram must:
+
+- have an adjacent plain-English introduction or summary;
+- use the same stable identifiers and terminology as the authoritative text;
+- remain readable without custom colours, external images, or raw HTML;
+- use Mermaid syntax supported by GitHub Markdown;
+- stay focused on one relationship, flow, state model, or architecture view.
+
+When a maintained document already uses ASCII art for one of these purposes, prefer a Mermaid diagram when revising that section.
 
 ---
 
@@ -125,6 +139,7 @@ The Infrastructure domain is imported as source-derived Proposed Baseline docume
 | [Bootstrap and Provisioning](../infra/docs/17-bootstrap-and-provisioning.md) | Defines the evidence-gated state machine, attended trust, subscription `what-if`, and no-deployment boundary. |
 | [Multi-Tenant Provisioning](../infra/docs/18-multi-tenant-provisioning.md) | Defines isolation for exactly three independent tenants using one repository and one-tenant execution. |
 | [Bootstrap Recovery](../infra/docs/19-bootstrap-recovery.md) | Defines attended recovery from nine failure states without bypassing validation, approvals, or least privilege. |
+| [Tenant Trust Activation Runbook](../infra/docs/20-tenant-trust-activation-runbook.md) | Operator runbook for activating a tenant's Entra/GitHub/Azure DevOps trust using the existing Initialize-TenantTrust.ps1. |
 | [Infrastructure Solution Sources](../infra/src/solutions/README.md) | Defines ownership and exclusions for future unpacked Infrastructure Power Platform solution source. |
 
 **This map is unchanged by the Phase 4 HR solution intake.** `infra/` remains governed exclusively by the Phase 3 review; see [Bicep Composition](../infra/src/bicep/main.bicep) and [Tenant 1 Manifest](../infra/src/config/tenants/caldova25156897.psd1) for its current state.

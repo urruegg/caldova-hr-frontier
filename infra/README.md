@@ -27,7 +27,7 @@ There is no automatic intent mode. Discovery reports observed state; a reviewed 
 
 ## Current Boundary
 
-At the end of Task 1, this domain contains documentation and the solution-source ownership README only. It contains no Bicep implementation, tenant manifest, discovery evidence, executable bootstrap script, workflow, test payload, Power Platform solution payload, or deployed resource.
+At the end of Sprint 2, this domain contains documentation, solution-source ownership guidance, workstation assessment and initialization tooling, shared runbook contracts, and validation tests. It still contains no cloud-foundation Apply step, customer export or publication flow, production deployment flow, tenant-creation flow, Power Platform solution payload, or deployed resource.
 
 This sprint permits later tasks to establish attended trust, validate secretless GitHub OIDC, perform read-only discovery, build Bicep, and run subscription-scope `what-if`. It does not permit an Azure deployment or creation of the resources shown by `what-if`.
 
@@ -77,6 +77,11 @@ A path shown here is an ownership boundary, not evidence that its artifact alrea
 | [Bootstrap and Provisioning](docs/17-bootstrap-and-provisioning.md) | Defines the evidence-gated, no-deployment bootstrap sequence. |
 | [Multi-Tenant Provisioning](docs/18-multi-tenant-provisioning.md) | Defines isolation for three independent tenants in one repository. |
 | [Bootstrap Recovery](docs/19-bootstrap-recovery.md) | Defines attended recovery without bypassing validation or approvals. |
+| [Tenant Trust Activation Runbook](docs/20-tenant-trust-activation-runbook.md) | Operator runbook for activating a tenant's Entra/GitHub/Azure DevOps trust using the existing Initialize-TenantTrust.ps1. |
+| [Operational Runbooks](docs/runbooks/README.md) | Defines the shared preview, approval, evidence, manual-step, read-back, and recovery contract. |
+| [Developer Workstation](docs/runbooks/01-developer-workstation.md) | Assesses and explicitly initializes an approved Windows 11 administrator workstation. |
+| [Cloud Service Foundation Runbook](docs/runbooks/02-cloud-service-foundation.md) | Defines local attended delegated assessment, digest-bound approval, exact target read-back, manual boundaries, evidence, and recovery. |
+| [Customer Repository Handover](docs/runbooks/03-customer-handover.md) | Defines local attended synthetic customer export assessment, digest approval, apply, independent validation, and handover boundaries. |
 | [Infrastructure Solution Sources](src/solutions/README.md) | Defines ownership and exclusions for future unpacked solution source. |
 
 ## Conventions

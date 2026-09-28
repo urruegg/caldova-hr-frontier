@@ -1,14 +1,23 @@
 # AI Builder test package — General documents
 
+| Field | Value |
+|---|---|
+| **Version** | 0.1 |
+| **Date** | 2026-09-25 |
+| **Author** | DAAI |
+| **Status** | Draft |
+| **Scope** | UC-0001 synthetic general-document AI Builder test data |
+| **References** | [UC-0001](../README.md), [ADR-0011](../../../../../docs/adr/0011-workflow-first-process-architecture.md) |
+
 **24 synthetic PDFs across 8 deliberately different layout families**, for training and testing an AI Builder *General documents* model against the UC-0001 approved master-data field set.
 
-> ⚠️ **Every person, address, AHV number, IBAN and phone number in this package is fictional.** No real employee data is present, and none may be added. AHV numbers and IBANs carry **valid check digits** so format validation can be tested — they identify nobody.
+> **Every person, address, AHV number, IBAN and phone number in this package is fictional.** No real employee data is present, and none may be added. AHV numbers and IBANs carry **valid check digits** so format validation can be tested — they identify nobody.
 
 ---
 
 ## Why this package exists, and how it differs from the other one
 
-The [fixed-template package](../pkg-fixed/README.md) tests the easy case: known forms, stable layouts. **This one tests the case that decides whether UC-0001 works in production** — the documents nobody anticipated.
+The [fixed-template package](../gf-aib-fixed-template/README.md) tests the easy case: known forms, stable layouts. **This one tests the case that decides whether UC-0001 works in production** — the documents nobody anticipated.
 
 | | Fixed template | General documents |
 |---|---|---|

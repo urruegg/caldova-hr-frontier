@@ -20,3 +20,6 @@
 
 /.gitattributes -text
 /.github/ISSUE_TEMPLATE/*.yml -text
+
+# Preserve generated training documents byte-for-byte across platforms.
+*.pdf binary

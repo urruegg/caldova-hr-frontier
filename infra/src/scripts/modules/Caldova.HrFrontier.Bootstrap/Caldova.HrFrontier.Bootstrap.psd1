@@ -15,7 +15,29 @@
         'Get-GitHubOidcSubject',
         'Test-DiscoveryEvidence',
         'Test-TenantIntent',
-        'Remove-TemporaryRoleAssignments'
+        'Remove-TemporaryRoleAssignments',
+        'Resolve-RunbookReportPath',
+        'Write-CanonicalJson',
+        'Get-RunbookContentDigest',
+        'Update-RunbookProcessPath',
+        'New-RunbookExecutionManifest',
+        'Test-RunbookExecutionManifest',
+        'ConvertTo-RunbookEvidenceRecord'
+        'Resolve-CloudNativeTool'
+        'Test-CloudDelegatedContext'
+        'Get-CloudFoundationAssessment'
+        'New-CloudFoundationActionPlan'
+        'Invoke-CloudFoundationAction'
+        'Import-CustomerExportManifest'
+        'Resolve-CustomerExportExecutable'
+        'Get-CustomerExportSourceSnapshot'
+        'Get-CustomerSourceMarkerCatalog'
+        'Get-CustomerExportAssessment'
+        'Convert-CustomerExportBlob'
+        'Invoke-CustomerStructuredReplacement'
+        'Get-CustomerExportResidual'
+        'Test-CustomerExportSyntheticData'
+        'Test-CustomerExportContent'
     )
     CmdletsToExport = @()
     VariablesToExport = @()
