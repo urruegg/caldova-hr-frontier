@@ -472,3 +472,6 @@ Thumbs.db
 
 # Pester test output artifact
 testResults.xml
+
+# Local linked worktrees
+.worktrees/
