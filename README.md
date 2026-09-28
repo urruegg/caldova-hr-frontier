@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
+| **Version** | 1.3 |
 | **Date** | 2026-09-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Repository |
-| **References** | [Tenant 1 Engineering Platform Remediation Design](docs/specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md), [HR Solution Functional Design Intake](docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+| **References** | [Tenant 1 Lean Engineering Platform Design](docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [HR Solution Functional Design Intake](docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 
 **A pure agentic, Frontier-driven HR organisation — with Workday as the system of record.**
 
@@ -271,12 +271,14 @@ Where a source says TBD, this package says TBD. Nothing has been invented to fil
 
 ### Engineering Control Plane Map
 
-The attended [Tenant 1 Engineering Platform Remediation Design](docs/specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md) approves one tenant-dedicated GitHub product-source repository, one Azure DevOps project and Boards backlog, and one tenant-private Azure Repo. This documentation-only task records that target and performs no file or live platform mutation. Tenant 2's existing files remain as the hash-pinned transition exception until Slice 5.
+The attended [Tenant 1 Lean Engineering Platform Design](docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md) approves Option A: GitHub is the sole product-source and pull-request authority, Azure Boards Basic is the single delivery backlog, and repository validation runs in GitHub Actions. A future Azure Pipeline consumes GitHub directly; no Azure Pipeline or live platform mutation is authorized this sprint. Tenant 1 private configuration is an ignored local file with an encrypted, restore-tested backup outside Git.
 
 | Entry point | Approved role |
 |---|---|
-| Azure Repo `caldova-hr-frontier-config` at the attended private path | Tenant 1 private configuration, governed templates, runbooks, schemas, and sanitized evidence; no product source, credential, synchronization, or initial disaster-recovery mirror. |
-| `infra/src/config/tenants/caldova25668747.psd1` | Hash-pinned Tenant 2 transition manifest retained until Slice 5 handoff read-back succeeds. |
+| GitHub repository | Sole product source, pull-request authority, and repository-validation surface. |
+| Azure Boards | Single delivery backlog, retained on the built-in Basic process. |
+| `infra/src/config/tenants/tenant1.local.psd1` | Ignored local Tenant 1 configuration supplied explicitly to attended commands and backed up encrypted outside Git. |
+| `infra/src/config/tenants/caldova25668747.psd1` | Existing Tenant 2 file, out of scope and untouched by the lean sprint. |
 | `infra/src/scripts/Invoke-TenantDiscovery.ps1` | Read-only discovery entry point for the five core services and optional SharePoint site metadata. |
 | `infra/src/scripts/Initialize-TenantTrust.ps1` | Attended trust entry point, gated by reviewed intent and separate authorization before any mutation. |
 | `infra/src/scripts/Invoke-TenantBootstrap.ps1` | Local orchestration for validation, Bicep parameter generation, `what-if`, boundary checks, and exact-ID cleanup; it does not deploy. |

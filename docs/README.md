@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.3 |
+| **Version** | 1.4 |
 | **Date** | 2026-09-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -124,25 +124,25 @@ Numbers are **allocated once and never reused**, including after a document is s
 
 ## Infrastructure Domain
 
-The Infrastructure domain contains the approved Wave 0 control-plane topology together with source-derived Proposed Baseline implementation guidance. It describes discovery, trust, validation, ALM, security, and recovery boundaries; it does not prove that tenant configuration, Azure resources, Azure DevOps objects, Power Platform environments, GitHub controls, pipelines, identities, or services currently exist. The attended topology is defined by [ADR-0001](adr/0001-azure-devops-as-engineering-control-plane.md), [ADR-0002](adr/0002-github-first-bootstrap-and-the-role-of-azure-repos.md), [ADR-0012](adr/0012-per-tenant-github-repository-and-account-topology.md), and the [Tenant 1 Engineering Platform Remediation Design](specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md).
+The Infrastructure domain contains the approved lean control-plane topology together with source-derived Proposed Baseline implementation guidance. It describes discovery, validation, ALM, security, and recovery boundaries; it does not prove that tenant configuration, Azure resources, Azure DevOps objects, Power Platform environments, GitHub controls, pipelines, identities, or services currently exist. The attended authority is [ADR-0001](adr/0001-azure-devops-as-engineering-control-plane.md), [ADR-0002](adr/0002-github-first-bootstrap-and-the-role-of-azure-repos.md), [ADR-0012](adr/0012-per-tenant-github-repository-and-account-topology.md), and the [Tenant 1 Lean Engineering Platform Design](specs/2026-09-28-tenant-1-lean-engineering-platform-design.md).
 
 | Document | Purpose |
 |---|---|
 | [Infrastructure Domain](../infra/README.md) | Defines domain ownership, current no-payload boundary, planned layout, tool boundaries, and document map. |
 | [Tenant Setup and Configuration](../infra/docs/10-tenant-setup-and-configuration.md) | Defines the reviewed tenant metadata, desired manifest, observed evidence, explicit intent, and terminology boundaries. |
-| [Identity and Access](../infra/docs/11-identity-and-access.md) | Defines attended administration, per-tenant bootstrap identity, exact OIDC binding, and temporary privilege lifecycle. |
+| [Identity and Access](../infra/docs/11-identity-and-access.md) | Proposed guidance retained for context; the lean sprint uses attended local operation and creates no bootstrap identity or OIDC federation. |
 | [Power Platform Environments and ALM](../infra/docs/12-power-platform-environments-and-alm.md) | Defines future DEV-to-TEST-to-PROD ALM, solution ordering, variables, connections, and evidence requirements. |
 | [Azure DevOps Engineering Control Plane](../infra/docs/13-azure-devops-engineering-control-plane.md) | Describes the approved single-backlog and sole-product-source split, discovery candidates, API constraints, and future pipeline boundary. |
-| [GitHub Repository Blueprint](../infra/docs/14-github-repository-blueprint.md) | Defines the Tenant 1 repository model, `bootstrap-tenant1` Environment contract, no-self-review governance, public-repository safety, and read-back. |
+| [GitHub Repository Blueprint](../infra/docs/14-github-repository-blueprint.md) | Proposed guidance retained for context; the approved solo-owner profile requires pull requests and validation, with zero mandatory approvals and no required CODEOWNERS review. |
 | [Agent and Workload Configuration](../infra/docs/15-agent-workload-configuration.md) | Defines future agent, flow, app, grounding, packaging, release, and data-prohibition contracts. |
 | [Security, Governance and Compliance](../infra/docs/16-security-governance-and-compliance.md) | Defines evidence-first security principles and proposed DLP, Dataverse, identity, audit, and compliance controls. |
 | [Bootstrap and Provisioning](../infra/docs/17-bootstrap-and-provisioning.md) | Defines the evidence-gated state machine, attended trust, subscription `what-if`, and no-deployment boundary. |
-| [Multi-Tenant Provisioning](../infra/docs/18-multi-tenant-provisioning.md) | Defines one product-source repository, one Azure DevOps project, and one private configuration repository per tenant, with the Tenant 2 transition retained until Slice 5. |
+| [Multi-Tenant Provisioning](../infra/docs/18-multi-tenant-provisioning.md) | Proposed guidance retained for context; the lean sprint is Tenant 1 only and does not alter or migrate existing Tenant 2 files. |
 | [Bootstrap Recovery](../infra/docs/19-bootstrap-recovery.md) | Defines attended recovery from nine failure states without bypassing validation, approvals, or least privilege. |
 | [Tenant Trust Activation Runbook](../infra/docs/20-tenant-trust-activation-runbook.md) | Operator runbook for activating a tenant's Entra/GitHub/Azure DevOps trust using the existing Initialize-TenantTrust.ps1. |
 | [Infrastructure Solution Sources](../infra/src/solutions/README.md) | Defines ownership and exclusions for future unpacked Infrastructure Power Platform solution source. |
 
-**This map is unchanged by the Phase 4 HR solution intake.** The approved Tenant 1 target keeps product source and [Bicep Composition](../infra/src/bicep/main.bicep) in GitHub while moving Tenant 1 private configuration to an attended private path in `caldova-hr-frontier-config`. This documentation-only task performs no file migration. The existing Tenant 2 manifest and discovery evidence remain hash-pinned in this repository until Slice 5 verifies their handoff.
+**This map is unchanged by the Phase 4 HR solution intake.** The approved Tenant 1 target keeps product source and [Bicep Composition](../infra/src/bicep/main.bicep) in GitHub. Tenant 1 private configuration uses the ignored local `tenant1.local.psd1` with an encrypted, restore-tested backup outside Git. Azure Boards remains on Basic, and a future Azure Pipeline consumes GitHub directly. No private Azure Repo, OIDC bootstrap, `bootstrap-tenant1` Environment, Basic-to-Agile conversion, Azure Pipeline, or live deployment is a current target.
 
 ---
 

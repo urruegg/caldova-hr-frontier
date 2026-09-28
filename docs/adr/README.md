@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Date** | 2026-09-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
-| **References** | [Tenant 1 Engineering Platform Remediation Design](../specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md), [HR Solution Functional Design Intake](../specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+| **References** | [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [HR Solution Functional Design Intake](../specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 
 **Purpose.** The decisions that are expensive or impossible to reverse, each recorded with the options rejected and the price paid. **This folder answers *why*.** Every other folder answers *what*.
 
@@ -20,7 +20,7 @@
 | ADR | Decision | Status |
 |---|---|---|
 | [0001](0001-azure-devops-as-engineering-control-plane.md) | Azure DevOps as the Engineering Control Plane, GitHub as the Digital Factory | Approved |
-| [0002](0002-github-first-bootstrap-and-the-role-of-azure-repos.md) | GitHub-First Bootstrap, and the Role of Azure Repos | Approved |
+| [0002](0002-github-first-bootstrap-and-the-role-of-azure-repos.md) | GitHub source authority and the ignored local Tenant 1 private-configuration boundary | Approved |
 | [0003](0003-bicep-and-powershell-for-infrastructure-as-code.md) | Bicep and PowerShell for Infrastructure as Code | Proposed Baseline |
 | [0004](0004-domain-solution-architecture-and-publisher.md) | Domain Solution Architecture, Naming and Publisher — adopt the tenant's supplied publisher; realized as `calhr` for Tenant 1 & 2, `gfhr` for Tenant 3 | Proposed Baseline |
 | [0005](0005-workday-as-system-of-record.md) | Workday is the system of record for employee master data | Accepted |
@@ -30,9 +30,9 @@
 | [0009](0009-workday-access-via-connector-behind-governed-layer.md) | Workday access through the Microsoft connector, behind a governed access layer | Accepted |
 | [0010](0010-organizational-data-service-as-people-context.md) | Organizational Data Service as people context, not an integration path | **Proposed** |
 | [0011](0011-workflow-first-process-architecture.md) | Workflow-first process architecture — the workflow owns the process, the agent owns the judgement | Accepted |
-| [0012](0012-per-tenant-github-repository-and-account-topology.md) | Per-tenant GitHub repository and account topology — one product-source repository, one Azure DevOps project, and one private configuration repository per tenant | Approved |
+| [0012](0012-per-tenant-github-repository-and-account-topology.md) | Per-tenant GitHub repository and account topology — one product-source repository and one Azure DevOps project and Basic backlog per tenant | Approved |
 
-ADRs 0001, 0002, and 0012 are repository-level **Approved** decisions from the attended Wave 0 review on 2026-09-28. ADRs 0003 and 0004 remain Proposed Baseline candidates from the infrastructure/governance intake. ADRs 0005–0011 are the HR solution architecture set from the Phase 4 intake; their own "Accepted"/"Proposed" status reflects the design package's internal decision tracking and remains pending repository-level ratification. All Accepted records among 0005–0011 are **pending GF ratification** — accepted as the design position of that package, not yet countersigned by GF.
+ADRs 0001, 0002, and 0012 are repository-level **Approved** decisions for Option A in the attended [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md). They establish GitHub as sole source authority, Azure Boards Basic as the single backlog, future Azure Pipelines consuming GitHub directly, and ignored local Tenant 1 private configuration. ADRs 0003 and 0004 remain Proposed Baseline candidates from the infrastructure/governance intake. ADRs 0005–0011 are the HR solution architecture set from the Phase 4 intake; their own "Accepted"/"Proposed" status reflects the design package's internal decision tracking and remains pending repository-level ratification. All Accepted records among 0005–0011 are **pending GF ratification** — accepted as the design position of that package, not yet countersigned by GF.
 
 ---
 
