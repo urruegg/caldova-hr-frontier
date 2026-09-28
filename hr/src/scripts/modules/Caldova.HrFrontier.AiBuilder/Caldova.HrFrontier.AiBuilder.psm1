@@ -274,7 +274,7 @@ function Compare-HrAiBuilderSequence {
     }
 
     for ($index = 0; $index -lt $Left.Count; $index++) {
-        if ([string]$Left[$index] -ne [string]$Right[$index]) {
+        if (-not [string]::Equals([string]$Left[$index], [string]$Right[$index], [System.StringComparison]::Ordinal)) {
             return $false
         }
     }

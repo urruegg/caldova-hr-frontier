@@ -25,6 +25,7 @@ hr/evidence/ai-builder/
             ├── model-inventory.json
             ├── run-manifest.json
             ├── prediction-capture-*.json
+            ├── prediction-capture-summary.md
             ├── validation-results-fixed.csv
             ├── validation-results-general.csv
             ├── validation-results.json
@@ -38,8 +39,10 @@ hr/evidence/ai-builder/
 
 - **Synthetic data only.** No real PeopleDoc, candidate, pre-hire, worker, or employee documents belong here.
 - **Raw capture is provenance, not authority.** Retained Quick Test exports prove what the tested adapter observed. The repository scripts recalculate hashes, normalize values, classify results, derive gates, and write the authoritative metrics and summaries.
+- **Replayable adapter contract required.** A prediction capture is valid only when the retained raw-export bytes can reproduce the same field values and confidence through a tested replayable adapter. Unsupported raw-export formats are blocked in this increment by design.
 - **No secrets or packages.** Do not place credentials, tokens, PAC profiles, solution ZIPs, or any other deployable artifact in this tree.
 - **No invented values.** Prediction values and confidence must come from the retained raw export through a tested adapter. Hand-authored values or confidence are invalid evidence.
+- **Blocked imports stay visible.** Import failures write `prediction-capture-summary.md` and preserve `*.blocked.json` when the adapter emitted an invalid capture.
 
 ## Command examples
 

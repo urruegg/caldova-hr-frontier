@@ -90,6 +90,19 @@ function Test-FieldValuePresent {
     return (-not [string]::IsNullOrWhiteSpace([string]$Value))
 }
 
+function Test-OrdinalStringEquals {
+    param(
+        [AllowNull()][object]$Left,
+        [AllowNull()][object]$Right
+    )
+
+    if ($null -eq $Left -or $null -eq $Right) {
+        return ($null -eq $Left -and $null -eq $Right)
+    }
+
+    return [string]::Equals([string]$Left, [string]$Right, [System.StringComparison]::Ordinal)
+}
+
 function Get-EvaluationCombinedDocument {
     param(
         [Parameter(Mandatory)][string]$Path,
@@ -180,7 +193,7 @@ try {
     $groundTruth = Read-EvaluationJson -Path $GroundTruthPath -Description 'Ground truth'
     $fieldContract = @(Get-HrAiBuilderFieldContract -Path $FieldContractPath)
 
-    $manifestModel = @($runManifest.models | Where-Object { [string]$_.display_name -eq [string]$predictionCapture.model_name })
+    $manifestModel = @($runManifest.models | Where-Object { [string]$_.display_name -ceq [string]$predictionCapture.model_name })
     if ($manifestModel.Count -ne 1) {
         throw "Run manifest does not contain exactly one model record for '$($predictionCapture.model_name)'."
     }
@@ -250,7 +263,7 @@ try {
             elseif ($expectedPresent -and $actualPresent -and $actualInvalidFormat) {
                 $errorClass = 'invalid_format'
             }
-            elseif ($expectedPresent -and $actualPresent -and $expectedNormalized -ne $actualNormalized) {
+            elseif ($expectedPresent -and $actualPresent -and -not (Test-OrdinalStringEquals -Left $expectedNormalized -Right $actualNormalized)) {
                 $errorClass = 'incorrect'
             }
             else {
@@ -366,7 +379,14 @@ try {
     Write-EvaluationTextAtomically -Content $summaryContent -Path $summaryPath
 
     if ([string]$strictGates.status -eq 'blocked') {
-        Write-Error "Evaluation blocked for '$($predictionCapture.model_name)'."
+        $failedGateSummary = if (@($strictGates.failed_gates).Count -gt 0) {
+            $strictGates.failed_gates -join ', '
+        }
+        else {
+            'unknown'
+        }
+
+        Write-Error "Evaluation blocked for '$($predictionCapture.model_name)'. Failed gates: $failedGateSummary."
         exit 1
     }
 

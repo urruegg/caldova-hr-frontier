@@ -10,6 +10,10 @@
     "model_version",
     "capture_mechanism",
     "adapter_version",
+    "adapter_contract",
+    "adapter_script_path",
+    "adapter_script_sha256",
+    "raw_export_format",
     "operator",
     "documents"
   ],
@@ -37,6 +41,20 @@
     "adapter_version": {
       "type": "string",
       "minLength": 1
+    },
+    "adapter_contract": {
+      "const": "replayable-v1"
+    },
+    "adapter_script_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "adapter_script_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "raw_export_format": {
+      "const": "test-fixture-json-v1"
     },
     "operator": {
       "type": "string",

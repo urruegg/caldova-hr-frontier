@@ -159,6 +159,7 @@ function Test-HrAiBuilderCorpus {
                         collection_or_family = [string]$row.collection_or_layout
                         assignment = $assignment
                         sha256 = Get-HrAiBuilderFileSha256 -Path $pdfsByName[[string]$row.document].FullName
+                        source_path = $pdfsByName[[string]$row.document].FullName
                     }) | Out-Null
             }
         }
@@ -174,6 +175,7 @@ function Test-HrAiBuilderCorpus {
                         collection_or_family = [string]$sortedRows[$index].collection_or_layout
                         assignment = $assignment
                         sha256 = Get-HrAiBuilderFileSha256 -Path $pdfsByName[[string]$sortedRows[$index].document].FullName
+                        source_path = $pdfsByName[[string]$sortedRows[$index].document].FullName
                     }) | Out-Null
             }
         }

@@ -80,10 +80,193 @@ function Test-HrAiBuilderStrictGates {
         return $true
     }
 
+    function Test-HrAiBuilderOrdinalEquals {
+        param(
+            [AllowNull()][object]$Left,
+            [AllowNull()][object]$Right
+        )
+
+        if ($null -eq $Left -or $null -eq $Right) {
+            return ($null -eq $Left -and $null -eq $Right)
+        }
+
+        return [string]::Equals([string]$Left, [string]$Right, [System.StringComparison]::Ordinal)
+    }
+
+    function Compare-HrAiBuilderPredictionCaptures {
+        param(
+            [Parameter(Mandatory)]
+            [object]$Expected,
+
+            [Parameter(Mandatory)]
+            [object]$Actual,
+
+            [Parameter(Mandatory)]
+            [string[]]$ContractFieldNames
+        )
+
+        foreach ($propertyName in @(
+                'schema_version',
+                'run_id',
+                'model_name',
+                'model_version',
+                'capture_mechanism',
+                'adapter_version',
+                'adapter_contract',
+                'adapter_script_path',
+                'adapter_script_sha256',
+                'raw_export_format',
+                'operator'
+            )) {
+            if (-not (Test-HrAiBuilderOrdinalEquals -Left $Expected.$propertyName -Right $Actual.$propertyName)) {
+                return $false
+            }
+        }
+
+        $expectedDocuments = @($Expected.documents)
+        $actualDocuments = @($Actual.documents)
+        if ($expectedDocuments.Count -ne $actualDocuments.Count) {
+            return $false
+        }
+
+        $actualDocumentsByName = @{}
+        foreach ($document in $actualDocuments) {
+            $documentName = [string]$document.document
+            if ($actualDocumentsByName.ContainsKey($documentName)) {
+                return $false
+            }
+
+            $actualDocumentsByName[$documentName] = $document
+        }
+
+        foreach ($expectedDocument in $expectedDocuments) {
+            $documentName = [string]$expectedDocument.document
+            if (-not $actualDocumentsByName.ContainsKey($documentName)) {
+                return $false
+            }
+
+            $actualDocument = $actualDocumentsByName[$documentName]
+            foreach ($documentPropertyName in @(
+                    'document',
+                    'document_sha256',
+                    'collection_or_family',
+                    'source_export_path',
+                    'source_export_sha256'
+                )) {
+                if (-not (Test-HrAiBuilderOrdinalEquals -Left $expectedDocument.$documentPropertyName -Right $actualDocument.$documentPropertyName)) {
+                    return $false
+                }
+            }
+
+            $expectedFieldNames = @($expectedDocument.fields.PSObject.Properties.Name)
+            $actualFieldNames = @($actualDocument.fields.PSObject.Properties.Name)
+            if ($expectedFieldNames.Count -ne $ContractFieldNames.Count -or
+                $actualFieldNames.Count -ne $ContractFieldNames.Count -or
+                -not (Compare-HrAiBuilderSequence -Left @($ContractFieldNames | Sort-Object) -Right @($expectedFieldNames | Sort-Object)) -or
+                -not (Compare-HrAiBuilderSequence -Left @($ContractFieldNames | Sort-Object) -Right @($actualFieldNames | Sort-Object))) {
+                return $false
+            }
+
+            foreach ($fieldName in $ContractFieldNames) {
+                $expectedField = $expectedDocument.fields.$fieldName
+                $actualField = $actualDocument.fields.$fieldName
+                if (-not (Test-HrAiBuilderOrdinalEquals -Left $expectedField.value -Right $actualField.value)) {
+                    return $false
+                }
+
+                if ($null -eq $expectedField.confidence -or $null -eq $actualField.confidence) {
+                    if ($null -ne $expectedField.confidence -or $null -ne $actualField.confidence) {
+                        return $false
+                    }
+
+                    continue
+                }
+
+                if ([double]$expectedField.confidence -ne [double]$actualField.confidence) {
+                    return $false
+                }
+            }
+        }
+
+        return $true
+    }
+
+    function Test-HrAiBuilderAdapterReplay {
+        param(
+            [Parameter(Mandatory)]
+            [object]$PredictionCapture,
+
+            [Parameter(Mandatory)]
+            [string[]]$ContractFieldNames
+        )
+
+        if (-not (Test-HrAiBuilderOrdinalEquals -Left $PredictionCapture.adapter_contract -Right 'replayable-v1') -or
+            -not (Test-HrAiBuilderOrdinalEquals -Left $PredictionCapture.raw_export_format -Right 'test-fixture-json-v1')) {
+            return $false
+        }
+
+        $adapterScriptPath = [string]$PredictionCapture.adapter_script_path
+        if ([string]::IsNullOrWhiteSpace($adapterScriptPath)) {
+            return $false
+        }
+
+        try {
+            $actualScriptHash = Get-HrAiBuilderFileSha256 -Path $adapterScriptPath
+        }
+        catch {
+            return $false
+        }
+
+        if (-not (Test-HrAiBuilderOrdinalEquals -Left $actualScriptHash -Right $PredictionCapture.adapter_script_sha256)) {
+            return $false
+        }
+
+        $rawExportDirectories = @(
+            $PredictionCapture.documents |
+                ForEach-Object { Split-Path -Parent ([string]$_.source_export_path) } |
+                Sort-Object -Unique
+        )
+        if ($rawExportDirectories.Count -ne 1) {
+            return $false
+        }
+
+        $temporaryReplayPath = Join-Path $rawExportDirectories[0] ([guid]::NewGuid().ToString() + '.replay.json')
+        try {
+            & $adapterScriptPath `
+                -RawExportDirectory $rawExportDirectories[0] `
+                -ModelName ([string]$PredictionCapture.model_name) `
+                -ModelVersion ([string]$PredictionCapture.model_version) `
+                -RunId ([string]$PredictionCapture.run_id) `
+                -Operator ([string]$PredictionCapture.operator) `
+                -OutputPath $temporaryReplayPath
+        }
+        catch {
+            return $false
+        }
+
+        if (-not (Test-Path -LiteralPath $temporaryReplayPath -PathType Leaf)) {
+            return $false
+        }
+
+        try {
+            $replayedCapture = Read-HrAiBuilderJson -Path $temporaryReplayPath -Description 'Replayed prediction capture'
+        }
+        catch {
+            return $false
+        }
+        finally {
+            if (Test-Path -LiteralPath $temporaryReplayPath -PathType Leaf) {
+                Remove-Item -LiteralPath $temporaryReplayPath -Force
+            }
+        }
+
+        return (Compare-HrAiBuilderPredictionCaptures -Expected $PredictionCapture -Actual $replayedCapture -ContractFieldNames $ContractFieldNames)
+    }
+
     $failedGates = [System.Collections.Generic.List[string]]::new()
     $contractFields = @($FieldContract.fields)
     $contractFieldNames = @($contractFields | ForEach-Object { [string]$_.name })
-    $manifestModel = @($RunManifest.models | Where-Object { [string]$_.display_name -eq [string]$PredictionCapture.model_name })
+    $manifestModel = @($RunManifest.models | Where-Object { [string]$_.display_name -ceq [string]$PredictionCapture.model_name })
 
     $corpusStatusPassed = $false
     if ($CorpusQualification.PSObject.Properties.Name.Contains('status')) {
@@ -106,7 +289,7 @@ function Test-HrAiBuilderStrictGates {
 
     $predictionCaptureSchemaValid = $true
     $predictionTopLevelProperties = @($PredictionCapture.PSObject.Properties.Name)
-    $requiredPredictionProperties = @('schema_version', 'run_id', 'model_name', 'model_version', 'capture_mechanism', 'adapter_version', 'operator', 'documents')
+    $requiredPredictionProperties = @('schema_version', 'run_id', 'model_name', 'model_version', 'capture_mechanism', 'adapter_version', 'adapter_contract', 'adapter_script_path', 'adapter_script_sha256', 'raw_export_format', 'operator', 'documents')
     if ($predictionTopLevelProperties.Count -ne $requiredPredictionProperties.Count -or
         -not (Compare-HrAiBuilderSequence -Left @($requiredPredictionProperties | Sort-Object) -Right @($predictionTopLevelProperties | Sort-Object))) {
         $predictionCaptureSchemaValid = $false
@@ -117,6 +300,10 @@ function Test-HrAiBuilderStrictGates {
         [string]::IsNullOrWhiteSpace([string]$PredictionCapture.model_name) -or
         [string]::IsNullOrWhiteSpace([string]$PredictionCapture.model_version) -or
         [string]::IsNullOrWhiteSpace([string]$PredictionCapture.adapter_version) -or
+        [string]$PredictionCapture.adapter_contract -ne 'replayable-v1' -or
+        [string]::IsNullOrWhiteSpace([string]$PredictionCapture.adapter_script_path) -or
+        [string]$PredictionCapture.adapter_script_sha256 -notmatch '^[a-f0-9]{64}$' -or
+        [string]$PredictionCapture.raw_export_format -ne 'test-fixture-json-v1' -or
         [string]::IsNullOrWhiteSpace([string]$PredictionCapture.operator)) {
         $predictionCaptureSchemaValid = $false
     }
@@ -174,6 +361,10 @@ function Test-HrAiBuilderStrictGates {
         Add-HrAiBuilderFailedGate -FailedGates $failedGates -Gate 'prediction_capture_schema'
     }
 
+    if ($predictionCaptureSchemaValid -and -not (Test-HrAiBuilderAdapterReplay -PredictionCapture $PredictionCapture -ContractFieldNames $contractFieldNames)) {
+        Add-HrAiBuilderFailedGate -FailedGates $failedGates -Gate 'adapter_replay'
+    }
+
     if ($manifestModel.Count -ne 1) {
         Add-HrAiBuilderFailedGate -FailedGates $failedGates -Gate 'complete_attribution'
     }
@@ -189,17 +380,17 @@ function Test-HrAiBuilderStrictGates {
             ''
         }
 
-        if ([string]$ModelSchemaRecord.model_name -ne [string]$PredictionCapture.model_name -or
-            [string]$ModelSchemaRecord.model_id -ne $manifestModelId -or
-            [string]$PredictionCapture.run_id -ne [string]$RunManifest.run_id -or
-            [string]$PredictionCapture.model_version -ne [string]$manifestModel.version) {
+        if (-not (Test-HrAiBuilderOrdinalEquals -Left $ModelSchemaRecord.model_name -Right $PredictionCapture.model_name) -or
+            -not (Test-HrAiBuilderOrdinalEquals -Left $ModelSchemaRecord.model_id -Right $manifestModelId) -or
+            -not (Test-HrAiBuilderOrdinalEquals -Left $PredictionCapture.run_id -Right $RunManifest.run_id) -or
+            -not (Test-HrAiBuilderOrdinalEquals -Left $PredictionCapture.model_version -Right $manifestModel.version)) {
             Add-HrAiBuilderFailedGate -FailedGates $failedGates -Gate 'complete_attribution'
         }
 
         foreach ($row in @($ValidationRecords)) {
-            if ([string]$row.run_id -ne [string]$PredictionCapture.run_id -or
-                [string]$row.model_name -ne [string]$PredictionCapture.model_name -or
-                [string]$row.model_version -ne [string]$PredictionCapture.model_version) {
+            if (-not (Test-HrAiBuilderOrdinalEquals -Left $row.run_id -Right $PredictionCapture.run_id) -or
+                -not (Test-HrAiBuilderOrdinalEquals -Left $row.model_name -Right $PredictionCapture.model_name) -or
+                -not (Test-HrAiBuilderOrdinalEquals -Left $row.model_version -Right $PredictionCapture.model_version)) {
                 Add-HrAiBuilderFailedGate -FailedGates $failedGates -Gate 'complete_attribution'
                 break
             }
@@ -214,6 +405,58 @@ function Test-HrAiBuilderStrictGates {
     $heldOutByDocument = @{}
     foreach ($document in $heldOutDocuments) {
         $heldOutByDocument[[string]$document.document] = $document
+    }
+
+    $captureDocumentNames = @($captureDocuments | ForEach-Object { [string]$_.document })
+    $heldOutDocumentNames = @($heldOutDocuments | ForEach-Object { [string]$_.document })
+    if (@($captureDocumentNames | Group-Object | Where-Object Count -gt 1).Count -gt 0 -or
+        $captureDocumentNames.Count -ne $heldOutDocumentNames.Count -or
+        -not (Compare-HrAiBuilderSequence -Left @($captureDocumentNames | Sort-Object) -Right @($heldOutDocumentNames | Sort-Object))) {
+        Add-HrAiBuilderFailedGate -FailedGates $failedGates -Gate 'held_out_document_coverage'
+    }
+
+    $heldOutInputProvenanceFailed = $false
+    foreach ($document in $heldOutDocuments) {
+        $sourcePath = if ($document.PSObject.Properties.Name.Contains('source_path')) {
+            [string]$document.source_path
+        }
+        else {
+            ''
+        }
+
+        if ([string]::IsNullOrWhiteSpace($sourcePath)) {
+            $heldOutInputProvenanceFailed = $true
+            continue
+        }
+
+        try {
+            $inputHash = Get-HrAiBuilderFileSha256 -Path $sourcePath
+            if (-not (Test-HrAiBuilderOrdinalEquals -Left $inputHash -Right $document.sha256)) {
+                $heldOutInputProvenanceFailed = $true
+            }
+        }
+        catch {
+            $heldOutInputProvenanceFailed = $true
+        }
+    }
+
+    if ($heldOutInputProvenanceFailed) {
+        Add-HrAiBuilderFailedGate -FailedGates $failedGates -Gate 'held_out_input_provenance'
+    }
+
+    $schemaSourceProvenanceFailed = $false
+    try {
+        $schemaEvidenceHash = Get-HrAiBuilderFileSha256 -Path ([string]$ModelSchemaRecord.source_evidence_path)
+        if (-not (Test-HrAiBuilderOrdinalEquals -Left $schemaEvidenceHash -Right $ModelSchemaRecord.source_evidence_sha256)) {
+            $schemaSourceProvenanceFailed = $true
+        }
+    }
+    catch {
+        $schemaSourceProvenanceFailed = $true
+    }
+
+    if ($schemaSourceProvenanceFailed) {
+        Add-HrAiBuilderFailedGate -FailedGates $failedGates -Gate 'schema_source_provenance'
     }
 
     $rawExportProvenanceFailed = $false
@@ -243,6 +486,24 @@ function Test-HrAiBuilderStrictGates {
     $actualValidationRecordCount = @($ValidationRecords).Count
     if ($actualValidationRecordCount -ne $expectedValidationRecordCount) {
         Add-HrAiBuilderFailedGate -FailedGates $failedGates -Gate 'result_count'
+    }
+
+    $expectedDocumentFieldKeys = @(
+        foreach ($documentName in $heldOutDocumentNames) {
+            foreach ($fieldName in $contractFieldNames) {
+                '{0}|{1}' -f $documentName, $fieldName
+            }
+        }
+    )
+    $actualDocumentFieldKeys = @(
+        $ValidationRecords |
+            ForEach-Object { '{0}|{1}' -f ([string]$_.document), ([string]$_.field_name) }
+    )
+    $uniqueActualDocumentFieldKeys = @($actualDocumentFieldKeys | Sort-Object -Unique)
+    if ($actualDocumentFieldKeys.Count -ne $expectedDocumentFieldKeys.Count -or
+        $uniqueActualDocumentFieldKeys.Count -ne $expectedDocumentFieldKeys.Count -or
+        -not (Compare-HrAiBuilderSequence -Left @($expectedDocumentFieldKeys | Sort-Object) -Right $uniqueActualDocumentFieldKeys)) {
+        Add-HrAiBuilderFailedGate -FailedGates $failedGates -Gate 'document_field_coverage'
     }
 
     if (@($ValidationRecords | Where-Object { $_.error_class -eq 'false_value' }).Count -gt 0) {

@@ -693,10 +693,63 @@ Describe 'AI Builder field and corpus contracts' {
                 $contract = Get-Content -LiteralPath $script:ContractPath -Raw | ConvertFrom-Json
                 $fixtureRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString())
                 New-Item -ItemType Directory -Path $fixtureRoot -Force | Out-Null
+                $inputPdfPath = Join-Path $fixtureRoot 'held.pdf'
                 $rawExportPath = Join-Path $fixtureRoot 'held.json'
                 $schemaEvidencePath = Join-Path $fixtureRoot 'model-schema-fixed.png'
+                $adapterScriptPath = Join-Path $fixtureRoot 'ReplayAdapter.ps1'
+                'synthetic pdf bytes' | Set-Content -LiteralPath $inputPdfPath -Encoding UTF8
                 '{"source":"adapter"}' | Set-Content -LiteralPath $rawExportPath -Encoding UTF8
                 'schema-evidence' | Set-Content -LiteralPath $schemaEvidencePath -Encoding UTF8
+                @'
+param(
+    [Parameter(Mandatory)][string]$RawExportDirectory,
+    [Parameter(Mandatory)][string]$ModelName,
+    [Parameter(Mandatory)][string]$ModelVersion,
+    [Parameter(Mandatory)][string]$RunId,
+    [Parameter(Mandatory)][string]$Operator,
+    [Parameter(Mandatory)][string]$OutputPath
+)
+
+Set-StrictMode -Version Latest
+
+$capture = [ordered]@{
+    schema_version = '1.0'
+    run_id = $RunId
+    model_name = $ModelName
+    model_version = $ModelVersion
+    capture_mechanism = 'AI Builder Quick Test'
+    adapter_version = 'test-adapter-1.0'
+    adapter_contract = 'replayable-v1'
+    adapter_script_path = $PSCommandPath
+    adapter_script_sha256 = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    raw_export_format = 'test-fixture-json-v1'
+    operator = $Operator
+    documents = @(
+        [ordered]@{
+            document = 'held.pdf'
+            document_sha256 = [string](Get-Content -LiteralPath (Join-Path $RawExportDirectory 'document-hash.txt') -Raw).Trim()
+            collection_or_family = 'a-personalblatt'
+            source_export_path = Join-Path $RawExportDirectory 'held.json'
+            source_export_sha256 = (Get-FileHash -LiteralPath (Join-Path $RawExportDirectory 'held.json') -Algorithm SHA256).Hash.ToLowerInvariant()
+            captured_at_utc = '2026-09-25T08:20:00Z'
+            fields = [ordered]@{}
+        }
+    )
+}
+
+$contract = Get-Content -LiteralPath (Join-Path $RawExportDirectory 'field-contract.json') -Raw | ConvertFrom-Json
+foreach ($field in $contract.fields) {
+    $capture.documents[0].fields[$field.name] = [ordered]@{
+        value = $null
+        confidence = $null
+    }
+}
+
+$capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Encoding UTF8
+'@ | Set-Content -LiteralPath $adapterScriptPath -Encoding UTF8
+                $contract | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $fixtureRoot 'field-contract.json') -Encoding UTF8
+                ((Get-FileHash -LiteralPath $inputPdfPath -Algorithm SHA256).Hash.ToLowerInvariant()) |
+                    Set-Content -LiteralPath (Join-Path $fixtureRoot 'document-hash.txt') -Encoding UTF8
 
                 $fields = [ordered]@{}
                 foreach ($field in $contract.fields) {
@@ -732,8 +785,9 @@ Describe 'AI Builder field and corpus contracts' {
                         documents = @([pscustomobject]@{
                             document = 'held.pdf'
                             assignment = 'held-out'
-                            sha256 = (Get-FileHash -LiteralPath $rawExportPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                            sha256 = (Get-FileHash -LiteralPath $inputPdfPath -Algorithm SHA256).Hash.ToLowerInvariant()
                             collection_or_family = 'a-personalblatt'
+                            source_path = $inputPdfPath
                         })
                     }
                     FieldContract = $contract
@@ -757,8 +811,9 @@ Describe 'AI Builder field and corpus contracts' {
                             documents = @([pscustomobject]@{
                                 document = 'held.pdf'
                                 assignment = 'held-out'
-                                sha256 = (Get-FileHash -LiteralPath $rawExportPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                                sha256 = (Get-FileHash -LiteralPath $inputPdfPath -Algorithm SHA256).Hash.ToLowerInvariant()
                                 collection_or_family = 'a-personalblatt'
+                                source_path = $inputPdfPath
                             })
                         })
                     }
@@ -769,10 +824,14 @@ Describe 'AI Builder field and corpus contracts' {
                         model_version = '1'
                         capture_mechanism = 'AI Builder Quick Test'
                         adapter_version = 'test-adapter-1.0'
+                        adapter_contract = 'replayable-v1'
+                        adapter_script_path = $adapterScriptPath
+                        adapter_script_sha256 = (Get-FileHash -LiteralPath $adapterScriptPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                        raw_export_format = 'test-fixture-json-v1'
                         operator = 'operator@example.invalid'
                         documents = @([pscustomobject]@{
                             document = 'held.pdf'
-                            document_sha256 = (Get-FileHash -LiteralPath $rawExportPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                            document_sha256 = (Get-FileHash -LiteralPath $inputPdfPath -Algorithm SHA256).Hash.ToLowerInvariant()
                             collection_or_family = 'a-personalblatt'
                             source_export_path = $rawExportPath
                             source_export_sha256 = (Get-FileHash -LiteralPath $rawExportPath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -883,6 +942,59 @@ Describe 'AI Builder field and corpus contracts' {
             (Test-HrAiBuilderStrictGates @source).failed_gates |
                 Should -Contain 'prediction_capture_schema'
         }
+
+        It 'blocks when retained raw export bytes no longer reproduce the capture' {
+            $source = New-TestAiBuilderGateSource
+            '{"source":"tampered"}' | Set-Content -LiteralPath $source.PredictionCapture.documents[0].source_export_path -Encoding UTF8
+
+            (Test-HrAiBuilderStrictGates @source).failed_gates |
+                Should -Contain 'adapter_replay'
+        }
+
+        It 'blocks when capture values are tampered after import' {
+            $source = New-TestAiBuilderGateSource
+            $source.PredictionCapture.documents[0].fields.first_name.value = 'Tampered'
+            $source.PredictionCapture.documents[0].fields.first_name.confidence = 0.42
+
+            (Test-HrAiBuilderStrictGates @source).failed_gates |
+                Should -Contain 'adapter_replay'
+        }
+
+        It 'blocks when held-out input PDF evidence is missing or hash-mismatched' {
+            $source = New-TestAiBuilderGateSource
+            Remove-Item -LiteralPath $source.RunManifest.models[0].documents[0].source_path -Force
+
+            (Test-HrAiBuilderStrictGates @source).failed_gates |
+                Should -Contain 'held_out_input_provenance'
+
+            $source = New-TestAiBuilderGateSource
+            'drifted pdf bytes' | Set-Content -LiteralPath $source.RunManifest.models[0].documents[0].source_path -Encoding UTF8
+
+            (Test-HrAiBuilderStrictGates @source).failed_gates |
+                Should -Contain 'held_out_input_provenance'
+        }
+
+        It 'blocks when schema source evidence is missing or hash-mismatched' {
+            $source = New-TestAiBuilderGateSource
+            Remove-Item -LiteralPath $source.ModelSchemaRecord.source_evidence_path -Force
+
+            (Test-HrAiBuilderStrictGates @source).failed_gates |
+                Should -Contain 'schema_source_provenance'
+
+            $source = New-TestAiBuilderGateSource
+            'drifted schema evidence' | Set-Content -LiteralPath $source.ModelSchemaRecord.source_evidence_path -Encoding UTF8
+
+            (Test-HrAiBuilderStrictGates @source).failed_gates |
+                Should -Contain 'schema_source_provenance'
+        }
+
+        It 'treats case-drifted schema fields as contract mismatches' {
+            $source = New-TestAiBuilderGateSource
+            $source.ModelSchemaRecord.fields[0].name = 'Candidate_Id'
+
+            (Test-HrAiBuilderStrictGates @source).failed_gates |
+                Should -Contain 'exact_field_contract'
+        }
     }
 
     Describe 'AI Builder import and evaluation scripts' {
@@ -966,6 +1078,10 @@ $capture = [ordered]@{
     model_version = $ModelVersion
     capture_mechanism = 'AI Builder Quick Test'
     adapter_version = 'test-adapter-1.0'
+    adapter_contract = 'replayable-v1'
+    adapter_script_path = $PSCommandPath
+    adapter_script_sha256 = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    raw_export_format = 'test-fixture-json-v1'
     operator = $Operator
     documents = @($documents)
 }
@@ -1150,6 +1266,10 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
                     model_version = '1'
                     capture_mechanism = 'AI Builder Quick Test'
                     adapter_version = 'test-adapter-1.0'
+                    adapter_contract = 'replayable-v1'
+                    adapter_script_path = $Fixture.AdapterPath
+                    adapter_script_sha256 = (Get-FileHash -LiteralPath $Fixture.AdapterPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                    raw_export_format = 'test-fixture-json-v1'
                     operator = 'operator@example.invalid'
                     documents = $documents
                 } | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $Fixture.PredictionCapturePath -Encoding UTF8
@@ -1192,6 +1312,72 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
             ($output -join [Environment]::NewLine) | Should -Match 'held-out allocation'
         }
 
+        It 'rejects duplicate capture documents before promotion' {
+            $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed'
+            Write-TestAiBuilderPredictionCapture -Fixture $fixture | Out-Null
+            $capture = Get-Content -LiteralPath $fixture.PredictionCapturePath -Raw | ConvertFrom-Json
+            $capture.documents[-1] = $capture.documents[0]
+            $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $fixture.PredictionCapturePath -Encoding UTF8
+
+            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:MeasureEvaluationPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -CorpusQualityPath $fixture.CorpusQualityPath `
+                -FieldContractPath $script:FieldContractPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -PredictionCapturePath $fixture.PredictionCapturePath `
+                -GroundTruthPath $fixture.GroundTruthPath `
+                -EvidenceDirectory $fixture.EvidenceRoot 2>&1
+            $exitCode = $LASTEXITCODE
+
+            $exitCode | Should -Not -Be 0
+            ($output -join [Environment]::NewLine) | Should -Match 'held_out_document_coverage'
+        }
+
+        It 'writes a blocked import summary when the raw export directory is missing' {
+            $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed'
+            Remove-Item -LiteralPath $fixture.RawExportDirectory -Recurse -Force
+            $summaryPath = Join-Path $fixture.InputRoot 'prediction-capture-summary.md'
+
+            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:ImportQuickTestResultsPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -RawExportDirectory $fixture.RawExportDirectory `
+                -AdapterScriptPath $fixture.AdapterPath `
+                -TargetModelName $fixture.ModelName `
+                -OutputPath $fixture.PredictionCapturePath 2>&1
+            $exitCode = $LASTEXITCODE
+
+            $exitCode | Should -Not -Be 0
+            $summaryPath | Should -Exist
+            $summary = Get-Content -LiteralPath $summaryPath -Raw
+            $summary | Should -Match 'Raw export directory'
+            $summary | Should -Match ([regex]::Escape($fixture.RawExportDirectory))
+            ($output -join [Environment]::NewLine) | Should -Match 'was not found'
+        }
+
+        It 'writes a blocked import summary when the adapter contract is unsupported' {
+            $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed'
+            $adapterScript = Get-Content -LiteralPath $fixture.AdapterPath -Raw
+            $adapterScript = $adapterScript -replace "adapter_contract = 'replayable-v1'", "adapter_contract = 'unsupported-v1'"
+            $adapterScript = $adapterScript -replace "raw_export_format = 'test-fixture-json-v1'", "raw_export_format = 'unsupported-format-v1'"
+            Set-Content -LiteralPath $fixture.AdapterPath -Value $adapterScript -Encoding UTF8
+            $summaryPath = Join-Path $fixture.InputRoot 'prediction-capture-summary.md'
+
+            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:ImportQuickTestResultsPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -RawExportDirectory $fixture.RawExportDirectory `
+                -AdapterScriptPath $fixture.AdapterPath `
+                -TargetModelName $fixture.ModelName `
+                -OutputPath $fixture.PredictionCapturePath 2>&1
+            $exitCode = $LASTEXITCODE
+
+            $exitCode | Should -Not -Be 0
+            $summaryPath | Should -Exist
+            (Get-Content -LiteralPath $summaryPath -Raw) | Should -Match 'unsupported'
+            ($output -join [Environment]::NewLine) | Should -Match 'unsupported'
+        }
+
         It 'derives <ExpectedValidationRecordCount> validation rows for <ModelName>' -TestCases @(
             @{ ModelName = 'PersonalMasterDataFixed'; ExpectedValidationRecordCount = 68 }
             @{ ModelName = 'PersonalMasterDataGeneral'; ExpectedValidationRecordCount = 136 }
@@ -1214,6 +1400,35 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
             $exitCode | Should -Be 0
             $results = Get-Content -LiteralPath (Join-Path $fixture.EvidenceRoot 'validation-results.json') -Raw | ConvertFrom-Json
             @($results.models)[0].validation_record_count | Should -Be $ExpectedValidationRecordCount
+        }
+
+        It 'treats a case-only value difference as incorrect' {
+            $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed'
+            $rawExportPath = @(Get-ChildItem -LiteralPath $fixture.RawExportDirectory -Filter '*.json' | Sort-Object Name)[0].FullName
+            $rawExport = Get-Content -LiteralPath $rawExportPath -Raw | ConvertFrom-Json
+            $originalValue = [string]$rawExport.fields.first_name.value
+            $rawExport.fields.first_name.value = $originalValue.Substring(0, 1).ToLowerInvariant() + $originalValue.Substring(1)
+            $rawExport | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $rawExportPath -Encoding UTF8
+            Write-TestAiBuilderPredictionCapture -Fixture $fixture | Out-Null
+            $capture = Get-Content -LiteralPath $fixture.PredictionCapturePath -Raw | ConvertFrom-Json
+
+            $null = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:MeasureEvaluationPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -CorpusQualityPath $fixture.CorpusQualityPath `
+                -FieldContractPath $script:FieldContractPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -PredictionCapturePath $fixture.PredictionCapturePath `
+                -GroundTruthPath $fixture.GroundTruthPath `
+                -EvidenceDirectory $fixture.EvidenceRoot 2>&1
+            $LASTEXITCODE | Should -Be 0
+
+            $validationDocument = Get-Content -LiteralPath (Join-Path $fixture.EvidenceRoot 'validation-results.json') -Raw | ConvertFrom-Json
+            $row = @($validationDocument.models[0].records | Where-Object {
+                    $_.document -eq $capture.documents[0].document -and $_.field_name -eq 'first_name'
+                })[0]
+
+            $row.exact_match | Should -BeFalse
+            $row.error_class | Should -Be 'incorrect'
         }
 
         It 'merges fixed and general model evidence without overwriting either model record' {
@@ -1273,6 +1488,43 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
                 Should -Be 1
         }
 
+        It 'blocks duplicate validation rows that substitute one held-out document for another' {
+            $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed'
+            Write-TestAiBuilderPredictionCapture -Fixture $fixture | Out-Null
+
+            $null = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:MeasureEvaluationPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -CorpusQualityPath $fixture.CorpusQualityPath `
+                -FieldContractPath $script:FieldContractPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -PredictionCapturePath $fixture.PredictionCapturePath `
+                -GroundTruthPath $fixture.GroundTruthPath `
+                -EvidenceDirectory $fixture.EvidenceRoot 2>&1
+            $LASTEXITCODE | Should -Be 0
+
+            $validationDocument = Get-Content -LiteralPath (Join-Path $fixture.EvidenceRoot 'validation-results.json') -Raw | ConvertFrom-Json
+            $records = @($validationDocument.models[0].records)
+            $documentNames = @($records.document | Select-Object -Unique)
+            $recordsForFirstDocument = @($records | Where-Object document -eq $documentNames[0])
+            $recordsForSecondDocument = @($records | Where-Object document -eq $documentNames[1])
+            $mutatedRecords = @(
+                $records |
+                    Where-Object document -notin @($documentNames[1]) |
+                    ForEach-Object { $_ }
+            ) + @($recordsForFirstDocument)
+
+            $gate = Test-HrAiBuilderStrictGates `
+                -CorpusQualification (Get-Content -LiteralPath $fixture.CorpusQualityPath -Raw | ConvertFrom-Json) `
+                -FieldContract (Get-Content -LiteralPath $script:FieldContractPath -Raw | ConvertFrom-Json) `
+                -ModelSchemaRecord (Get-Content -LiteralPath $fixture.ModelSchemaRecordPath -Raw | ConvertFrom-Json) `
+                -RunManifest (Get-Content -LiteralPath $fixture.RunManifestPath -Raw | ConvertFrom-Json) `
+                -PredictionCapture (Get-Content -LiteralPath $fixture.PredictionCapturePath -Raw | ConvertFrom-Json) `
+                -ValidationRecords $mutatedRecords
+
+            $gate.failed_gates | Should -Contain 'document_field_coverage'
+            $recordsForSecondDocument.Count | Should -Be 17
+        }
+
         It 'writes a blocked summary before returning non-zero from an invalid capture' {
             $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed' -MissingConfidence
             Write-TestAiBuilderPredictionCapture -Fixture $fixture | Out-Null
@@ -1292,6 +1544,27 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
             $summary = Get-Content -LiteralPath (Join-Path $fixture.EvidenceRoot 'evaluation-summary.md') -Raw
             $summary | Should -Match 'Blocked'
             $summary | Should -Match 'prediction_capture_schema'
+        }
+
+        It 'preserves a blocked capture and writes a blocked import summary when adapter output is invalid' {
+            $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed' -MissingConfidence
+            $summaryPath = Join-Path $fixture.InputRoot 'prediction-capture-summary.md'
+
+            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:ImportQuickTestResultsPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -RawExportDirectory $fixture.RawExportDirectory `
+                -AdapterScriptPath $fixture.AdapterPath `
+                -TargetModelName $fixture.ModelName `
+                -OutputPath $fixture.PredictionCapturePath 2>&1
+            $exitCode = $LASTEXITCODE
+
+            $blockedCapturePath = $fixture.PredictionCapturePath + '.blocked.json'
+            $exitCode | Should -Not -Be 0
+            $blockedCapturePath | Should -Exist
+            $summaryPath | Should -Exist
+            (Get-Content -LiteralPath $summaryPath -Raw) | Should -Match ([regex]::Escape($blockedCapturePath))
+            ($output -join [Environment]::NewLine) | Should -Match 'violates the capture contract'
         }
     }
 }
