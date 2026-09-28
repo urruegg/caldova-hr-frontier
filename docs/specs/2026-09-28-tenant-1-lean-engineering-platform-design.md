@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Date** | 2026-09-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
@@ -12,6 +12,8 @@
 ## Status and Authority
 
 The user explicitly confirmed **Option A — Lean single-tenant platform** through attended approval on 2026-09-28. That approval selects the lean Tenant 1 target and the control dispositions in this document.
+
+Version 1.2 records the pragmatic solo-owner review profile: pull requests and successful validation remain mandatory, while required approvals and required CODEOWNERS review are deferred until a second eligible maintainer exists. This prevents a governance deadlock in the current one-collaborator repository.
 
 This design supersedes the broader [Tenant 1 Engineering Platform Remediation Design](2026-09-28-tenant-1-engineering-platform-remediation-design.md) and stops the associated [Engineering Control Plane Foundation Implementation Plan](../plans/2026-09-28-tenant-1-engineering-control-plane-foundation-implementation.md).
 
@@ -118,8 +120,8 @@ The existing Tenant 2 manifest and discovery evidence remain temporarily untouch
 The active `main` ruleset and repository settings enforce only the approved minimum:
 
 - changes to `main` require a pull request;
-- one approving review is required;
-- a CODEOWNERS review is required for owned paths;
+- the required approving-review count is zero while the repository has only one eligible maintainer;
+- CODEOWNERS remains an ownership map but is not a required review gate in the solo-owner profile;
 - all review conversations must be resolved;
 - `Repository setup validation` is the sole required status check;
 - force pushes and branch deletion are blocked;
@@ -129,6 +131,8 @@ The active `main` ruleset and repository settings enforce only the approved mini
 - Dependabot security updates are enabled.
 
 The pull-request template requires the author to identify the Azure Boards work item. Human review verifies that the final proof uses the literal `Fixes AB#` prefix followed by the selected Issue's positive integer ID. This intentionally avoids a second required check and does not claim that template text is machine enforcement.
+
+When a second eligible maintainer is added, changing the required approving-review count to one and requiring CODEOWNERS review is a separately reviewed repository-governance update, not an automatic side effect.
 
 ## Azure Boards Operating Model
 
@@ -177,7 +181,7 @@ The sprint uses one real delivery transaction:
 2. Create a real branch and pull request for an approved repository change.
 3. Put the literal `Fixes AB#` prefix followed by the selected Issue's positive integer ID in the pull-request body.
 4. Pass the single `Repository setup validation` workflow.
-5. Obtain the required approval and resolve all conversations.
+5. Confirm successful validation and resolve all conversations; no approving review is required under the current solo-owner profile.
 6. Squash-merge the pull request through the protected branch.
 7. Verify that the source branch was deleted.
 8. Read back the Azure Boards GitHub link and intended Issue state transition.
@@ -189,7 +193,7 @@ The proof fails if the work item is synthetic or deleted, the link or transition
 
 | Disposition | Controls |
 |---|---|
-| **Retained now** | No secrets or Tenant 1 private values in Git; pull requests; one approval; CODEOWNERS; resolved conversations; required repository validation; force-push and deletion protection; exact temporary-role cleanup; subscription `what-if`; post-action read-back; Azure Boards GitHub App; future independent PROD approval. |
+| **Retained now** | No secrets or Tenant 1 private values in Git; pull requests; CODEOWNERS ownership mapping; resolved conversations; required repository validation; force-push and deletion protection; exact temporary-role cleanup; subscription `what-if`; post-action read-back; Azure Boards GitHub App; future independent PROD approval. Required repository approval is deferred until a second eligible maintainer exists. |
 | **Removed from the current sprint and deferred** | OIDC bootstrap and the `bootstrap-tenant1` Environment; workflow-hosted cloud discovery; cloud bootstrap; advisory audit workflow; separate traceability workflow; private configuration Azure Repo; Azure DevOps Required template delivery control; Basic-to-Agile conversion; multi-iteration automation; separate bootstrap, non-production, and production identities. |
 | **Retained but dormant** | Existing trust code that has a plausible future use and can remain without becoming an active dependency. |
 
@@ -229,7 +233,7 @@ No step above is a live or destructive authorization. In particular, this docume
 | Repository owner | GitHub workflow inventory, ruleset and settings, source authority, and recovery of repository-only changes. |
 | Tenant 1 attended operator | Local configuration, encrypted backup and recovery test, discovery, Bicep build, `what-if`, sanitized review, and exact temporary-role cleanup. |
 | Azure DevOps project administrator | Basic Boards settings, current sprint dates, Azure Boards GitHub App read-back, and any separately approved empty-repository deletion. |
-| Pull-request author and CODEOWNERS reviewer | Correct `Fixes AB#` reference, review, conversation resolution, and final proof completeness. |
+| Pull-request author and attended repository owner | Correct `Fixes AB#` reference, conversation resolution, successful validation, and final proof completeness. |
 | Future release owner and independent approver | A later Azure Pipelines and PROD-approval design; no current-sprint deployment responsibility is implied. |
 
 Raw discovery, local configuration, tenant identifiers, unrestricted identity listings, tokens, and role-assignment details remain outside Git. Repository evidence is limited to sanitized outcomes needed to prove the acceptance criteria. Private-file hashes remain with the protected backup unless a separate evidence review determines that publishing a hash cannot disclose or correlate private state. The active audit review and its generated evidence are not edited by this design.
