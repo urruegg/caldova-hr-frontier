@@ -53,6 +53,27 @@ Describe 'AI Builder field and corpus contracts' {
             $script:Guide = Get-Content -LiteralPath (
                 Join-Path $root 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\ai-builder-model-setup.md'
             ) -Raw
+            $script:ExpectedGuideSectionHeadings = @(
+                'Read the design and both BoMs'
+                'Initialize `t2-dev-20260925-001`'
+                'Complete visual corpus review and rerun qualification'
+                'Execute all readiness checks and write `readiness.json`'
+                'Create and train `PersonalMasterDataFixed`'
+                'Prove machine-readable no-flow capture'
+                'Evaluate fixed results and publish only after a strict-gate pass'
+                'Create, train, and evaluate `PersonalMasterDataGeneral`'
+                'Publish and add only models with passing strict gates'
+                'Synchronize `caldovahrfrontier`'
+                'Update both BoMs and issue #13 from evidence'
+            )
+            $script:ExpectedGuideStops = @(
+                'readiness failure'
+                'capture-mechanism failure'
+                'false values'
+                'consumed holdouts'
+                'publish failure'
+                'solution-add failure'
+            )
         }
 
         It 'uses the approved model and solution names' {
@@ -74,6 +95,64 @@ Describe 'AI Builder field and corpus contracts' {
             $script:Guide | Should -Match 'machine-readable'
             $script:Guide | Should -Match 'false-value rate'
             $script:Guide | Should -Match 'zero'
+        }
+
+        It 'presents the exact ordered field contract and types' {
+            $fieldRowPattern = '(?m)^\|\s*`?(?<bom>BOM-0001-F\d{2})`?\s*\|\s*`?(?<name>[a-z_]+)`?\s*\|\s*`?(?<type>Text|Date)`?\s*\|\s*$'
+            $actualRows = @(
+                [regex]::Matches($script:Guide, $fieldRowPattern) | ForEach-Object {
+                    '{0}|{1}|{2}' -f $_.Groups['bom'].Value, $_.Groups['name'].Value, $_.Groups['type'].Value
+                }
+            )
+            $expectedRows = @(
+                $script:ExpectedFieldDefinitions | ForEach-Object {
+                    '{0}|{1}|{2}' -f $_.bom_id, $_.name, $_.ai_builder_type
+                }
+            )
+
+            $actualRows | Should -Be $expectedRows
+        }
+
+        It 'keeps the required procedural sections in order' {
+            $sectionMatches = [regex]::Matches(
+                $script:Guide,
+                '(?m)^## (?<number>[1-9]|1[01])\. (?<title>[^\r\n]+)\r?$'
+            )
+
+            @($sectionMatches | ForEach-Object { $_.Groups['number'].Value }) |
+                Should -Be @('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11')
+            @($sectionMatches | ForEach-Object { $_.Groups['title'].Value }) |
+                Should -Be $script:ExpectedGuideSectionHeadings
+        }
+
+        It 'keeps every required explicit stop label' {
+            $stopPattern = '(?m)^> \*\*STOP [^a-z\r\n]+(?<label>[a-z][a-z -]+)\*\*\r?$'
+            $actualStops = @(
+                [regex]::Matches($script:Guide, $stopPattern) | ForEach-Object {
+                    $_.Groups['label'].Value
+                }
+            )
+
+            foreach ($expectedStop in $script:ExpectedGuideStops) {
+                $actualStops | Should -Contain $expectedStop
+            }
+        }
+
+        It 'retires consumed holdouts and requires new unseen acceptance documents' {
+            $script:Guide | Should -Match 'If any held-out result influences tagging, retraining, or another model change, the set is consumed\.'
+            $script:Guide | Should -Match 'Do not reuse it for acceptance\.'
+            $script:Guide | Should -Match 'Create unseen synthetic documents, record new hashes and assignments, and begin a new run\.'
+        }
+
+        It 'publishes and adds models only after strict gates pass' {
+            $fixedSection = [regex]::Match($script:Guide, '(?s)^## 7\..+?(?=\r?\n---\r?\n)', 'Multiline').Value
+            $solutionSection = [regex]::Match($script:Guide, '(?s)^## 9\..+?(?=\r?\n---\r?\n)', 'Multiline').Value
+
+            $fixedSection | Should -Match '(?s)Advance the fixed record to `evaluated` only when `evaluation-metrics\.json` reports `strict_gate_disposition` as `evaluated`\..+?Publish that evaluated version'
+            $fixedSection | Should -Match 'If any strict gate fails, advance it to `blocked` and do not publish\.'
+            $solutionSection | Should -Match 'Publish `PersonalMasterDataGeneral` only if its strict-gate disposition is `evaluated`'
+            $solutionSection | Should -Match 'Do not publish a blocked model\.'
+            $solutionSection | Should -Match 'Add each published, evaluated model explicitly to the existing unmanaged `caldovahrfrontier` solution\.'
         }
     }
 

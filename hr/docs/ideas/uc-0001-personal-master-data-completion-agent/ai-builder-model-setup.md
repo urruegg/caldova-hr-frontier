@@ -121,10 +121,25 @@ In **Power Apps → AI hub → AI models → Extract custom information from doc
 
 Define the fields in the exact order and type from `field-contract.json`:
 
-| Type | Fields |
-|---|---|
-| Text | `candidate_id`, `last_name`, `first_name`, `nationality`, `marital`, `heimatort`, `permit`, `street`, `plz`, `city`, `ahv`, `iban`, `phone`, `email`, `ec_name`, `ec_phone` |
-| Date | `dob` |
+| BoM ID | Field | AI Builder type |
+|---|---|---|
+| `BOM-0001-F01` | `candidate_id` | Text |
+| `BOM-0001-F02` | `last_name` | Text |
+| `BOM-0001-F03` | `first_name` | Text |
+| `BOM-0001-F04` | `dob` | Date |
+| `BOM-0001-F05` | `nationality` | Text |
+| `BOM-0001-F06` | `marital` | Text |
+| `BOM-0001-F07` | `heimatort` | Text |
+| `BOM-0001-F08` | `permit` | Text |
+| `BOM-0001-F09` | `street` | Text |
+| `BOM-0001-F10` | `plz` | Text |
+| `BOM-0001-F11` | `city` | Text |
+| `BOM-0001-F12` | `ahv` | Text |
+| `BOM-0001-F13` | `iban` | Text |
+| `BOM-0001-F14` | `phone` | Text |
+| `BOM-0001-F15` | `email` | Text |
+| `BOM-0001-F16` | `ec_name` | Text |
+| `BOM-0001-F17` | `ec_phone` | Text |
 
 Names are case-sensitive identifiers. Do not translate them. Keep `plz` and `ahv` as Text. Record the observed model ID, draft version, exact names and types, operator, UTC observation time, and a hashed schema-evidence file with `New-HrAiBuilderModelSchemaRecord`. If the observed schema differs from the contract, correct the draft before uploading training data.
 
