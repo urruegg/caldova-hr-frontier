@@ -1,0 +1,10 @@
+Connected as admin@caldova25668747.onmicrosoft.com
+Connected to... calhrfrontierdev
+Organization Information
+  Org ID:                     ab70c49e-7cb6-f111-aaa0-6045bd2b664a
+  Unique Name:                unqab70c49e7cb6f111aaa06045bd2b6
+  Friendly Name:              calhrfrontierdev
+  Org URL:                    https://calhrfrontierdev.crm17.dynamics.com/
+  User Email:                 admin@caldova25668747.onmicrosoft.com
+  User ID:                    a5a3186d-0ab5-f111-aaae-00224861a076
+  Environment ID:             84ad4c54-41d9-e5df-ba07-188b4719594a

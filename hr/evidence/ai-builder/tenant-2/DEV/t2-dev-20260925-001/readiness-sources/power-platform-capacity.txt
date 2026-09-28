@@ -1,0 +1,12 @@
+Observed at UTC: 2026-09-28T14:42:05.5745087Z
+Operator: admin@caldova25668747.onmicrosoft.com
+Source: https://admin.powerplatform.microsoft.com/resources/capacity
+
+AI Builder capacity:
+- Total: 20,740,000
+- Assigned: 0 of 20,740,000
+- Consumed: 0 of 20,740,000
+
+The Manage capacity dialog listed calhrfrontierdev with status "-" and allocated
+capacity "-". The readiness gate requires non-zero AI Builder capacity displayed
+for the environment. This check failed. No capacity was allocated or changed.

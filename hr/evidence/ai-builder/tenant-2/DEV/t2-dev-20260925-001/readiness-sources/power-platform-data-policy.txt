@@ -1,0 +1,6 @@
+Observed at UTC: 2026-09-28T14:42:05.5745087Z
+Operator: admin@caldova25668747.onmicrosoft.com
+Source: https://admin.powerplatform.microsoft.com/security/dataprotection/dlp
+
+The Data policies page displayed "No policies created." No applicable data policy
+blocks AI Builder authoring or solution packaging. No policy was created or changed.

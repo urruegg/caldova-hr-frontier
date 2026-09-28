@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "tenant_key": "tenant-2",
+  "models": [
+    {
+      "display_name": "PersonalMasterDataFixed",
+      "model_kind": "Fixed",
+      "model_id": "",
+      "version": "",
+      "lifecycle_stage": "not_created",
+      "lifecycle_history": [
+        {
+          "stage": "not_created",
+          "changed_at_utc": "2026-09-28T14:15:49.4691784Z"
+        }
+      ]
+    },
+    {
+      "display_name": "PersonalMasterDataGeneral",
+      "model_kind": "General",
+      "model_id": "",
+      "version": "",
+      "lifecycle_stage": "not_created",
+      "lifecycle_history": [
+        {
+          "stage": "not_created",
+          "changed_at_utc": "2026-09-28T14:15:49.4707673Z"
+        }
+      ]
+    }
+  ]
+}

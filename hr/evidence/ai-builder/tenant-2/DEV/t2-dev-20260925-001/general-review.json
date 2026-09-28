@@ -1,0 +1,198 @@
+{
+  "schema_version": "1.0",
+  "package": "general-documents",
+  "documents": [
+    {
+      "document": "g01-arbeitsvertrag-CAND-2026-0411.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g02-arbeitsvertrag-CAND-2026-0412.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g03-arbeitsvertrag-CAND-2026-0413.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g04-anschreiben-CAND-2026-0414.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g05-anschreiben-CAND-2026-0415.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g06-anschreiben-CAND-2026-0416.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g07-bewilligung-CAND-2026-0417.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g08-bewilligung-CAND-2026-0418.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g09-bewilligung-CAND-2026-0419.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g10-versicherung-CAND-2026-0420.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g11-versicherung-CAND-2026-0421.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g12-versicherung-CAND-2026-0422.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g13-zivilstand-CAND-2026-0423.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g14-zivilstand-CAND-2026-0424.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g15-zivilstand-CAND-2026-0425.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g16-selbstdeklaration-CAND-2026-0426.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g17-selbstdeklaration-CAND-2026-0427.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g18-selbstdeklaration-CAND-2026-0428.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g19-scan-degraded-CAND-2026-0429.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g20-scan-degraded-CAND-2026-0430.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g21-scan-degraded-CAND-2026-0431.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g22-new-joiner-sheet-CAND-2026-0432.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g23-new-joiner-sheet-CAND-2026-0433.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "g24-new-joiner-sheet-CAND-2026-0434.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    }
+  ]
+}

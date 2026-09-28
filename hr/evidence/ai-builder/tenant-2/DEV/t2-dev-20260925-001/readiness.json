@@ -1,0 +1,75 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "status": "blocked",
+  "failed_gates": [
+    "maker_authorization",
+    "capacity"
+  ],
+  "checks": [
+    {
+      "id": "environment",
+      "status": "passed",
+      "observation": "DEV URL https://calhrfrontierdev.crm17.dynamics.com/ and environment ID 84ad4c54-41d9-e5df-ba07-188b4719594a match the run manifest.",
+      "source": "pac org who; readiness-sources\\pac-org-who.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-28T14:42:05.5745087Z"
+    },
+    {
+      "id": "dataverse",
+      "status": "passed",
+      "observation": "Dataverse organization ID ab70c49e-7cb6-f111-aaa0-6045bd2b664a is present for Tenant 2 DEV.",
+      "source": "pac org who and discovery evidence; readiness-sources\\pac-org-who.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-28T14:42:05.5745087Z"
+    },
+    {
+      "id": "maker_authorization",
+      "status": "unknown",
+      "observation": "Create-model access was observed, but train, publish, and add-to-solution controls were not all observed without advancing the model lifecycle.",
+      "source": "Power Apps AI hub controls; readiness-sources\\power-apps-ai-builder.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-28T14:42:05.5745087Z"
+    },
+    {
+      "id": "ai_builder_available",
+      "status": "passed",
+      "observation": "Custom document processing is available and offers both Fixed template documents and General documents.",
+      "source": "Power Apps custom extraction choices; readiness-sources\\power-apps-ai-builder.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-28T14:42:05.5745087Z"
+    },
+    {
+      "id": "capacity",
+      "status": "failed",
+      "observation": "Tenant capacity is 20,740,000, but 0 is assigned and calhrfrontierdev shows no allocated capacity; the required non-zero environment allocation is absent.",
+      "source": "Power Platform admin center capacity; readiness-sources\\power-platform-capacity.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-28T14:42:05.5745087Z"
+    },
+    {
+      "id": "data_policy",
+      "status": "passed",
+      "observation": "The tenant Data policies page reports no policies created, so no applicable policy blocks authoring or packaging.",
+      "source": "Power Platform admin center data policies; readiness-sources\\power-platform-data-policy.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-28T14:42:05.5745087Z"
+    },
+    {
+      "id": "solution",
+      "status": "passed",
+      "observation": "Unmanaged solution caldovahrfrontier version 0.0.0.1 is present.",
+      "source": "pac solution list; readiness-sources\\pac-solution-list.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-28T14:42:05.5745087Z"
+    },
+    {
+      "id": "publisher",
+      "status": "passed",
+      "observation": "Publisher unique name calhrfrontier and prefix calhr match the approved configuration.",
+      "source": "Read-only Dataverse FetchXML publisher query; readiness-sources\\publisher.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-28T14:42:05.5745087Z"
+    }
+  ]
+}

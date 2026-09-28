@@ -1,0 +1,394 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "tenant_key": "tenant-2",
+  "power_platform_environment_id": "84ad4c54-41d9-e5df-ba07-188b4719594a",
+  "environment_stage": "DEV",
+  "solution_unique_name": "caldovahrfrontier",
+  "solution_version": "0.0.0.1",
+  "models": [
+    {
+      "display_name": "PersonalMasterDataFixed",
+      "model_kind": "Fixed",
+      "model_id": "",
+      "version": "",
+      "lifecycle_stage": "not_created",
+      "documents": [
+        {
+          "document": "a01-CAND-2026-0411-brunner.pdf",
+          "collection_or_family": "a-personalblatt",
+          "assignment": "training",
+          "sha256": "9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd",
+          "source_path": "documents\\a-personalblatt\\a01-CAND-2026-0411-brunner.pdf"
+        },
+        {
+          "document": "a02-CAND-2026-0412-ochsner.pdf",
+          "collection_or_family": "a-personalblatt",
+          "assignment": "training",
+          "sha256": "a452b7f0547e7c4295a1f8d0b2c36622ca0278c505f9a3771e944741f071b5ff",
+          "source_path": "documents\\a-personalblatt\\a02-CAND-2026-0412-ochsner.pdf"
+        },
+        {
+          "document": "a03-CAND-2026-0413-iten.pdf",
+          "collection_or_family": "a-personalblatt",
+          "assignment": "training",
+          "sha256": "2277ddfd6755345205c752bcbbb3e6fb2f8301f008f7a584d9b5e05799bd8521",
+          "source_path": "documents\\a-personalblatt\\a03-CAND-2026-0413-iten.pdf"
+        },
+        {
+          "document": "a04-CAND-2026-0414-perren.pdf",
+          "collection_or_family": "a-personalblatt",
+          "assignment": "training",
+          "sha256": "b8001cef8fbd78a46f7ea839834067de49cc98bc1d3bc71f79846503735c1f51",
+          "source_path": "documents\\a-personalblatt\\a04-CAND-2026-0414-perren.pdf"
+        },
+        {
+          "document": "a05-CAND-2026-0415-steiner.pdf",
+          "collection_or_family": "a-personalblatt",
+          "assignment": "training",
+          "sha256": "5a9adc5c9ecc8d930c7551149553ad6563db70b2cbd7df2eb506b980c3a999f2",
+          "source_path": "documents\\a-personalblatt\\a05-CAND-2026-0415-steiner.pdf"
+        },
+        {
+          "document": "a06-CAND-2026-0416-gerber.pdf",
+          "collection_or_family": "a-personalblatt",
+          "assignment": "held-out",
+          "sha256": "4b1110d9c394a709fbcf6dc39c3ebf20846114e4bb2f818e7dad0118e52ac5db",
+          "source_path": "documents\\a-personalblatt\\a06-CAND-2026-0416-gerber.pdf"
+        },
+        {
+          "document": "b01-CAND-2026-0417-bosshard.pdf",
+          "collection_or_family": "b-anmeldung-gemeinde",
+          "assignment": "training",
+          "sha256": "d90843ba434a45e84039121444af855439ad20aafd01c46c308a884b666fc7fa",
+          "source_path": "documents\\b-anmeldung-gemeinde\\b01-CAND-2026-0417-bosshard.pdf"
+        },
+        {
+          "document": "b02-CAND-2026-0418-keller.pdf",
+          "collection_or_family": "b-anmeldung-gemeinde",
+          "assignment": "training",
+          "sha256": "043f96bbc2d75b0aee814c22685da81c3eaca53be853aadb5f5c5e6ce8964bee",
+          "source_path": "documents\\b-anmeldung-gemeinde\\b02-CAND-2026-0418-keller.pdf"
+        },
+        {
+          "document": "b03-CAND-2026-0419-widmer.pdf",
+          "collection_or_family": "b-anmeldung-gemeinde",
+          "assignment": "training",
+          "sha256": "da8f40525624e95f95ab71d8a9248526ffdb67d5da79f1e7c660ea149af692e6",
+          "source_path": "documents\\b-anmeldung-gemeinde\\b03-CAND-2026-0419-widmer.pdf"
+        },
+        {
+          "document": "b04-CAND-2026-0420-vogt.pdf",
+          "collection_or_family": "b-anmeldung-gemeinde",
+          "assignment": "training",
+          "sha256": "5476b9482b7627f47ff600b25d10351c78283f1bd6fc114382df81e5fa447b6e",
+          "source_path": "documents\\b-anmeldung-gemeinde\\b04-CAND-2026-0420-vogt.pdf"
+        },
+        {
+          "document": "b05-CAND-2026-0421-ammann.pdf",
+          "collection_or_family": "b-anmeldung-gemeinde",
+          "assignment": "training",
+          "sha256": "341db8d5e6c4477627d51914d814888b5b4ebf9505832c9f1df9d1f74cdfb981",
+          "source_path": "documents\\b-anmeldung-gemeinde\\b05-CAND-2026-0421-ammann.pdf"
+        },
+        {
+          "document": "b06-CAND-2026-0422-schnyder.pdf",
+          "collection_or_family": "b-anmeldung-gemeinde",
+          "assignment": "held-out",
+          "sha256": "2dd65e48932173a72cbfc0cad0f1bbe01b997e6a28eea60f5a2e8c5d2737a8b6",
+          "source_path": "documents\\b-anmeldung-gemeinde\\b06-CAND-2026-0422-schnyder.pdf"
+        },
+        {
+          "document": "c01-CAND-2026-0423-ferrari.pdf",
+          "collection_or_family": "c-sozialversicherung",
+          "assignment": "training",
+          "sha256": "40e63426b153edb653e093235926635a0fc9cc05c3390638ab48ba4db42a2b85",
+          "source_path": "documents\\c-sozialversicherung\\c01-CAND-2026-0423-ferrari.pdf"
+        },
+        {
+          "document": "c02-CAND-2026-0424-müller.pdf",
+          "collection_or_family": "c-sozialversicherung",
+          "assignment": "training",
+          "sha256": "cb3da9004680d31c15152419bd2bccfcfc63b2cab0f8e69bfdf69cd10c81cc21",
+          "source_path": "documents\\c-sozialversicherung\\c02-CAND-2026-0424-müller.pdf"
+        },
+        {
+          "document": "c03-CAND-2026-0425-dubois.pdf",
+          "collection_or_family": "c-sozialversicherung",
+          "assignment": "training",
+          "sha256": "6c8462e00a00f433ad300975eb4a9ec90ce12429427f6b27b00bc799831332b5",
+          "source_path": "documents\\c-sozialversicherung\\c03-CAND-2026-0425-dubois.pdf"
+        },
+        {
+          "document": "c04-CAND-2026-0426-nowak.pdf",
+          "collection_or_family": "c-sozialversicherung",
+          "assignment": "training",
+          "sha256": "2bef2680e41745989d3eb357b8579e283ab348eb9c0af1d3cde1c9c870e70e33",
+          "source_path": "documents\\c-sozialversicherung\\c04-CAND-2026-0426-nowak.pdf"
+        },
+        {
+          "document": "c05-CAND-2026-0427-bühler.pdf",
+          "collection_or_family": "c-sozialversicherung",
+          "assignment": "training",
+          "sha256": "1b060eafcd15e1bce4d030ed28d62a82dd938da0c5c18604b651ff49bbd2ad1d",
+          "source_path": "documents\\c-sozialversicherung\\c05-CAND-2026-0427-bühler.pdf"
+        },
+        {
+          "document": "c06-CAND-2026-0428-frei.pdf",
+          "collection_or_family": "c-sozialversicherung",
+          "assignment": "held-out",
+          "sha256": "dc512e6545293d6532effc196f56322f12cc1b2a89ef3eb31c46c90b1ddcece4",
+          "source_path": "documents\\c-sozialversicherung\\c06-CAND-2026-0428-frei.pdf"
+        },
+        {
+          "document": "d01-CAND-2026-0429-pfister.pdf",
+          "collection_or_family": "d-bankverbindung",
+          "assignment": "training",
+          "sha256": "7a604a528af957893576841531168364b3647795ae04288d65e691ab7928871e",
+          "source_path": "documents\\d-bankverbindung\\d01-CAND-2026-0429-pfister.pdf"
+        },
+        {
+          "document": "d02-CAND-2026-0430-meier.pdf",
+          "collection_or_family": "d-bankverbindung",
+          "assignment": "training",
+          "sha256": "aef796662f6370f02b0438618c21bf0f81d603b46596dc05c84055d6aadd64c9",
+          "source_path": "documents\\d-bankverbindung\\d02-CAND-2026-0430-meier.pdf"
+        },
+        {
+          "document": "d03-CAND-2026-0431-roth.pdf",
+          "collection_or_family": "d-bankverbindung",
+          "assignment": "training",
+          "sha256": "5e2d9d2552f798a565e2b9e1cdeb86ad81b94a4fcdbd4a715368304f44b00822",
+          "source_path": "documents\\d-bankverbindung\\d03-CAND-2026-0431-roth.pdf"
+        },
+        {
+          "document": "d04-CAND-2026-0432-baumann.pdf",
+          "collection_or_family": "d-bankverbindung",
+          "assignment": "training",
+          "sha256": "4f27921519d60273942859921bbfca91be140263a52ec0757f92941654825e1d",
+          "source_path": "documents\\d-bankverbindung\\d04-CAND-2026-0432-baumann.pdf"
+        },
+        {
+          "document": "d05-CAND-2026-0433-hofer.pdf",
+          "collection_or_family": "d-bankverbindung",
+          "assignment": "training",
+          "sha256": "aac69b1d02559cd14bddba1d6806715428c0994fbe01563ac260ca028eafcf7d",
+          "source_path": "documents\\d-bankverbindung\\d05-CAND-2026-0433-hofer.pdf"
+        },
+        {
+          "document": "d06-CAND-2026-0434-ochsner.pdf",
+          "collection_or_family": "d-bankverbindung",
+          "assignment": "held-out",
+          "sha256": "5ccc73225f0b12c937ea46d1f0566c5869e38f2756c73dc0b648044203fa74fa",
+          "source_path": "documents\\d-bankverbindung\\d06-CAND-2026-0434-ochsner.pdf"
+        }
+      ],
+      "ground_truth_hashes": {
+        "json": "914bb2288568d698d489a8ac5189b5ffaade4b1c85deaa6fbc1023b0135c5a09",
+        "csv": "b9fee213b2574452d8202451324cb90825ca219490661b71ea62e06e40e9e4a8"
+      },
+      "lifecycle_history": [
+        {
+          "stage": "not_created",
+          "changed_at_utc": "2026-09-28T14:15:49.4691784Z"
+        }
+      ]
+    },
+    {
+      "display_name": "PersonalMasterDataGeneral",
+      "model_kind": "General",
+      "model_id": "",
+      "version": "",
+      "lifecycle_stage": "not_created",
+      "documents": [
+        {
+          "document": "g04-anschreiben-CAND-2026-0414.pdf",
+          "collection_or_family": "anschreiben",
+          "assignment": "training",
+          "sha256": "ee4848dc634a45c3d5432ba61aa4ada387fb09cf6e74e8da159c98f2aef675f9",
+          "source_path": "documents\\g04-anschreiben-CAND-2026-0414.pdf"
+        },
+        {
+          "document": "g05-anschreiben-CAND-2026-0415.pdf",
+          "collection_or_family": "anschreiben",
+          "assignment": "training",
+          "sha256": "99b9e30d914557f2bdd06fcd3dff2ef967c32419e236d166b5fd3fcd90f026c0",
+          "source_path": "documents\\g05-anschreiben-CAND-2026-0415.pdf"
+        },
+        {
+          "document": "g06-anschreiben-CAND-2026-0416.pdf",
+          "collection_or_family": "anschreiben",
+          "assignment": "held-out",
+          "sha256": "b9f5fc789005cb751370227f14592e48b32459a09555bc0b542ef45b551547a3",
+          "source_path": "documents\\g06-anschreiben-CAND-2026-0416.pdf"
+        },
+        {
+          "document": "g01-arbeitsvertrag-CAND-2026-0411.pdf",
+          "collection_or_family": "arbeitsvertrag",
+          "assignment": "training",
+          "sha256": "b38d977460a8d3f865662bb33a1af0342fb54975c37d18f8c54cf29ec41c0488",
+          "source_path": "documents\\g01-arbeitsvertrag-CAND-2026-0411.pdf"
+        },
+        {
+          "document": "g02-arbeitsvertrag-CAND-2026-0412.pdf",
+          "collection_or_family": "arbeitsvertrag",
+          "assignment": "training",
+          "sha256": "63be40c5187af7d2aac8029ecb2d0fab6524279d6c18fa5cfabebc0ebfe180f5",
+          "source_path": "documents\\g02-arbeitsvertrag-CAND-2026-0412.pdf"
+        },
+        {
+          "document": "g03-arbeitsvertrag-CAND-2026-0413.pdf",
+          "collection_or_family": "arbeitsvertrag",
+          "assignment": "held-out",
+          "sha256": "3b93ddcbd5f781c6dbfeb29b6b99645f0e6ac4d01657e51a1a39c8d205fe4abc",
+          "source_path": "documents\\g03-arbeitsvertrag-CAND-2026-0413.pdf"
+        },
+        {
+          "document": "g07-bewilligung-CAND-2026-0417.pdf",
+          "collection_or_family": "bewilligung",
+          "assignment": "training",
+          "sha256": "6027f04e77535daa19d385ef4e9447d6443f558aefc8cc8be18748429bb0627d",
+          "source_path": "documents\\g07-bewilligung-CAND-2026-0417.pdf"
+        },
+        {
+          "document": "g08-bewilligung-CAND-2026-0418.pdf",
+          "collection_or_family": "bewilligung",
+          "assignment": "training",
+          "sha256": "3ae4a536775bc5f9ee2e97949d47d2f081bf1ae3e192f26f7643c8a14db7419f",
+          "source_path": "documents\\g08-bewilligung-CAND-2026-0418.pdf"
+        },
+        {
+          "document": "g09-bewilligung-CAND-2026-0419.pdf",
+          "collection_or_family": "bewilligung",
+          "assignment": "held-out",
+          "sha256": "e84a17210d784337eff21434bdb18a5e0095e19c072b892207e03adc817a3157",
+          "source_path": "documents\\g09-bewilligung-CAND-2026-0419.pdf"
+        },
+        {
+          "document": "g22-new-joiner-sheet-CAND-2026-0432.pdf",
+          "collection_or_family": "new-joiner-sheet",
+          "assignment": "training",
+          "sha256": "02d98e4fb6ae41ef51c25e44479ff68c062012b5217aa2b8352a42ecc4608677",
+          "source_path": "documents\\g22-new-joiner-sheet-CAND-2026-0432.pdf"
+        },
+        {
+          "document": "g23-new-joiner-sheet-CAND-2026-0433.pdf",
+          "collection_or_family": "new-joiner-sheet",
+          "assignment": "training",
+          "sha256": "d83465a9774c5d4c7d38d6d55b83feb34c0ca0ca95d747cef94c85cac6ee9118",
+          "source_path": "documents\\g23-new-joiner-sheet-CAND-2026-0433.pdf"
+        },
+        {
+          "document": "g24-new-joiner-sheet-CAND-2026-0434.pdf",
+          "collection_or_family": "new-joiner-sheet",
+          "assignment": "held-out",
+          "sha256": "8491edb64a98ae1a3d1d1ea4163fa23bf4578a9bf48c134a83ccbc8d79eaa939",
+          "source_path": "documents\\g24-new-joiner-sheet-CAND-2026-0434.pdf"
+        },
+        {
+          "document": "g19-scan-degraded-CAND-2026-0429.pdf",
+          "collection_or_family": "scan-degraded",
+          "assignment": "training",
+          "sha256": "f559043429e14f68e93e6fdf9fac90b30c5c91e1a21330fcf79424b95ce81c3f",
+          "source_path": "documents\\g19-scan-degraded-CAND-2026-0429.pdf"
+        },
+        {
+          "document": "g20-scan-degraded-CAND-2026-0430.pdf",
+          "collection_or_family": "scan-degraded",
+          "assignment": "training",
+          "sha256": "c319d827d31dd008dc00463dbaf6f47d8ec35ad367adcb955414aba977b3a865",
+          "source_path": "documents\\g20-scan-degraded-CAND-2026-0430.pdf"
+        },
+        {
+          "document": "g21-scan-degraded-CAND-2026-0431.pdf",
+          "collection_or_family": "scan-degraded",
+          "assignment": "held-out",
+          "sha256": "b90f61dacaf46ed0c678b7cbd6e39b2aafc90b2dae68662a81edb0130587106b",
+          "source_path": "documents\\g21-scan-degraded-CAND-2026-0431.pdf"
+        },
+        {
+          "document": "g16-selbstdeklaration-CAND-2026-0426.pdf",
+          "collection_or_family": "selbstdeklaration",
+          "assignment": "training",
+          "sha256": "d3cc2e9565be5f0cb6725d6c380391b11151a4bdf7ce4eb74034838088e1d037",
+          "source_path": "documents\\g16-selbstdeklaration-CAND-2026-0426.pdf"
+        },
+        {
+          "document": "g17-selbstdeklaration-CAND-2026-0427.pdf",
+          "collection_or_family": "selbstdeklaration",
+          "assignment": "training",
+          "sha256": "fb97818305be4edb37a4bb1bec70c56217ec71333e2477c4b10c70e1bab10a8c",
+          "source_path": "documents\\g17-selbstdeklaration-CAND-2026-0427.pdf"
+        },
+        {
+          "document": "g18-selbstdeklaration-CAND-2026-0428.pdf",
+          "collection_or_family": "selbstdeklaration",
+          "assignment": "held-out",
+          "sha256": "7f37d8da232cd98b5f74eca38f788035c24d16108579004a7f4a91709d2072ed",
+          "source_path": "documents\\g18-selbstdeklaration-CAND-2026-0428.pdf"
+        },
+        {
+          "document": "g10-versicherung-CAND-2026-0420.pdf",
+          "collection_or_family": "versicherung",
+          "assignment": "training",
+          "sha256": "ec4bd36824610513cae36af81535fea4b705e8e1f3d91b04aa5f393a25f41fa0",
+          "source_path": "documents\\g10-versicherung-CAND-2026-0420.pdf"
+        },
+        {
+          "document": "g11-versicherung-CAND-2026-0421.pdf",
+          "collection_or_family": "versicherung",
+          "assignment": "training",
+          "sha256": "7a74aa176ea79568babafb0525df1d6e0e86e3980af35a7b23c39d7b8a60a2f9",
+          "source_path": "documents\\g11-versicherung-CAND-2026-0421.pdf"
+        },
+        {
+          "document": "g12-versicherung-CAND-2026-0422.pdf",
+          "collection_or_family": "versicherung",
+          "assignment": "held-out",
+          "sha256": "41563ffc8537d3e21ba5db0e47f63649df20bffa9d65259013c706e2d71a3069",
+          "source_path": "documents\\g12-versicherung-CAND-2026-0422.pdf"
+        },
+        {
+          "document": "g13-zivilstand-CAND-2026-0423.pdf",
+          "collection_or_family": "zivilstand",
+          "assignment": "training",
+          "sha256": "f3d907c0c5db0741ae61a756a62edbad11c17b1b80c0aa2ce7cc407bbe331916",
+          "source_path": "documents\\g13-zivilstand-CAND-2026-0423.pdf"
+        },
+        {
+          "document": "g14-zivilstand-CAND-2026-0424.pdf",
+          "collection_or_family": "zivilstand",
+          "assignment": "training",
+          "sha256": "6003090503be3cc5adee80d494348be7527d6b7aea813ea7fad795b75c85bb0a",
+          "source_path": "documents\\g14-zivilstand-CAND-2026-0424.pdf"
+        },
+        {
+          "document": "g15-zivilstand-CAND-2026-0425.pdf",
+          "collection_or_family": "zivilstand",
+          "assignment": "held-out",
+          "sha256": "34798a1865bbc1d1dc448843830de431f9fd9c29edea9b1611b70c6a97ca5b86",
+          "source_path": "documents\\g15-zivilstand-CAND-2026-0425.pdf"
+        }
+      ],
+      "ground_truth_hashes": {
+        "json": "a30bc70dc0a8b70531c85198f77205b6d175cfe10eeb4d62b171693bb9fc869e",
+        "csv": "4fdec89678a3a857c377f4c629891c9a2f9b83ea95693de425582f03ee89ec87"
+      },
+      "lifecycle_history": [
+        {
+          "stage": "not_created",
+          "changed_at_utc": "2026-09-28T14:15:49.4707673Z"
+        }
+      ]
+    }
+  ],
+  "corpus_revision": "c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db",
+  "generator_revision": "a0829d218dbce15157e35ca7a4da36c0b8241084597818836871441314f175bd",
+  "field_contract_version": "0.1",
+  "operator": "admin@caldova25668747.onmicrosoft.com",
+  "started_at_utc": "2026-09-28T14:15:49.4598227Z",
+  "completed_at_utc": null,
+  "overall_status": "in_progress",
+  "evidence_hashes": [],
+  "finalized": false
+}

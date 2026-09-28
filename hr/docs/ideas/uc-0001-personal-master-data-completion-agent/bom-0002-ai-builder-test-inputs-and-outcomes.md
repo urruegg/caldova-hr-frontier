@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
-| **Date** | 2026-09-25 |
+| **Version** | 0.2 |
+| **Date** | 2026-09-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | UC-0001 AI Builder test-run input and outcome traceability |
@@ -15,7 +15,7 @@ This repository-owned Build of Materials (BoM) summarizes the inputs and outcome
 
 The [PeopleDoc Master Data AI Builder Field BoM](bom-0001-peopledoc-master-data-ai-builder-fields.md) remains authoritative for the 17-field contract lifecycle. The run manifest and machine-readable result files remain authoritative for deployment context, document identity, field-level expected and actual values, confidence, and error classification. This BoM summarizes and links that evidence; it does not duplicate or replace it.
 
-No AI Builder model has been created, trained, or evaluated. Every current outcome is therefore recorded as `Not run - no evidence`. A blank metric is not treated as zero, and an absent result is not treated as a pass.
+Neither intended AI Builder model has been created, trained, or evaluated. The portal automatically persisted one empty draft while the readiness path was inspected; it was removed after explicit approval and is recorded in the readiness source evidence. Every current outcome is therefore recorded as `Not run - no evidence`. A blank metric is not treated as zero, and an absent result is not treated as a pass.
 
 ## 2. Traceability Model
 
@@ -89,10 +89,10 @@ Both models use the same contract fields, `BOM-0001-F01` through `BOM-0001-F17`,
 
 | Test BoM ID | Model | Input groups | Training allocation | Initial held-out allocation | Planned documents | Ground truth | Current input status |
 |---|---|---|---|---|---:|---|---|
-| `BOM-0002-R01` | `PersonalMasterDataFixed` | Four layout collections | Documents 01-05 in each collection | Document 06 in each collection | 24 | Package CSV and JSON | `Planned` |
-| `BOM-0002-R02` | `PersonalMasterDataGeneral` | Eight document families | First two documents in each family | Third document in each family | 24 | Package CSV and JSON | `Planned` |
+| `BOM-0002-R01` | `PersonalMasterDataFixed` | Four layout collections | Documents 01-05 in each collection | Document 06 in each collection | 24 | Package CSV and JSON | `Blocked` |
+| `BOM-0002-R02` | `PersonalMasterDataGeneral` | Eight document families | First two documents in each family | Third document in each family | 24 | Package CSV and JSON | `Blocked` |
 
-Document hashes, corpus revision, generator revision, and the final split are not assigned until `run-manifest.json` is created and corpus qualification passes.
+The corpus passed qualification and the run manifest records the document hashes, revisions, and final split. Both input records remain `Blocked` because the Tenant 2 readiness gate did not pass.
 
 ### 5.2 Fixed-template collections
 
@@ -124,8 +124,10 @@ Planned field-result counts are the held-out document count multiplied by the 17
 
 | Test BoM ID | `run_id` | Model version | Deployment context | Solution version | Corpus and generator revisions | Input status | Outcome status | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| `BOM-0002-R01` | Not assigned | Not created | Supplied by `run-manifest.json` | Not assigned | Not assigned | `Planned` | `Not run - no evidence` | None - implementation not started |
-| `BOM-0002-R02` | Not assigned | Not created | Supplied by `run-manifest.json` | Not assigned | Not assigned | `Planned` | `Not run - no evidence` | None - implementation not started |
+| `BOM-0002-R01` | `t2-dev-20260925-001` | Not created | [Run manifest](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/run-manifest.json) | `0.0.0.1` | Corpus `c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db`; generator `a0829d218dbce15157e35ca7a4da36c0b8241084597818836871441314f175bd` | `Blocked` | `Not run - no evidence` | [Readiness](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/readiness.json); [corpus quality](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/corpus-quality.json) |
+| `BOM-0002-R02` | `t2-dev-20260925-001` | Not created | [Run manifest](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/run-manifest.json) | `0.0.0.1` | Corpus `c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db`; generator `a0829d218dbce15157e35ca7a4da36c0b8241084597818836871441314f175bd` | `Blocked` | `Not run - no evidence` | [Readiness](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/readiness.json); [corpus quality](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/corpus-quality.json) |
+
+The readiness gate is blocked by failed environment capacity and unknown maker authorization. The two intended models remain uncreated, and no outcome is inferred from qualified inputs.
 
 ## 7. Outcome Summary
 
