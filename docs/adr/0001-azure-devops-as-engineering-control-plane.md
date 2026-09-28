@@ -45,9 +45,9 @@ GitHub Issues and GitHub Projects for work, GitHub for source and Actions.
 - But: **issue types are an organisation-level feature** and `urruegg` is a personal account, so work item typing degrades to labels. There are no iterations, no delivery plans, and no approval checks that pipeline authors provably cannot modify.
 - It also removes Azure DevOps from a showcase whose stated scope explicitly includes it.
 
-### Option C — Azure Boards plans, GitHub builds
+### Option C — Azure Boards plans, GitHub hosts source, Azure Pipelines delivers
 
-Azure Boards owns the backlog, iterations, delivery plans and deployment approvals. GitHub owns source, pull requests, Actions, releases and agent definitions. The two are joined by `AB#<work-item-id>` references.
+Azure Boards owns the backlog, iterations, delivery plans and deployment approvals. GitHub owns product source, pull requests, and agent definitions. GitHub Actions owns repository validation, while Azure Pipelines owns HR solution CI/CD and controlled TEST-to-PROD delivery. The systems are joined by `AB#<work-item-id>` references.
 
 ---
 
@@ -56,7 +56,9 @@ Azure Boards owns the backlog, iterations, delivery plans and deployment approva
 **This decision adopts Option C.**
 
 - **Azure DevOps** is the Engineering Control Plane: Epics, Features, User Stories, Tasks, Bugs, iterations, Delivery Plans, and the PROD approval gate.
-- **GitHub** is the Digital Factory and sole product source: the tenant-dedicated repository, pull requests, GitHub Actions, releases, `.github/agents/`, Copilot instructions and Copilot CLI.
+- **GitHub** is the Digital Factory and sole product source: the tenant-dedicated repository, pull requests, `.github/agents/`, Copilot instructions and Copilot CLI.
+- **GitHub Actions** owns repository validation, including governance and traceability checks. It does not own HR solution CI/CD or deployment.
+- **Azure Pipelines** owns HR solution CI/CD, immutable artifact publication, and controlled TEST-to-PROD delivery. It consumes GitHub source and does not establish a competing source authority.
 - **Azure Boards is the single backlog.** GitHub Projects is not part of the operating model. GitHub Issues exist only as an intake funnel that is triaged into Azure Boards.
 - Linkage is the `AB#` convention, to be enforced mechanically by a ruleset commit-message pattern and by the pull request template.
 - The connection uses the **Azure Boards GitHub App**, not a personal access token.
@@ -79,7 +81,7 @@ Azure Boards owns the backlog, iterations, delivery plans and deployment approva
 
 - Structured backlog, iterations and delivery plans without giving up GitHub's Copilot surface.
 - Traceability from work item → branch → commit → pull request → merge commit → build → release is intended to be produced automatically by the `AB#` convention.
-- Two different classes of approval gate are demonstrated: GitHub Environments for TEST, Azure DevOps Environment checks for PROD.
+- Two different classes of approval gate are demonstrated: a GitHub Environment protects bootstrap, while Azure DevOps Environment checks protect TEST-to-PROD delivery.
 
 ### Negative
 

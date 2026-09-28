@@ -13,10 +13,12 @@ This document applies the approved Wave 0 Azure DevOps and GitHub responsibility
 
 ## Approved Split
 
-| Plane | Approved system of record | Ownership |
+| Responsibility | Approved owner | Boundary |
 |---|---|---|
-| Engineering control plane | Azure DevOps | Azure Boards single backlog, iterations, delivery planning, future deployment approvals, and work traceability |
-| Digital factory | This tenant-dedicated GitHub repository | Sole product source, pull requests, repository validation, releases, agent definitions, and public documentation |
+| Backlog and delivery planning | Azure Boards | Single backlog, iterations, delivery planning, and work traceability; GitHub Projects is disabled |
+| Product source and pull requests | This tenant-dedicated GitHub repository | Sole product source and pull-request authority; product source is not copied to Azure Repos |
+| Repository validation | GitHub Actions | Governance and traceability checks only; no HR solution CI/CD or deployment |
+| HR solution CI/CD | Azure Pipelines | Immutable artifact publication and controlled TEST-to-PROD delivery from reviewed GitHub source |
 
 Azure Boards and GitHub can be used together for planning and delivery; see [Use GitHub with Azure Boards](https://learn.microsoft.com/en-us/azure/devops/boards/github/). The split is the attended repository decision recorded in [ADR-0001](../../docs/adr/0001-azure-devops-as-engineering-control-plane.md), not a Microsoft mandate or a claim that the controls are deployed.
 
@@ -67,7 +69,7 @@ The approved topology binds one tenant-dedicated GitHub repository to one Azure 
 
 ## Future Delivery Boundary
 
-A later ALM implementation may use Azure Pipelines for managed Power Platform promotion and resource-administered approvals. It must:
+Azure Pipelines owns HR solution CI/CD, immutable artifact publication, and controlled TEST-to-PROD delivery through resource-administered approvals. GitHub Actions owns repository validation and does not perform HR solution build, artifact publication, or deployment. The later Azure Pipelines implementation must:
 
 1. read and validate the existing project by stable ID;
 2. use secretless workload identity where supported;
