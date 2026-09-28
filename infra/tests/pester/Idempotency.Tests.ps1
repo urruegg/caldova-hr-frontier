@@ -3,7 +3,7 @@ Set-StrictMode -Version Latest
 Describe 'Task 6 bootstrap orchestration and idempotency' {
     BeforeAll {
         $script:RepositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
-        $script:BootstrapScriptPath = Join-Path $script:RepositoryRoot 'infra\src\scripts\Invoke-TenantBootstrap.ps1'
+        $script:SourceBootstrapScriptPath = Join-Path $script:RepositoryRoot 'infra\src\scripts\Invoke-TenantBootstrap.ps1'
         $script:FixturePath = Join-Path $script:RepositoryRoot 'infra\tests\fixtures\what-if\allowed.json'
         $script:BootstrapRunId = '44444444-4444-4444-4444-444444444444'
         $script:ApprovedRoleAssignmentIds = @(
@@ -11,11 +11,43 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
             '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
         )
 
+        $script:HarnessRoot = Join-Path $TestDrive 'bootstrap-harness'
+        foreach ($relativePath in @(
+            'infra\src\scripts\Invoke-TenantBootstrap.ps1',
+            'infra\src\scripts\Test-WhatIfBoundary.ps1',
+            'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap',
+            'infra\src\config\schemas\tenant.schema.json',
+            'infra\src\bicep'
+        )) {
+            $sourcePath = Join-Path $script:RepositoryRoot $relativePath
+            $targetPath = Join-Path $script:HarnessRoot $relativePath
+            $targetParent = Split-Path -Parent $targetPath
+            [void](New-Item -ItemType Directory -Path $targetParent -Force)
+            if (Test-Path -LiteralPath $sourcePath -PathType Container) {
+                Copy-Item -LiteralPath $sourcePath -Destination $targetParent -Recurse -Force
+            }
+            else {
+                Copy-Item -LiteralPath $sourcePath -Destination $targetPath -Force
+            }
+        }
+        [System.IO.File]::WriteAllText(
+            (Join-Path $script:HarnessRoot '.gitignore'),
+            "infra/src/config/tenants/*.local.psd1$([Environment]::NewLine)",
+            [System.Text.UTF8Encoding]::new($false)
+        )
+        & git -C $script:HarnessRoot init --quiet
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Could not initialize the isolated bootstrap repository.'
+        }
+        $script:BootstrapScriptPath = Join-Path $script:HarnessRoot 'infra\src\scripts\Invoke-TenantBootstrap.ps1'
+
         function script:New-TenantConfigurationFile {
-            $path = Join-Path $TestDrive ([guid]::NewGuid().ToString() + '.psd1')
+            $path = Join-Path $script:HarnessRoot 'infra\src\config\tenants\tenant1.local.psd1'
+            [void](New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force)
             $content = @"
 @{
     SchemaVersion = '1.0'
+    PublicTenantKey = 'tenant1'
     TenantAlias = 'caldova25156897'
     DisplayName = 'Caldova25156897'
     TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
@@ -197,7 +229,7 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
     }
 
     It 'defines the bootstrap orchestration surface before implementation' {
-        Test-Path -LiteralPath $script:BootstrapScriptPath | Should -BeTrue
+        Test-Path -LiteralPath $script:SourceBootstrapScriptPath | Should -BeTrue
     }
 
     It 'rejects <Case> reviewed cleanup approval before post-state work' -ForEach @(
@@ -242,7 +274,7 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
         $cleanupCalls = [System.Collections.Generic.List[string]]::new()
 
         {
-            & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -WhatIfOnly -ConfirmRoleCleanup $Confirmation -BootstrapRunId $RunId -ApprovedRoleAssignmentIds $ApprovedIds -DiscoveryEvidenceValidator { } -IntentValidator { } -OidcContextValidator { } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
+            & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -WhatIfOnly -ConfirmRoleCleanup $Confirmation -BootstrapRunId $RunId -ApprovedRoleAssignmentIds $ApprovedIds -DiscoveryEvidenceValidator { } -IntentValidator { } -AttendedUserContextValidator { } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
                 param([string]$FilePath, [string[]]$ArgumentList)
                 $nativeCalls.Add($FilePath) | Out-Null
                 throw 'native runner must not be reached'
@@ -279,7 +311,7 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
 
         try {
             $parameters = @{
-                TenantAlias = 'caldova25156897'
+                PublicTenantKey = 'tenant1'
                 TenantConfigurationPath = $tenantConfigurationPath
                 EvidencePath = $evidencePath
                 ParameterFile = $parameterFile
@@ -289,7 +321,7 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
                 ApprovedRoleAssignmentIds = $script:ApprovedRoleAssignmentIds
                 DiscoveryEvidenceValidator = { }
                 IntentValidator = { }
-                OidcContextValidator = { }
+                AttendedUserContextValidator = { }
                 BicepValidator = {
                     if ($FailureStage -eq 'Bicep build') {
                         throw 'simulated Bicep build failure'
@@ -334,7 +366,7 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
         $events = [System.Collections.Generic.List[string]]::new()
 
         {
-            & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { $events.Add('evidence') | Out-Null } -IntentValidator { $events.Add('intent') | Out-Null } -OidcContextValidator { $events.Add('oidc') | Out-Null } -BicepValidator { $events.Add('bicep') | Out-Null } -RoleStateLoader { param([string]$Path) $events.Add('state') | Out-Null; Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
+            & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { $events.Add('evidence') | Out-Null } -IntentValidator { $events.Add('intent') | Out-Null } -AttendedUserContextValidator { $events.Add('oidc') | Out-Null } -BicepValidator { $events.Add('bicep') | Out-Null } -RoleStateLoader { param([string]$Path) $events.Add('state') | Out-Null; Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
                 param([string]$FilePath, [string[]]$ArgumentList)
 
                 $events.Add(($FilePath + ' ' + ($ArgumentList -join ' '))) | Out-Null
@@ -352,7 +384,7 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
         $roleStatePath = New-RoleStateFile
         $fixturePath = $script:FixturePath
         {
-            & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { } -IntentValidator { } -OidcContextValidator { } -BicepValidator { } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
+            & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { } -IntentValidator { } -AttendedUserContextValidator { } -BicepValidator { } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
                 param([string]$FilePath, [string[]]$ArgumentList)
 
                 @{ ExitCode = 0; StdOut = (Get-Content -Raw -LiteralPath $fixturePath); StdErr = '' }
@@ -366,14 +398,14 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
         $parameterFile = New-PlaceholderFile -Name 'main.bicepparam' -Content 'using "../src/bicep/main.bicep"'
         $roleStatePath = New-RoleStateFile
         $fixturePath = $script:FixturePath
-        $expectedMainBicepPath = [System.IO.Path]::GetFullPath((Join-Path $script:RepositoryRoot 'infra\src\bicep\main.bicep'))
+        $expectedMainBicepPath = [System.IO.Path]::GetFullPath((Join-Path $script:HarnessRoot 'infra\src\bicep\main.bicep'))
         $global:Task6CapturedCommand = $null
         $githubRunIdWasPresent = Test-Path Env:GITHUB_RUN_ID
         $previousGithubRunId = $env:GITHUB_RUN_ID
 
         try {
             Remove-Item Env:GITHUB_RUN_ID -ErrorAction SilentlyContinue
-            & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { } -IntentValidator { } -OidcContextValidator { } -BicepValidator { } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
+            & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { } -IntentValidator { } -AttendedUserContextValidator { } -BicepValidator { } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
                 param([string]$FilePath, [string[]]$ArgumentList)
 
                 $global:Task6CapturedCommand = [pscustomobject]@{
@@ -415,7 +447,7 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
         $roleStatePath = New-RoleStateFile
 
         {
-            & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner {
+            & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner {
                 throw 'native runner should not be reached'
             } -CleanupRunner { throw 'cleanup should not be reached' }
         } | Should -Throw '*Evidence is missing required property SchemaVersion*'
@@ -428,13 +460,13 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
         $roleStatePath = New-RoleStateFile
 
         {
-            & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner {
+            & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner {
                 throw 'native runner should not be reached'
             } -CleanupRunner { throw 'cleanup should not be reached' }
         } | Should -Throw '*exact stable Id match*'
     }
 
-    It 'uses the default OIDC validator and rejects mismatched client id before what-if execution' {
+    It 'uses the default attended-user validator and rejects a service principal before what-if execution' {
         $tenantConfigurationPath = New-TenantConfigurationFile
         $evidencePath = New-EvidenceFile
         $parameterFile = New-PlaceholderFile -Name 'main.bicepparam' -Content 'using "../src/bicep/main.bicep"'
@@ -445,7 +477,7 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
 
         try {
             {
-                & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner {
+                & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner {
                     param([string]$FilePath, [string[]]$ArgumentList)
 
                     $joined = $ArgumentList -join ' '
@@ -455,7 +487,7 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
 
                     throw "Unexpected native command: $FilePath $joined"
                 } -CleanupRunner { throw 'cleanup should not be reached' }
-            } | Should -Throw '*AZURE_CLIENT_ID*'
+            } | Should -Throw '*attended user context*'
         }
         finally {
             Remove-Item Env:AZURE_TENANT_ID, Env:AZURE_SUBSCRIPTION_ID, Env:AZURE_CLIENT_ID -ErrorAction SilentlyContinue
@@ -476,12 +508,15 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
 
         try {
             {
-                & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner {
+                & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner {
                     param([string]$FilePath, [string[]]$ArgumentList)
 
                     $joined = $ArgumentList -join ' '
                     if ($joined -eq 'account show --output json') {
-                        return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"e2312862-df63-440c-8bcf-007a2c52859d","id":"edb45a24-408d-47c4-bbc7-685b9b3fc017","user":{"type":"servicePrincipal","name":"11111111-1111-1111-1111-111111111111"}}'; StdErr = '' }
+                        return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"e2312862-df63-440c-8bcf-007a2c52859d","id":"edb45a24-408d-47c4-bbc7-685b9b3fc017","user":{"type":"user"}}'; StdErr = '' }
+                    }
+                    if ($joined -eq 'ad signed-in-user show --output json') {
+                        return [pscustomobject]@{ ExitCode = 0; StdOut = '{"id":"55555555-5555-5555-5555-555555555555"}'; StdErr = '' }
                     }
 
                     throw "Unexpected native command: $FilePath $joined"
@@ -505,12 +540,15 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
 
         try {
             {
-                & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner {
+                & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner {
                     param([string]$FilePath, [string[]]$ArgumentList)
 
                     $joined = $ArgumentList -join ' '
                     if ($joined -eq 'account show --output json') {
-                        return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"e2312862-df63-440c-8bcf-007a2c52859d","id":"edb45a24-408d-47c4-bbc7-685b9b3fc017","user":{"type":"servicePrincipal","name":"11111111-1111-1111-1111-111111111111"}}'; StdErr = '' }
+                        return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"e2312862-df63-440c-8bcf-007a2c52859d","id":"edb45a24-408d-47c4-bbc7-685b9b3fc017","user":{"type":"user"}}'; StdErr = '' }
+                    }
+                    if ($joined -eq 'ad signed-in-user show --output json') {
+                        return [pscustomobject]@{ ExitCode = 0; StdOut = '{"id":"55555555-5555-5555-5555-555555555555"}'; StdErr = '' }
                     }
 
                     if ($joined -match '^bicep build --file .+main\.bicep --stdout$') {
@@ -550,7 +588,7 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
         $evidencePath = New-EvidenceFile -CompletedUtc ([datetime]::UtcNow.ToString('o'))
         $parameterFile = New-PlaceholderFile -Name 'default-path-main.bicepparam' -Content 'using "../src/bicep/main.bicep"'
         $roleStatePath = New-RoleStateFile
-        $expectedMainBicepPath = [System.IO.Path]::GetFullPath((Join-Path $script:RepositoryRoot 'infra\src\bicep\main.bicep'))
+        $expectedMainBicepPath = [System.IO.Path]::GetFullPath((Join-Path $script:HarnessRoot 'infra\src\bicep\main.bicep'))
         $expectedScope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
         $contributorId = [string]$script:ApprovedRoleAssignmentIds[0]
         $rbacAdministratorId = [string]$script:ApprovedRoleAssignmentIds[1]
@@ -601,8 +639,8 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
             tenantDisplayName = 'Caldova25156897'
             tenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
             user = [ordered]@{
-                name = '11111111-1111-1111-1111-111111111111'
-                type = 'servicePrincipal'
+                name = 'admin@caldova25156897.onmicrosoft.com'
+                type = 'user'
             }
         } | ConvertTo-Json -Depth 10 -Compress
         $nativeRunner = {
@@ -624,7 +662,11 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
                 return [pscustomobject]@{ ExitCode = 0; StdOut = $accountPayload; StdErr = '' }
             }
 
-            if ($ArgumentList.Count -eq 5 -and $ArgumentList[0] -ceq 'bicep' -and $ArgumentList[1] -ceq 'build' -and $ArgumentList[2] -ceq '--file' -and $ArgumentList[3] -ceq $expectedMainBicepPath -and $ArgumentList[4] -ceq '--stdout') {
+            if ($ArgumentList.Count -eq 5 -and $ArgumentList[0] -ceq 'ad' -and $ArgumentList[1] -ceq 'signed-in-user' -and $ArgumentList[2] -ceq 'show') {
+                return [pscustomobject]@{ ExitCode = 0; StdOut = '{"id":"55555555-5555-5555-5555-555555555555"}'; StdErr = '' }
+            }
+
+            if ($ArgumentList.Count -eq 5 -and $ArgumentList[0] -ceq 'bicep' -and $ArgumentList[1] -ceq 'build' -and $ArgumentList[2] -ceq '--file' -and $ArgumentList[4] -ceq '--stdout') {
                 return [pscustomobject]@{ ExitCode = 0; StdOut = $compiledTemplate; StdErr = '' }
             }
 
@@ -716,19 +758,20 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
             $env:GITHUB_RUN_ID = '987654321'
             $env:RUNNER_TEMP = $TestDrive
 
-            $result = & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner $nativeRunner
+            $result = & $script:BootstrapScriptPath -PublicTenantKey tenant1 -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner $nativeRunner
 
             @($result.PSObject.Properties.Name) | Should -Be @('TenantAlias', 'WhatIfOnly', 'TemporaryRoleStatePath')
             $result.TenantAlias | Should -BeExactly 'caldova25156897'
             $result.WhatIfOnly | Should -BeTrue
             $result.TemporaryRoleStatePath | Should -BeExactly $roleStatePath
 
-            $nativeCalls.Count | Should -Be 10
+            $nativeCalls.Count | Should -Be 11
             $nativeCalls[0].FilePath | Should -BeExactly 'az'
             $nativeCalls[0].ArgumentList | Should -Be @('account', 'show', '--output', 'json')
-            $nativeCalls[1].ArgumentList | Should -Be @('bicep', 'build', '--file', $expectedMainBicepPath, '--stdout')
-            $nativeCalls[2].ArgumentList | Should -Be @('bicep', 'build-params', '--file', $parameterFile, '--stdout')
-            $nativeCalls[3].ArgumentList | Should -Be @(
+            $nativeCalls[1].ArgumentList | Should -Be @('ad', 'signed-in-user', 'show', '--output', 'json')
+            $nativeCalls[2].ArgumentList | Should -Be @('bicep', 'build', '--file', $expectedMainBicepPath, '--stdout')
+            $nativeCalls[3].ArgumentList | Should -Be @('bicep', 'build-params', '--file', $parameterFile, '--stdout')
+            $nativeCalls[4].ArgumentList | Should -Be @(
                 'deployment',
                 'sub',
                 'what-if',
@@ -739,13 +782,13 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
                 '--result-format', 'FullResourcePayloads',
                 '--no-pretty-print'
             )
-            $nativeCalls[3].ArgumentList[8] | Should -BeExactly $expectedMainBicepPath
-            $nativeCalls[4].ArgumentList | Should -Be @('rest', '--method', 'get', '--url', "${contributorId}?api-version=2022-04-01", '--output', 'json')
-            $nativeCalls[5].ArgumentList | Should -Be @('role', 'assignment', 'delete', '--ids', $contributorId, '--output', 'none')
-            $nativeCalls[6].ArgumentList | Should -Be @('rest', '--method', 'get', '--url', "${rbacAdministratorId}?api-version=2022-04-01", '--output', 'json')
-            $nativeCalls[7].ArgumentList | Should -Be @('role', 'assignment', 'delete', '--ids', $rbacAdministratorId, '--output', 'none')
-            $nativeCalls[8].ArgumentList | Should -Be $nativeCalls[4].ArgumentList
-            $nativeCalls[9].ArgumentList | Should -Be $nativeCalls[6].ArgumentList
+            $nativeCalls[4].ArgumentList[8] | Should -BeExactly $expectedMainBicepPath
+            $nativeCalls[5].ArgumentList | Should -Be @('rest', '--method', 'get', '--url', "${contributorId}?api-version=2022-04-01", '--output', 'json')
+            $nativeCalls[6].ArgumentList | Should -Be @('role', 'assignment', 'delete', '--ids', $contributorId, '--output', 'none')
+            $nativeCalls[7].ArgumentList | Should -Be @('rest', '--method', 'get', '--url', "${rbacAdministratorId}?api-version=2022-04-01", '--output', 'json')
+            $nativeCalls[8].ArgumentList | Should -Be @('role', 'assignment', 'delete', '--ids', $rbacAdministratorId, '--output', 'none')
+            $nativeCalls[9].ArgumentList | Should -Be $nativeCalls[5].ArgumentList
+            $nativeCalls[10].ArgumentList | Should -Be $nativeCalls[7].ArgumentList
 
             $deleteCalls = @($nativeCalls | Where-Object { $_.ArgumentList.Count -ge 3 -and $_.ArgumentList[0] -ceq 'role' -and $_.ArgumentList[1] -ceq 'assignment' -and $_.ArgumentList[2] -ceq 'delete' })
             @($deleteCalls | ForEach-Object { [string]$_.ArgumentList[4] }) | Should -Be @($contributorId, $rbacAdministratorId)
@@ -759,5 +802,46 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
             if ($githubRunIdWasPresent) { $env:GITHUB_RUN_ID = $previousGithubRunId } else { Remove-Item Env:GITHUB_RUN_ID -ErrorAction SilentlyContinue }
             if ($runnerTempWasPresent) { $env:RUNNER_TEMP = $previousRunnerTemp } else { Remove-Item Env:RUNNER_TEMP -ErrorAction SilentlyContinue }
         }
+    }
+
+    It 'requires explicit local configuration and keeps every private run path outside the repository' {
+        $tokens = $null
+        $parseErrors = $null
+        $entryPointAst = [System.Management.Automation.Language.Parser]::ParseFile($script:SourceBootstrapScriptPath, [ref]$tokens, [ref]$parseErrors)
+        $parseErrors.Count | Should -Be 0
+        $parameters = @{}
+        foreach ($parameter in $entryPointAst.ParamBlock.Parameters) {
+            $parameters[$parameter.Name.VariablePath.UserPath] = $parameter
+        }
+
+        foreach ($name in @(
+            'PublicTenantKey',
+            'TenantConfigurationPath',
+            'EvidencePath',
+            'ParameterFile',
+            'TemporaryRoleStatePath'
+        )) {
+            $parameters.ContainsKey($name) | Should -BeTrue
+            @($parameters[$name].Attributes | Where-Object {
+                $_ -is [System.Management.Automation.Language.AttributeAst] -and
+                $_.TypeName.FullName -ceq 'Parameter' -and
+                $_.NamedArguments.ArgumentName -contains 'Mandatory'
+            }).Count | Should -Be 1
+        }
+        $parameters.ContainsKey('TenantAlias') | Should -BeFalse
+
+        $tenantConfigurationPath = New-TenantConfigurationFile
+        $insideEvidencePath = Join-Path $script:HarnessRoot 'private-evidence.json'
+        {
+            & $script:BootstrapScriptPath -PublicTenantKey tenant1 `
+                -TenantConfigurationPath $tenantConfigurationPath `
+                -EvidencePath $insideEvidencePath `
+                -ParameterFile (New-PlaceholderFile -Name 'outside-main.bicepparam' -Content "using 'main.bicep'") `
+                -TemporaryRoleStatePath (New-RoleStateFile) `
+                -ConfirmRoleCleanup $true `
+                -BootstrapRunId $script:BootstrapRunId `
+                -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds `
+                -WhatIfOnly
+        } | Should -Throw '*outside the repository*'
     }
 }

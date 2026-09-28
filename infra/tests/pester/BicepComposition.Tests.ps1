@@ -14,7 +14,6 @@ Describe 'Task 5 Bicep composition' {
             SubscriptionPolicyAssignments = Join-Path $script:BicepRoot 'modules\subscription-policy-assignments.bicep'
         }
         $script:GeneratorScriptPath = Join-Path $script:RepositoryRoot 'infra\src\scripts\New-TenantBicepParameters.ps1'
-        $script:TenantManifestPath = Join-Path $script:RepositoryRoot 'infra\src\config\tenants\caldova25156897.psd1'
         $script:AllowedResourceTypes = @(
             'Microsoft.Resources/resourceGroups',
             'Microsoft.OperationalInsights/workspaces',
@@ -119,7 +118,7 @@ Describe 'Task 5 Bicep composition' {
 
             $copies = @(
                 'infra\src\bicep',
-                'infra\src\config',
+                'infra\src\config\schemas\tenant.schema.json',
                 'infra\src\scripts\New-TenantBicepParameters.ps1',
                 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap'
             )
@@ -140,7 +139,71 @@ Describe 'Task 5 Bicep composition' {
                 }
             }
 
+            [System.IO.File]::WriteAllText(
+                (Join-Path $root '.gitignore'),
+                "infra/src/config/tenants/*.local.psd1$([Environment]::NewLine)",
+                [System.Text.UTF8Encoding]::new($false)
+            )
+            & git -C $root init --quiet
+            if ($LASTEXITCODE -ne 0) {
+                throw 'Could not initialize the isolated Bicep repository.'
+            }
+
+            $tenantConfigurationPath = Join-Path $root 'infra\src\config\tenants\tenant1.local.psd1'
+            [void](New-Item -ItemType Directory -Path (Split-Path -Parent $tenantConfigurationPath) -Force)
+            $tenantConfigurationContent = @'
+@{
+    SchemaVersion = '1.0'
+    PublicTenantKey = 'tenant1'
+    TenantAlias = 'caldova25156897'
+    DisplayName = 'Caldova25156897'
+    TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
+    AdminUpn = 'admin@Caldova25156897.onmicrosoft.com'
+    SubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
+    PrimaryLocation = 'switzerlandnorth'
+    CompanyTla = 'cal'
+    WorkloadName = 'hr-agentic'
+    UniqueSuffix = 'bc8rbt'
+    NamingRoot = 'cal-hr-agentic-bc8rbt'
+    LifecycleState = 'IntentReviewed'
+    GitHub = @{
+        Owner = 'urruegg'
+        OwnerId = '46865858'
+        Repository = 'caldova-hr-frontier'
+        RepositoryId = '1371297722'
+        EnvironmentName = 'bootstrap-caldova25156897'
+    }
+    AzureDevOps = @{
+        OrganizationUrl = 'https://dev.azure.com/caldova25156897/'
+        ProjectName = 'Caldova HR Frontier'
+    }
+    PowerPlatform = @{
+        DevUrl = 'https://hrfrontierdev.crm17.dynamics.com/'
+        TestUrl = 'https://hrfrontiertest.crm17.dynamics.com/'
+        ProdUrl = 'https://hrfrontier.crm17.dynamics.com/'
+    }
+    Components = @{
+        AzureSubscription = @{ Mode = 'Existing'; Id = 'edb45a24-408d-47c4-bbc7-685b9b3fc017' }
+    }
+}
+'@
+            [System.IO.File]::WriteAllText($tenantConfigurationPath, $tenantConfigurationContent, [System.Text.UTF8Encoding]::new($false))
+
             $root
+        }
+
+        function script:Get-IsolatedTenantConfigurationPath {
+            param([Parameter(Mandatory)][string]$HarnessRoot)
+
+            Join-Path $HarnessRoot 'infra\src\config\tenants\tenant1.local.psd1'
+        }
+
+        function script:New-IsolatedOutputDirectory {
+            param([Parameter(Mandatory)][string]$HarnessRoot)
+
+            $path = Join-Path (Split-Path -Parent $HarnessRoot) ((Split-Path -Leaf $HarnessRoot) + '-output')
+            [void](New-Item -ItemType Directory -Path $path -Force)
+            $path
         }
 
         function script:Invoke-Task5Generator {
@@ -307,15 +370,14 @@ Describe 'Task 5 Bicep composition' {
 
     It 'generates a BOM-free parameter file in an isolated harness and builds it locally' {
         $harnessRoot = New-IsolatedTask5Harness
-        $outputDirectory = Join-Path $harnessRoot 'infra\src\bicep\params'
-        [void](New-Item -ItemType Directory -Path $outputDirectory -Force)
+        $outputDirectory = New-IsolatedOutputDirectory -HarnessRoot $harnessRoot
 
         Push-Location $harnessRoot
         try {
             $result = Invoke-Task5Generator -HarnessRoot $harnessRoot -Arguments @(
-                '-TenantAlias', 'caldova25156897',
+                '-PublicTenantKey', 'tenant1',
                 '-ValidationPrincipalId', '11111111-1111-1111-1111-111111111111',
-                '-TenantConfigurationPath', (Join-Path $harnessRoot 'infra\src\config\tenants\caldova25156897.psd1'),
+                '-TenantConfigurationPath', (Get-IsolatedTenantConfigurationPath -HarnessRoot $harnessRoot),
                 '-OutputPath', $outputDirectory
             )
 
@@ -328,7 +390,7 @@ Describe 'Task 5 Bicep composition' {
             ($bytes.Length -ge 3 -and $bytes[0] -eq 239 -and $bytes[1] -eq 187 -and $bytes[2] -eq 191) | Should -BeFalse
 
             $content = [System.Text.Encoding]::UTF8.GetString($bytes)
-            $content | Should -Match "using '../main.bicep'"
+            $content | Should -Match "^using '.+main\.bicep'"
             $content | Should -Match "tenantAlias: 'caldova25156897'"
             $content | Should -Match "namingRoot: 'cal-hr-agentic-bc8rbt'"
             $content | Should -Match "platformResourceGroupName: 'rg-cal-hr-agentic-bc8rbt-platform'"
@@ -348,14 +410,13 @@ Describe 'Task 5 Bicep composition' {
 
     It 'rejects invalid generator inputs and overwrite mismatches while allowing identical output' {
         $harnessRoot = New-IsolatedTask5Harness
-        $outputDirectory = Join-Path $harnessRoot 'infra\src\bicep\params'
-        [void](New-Item -ItemType Directory -Path $outputDirectory -Force)
-        $tenantConfigurationPath = Join-Path $harnessRoot 'infra\src\config\tenants\caldova25156897.psd1'
+        $outputDirectory = New-IsolatedOutputDirectory -HarnessRoot $harnessRoot
+        $tenantConfigurationPath = Get-IsolatedTenantConfigurationPath -HarnessRoot $harnessRoot
 
         Push-Location $harnessRoot
         try {
             $initial = Invoke-Task5Generator -HarnessRoot $harnessRoot -Arguments @(
-                '-TenantAlias', 'caldova25156897',
+                '-PublicTenantKey', 'tenant1',
                 '-ValidationPrincipalId', '11111111-1111-1111-1111-111111111111',
                 '-TenantConfigurationPath', $tenantConfigurationPath,
                 '-OutputPath', $outputDirectory
@@ -363,7 +424,7 @@ Describe 'Task 5 Bicep composition' {
             $initial.ExitCode | Should -Be 0
 
             $sameAgain = Invoke-Task5Generator -HarnessRoot $harnessRoot -Arguments @(
-                '-TenantAlias', 'caldova25156897',
+                '-PublicTenantKey', 'tenant1',
                 '-ValidationPrincipalId', '11111111-1111-1111-1111-111111111111',
                 '-TenantConfigurationPath', $tenantConfigurationPath,
                 '-OutputPath', $outputDirectory
@@ -371,7 +432,7 @@ Describe 'Task 5 Bicep composition' {
             $sameAgain.ExitCode | Should -Be 0
 
             $invalidGuid = Invoke-Task5Generator -HarnessRoot $harnessRoot -Arguments @(
-                '-TenantAlias', 'caldova25156897',
+                '-PublicTenantKey', 'tenant1',
                 '-ValidationPrincipalId', 'not-a-guid',
                 '-TenantConfigurationPath', $tenantConfigurationPath,
                 '-OutputPath', $outputDirectory
@@ -379,7 +440,7 @@ Describe 'Task 5 Bicep composition' {
             $invalidGuid.ExitCode | Should -Not -Be 0
 
             $unknownTenant = Invoke-Task5Generator -HarnessRoot $harnessRoot -Arguments @(
-                '-TenantAlias', 'othertenant',
+                '-PublicTenantKey', 'tenant2',
                 '-ValidationPrincipalId', '11111111-1111-1111-1111-111111111111',
                 '-TenantConfigurationPath', $tenantConfigurationPath,
                 '-OutputPath', $outputDirectory
@@ -387,7 +448,7 @@ Describe 'Task 5 Bicep composition' {
             $unknownTenant.ExitCode | Should -Not -Be 0
 
             $differentPrincipal = Invoke-Task5Generator -HarnessRoot $harnessRoot -Arguments @(
-                '-TenantAlias', 'caldova25156897',
+                '-PublicTenantKey', 'tenant1',
                 '-ValidationPrincipalId', '22222222-2222-2222-2222-222222222222',
                 '-TenantConfigurationPath', $tenantConfigurationPath,
                 '-OutputPath', $outputDirectory
@@ -395,7 +456,7 @@ Describe 'Task 5 Bicep composition' {
             $differentPrincipal.ExitCode | Should -Not -Be 0
 
             $replacedPrincipal = Invoke-Task5Generator -HarnessRoot $harnessRoot -Arguments @(
-                '-TenantAlias', 'caldova25156897',
+                '-PublicTenantKey', 'tenant1',
                 '-ValidationPrincipalId', '22222222-2222-2222-2222-222222222222',
                 '-TenantConfigurationPath', $tenantConfigurationPath,
                 '-OutputPath', $outputDirectory,
@@ -406,5 +467,37 @@ Describe 'Task 5 Bicep composition' {
         finally {
             Pop-Location
         }
+    }
+
+    It 'requires explicit local configuration and rejects repository output' {
+        $tokens = $null
+        $parseErrors = $null
+        $entryPointAst = [System.Management.Automation.Language.Parser]::ParseFile($script:GeneratorScriptPath, [ref]$tokens, [ref]$parseErrors)
+        $parseErrors.Count | Should -Be 0
+        $parameters = @{}
+        foreach ($parameter in $entryPointAst.ParamBlock.Parameters) {
+            $parameters[$parameter.Name.VariablePath.UserPath] = $parameter
+        }
+
+        foreach ($name in @('PublicTenantKey', 'TenantConfigurationPath', 'OutputPath')) {
+            $parameters.ContainsKey($name) | Should -BeTrue
+            @($parameters[$name].Attributes | Where-Object {
+                $_ -is [System.Management.Automation.Language.AttributeAst] -and
+                $_.TypeName.FullName -ceq 'Parameter' -and
+                $_.NamedArguments.ArgumentName -contains 'Mandatory'
+            }).Count | Should -Be 1
+        }
+        $parameters.ContainsKey('TenantAlias') | Should -BeFalse
+
+        $harnessRoot = New-IsolatedTask5Harness
+        $insideOutput = Join-Path $harnessRoot 'generated'
+        $result = Invoke-Task5Generator -HarnessRoot $harnessRoot -Arguments @(
+            '-PublicTenantKey', 'tenant1',
+            '-ValidationPrincipalId', '11111111-1111-1111-1111-111111111111',
+            '-TenantConfigurationPath', (Get-IsolatedTenantConfigurationPath -HarnessRoot $harnessRoot),
+            '-OutputPath', $insideOutput
+        )
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match 'outside the repository'
     }
 }

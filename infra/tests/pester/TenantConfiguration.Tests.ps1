@@ -2,10 +2,11 @@ Set-StrictMode -Version Latest
 
 Describe 'Tenant configuration' {
     BeforeAll {
+        $script:RepositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
         $script:ModuleManifestPath = Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
-        $script:TenantManifestPath = Join-Path $PSScriptRoot '..\..\src\config\tenants\caldova25156897.psd1'
         function script:New-TestTenantConfigurationContent {
             param(
+                [string]$PublicTenantKey = 'tenant1',
                 [string]$UniqueSuffix = 'a7k29x',
                 [string]$NamingRoot = 'cal-hr-agentic-a7k29x',
                 [string]$LifecycleState = 'DiscoveryRequired',
@@ -37,6 +38,7 @@ Describe 'Tenant configuration' {
             @"
 @{
     SchemaVersion = '1.0'
+    PublicTenantKey = '$PublicTenantKey'
     TenantAlias = 'caldova25156897'
     DisplayName = 'Caldova25156897'
     TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
@@ -64,11 +66,60 @@ Describe 'Tenant configuration' {
             [System.IO.File]::WriteAllText($path, $Content, [System.Text.UTF8Encoding]::new($false))
             return $path
         }
+        $script:TenantManifestPath = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent `
+            -LifecycleState 'IntentReviewed' `
+            -Components @"
+        @{
+            GitHubRepository = @{ Mode = 'Existing'; Id = '1371297722' }
+            EntraApplication = @{ Mode = 'Create' }
+            EntraServicePrincipal = @{ Mode = 'Create' }
+            EntraFederatedIdentityCredential = @{ Mode = 'Create' }
+            GitHubEnvironment = @{ Mode = 'Create' }
+            AzureSubscription = @{ Mode = 'Existing'; Id = 'edb45a24-408d-47c4-bbc7-685b9b3fc017' }
+            AzureDevOpsProject = @{ Mode = 'Existing'; Id = 'f250378e-597d-487b-854a-fb8338962822' }
+            AzureDevOpsServicePrincipalEntitlement = @{ Mode = 'Create' }
+            AzureDevOpsReadersMembership = @{ Mode = 'Create' }
+            PowerPlatformEnvironmentDev = @{ Mode = 'Existing'; Id = '346c2cb2-534d-e581-978f-4c293e25a146' }
+            PowerPlatformEnvironmentTest = @{ Mode = 'Existing'; Id = '86fb2f33-4145-e23a-b064-5e0850aba258' }
+            PowerPlatformEnvironmentProd = @{ Mode = 'Existing'; Id = 'c5d83095-c8bf-ec78-94dd-b4e62f34c85e' }
+        }
+"@)
         Import-Module $script:ModuleManifestPath -Force
     }
 
+    It 'ignores only local tenant configuration files and keeps the template tracked' {
+        $rules = Get-Content -LiteralPath (Join-Path $script:RepositoryRoot '.gitignore')
+        $rules | Should -Contain 'infra/src/config/tenants/*.local.psd1'
+        & git -C $script:RepositoryRoot check-ignore --quiet -- 'infra/src/config/tenants/tenant1.local.psd1'
+        $LASTEXITCODE | Should -Be 0
+        & git -C $script:RepositoryRoot ls-files --error-unmatch -- 'infra/src/config/tenants/_template.psd1' 2>$null
+        $LASTEXITCODE | Should -Be 0
+    }
+
+    It 'rejects template tracked wrong-key and non-boundary paths for live use' {
+        { Import-TenantConfiguration -Path (Join-Path $script:RepositoryRoot 'infra\src\config\tenants\_template.psd1') `
+            -ValidationStage Discovery -ExpectedPublicTenantKey tenant1 -RequireLocalUntracked } |
+            Should -Throw '*template*'
+        { Import-TenantConfiguration -Path $script:TenantManifestPath `
+            -ValidationStage Discovery -ExpectedPublicTenantKey tenant2 } |
+            Should -Throw '*PublicTenantKey*tenant2*'
+    }
+
+    It 'requires the explicit local configuration parameter on every active command' {
+        foreach ($scriptName in @(
+            'Invoke-TenantDiscovery.ps1',
+            'New-TenantBicepParameters.ps1',
+            'Grant-TemporaryBootstrapRoles.ps1',
+            'Get-TemporaryBootstrapRoleState.ps1',
+            'Invoke-TenantBootstrap.ps1'
+        )) {
+            $path = Join-Path $script:RepositoryRoot "infra\src\scripts\$scriptName"
+            { & $path -PublicTenantKey tenant1 } | Should -Throw '*TenantConfigurationPath*'
+        }
+    }
+
     It 'accepts the Tenant 1 contract and exact ALM URLs' {
-        $config = Import-TenantConfiguration -Path $script:TenantManifestPath -ValidationStage Discovery
+        $config = Import-TenantConfiguration -Path $script:TenantManifestPath -ValidationStage Discovery -ExpectedPublicTenantKey tenant1
 
         $config.TenantAlias | Should -Be 'caldova25156897'
         $config.DisplayName | Should -Be 'Caldova25156897'
@@ -113,7 +164,7 @@ Describe 'Tenant configuration' {
     It 'rejects executable expressions and unknown top-level keys' {
         $path = New-TestTenantConfigurationFile -Content "@{ TenantAlias = (Get-Date); Unknown = 'x' }"
 
-        { Import-TenantConfiguration -Path $path } | Should -Throw
+        { Import-TenantConfiguration -Path $path -ExpectedPublicTenantKey tenant1 } | Should -Throw
     }
 
     It 'rejects unknown nested keys and component entry keys' {
@@ -127,7 +178,7 @@ Describe 'Tenant configuration' {
             Extra = 'nope'
         }
 "@)
-        { Import-TenantConfiguration -Path $nestedUnknown } | Should -Throw
+        { Import-TenantConfiguration -Path $nestedUnknown -ExpectedPublicTenantKey tenant1 } | Should -Throw
 
         $componentUnknown = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent -Components @"
         @{
@@ -137,12 +188,12 @@ Describe 'Tenant configuration' {
             }
         }
 "@)
-        { Import-TenantConfiguration -Path $componentUnknown } | Should -Throw
+        { Import-TenantConfiguration -Path $componentUnknown -ExpectedPublicTenantKey tenant1 } | Should -Throw
     }
 
     It 'rejects invalid GUIDs URLs immutable ids and cross-field derivations' {
         $badTenantId = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent).Replace("TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'", "TenantId = 'not-a-guid'")
-        { Import-TenantConfiguration -Path $badTenantId } | Should -Throw
+        { Import-TenantConfiguration -Path $badTenantId -ExpectedPublicTenantKey tenant1 } | Should -Throw
 
         $badUrl = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent -AzureDevOpsBody @"
         @{
@@ -150,7 +201,7 @@ Describe 'Tenant configuration' {
             ProjectName = 'Caldova HR Frontier'
         }
 "@)
-        { Import-TenantConfiguration -Path $badUrl } | Should -Throw
+        { Import-TenantConfiguration -Path $badUrl -ExpectedPublicTenantKey tenant1 } | Should -Throw
 
         $badOwnerId = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent -GitHubBody @"
         @{
@@ -161,7 +212,7 @@ Describe 'Tenant configuration' {
             EnvironmentName = 'bootstrap-caldova25156897'
         }
 "@)
-        { Import-TenantConfiguration -Path $badOwnerId } | Should -Throw
+        { Import-TenantConfiguration -Path $badOwnerId -ExpectedPublicTenantKey tenant1 } | Should -Throw
 
         $badEnvironment = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent -GitHubBody @"
         @{
@@ -172,10 +223,10 @@ Describe 'Tenant configuration' {
             EnvironmentName = 'bootstrap-other'
         }
 "@)
-        { Import-TenantConfiguration -Path $badEnvironment } | Should -Throw
+        { Import-TenantConfiguration -Path $badEnvironment -ExpectedPublicTenantKey tenant1 } | Should -Throw
 
         $badNamingRoot = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent -NamingRoot 'cal-hr-agentic-zzzzzz')
-        { Import-TenantConfiguration -Path $badNamingRoot } | Should -Throw
+        { Import-TenantConfiguration -Path $badNamingRoot -ExpectedPublicTenantKey tenant1 } | Should -Throw
     }
 
     It 'rejects duplicate Power Platform URLs and Auto mode' {
@@ -186,7 +237,7 @@ Describe 'Tenant configuration' {
             ProdUrl = 'https://hrfrontier.crm17.dynamics.com/'
         }
 "@)
-        { Import-TenantConfiguration -Path $duplicateUrl } | Should -Throw
+        { Import-TenantConfiguration -Path $duplicateUrl -ExpectedPublicTenantKey tenant1 } | Should -Throw
 
         $autoMode = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent -LifecycleState 'IntentReviewed' -Components @"
         @{
@@ -195,13 +246,13 @@ Describe 'Tenant configuration' {
             }
         }
 "@)
-        { Import-TenantConfiguration -Path $autoMode -ValidationStage Bootstrap } | Should -Throw
+        { Import-TenantConfiguration -Path $autoMode -ValidationStage Bootstrap -ExpectedPublicTenantKey tenant1 } | Should -Throw
     }
 
     It 'accepts discovery state with an empty component map' {
         $path = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent -LifecycleState 'DiscoveryRequired' -Components '@{}')
 
-        $config = Import-TenantConfiguration -Path $path -ValidationStage Discovery
+        $config = Import-TenantConfiguration -Path $path -ValidationStage Discovery -ExpectedPublicTenantKey tenant1
 
         $config.LifecycleState | Should -Be 'DiscoveryRequired'
         @($config.Components | Get-Member -MemberType NoteProperty, Property, ScriptProperty).Count | Should -Be 0
@@ -220,7 +271,7 @@ Describe 'Tenant configuration' {
         }
 "@)
 
-        $config = Import-TenantConfiguration -Path $path -ValidationStage Discovery
+        $config = Import-TenantConfiguration -Path $path -ValidationStage Discovery -ExpectedPublicTenantKey tenant1
 
         $config.LifecycleState | Should -Be 'IntentReviewed'
         $config.Components.AzureDevOpsProject.Mode | Should -Be 'Create'
@@ -229,7 +280,7 @@ Describe 'Tenant configuration' {
 
     It 'requires reviewed bootstrap state with non-empty explicit components' {
         $emptyComponents = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent -LifecycleState 'IntentReviewed' -Components '@{}')
-        { Import-TenantConfiguration -Path $emptyComponents -ValidationStage Bootstrap } | Should -Throw
+        { Import-TenantConfiguration -Path $emptyComponents -ValidationStage Bootstrap -ExpectedPublicTenantKey tenant1 } | Should -Throw
 
         $wrongState = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent -LifecycleState 'DiscoveryRequired' -Components @"
         @{
@@ -238,7 +289,7 @@ Describe 'Tenant configuration' {
             }
         }
 "@)
-        { Import-TenantConfiguration -Path $wrongState -ValidationStage Bootstrap } | Should -Throw
+        { Import-TenantConfiguration -Path $wrongState -ValidationStage Bootstrap -ExpectedPublicTenantKey tenant1 } | Should -Throw
 
         $validBootstrap = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent -LifecycleState 'IntentReviewed' -Components @"
         @{
@@ -251,7 +302,7 @@ Describe 'Tenant configuration' {
             }
         }
 "@)
-        $config = Import-TenantConfiguration -Path $validBootstrap -ValidationStage Bootstrap
+        $config = Import-TenantConfiguration -Path $validBootstrap -ValidationStage Bootstrap -ExpectedPublicTenantKey tenant1
         $config.Components.AzureDevOpsProject.Mode | Should -Be 'Create'
         $config.Components.PowerPlatformDev.Id | Should -Be 'powerplatform-environment-dev'
     }
@@ -266,11 +317,11 @@ Describe 'Tenant configuration' {
         }
 "@)
 
-        { Import-TenantConfiguration -Path $missingId -ValidationStage Bootstrap } | Should -Throw
+        { Import-TenantConfiguration -Path $missingId -ValidationStage Bootstrap -ExpectedPublicTenantKey tenant1 } | Should -Throw
     }
 
     It 'returns a recursively read-only object graph' {
-        $config = Import-TenantConfiguration -Path $script:TenantManifestPath -ValidationStage Discovery
+        $config = Import-TenantConfiguration -Path $script:TenantManifestPath -ValidationStage Discovery -ExpectedPublicTenantKey tenant1
         $bootstrapPath = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent -LifecycleState 'IntentReviewed' -Components @"
         @{
             AzureDevOpsProject = @{
@@ -282,7 +333,7 @@ Describe 'Tenant configuration' {
             }
         }
 "@)
-        $bootstrapConfig = Import-TenantConfiguration -Path $bootstrapPath -ValidationStage Bootstrap
+        $bootstrapConfig = Import-TenantConfiguration -Path $bootstrapPath -ValidationStage Bootstrap -ExpectedPublicTenantKey tenant1
 
         { $config.TenantAlias = 'other' } | Should -Throw
         { $config.AzureDevOps.OrganizationUrl = 'https://example.com/' } | Should -Throw

@@ -1,14 +1,16 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidatePattern('^[a-z0-9]+$')]
-    [string]$TenantAlias,
+    [ValidatePattern('^tenant[1-9][0-9]*$')]
+    [string]$PublicTenantKey,
 
     [Parameter(Mandatory)]
-    [string]$ValidationPrincipalId,
+    [guid]$ValidationPrincipalId,
 
+    [Parameter(Mandatory)]
     [string]$TenantConfigurationPath,
 
+    [Parameter(Mandatory)]
     [string]$OutputPath,
 
     [switch]$Replace
@@ -26,17 +28,8 @@ function ConvertTo-BicepStringLiteral {
     "'{0}'" -f $Value.Replace("'", "''")
 }
 
-function Get-DefaultTenantConfigurationPath {
-    param(
-        [Parameter(Mandatory)]
-        [string]$TenantAliasValue
-    )
-
-    Join-Path $script:ScriptDirectory "..\config\tenants\$TenantAliasValue.psd1"
-}
-
-function Get-DefaultOutputDirectory {
-    Join-Path $script:ScriptDirectory '..\bicep\params'
+function Get-RepositoryRoot {
+    [System.IO.Path]::GetFullPath((Join-Path $script:ScriptDirectory '..\..\..'))
 }
 
 function Get-TargetParameterPath {
@@ -51,14 +44,18 @@ function Get-TargetParameterPath {
     Join-Path $DirectoryPath "$TenantAliasValue.bicepparam"
 }
 
-function Test-GuidValue {
+function Get-RelativeBicepPath {
     param(
         [Parameter(Mandatory)]
-        [string]$Value
+        [string]$FromDirectory,
+
+        [Parameter(Mandatory)]
+        [string]$ToPath
     )
 
-    $guid = [guid]::Empty
-    [guid]::TryParse($Value, [ref]$guid)
+    $baseUri = [uri](([System.IO.Path]::GetFullPath($FromDirectory).TrimEnd('\') + '\').Replace('\', '/'))
+    $targetUri = [uri]([System.IO.Path]::GetFullPath($ToPath).Replace('\', '/'))
+    [uri]::UnescapeDataString($baseUri.MakeRelativeUri($targetUri).ToString())
 }
 
 function New-BicepParameterContent {
@@ -76,11 +73,14 @@ function New-BicepParameterContent {
         [string]$ValidationRoleName,
 
         [Parameter(Mandatory)]
-        [string]$ValidationPrincipalObjectId
+        [string]$ValidationPrincipalObjectId,
+
+        [Parameter(Mandatory)]
+        [string]$BicepTemplateReference
     )
 
     @(
-        "using '../main.bicep'",
+        "using $(ConvertTo-BicepStringLiteral -Value $BicepTemplateReference)",
         '',
         'param tenant = {',
         "  tenantAlias: $(ConvertTo-BicepStringLiteral -Value ([string]$Configuration.TenantAlias))",
@@ -99,31 +99,27 @@ $script:ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
 $moduleManifestPath = Join-Path $script:ScriptDirectory 'modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
 Import-Module $moduleManifestPath -Force
 
-if (-not (Test-GuidValue -Value $ValidationPrincipalId)) {
-    throw 'ValidationPrincipalId must be a GUID.'
-}
+$configuration = Import-TenantConfiguration `
+    -Path ([System.IO.Path]::GetFullPath($TenantConfigurationPath)) `
+    -ValidationStage Discovery `
+    -ExpectedPublicTenantKey $PublicTenantKey `
+    -RequireLocalUntracked
 
-$resolvedConfigurationPath = if ([string]::IsNullOrWhiteSpace($TenantConfigurationPath)) {
-    [System.IO.Path]::GetFullPath((Get-DefaultTenantConfigurationPath -TenantAliasValue $TenantAlias))
-}
-else {
-    [System.IO.Path]::GetFullPath($TenantConfigurationPath)
-}
-
-$configuration = Import-TenantConfiguration -Path $resolvedConfigurationPath -ValidationStage Discovery
-if ([string]$configuration.TenantAlias -cne $TenantAlias) {
-    throw "Tenant configuration alias '$($configuration.TenantAlias)' does not match requested alias '$TenantAlias'."
-}
-
-$outputDirectory = if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-    [System.IO.Path]::GetFullPath((Get-DefaultOutputDirectory))
-}
-else {
-    [System.IO.Path]::GetFullPath($OutputPath)
+$repositoryRoot = Get-RepositoryRoot
+$outputDirectory = [System.IO.Path]::GetFullPath($OutputPath)
+$normalizedRepositoryRoot = $repositoryRoot.TrimEnd('\')
+$repositoryPrefix = $normalizedRepositoryRoot + '\'
+if ($outputDirectory.TrimEnd('\') -ieq $normalizedRepositoryRoot -or
+    $outputDirectory.StartsWith($repositoryPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw 'OutputPath must resolve outside the repository.'
 }
 
 [void](New-Item -ItemType Directory -Path $outputDirectory -Force)
 
+$tenantAlias = [string]$configuration.TenantAlias
+$bicepTemplateReference = Get-RelativeBicepPath `
+    -FromDirectory $outputDirectory `
+    -ToPath (Join-Path $script:ScriptDirectory '..\bicep\main.bicep')
 $platformResourceGroupName = Get-TenantResourceName -NamingRoot $configuration.NamingRoot -ResourceType ResourceGroup
 $logAnalyticsWorkspaceName = Get-TenantResourceName -NamingRoot $configuration.NamingRoot -ResourceType LogAnalytics
 $validationRoleName = Get-TenantResourceName -NamingRoot $configuration.NamingRoot -ResourceType DeploymentValidationRole
@@ -133,10 +129,11 @@ $content = New-BicepParameterContent `
     -PlatformResourceGroupName $platformResourceGroupName `
     -LogAnalyticsWorkspaceName $logAnalyticsWorkspaceName `
     -ValidationRoleName $validationRoleName `
-    -ValidationPrincipalObjectId $ValidationPrincipalId
+    -ValidationPrincipalObjectId $ValidationPrincipalId `
+    -BicepTemplateReference $bicepTemplateReference
 
-$targetPath = Get-TargetParameterPath -DirectoryPath $outputDirectory -TenantAliasValue $TenantAlias
-$tempPath = Join-Path $outputDirectory ('.{0}.{1}.tmp' -f $TenantAlias, [guid]::NewGuid().ToString('N'))
+$targetPath = Get-TargetParameterPath -DirectoryPath $outputDirectory -TenantAliasValue $tenantAlias
+$tempPath = Join-Path $outputDirectory ('.{0}.{1}.tmp' -f $tenantAlias, [guid]::NewGuid().ToString('N'))
 $backupPath = $null
 
 try {
@@ -154,7 +151,7 @@ try {
             throw 'Existing parameter file differs from the reviewed suffix or principal ID. Re-run with -Replace to overwrite it.'
         }
 
-        $backupPath = Join-Path $outputDirectory ('.{0}.{1}.bak' -f $TenantAlias, [guid]::NewGuid().ToString('N'))
+        $backupPath = Join-Path $outputDirectory ('.{0}.{1}.bak' -f $tenantAlias, [guid]::NewGuid().ToString('N'))
         [System.IO.File]::Replace($tempPath, $targetPath, $backupPath)
         if (Test-Path -LiteralPath $backupPath) {
             Remove-Item -LiteralPath $backupPath -Force

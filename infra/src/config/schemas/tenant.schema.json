@@ -4,6 +4,7 @@
   "additionalProperties": false,
   "required": [
     "SchemaVersion",
+    "PublicTenantKey",
     "TenantAlias",
     "DisplayName",
     "TenantId",
@@ -24,6 +25,10 @@
     "SchemaVersion": {
       "type": "string",
       "const": "1.0"
+    },
+    "PublicTenantKey": {
+      "type": "string",
+      "pattern": "^tenant[1-9][0-9]*$"
     },
     "TenantAlias": {
       "type": "string",

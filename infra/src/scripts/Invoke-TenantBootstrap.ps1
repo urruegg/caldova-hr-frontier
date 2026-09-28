@@ -1,9 +1,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidatePattern('^[a-z0-9]+$')]
-    [string]$TenantAlias,
+    [ValidatePattern('^tenant[1-9][0-9]*$')]
+    [string]$PublicTenantKey,
 
+    [Parameter(Mandatory)]
     [string]$TenantConfigurationPath,
 
     [Parameter(Mandatory)]
@@ -19,8 +20,7 @@ param(
     [bool]$ConfirmRoleCleanup,
 
     [Parameter(Mandatory)]
-    [ValidatePattern('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')]
-    [string]$BootstrapRunId,
+    [guid]$BootstrapRunId,
 
     [Parameter(Mandatory)]
     [ValidateCount(2, 2)]
@@ -35,7 +35,7 @@ param(
     [scriptblock]$IntentValidator,
 
     [Parameter(DontShow)]
-    [scriptblock]$OidcContextValidator,
+    [scriptblock]$AttendedUserContextValidator,
 
     [Parameter(DontShow)]
     [scriptblock]$BicepValidator,
@@ -60,10 +60,8 @@ function Get-ModuleManifestPath {
     Join-Path $PSScriptRoot 'modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
 }
 
-function Get-DefaultTenantConfigurationPath {
-    param([string]$TenantAliasValue)
-
-    Join-Path $PSScriptRoot "..\config\tenants\$TenantAliasValue.psd1"
+function Get-RepositoryRoot {
+    [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 }
 
 function Get-BicepEntryPath {
@@ -165,30 +163,27 @@ function Get-DefaultDiscoveryEvidence {
     $evidence
 }
 
-function Test-DefaultOidcContext {
+function Get-DefaultAttendedUserPrincipal {
     param([object]$TenantConfiguration)
 
     $account = Invoke-NativeJsonCommand -FilePath 'az' -ArgumentList @('account', 'show', '--output', 'json')
-    if ([string]$account.user.type -cne 'servicePrincipal') {
-        throw 'Bootstrap requires a service-principal OIDC context.'
+    if ([string]$account.user.type -cne 'user') {
+        throw 'Bootstrap requires an attended user context.'
     }
     if ([string]$account.tenantId -cne [string]$TenantConfiguration.TenantId) {
-        throw 'OIDC tenant does not match the reviewed tenant manifest.'
+        throw 'Attended user tenant does not match the reviewed tenant manifest.'
     }
     if ([string]$account.id -cne [string]$TenantConfiguration.SubscriptionId) {
-        throw 'OIDC subscription does not match the reviewed tenant manifest.'
-    }
-    if ([string]::IsNullOrWhiteSpace([string]$env:AZURE_TENANT_ID) -or [string]$env:AZURE_TENANT_ID -cne [string]$account.tenantId) {
-        throw 'AZURE_TENANT_ID must match the observed az account tenant.'
-    }
-    if ([string]::IsNullOrWhiteSpace([string]$env:AZURE_SUBSCRIPTION_ID) -or [string]$env:AZURE_SUBSCRIPTION_ID -cne [string]$account.id) {
-        throw 'AZURE_SUBSCRIPTION_ID must match the observed az account subscription.'
+        throw 'Attended user subscription does not match the reviewed tenant manifest.'
     }
 
-    $observedClientId = [string]$account.user.name
-    if ([string]::IsNullOrWhiteSpace([string]$env:AZURE_CLIENT_ID) -or [string]::IsNullOrWhiteSpace($observedClientId) -or [string]$env:AZURE_CLIENT_ID -cne $observedClientId) {
-        throw 'AZURE_CLIENT_ID must match the observed service-principal client id.'
+    $caller = Invoke-NativeJsonCommand -FilePath 'az' -ArgumentList @('ad', 'signed-in-user', 'show', '--output', 'json')
+    $principalObjectId = [string]$caller.id
+    if ($principalObjectId -cnotmatch '^[0-9a-fA-F-]{36}$') {
+        throw 'Signed-in user discovery did not return a GUID object id.'
     }
+
+    $principalObjectId
 }
 
 function Get-ValidatedRoleState {
@@ -219,9 +214,9 @@ function Get-ValidatedRoleState {
     }
     [datetime]::Parse([string]$roleState.CreatedUtc).ToUniversalTime() | Out-Null
 
-    $expectedPrincipalObjectId = [string]$TenantConfiguration.Components.EntraServicePrincipal.Id
-    if ([string]$roleState.PrincipalObjectId -cne $expectedPrincipalObjectId) {
-        throw 'TemporaryRoleState.PrincipalObjectId must match the reviewed tenant manifest.'
+    $expectedPrincipalObjectId = [string]$roleState.PrincipalObjectId
+    if ($expectedPrincipalObjectId -cnotmatch '^[0-9a-fA-F-]{36}$') {
+        throw 'TemporaryRoleState.PrincipalObjectId must be a GUID.'
     }
 
     $expectedScope = "/subscriptions/$([string]$TenantConfiguration.SubscriptionId)"
@@ -353,16 +348,20 @@ function Test-DefaultBicepInputs {
 
 Import-Module (Get-ModuleManifestPath) -Force
 
-$resolvedTenantConfigurationPath = if ([string]::IsNullOrWhiteSpace($TenantConfigurationPath)) {
-    Get-DefaultTenantConfigurationPath -TenantAliasValue $TenantAlias
-}
-else {
-    [System.IO.Path]::GetFullPath($TenantConfigurationPath)
-}
-
+$repositoryRoot = Get-RepositoryRoot
+$resolvedTenantConfigurationPath = [System.IO.Path]::GetFullPath($TenantConfigurationPath)
 $resolvedEvidencePath = [System.IO.Path]::GetFullPath($EvidencePath)
 $resolvedParameterFile = [System.IO.Path]::GetFullPath($ParameterFile)
 $resolvedTemporaryRoleStatePath = [System.IO.Path]::GetFullPath($TemporaryRoleStatePath)
+
+$normalizedRepositoryRoot = $repositoryRoot.TrimEnd('\')
+$repositoryPrefix = $normalizedRepositoryRoot + '\'
+foreach ($privateRunPath in @($resolvedEvidencePath, $resolvedParameterFile, $resolvedTemporaryRoleStatePath)) {
+    if ($privateRunPath.TrimEnd('\') -ieq $normalizedRepositoryRoot -or
+        $privateRunPath.StartsWith($repositoryPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw 'EvidencePath, ParameterFile, and TemporaryRoleStatePath must resolve outside the repository.'
+    }
+}
 
 foreach ($requiredPath in @($resolvedTenantConfigurationPath, $resolvedEvidencePath, $resolvedParameterFile, $resolvedTemporaryRoleStatePath)) {
     if (-not (Test-Path -LiteralPath $requiredPath)) {
@@ -370,7 +369,11 @@ foreach ($requiredPath in @($resolvedTenantConfigurationPath, $resolvedEvidenceP
     }
 }
 
-$tenantConfiguration = Import-TenantConfiguration -Path $resolvedTenantConfigurationPath -ValidationStage 'Bootstrap'
+$tenantConfiguration = Import-TenantConfiguration `
+    -Path $resolvedTenantConfigurationPath `
+    -ValidationStage Bootstrap `
+    -ExpectedPublicTenantKey $PublicTenantKey `
+    -RequireLocalUntracked
 
 if (-not $ConfirmRoleCleanup) {
     throw 'ConfirmRoleCleanup must be true before temporary role cleanup can be orchestrated.'
@@ -378,16 +381,14 @@ if (-not $ConfirmRoleCleanup) {
 
 $effectiveDiscoveryValidator = if ($DiscoveryEvidenceValidator) { $DiscoveryEvidenceValidator } else { { param([string]$Path) Get-DefaultDiscoveryEvidence -Path $Path } }
 $effectiveIntentValidator = if ($IntentValidator) { $IntentValidator } else { $null }
-$effectiveOidcContextValidator = if ($OidcContextValidator) { $OidcContextValidator } else { $null }
+$effectiveAttendedUserContextValidator = if ($AttendedUserContextValidator) { $AttendedUserContextValidator } else { $null }
 $effectiveBicepValidator = if ($BicepValidator) { $BicepValidator } else { $null }
 $effectiveRoleStateLoader = if ($RoleStateLoader) { $RoleStateLoader } else { $null }
 $effectiveWhatIfBoundaryValidator = if ($WhatIfBoundaryValidator) { $WhatIfBoundaryValidator } else { { param([string]$Path, [string]$PrincipalObjectId) & (Get-WhatIfValidatorPath) -WhatIfPayloadPath $Path -ExpectedPrincipalObjectId $PrincipalObjectId | Out-Null } }
 $cleanupNativeRunner = $NativeCommandRunner
 $cleanupExpectedRunId = $BootstrapRunId
 $cleanupApprovedRoleAssignmentIds = @($ApprovedRoleAssignmentIds)
-$cleanupExpectedPrincipalObjectId = [string]$tenantConfiguration.Components.EntraServicePrincipal.Id
 $cleanupExpectedScope = "/subscriptions/$([string]$tenantConfiguration.SubscriptionId)"
-$effectiveCleanupRunner = if ($CleanupRunner) { $CleanupRunner } else { { param([object]$RoleState) Remove-TemporaryRoleAssignments -BootstrapResult $RoleState -ExpectedRunId $cleanupExpectedRunId -ApprovedRoleAssignmentIds $cleanupApprovedRoleAssignmentIds -ExpectedPrincipalObjectId $cleanupExpectedPrincipalObjectId -ExpectedScope $cleanupExpectedScope -NativeCommandRunner $cleanupNativeRunner -Confirm:$false | Out-Null }.GetNewClosure() }
 
 $discoveryEvidence = & $effectiveDiscoveryValidator $resolvedEvidencePath
 if ($effectiveIntentValidator) {
@@ -397,11 +398,11 @@ else {
     Test-TenantIntent -TenantConfiguration $tenantConfiguration -Evidence $discoveryEvidence | Out-Null
 }
 
-if ($effectiveOidcContextValidator) {
-    & $effectiveOidcContextValidator $tenantConfiguration
+$attendedPrincipalObjectId = if ($effectiveAttendedUserContextValidator) {
+    & $effectiveAttendedUserContextValidator $tenantConfiguration
 }
 else {
-    Test-DefaultOidcContext -TenantConfiguration $tenantConfiguration
+    Get-DefaultAttendedUserPrincipal -TenantConfiguration $tenantConfiguration
 }
 
 $roleState = if ($effectiveRoleStateLoader) {
@@ -411,7 +412,17 @@ else {
     Get-ValidatedRoleState -Path $resolvedTemporaryRoleStatePath -TenantConfiguration $tenantConfiguration
 }
 
+if ([string]::IsNullOrWhiteSpace([string]$attendedPrincipalObjectId)) {
+    $attendedPrincipalObjectId = [string]$roleState.PrincipalObjectId
+}
+if ([string]$roleState.PrincipalObjectId -cne [string]$attendedPrincipalObjectId) {
+    throw 'TemporaryRoleState.PrincipalObjectId must match the attended signed-in user.'
+}
+
 Assert-ReviewedCleanupApproval -RoleState $roleState -ExpectedRunId $BootstrapRunId -ApprovedAssignmentIds $ApprovedRoleAssignmentIds -ExpectedScope $cleanupExpectedScope
+
+$cleanupExpectedPrincipalObjectId = [string]$roleState.PrincipalObjectId
+$effectiveCleanupRunner = if ($CleanupRunner) { $CleanupRunner } else { { param([object]$RoleState) Remove-TemporaryRoleAssignments -BootstrapResult $RoleState -ExpectedRunId $cleanupExpectedRunId -ApprovedRoleAssignmentIds $cleanupApprovedRoleAssignmentIds -ExpectedPrincipalObjectId $cleanupExpectedPrincipalObjectId -ExpectedScope $cleanupExpectedScope -NativeCommandRunner $cleanupNativeRunner -Confirm:$false | Out-Null }.GetNewClosure() }
 
 $originalError = $null
 $cleanupError = $null
@@ -434,7 +445,7 @@ try {
         'sub',
         'what-if',
         '--location', 'switzerlandnorth',
-        '--name', ("whatif-{0}-{1}" -f $TenantAlias, $whatIfNameToken),
+        '--name', ("whatif-{0}-{1}" -f ([string]$tenantConfiguration.TenantAlias), $whatIfNameToken),
         '--template-file', ([System.IO.Path]::GetFullPath((Get-BicepEntryPath))),
         '--parameters', $resolvedParameterFile,
         '--result-format', 'FullResourcePayloads',
@@ -478,7 +489,7 @@ if ($cleanupError) {
 }
 
 [pscustomobject]@{
-    TenantAlias = $TenantAlias
+    TenantAlias = [string]$tenantConfiguration.TenantAlias
     WhatIfOnly = $true
     TemporaryRoleStatePath = $resolvedTemporaryRoleStatePath
 }

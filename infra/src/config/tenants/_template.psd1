@@ -1,6 +1,7 @@
 # Non-secret reviewed tenant configuration template.
 @{
     SchemaVersion = '1.0'
+    PublicTenantKey = 'tenant1'
     TenantAlias = 'example123456'
     DisplayName = 'Example123456'
     TenantId = '11111111-1111-1111-1111-111111111111'

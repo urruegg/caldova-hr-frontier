@@ -4,7 +4,47 @@ Describe 'Tenant 2 SharePoint discovery' {
     BeforeAll {
         $script:RepositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
         $script:ModuleManifestPath = Join-Path $script:RepositoryRoot 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
-        $script:TenantManifestPath = Join-Path $script:RepositoryRoot 'infra\src\config\tenants\caldova25668747.psd1'
+        $script:TenantManifestPath = Join-Path $TestDrive 'tenant2.psd1'
+        $tenantManifestContent = @'
+@{
+    SchemaVersion = '1.0'
+    PublicTenantKey = 'tenant2'
+    TenantAlias = 'caldova25668747'
+    DisplayName = 'Caldova25668747'
+    TenantId = '4682b8db-586c-4602-ad98-d29e4018fd5b'
+    AdminUpn = 'admin@caldova25668747.onmicrosoft.com'
+    SubscriptionId = 'c097a50e-bfe0-487f-bffe-22d7695caadd'
+    PrimaryLocation = 'switzerlandnorth'
+    CompanyTla = 'cal'
+    WorkloadName = 'hr-agentic'
+    UniqueSuffix = 'zenpnq'
+    NamingRoot = 'cal-hr-agentic-zenpnq'
+    LifecycleState = 'DiscoveryRequired'
+    GitHub = @{
+        Owner = 'urruegg'
+        OwnerId = '46865858'
+        Repository = 'caldova-hr-frontier'
+        RepositoryId = '1371297722'
+        EnvironmentName = 'bootstrap-caldova25668747'
+    }
+    AzureDevOps = @{
+        OrganizationUrl = 'https://dev.azure.com/Caldova25668747/'
+        ProjectName = 'FrontierHR'
+    }
+    PowerPlatform = @{
+        DevUrl = 'https://calhrfrontierdev.crm17.dynamics.com/'
+        TestUrl = 'https://calhrfrontiertest.crm17.dynamics.com/'
+        ProdUrl = 'https://calhrfrontier.crm17.dynamics.com/'
+    }
+    SharePoint = @{
+        DevUrl = 'https://caldova25668747.sharepoint.com/sites/HRFrontierDEV'
+        TestUrl = 'https://caldova25668747.sharepoint.com/sites/HRFrontierTEST'
+        ProdUrl = 'https://caldova25668747.sharepoint.com/sites/HRFrontier'
+    }
+    Components = @{}
+}
+'@
+        [System.IO.File]::WriteAllText($script:TenantManifestPath, $tenantManifestContent, [System.Text.UTF8Encoding]::new($false))
         $script:TenantConfiguration = [pscustomobject]@{
             TenantAlias = 'caldova25668747'
             TenantId = '4682b8db-586c-4602-ad98-d29e4018fd5b'
@@ -19,7 +59,8 @@ Describe 'Tenant 2 SharePoint discovery' {
     }
 
     It 'accepts the reviewed Tenant 2 manifest and SharePoint URLs' {
-        $configuration = Import-TenantConfiguration -Path $script:TenantManifestPath -ValidationStage Discovery
+        $configuration = Import-TenantConfiguration -Path $script:TenantManifestPath -ValidationStage Discovery `
+            -ExpectedPublicTenantKey tenant2
 
         $configuration.TenantAlias | Should -BeExactly 'caldova25668747'
         $configuration.DisplayName | Should -BeExactly 'Caldova25668747'
@@ -51,7 +92,7 @@ Describe 'Tenant 2 SharePoint discovery' {
         )
         [System.IO.File]::WriteAllText($alteredPath, $alteredContent, [System.Text.UTF8Encoding]::new($false))
 
-        { Import-TenantConfiguration -Path $alteredPath -ValidationStage Discovery } |
+        { Import-TenantConfiguration -Path $alteredPath -ValidationStage Discovery -ExpectedPublicTenantKey tenant2 } |
             Should -Throw '*exact reviewed Tenant 2 sites*'
     }
 
@@ -61,7 +102,7 @@ Describe 'Tenant 2 SharePoint discovery' {
         $alteredContent = $content -replace "(?ms)^    SharePoint = @\{\r?\n.*?^    \}\r?\n(?=    Components)", ''
         [System.IO.File]::WriteAllText($alteredPath, $alteredContent, [System.Text.UTF8Encoding]::new($false))
 
-        { Import-TenantConfiguration -Path $alteredPath -ValidationStage Discovery } |
+        { Import-TenantConfiguration -Path $alteredPath -ValidationStage Discovery -ExpectedPublicTenantKey tenant2 } |
             Should -Throw '*requires the reviewed SharePoint sites*'
     }
 

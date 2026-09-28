@@ -475,3 +475,6 @@ testResults.xml
 
 # Local linked worktrees
 .worktrees/
+
+# Private tenant configuration — local operator-owned, never tracked
+infra/src/config/tenants/*.local.psd1

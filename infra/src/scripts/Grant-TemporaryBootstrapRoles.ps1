@@ -1,11 +1,13 @@
 [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
 param(
     [Parameter(Mandatory)]
-    [ValidatePattern('^[a-z0-9]+$')]
-    [string]$TenantAlias,
+    [ValidatePattern('^tenant[1-9][0-9]*$')]
+    [string]$PublicTenantKey,
 
+    [Parameter(Mandatory)]
     [string]$TenantConfigurationPath,
 
+    [Parameter(Mandatory)]
     [string]$OutputPath,
 
     [Parameter(DontShow)]
@@ -27,19 +29,6 @@ function Get-RepositoryRoot {
 
 function Get-ModuleManifestPath {
     Join-Path $PSScriptRoot 'modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
-}
-
-function Get-DefaultTenantConfigurationPath {
-    param([string]$TenantAliasValue)
-
-    Join-Path $PSScriptRoot "..\config\tenants\$TenantAliasValue.psd1"
-}
-
-function Get-DefaultOutputPath {
-    param([string]$TenantAliasValue)
-
-    $basePath = if (-not [string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { $env:RUNNER_TEMP } else { [System.IO.Path]::GetTempPath() }
-    Join-Path $basePath ("bootstrap-result-{0}.json" -f $TenantAliasValue)
 }
 
 function ConvertTo-OrderedDictionary {
@@ -168,24 +157,35 @@ function Invoke-AzOperation {
 
 Import-Module (Get-ModuleManifestPath) -Force
 
-$resolvedTenantConfigurationPath = if ([string]::IsNullOrWhiteSpace($TenantConfigurationPath)) {
-    Get-DefaultTenantConfigurationPath -TenantAliasValue $TenantAlias
-}
-else {
-    [System.IO.Path]::GetFullPath($TenantConfigurationPath)
-}
-
-$resolvedOutputPath = if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-    Get-DefaultOutputPath -TenantAliasValue $TenantAlias
-}
-else {
-    [System.IO.Path]::GetFullPath($OutputPath)
+$repositoryRoot = Get-RepositoryRoot
+$resolvedOutputPath = [System.IO.Path]::GetFullPath($OutputPath)
+$normalizedRepositoryRoot = $repositoryRoot.TrimEnd('\')
+$repositoryPrefix = $normalizedRepositoryRoot + '\'
+if ($resolvedOutputPath.TrimEnd('\') -ieq $normalizedRepositoryRoot -or
+    $resolvedOutputPath.StartsWith($repositoryPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw 'OutputPath must resolve outside the repository.'
 }
 
-$tenantConfiguration = Import-TenantConfiguration -Path $resolvedTenantConfigurationPath -ValidationStage 'Bootstrap'
-$principalObjectId = [string]$tenantConfiguration.Components.EntraServicePrincipal.Id
-if ([string]::IsNullOrWhiteSpace($principalObjectId)) {
-    throw 'Components.EntraServicePrincipal.Id is required for temporary bootstrap grants.'
+$tenantConfiguration = Import-TenantConfiguration `
+    -Path ([System.IO.Path]::GetFullPath($TenantConfigurationPath)) `
+    -ValidationStage Bootstrap `
+    -ExpectedPublicTenantKey $PublicTenantKey `
+    -RequireLocalUntracked
+
+$account = Invoke-NativeJsonCommand -ArgumentList @('account', 'show', '--output', 'json')
+if ([string]$account.user.type -cne 'user') {
+    throw 'Temporary role operations require an attended user context.'
+}
+if ([string]$account.tenantId -cne [string]$tenantConfiguration.TenantId) {
+    throw 'Signed-in tenant does not match the reviewed tenant manifest.'
+}
+if ([string]$account.id -cne [string]$tenantConfiguration.SubscriptionId) {
+    throw 'Signed-in subscription does not match the reviewed tenant manifest.'
+}
+$caller = Invoke-NativeJsonCommand -ArgumentList @('ad', 'signed-in-user', 'show', '--output', 'json')
+$principalObjectId = [string]$caller.id
+if ($principalObjectId -cnotmatch '^[0-9a-fA-F-]{36}$') {
+    throw 'Signed-in user discovery did not return a GUID object id.'
 }
 
 $subscriptionId = [string]$tenantConfiguration.SubscriptionId
@@ -203,24 +203,7 @@ if (-not [guid]::TryParse([string]$runId, [ref]([guid]::Empty))) {
 $roleNames = @('Contributor', 'Role Based Access Control Administrator')
 $assignments = @()
 if (-not $AzRequest) {
-    $account = Invoke-NativeJsonCommand -ArgumentList @('account', 'show', '--output', 'json')
-    if ([string]$account.tenantId -cne [string]$tenantConfiguration.TenantId) {
-        throw 'Signed-in tenant does not match the reviewed tenant manifest.'
-    }
-    if ([string]$account.id -cne $subscriptionId) {
-        throw 'Signed-in subscription does not match the reviewed tenant manifest.'
-    }
-    if ([string]$account.user.type -cne 'user' -or [string]$account.user.name -ine [string]$tenantConfiguration.AdminUpn) {
-        throw 'Temporary bootstrap grants require the reviewed attended administrator user context.'
-    }
-
-    $caller = Invoke-NativeJsonCommand -ArgumentList @('ad', 'signed-in-user', 'show', '--output', 'json')
-    $callerObjectId = [string]$caller.id
-    if ([string]::IsNullOrWhiteSpace($callerObjectId)) {
-        throw 'Native caller discovery did not return an object id.'
-    }
-
-    $callerAssignments = @(Invoke-NativeJsonCommand -ArgumentList @('role', 'assignment', 'list', '--assignee-object-id', $callerObjectId, '--scope', $scope, '--output', 'json'))
+    $callerAssignments = @(Invoke-NativeJsonCommand -ArgumentList @('role', 'assignment', 'list', '--assignee-object-id', $principalObjectId, '--scope', $scope, '--output', 'json'))
     $hasEligibleRole = $false
     foreach ($assignment in $callerAssignments) {
         $roleDefinitionName = [string]$assignment.roleDefinitionName
@@ -296,7 +279,7 @@ foreach ($roleName in $roleNames) {
         $created = Invoke-NativeJsonCommand -ArgumentList @(
             'role', 'assignment', 'create',
             '--assignee-object-id', $principalObjectId,
-            '--assignee-principal-type', 'ServicePrincipal',
+            '--assignee-principal-type', 'User',
             '--role', $roleDefinitionId,
             '--scope', $scope,
             '--output', 'json'
@@ -334,7 +317,7 @@ foreach ($roleName in $roleNames) {
         (-not [string]::IsNullOrWhiteSpace($expectedAssignmentId) -and $assignmentId -cne $expectedAssignmentId) -or
         $assignmentRoleDefinitionId -cne $roleDefinitionId -or
         $assignmentPrincipalObjectId -cne $principalObjectId -or
-        (-not [string]::IsNullOrWhiteSpace($expectedAssignmentId) -and $assignmentPrincipalType -cne 'ServicePrincipal') -or
+        (-not [string]::IsNullOrWhiteSpace($expectedAssignmentId) -and $assignmentPrincipalType -cne 'User') -or
         $assignmentScope -cne $scope
     ) {
         throw "Temporary assignment read-back for $roleName does not match the exact assignment id, reviewed principal and type, pinned role definition, and scope."

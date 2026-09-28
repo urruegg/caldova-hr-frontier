@@ -4,6 +4,9 @@ param(
     [ValidatePattern('^[a-z0-9]+$')]
     [string]$TenantAlias,
 
+    [ValidatePattern('^tenant[1-9][0-9]*$')]
+    [string]$PublicTenantKey = 'tenant1',
+
     [string]$TenantConfigurationPath,
 
     [Parameter(Mandatory)]
@@ -117,7 +120,8 @@ if (-not $resolvedRunDirectory.Equals($runDirectory,[StringComparison]::OrdinalI
 $tenantPath = if ([string]::IsNullOrWhiteSpace($TenantConfigurationPath)) {
     Join-Path $repositoryRoot "infra\src\config\tenants\$TenantAlias.psd1"
 } else {[IO.Path]::GetFullPath($TenantConfigurationPath)}
-$tenant = Import-TenantConfiguration -Path $tenantPath -ValidationStage Bootstrap
+$tenant = Import-TenantConfiguration -Path $tenantPath -ValidationStage Bootstrap `
+    -ExpectedPublicTenantKey $PublicTenantKey
 $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
 $assessment = Get-Content -Raw -LiteralPath $assessmentFile | ConvertFrom-Json
 if ([string]$manifest.digest -cne $ApprovedDigest) { throw 'Approved digest does not match the execution manifest.' }

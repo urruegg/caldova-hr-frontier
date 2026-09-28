@@ -4,6 +4,9 @@ param(
     [ValidatePattern('^[a-z0-9]+$')]
     [string]$TenantAlias,
 
+    [ValidatePattern('^tenant[1-9][0-9]*$')]
+    [string]$PublicTenantKey = 'tenant1',
+
     [string]$TenantConfigurationPath,
 
     [Parameter(DontShow)]
@@ -1286,7 +1289,8 @@ else {
     [System.IO.Path]::GetFullPath($TenantConfigurationPath)
 }
 
-$configuration = Import-TenantConfiguration -Path $resolvedConfigurationPath -ValidationStage Bootstrap
+$configuration = Import-TenantConfiguration -Path $resolvedConfigurationPath -ValidationStage Bootstrap `
+    -ExpectedPublicTenantKey $PublicTenantKey
 
 if (-not $AzureDevOpsRequest) {
     $AzureDevOpsRequest = New-DefaultAzureDevOpsRequest -HttpRunner $HttpRequestRunner -NativeRunner $NativeCommandRunner -OrganizationUrl ([string]$configuration.AzureDevOps.OrganizationUrl) -ProjectName ([string]$configuration.AzureDevOps.ProjectName)

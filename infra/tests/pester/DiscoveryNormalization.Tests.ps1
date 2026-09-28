@@ -216,14 +216,13 @@ Describe 'Discovery normalization' {
                 [string[]]$ExtraArguments = @()
             )
 
-            $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+            $tempRoot = Join-Path $TestDrive ([System.Guid]::NewGuid().ToString())
             $repoRoot = Join-Path $tempRoot 'repo'
             [System.IO.Directory]::CreateDirectory($repoRoot) | Out-Null
             foreach ($relativePath in @(
                 'infra\src\scripts\Invoke-TenantDiscovery.ps1',
                 'infra\src\config\schemas\tenant.schema.json',
                 'infra\src\config\schemas\discovery.schema.json',
-                'infra\src\config\tenants\caldova25156897.psd1',
                 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1',
                 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psm1',
                 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Private',
@@ -242,6 +241,56 @@ Describe 'Discovery normalization' {
                 }
                 Copy-Item -LiteralPath $sourcePath -Destination $targetPath -Force
             }
+
+            [System.IO.File]::WriteAllText(
+                (Join-Path $repoRoot '.gitignore'),
+                "infra/src/config/tenants/*.local.psd1$([Environment]::NewLine)",
+                [System.Text.UTF8Encoding]::new($false)
+            )
+            & git -C $repoRoot init --quiet
+            if ($LASTEXITCODE -ne 0) {
+                throw 'Could not initialize the isolated discovery repository.'
+            }
+
+            $tenantConfigurationPath = Join-Path $repoRoot 'infra\src\config\tenants\tenant1.local.psd1'
+            [void](New-Item -ItemType Directory -Path (Split-Path -Parent $tenantConfigurationPath) -Force)
+            $tenantConfigurationContent = @'
+@{
+    SchemaVersion = '1.0'
+    PublicTenantKey = 'tenant1'
+    TenantAlias = 'caldova25156897'
+    DisplayName = 'Caldova25156897'
+    TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
+    AdminUpn = 'admin@Caldova25156897.onmicrosoft.com'
+    SubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
+    PrimaryLocation = 'switzerlandnorth'
+    CompanyTla = 'cal'
+    WorkloadName = 'hr-agentic'
+    UniqueSuffix = 'bc8rbt'
+    NamingRoot = 'cal-hr-agentic-bc8rbt'
+    LifecycleState = 'IntentReviewed'
+    GitHub = @{
+        Owner = 'urruegg'
+        OwnerId = '46865858'
+        Repository = 'caldova-hr-frontier'
+        RepositoryId = '1371297722'
+        EnvironmentName = 'bootstrap-caldova25156897'
+    }
+    AzureDevOps = @{
+        OrganizationUrl = 'https://dev.azure.com/caldova25156897/'
+        ProjectName = 'Caldova HR Frontier'
+    }
+    PowerPlatform = @{
+        DevUrl = 'https://hrfrontierdev.crm17.dynamics.com/'
+        TestUrl = 'https://hrfrontiertest.crm17.dynamics.com/'
+        ProdUrl = 'https://hrfrontier.crm17.dynamics.com/'
+    }
+    Components = @{
+        GitHubRepository = @{ Mode = 'Existing'; Id = '1371297722' }
+    }
+}
+'@
+            [System.IO.File]::WriteAllText($tenantConfigurationPath, $tenantConfigurationContent, [System.Text.UTF8Encoding]::new($false))
 
             $evidenceDirectory = Join-Path $repoRoot 'infra\evidence\discovery'
             [System.IO.Directory]::CreateDirectory($evidenceDirectory) | Out-Null
@@ -310,7 +359,8 @@ function Get-AzureDevOpsDiscovery {
                 '-NoProfile',
                 '-ExecutionPolicy', 'Bypass',
                 '-File', (Join-Path $repoRoot 'infra\src\scripts\Invoke-TenantDiscovery.ps1'),
-                '-TenantAlias', 'caldova25156897',
+                '-PublicTenantKey', 'tenant1',
+                '-TenantConfigurationPath', $tenantConfigurationPath,
                 '-AuthenticationMode', 'ExistingContext',
                 '-PowerPlatformProbePath', $probePath,
                 '-ContextAccountPath', $contextAccountPath
@@ -318,7 +368,14 @@ function Get-AzureDevOpsDiscovery {
             if ($ExtraArguments -notcontains '-OutputPath') {
                 $argumentList += @('-OutputPath', $outputPath)
             }
-            $argumentList += $ExtraArguments
+            $argumentList += @($ExtraArguments | ForEach-Object {
+                if ($_ -ceq '__REPOSITORY_OUTPUT__') {
+                    Join-Path $repoRoot 'forbidden-output.json'
+                }
+                else {
+                    $_
+                }
+            })
 
             $envBackup = @{}
             foreach ($entry in $Environment.GetEnumerator()) {
@@ -339,6 +396,7 @@ function Get-AzureDevOpsDiscovery {
                     BaselinePath = Join-Path $repoRoot 'infra\evidence\discovery\caldova25156897.json'
                     NativeLogPath = $nativeLogPath
                     ContextAccountPath = $contextAccountPath
+                    TenantConfigurationPath = $tenantConfigurationPath
                     RepositoryRoot = $repoRoot
                 }
             }
@@ -1684,7 +1742,7 @@ function Get-AzureDevOpsDiscovery {
             AZURE_CLIENT_ID = 'bootstrap-client-id-0001'
             AZURE_TENANT_ID = $script:TenantConfiguration.TenantId
             AZURE_SUBSCRIPTION_ID = $script:TenantConfiguration.SubscriptionId
-        } -ExtraArguments @('-OutputPath', (Join-Path $script:RepositoryRoot 'forbidden-output.json')) -BeforeRun {
+        } -ExtraArguments @('-OutputPath', '__REPOSITORY_OUTPUT__') -BeforeRun {
             param($RepoRoot, $ProbePath, $OutputPath, $NativeLogPath)
             [System.IO.File]::WriteAllText($ProbePath, ((New-ProbeRecords) | ConvertTo-Json -Depth 10), [System.Text.UTF8Encoding]::new($false))
             $baseline = New-BaselineEvidence
@@ -1701,7 +1759,7 @@ function Get-AzureDevOpsDiscovery {
         }
 
         $unsafeOutput.ExitCode | Should -Not -Be 0
-        $unsafeOutput.StdErr | Should -Match 'temporary directory'
+        $unsafeOutput.StdErr | Should -Match 'outside the repository'
 
         $overwriteRefused = Invoke-DiscoveryEntryPointIsolated -Environment @{
             AZURE_CLIENT_ID = 'bootstrap-client-id-0001'
@@ -1812,5 +1870,27 @@ function Get-AzureDevOpsDiscovery {
         finally {
             $global:LASTEXITCODE = $previousExitCode
         }
+    }
+
+    It 'requires the public tenant key local configuration and external discovery output' {
+        $tokens = $null
+        $parseErrors = $null
+        $entryPointAst = [System.Management.Automation.Language.Parser]::ParseFile($script:DiscoveryEntryPointPath, [ref]$tokens, [ref]$parseErrors)
+        $parseErrors.Count | Should -Be 0
+
+        $parameters = @{}
+        foreach ($parameter in $entryPointAst.ParamBlock.Parameters) {
+            $parameters[$parameter.Name.VariablePath.UserPath] = $parameter
+        }
+
+        foreach ($name in @('PublicTenantKey', 'TenantConfigurationPath', 'OutputPath')) {
+            $parameters.ContainsKey($name) | Should -BeTrue
+            @($parameters[$name].Attributes | Where-Object {
+                $_ -is [System.Management.Automation.Language.AttributeAst] -and
+                $_.TypeName.FullName -ceq 'Parameter' -and
+                $_.NamedArguments.ArgumentName -contains 'Mandatory'
+            }).Count | Should -Be 1
+        }
+        $parameters.ContainsKey('TenantAlias') | Should -BeFalse
     }
 }
