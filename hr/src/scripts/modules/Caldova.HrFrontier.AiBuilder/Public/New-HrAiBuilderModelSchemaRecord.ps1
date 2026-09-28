@@ -42,7 +42,7 @@ function New-HrAiBuilderModelSchemaRecord {
                 }
             }
         )
-        source_evidence_path = $SourceEvidencePath
+        source_evidence_path = Convert-HrAiBuilderPortableLocator -Path $SourceEvidencePath -RootPath (Split-Path -Parent ([IO.Path]::GetFullPath($OutputPath))) -Description 'Model schema source evidence'
         source_evidence_sha256 = Get-HrAiBuilderFileSha256 -Path $SourceEvidencePath
     }
 

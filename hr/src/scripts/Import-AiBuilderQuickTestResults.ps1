@@ -162,29 +162,6 @@ function Test-ImportOrdinalEquals {
     return [string]::Equals([string]$Left, [string]$Right, [System.StringComparison]::Ordinal)
 }
 
-function Set-ImportCaptureAdapterMetadata {
-    param(
-        [Parameter(Mandatory)][object]$PredictionCapture,
-        [Parameter(Mandatory)][string]$AdapterScriptPath
-    )
-
-    $metadataValues = [ordered]@{
-        adapter_script_path = $AdapterScriptPath
-        adapter_script_sha256 = Get-ImportFileSha256 -Path $AdapterScriptPath
-    }
-
-    foreach ($property in $metadataValues.GetEnumerator()) {
-        if ($PredictionCapture.PSObject.Properties.Name.Contains($property.Key)) {
-            $PredictionCapture.$($property.Key) = $property.Value
-        }
-        else {
-            $PredictionCapture | Add-Member -NotePropertyName $property.Key -NotePropertyValue $property.Value
-        }
-    }
-
-    return $PredictionCapture
-}
-
 function Compare-ImportPredictionCapture {
     param(
         [Parameter(Mandatory)][object]$Expected,
@@ -327,7 +304,7 @@ function Test-ImportAdapterReplay {
 
     try {
         $replayedCapture = Read-ImportJson -Path $replayPath -Description 'Replayed prediction capture'
-        Set-ImportCaptureAdapterMetadata -PredictionCapture $replayedCapture -AdapterScriptPath $adapterScriptPath | Out-Null
+        Set-HrAiBuilderPredictionCaptureAdapterMetadata -PredictionCapture $replayedCapture -AdapterScriptPath $adapterScriptPath | Out-Null
     }
     catch {
         return $false
@@ -473,7 +450,7 @@ try {
         -OutputPath $temporaryCapturePath
 
     $predictionCapture = Read-ImportJson -Path $temporaryCapturePath -Description 'Prediction capture'
-    Set-ImportCaptureAdapterMetadata -PredictionCapture $predictionCapture -AdapterScriptPath ([IO.Path]::GetFullPath($AdapterScriptPath)) | Out-Null
+    Set-HrAiBuilderPredictionCaptureAdapterMetadata -PredictionCapture $predictionCapture -AdapterScriptPath $AdapterScriptPath | Out-Null
     Test-ImportPredictionCapture -PredictionCapture $predictionCapture `
         -RunManifest $runManifest `
         -ModelSchemaRecord $modelSchemaRecord `

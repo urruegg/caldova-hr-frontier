@@ -298,7 +298,9 @@ try {
         -ModelSchemaRecord $modelSchemaRecord `
         -RunManifest $runManifest `
         -PredictionCapture $predictionCapture `
-        -ValidationRecords $validationRecords
+        -ValidationRecords $validationRecords `
+        -PackageRootPath (Split-Path -Parent ([IO.Path]::GetFullPath($GroundTruthPath))) `
+        -EvidenceContextPath (Split-Path -Parent ([IO.Path]::GetFullPath($ModelSchemaRecordPath)))
 
     New-Item -ItemType Directory -Force -Path $EvidenceDirectory | Out-Null
     $modelSuffix = if ([string]$manifestModel.model_kind -eq 'Fixed') { 'fixed' } else { 'general' }

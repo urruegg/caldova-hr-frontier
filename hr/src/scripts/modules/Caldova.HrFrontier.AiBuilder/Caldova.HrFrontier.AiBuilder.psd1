@@ -19,6 +19,7 @@
         'ConvertTo-HrAiBuilderNormalizedValue',
         'Measure-HrAiBuilderEvaluation',
         'New-HrAiBuilderModelSchemaRecord',
+        'Set-HrAiBuilderPredictionCaptureAdapterMetadata',
         'Test-HrAiBuilderStrictGates'
     )
     CmdletsToExport = @()

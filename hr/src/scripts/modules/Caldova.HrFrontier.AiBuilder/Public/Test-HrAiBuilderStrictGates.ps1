@@ -17,7 +17,11 @@ function Test-HrAiBuilderStrictGates {
         [object]$PredictionCapture,
 
         [Parameter(Mandatory)]
-        [object[]]$ValidationRecords
+        [object[]]$ValidationRecords,
+
+        [string]$PackageRootPath,
+
+        [string]$EvidenceContextPath
     )
 
     function Add-HrAiBuilderFailedGate {
@@ -250,6 +254,7 @@ function Test-HrAiBuilderStrictGates {
 
         try {
             $replayedCapture = Read-HrAiBuilderJson -Path $temporaryReplayPath -Description 'Replayed prediction capture'
+            Set-HrAiBuilderPredictionCaptureAdapterMetadata -PredictionCapture $replayedCapture -AdapterScriptPath $adapterScriptPath | Out-Null
         }
         catch {
             return $false
@@ -430,7 +435,8 @@ function Test-HrAiBuilderStrictGates {
         }
 
         try {
-            $inputHash = Get-HrAiBuilderFileSha256 -Path $sourcePath
+            $resolvedSourcePath = Resolve-HrAiBuilderEvidenceLocator -Locator $sourcePath -RootPath $PackageRootPath -Description "Held-out input PDF for '$([string]$document.document)'"
+            $inputHash = Get-HrAiBuilderFileSha256 -Path $resolvedSourcePath
             if (-not (Test-HrAiBuilderOrdinalEquals -Left $inputHash -Right $document.sha256)) {
                 $heldOutInputProvenanceFailed = $true
             }
@@ -446,7 +452,8 @@ function Test-HrAiBuilderStrictGates {
 
     $schemaSourceProvenanceFailed = $false
     try {
-        $schemaEvidenceHash = Get-HrAiBuilderFileSha256 -Path ([string]$ModelSchemaRecord.source_evidence_path)
+        $resolvedSchemaEvidencePath = Resolve-HrAiBuilderEvidenceLocator -Locator ([string]$ModelSchemaRecord.source_evidence_path) -RootPath $EvidenceContextPath -Description 'Model schema source evidence'
+        $schemaEvidenceHash = Get-HrAiBuilderFileSha256 -Path $resolvedSchemaEvidencePath
         if (-not (Test-HrAiBuilderOrdinalEquals -Left $schemaEvidenceHash -Right $ModelSchemaRecord.source_evidence_sha256)) {
             $schemaSourceProvenanceFailed = $true
         }

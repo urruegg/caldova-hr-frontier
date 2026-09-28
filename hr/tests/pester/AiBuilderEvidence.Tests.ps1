@@ -97,6 +97,7 @@ Describe 'AI Builder field and corpus contracts' {
             @($result.documents | Where-Object assignment -eq 'training').Count | Should -Be 20
             @($result.documents | Where-Object assignment -eq 'held-out').Count | Should -Be 4
             @($result.documents | Where-Object { $_.sha256 -notmatch '^[a-f0-9]{64}$' }).Count | Should -Be 0
+            [IO.Path]::IsPathRooted([string]$result.documents[0].source_path) | Should -BeFalse
         }
 
         It 'assigns 16 general documents to training and 8 to held-out' {
@@ -117,6 +118,7 @@ Describe 'AI Builder field and corpus contracts' {
             $result.passed | Should -BeTrue
             @($result.documents | Where-Object assignment -eq 'training').Count | Should -Be 16
             @($result.documents | Where-Object assignment -eq 'held-out').Count | Should -Be 8
+            [IO.Path]::IsPathRooted([string]$result.documents[0].source_path) | Should -BeFalse
             @($result.documents | Where-Object assignment -eq 'held-out').document | Should -Be @(
                 'g03-arbeitsvertrag-CAND-2026-0413.pdf'
                 'g06-anschreiben-CAND-2026-0416.pdf'
@@ -690,12 +692,36 @@ Describe 'AI Builder field and corpus contracts' {
             Import-Module $script:ModulePath -Force
 
             function New-TestAiBuilderGateSource {
+                param(
+                    [switch]$PortableLocators
+                )
+
                 $contract = Get-Content -LiteralPath $script:ContractPath -Raw | ConvertFrom-Json
                 $fixtureRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString())
                 New-Item -ItemType Directory -Path $fixtureRoot -Force | Out-Null
-                $inputPdfPath = Join-Path $fixtureRoot 'held.pdf'
+                $packageRoot = if ($PortableLocators) {
+                    Join-Path $fixtureRoot 'package'
+                }
+                else {
+                    $fixtureRoot
+                }
+                $evidenceContextPath = if ($PortableLocators) {
+                    Join-Path $fixtureRoot 'evidence'
+                }
+                else {
+                    $fixtureRoot
+                }
+                New-Item -ItemType Directory -Path $packageRoot, $evidenceContextPath -Force | Out-Null
+                $documentsRoot = if ($PortableLocators) {
+                    Join-Path $packageRoot 'documents'
+                }
+                else {
+                    $packageRoot
+                }
+                New-Item -ItemType Directory -Path $documentsRoot -Force | Out-Null
+                $inputPdfPath = Join-Path $documentsRoot 'held.pdf'
                 $rawExportPath = Join-Path $fixtureRoot 'held.json'
-                $schemaEvidencePath = Join-Path $fixtureRoot 'model-schema-fixed.png'
+                $schemaEvidencePath = Join-Path $evidenceContextPath 'model-schema-fixed.png'
                 $adapterScriptPath = Join-Path $fixtureRoot 'ReplayAdapter.ps1'
                 'synthetic pdf bytes' | Set-Content -LiteralPath $inputPdfPath -Encoding UTF8
                 '{"source":"adapter"}' | Set-Content -LiteralPath $rawExportPath -Encoding UTF8
@@ -779,7 +805,7 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
                     }
                 )
 
-                @{
+                $source = @{
                     CorpusQualification = [pscustomobject]@{
                         status = 'passed'
                         documents = @([pscustomobject]@{
@@ -787,7 +813,7 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
                             assignment = 'held-out'
                             sha256 = (Get-FileHash -LiteralPath $inputPdfPath -Algorithm SHA256).Hash.ToLowerInvariant()
                             collection_or_family = 'a-personalblatt'
-                            source_path = $inputPdfPath
+                            source_path = if ($PortableLocators) { 'documents\held.pdf' } else { $inputPdfPath }
                         })
                     }
                     FieldContract = $contract
@@ -798,7 +824,7 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
                         observed_at_utc = '2026-09-25T08:15:00Z'
                         operator = 'operator@example.invalid'
                         fields = @($contract.fields | Select-Object name, ai_builder_type)
-                        source_evidence_path = $schemaEvidencePath
+                        source_evidence_path = if ($PortableLocators) { 'model-schema-fixed.png' } else { $schemaEvidencePath }
                         source_evidence_sha256 = (Get-FileHash -LiteralPath $schemaEvidencePath -Algorithm SHA256).Hash.ToLowerInvariant()
                     }
                     RunManifest = [pscustomobject]@{
@@ -813,7 +839,7 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
                                 assignment = 'held-out'
                                 sha256 = (Get-FileHash -LiteralPath $inputPdfPath -Algorithm SHA256).Hash.ToLowerInvariant()
                                 collection_or_family = 'a-personalblatt'
-                                source_path = $inputPdfPath
+                                source_path = if ($PortableLocators) { 'documents\held.pdf' } else { $inputPdfPath }
                             })
                         })
                     }
@@ -841,6 +867,13 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
                     }
                     ValidationRecords = $rows
                 }
+
+                if ($PortableLocators) {
+                    $source['PackageRootPath'] = $packageRoot
+                    $source['EvidenceContextPath'] = $evidenceContextPath
+                }
+
+                return $source
             }
         }
 
@@ -866,6 +899,7 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
             $record.fields.Count | Should -Be 2
             $record.fields[1].name | Should -Be 'wrong_name'
             $record.fields[1].ai_builder_type | Should -Be 'Date'
+            [IO.Path]::IsPathRooted([string]$record.source_evidence_path) | Should -BeFalse
             $record.source_evidence_sha256 | Should -Be (
                 (Get-FileHash -LiteralPath $schemaEvidencePath -Algorithm SHA256).Hash.ToLowerInvariant()
             )
@@ -986,6 +1020,36 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
 
             (Test-HrAiBuilderStrictGates @source).failed_gates |
                 Should -Contain 'schema_source_provenance'
+        }
+
+        It 're-evaluates portable held-out and schema evidence locators after moving the root' {
+            $source = New-TestAiBuilderGateSource -PortableLocators
+            $movedRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+            Copy-Item -LiteralPath $source.PackageRootPath -Destination (Join-Path $movedRoot 'package') -Recurse -Force
+            Copy-Item -LiteralPath $source.EvidenceContextPath -Destination (Join-Path $movedRoot 'evidence') -Recurse -Force
+            Remove-Item -LiteralPath $source.PackageRootPath -Recurse -Force
+            Remove-Item -LiteralPath $source.EvidenceContextPath -Recurse -Force
+            $source.PackageRootPath = Join-Path $movedRoot 'package'
+            $source.EvidenceContextPath = Join-Path $movedRoot 'evidence'
+
+            $gate = Test-HrAiBuilderStrictGates @source
+
+            $gate.status | Should -Be 'evaluated'
+        }
+
+        It 'blocks traversal locators for held-out and schema evidence' {
+            $source = New-TestAiBuilderGateSource -PortableLocators
+            $outsideDocumentPath = Join-Path $TestDrive 'outside-held.pdf'
+            $outsideSchemaPath = Join-Path $TestDrive 'outside-schema.png'
+            'outside document bytes' | Set-Content -LiteralPath $outsideDocumentPath -Encoding UTF8
+            'outside schema bytes' | Set-Content -LiteralPath $outsideSchemaPath -Encoding UTF8
+            $source.RunManifest.models[0].documents[0].source_path = '..\outside-held.pdf'
+            $source.ModelSchemaRecord.source_evidence_path = '..\outside-schema.png'
+
+            $gate = Test-HrAiBuilderStrictGates @source
+
+            $gate.failed_gates | Should -Contain 'held_out_input_provenance'
+            $gate.failed_gates | Should -Contain 'schema_source_provenance'
         }
 
         It 'treats case-drifted schema fields as contract mismatches' {
@@ -1294,6 +1358,38 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
             $fixture.PredictionCapturePath | Should -Exist
             @((Get-Content -LiteralPath $fixture.PredictionCapturePath -Raw | ConvertFrom-Json).documents).Count |
                 Should -Be $fixture.HeldOutCount
+        }
+
+        It 'evaluates an imported capture when the adapter metadata is normalized by the importer' {
+            $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed'
+            $adapterScript = Get-Content -LiteralPath $fixture.AdapterPath -Raw
+            $adapterScript = $adapterScript -replace 'adapter_script_path = \$PSCommandPath', "adapter_script_path = 'adapter-placeholder.ps1'"
+            $adapterScript = $adapterScript -replace 'adapter_script_sha256 = \(Get-FileHash -LiteralPath \$PSCommandPath -Algorithm SHA256\)\.Hash\.ToLowerInvariant\(\)', "adapter_script_sha256 = ('f' * 64)"
+            Set-Content -LiteralPath $fixture.AdapterPath -Value $adapterScript -Encoding UTF8
+
+            $importOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:ImportQuickTestResultsPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -RawExportDirectory $fixture.RawExportDirectory `
+                -AdapterScriptPath $fixture.AdapterPath `
+                -TargetModelName $fixture.ModelName `
+                -OutputPath $fixture.PredictionCapturePath 2>&1
+            $importExitCode = $LASTEXITCODE
+
+            $importExitCode | Should -Be 0
+
+            $evaluationOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:MeasureEvaluationPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -CorpusQualityPath $fixture.CorpusQualityPath `
+                -FieldContractPath $script:FieldContractPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -PredictionCapturePath $fixture.PredictionCapturePath `
+                -GroundTruthPath $fixture.GroundTruthPath `
+                -EvidenceDirectory $fixture.EvidenceRoot 2>&1
+            $evaluationExitCode = $LASTEXITCODE
+
+            $evaluationExitCode | Should -Be 0
+            ($evaluationOutput -join [Environment]::NewLine) | Should -Not -Match 'adapter_replay'
         }
 
         It 'rejects a capture document not present in the held-out allocation' {
