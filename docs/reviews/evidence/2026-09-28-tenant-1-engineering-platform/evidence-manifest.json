@@ -1,0 +1,191 @@
+{
+    "schemaVersion":  "1.0",
+    "reviewId":  "tenant-1-engineering-platform-2026-09-28",
+    "generatedUtc":  "2026-09-28T10:43:52.2308901Z",
+    "scope":  {
+                  "githubRepository":  "urruegg/caldova-hr-frontier",
+                  "azureDevOpsProject":  "Caldova HR Frontier",
+                  "tenantAlias":  "Tenant 1"
+              },
+    "evidence":  [
+                     {
+                         "id":  "microsoft-guidance",
+                         "domain":  "Cross-cutting",
+                         "sourceType":  "official-documentation",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "Eleven current Microsoft Learn sources define the Boards, Pipelines, identity, and Power Platform comparison baseline.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "github-repository",
+                         "domain":  "GitHub",
+                         "sourceType":  "api-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "Repository visibility, default branch, collaboration, and merge settings were read through the GitHub API.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "github-governance",
+                         "domain":  "GitHub",
+                         "sourceType":  "api-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "Rulesets, classic branch protection, and CODEOWNERS parse state were read through the GitHub API.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "github-actions",
+                         "domain":  "GitHub",
+                         "sourceType":  "api-and-source-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "Actions permissions, workflow inventory, and immutable action-pin contracts were inspected.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "github-run-history",
+                         "domain":  "GitHub",
+                         "sourceType":  "runtime-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "Existing main-branch workflow results were read without dispatching a workflow.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "github-security",
+                         "domain":  "GitHub",
+                         "sourceType":  "api-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "Available security-and-analysis states and Dependabot configuration were read.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "ado-project",
+                         "domain":  "Azure DevOps",
+                         "sourceType":  "api-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "Project visibility, state, process, and team metadata were read.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "ado-boards-config",
+                         "domain":  "Azure DevOps Boards",
+                         "sourceType":  "api-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "Team, area-path, iteration, and process configuration were read.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "ado-project-groups",
+                         "domain":  "Azure DevOps",
+                         "sourceType":  "api-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "Project group names were read without publishing membership or identity details.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "ado-github-connection",
+                         "domain":  "Azure DevOps Boards",
+                         "sourceType":  "api-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "GitHub connection validity, authentication type, and repository binding were read through the GitHub connections API.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "ado-linkage",
+                         "domain":  "Azure DevOps Boards",
+                         "sourceType":  "api-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "Existing work items with external links were queried without creating or editing work.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "azure-repo",
+                         "domain":  "Azure DevOps Repos",
+                         "sourceType":  "api-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "Azure Repo name, size, and default-branch state were read.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "ado-pipelines",
+                         "domain":  "Azure Pipelines",
+                         "sourceType":  "api-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "Pipeline definitions and existing run inventory were read.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "ado-pipeline-resources",
+                         "domain":  "Azure Pipelines",
+                         "sourceType":  "api-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "Service connection, variable group, secure file, environment, and check inventories were read where supported.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "ado-agents",
+                         "domain":  "Azure Pipelines",
+                         "sourceType":  "api-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "Agent-pool visibility was read; no pipeline run existed to prove execution or parallel entitlement.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "azure-entra",
+                         "domain":  "Entra and Azure",
+                         "sourceType":  "api-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "The reviewed delivery application name and subscription context were queried without retrieving credentials.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "power-platform-environments",
+                         "domain":  "Power Platform",
+                         "sourceType":  "cli-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "DEV, TEST, and PROD environment reachability and lifecycle types were read.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "power-platform-application-users",
+                         "domain":  "Power Platform",
+                         "sourceType":  "api-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "Application-user inventories were read without publishing application or user identifiers.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "power-platform-solution",
+                         "domain":  "Power Platform",
+                         "sourceType":  "cli-and-api-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "HR solution presence, version, managed state, and publisher were read for each stage.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "repository-tenant-config",
+                         "domain":  "Repository",
+                         "sourceType":  "source-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "Committed tenant manifests and discovery evidence were compared with the documented public/private boundary.",
+                         "sensitiveRawStoredOutsideGit":  true
+                     },
+                     {
+                         "id":  "repository-topology",
+                         "domain":  "Repository governance",
+                         "sourceType":  "decision-readback",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "The ADR set and Tenant 1 single-source design were compared for status and consistency.",
+                         "sensitiveRawStoredOutsideGit":  false
+                     },
+                     {
+                         "id":  "repository-validation",
+                         "domain":  "Repository",
+                         "sourceType":  "test-result",
+                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "summary":  "The merged branch passed 248 tracked repository tests and static repository validation; the wider infrastructure suite had known branch-relative and missing-tool limitations.",
+                         "sensitiveRawStoredOutsideGit":  false
+                     }
+                 ],
+    "screenshots":  [
+
+                    ]
+}
