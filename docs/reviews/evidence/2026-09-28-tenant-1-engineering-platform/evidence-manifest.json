@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0",
     "reviewId":  "tenant-1-engineering-platform-2026-09-28",
-    "generatedUtc":  "2026-09-28T10:43:52.2308901Z",
+    "generatedUtc":  "2026-09-28T11:04:06.5743311Z",
     "scope":  {
                   "githubRepository":  "urruegg/caldova-hr-frontier",
                   "azureDevOpsProject":  "Caldova HR Frontier",
@@ -12,183 +12,261 @@
                          "id":  "microsoft-guidance",
                          "domain":  "Cross-cutting",
                          "sourceType":  "official-documentation",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
-                         "summary":  "Eleven current Microsoft Learn sources define the Boards, Pipelines, identity, and Power Platform comparison baseline.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "summary":  "Fifteen current Microsoft Learn sources define the Boards, Pipelines, identity, and Power Platform comparison baseline.",
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "Microsoft Learn MCP",
+                         "operation":  "Official documentation search and full-page fetch; current URLs recorded",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "github-repository",
                          "domain":  "GitHub",
                          "sourceType":  "api-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "Repository visibility, default branch, collaboration, and merge settings were read through the GitHub API.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "GitHub CLI 2.83.1",
+                         "operation":  "GitHub REST repository read",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "github-governance",
                          "domain":  "GitHub",
                          "sourceType":  "api-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "Rulesets, classic branch protection, and CODEOWNERS parse state were read through the GitHub API.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "GitHub CLI 2.83.1",
+                         "operation":  "GitHub REST rulesets, classic protection, and CODEOWNERS error reads",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "github-actions",
                          "domain":  "GitHub",
                          "sourceType":  "api-and-source-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "Actions permissions, workflow inventory, and immutable action-pin contracts were inspected.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "GitHub CLI 2.83.1 and repository tests",
+                         "operation":  "GitHub REST Actions permissions and workflows reads plus immutable-pin contract tests",
+                         "collectionResult":  "Succeeded"
+                     },
+                     {
+                         "id":  "github-environments",
+                         "domain":  "GitHub",
+                         "sourceType":  "api-readback",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "summary":  "GitHub environment inventory and protection-rule counts were read.",
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "GitHub CLI 2.83.1",
+                         "operation":  "GitHub REST environments read",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "github-run-history",
                          "domain":  "GitHub",
                          "sourceType":  "runtime-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "Existing main-branch workflow results were read without dispatching a workflow.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "GitHub CLI 2.83.1",
+                         "operation":  "Read-only workflow run listing and current-main commit correlation",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "github-security",
                          "domain":  "GitHub",
                          "sourceType":  "api-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "Available security-and-analysis states and Dependabot configuration were read.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "GitHub CLI 2.83.1",
+                         "operation":  "GitHub REST repository security-and-analysis read",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "ado-project",
                          "domain":  "Azure DevOps",
                          "sourceType":  "api-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "Project visibility, state, process, and team metadata were read.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "Azure DevOps CLI 1.0.8 and REST 7.1",
+                         "operation":  "Read-only project and process metadata",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "ado-boards-config",
                          "domain":  "Azure DevOps Boards",
                          "sourceType":  "api-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "Team, area-path, iteration, and process configuration were read.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "Azure DevOps CLI 1.0.8",
+                         "operation":  "Read-only team, area, and iteration listing",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "ado-project-groups",
                          "domain":  "Azure DevOps",
                          "sourceType":  "api-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "Project group names were read without publishing membership or identity details.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "Azure DevOps CLI 1.0.8",
+                         "operation":  "Read-only project group listing without membership expansion",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "ado-github-connection",
                          "domain":  "Azure DevOps Boards",
                          "sourceType":  "api-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "GitHub connection validity, authentication type, and repository binding were read through the GitHub connections API.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "Azure DevOps REST 7.2-preview.1",
+                         "operation":  "GET GitHub connections and connected repositories",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "ado-linkage",
                          "domain":  "Azure DevOps Boards",
                          "sourceType":  "api-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "Existing work items with external links were queried without creating or editing work.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "Azure DevOps CLI 1.0.8",
+                         "operation":  "Read-only WIQL query for External Link Count greater than zero",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "azure-repo",
                          "domain":  "Azure DevOps Repos",
                          "sourceType":  "api-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "Azure Repo name, size, and default-branch state were read.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "Azure DevOps CLI 1.0.8",
+                         "operation":  "Read-only repository listing",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "ado-pipelines",
                          "domain":  "Azure Pipelines",
                          "sourceType":  "api-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "Pipeline definitions and existing run inventory were read.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "Azure DevOps CLI 1.0.8",
+                         "operation":  "Read-only pipeline and run listing",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "ado-pipeline-resources",
                          "domain":  "Azure Pipelines",
                          "sourceType":  "api-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "Service connection, variable group, secure file, environment, and check inventories were read where supported.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "Azure DevOps CLI 1.0.8 and REST 7.1",
+                         "operation":  "Read-only service endpoint, variable group, secure file, environment, and check inventory",
+                         "collectionResult":  "Partially succeeded; checks list returned bad request because no resource exists"
                      },
                      {
                          "id":  "ado-agents",
                          "domain":  "Azure Pipelines",
                          "sourceType":  "api-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "Agent-pool visibility was read; no pipeline run existed to prove execution or parallel entitlement.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "Azure DevOps CLI 1.0.8",
+                         "operation":  "Read-only pool and Microsoft-hosted agent metadata",
+                         "collectionResult":  "Succeeded with no runtime entitlement proof"
                      },
                      {
                          "id":  "azure-entra",
                          "domain":  "Entra and Azure",
                          "sourceType":  "api-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "The reviewed delivery application name and subscription context were queried without retrieving credentials.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "Azure CLI 2.81.0",
+                         "operation":  "Read-only Entra application-name lookup and subscription context read",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "power-platform-environments",
                          "domain":  "Power Platform",
                          "sourceType":  "cli-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "DEV, TEST, and PROD environment reachability and lifecycle types were read.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "Power Platform CLI 1.43.6",
+                         "operation":  "Read-only tenant environment listing and environment who reads",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "power-platform-application-users",
                          "domain":  "Power Platform",
                          "sourceType":  "api-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "Application-user inventories were read without publishing application or user identifiers.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "Dataverse Web API v9.2",
+                         "operation":  "Read-only application-user inventory query without published identifiers",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "power-platform-solution",
                          "domain":  "Power Platform",
                          "sourceType":  "cli-and-api-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "HR solution presence, version, managed state, and publisher were read for each stage.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "Power Platform CLI 1.43.6 and Dataverse Web API v9.2",
+                         "operation":  "Read-only solution and publisher queries",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "repository-tenant-config",
                          "domain":  "Repository",
                          "sourceType":  "source-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "Committed tenant manifests and discovery evidence were compared with the documented public/private boundary.",
-                         "sensitiveRawStoredOutsideGit":  true
+                         "sensitiveRawStoredOutsideGit":  true,
+                         "collector":  "Git and repository file read-back",
+                         "operation":  "Read-only comparison of committed manifests and evidence with documented boundary",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "repository-topology",
                          "domain":  "Repository governance",
                          "sourceType":  "decision-readback",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "The ADR set and Tenant 1 single-source design were compared for status and consistency.",
-                         "sensitiveRawStoredOutsideGit":  false
+                         "sensitiveRawStoredOutsideGit":  false,
+                         "collector":  "Repository documentation read-back",
+                         "operation":  "Read-only ADR and specification status comparison",
+                         "collectionResult":  "Succeeded"
                      },
                      {
                          "id":  "repository-validation",
                          "domain":  "Repository",
                          "sourceType":  "test-result",
-                         "observedUtc":  "2026-09-28T10:43:52.2308901Z",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                          "summary":  "The merged branch passed 248 tracked repository tests and static repository validation; the wider infrastructure suite had known branch-relative and missing-tool limitations.",
-                         "sensitiveRawStoredOutsideGit":  false
+                         "sensitiveRawStoredOutsideGit":  false,
+                         "collector":  "Pester 5.7.1 and repository verifier",
+                         "operation":  "Tracked repository tests, static verifier, and infrastructure-suite baseline",
+                         "collectionResult":  "Partially succeeded with recorded branch-relative and missing-tool limitations"
                      }
                  ],
     "screenshots":  [
                         {
+                            "id":  "screenshot-01-github-connection",
                             "file":  "01-azure-boards-github-app-connection.png",
-                            "observedUtc":  "2026-09-28T10:47:16.0825899Z",
+                            "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                             "caption":  "Azure Boards shows a GitHub App connection scoped to the approved repository.",
                             "supportsControls":  [
                                                      "GH-012",
@@ -202,8 +280,9 @@
                                            ]
                         },
                         {
+                            "id":  "screenshot-02-azure-repo-settings",
                             "file":  "02-azure-repo-settings.png",
-                            "observedUtc":  "2026-09-28T10:47:16.0825899Z",
+                            "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                             "caption":  "The separate Azure Repo settings surface is present; API read-back proves the repository is empty and not the product source.",
                             "supportsControls":  [
                                                      "ADO-008"
@@ -214,8 +293,9 @@
                                            ]
                         },
                         {
+                            "id":  "screenshot-03-azure-repo-policies",
                             "file":  "03-azure-repo-branch-policy-state.png",
-                            "observedUtc":  "2026-09-28T10:47:16.0825899Z",
+                            "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                             "caption":  "The empty Azure Repo has no visible branch policy configuration; GitHub governance is assessed separately through API read-back.",
                             "supportsControls":  [
                                                      "ADO-008"
@@ -226,8 +306,9 @@
                                            ]
                         },
                         {
+                            "id":  "screenshot-04-azure-repo-permissions",
                             "file":  "04-azure-repo-permission-state.png",
-                            "observedUtc":  "2026-09-28T10:47:16.0825899Z",
+                            "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                             "caption":  "Azure Repo permissions are inherited and a detailed sanitized permission export is still required for least-privilege proof.",
                             "supportsControls":  [
                                                      "ADO-009"
@@ -239,8 +320,9 @@
                                            ]
                         },
                         {
+                            "id":  "screenshot-05-migration-surface",
                             "file":  "05-azure-repos-migration-surface.png",
-                            "observedUtc":  "2026-09-28T10:47:16.0825899Z",
+                            "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                             "caption":  "The Azure Repos migration surface is unrelated to the required GitHub-first Boards and Pipelines integrations.",
                             "supportsControls":  [
                                                      "ADO-008",
@@ -252,8 +334,9 @@
                                            ]
                         },
                         {
+                            "id":  "screenshot-06-migration-dialog",
                             "file":  "06-migration-dialog-mismatch.png",
-                            "observedUtc":  "2026-09-28T10:47:16.0825899Z",
+                            "observedUtc":  "2026-09-28T11:04:06.5743311Z",
                             "caption":  "The migration dialog would move Azure Repos content to GitHub and is not the configuration path for an already GitHub-first repository.",
                             "supportsControls":  [
                                                      "ADO-008",

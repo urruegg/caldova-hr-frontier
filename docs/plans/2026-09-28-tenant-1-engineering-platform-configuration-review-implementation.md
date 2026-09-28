@@ -31,6 +31,7 @@
 - Authorization failures, API errors, empty fallbacks, missing runtime events, and ambiguous duplicates never become `PASS`.
 - Existing runtime records may be inspected; absent runtime records remain `NOT EVIDENCED`.
 - Tenant 2 and Tenant 3 are assessed only for reproducibility implications; no live query targets them.
+- Supply the tenant-bearing Azure DevOps organization URL at runtime through `ADO_ORGANIZATION_URL`; never write the value into a public artifact.
 - Preserve unrelated working-tree changes, including `.github/cli/tests/ContributorSkills.Tests.ps1` and `.vscode/`.
 
 ---
@@ -42,7 +43,7 @@
 Use this non-repository root for raw collection:
 
 ```powershell
-$AuditRoot = Join-Path $env:USERPROFILE '.copilot\session-state\4a33a646-4975-4c4e-88b8-ebe349eac830\files\tenant1-engineering-platform-review'
+$AuditRoot = Join-Path $env:LOCALAPPDATA 'Caldova\audit\tenant1-engineering-platform-review'
 ```
 
 The structure is:
@@ -110,7 +111,7 @@ Run:
 ```powershell
 git status --short
 
-$AuditRoot = Join-Path $env:USERPROFILE '.copilot\session-state\4a33a646-4975-4c4e-88b8-ebe349eac830\files\tenant1-engineering-platform-review'
+$AuditRoot = Join-Path $env:LOCALAPPDATA 'Caldova\audit\tenant1-engineering-platform-review'
 $directories = @(
     'raw\preflight',
     'raw\github',
@@ -263,7 +264,7 @@ Export-ModuleMember -Function Invoke-EvidenceCommand, Invoke-AdoGet
 Run:
 
 ```powershell
-$AuditRoot = Join-Path $env:USERPROFILE '.copilot\session-state\4a33a646-4975-4c4e-88b8-ebe349eac830\files\tenant1-engineering-platform-review'
+$AuditRoot = Join-Path $env:LOCALAPPDATA 'Caldova\audit\tenant1-engineering-platform-review'
 Import-Module (Join-Path $AuditRoot 'AuditHelpers.psm1') -Force
 
 gh --version
@@ -280,7 +281,10 @@ Run:
 
 ```powershell
 $preflight = Join-Path $AuditRoot 'raw\preflight'
-$organization = 'https://dev.azure.com/caldova25156897'
+$organization = $env:ADO_ORGANIZATION_URL
+if ([string]::IsNullOrWhiteSpace($organization) -or $organization -notmatch '^https://dev\.azure\.com/[^/]+/?$') {
+    throw 'ADO_ORGANIZATION_URL must contain the attended Tenant 1 Azure DevOps organization URL.'
+}
 $project = 'Caldova HR Frontier'
 
 Invoke-EvidenceCommand -AuditRoot $AuditRoot -Name 'github-auth-status' -OutputDirectory $preflight -Command {
@@ -391,7 +395,7 @@ Expected: no output and exit code 0.
 
 **Files:**
 - Create outside Git: `$AuditRoot\raw\github\*.json`
-- Verify: controls `GH-001` through `GH-012`
+- Verify: controls `GH-001` through `GH-014`
 
 **Interfaces:**
 - Consumes: `Invoke-EvidenceCommand`
@@ -500,6 +504,8 @@ GH-009  Immutable action pinning in tracked workflows
 GH-010  Existing successful main validation record
 GH-011  Dependabot and available security-analysis configuration
 GH-012  Azure Boards GitHub App installation and repository scope
+GH-013  Administrative access and ruleset bypass boundary
+GH-014  GitHub environment and protection-rule configuration
 ```
 
 Expected: every control has observed evidence or an explicit evidence limitation; do not assign final outcomes until Task 7 cross-checks Azure DevOps.
@@ -534,7 +540,10 @@ Run:
 
 ```powershell
 $adoRaw = Join-Path $AuditRoot 'raw\azure-devops'
-$organization = 'https://dev.azure.com/caldova25156897'
+$organization = $env:ADO_ORGANIZATION_URL
+if ([string]::IsNullOrWhiteSpace($organization) -or $organization -notmatch '^https://dev\.azure\.com/[^/]+/?$') {
+    throw 'ADO_ORGANIZATION_URL must contain the attended Tenant 1 Azure DevOps organization URL.'
+}
 $project = 'Caldova HR Frontier'
 
 Invoke-EvidenceCommand -AuditRoot $AuditRoot -Name 'project' -OutputDirectory $adoRaw -Command {
@@ -648,7 +657,7 @@ Expected: empty link evidence becomes `NOT EVIDENCED`, not `PASS`; a duplicate p
 - Create outside Git: `$AuditRoot\raw\azure-devops\service-endpoints.json`
 - Create outside Git: `$AuditRoot\raw\azure-devops\environments.json`
 - Create outside Git: `$AuditRoot\raw\azure-devops\checks.json`
-- Verify: controls `PIPE-001` through `PIPE-013`
+- Verify: controls `PIPE-001` through `PIPE-014`
 
 **Interfaces:**
 - Consumes: Azure DevOps project context and the private Azure DevOps REST helper
@@ -760,7 +769,7 @@ PIPE-002  Pipeline source is the approved GitHub repository
 PIPE-003  CI and pull-request triggers are correctly scoped
 PIPE-004  Existing CI validates and builds the HR solution
 PIPE-005  One immutable artifact is promoted
-PIPE-006  DEV, TEST, and PROD stages or equivalent pipeline flow exist
+PIPE-006  One managed artifact is built from unmanaged DEV source and promoted unchanged to TEST and PROD
 PIPE-007  Azure DevOps deployment environments exist
 PIPE-008  TEST and PROD approvals/checks are owned outside YAML
 PIPE-009  Service connections are ready, scoped, and non-personal
@@ -768,6 +777,7 @@ PIPE-010  Workload identity is used where the supported task and connection type
 PIPE-011  Variable groups and secure files avoid public or inline secrets
 PIPE-012  Agent pool and parallel-job readiness
 PIPE-013  Build-service and resource authorization follow least privilege
+PIPE-014  Required-template enforcement uses a tenant-private governed template
 ```
 
 Expected: do not require workload identity for a Power Platform connection type that current official tooling does not support. Record the compatibility limitation and the safest supported authentication scheme.
@@ -1052,6 +1062,9 @@ Create `docs/reviews/evidence/2026-09-28-tenant-1-engineering-platform/evidence-
       "id": "github-repository",
       "domain": "GitHub",
       "sourceType": "api-readback",
+      "collector": "GitHub CLI",
+      "operation": "GitHub REST repository read",
+      "collectionResult": "Succeeded",
       "observedUtc": "2026-09-28T00:00:00Z",
       "summary": "Repository visibility, default branch, and merge settings were read through the GitHub REST API.",
       "sensitiveRawStoredOutsideGit": true
@@ -1169,24 +1182,24 @@ Expected: only the two sanitized JSON files are committed.
 
 - [ ] **Step 1: Copy the supplied screenshots to private session storage**
 
-Run:
+Set six process-scoped environment variables, `CALDOVA_AUDIT_ATTACHMENT_1` through `CALDOVA_AUDIT_ATTACHMENT_6`, from the read-only attachment paths supplied to the active agent session. Do not print or persist those source paths. Then run:
 
 ```powershell
-$attachmentRoot = Join-Path $env:APPDATA 'Code\agentSessionData\0cc02c3c-fa5a-4004-97dc-32b84cb14145\attachments'
-$screenshotSources = [ordered]@{
-    '01-azure-boards-github-app-connection.png' = Join-Path $attachmentRoot '80e26841-0e04-42be-a2ee-83bb88e83186\Pasted Image.png'
-    '02-azure-repo-settings.png' = Join-Path $attachmentRoot '128f1d85-062b-4b72-8d2c-9fbf18681fae\Pasted Image 2.png'
-    '03-azure-repo-branch-policy-state.png' = Join-Path $attachmentRoot '0bceb66c-a3bc-4d43-a201-402f4bca814a\Pasted Image 3.png'
-    '04-azure-repo-permission-state.png' = Join-Path $attachmentRoot '4c405fe0-95d7-429e-a32a-c9a394b6e77a\Pasted Image 4.png'
-    '05-azure-repos-migration-surface.png' = Join-Path $attachmentRoot 'f4314cae-1995-433e-a887-647cdf0df513\Pasted Image 5.png'
-    '06-migration-dialog-mismatch.png' = Join-Path $attachmentRoot '49aada07-b848-4a39-b002-7191d88b5056\Pasted Image 6.png'
-}
+$screenshotNames = @(
+    '01-azure-boards-github-app-connection.png',
+    '02-azure-repo-settings.png',
+    '03-azure-repo-branch-policy-state.png',
+    '04-azure-repo-permission-state.png',
+    '05-azure-repos-migration-surface.png',
+    '06-migration-dialog-mismatch.png'
+)
 
-foreach ($entry in $screenshotSources.GetEnumerator()) {
-    if (-not (Test-Path -LiteralPath $entry.Value -PathType Leaf)) {
-        throw "Missing supplied screenshot: $($entry.Value)"
+for ($index = 1; $index -le $screenshotNames.Count; $index++) {
+    $sourcePath = [Environment]::GetEnvironmentVariable("CALDOVA_AUDIT_ATTACHMENT_$index", 'Process')
+    if ([string]::IsNullOrWhiteSpace($sourcePath) -or -not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
+        throw "Missing supplied screenshot path at position $index."
     }
-    Copy-Item -LiteralPath $entry.Value -Destination (Join-Path $AuditRoot "raw\screenshots\$($entry.Key)") -Force
+    Copy-Item -LiteralPath $sourcePath -Destination (Join-Path $AuditRoot "raw\screenshots\$($screenshotNames[$index - 1])") -Force
 }
 ```
 
@@ -1216,13 +1229,14 @@ $jobs = @(
         Height = 735
         Redactions = @(
             [Drawing.Rectangle]::new(48, 26, 116, 38),
+            [Drawing.Rectangle]::new(324, 174, 132, 70),
             [Drawing.Rectangle]::new(1255, 174, 225, 68),
             [Drawing.Rectangle]::new(1638, 7, 61, 66)
         )
     },
     @{
         Name = '02-azure-repo-settings.png'
-        Width = 1218
+        Width = 1217
         Height = 768
         Redactions = @(
             [Drawing.Rectangle]::new(32, 0, 98, 38),
@@ -1231,7 +1245,7 @@ $jobs = @(
     },
     @{
         Name = '03-azure-repo-branch-policy-state.png'
-        Width = 1218
+        Width = 1220
         Height = 768
         Redactions = @(
             [Drawing.Rectangle]::new(32, 0, 98, 38),
@@ -1240,7 +1254,7 @@ $jobs = @(
     },
     @{
         Name = '04-azure-repo-permission-state.png'
-        Width = 1218
+        Width = 1220
         Height = 768
         Redactions = @(
             [Drawing.Rectangle]::new(32, 0, 98, 38),
@@ -1250,7 +1264,7 @@ $jobs = @(
     },
     @{
         Name = '05-azure-repos-migration-surface.png'
-        Width = 1218
+        Width = 1219
         Height = 768
         Redactions = @(
             [Drawing.Rectangle]::new(32, 0, 98, 38),
@@ -1259,7 +1273,7 @@ $jobs = @(
     },
     @{
         Name = '06-migration-dialog-mismatch.png'
-        Width = 1190
+        Width = 1186
         Height = 768
         Redactions = @(
             [Drawing.Rectangle]::new(0, 0, 1190, 35),
@@ -1344,6 +1358,7 @@ Add records with:
 
 ```json
 {
+  "id": "screenshot-01-github-connection",
   "file": "01-azure-boards-github-app-connection.png",
   "observedUtc": "2026-09-28T00:00:00Z",
   "caption": "Azure Boards shows a GitHub App connection scoped to the approved GitHub repository.",
@@ -1448,7 +1463,7 @@ Wave 0: approve the target operating model and reconcile ADR-0001/ADR-0002
 Wave 1: remove source-of-truth ambiguity and establish Boards structure/linkage
 Wave 2: establish pipeline identities, service connections, and environment boundaries
 Wave 3: implement HR solution CI and immutable artifact production
-Wave 4: implement gated DEV -> TEST -> PROD promotion
+Wave 4: build/export from unmanaged DEV and promote the unchanged managed artifact to TEST and PROD
 Wave 5: execute synthetic cross-system traceability and deployment proof
 Wave 6: extract reusable Tenant 2/3 conformance automation and runbooks
 ```

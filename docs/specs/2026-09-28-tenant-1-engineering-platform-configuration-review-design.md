@@ -32,7 +32,7 @@ Tenant 1
 │  ├─ Azure Boards: single delivery backlog
 │  └─ Azure Pipelines: HR solution CI/CD
 ├─ Entra/Azure workload identity and subscription prerequisites
-└─ Power Platform: DEV -> TEST -> PROD deployment prerequisites
+└─ Power Platform: unmanaged DEV source -> managed TEST -> managed PROD prerequisites
 ```
 
 The operating responsibilities are:
@@ -40,7 +40,7 @@ The operating responsibilities are:
 - GitHub is the product-source and pull-request authority.
 - GitHub Actions validates repository governance.
 - Azure Boards is the delivery backlog.
-- Azure Pipelines builds and validates the HR solution and promotes an immutable artifact through DEV, TEST, and PROD.
+- Azure Pipelines validates the unmanaged DEV source, builds one managed artifact, and promotes that unchanged artifact to TEST and PROD.
 - Each future tenant has one independent GitHub repository clone and one Azure DevOps project, with tenant-specific identities, services, configuration, and evidence.
 
 ADR-0001 and ADR-0002 remain Proposed Baseline documents and do not fully express this emerging one-repository-to-one-project topology. The review treats the approved sprint-specific North Star above as its assessment baseline and records formal ADR reconciliation as a governance gap. It does not silently reinterpret or approve the existing ADRs.
@@ -116,7 +116,7 @@ The review covers:
 - variable groups, secure files, environment permissions, approvals, checks, and required templates;
 - separation of duties between source authors, pipeline administrators, and deployment approvers;
 - CI evidence for HR solution validation and build; and
-- CD evidence for immutable artifact promotion through DEV, TEST, and PROD.
+- CD evidence that one managed artifact built from unmanaged DEV source is promoted unchanged to TEST and PROD.
 
 ### Tenant Prerequisites
 
