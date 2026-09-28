@@ -47,6 +47,36 @@ Describe 'AI Builder field and corpus contracts' {
         }
     }
 
+    Describe 'AI Builder operator guide contract' {
+        BeforeAll {
+            $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+            $script:Guide = Get-Content -LiteralPath (
+                Join-Path $root 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\ai-builder-model-setup.md'
+            ) -Raw
+        }
+
+        It 'uses the approved model and solution names' {
+            $script:Guide | Should -Match 'PersonalMasterDataFixed'
+            $script:Guide | Should -Match 'PersonalMasterDataGeneral'
+            $script:Guide | Should -Match 'caldovahrfrontier'
+            $script:Guide | Should -Not -Match 'gf_Personalstammdaten'
+            $script:Guide | Should -Not -Match 'GFHRPlatformCore'
+        }
+
+        It 'keeps workflows and TEST deployment outside the sprint' {
+            $script:Guide | Should -Not -Match 'Build the routing test'
+            $script:Guide | Should -Not -Match 'Deploy to TEST'
+            $script:Guide | Should -Match 'No Power Automate flow'
+        }
+
+        It 'requires structured evidence and the strict false-value gate' {
+            $script:Guide | Should -Match 'run-manifest\.json'
+            $script:Guide | Should -Match 'machine-readable'
+            $script:Guide | Should -Match 'false-value rate'
+            $script:Guide | Should -Match 'zero'
+        }
+    }
+
     Describe 'AI Builder corpus qualification' {
         BeforeAll {
             $script:ModulePath = Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.AiBuilder\Caldova.HrFrontier.AiBuilder.psd1'

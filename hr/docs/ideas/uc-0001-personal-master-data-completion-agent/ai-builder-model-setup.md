@@ -1,269 +1,292 @@
-# Establishing and testing the AI Builder extraction models in DEV
+# Establishing and testing the AI Builder extraction models in Tenant 2 DEV
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
-| **Date** | 2026-09-25 |
+| **Version** | 0.2 |
+| **Date** | 2026-09-28 |
 | **Author** | DAAI |
 | **Status** | Draft |
-| **Scope** | UC-0001 Tier 1 extraction model build and evaluation |
-| **References** | [UC-0001](./README.md), [ADR-0011](../../../../docs/adr/0011-workflow-first-process-architecture.md) |
+| **Scope** | UC-0001 attended AI Builder model build and evaluation in Tenant 2 DEV |
+| **References** | [Tenant 2 AI Builder Model Implementation Design](../../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md), [AI Builder Field BoM](./bom-0001-peopledoc-master-data-ai-builder-fields.md), [AI Builder Test BoM](./bom-0002-ai-builder-test-inputs-and-outcomes.md) |
 
-IT and the Platform Owners own environment and licensing prerequisites. The controlled test data is in [the fixed-template package](./gf-aib-fixed-template/) and [the general-documents package](./gf-aib-general-documents/).
+This is the attended procedure for run `t2-dev-20260925-001`. It creates evidence under `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/` and uses only the committed synthetic [fixed-template package](./gf-aib-fixed-template/) and [general-documents package](./gf-aib-general-documents/).
+
+This increment creates no workflow, agent, automated model-selection rule, downstream deployment, or HR-system integration. No Power Automate flow is authorized for model evaluation. A failed or unknown gate stops the procedure; the operator records the evidence and does not repair tenant prerequisites under this sprint.
 
 ---
 
-## 1. What you are building and why
+## 1. Read the design and both BoMs
 
-[ADR-0011](../../../../docs/adr/0011-workflow-first-process-architecture.md) splits document extraction into two tiers:
+Read these three records before opening AI Builder:
 
-```text
-WORKFLOW  →  TIER 1   AI Builder document processing     ← this guide
-                      well-formed documents, deterministic
-                          │ failed / ambiguous / low confidence
-                          ▼
-             TIER 2   AGENT NODE (GitHub Copilot harness)
-                      reasoning over what Tier 1 could not read
+1. [Tenant 2 AI Builder Model Implementation Design](../../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md) — the approved scope, gates, evidence contract, and stop behavior.
+2. [AI Builder Field BoM](./bom-0001-peopledoc-master-data-ai-builder-fields.md) — the 17-field lifecycle record.
+3. [AI Builder Test BoM](./bom-0002-ai-builder-test-inputs-and-outcomes.md) — the run-level input and outcome record.
+
+The two model records are independent:
+
+| Model | AI Builder type | Training allocation | Held-out allocation |
+|---|---|---:|---:|
+| `PersonalMasterDataFixed` | Fixed template document processing | 20 documents | 4 documents |
+| `PersonalMasterDataGeneral` | General document processing | 16 documents | 8 documents |
+
+Both models implement the ordered contract in [`field-contract.json`](../../../src/ai-builder/contracts/field-contract.json). The first Tenant 2 run establishes the measured baseline. Do not introduce a percentage threshold that is not derived and approved from evidence.
+
+---
+
+## 2. Initialize `t2-dev-20260925-001`
+
+From the repository root, set the attended operator UPN and initialize the evidence directory. Confirm the Tenant 2 DEV environment ID and current unmanaged solution version against the approved design before running the command.
+
+```powershell
+$runId = 't2-dev-20260925-001'
+$evidenceDirectory = ".\hr\evidence\ai-builder\tenant-2\DEV\$runId"
+
+.\hr\src\scripts\Initialize-AiBuilderEvidenceRun.ps1 `
+    -RunId $runId `
+    -TenantKey 'tenant-2' `
+    -EnvironmentId ([guid]'84ad4c54-41d9-e5df-ba07-188b4719594a') `
+    -EnvironmentStage DEV `
+    -SolutionUniqueName 'caldovahrfrontier' `
+    -SolutionVersion '0.0.0.1' `
+    -OperatorUpn '<attended-operator-upn>' `
+    -OutputDirectory $evidenceDirectory
 ```
 
-**Raising Tier 1 coverage is worth real money and real risk reduction.** It cuts credit consumption on a harness billed for building, testing, evaluating *and* running, and it narrows the surface on which untrusted document content reaches a reasoning model. The control-plane mockup shows Tier 2 at 38% against a target under 20% — closing that gap is what these models are for.
-
-You will build **two** models and compare them. That comparison is the evidence for **D-17**, the confidence threshold that routes a document from Tier 1 to the agent node.
-
-| Model | Type | Good at | Training time |
-|---|---|---|---|
-| `gf_PersonalstammdatenFixed` | **Fixed template documents** | GF's own forms, municipality confirmations — known layouts | Short |
-| `gf_PersonalstammdatenGeneral` | **General documents** | Contracts, letters, certificates, scans — unfamiliar structures | **Long** |
+The first invocation must exit non-zero after creating `fixed-review.json` and `general-review.json`. The message `Visual corpus review is required before qualification.` is expected. Do not create either model yet.
 
 ---
 
-## 2. Read this before you train anything
+## 3. Complete visual corpus review and rerun qualification
 
-Three AI Builder ALM facts that are easy to discover too late, and one of them is close to unrecoverable.
+Review every synthetic PDF against the corresponding JSON and CSV ground truth. For each row in both review files:
 
-> ### Training data does not travel with the model
+- set `status` to `confirmed` only after direct visual inspection;
+- set `values_visible` to `true` only when every non-empty ground-truth value is visible;
+- set `absences_confirmed` to `true` only when every empty value is genuinely absent;
+- record the attended reviewer; and
+- describe any exclusion or correction in `notes`.
+
+Rerun the initialization command from §2. A passing rerun writes:
+
+- `corpus-quality.json`;
+- `run-manifest.json`; and
+- `model-inventory.json`.
+
+Confirm the manifest records 20 fixed and 16 general training documents, 4 fixed and 8 general held-out documents, the 17-field contract version, corpus revision, generator revision, file hashes, operator, and UTC start.
+
+> **STOP — corpus qualification failure**
 >
-> When an AI model is added to a solution, **only the model executable is included. The training data is not.**
-
-> ### You cannot retrain an imported document processing model
->
-> Creating and training a new version is **disabled** for imported document processing, object detection and entity extraction models — precisely because the training data did not come with it. In TEST and PROD the model is **read-only**. If it needs to change, you change it in DEV and redeploy.
-
-> ### Therefore: DEV is the only place this model can ever be trained, and the training documents are the real asset
->
-> If the DEV environment is reset, rebuilt or lost, **the model cannot be reconstructed without the original tagged documents.** This is why the test packages live in version control rather than in someone's Downloads folder, and why §9 treats the training set as a controlled artefact.
-
-Two further constraints that shape the procedure:
-
-- **A model can only be added to a solution once it has a published version**, and only the published version installs in the target environment. Publish before you package.
-- **Import within one month of export**, unless the source model is unchanged since export.
+> If either corpus, either ground-truth representation, any visual review, any hash, or any training/held-out assignment fails qualification, stop. Correct or exclude the affected synthetic document and start a new evidence run when file identity or allocation changes. Do not upload any document to AI Builder.
 
 ---
 
-## 3. Prerequisites
+## 4. Execute all readiness checks and write `readiness.json`
 
-| # | Prerequisite | Owner | Note |
-|---|---|---|---|
-| 1 | **DEV environment with Dataverse** | IT | Per [Power Platform Environments and ALM](../../../../infra/docs/12-power-platform-environments-and-alm.md) |
-| 2 | **AI Builder credits allocated to DEV** | IT | AI Builder is **Premium** — it is on the conditional list in [Solution Design §4.5](../../../../docs/solution-design.md) and becomes required the moment you take this path |
-| 3 | **DLP policy applied**, AI Builder in the same data group as Dataverse, SharePoint and Workday | IT / Security | Stage 1.2. Doing this after the flow is built makes the flow un-runnable with no warning |
-| 4 | **Publisher `gf_` exists** | IT | Stage 1.3. Cannot be changed later |
-| 5 | **`GFHRPlatformCore` unmanaged solution in DEV** | DAAI | The models go here, not in the agent solution — see §4 |
-| 6 | **Synthetic test packages available locally** | DAAI | [`gf-aib-fixed-template/`](./gf-aib-fixed-template/) and [`gf-aib-general-documents/`](./gf-aib-general-documents/) |
+Observe all eight checks in Tenant 2 DEV. Record `passed`, `failed`, or `unknown`, the observation, its source, the attended operator, and UTC time. Do not convert an unavailable observation into a pass.
 
----
-
-## 4. Which solution the models belong in
-
-Put both models in **`GFHRPlatformCore`**, not in `GFHRMasterDataAgent`.
-
-**Why.** Core holds what more than one use case will consume — tables, security roles, connection references, environment variables, shared skills. Extraction models are the same kind of asset: UC-0005 Onboarding Assistant will want document extraction too, and a model buried in the UC-0001 agent solution cannot be shared without an awkward dependency.
-
-> **A model is not an app or flow dependency.** If a Power Automate flow calls the model, adding the flow to a solution does **not** pull the model in. **Add the model explicitly**, or the import succeeds in TEST and the flow fails at runtime looking for a model that was never deployed.
-
----
-
-## 5. Build the fixed-template model
-
-**Test data:** [`gf-aib-fixed-template/`](./gf-aib-fixed-template/) — 24 PDFs in 4 collections of 6.
-
-### 5.1 Create
-
-1. **Power Apps → AI hub → AI models → Extract custom information from documents → Create custom model**
-2. Document type: **Fixed template documents**
-3. Name: `gf_PersonalstammdatenFixed`
-
-### 5.2 Define the 17 fields
-
-Names are **identifiers — never translate them**, in any locale.
-
-| Field | AI Builder type | Why that type |
-|---|---|---|
-| `candidate_id` | Text | The D-03 fix — see §8 |
-| `last_name` · `first_name` | Text | |
-| `dob` | **Date**, format **Day, Month, Year** | The documents use `DD.MM.YYYY` |
-| `nationality` · `marital` · `heimatort` · `permit` | Text | |
-| `street` · `city` | Text | |
-| `plz` | **Text — not Number** | A 4-digit Swiss postcode loses leading zeros in a number field |
-| `ahv` | **Text — not Number** | `756.1943.0211.85` is not a decimal |
-| `iban` | Text | |
-| `phone` · `email` | Text | |
-| `ec_name` · `ec_phone` | Text | |
-
-### 5.3 Create four collections
-
-One per folder. A collection is a group of documents sharing a layout, and **at least five documents per collection** are required.
-
-| Collection | Folder | Upload |
-|---|---|---|
-| `Personalblatt` | `a-personalblatt/` | Documents 01–05 |
-| `AnmeldungGemeinde` | `b-anmeldung-gemeinde/` | Documents 01–05 |
-| `Sozialversicherung` | `c-sozialversicherung/` | Documents 01–05 |
-| `Bankverbindung` | `d-bankverbindung/` | Documents 01–05 |
-
-**Hold back document 06 in every collection.** Those four are your test set. Training on all six leaves you with no honest way to measure anything.
-
-### 5.4 Tag, train, publish
-
-Tag each field in each document, then **Train**. Fixed-template training is quick.
-
-**Do not skip Publish.** An unpublished model cannot be added to a solution (§2), and it is the single most common reason the packaging step fails later.
-
----
-
-## 6. Build the general-documents model
-
-**Test data:** [`gf-aib-general-documents/`](./gf-aib-general-documents/) — 24 PDFs across 8 layout families.
-
-Same field definitions. Two differences that matter:
-
-1. **Document type: General documents.** No collections — mixed layouts in one set is the entire point.
-2. **Training takes materially longer.** Start it and do something else.
-
-**Hold back one document per family** — 8 in total — as the test set.
-
-### What to expect, honestly
-
-This package is built to find the ceiling, not to flatter the model.
-
-| Family | If accuracy is low |
+| Check ID | Pass evidence |
 |---|---|
-| `arbeitsvertrag` | **Expected.** Values sit unlabelled inside legal prose — the hardest common case |
-| `scan-degraded` | **Expected and correct.** This is the Tier 2 case. A model that confidently reads a rotated, degraded scan is more worrying than one that declines |
-| `selbstdeklaration` · `new-joiner-sheet` | **Investigate.** These are structured; poor accuracy points at tagging, not the model |
+| `environment` | DEV URL and environment ID match the approved baseline |
+| `dataverse` | Authenticated Dataverse organization identity and availability match |
+| `maker_authorization` | The attended account can create, train, publish, and package AI Builder models |
+| `ai_builder_available` | Custom document processing is available |
+| `capacity` | Sufficient AI Builder capacity is observed |
+| `data_policy` | Applicable policy permits AI Builder and Dataverse use |
+| `solution` | `caldovahrfrontier` exists, is unmanaged, and its version is recorded |
+| `publisher` | The existing solution publisher and prefix are observed |
+
+Import the evidence module, construct one observation object per row, and write the record:
+
+```powershell
+Import-Module '.\hr\src\scripts\modules\Caldova.HrFrontier.AiBuilder\Caldova.HrFrontier.AiBuilder.psd1' -Force
+
+# $checks contains exactly the eight rows above. Each row has:
+# id, status, observation, source, operator, and observed_at_utc.
+$readiness = New-HrAiBuilderReadinessRecord `
+    -RunId 't2-dev-20260925-001' `
+    -Checks $checks `
+    -OutputPath "$evidenceDirectory\readiness.json"
+```
+
+> **STOP — readiness failure**
+>
+> Continue only when `$readiness.status` is `passed`. A `failed` or `unknown` check blocks model creation. Record the blocker; do not allocate capacity, change policy, grant access, create a publisher, create a solution, or otherwise mutate the prerequisite under this sprint.
 
 ---
 
-## 7. Test in DEV — and test the right things
+## 5. Create and train `PersonalMasterDataFixed`
 
-### 7.1 Quick test
+In **Power Apps → AI hub → AI models → Extract custom information from documents**, create a **Fixed template documents** model named exactly `PersonalMasterDataFixed`.
 
-On the model details page, **Quick test** with a held-back document.
+Define the fields in the exact order and type from `field-contract.json`:
 
-> **The quick test times out at 90 seconds.** For anything larger, build a Power Automate flow using the **Predict** action — it allows 60 minutes. For this package quick test is fine; for real PeopleDoc bundles it will not be.
-
-### 7.2 Score against ground truth
-
-Each package ships `ground-truth.csv` and `ground-truth.json` — the expected value for every field of every document.
-
-**The scoring rule that matters most:**
-
-> An **empty cell means the field is absent from that document**. The correct outcome is **`Missing`** (BR-09), not an extraction failure.
->
-> **A model that invents a value for an absent field is worse than one that returns nothing** — and on a write path to the system of record, materially so. Score invented values as errors, not as near-misses.
-
-Record per field and per collection/family:
-
-| Metric | Why |
+| Type | Fields |
 |---|---|
-| **Extraction accuracy** | Value matches ground truth exactly |
-| **Missing-field precision** | Returned nothing where ground truth is empty |
-| **False-value rate** | **Invented a value for an absent field.** The one to watch |
-| **Confidence distribution** | Feeds D-17 directly |
+| Text | `candidate_id`, `last_name`, `first_name`, `nationality`, `marital`, `heimatort`, `permit`, `street`, `plz`, `city`, `ahv`, `iban`, `phone`, `email`, `ec_name`, `ec_phone` |
+| Date | `dob` |
 
-### 7.3 Build the routing test
+Names are case-sensitive identifiers. Do not translate them. Keep `plz` and `ahv` as Text. Record the observed model ID, draft version, exact names and types, operator, UTC observation time, and a hashed schema-evidence file with `New-HrAiBuilderModelSchemaRecord`. If the observed schema differs from the contract, correct the draft before uploading training data.
 
-The real question is not *"how good is each model?"* but *"where is the boundary?"* Build a small Power Automate flow in DEV that runs a document through Tier 1, reads the confidence, and routes below-threshold cases onward. Vary the threshold across the 48 documents and plot Tier 2 volume against false-value rate.
+Create these four collections and upload only the training allocation recorded in `run-manifest.json`:
 
-**That curve is the answer to D-17.** It is also the only defensible basis for the "under 20% Tier 2" target.
-
-> **Sample-size caution.** Three documents per family is a *signal*, not a rate. If a threshold decision turns on one family, generate more documents for it first — the generator makes that cheap (§9).
-
-### 7.4 A second throttle to design around
-
-Document processing calls are limited to **360 per environment per 60 seconds**, across all document processing models including prebuilt ones.
-
-This sits alongside the Workday connector's **200 calls per connection per 60 seconds**. A 50-employee batch with several documents each can approach both. **Batch size is a design decision constrained by two independent throttles**, not one — worth adding to the D-16 analysis.
-
----
-
-## 8. Two things this test data was built to prove
-
-### The D-03 matching key — demonstrable, not theoretical
-
-The fixed-template package contains `CAND-2026-0412` and `CAND-2026-0434`: **both "Tobias Ochsner", both at postal code 8200 Schaffhausen**, different dates of birth, different AHV numbers, different IBANs. Two different people.
-
-> Under the proposed matching key — **Last Name + First Name + Postal Code** — these are indistinguishable. Best case the run raises a `Multiple Match`. Worst case one person's bank details are written onto the other's record.
->
-> **`candidate_id` is in the field list because it is the fix.** Extract it, match on it, and the collision disappears.
-
-Run this deliberately, capture the result, and take it to HRIS. An argument about the highest-risk open item in the MVP is far shorter with a reproduction than without one.
-
-### The Anmeldung Gemeinde template change
-
-Collection B is the *Anmeldung Gemeinde*. The control-plane mockup reports *"12 Low Confidence on Postal Code — 9 from the same document template, layout changed ~15 Sep."* To reproduce: retrain with a modified B layout and watch `plz` confidence fall. It is the clearest available demonstration of why fixing the mapping once beats working twelve exceptions individually.
-
----
-
-## 9. Treat the training set as a controlled artefact
-
-This follows directly from §2. Because the model can only ever be trained in DEV and the training data does not travel:
-
-1. **The training documents are version-controlled** in [`gf-aib-fixed-template/`](./gf-aib-fixed-template/) and [`gf-aib-general-documents/`](./gf-aib-general-documents/). They are not a scratch upload.
-2. **Real PeopleDoc documents never join them.** These packages are synthetic for exactly that reason — a training set in version control must contain no personal data. When GF eventually tags real documents, those stay in the DEV environment and are governed as personal data, **never committed**.
-3. **Record which documents trained which model version**, so a rebuild is reproducible.
-4. **A DEV reset is a model loss event.** Plan for it before it happens.
-
-The generators (`personas.py`, `gen_fixed.py`, `gen_general.py`, `gen_truth.py`) are deterministic — same seed, same output. To extend a collection, raise the loop count and rerun; ground truth regenerates with it.
-
----
-
-## 10. Deploy to TEST — once DEV is settled
-
-1. Confirm both models are **Published** in DEV
-2. Add both to **`GFHRPlatformCore`** — explicitly, alongside any flow that calls them (§4)
-3. **Before exporting, set Managed Properties → Allow customizations = Off.** Changing an imported model creates unmanaged customisations that block future updates
-4. Export **managed**; import to TEST
-5. Expect a status of **`Importing`** on the model list for several minutes after the import action reports complete. This is normal for document processing models
-6. Quick test in TEST to confirm the model responds
-7. **Do not edit the model in TEST.** It is read-only by design. If it is wrong, fix DEV and redeploy
-
----
-
-## 11. Checklist
-
-**Before training**
-- [ ] AI Builder credits allocated to DEV
-- [ ] DLP policy applied with AI Builder in the right data group
-- [ ] `GFHRPlatformCore` exists in DEV
-- [ ] Test packages unzipped; held-back test documents identified
-
-**Before deploying**
-- [ ] Both models **Published**
-- [ ] Scored against ground truth; **false-value rate** recorded
-- [ ] Confidence distribution captured per family
-- [ ] D-17 threshold proposed with the evidence behind it
-- [ ] D-03 reproduction run and captured
-- [ ] Training documents committed; model version ↔ document set recorded
-- [ ] Allow customizations turned **off** before export
-
----
-
-## 12. Open items this work feeds
-
-| ID | Decision | What this gives it |
+| Collection | Package folder | Training documents |
 |---|---|---|
-| **D-17** | Tier 1 → Tier 2 confidence threshold | The routing curve from §7.3 |
-| **D-16** | Maximum batch size per run | The **second** throttle, 360 calls/60s (§7.4) |
-| **D-03** | Workday matching key | A reproduction, not an argument (§8) |
-| **D-02** | PDF extraction method and its confidence signal | Whether AI Builder is the Tier 1 mechanism at all |
+| `Personalblatt` | `a-personalblatt/` | 01–05 |
+| `AnmeldungGemeinde` | `b-anmeldung-gemeinde/` | 01–05 |
+| `Sozialversicherung` | `c-sozialversicherung/` | 01–05 |
+| `Bankverbindung` | `d-bankverbindung/` | 01–05 |
+
+Do not upload, tag, or train on document 06 in any collection. Tag only values that are present in ground truth, train the model, and preserve any platform error. Advance the model record one stage at a time with `Set-HrAiBuilderModelRecord`: `created`, `schema_defined`, `tagged`, then `trained`. Do not publish yet.
+
+---
+
+## 6. Prove machine-readable no-flow capture
+
+Before submitting any held-out document, prove that AI Builder's model test experience, or another approved no-flow mechanism, exposes:
+
+- machine-readable values for all 17 fields;
+- numeric per-field confidence for every returned value;
+- a retainable raw export;
+- exact held-out document identity; and
+- a tested, replayable adapter version that reproduces the prediction capture from the retained raw bytes.
+
+Screenshots and manual transcription do not satisfy the evidence contract. Record the result in `model-test-capability.json` with `New-HrAiBuilderTestCapabilityRecord`.
+
+For a passing observation, provide `-MachineReadableValues`, `-PerFieldConfidence`, the retained `-RawExportPath`, and `-AdapterVersion`. The function hashes the raw export. If equivalent structured output is not available, write a blocked record:
+
+```powershell
+New-HrAiBuilderTestCapabilityRecord `
+    -RunId 't2-dev-20260925-001' `
+    -Mechanism 'AI Builder Quick Test' `
+    -BlockedReason '<observed reason structured values or confidence cannot be retained>' `
+    -OutputPath "$evidenceDirectory\model-test-capability.json"
+```
+
+> **STOP — capture-mechanism failure**
+>
+> If the mechanism cannot produce machine-readable values, per-field confidence, retained raw exports, and replayable adapter evidence, stop before held-out evaluation. Do not transcribe values, infer confidence, or create a Power Automate flow to bridge the gap.
+
+---
+
+## 7. Evaluate fixed results and publish only after a strict-gate pass
+
+Use only the four fixed documents assigned `held-out` in `run-manifest.json`. Retain the raw no-flow exports, then use the tested adapter to import them:
+
+```powershell
+.\hr\src\scripts\Import-AiBuilderQuickTestResults.ps1 `
+    -RunManifestPath "$evidenceDirectory\run-manifest.json" `
+    -ModelSchemaRecordPath "$evidenceDirectory\model-schema-record-fixed.json" `
+    -RawExportDirectory "$evidenceDirectory\raw-fixed" `
+    -AdapterScriptPath '<approved-replayable-adapter-script>' `
+    -TargetModelName 'PersonalMasterDataFixed' `
+    -OutputPath "$evidenceDirectory\prediction-capture-fixed.json"
+
+.\hr\src\scripts\Measure-AiBuilderEvaluation.ps1 `
+    -RunManifestPath "$evidenceDirectory\run-manifest.json" `
+    -CorpusQualityPath "$evidenceDirectory\corpus-quality.json" `
+    -FieldContractPath '.\hr\src\ai-builder\contracts\field-contract.json' `
+    -ModelSchemaRecordPath "$evidenceDirectory\model-schema-record-fixed.json" `
+    -PredictionCapturePath "$evidenceDirectory\prediction-capture-fixed.json" `
+    -GroundTruthPath '.\hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template\ground-truth.json' `
+    -EvidenceDirectory $evidenceDirectory
+```
+
+The evaluator writes field-level validation, aggregate metrics, confidence distribution, failed gates, and a human-readable summary. A passing model has complete corpus, contract, attribution, held-out input, raw-export, adapter-replay, schema-source, document-field coverage, and zero-false-value evidence. The false-value rate must be zero. Missing, incorrect, or invalid present-field results remain explicit quality findings; do not hide them behind an invented percentage.
+
+Advance the fixed record to `evaluated` only when `evaluation-metrics.json` reports `strict_gate_disposition` as `evaluated`. Publish that evaluated version in AI Builder, then advance it to `published`. If any strict gate fails, advance it to `blocked` and do not publish.
+
+> **STOP — false values**
+>
+> Any value returned where ground truth is absent blocks the model. Record the field result and failed `zero_false_values` gate. Do not reinterpret the value as a near-match.
+
+> **STOP — consumed holdouts**
+>
+> If any held-out result influences tagging, retraining, or another model change, the set is consumed. Do not reuse it for acceptance. Create unseen synthetic documents, record new hashes and assignments, and begin a new run.
+
+> **STOP — publish failure**
+>
+> Retain the evaluation evidence, record the platform failure, and do not mark the model `published`.
+
+---
+
+## 8. Create, train, and evaluate `PersonalMasterDataGeneral`
+
+Create a **General documents** model named exactly `PersonalMasterDataGeneral`. Define the same ordered 17 fields and record the observed schema and hashed source evidence independently.
+
+Upload only the two training documents assigned in each of these eight families: `arbeitsvertrag`, `anschreiben`, `bewilligung`, `versicherung`, `zivilstand`, `selbstdeklaration`, `scan-degraded`, and `new-joiner-sheet`. Do not upload or tag the third document in any family; those eight documents are held out.
+
+Tag only ground-truth values that are visibly present, train the model, and advance its record in sequence through `created`, `schema_defined`, `tagged`, and `trained`.
+
+Using the already proven no-flow capture mechanism:
+
+1. retain raw exports for the eight general held-out documents;
+2. run `Import-AiBuilderQuickTestResults.ps1` with `-TargetModelName 'PersonalMasterDataGeneral'`;
+3. run `Measure-AiBuilderEvaluation.ps1` with the general schema record, prediction capture, and `gf-aib-general-documents/ground-truth.json`; and
+4. inspect the general model entry in `evaluation-metrics.json`.
+
+Advance the record to `evaluated` only when its calculated strict-gate disposition is `evaluated`. Keep fixed and general metrics separate. If a gate fails, record the evidence, mark the general model `blocked`, and do not publish it.
+
+---
+
+## 9. Publish and add only models with passing strict gates
+
+Publish `PersonalMasterDataGeneral` only if its strict-gate disposition is `evaluated`, then advance its record to `published`. Do not publish a blocked model.
+
+Add each published, evaluated model explicitly to the existing unmanaged `caldovahrfrontier` solution. A model is not inferred as a dependency and cannot be added before publication. After each successful add, advance that model to `added_to_solution`.
+
+Training data does not travel with a model executable, and an imported document-processing model cannot be retrained. The committed synthetic packages, review records, file hashes, training assignments, model IDs, and versions therefore remain the reconstruction evidence for this attended DEV build.
+
+> **STOP — solution-add failure**
+>
+> Retain the published model and all evaluation evidence, record the platform failure, and do not mark the model `added_to_solution`. One completed model does not make the other complete.
+
+---
+
+## 10. Synchronize `caldovahrfrontier`
+
+After the qualifying models are explicit solution components, pull the current unmanaged DEV source:
+
+```powershell
+.\hr\src\scripts\Sync-HrSolutionSource.ps1 `
+    -TenantAlias 'caldova25668747' `
+    -SolutionUniqueName 'caldovahrfrontier'
+```
+
+Review the unpacked source and record the synchronized solution version in the evidence. Do not commit a solution ZIP.
+
+If synchronization fails, record the tooling or platform error. Do not claim source parity and do not substitute an exported package for reviewable unpacked source.
+
+---
+
+## 11. Update both BoMs and issue #13 from evidence
+
+When no further model or solution mutation is required, finalize `run-manifest.json` with the observed synchronized solution version and the complete evidence-path list. `Complete-HrAiBuilderRunManifest` derives `technically_complete`, `partially_complete`, or `blocked`; it then makes the run immutable.
+
+Update the [AI Builder Field BoM](./bom-0001-peopledoc-master-data-ai-builder-fields.md) from model-version-specific evidence:
+
+- exact observed field name and type;
+- model ID, version, and lifecycle stage;
+- contract and strict-gate status; and
+- links to the manifest, schema record, evaluation metrics, and summary.
+
+Update the [AI Builder Test BoM](./bom-0002-ai-builder-test-inputs-and-outcomes.md) from run-specific evidence:
+
+- qualified training and held-out inputs;
+- raw capture and adapter provenance;
+- field-level result counts;
+- exact-match accuracy, precision, recall, missing-field precision, false-value rate, and confidence distribution;
+- quality findings and failed gates; and
+- publication, solution-add, and final run status.
+
+Finally, update [issue #13](https://github.com/urruegg/caldova-hr-frontier/issues/13) with links to the committed evidence and BoM rows. State only what the evidence proves. Do not claim a future automated write-path approval, downstream deployment, or closure of D-11 or D-17.
+
+Completion checks:
+
+- [ ] Only synthetic documents and non-secret platform metadata are present.
+- [ ] `readiness.json` is passed.
+- [ ] The no-flow capture capability is passed and machine-readable.
+- [ ] Every held-out result is attributable and replayable.
+- [ ] Each published or solution-added model has a passing strict-gate disposition and zero false values.
+- [ ] Consumed holdouts, publish failures, solution-add failures, and synchronization failures remain explicit.
+- [ ] `caldovahrfrontier` source, both BoMs, issue #13, and the immutable run manifest agree.
