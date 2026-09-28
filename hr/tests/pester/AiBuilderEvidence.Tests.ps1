@@ -47,6 +47,379 @@ Describe 'AI Builder field and corpus contracts' {
         }
     }
 
+    Describe 'AI Builder corpus qualification' {
+        BeforeAll {
+            $script:ModulePath = Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.AiBuilder\Caldova.HrFrontier.AiBuilder.psd1'
+            Import-Module $script:ModulePath -Force
+            $script:RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+            $script:ContractPath = Join-Path $script:RepositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
+            $script:FixedPath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template'
+            $script:GeneralPath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-general-documents'
+        }
+
+        It 'creates one pending visual review record per document' {
+            $reviewPath = Join-Path $TestDrive 'fixed-review.json'
+
+            New-HrAiBuilderCorpusReviewTemplate -PackagePath $script:FixedPath -OutputPath $reviewPath
+            $review = Get-Content -LiteralPath $reviewPath -Raw | ConvertFrom-Json
+
+            @($review.documents).Count | Should -Be 24
+            @($review.documents | Where-Object status -eq 'pending').Count | Should -Be 24
+        }
+
+        It 'blocks a corpus while any visual review is pending' {
+            $reviewPath = Join-Path $TestDrive 'fixed-review.json'
+            New-HrAiBuilderCorpusReviewTemplate -PackagePath $script:FixedPath -OutputPath $reviewPath
+
+            $result = Test-HrAiBuilderCorpus -PackagePath $script:FixedPath -ModelKind Fixed `
+                -ReviewPath $reviewPath -FieldContractPath $script:ContractPath
+
+            $result.passed | Should -BeFalse
+            $result.errors | Should -Contain 'Visual review is incomplete.'
+        }
+
+        It 'assigns 20 fixed documents to training and 4 to held-out' {
+            $reviewPath = Join-Path $TestDrive 'fixed-review.json'
+            New-HrAiBuilderCorpusReviewTemplate -PackagePath $script:FixedPath -OutputPath $reviewPath
+            $review = Get-Content -LiteralPath $reviewPath -Raw | ConvertFrom-Json
+            foreach ($document in $review.documents) {
+                $document.status = 'confirmed'
+                $document.values_visible = $true
+                $document.absences_confirmed = $true
+                $document.reviewer = 'test-reviewer'
+            }
+            $review | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $reviewPath -Encoding UTF8
+
+            $result = Test-HrAiBuilderCorpus -PackagePath $script:FixedPath -ModelKind Fixed `
+                -ReviewPath $reviewPath -FieldContractPath $script:ContractPath
+
+            $result.passed | Should -BeTrue
+            @($result.documents | Where-Object assignment -eq 'training').Count | Should -Be 20
+            @($result.documents | Where-Object assignment -eq 'held-out').Count | Should -Be 4
+            @($result.documents | Where-Object { $_.sha256 -notmatch '^[a-f0-9]{64}$' }).Count | Should -Be 0
+        }
+
+        It 'assigns 16 general documents to training and 8 to held-out' {
+            $reviewPath = Join-Path $TestDrive 'general-review.json'
+            New-HrAiBuilderCorpusReviewTemplate -PackagePath $script:GeneralPath -OutputPath $reviewPath
+            $review = Get-Content -LiteralPath $reviewPath -Raw | ConvertFrom-Json
+            foreach ($document in $review.documents) {
+                $document.status = 'confirmed'
+                $document.values_visible = $true
+                $document.absences_confirmed = $true
+                $document.reviewer = 'test-reviewer'
+            }
+            $review | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $reviewPath -Encoding UTF8
+
+            $result = Test-HrAiBuilderCorpus -PackagePath $script:GeneralPath -ModelKind General `
+                -ReviewPath $reviewPath -FieldContractPath $script:ContractPath
+
+            $result.passed | Should -BeTrue
+            @($result.documents | Where-Object assignment -eq 'training').Count | Should -Be 16
+            @($result.documents | Where-Object assignment -eq 'held-out').Count | Should -Be 8
+            @($result.documents | Where-Object assignment -eq 'held-out').document | Should -Be @(
+                'g03-arbeitsvertrag-CAND-2026-0413.pdf'
+                'g06-anschreiben-CAND-2026-0416.pdf'
+                'g09-bewilligung-CAND-2026-0419.pdf'
+                'g12-versicherung-CAND-2026-0422.pdf'
+                'g15-zivilstand-CAND-2026-0425.pdf'
+                'g18-selbstdeklaration-CAND-2026-0428.pdf'
+                'g21-scan-degraded-CAND-2026-0431.pdf'
+                'g24-new-joiner-sheet-CAND-2026-0434.pdf'
+            )
+        }
+    }
+
+    Describe 'AI Builder run and readiness evidence' {
+        BeforeAll {
+            $script:ModulePath = Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.AiBuilder\Caldova.HrFrontier.AiBuilder.psd1'
+            Import-Module $script:ModulePath -Force
+        }
+
+        It 'keeps deployment context in the manifest rather than field results' {
+            $path = Join-Path $TestDrive 'run-manifest.json'
+            $inventoryPath = Join-Path $TestDrive 'model-inventory.json'
+            New-HrAiBuilderRunManifest -RunId 'test-run-001' -TenantKey 'tenant-2' `
+                -EnvironmentId '84ad4c54-41d9-e5df-ba07-188b4719594a' -EnvironmentStage DEV `
+                -SolutionUniqueName 'caldovahrfrontier' -SolutionVersion '0.0.0.1' `
+                -OperatorUpn 'operator@example.invalid' `
+                -StartedAtUtc ([datetime]'2026-09-25T08:00:00Z') `
+                -CorpusRevision (('a' * 64) -join '') -GeneratorRevision (('b' * 64) -join '') `
+                -FieldContractVersion '0.1' -Models @(
+                    [pscustomobject]@{ display_name = 'PersonalMasterDataFixed'; model_kind = 'Fixed' }
+                ) -CorpusResults @() -OutputPath $path -ModelInventoryPath $inventoryPath
+
+            $manifest = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+            $manifest.tenant_key | Should -Be 'tenant-2'
+            $manifest.power_platform_environment_id | Should -Be '84ad4c54-41d9-e5df-ba07-188b4719594a'
+            $manifest.environment_stage | Should -Be 'DEV'
+            $manifest.operator | Should -Be 'operator@example.invalid'
+            $manifest.started_at_utc | Should -Be '2026-09-25T08:00:00.0000000Z'
+            $manifest.corpus_revision | Should -Match '^[a-f0-9]{64}$'
+            $manifest.generator_revision | Should -Match '^[a-f0-9]{64}$'
+        }
+
+        It 'preserves failed and unknown readiness observations and blocks both' {
+            $path = Join-Path $TestDrive 'readiness.json'
+            $checks = @(
+                [pscustomobject]@{ id = 'environment'; status = 'passed'; observation = 'DEV URL matched'; source = 'pac org who'; operator = 'operator@example.invalid'; observed_at_utc = '2026-09-25T08:05:00Z' },
+                [pscustomobject]@{ id = 'dataverse'; status = 'passed'; observation = 'Organization ID matched'; source = 'pac org who'; operator = 'operator@example.invalid'; observed_at_utc = '2026-09-25T08:05:00Z' },
+                [pscustomobject]@{ id = 'maker_authorization'; status = 'passed'; observation = 'Model create action available'; source = 'Power Apps AI hub'; operator = 'operator@example.invalid'; observed_at_utc = '2026-09-25T08:06:00Z' },
+                [pscustomobject]@{ id = 'ai_builder_available'; status = 'failed'; observation = 'Custom extraction unavailable'; source = 'Power Apps AI hub'; operator = 'operator@example.invalid'; observed_at_utc = '2026-09-25T08:07:00Z' },
+                [pscustomobject]@{ id = 'capacity'; status = 'unknown'; observation = 'Capacity page not accessible'; source = 'Power Platform admin center'; operator = 'operator@example.invalid'; observed_at_utc = '2026-09-25T08:08:00Z' },
+                [pscustomobject]@{ id = 'data_policy'; status = 'passed'; observation = 'No blocking policy observed'; source = 'Power Platform admin center'; operator = 'operator@example.invalid'; observed_at_utc = '2026-09-25T08:09:00Z' },
+                [pscustomobject]@{ id = 'solution'; status = 'passed'; observation = 'caldovahrfrontier found'; source = 'pac solution list'; operator = 'operator@example.invalid'; observed_at_utc = '2026-09-25T08:10:00Z' },
+                [pscustomobject]@{ id = 'publisher'; status = 'passed'; observation = 'calhrfrontier/calhr matched'; source = 'solution details'; operator = 'operator@example.invalid'; observed_at_utc = '2026-09-25T08:10:00Z' }
+            )
+            $result = New-HrAiBuilderReadinessRecord -RunId 'test-run-001' -Checks $checks -OutputPath $path
+
+            $result.status | Should -Be 'blocked'
+            $result.failed_gates | Should -Contain 'ai_builder_available'
+            $result.failed_gates | Should -Contain 'capacity'
+            @($result.checks | Where-Object status -eq 'unknown').Count | Should -Be 1
+            $path | Should -Exist
+        }
+
+        It 'records a blocked no-flow test mechanism explicitly' {
+            $path = Join-Path $TestDrive 'model-test-capability.json'
+            $result = New-HrAiBuilderTestCapabilityRecord -RunId 'test-run-001' `
+                -Mechanism 'AI Builder Quick Test' `
+                -BlockedReason 'No machine-readable confidence export is available.' `
+                -OutputPath $path
+
+            $result.status | Should -Be 'blocked'
+            $result.machine_readable_values | Should -BeFalse
+            $result.per_field_confidence | Should -BeFalse
+        }
+
+        It 'records a known model and rejects an unknown model name' {
+            $manifestPath = Join-Path $TestDrive 'run-manifest.json'
+            $inventoryPath = Join-Path $TestDrive 'model-inventory.json'
+            New-HrAiBuilderRunManifest -RunId 'test-run-001' -TenantKey 'tenant-2' `
+                -EnvironmentId '84ad4c54-41d9-e5df-ba07-188b4719594a' -EnvironmentStage DEV `
+                -SolutionUniqueName 'caldovahrfrontier' -SolutionVersion '0.0.0.1' `
+                -OperatorUpn 'operator@example.invalid' `
+                -StartedAtUtc ([datetime]'2026-09-25T08:00:00Z') `
+                -CorpusRevision (('a' * 64) -join '') -GeneratorRevision (('b' * 64) -join '') `
+                -FieldContractVersion '0.1' -Models @(
+                    [pscustomobject]@{ display_name = 'PersonalMasterDataFixed'; model_kind = 'Fixed' }
+                ) -CorpusResults @() -OutputPath $manifestPath -ModelInventoryPath $inventoryPath
+
+            foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained') {
+                Set-HrAiBuilderModelRecord -RunManifestPath $manifestPath `
+                    -ModelInventoryPath $inventoryPath -ModelName 'PersonalMasterDataFixed' `
+                    -ModelId 'model-fixed-001' -ModelVersion '1' -LifecycleStage $stage
+            }
+
+            $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+            @($manifest.models | Where-Object display_name -eq 'PersonalMasterDataFixed').version |
+                Should -Be '1'
+            {
+                Set-HrAiBuilderModelRecord -RunManifestPath $manifestPath `
+                    -ModelInventoryPath $inventoryPath -ModelName 'UnknownModel' `
+                    -ModelId 'unknown' -ModelVersion '1' -LifecycleStage 'trained'
+            } | Should -Throw '*Unknown model*'
+            {
+                Set-HrAiBuilderModelRecord -RunManifestPath $manifestPath `
+                    -ModelInventoryPath $inventoryPath -ModelName 'PersonalMasterDataFixed' `
+                    -ModelId 'model-fixed-001' -ModelVersion '1' -LifecycleStage 'created'
+            } | Should -Throw '*Illegal lifecycle transition*'
+        }
+
+        It 'derives blocked final status and refuses later mutation' {
+            $manifestPath = Join-Path $TestDrive 'run-manifest.json'
+            $inventoryPath = Join-Path $TestDrive 'model-inventory.json'
+            $evidencePath = Join-Path $TestDrive 'evaluation-metrics.json'
+            @{
+                models = @(
+                    @{
+                        display_name = 'PersonalMasterDataFixed'
+                        strict_gate_disposition = 'blocked'
+                    }
+                )
+            } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $evidencePath -Encoding UTF8
+            New-HrAiBuilderRunManifest -RunId 'test-run-001' -TenantKey 'tenant-2' `
+                -EnvironmentId '84ad4c54-41d9-e5df-ba07-188b4719594a' -EnvironmentStage DEV `
+                -SolutionUniqueName 'caldovahrfrontier' -SolutionVersion '0.0.0.1' `
+                -OperatorUpn 'operator@example.invalid' `
+                -StartedAtUtc ([datetime]'2026-09-25T08:00:00Z') `
+                -CorpusRevision (('a' * 64) -join '') -GeneratorRevision (('b' * 64) -join '') `
+                -FieldContractVersion '0.1' -Models @(
+                    [pscustomobject]@{ display_name = 'PersonalMasterDataFixed'; model_kind = 'Fixed' }
+                ) -CorpusResults @() -OutputPath $manifestPath -ModelInventoryPath $inventoryPath
+
+            Complete-HrAiBuilderRunManifest -Path $manifestPath -SolutionVersion '0.0.0.2' `
+                -EvidencePaths @($evidencePath)
+            (Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json).overall_status |
+                Should -Be 'blocked'
+
+            {
+                Set-HrAiBuilderModelRecord -RunManifestPath $manifestPath `
+                    -ModelInventoryPath $inventoryPath -ModelName 'PersonalMasterDataFixed' `
+                    -ModelId 'model-fixed-001' -ModelVersion '1' -LifecycleStage 'blocked'
+            } | Should -Throw '*finalized*'
+            {
+                Complete-HrAiBuilderRunManifest -Path $manifestPath -SolutionVersion '0.0.0.2' `
+                    -EvidencePaths @($evidencePath)
+            } | Should -Throw '*already finalized*'
+        }
+
+        It 'derives partially complete when exactly one known model is added to solution and evaluated' {
+            $manifestPath = Join-Path $TestDrive 'run-manifest.json'
+            $inventoryPath = Join-Path $TestDrive 'model-inventory.json'
+            $metricsPath = Join-Path $TestDrive 'evaluation-metrics.json'
+            @{
+                models = @(
+                    @{
+                        display_name = 'PersonalMasterDataFixed'
+                        strict_gate_disposition = 'evaluated'
+                    }
+                    @{
+                        display_name = 'PersonalMasterDataGeneral'
+                        strict_gate_disposition = 'blocked'
+                    }
+                )
+            } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $metricsPath -Encoding UTF8
+
+            New-HrAiBuilderRunManifest -RunId 'test-run-001' -TenantKey 'tenant-2' `
+                -EnvironmentId '84ad4c54-41d9-e5df-ba07-188b4719594a' -EnvironmentStage DEV `
+                -SolutionUniqueName 'caldovahrfrontier' -SolutionVersion '0.0.0.1' `
+                -OperatorUpn 'operator@example.invalid' `
+                -StartedAtUtc ([datetime]'2026-09-25T08:00:00Z') `
+                -CorpusRevision (('a' * 64) -join '') -GeneratorRevision (('b' * 64) -join '') `
+                -FieldContractVersion '0.1' -Models @(
+                    [pscustomobject]@{ display_name = 'PersonalMasterDataFixed'; model_kind = 'Fixed' }
+                    [pscustomobject]@{ display_name = 'PersonalMasterDataGeneral'; model_kind = 'General' }
+                ) -CorpusResults @() -OutputPath $manifestPath -ModelInventoryPath $inventoryPath
+
+            foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained', 'evaluated', 'published', 'added_to_solution') {
+                Set-HrAiBuilderModelRecord -RunManifestPath $manifestPath `
+                    -ModelInventoryPath $inventoryPath -ModelName 'PersonalMasterDataFixed' `
+                    -ModelId 'model-fixed-001' -ModelVersion '1' -LifecycleStage $stage
+            }
+            Set-HrAiBuilderModelRecord -RunManifestPath $manifestPath `
+                -ModelInventoryPath $inventoryPath -ModelName 'PersonalMasterDataGeneral' `
+                -ModelId 'model-general-001' -ModelVersion '1' -LifecycleStage 'created'
+
+            Complete-HrAiBuilderRunManifest -Path $manifestPath -SolutionVersion '0.0.0.2' `
+                -EvidencePaths @($metricsPath)
+            (Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json).overall_status |
+                Should -Be 'partially_complete'
+        }
+
+        It 'derives technically complete when both known models are added to solution and evaluated' {
+            $manifestPath = Join-Path $TestDrive 'run-manifest.json'
+            $inventoryPath = Join-Path $TestDrive 'model-inventory.json'
+            $metricsPath = Join-Path $TestDrive 'evaluation-metrics.json'
+            @{
+                models = @(
+                    @{
+                        display_name = 'PersonalMasterDataFixed'
+                        strict_gate_disposition = 'evaluated'
+                    }
+                    @{
+                        display_name = 'PersonalMasterDataGeneral'
+                        strict_gate_disposition = 'evaluated'
+                    }
+                )
+            } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $metricsPath -Encoding UTF8
+
+            New-HrAiBuilderRunManifest -RunId 'test-run-001' -TenantKey 'tenant-2' `
+                -EnvironmentId '84ad4c54-41d9-e5df-ba07-188b4719594a' -EnvironmentStage DEV `
+                -SolutionUniqueName 'caldovahrfrontier' -SolutionVersion '0.0.0.1' `
+                -OperatorUpn 'operator@example.invalid' `
+                -StartedAtUtc ([datetime]'2026-09-25T08:00:00Z') `
+                -CorpusRevision (('a' * 64) -join '') -GeneratorRevision (('b' * 64) -join '') `
+                -FieldContractVersion '0.1' -Models @(
+                    [pscustomobject]@{ display_name = 'PersonalMasterDataFixed'; model_kind = 'Fixed' }
+                    [pscustomobject]@{ display_name = 'PersonalMasterDataGeneral'; model_kind = 'General' }
+                ) -CorpusResults @() -OutputPath $manifestPath -ModelInventoryPath $inventoryPath
+
+            foreach ($modelName in 'PersonalMasterDataFixed', 'PersonalMasterDataGeneral') {
+                foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained', 'evaluated', 'published', 'added_to_solution') {
+                    Set-HrAiBuilderModelRecord -RunManifestPath $manifestPath `
+                        -ModelInventoryPath $inventoryPath -ModelName $modelName `
+                        -ModelId ('model-' + $modelName.ToLowerInvariant()) -ModelVersion '1' -LifecycleStage $stage
+                }
+            }
+
+            Complete-HrAiBuilderRunManifest -Path $manifestPath -SolutionVersion '0.0.0.2' `
+                -EvidencePaths @($metricsPath)
+            (Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json).overall_status |
+                Should -Be 'technically_complete'
+        }
+    }
+
+    Describe 'Initialize-AiBuilderEvidenceRun' {
+        BeforeAll {
+            $script:RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+            $script:InitializerPath = Join-Path $script:RepositoryRoot 'hr\src\scripts\Initialize-AiBuilderEvidenceRun.ps1'
+        }
+
+        It 'creates review templates and exits non-zero before visual review exists' {
+            $outputDirectory = Join-Path $TestDrive 'run-init'
+            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:InitializerPath `
+                -RunId 'test-run-001' `
+                -TenantKey 'tenant-2' `
+                -EnvironmentId ([guid]'84ad4c54-41d9-e5df-ba07-188b4719594a') `
+                -EnvironmentStage DEV `
+                -SolutionUniqueName 'caldovahrfrontier' `
+                -SolutionVersion '0.0.0.1' `
+                -OperatorUpn 'operator@example.invalid' `
+                -OutputDirectory $outputDirectory 2>&1
+            $exitCode = $LASTEXITCODE
+
+            $exitCode | Should -Not -Be 0
+            ($output -join [Environment]::NewLine) | Should -Match 'Visual corpus review is required before qualification\.'
+            (Join-Path $outputDirectory 'fixed-review.json') | Should -Exist
+            (Join-Path $outputDirectory 'general-review.json') | Should -Exist
+        }
+
+        It 'writes qualified corpus, manifest, and inventory files after confirmed review' {
+            $outputDirectory = Join-Path $TestDrive 'run-ready'
+            $null = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:InitializerPath `
+                -RunId 'test-run-001' `
+                -TenantKey 'tenant-2' `
+                -EnvironmentId ([guid]'84ad4c54-41d9-e5df-ba07-188b4719594a') `
+                -EnvironmentStage DEV `
+                -SolutionUniqueName 'caldovahrfrontier' `
+                -SolutionVersion '0.0.0.1' `
+                -OperatorUpn 'operator@example.invalid' `
+                -OutputDirectory $outputDirectory 2>&1
+
+            foreach ($reviewName in 'fixed-review.json', 'general-review.json') {
+                $reviewPath = Join-Path $outputDirectory $reviewName
+                $review = Get-Content -LiteralPath $reviewPath -Raw | ConvertFrom-Json
+                foreach ($document in $review.documents) {
+                    $document.status = 'confirmed'
+                    $document.values_visible = $true
+                    $document.absences_confirmed = $true
+                    $document.reviewer = 'test-reviewer'
+                }
+                $review | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $reviewPath -Encoding UTF8
+            }
+
+            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:InitializerPath `
+                -RunId 'test-run-001' `
+                -TenantKey 'tenant-2' `
+                -EnvironmentId ([guid]'84ad4c54-41d9-e5df-ba07-188b4719594a') `
+                -EnvironmentStage DEV `
+                -SolutionUniqueName 'caldovahrfrontier' `
+                -SolutionVersion '0.0.0.1' `
+                -OperatorUpn 'operator@example.invalid' `
+                -OutputDirectory $outputDirectory 2>&1
+            $exitCode = $LASTEXITCODE
+
+            $exitCode | Should -Be 0
+            (Join-Path $outputDirectory 'corpus-quality.json') | Should -Exist
+            (Join-Path $outputDirectory 'run-manifest.json') | Should -Exist
+            (Join-Path $outputDirectory 'model-inventory.json') | Should -Exist
+            ((Get-Content -LiteralPath (Join-Path $outputDirectory 'run-manifest.json') -Raw | ConvertFrom-Json).started_at_utc) |
+                Should -Match 'Z$'
+            ($output -join [Environment]::NewLine) | Should -Match 'Corpus qualification passed\.'
+        }
+    }
+
     It 'contains 24 fixed PDFs and matching ground-truth rows' {
         $root = Join-Path $script:UseCaseRoot 'gf-aib-fixed-template'
         $truth = Get-Content -LiteralPath (Join-Path $root 'ground-truth.json') -Raw | ConvertFrom-Json

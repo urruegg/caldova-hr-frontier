@@ -18,6 +18,8 @@
 | `Connect-PowerPlatformEnvironment.ps1` | Verifies (and if needed, creates) an authenticated PAC CLI profile for a tenant/stage. Useful standalone to check connectivity before running anything else. |
 | `Sync-HrSolutionSource.ps1` | The main entry point: exports a named solution's unmanaged package from a tenant's **DEV environment only**, unpacks it into `hr/src/solutions/<SolutionUniqueName>/`, and cleans up the temporary zip. This is what makes the committed source an exact, reviewable mirror of what is in Dataverse. |
 | `modules/Caldova.HrFrontier.Solutions/` | The module both scripts are built on — read `Public/` for the individual functions if you are calling this from another script. |
+| `Initialize-AiBuilderEvidenceRun.ps1` | Initializes a tenant-local AI Builder evidence run, creates required visual-review templates on first use, and writes qualified corpus plus run-manifest evidence only after both corpora pass the strict gate. |
+| `modules/Caldova.HrFrontier.AiBuilder/` | Corpus qualification, readiness, lifecycle, and immutable run-manifest helpers for the Tenant-local AI Builder model workstream. |
 
 ## Usage
 
@@ -30,6 +32,18 @@
 ```
 
 The first run for a tenant prompts an interactive Microsoft Entra ID sign-in (a PAC auth profile named `hr-<TenantAlias>-<stage>` is created and reused on subsequent runs). No service-principal or CI credential path exists yet — that is deliberately deferred until a tenant's infrastructure bootstrap provisions a usable credential for it.
+
+## AI Builder evidence tooling
+
+`Initialize-AiBuilderEvidenceRun.ps1` is deliberately **evidence-only**. It does not create a model, upload documents, or change a tenant prerequisite. Its job is to:
+
+1. create the fixed and general visual-review templates for the committed synthetic corpora;
+2. stop until a human confirms that visible values and deliberate absences match the controlled ground truth;
+3. qualify both corpora, derive corpus and generator revisions, and create `corpus-quality.json`, `run-manifest.json`, and `model-inventory.json` only when both packages pass.
+
+The committed evidence boundary remains under `hr/evidence/ai-builder/<tenant-key>/<environment-stage>/<run-id>/`. The evidence contains only synthetic values and non-secret platform metadata. Real PeopleDoc, candidate, pre-hire, worker, or employee documents must not be introduced here.
+
+The AI Builder module is portable by tenant design. Tenant keys, environment IDs, environment stages, operators, and output locations are inputs to a run; they are not embedded into the code. That keeps the Tenant 2 implementation repeatable for a separately approved Tenant 1 team without importing Tenant 2 artifacts or credentials.
 
 ## Why export is DEV-only
 
