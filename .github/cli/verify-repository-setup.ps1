@@ -806,22 +806,18 @@ Test-RequiredContent '.github/workflows/validate-repository.yml' @(
     'name: Validate repository',
     (Get-ReviewedActionUse -Name 'actions/checkout'),
     'Repository setup validation',
-    'RepositorySafety.Tests.ps1',
-    'infra/tests/pester',
+    "Get-ChildItem -LiteralPath '.github\cli\tests' -Filter '*.Tests.ps1' -File",
+    "'infra\tests\pester'",
+    "'hr\tests\pester'",
     'verify-repository-safety.ps1',
-    'az bicep build --file infra/src/bicep/main.bicep --stdout'
-)
-Test-RequiredContent '.github/workflows/audit-repository.yml' @(
-    'name: Audit repository baseline',
-    'Repository baseline audit (advisory)',
-    'verify-repository-setup.ps1 -SkipIntegratedTests -SkipBicepBuild'
+    "Get-ChildItem -LiteralPath 'infra\src\bicep' -Filter '*.bicep' -File -Recurse",
+    'git merge-base',
+    'git diff --check'
 )
 
 $phase3RequiredPaths = @(
     '.github/cli/tests/Phase3SourceContract.Tests.ps1',
     '.github/workflows/README.md',
-    '.github/workflows/bootstrap-tenant.yml',
-    '.github/workflows/discover-tenant.yml',
     'docs/reviews/2026-09-17-phase-3-infrastructure-tenant-bootstrap-intake.md',
     'infra/README.md',
     'infra/docs/10-tenant-setup-and-configuration.md',
@@ -894,8 +890,7 @@ $phase3RequiredPaths = @(
     'infra/tests/pester/TemporaryRoleCleanup.Tests.ps1',
     'infra/tests/pester/TenantConfiguration.Tests.ps1',
     'infra/tests/pester/TenantTrust.Tests.ps1',
-    'infra/tests/pester/WhatIfBoundary.Tests.ps1',
-    'infra/tests/pester/WorkflowContract.Tests.ps1'
+    'infra/tests/pester/WhatIfBoundary.Tests.ps1'
 )
 foreach ($relativePath in $phase3RequiredPaths) {
     Test-RequiredContent $relativePath @()
@@ -920,17 +915,6 @@ Test-RequiredContent 'infra/tests/pester/BicepComposition.Tests.ps1' @(
     'Microsoft.Authorization/roleAssignments',
     'Microsoft.Authorization/policyAssignments'
 )
-foreach ($workflowPath in @('.github/workflows/bootstrap-tenant.yml', '.github/workflows/discover-tenant.yml')) {
-    Test-RequiredContent $workflowPath @(
-        'permissions:',
-        'contents: read',
-        'id-token: write',
-        (Get-ReviewedActionUse -Name 'actions/checkout'),
-        (Get-ReviewedActionUse -Name 'azure/login'),
-        'environment: bootstrap-${{ inputs.tenantAlias }}'
-    )
-}
-
 $phase3TenantManifestRelativePath = 'infra/src/config/tenants/caldova25156897.psd1'
 $phase3TenantManifestPath = Join-Path $repositoryRoot ($phase3TenantManifestRelativePath.Replace('/', '\'))
 if (Test-Path -LiteralPath $phase3TenantManifestPath -PathType Leaf) {
@@ -1034,12 +1018,6 @@ if (Test-Path -LiteralPath (Join-Path $repositoryRoot 'infra\src\scripts') -Path
         $_.Extension -in @('.ps1', '.psm1')
     })) {
         [void]$phase3ExecutablePaths.Add($scriptFile.FullName)
-    }
-}
-foreach ($workflowPath in @('.github/workflows/bootstrap-tenant.yml', '.github/workflows/discover-tenant.yml')) {
-    $absoluteWorkflowPath = Join-Path $repositoryRoot ($workflowPath.Replace('/', '\'))
-    if (Test-Path -LiteralPath $absoluteWorkflowPath -PathType Leaf) {
-        [void]$phase3ExecutablePaths.Add($absoluteWorkflowPath)
     }
 }
 foreach ($executablePath in $phase3ExecutablePaths) {
