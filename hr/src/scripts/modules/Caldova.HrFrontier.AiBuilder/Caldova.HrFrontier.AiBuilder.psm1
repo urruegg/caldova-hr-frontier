@@ -52,8 +52,10 @@ function Get-HrAiBuilderLifecycleOrder {
         'schema_defined',
         'tagged',
         'trained',
+        'evaluation_published',
+        'capture_validated',
         'evaluated',
-        'published',
+        'approved_for_solution',
         'added_to_solution'
     )
 }

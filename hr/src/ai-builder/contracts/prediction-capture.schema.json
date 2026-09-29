@@ -36,14 +36,14 @@
       "minLength": 1
     },
     "capture_mechanism": {
-      "const": "AI Builder Quick Test"
+      "const": "Power Automate Process documents"
     },
     "adapter_version": {
       "type": "string",
       "minLength": 1
     },
     "adapter_contract": {
-      "const": "replayable-v1"
+      "const": "replayable-v2"
     },
     "adapter_script_path": {
       "type": "string",
@@ -54,7 +54,7 @@
       "pattern": "^[a-f0-9]{64}$"
     },
     "raw_export_format": {
-      "const": "test-fixture-json-v1"
+      "const": "ai-builder-process-documents-v1"
     },
     "operator": {
       "type": "string",

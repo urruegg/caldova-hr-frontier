@@ -260,6 +260,38 @@ Describe 'AI Builder field and corpus contracts' {
                     MetricsPath = Join-Path $root 'evaluation-metrics.json'
                 }
             }
+
+            function New-TestLifecycleFixture {
+                param(
+                    [Parameter(Mandatory)]
+                    [string]$Name,
+
+                    [Parameter()]
+                    [string]$RunId = 'test-run-001',
+
+                    [ValidateSet('PersonalMasterDataFixed', 'PersonalMasterDataGeneral')]
+                    [string[]]$ModelNames = @('PersonalMasterDataFixed')
+                )
+
+                $paths = New-RunEvidencePaths -Name $Name
+                $models = foreach ($modelName in $ModelNames) {
+                    [pscustomobject]@{
+                        display_name = $modelName
+                        model_kind = if ($modelName -eq 'PersonalMasterDataFixed') { 'Fixed' } else { 'General' }
+                    }
+                }
+
+                New-HrAiBuilderRunManifest -RunId $RunId -TenantKey 'tenant-2' `
+                    -EnvironmentId '84ad4c54-41d9-e5df-ba07-188b4719594a' -EnvironmentStage DEV `
+                    -SolutionUniqueName 'caldovahrfrontier' -SolutionVersion '0.0.0.1' `
+                    -OperatorUpn 'operator@example.invalid' `
+                    -StartedAtUtc ([datetime]'2026-09-25T08:00:00Z') `
+                    -CorpusRevision (('a' * 64) -join '') -GeneratorRevision (('b' * 64) -join '') `
+                    -FieldContractVersion '0.1' -Models @($models) -CorpusResults @() `
+                    -OutputPath $paths.ManifestPath -ModelInventoryPath $paths.InventoryPath | Out-Null
+
+                return $paths
+            }
         }
 
         It 'keeps deployment context in the manifest rather than field results' {
@@ -377,6 +409,167 @@ Describe 'AI Builder field and corpus contracts' {
             } | Should -Throw '*Illegal lifecycle transition*'
         }
 
+        Describe 'AI Builder lifecycle contract' {
+            It 'appends the lifecycle stages in the new forward order' {
+                $paths = New-TestLifecycleFixture -Name 'lifecycle-forward-order'
+
+                foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained', 'evaluation_published', 'capture_validated', 'evaluated', 'approved_for_solution', 'added_to_solution') {
+                    Set-HrAiBuilderModelRecord -RunManifestPath $paths.ManifestPath `
+                        -ModelInventoryPath $paths.InventoryPath -ModelName 'PersonalMasterDataFixed' `
+                        -ModelId 'model-fixed-001' -ModelVersion '1.0' -LifecycleStage $stage | Out-Null
+                }
+
+                $history = @(
+                    @((Get-Content -LiteralPath $paths.ManifestPath -Raw | ConvertFrom-Json).models | Where-Object display_name -eq 'PersonalMasterDataFixed')[0].lifecycle_history
+                )
+
+                @($history.stage) | Should -Be @(
+                    'not_created', 'created', 'schema_defined', 'tagged', 'trained',
+                    'evaluation_published', 'capture_validated', 'evaluated',
+                    'approved_for_solution', 'added_to_solution'
+                )
+            }
+
+            It 'resumes the blocked lifecycle only for the fixed 1.0 model and preserves the evidence bytes' {
+                $paths = New-TestLifecycleFixture -Name 'lifecycle-blocked-resume' -RunId 't2-dev-20260925-001'
+                $blockedCapabilityPath = Join-Path $script:RepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\model-test-capability.json'
+                $originalBlockedCapabilityBytes = Get-Content -LiteralPath $blockedCapabilityPath -Raw
+                $recordArguments = @{
+                    RunManifestPath = $paths.ManifestPath
+                    ModelInventoryPath = $paths.InventoryPath
+                    ModelName = 'PersonalMasterDataFixed'
+                    ModelId = '74b09a72-d1f1-4598-bc4d-3746d5c97acc'
+                    ModelVersion = '1.0'
+                }
+
+                Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage 'created' | Out-Null
+                Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage 'schema_defined' | Out-Null
+                Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage 'tagged' | Out-Null
+                Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage 'trained' | Out-Null
+                Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage 'blocked' | Out-Null
+
+                Set-HrAiBuilderModelRecord @recordArguments `
+                    -LifecycleStage 'evaluation_published' `
+                    -ResumeBlockedEvaluation `
+                    -ResumeEvidencePath $blockedCapabilityPath | Out-Null
+
+                $history = @(
+                    @((Get-Content -LiteralPath $paths.ManifestPath -Raw | ConvertFrom-Json).models | Where-Object display_name -eq 'PersonalMasterDataFixed')[0].lifecycle_history
+                )
+
+                @($history.stage) | Should -Be @(
+                    'not_created', 'created', 'schema_defined', 'tagged', 'trained',
+                    'blocked', 'evaluation_published'
+                )
+                (Get-Content -LiteralPath $blockedCapabilityPath -Raw) |
+                    Should -BeExactly $originalBlockedCapabilityBytes
+            }
+
+            It 'rejects lifecycle skips and regressions across the evaluation stages' {
+                $paths = New-TestLifecycleFixture -Name 'lifecycle-skip-regression'
+                $recordArguments = @{
+                    RunManifestPath = $paths.ManifestPath
+                    ModelInventoryPath = $paths.InventoryPath
+                    ModelName = 'PersonalMasterDataFixed'
+                    ModelId = 'model-fixed-001'
+                    ModelVersion = '1.0'
+                }
+
+                foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained') {
+                    Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage $stage | Out-Null
+                }
+
+                {
+                    Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage 'capture_validated'
+                } | Should -Throw '*Illegal lifecycle transition*'
+
+                Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage 'evaluation_published' | Out-Null
+                {
+                    Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage 'evaluated'
+                } | Should -Throw '*Illegal lifecycle transition*'
+
+                Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage 'capture_validated' | Out-Null
+                Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage 'evaluated' | Out-Null
+                {
+                    Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage 'added_to_solution'
+                } | Should -Throw '*Illegal lifecycle transition*'
+
+                foreach ($priorStage in 'created', 'schema_defined', 'tagged', 'trained', 'evaluation_published', 'capture_validated') {
+                    {
+                        Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage $priorStage
+                    } | Should -Throw '*Illegal lifecycle transition*'
+                }
+            }
+
+            It 'rejects lifecycle resumes without preserved fixed 1.0 blocked evidence' {
+                $baseRecordArguments = @{
+                    ModelId = '74b09a72-d1f1-4598-bc4d-3746d5c97acc'
+                    ModelVersion = '1.0'
+                    LifecycleStage = 'evaluation_published'
+                    ResumeBlockedEvaluation = $true
+                }
+                $blockedCapabilityPath = Join-Path $script:RepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\model-test-capability.json'
+                $tamperedBlockedCapabilityPath = Join-Path (Join-Path $TestDrive 'lifecycle-tampered') 'model-test-capability.json'
+                New-Item -ItemType Directory -Path (Split-Path -Parent $tamperedBlockedCapabilityPath) -Force | Out-Null
+                Copy-Item -LiteralPath $blockedCapabilityPath -Destination $tamperedBlockedCapabilityPath
+                $tamperedBlockedCapability = Get-Content -LiteralPath $tamperedBlockedCapabilityPath -Raw
+                ($tamperedBlockedCapability -replace '"status": "blocked"', '"status": "passed"') |
+                    Set-Content -LiteralPath $tamperedBlockedCapabilityPath -Encoding UTF8
+
+                $missingPathPaths = New-TestLifecycleFixture -Name 'lifecycle-missing-resume-path' -RunId 't2-dev-20260925-001'
+                foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained', 'blocked') {
+                    Set-HrAiBuilderModelRecord -RunManifestPath $missingPathPaths.ManifestPath `
+                        -ModelInventoryPath $missingPathPaths.InventoryPath -ModelName 'PersonalMasterDataFixed' `
+                        -ModelId '74b09a72-d1f1-4598-bc4d-3746d5c97acc' -ModelVersion '1.0' -LifecycleStage $stage | Out-Null
+                }
+                {
+                    Set-HrAiBuilderModelRecord -RunManifestPath $missingPathPaths.ManifestPath `
+                        -ModelInventoryPath $missingPathPaths.InventoryPath -ModelName 'PersonalMasterDataFixed' `
+                        @baseRecordArguments
+                } | Should -Throw '*ResumeEvidencePath*'
+
+                $wrongVersionPaths = New-TestLifecycleFixture -Name 'lifecycle-wrong-version' -RunId 't2-dev-20260925-001'
+                foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained', 'blocked') {
+                    Set-HrAiBuilderModelRecord -RunManifestPath $wrongVersionPaths.ManifestPath `
+                        -ModelInventoryPath $wrongVersionPaths.InventoryPath -ModelName 'PersonalMasterDataFixed' `
+                        -ModelId '74b09a72-d1f1-4598-bc4d-3746d5c97acc' -ModelVersion '2.0' -LifecycleStage $stage | Out-Null
+                }
+                {
+                    Set-HrAiBuilderModelRecord -RunManifestPath $wrongVersionPaths.ManifestPath `
+                        -ModelInventoryPath $wrongVersionPaths.InventoryPath -ModelName 'PersonalMasterDataFixed' `
+                        -ModelId '74b09a72-d1f1-4598-bc4d-3746d5c97acc' -ModelVersion '2.0' `
+                        -LifecycleStage 'evaluation_published' -ResumeBlockedEvaluation `
+                        -ResumeEvidencePath $blockedCapabilityPath
+                } | Should -Throw '*PersonalMasterDataFixed*1.0*'
+
+                $generalModelPaths = New-TestLifecycleFixture -Name 'lifecycle-general-model' -RunId 't2-dev-20260925-001' -ModelNames @('PersonalMasterDataGeneral')
+                foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained', 'blocked') {
+                    Set-HrAiBuilderModelRecord -RunManifestPath $generalModelPaths.ManifestPath `
+                        -ModelInventoryPath $generalModelPaths.InventoryPath -ModelName 'PersonalMasterDataGeneral' `
+                        -ModelId 'model-general-001' -ModelVersion '1.0' -LifecycleStage $stage | Out-Null
+                }
+                {
+                    Set-HrAiBuilderModelRecord -RunManifestPath $generalModelPaths.ManifestPath `
+                        -ModelInventoryPath $generalModelPaths.InventoryPath -ModelName 'PersonalMasterDataGeneral' `
+                        -ModelId 'model-general-001' -ModelVersion '1.0' `
+                        -LifecycleStage 'evaluation_published' -ResumeBlockedEvaluation `
+                        -ResumeEvidencePath $blockedCapabilityPath
+                } | Should -Throw '*PersonalMasterDataFixed*1.0*'
+
+                $tamperedEvidencePaths = New-TestLifecycleFixture -Name 'lifecycle-tampered-evidence' -RunId 't2-dev-20260925-001'
+                foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained', 'blocked') {
+                    Set-HrAiBuilderModelRecord -RunManifestPath $tamperedEvidencePaths.ManifestPath `
+                        -ModelInventoryPath $tamperedEvidencePaths.InventoryPath -ModelName 'PersonalMasterDataFixed' `
+                        -ModelId '74b09a72-d1f1-4598-bc4d-3746d5c97acc' -ModelVersion '1.0' -LifecycleStage $stage | Out-Null
+                }
+                {
+                    Set-HrAiBuilderModelRecord -RunManifestPath $tamperedEvidencePaths.ManifestPath `
+                        -ModelInventoryPath $tamperedEvidencePaths.InventoryPath -ModelName 'PersonalMasterDataFixed' `
+                        @baseRecordArguments -ResumeEvidencePath $tamperedBlockedCapabilityPath
+                } | Should -Throw '*blocked*'
+            }
+        }
+
         It 'derives blocked final status and refuses later mutation' {
             $paths = New-RunEvidencePaths -Name 'blocked-finalization'
             @{
@@ -439,7 +632,7 @@ Describe 'AI Builder field and corpus contracts' {
                     [pscustomobject]@{ display_name = 'PersonalMasterDataGeneral'; model_kind = 'General' }
                 ) -CorpusResults @() -OutputPath $paths.ManifestPath -ModelInventoryPath $paths.InventoryPath
 
-            foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained', 'evaluated', 'published', 'added_to_solution') {
+            foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained', 'evaluation_published', 'capture_validated', 'evaluated', 'approved_for_solution', 'added_to_solution') {
                 Set-HrAiBuilderModelRecord -RunManifestPath $paths.ManifestPath `
                     -ModelInventoryPath $paths.InventoryPath -ModelName 'PersonalMasterDataFixed' `
                     -ModelId 'model-fixed-001' -ModelVersion '1' -LifecycleStage $stage
@@ -481,7 +674,7 @@ Describe 'AI Builder field and corpus contracts' {
                 ) -CorpusResults @() -OutputPath $paths.ManifestPath -ModelInventoryPath $paths.InventoryPath
 
             foreach ($modelName in 'PersonalMasterDataFixed', 'PersonalMasterDataGeneral') {
-                foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained', 'evaluated', 'published', 'added_to_solution') {
+                foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained', 'evaluation_published', 'capture_validated', 'evaluated', 'approved_for_solution', 'added_to_solution') {
                     Set-HrAiBuilderModelRecord -RunManifestPath $paths.ManifestPath `
                         -ModelInventoryPath $paths.InventoryPath -ModelName $modelName `
                         -ModelId ('model-' + $modelName.ToLowerInvariant()) -ModelVersion '1' -LifecycleStage $stage
@@ -552,7 +745,7 @@ Describe 'AI Builder field and corpus contracts' {
                 ) -CorpusResults $corpusResults -OutputPath $paths.ManifestPath -ModelInventoryPath $paths.InventoryPath | Out-Null
 
             foreach ($modelName in 'PersonalMasterDataFixed', 'PersonalMasterDataGeneral') {
-                foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained', 'evaluated', 'published', 'added_to_solution') {
+                foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained', 'evaluation_published', 'capture_validated', 'evaluated', 'approved_for_solution', 'added_to_solution') {
                     Set-HrAiBuilderModelRecord -RunManifestPath $paths.ManifestPath `
                         -ModelInventoryPath $paths.InventoryPath -ModelName $modelName `
                         -ModelId ('model-' + $modelName.ToLowerInvariant()) -ModelVersion '1' -LifecycleStage $stage | Out-Null
@@ -792,6 +985,83 @@ Describe 'AI Builder field and corpus contracts' {
                     Select-Object -ExpandProperty Name |
                     Sort-Object
             ) | Should -Be @($expected | Sort-Object)
+        }
+    }
+
+    Describe 'AI Builder evaluation capture schema contracts' {
+        BeforeAll {
+            $script:PredictionCaptureSchemaPath = Join-Path $script:RepositoryRoot 'hr\src\ai-builder\contracts\prediction-capture.schema.json'
+            $script:EvaluationCapturePairSchemaPath = Join-Path $script:RepositoryRoot 'hr\src\ai-builder\contracts\evaluation-capture-pair.schema.json'
+            $script:ExpectedCanonicalEnvelopePropertyOrder = @(
+                'schema_version',
+                'run_id',
+                'corpus_revision',
+                'filename',
+                'claimed_sha256',
+                'model_name',
+                'model_version',
+                'captured_at_utc',
+                'fields'
+            )
+        }
+
+        It 'defines the canonical envelope property order and 17 contract fields' {
+            $script:EvaluationCapturePairSchemaPath | Should -Exist
+            $pairSchema = Get-Content -LiteralPath $script:EvaluationCapturePairSchemaPath -Raw | ConvertFrom-Json
+            $canonicalEnvelope = $pairSchema.'$defs'.canonical_envelope
+
+            @($canonicalEnvelope.properties.psobject.Properties.Name) |
+                Should -Be $script:ExpectedCanonicalEnvelopePropertyOrder
+            @($canonicalEnvelope.required) | Should -Be $script:ExpectedCanonicalEnvelopePropertyOrder
+            @($canonicalEnvelope.properties.fields.properties.psobject.Properties.Name) |
+                Should -Be @($script:ExpectedFieldDefinitions.name)
+            @($canonicalEnvelope.properties.fields.required) |
+                Should -Be @($script:ExpectedFieldDefinitions.name)
+            $canonicalEnvelope.additionalProperties | Should -BeFalse
+            @($pairSchema.'$defs'.canonical_field.properties.psobject.Properties.Name) |
+                Should -Be @('value', 'confidence')
+            @($pairSchema.'$defs'.canonical_field.required) |
+                Should -Be @('value', 'confidence')
+            $pairSchema.'$defs'.canonical_field.additionalProperties | Should -BeFalse
+
+            foreach ($fieldName in $script:ExpectedFieldDefinitions.name) {
+                $canonicalEnvelope.properties.fields.properties.$fieldName.'$ref' |
+                    Should -Be '#/$defs/canonical_field'
+            }
+        }
+
+        It 'requires lowercase sha256 values for every captured artifact record and disallows duplicate paths' {
+            $pairSchema = Get-Content -LiteralPath $script:EvaluationCapturePairSchemaPath -Raw | ConvertFrom-Json
+            $artifacts = $pairSchema.properties.artifacts.properties
+
+            foreach ($artifactName in 'source_pdf', 'raw_response', 'canonical_envelope') {
+                $artifactSchema = $artifacts.$artifactName
+                @($artifactSchema.properties.psobject.Properties.Name) | Should -Be @('path', 'sha256')
+                @($artifactSchema.required) | Should -Be @('path', 'sha256')
+                $artifactSchema.properties.sha256.pattern | Should -Be '^[a-f0-9]{64}$'
+                $artifactSchema.additionalProperties | Should -BeFalse
+            }
+
+            $pairSchema.allOf | Should -Not -BeNullOrEmpty
+            ($pairSchema | ConvertTo-Json -Depth 20) | Should -Match '(?s)source_pdf.+raw_response'
+            ($pairSchema | ConvertTo-Json -Depth 20) | Should -Match '(?s)raw_response.+canonical_envelope'
+        }
+
+        It 'pins production prediction captures to the Process documents adapter contract' {
+            $script:PredictionCaptureSchemaPath | Should -Exist
+            $predictionSchema = Get-Content -LiteralPath $script:PredictionCaptureSchemaPath -Raw | ConvertFrom-Json
+
+            $predictionSchema.properties.capture_mechanism.const | Should -Be 'Power Automate Process documents'
+            $predictionSchema.properties.adapter_contract.const | Should -Be 'replayable-v2'
+            $predictionSchema.properties.raw_export_format.const | Should -Be 'ai-builder-process-documents-v1'
+        }
+
+        It 'does not allow the retired Quick Test constants in the production prediction contract' {
+            $predictionSchemaText = Get-Content -LiteralPath $script:PredictionCaptureSchemaPath -Raw
+
+            $predictionSchemaText | Should -Not -Match 'AI Builder Quick Test'
+            $predictionSchemaText | Should -Not -Match 'replayable-v1'
+            $predictionSchemaText | Should -Not -Match 'test-fixture-json-v1'
         }
     }
 
