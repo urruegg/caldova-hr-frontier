@@ -71,6 +71,8 @@ powershell.exe -NoProfile -Command "& {
 
 Import retained Power Automate `Process documents` captures through the approved adapter:
 
+Task 7 has not yet implemented `.\hr\src\scripts\adapters\ConvertFrom-HrAiBuilderEvaluationCapture.ps1`. Do not run the import command below until Task 7 creates that exact script and the focused adapter tests pass. If the script is absent or the tests are not green, stop.
+
 ```powershell
 $adapterScriptPath = '.\hr\src\scripts\adapters\ConvertFrom-HrAiBuilderEvaluationCapture.ps1'
 

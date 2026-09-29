@@ -161,6 +161,18 @@ Describe 'AI Builder field and corpus contracts' {
             $script:Guide | Should -Match '(?s)`evaluation_published`.+`capture_validated`.+`evaluated`.+`approved_for_solution`.+`added_to_solution`'
         }
 
+        It 'preserves structured evidence and strict calculated evaluation language' {
+            $script:Guide | Should -Match 'run-manifest\.json'
+            $script:Guide | Should -Match 'machine-readable path plus SHA-256 whenever bytes exist'
+            $script:Guide | Should -Match 'prediction-capture-fixed-training-proof\.json'
+            $script:Guide | Should -Match 'prediction-capture-fixed\.json'
+            $script:Guide | Should -Match 'false-value rate remains zero'
+            $script:Guide | Should -Match 'Use only calculated repository evidence for the approval decision'
+            $script:Guide | Should -Match 'Append `approved_for_solution` only on calculated success'
+            $script:Guide | Should -Match 'If calculated gates do not support `approved_for_solution`, stop\. Do not add the model to `caldovahrfrontier`'
+            $script:Guide | Should -Match 'If the approved model cannot be added to `caldovahrfrontier`, retain the evidence, do not append `added_to_solution`, and stop'
+        }
+
         It 'requires owner-only flow security and synthetic evidence boundaries' {
             $script:Guide | Should -Match 'named administrators only'
             $script:Guide | Should -Match 'disabled by default'
@@ -186,7 +198,7 @@ Describe 'AI Builder field and corpus contracts' {
 
         It 'labels every portal mutation as attended approval work' {
             @([regex]::Matches($script:Guide, 'ATTENDED TENANT OPERATION — STOP FOR APPROVAL')).Count |
-                Should -BeGreaterThan 0
+                Should -Be 7
         }
     }
 
@@ -224,6 +236,16 @@ Describe 'AI Builder field and corpus contracts' {
                 $document | Should -Match 'Measure-AiBuilderEvaluation\.ps1'
                 $document | Should -Match 'Power Automate `Process documents`'
                 $document | Should -Match 'prediction-capture-fixed\.json'
+            }
+        }
+
+        It 'marks the approved adapter path as unavailable until Task 7 implements and verifies it' {
+            foreach ($document in @($script:Guide, $script:EvidenceReadme, $script:ScriptsReadme)) {
+                $document | Should -Match 'ConvertFrom-HrAiBuilderEvaluationCapture\.ps1'
+                $document | Should -Match 'Task 7'
+                $document | Should -Match 'not yet implemented'
+                $document | Should -Match 'Do not run'
+                $document | Should -Match 'stop'
             }
         }
     }

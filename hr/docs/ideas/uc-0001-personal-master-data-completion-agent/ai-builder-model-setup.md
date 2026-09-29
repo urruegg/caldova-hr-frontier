@@ -212,6 +212,8 @@ Use the approved adapter path when importing proof or holdout captures:
 $adapterScriptPath = '.\hr\src\scripts\adapters\ConvertFrom-HrAiBuilderEvaluationCapture.ps1'
 ```
 
+Task 7 has not yet implemented `.\hr\src\scripts\adapters\ConvertFrom-HrAiBuilderEvaluationCapture.ps1`. Do not run the adapter-backed import commands in this guide until Task 7 creates that exact script and the focused adapter tests pass. If the script is absent or the tests are not green, stop and leave the flow Off.
+
 > **STOP — adapter contract failure**
 >
 > If focused adapter or capture-contract tests fail, keep the flow Off, record `blocked`, and stop. Do not edit retained raw bytes to make a test pass.
@@ -276,6 +278,8 @@ Import the fixed holdout captures and calculate the evaluation:
     -GroundTruthPath '.\hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template\ground-truth.json' `
     -EvidenceDirectory $evidenceDirectory
 ```
+
+The calculated evaluation must preserve strict machine-readable evidence for the exact `run-manifest.json` context, keep every present-field mismatch explicit, and prove that zero-false-value evidence still holds. The false-value rate remains zero; if it does not, strict gating fails and the model does not advance.
 
 Advance the model to `evaluated` only when the calculated evaluation finishes with complete attribution and strict-gate disposition `evaluated`.
 
