@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Tenant 1 engineering platform |
-| **References** | [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Implementation Plan](../../docs/plans/2026-09-28-tenant-1-lean-engineering-platform-implementation.md), [Bootstrap Recovery](19-bootstrap-recovery.md) |
+| **References** | [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Implementation Plan](../../docs/plans/2026-09-28-tenant-1-lean-engineering-platform-implementation.md), [Bootstrap Recovery](19-bootstrap-recovery.md), [Azure Boards Population Runbook](21-azure-boards-population-runbook.md) |
 
 This runbook is the active Tenant 1 operator path. It is attended, local, and fail-closed. It performs discovery, Bicep build, subscription `what-if`, boundary validation, and context and access read-back. It creates no deployment, trust, identity, role assignment, GitHub Environment, Azure Pipeline, or Power Platform deployment.
 
@@ -145,13 +145,120 @@ No governance mutation is authorized by the local Azure validation steps. Use a 
 
 Azure Boards remains Basic: one existing project, its existing team and project-root area, and the hierarchy `Epic -> Issue -> Task`. Do not convert the process to Agile, create six iterations, add a second team, or make the optional 19-idea portfolio a prerequisite.
 
-Use one durable Basic Issue for the final `Fixes AB#<positive-integer>` proof. Do not delete it after validation. Boards changes and read-back require their own attended approval.
+Use one durable Basic Issue for the final `Fixes AB#<positive-integer>` proof. Do not delete it after validation. Boards changes and read-back require their own attended approval. The optional 19-Epic tool remains unchanged and is not required for lean acceptance.
+
+Create the deterministic plan outside Git from the attended Azure DevOps user session:
+
+```powershell
+$BoardsPlanPath = Join-Path $OperatorRoot 'azure-boards-lean-plan.json'
+$BoardsParameters = @{
+    OrganizationUrl = 'https://dev.azure.com/<exact-organization>/'
+    ProjectName = 'Caldova HR Frontier'
+    TeamName = 'Caldova HR Frontier Team'
+    CurrentSprintPath = 'Caldova HR Frontier\Current'
+    IssueTitle = 'Tenant 1 lean engineering platform acceptance'
+    PlanOutputPath = $BoardsPlanPath
+}
+.\infra\src\scripts\Initialize-AzureBoardsLeanSprint.ps1 @BoardsParameters -WhatIf
+```
+
+The plan must read back the Basic process, exact existing team, project-root area, exact current sprint, and either zero or one Issue with the stable tag `tenant1-lean-platform-traceability`. Zero matches plans `Create`; one exact match plans `Reuse`; more than one match stops as ambiguous. `-WhatIf` and the default mode perform no Azure DevOps mutation.
+
+Omit sprint dates unless the attended owner supplies and approves both exact current-sprint dates. When approved dates exist, add both `SprintStartDate` and `SprintFinishDate` to `$BoardsParameters`. The script changes only the selected current sprint and reads both dates back.
+
+After separate attended approval, apply the unchanged plan:
+
+```powershell
+.\infra\src\scripts\Initialize-AzureBoardsLeanSprint.ps1 @BoardsParameters -Apply
+```
+
+Require `Status = Applied` and a positive `IssueId`. Preserve that Issue as the durable cross-system traceability item.
 
 ## Empty Azure Repo Checkpoint
 
-The empty Azure Repo has no lean-platform dependency. Deletion is not approved by this runbook. Before any future deletion, an Azure DevOps project administrator must prove by fresh read-back that the exact repository ID is still empty and has no branch or default branch.
+The empty Azure Repo has no lean-platform dependency. This implementation collects proof only: it does not delete or mutate the repository. Obtain the exact repository and project IDs as attended input, then read metadata, refs, and recursive items through Azure DevOps REST 7.1:
 
-Content, a branch, ambiguity, failed read, `403`, `404`, or an indeterminate result stops deletion. Without explicit deletion approval, leave the repository unchanged.
+```powershell
+$AzureRepoId = (Read-Host 'Enter the exact empty Azure Repo GUID').Trim()
+if ($AzureRepoId -cnotmatch '^[0-9a-fA-F-]{36}$') { throw 'Azure Repo ID must be a GUID.' }
+$OrganizationUrl = (Read-Host 'Enter the Azure DevOps organization URL').Trim()
+$ProjectId = (Read-Host 'Enter the exact Azure DevOps project GUID').Trim()
+if ($ProjectId -cnotmatch '^[0-9a-fA-F-]{36}$') { throw 'Project ID must be a GUID.' }
+
+$Repository = az repos show --id $AzureRepoId --organization $OrganizationUrl --project $ProjectId --output json |
+    ConvertFrom-Json
+if ($LASTEXITCODE -ne 0 -or $null -eq $Repository) { throw 'Cannot read exact Azure Repo metadata.' }
+
+$Refs = az devops invoke --organization $OrganizationUrl --area git --resource refs `
+    --route-parameters "project=$ProjectId" "repositoryId=$AzureRepoId" `
+    --api-version 7.1 --output json | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0 -or $null -eq $Refs) { throw 'Cannot prove Azure Repo refs.' }
+
+$Items = az devops invoke --organization $OrganizationUrl --area git --resource items `
+    --route-parameters "project=$ProjectId" "repositoryId=$AzureRepoId" `
+    --query-parameters 'scopePath=/' 'recursionLevel=Full' 'includeContentMetadata=true' `
+    --api-version 7.1 --output json | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0 -or $null -eq $Items) { throw 'Cannot prove Azure Repo items.' }
+
+if ([long]$Repository.size -ne 0) { throw 'Azure Repo size is not zero.' }
+if (-not [string]::IsNullOrWhiteSpace([string]$Repository.defaultBranch)) { throw 'Azure Repo has a default branch.' }
+if (@($Refs.value).Count -ne 0) { throw 'Azure Repo contains refs.' }
+if (@($Items.value).Count -ne 0) { throw 'Azure Repo contains items.' }
+```
+
+Any failed call, `403`, `404`, empty body, malformed response, branch, ref, item, ambiguity, or indeterminate result stops. Capture only the exact stable IDs and sanitized predicate results outside Git:
+
+```powershell
+$RepoProofPath = Join-Path $OperatorRoot 'empty-azure-repo-proof.json'
+$RepoProof = [ordered]@{
+    collectedAtUtc = [datetime]::UtcNow.ToString('o')
+    organizationUrl = $OrganizationUrl
+    projectId = $ProjectId
+    repositoryId = $AzureRepoId
+    repositoryName = [string]$Repository.name
+    size = [long]$Repository.size
+    defaultBranch = [string]$Repository.defaultBranch
+    refCount = @($Refs.value).Count
+    itemCount = @($Items.value).Count
+    predicates = [ordered]@{
+        sizeIsZero = ([long]$Repository.size -eq 0)
+        defaultBranchIsEmpty = [string]::IsNullOrWhiteSpace([string]$Repository.defaultBranch)
+        refsAreEmpty = (@($Refs.value).Count -eq 0)
+        itemsAreEmpty = (@($Items.value).Count -eq 0)
+    }
+}
+[System.IO.File]::WriteAllText(
+    $RepoProofPath,
+    ($RepoProof | ConvertTo-Json -Depth 5),
+    [System.Text.UTF8Encoding]::new($false)
+)
+```
+
+### Separate Destructive Checkpoint
+
+The proof above is not deletion approval. Stop after capturing it. Any future deletion is a separate attended destructive checkpoint:
+
+1. Display the exact repository ID, repository name, project ID, and all four successful predicates.
+2. Ask the Azure DevOps project administrator whether to delete that exact repository.
+3. Stop on anything other than explicit attended approval.
+4. Only after that approval, run exactly:
+
+   ```powershell
+   az repos delete --id $AzureRepoId --organization $OrganizationUrl --project $ProjectId --yes
+   ```
+
+5. Read back by exact repository ID. Only a post-delete `404` is expected; success, `403`, an empty response, or any other result is failure:
+
+   ```powershell
+   $DeleteReadBack = @(az repos show --id $AzureRepoId --organization $OrganizationUrl --project $ProjectId 2>&1)
+   $DeleteReadBackExitCode = $LASTEXITCODE
+   if ($DeleteReadBackExitCode -eq 0) { throw 'Deleted Azure Repo still resolves by exact ID.' }
+   if (($DeleteReadBack -join [Environment]::NewLine) -cnotmatch '\b404\b') {
+       throw 'Exact Azure Repo post-delete read-back did not return the expected 404.'
+   }
+   ```
+
+This runbook supplies no deletion approval and does not run the command. Without a separate explicit approval, leave the repository unchanged. The Tenant 1 tracked-file deletion gate also remains deferred.
 
 ## Final Governed Transaction
 
