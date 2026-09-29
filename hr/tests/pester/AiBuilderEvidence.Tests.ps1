@@ -1,5 +1,31 @@
 Set-StrictMode -Version Latest
 
+function script:Set-TestUtf8BomContent {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
+
+        [Parameter(Mandatory)]
+        [string]$Content
+    )
+
+    $utf8Bom = [System.Text.UTF8Encoding]::new($true)
+    [System.IO.File]::WriteAllText($Path, $Content, $utf8Bom)
+}
+
+function script:Set-TestUtf8NoBomContent {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
+
+        [Parameter(Mandatory)]
+        [string]$Content
+    )
+
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText($Path, $Content, $utf8NoBom)
+}
+
 Describe 'AI Builder field and corpus contracts' {
     BeforeAll {
         $script:RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
@@ -197,7 +223,7 @@ Describe 'AI Builder field and corpus contracts' {
                 $document.absences_confirmed = $true
                 $document.reviewer = 'test-reviewer'
             }
-            $review | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $reviewPath -Encoding UTF8
+            Set-TestUtf8BomContent -Path $reviewPath -Content ($review | ConvertTo-Json -Depth 8)
 
             $result = Test-HrAiBuilderCorpus -PackagePath $script:FixedPath -ModelKind Fixed `
                 -ReviewPath $reviewPath -FieldContractPath $script:ContractPath
@@ -219,7 +245,7 @@ Describe 'AI Builder field and corpus contracts' {
                 $document.absences_confirmed = $true
                 $document.reviewer = 'test-reviewer'
             }
-            $review | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $reviewPath -Encoding UTF8
+            Set-TestUtf8BomContent -Path $reviewPath -Content ($review | ConvertTo-Json -Depth 8)
 
             $result = Test-HrAiBuilderCorpus -PackagePath $script:GeneralPath -ModelKind General `
                 -ReviewPath $reviewPath -FieldContractPath $script:ContractPath
@@ -228,7 +254,7 @@ Describe 'AI Builder field and corpus contracts' {
             @($result.documents | Where-Object assignment -eq 'training').Count | Should -Be 16
             @($result.documents | Where-Object assignment -eq 'held-out').Count | Should -Be 8
             [IO.Path]::IsPathRooted([string]$result.documents[0].source_path) | Should -BeFalse
-            @($result.documents | Where-Object assignment -eq 'held-out').document | Should -Be @(
+            @(@($result.documents | Where-Object assignment -eq 'held-out').document | Sort-Object) | Should -Be @(
                 'g03-arbeitsvertrag-CAND-2026-0413.pdf'
                 'g06-anschreiben-CAND-2026-0416.pdf'
                 'g09-bewilligung-CAND-2026-0419.pdf'
@@ -311,7 +337,7 @@ Describe 'AI Builder field and corpus contracts' {
             $manifest.power_platform_environment_id | Should -Be '84ad4c54-41d9-e5df-ba07-188b4719594a'
             $manifest.environment_stage | Should -Be 'DEV'
             $manifest.operator | Should -Be 'operator@example.invalid'
-            $manifest.started_at_utc | Should -Be '2026-09-25T08:00:00.0000000Z'
+            ([datetime]$manifest.started_at_utc).ToString('o') | Should -Be '2026-09-25T08:00:00.0000000Z'
             $manifest.corpus_revision | Should -Match '^[a-f0-9]{64}$'
             $manifest.generator_revision | Should -Match '^[a-f0-9]{64}$'
         }
@@ -839,7 +865,7 @@ Describe 'AI Builder field and corpus contracts' {
                     $document.absences_confirmed = $true
                     $document.reviewer = 'test-reviewer'
                 }
-                $review | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $reviewPath -Encoding UTF8
+                Set-TestUtf8BomContent -Path $reviewPath -Content ($review | ConvertTo-Json -Depth 8)
             }
 
             $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:InitializerPath `
@@ -857,7 +883,7 @@ Describe 'AI Builder field and corpus contracts' {
             (Join-Path $outputDirectory 'corpus-quality.json') | Should -Exist
             (Join-Path $outputDirectory 'run-manifest.json') | Should -Exist
             (Join-Path $outputDirectory 'model-inventory.json') | Should -Exist
-            ((Get-Content -LiteralPath (Join-Path $outputDirectory 'run-manifest.json') -Raw | ConvertFrom-Json).started_at_utc) |
+            ([datetime](Get-Content -LiteralPath (Join-Path $outputDirectory 'run-manifest.json') -Raw | ConvertFrom-Json).started_at_utc).ToString('o') |
                 Should -Match 'Z$'
             ($output -join [Environment]::NewLine) | Should -Match 'Corpus qualification passed\.'
         }
@@ -1040,7 +1066,9 @@ Describe 'AI Builder field and corpus contracts' {
                     [string]$DocumentPath
                 )
 
-                $pythonScript = @'
+                $validatorScriptPath = Join-Path $TestDrive 'json-schema-validator.py'
+                if (-not (Test-Path -LiteralPath $validatorScriptPath -PathType Leaf)) {
+                    @'
 import json
 import sys
 from jsonschema import Draft202012Validator
@@ -1058,9 +1086,10 @@ if errors:
         path = '.'.join(str(segment) for segment in error.path)
         print("{}: {}".format(path, error.message) if path else error.message)
     sys.exit(1)
-'@
+'@ | Set-Content -LiteralPath $validatorScriptPath -Encoding UTF8
+                }
 
-                $pythonOutput = & python -c $pythonScript $SchemaPath $DocumentPath 2>&1
+                $pythonOutput = & python $validatorScriptPath $SchemaPath $DocumentPath 2>&1
                 $pythonExitCode = $LASTEXITCODE
 
                 [pscustomobject]@{
@@ -1166,13 +1195,13 @@ if errors:
                 }
             }
 
-            $validRecord | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $validRecordPath -Encoding UTF8
+            Set-TestUtf8NoBomContent -Path $validRecordPath -Content ($validRecord | ConvertTo-Json -Depth 20)
             $validResult = Test-JsonSchemaDocument -SchemaPath $script:EvaluationCapturePairSchemaPath -DocumentPath $validRecordPath
             $validResult.Passed | Should -BeTrue -Because $validResult.Output
 
             $invalidRecord = [ordered]@{} + $validRecord
             $invalidRecord.unexpected = 'forbidden'
-            $invalidRecord | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $extraPropertyRecordPath -Encoding UTF8
+            Set-TestUtf8NoBomContent -Path $extraPropertyRecordPath -Content ($invalidRecord | ConvertTo-Json -Depth 20)
 
             $invalidResult = Test-JsonSchemaDocument -SchemaPath $script:EvaluationCapturePairSchemaPath -DocumentPath $extraPropertyRecordPath
             $invalidResult.Passed | Should -BeFalse
@@ -1583,7 +1612,7 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
                     $document.absences_confirmed = $true
                     $document.reviewer = 'test-reviewer'
                 }
-                $review | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $reviewPath -Encoding UTF8
+                Set-TestUtf8BomContent -Path $reviewPath -Content ($review | ConvertTo-Json -Depth 8)
 
                 return Test-HrAiBuilderCorpus -PackagePath $PackagePath -ModelKind $ModelKind `
                     -ReviewPath $reviewPath -FieldContractPath $script:FieldContractPath
