@@ -79,51 +79,57 @@ Describe 'AI Builder field and corpus contracts' {
             $script:Guide = Get-Content -LiteralPath (
                 Join-Path $root 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\ai-builder-model-setup.md'
             ) -Raw
+            $script:EvidenceReadme = Get-Content -LiteralPath (
+                Join-Path $root 'hr\evidence\ai-builder\README.md'
+            ) -Raw
+            $script:ScriptsReadme = Get-Content -LiteralPath (
+                Join-Path $root 'hr\src\scripts\README.md'
+            ) -Raw
             $script:ExpectedGuideSectionHeadings = @(
-                'Read the design and both BoMs'
-                'Initialize `t2-dev-20260925-001`'
-                'Complete visual corpus review and rerun qualification'
-                'Execute all readiness checks and write `readiness.json`'
-                'Create and train `PersonalMasterDataFixed`'
-                'Prove machine-readable no-flow capture'
-                'Evaluate fixed results and publish only after a strict-gate pass'
-                'Create, train, and evaluate `PersonalMasterDataGeneral`'
-                'Publish and add only models with passing strict gates'
-                'Synchronize `caldovahrfrontier`'
-                'Update both BoMs and issue #13 from evidence'
-            )
-            $script:ExpectedGuideStops = @(
-                'readiness failure'
-                'capture-mechanism failure'
-                'false values'
-                'consumed holdouts'
-                'publish failure'
-                'solution-add failure'
+                'Authority, supersession, and preserved evidence'
+                'Pre-mutation read-only readiness'
+                'Final-name and mutation approval'
+                'Fixed `1.0` evaluation publication'
+                'Evaluation solution and complete flow creation, explicit binding to published fixed `1.0`, save, and immediate Off state'
+                'Security application and verification'
+                'One training-PDF observation and immutable byte retention without a capability claim'
+                'Adapter TDD against the observed raw shape'
+                'Calculated training-PDF capability decision'
+                'Exactly-once fixed holdout capture and calculated evaluation'
+                'Solution-approval decision'
+                'General model continuation decision'
+                'Synchronization, BoMs, manifest, and issue 13'
             )
         }
 
-        It 'uses the approved model and solution names' {
+        It 'references the addendum, original design, and preserved blocked evidence' {
+            $script:Guide | Should -Match '2026-09-29-ai-builder-evaluation-capture-design\.md'
+            $script:Guide | Should -Match '2026-09-25-tenant-2-ai-builder-models-design\.md'
+            $script:Guide | Should -Match 'model-test-capability\.json'
+            $script:Guide | Should -Match 'historical blocked event'
+        }
+
+        It 'states the narrow supersession and preserves Tasks 1-5' {
+            $script:Guide | Should -Match 'supersedes only the no-flow capture requirement'
+            $script:Guide | Should -Match 'Tasks 1-5 remain complete'
+            $script:Guide | Should -Match 'append-only lifecycle'
+        }
+
+        It 'uses the approved names and forbids draft 2.0 mutation' {
             $script:Guide | Should -Match 'PersonalMasterDataFixed'
             $script:Guide | Should -Match 'PersonalMasterDataGeneral'
             $script:Guide | Should -Match 'caldovahrfrontier'
+            $script:Guide | Should -Match 'Process documents'
+            $script:Guide | Should -Match 'Do not train, edit, delete, publish, or use draft `2\.0`'
+            $script:Guide | Should -Not -Match 'No Power Automate flow'
+            $script:Guide | Should -Not -Match 'Publish that evaluated version'
             $script:Guide | Should -Not -Match 'gf_Personalstammdaten'
             $script:Guide | Should -Not -Match 'GFHRPlatformCore'
         }
 
-        It 'keeps workflows and TEST deployment outside the sprint' {
-            $script:Guide | Should -Not -Match 'Build the routing test'
-            $script:Guide | Should -Not -Match 'Deploy to TEST'
-            $script:Guide | Should -Match 'No Power Automate flow'
-        }
+        It 'requires selected names before mutation and preserves the exact field contract' {
+            $script:Guide | Should -Match 'Before any mutation, record the final selected values'
 
-        It 'requires structured evidence and the strict false-value gate' {
-            $script:Guide | Should -Match 'run-manifest\.json'
-            $script:Guide | Should -Match 'machine-readable'
-            $script:Guide | Should -Match 'false-value rate'
-            $script:Guide | Should -Match 'zero'
-        }
-
-        It 'presents the exact ordered field contract and types' {
             $fieldRowPattern = '(?m)^\|\s*`?(?<bom>BOM-0001-F\d{2})`?\s*\|\s*`?(?<name>[a-z_]+)`?\s*\|\s*`?(?<type>Text|Date)`?\s*\|\s*$'
             $actualRows = @(
                 [regex]::Matches($script:Guide, $fieldRowPattern) | ForEach-Object {
@@ -142,43 +148,83 @@ Describe 'AI Builder field and corpus contracts' {
         It 'keeps the required procedural sections in order' {
             $sectionMatches = [regex]::Matches(
                 $script:Guide,
-                '(?m)^## (?<number>[1-9]|1[01])\. (?<title>[^\r\n]+)\r?$'
+                '(?m)^## (?<number>[1-9]|1[0-3])\. (?<title>[^\r\n]+)\r?$'
             )
 
             @($sectionMatches | ForEach-Object { $_.Groups['number'].Value }) |
-                Should -Be @('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11')
+                Should -Be @('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13')
             @($sectionMatches | ForEach-Object { $_.Groups['title'].Value }) |
                 Should -Be $script:ExpectedGuideSectionHeadings
         }
 
-        It 'keeps every required explicit stop label' {
-            $stopPattern = '(?m)^> \*\*STOP [^a-z\r\n]+(?<label>[a-z][a-z -]+)\*\*\r?$'
-            $actualStops = @(
-                [regex]::Matches($script:Guide, $stopPattern) | ForEach-Object {
-                    $_.Groups['label'].Value
-                }
-            )
+        It 'keeps the revised lifecycle order explicit' {
+            $script:Guide | Should -Match '(?s)`evaluation_published`.+`capture_validated`.+`evaluated`.+`approved_for_solution`.+`added_to_solution`'
+        }
 
-            foreach ($expectedStop in $script:ExpectedGuideStops) {
-                $actualStops | Should -Contain $expectedStop
+        It 'requires owner-only flow security and synthetic evidence boundaries' {
+            $script:Guide | Should -Match 'named administrators only'
+            $script:Guide | Should -Match 'disabled by default'
+            $script:Guide | Should -Match 'secure inputs and outputs'
+            $script:Guide | Should -Match 'OneDrive or SharePoint synthetic-evidence location'
+            $script:Guide | Should -Match 'synthetic only'
+            $script:Guide | Should -Match 'no auto-delete'
+        }
+
+        It 'uses a training PDF before holdouts and disables the flow on failure' {
+            $script:Guide | Should -Match 'training PDF'
+            $script:Guide | Should -Match 'Do not expose a fixed holdout until this proof is captured and verified'
+            $script:Guide | Should -Match 'turn the flow Off immediately after the run'
+            $script:Guide | Should -Match 'turn the flow Off, record `blocked`, and stop'
+        }
+
+        It 'requires exactly-once holdouts and gates the general model behind fixed approval' {
+            $script:Guide | Should -Match 'process each fixed holdout exactly once'
+            $script:Guide | Should -Match 'the affected holdout set is consumed'
+            $script:Guide | Should -Match 'Generate unseen synthetic documents, qualify them, and begin a new run'
+            $script:Guide | Should -Match 'Do not begin `PersonalMasterDataGeneral` until `PersonalMasterDataFixed` version `1\.0` has reached `approved_for_solution`'
+        }
+
+        It 'labels every portal mutation as attended approval work' {
+            @([regex]::Matches($script:Guide, 'ATTENDED TENANT OPERATION — STOP FOR APPROVAL')).Count |
+                Should -BeGreaterThan 0
+        }
+    }
+
+    Describe 'AI Builder evidence documentation contract' {
+        BeforeAll {
+            $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+            $script:EvidenceReadme = Get-Content -LiteralPath (
+                Join-Path $root 'hr\evidence\ai-builder\README.md'
+            ) -Raw
+            $script:ScriptsReadme = Get-Content -LiteralPath (
+                Join-Path $root 'hr\src\scripts\README.md'
+            ) -Raw
+        }
+
+        It 'documents the capture folder layout and immutable storage rules' {
+            $captureLayoutPattern = '(?s)capture/.*<approved-evidence-folder-name>.*<execution-run-id>.*source/<exact-qualified-filename>\.pdf.*<execution-run-id>\.ai-builder\.raw\.json.*<execution-run-id>\.canonical\.json.*capture-pair\.json'
+
+            $script:EvidenceReadme | Should -Match $captureLayoutPattern
+            $script:ScriptsReadme | Should -Match $captureLayoutPattern
+            $script:EvidenceReadme | Should -Match 'evaluation-capture-intent\.json'
+            $script:ScriptsReadme | Should -Match 'evaluation-capture-intent\.json'
+            $script:EvidenceReadme | Should -Match 'immutable'
+            $script:ScriptsReadme | Should -Match 'immutable'
+            $script:EvidenceReadme | Should -Match 'No cleanup is implied'
+            $script:ScriptsReadme | Should -Match 'No cleanup is implied'
+            $script:EvidenceReadme | Should -Match 'UTF-8 without BOM'
+            $script:ScriptsReadme | Should -Match 'UTF-8 without BOM'
+        }
+
+        It 'documents the exact adapter, import, and evaluator commands for the flow-based path' {
+            foreach ($document in @($script:EvidenceReadme, $script:ScriptsReadme)) {
+                $document | Should -Match 'ConvertFrom-HrAiBuilderEvaluationCapture\.ps1'
+                $document | Should -Not -Match 'ConvertFrom-HrAiBuilderProcessDocumentsCapture\.ps1'
+                $document | Should -Match 'Import-AiBuilderQuickTestResults\.ps1'
+                $document | Should -Match 'Measure-AiBuilderEvaluation\.ps1'
+                $document | Should -Match 'Power Automate `Process documents`'
+                $document | Should -Match 'prediction-capture-fixed\.json'
             }
-        }
-
-        It 'retires consumed holdouts and requires new unseen acceptance documents' {
-            $script:Guide | Should -Match 'If any held-out result influences tagging, retraining, or another model change, the set is consumed\.'
-            $script:Guide | Should -Match 'Do not reuse it for acceptance\.'
-            $script:Guide | Should -Match 'Create unseen synthetic documents, record new hashes and assignments, and begin a new run\.'
-        }
-
-        It 'publishes and adds models only after strict gates pass' {
-            $fixedSection = [regex]::Match($script:Guide, '(?s)^## 7\..+?(?=\r?\n---\r?\n)', 'Multiline').Value
-            $solutionSection = [regex]::Match($script:Guide, '(?s)^## 9\..+?(?=\r?\n---\r?\n)', 'Multiline').Value
-
-            $fixedSection | Should -Match '(?s)Advance the fixed record to `evaluated` only when `evaluation-metrics\.json` reports `strict_gate_disposition` as `evaluated`\..+?Publish that evaluated version'
-            $fixedSection | Should -Match 'If any strict gate fails, advance it to `blocked` and do not publish\.'
-            $solutionSection | Should -Match 'Publish `PersonalMasterDataGeneral` only if its strict-gate disposition is `evaluated`'
-            $solutionSection | Should -Match 'Do not publish a blocked model\.'
-            $solutionSection | Should -Match 'Add each published, evaluated model explicitly to the existing unmanaged `caldovahrfrontier` solution\.'
         }
     }
 

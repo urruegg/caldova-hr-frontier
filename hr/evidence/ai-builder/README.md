@@ -2,18 +2,18 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-28 |
-| **Author** | GitHub Copilot |
+| **Version** | 1.1 |
+| **Date** | 2026-09-29 |
+| **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | UC-0001 AI Builder evidence contract |
-| **References** | [Tenant 2 AI Builder Model Implementation Design](../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md), [HR script tooling](../../src/scripts/README.md) |
+| **References** | [AI Builder Evaluation Capture Design Addendum](../../../docs/superpowers/specs/2026-09-29-ai-builder-evaluation-capture-design.md), [Tenant 2 AI Builder Model Implementation Design](../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md), [HR script tooling](../../src/scripts/README.md) |
 
-This folder holds the tenant-local evidence for AI Builder held-out evaluation runs. The contract is portable: tenant identity, environment stage, run ID, model attribution, and source hashes are supplied by the run, not embedded into the tooling.
-
----
+This folder holds tenant-local evidence for attended AI Builder evaluation runs. The fixed training history and the preserved no-flow blocker remain part of the record; the approved capture path for resumed evaluation is the restricted Power Automate `Process documents` flow described in the addendum.
 
 ## Layout
+
+The run root remains portable by tenant, stage, and run ID:
 
 ```text
 hr/evidence/ai-builder/
@@ -24,63 +24,74 @@ hr/evidence/ai-builder/
             ├── corpus-quality.json
             ├── model-inventory.json
             ├── run-manifest.json
-            ├── prediction-capture-*.json
-            ├── prediction-capture-summary.md
+            ├── model-test-capability.json
+            ├── prediction-capture-fixed-training-proof.json
+            ├── prediction-capture-fixed.json
             ├── validation-results-fixed.csv
-            ├── validation-results-general.csv
             ├── validation-results.json
             ├── evaluation-metrics.json
-            └── evaluation-summary.md
+            └── capture/
+                └── <approved-evidence-folder-name>/
+                    └── <execution-run-id>/
+                        ├── source/<exact-qualified-filename>.pdf
+                        ├── <execution-run-id>.ai-builder.raw.json
+                        ├── <execution-run-id>.canonical.json
+                        └── capture-pair.json
 ```
 
-`<tenant-key>\<environment-stage>\<run-id>` is the only supported committed path. A completed run is immutable. If the corpus changes, a held-out set is consumed, a model is retrained, or deployment context changes, create a new run ID instead of rewriting evidence in place.
+`<approved-evidence-folder-name>` comes from `evaluation-capture-intent.json` and must be used unchanged once approved. `<execution-run-id>` is the immutable identifier shared by the source PDF, raw AI Builder response, canonical envelope, and `capture-pair.json`.
 
 ## Boundary rules
 
 - **Synthetic data only.** No real PeopleDoc, candidate, pre-hire, worker, or employee documents belong here.
-- **Raw capture is provenance, not authority.** Retained Quick Test exports prove what the tested adapter observed. The repository scripts recalculate hashes, normalize values, classify results, derive gates, and write the authoritative metrics and summaries.
-- **Replayable adapter contract required.** A prediction capture is valid only when the retained raw-export bytes can reproduce the same field values and confidence through a tested replayable adapter. Unsupported raw-export formats are blocked in this increment by design.
-- **No secrets or packages.** Do not place credentials, tokens, PAC profiles, solution ZIPs, or any other deployable artifact in this tree.
-- **No invented values.** Prediction values and confidence must come from the retained raw export through a tested adapter. Hand-authored values or confidence are invalid evidence.
-- **Blocked imports stay visible.** Import failures write `prediction-capture-summary.md` and preserve `*.blocked.json` when the adapter emitted an invalid capture.
+- **Historical blockers stay visible.** The preserved `model-test-capability.json` blocked record remains evidence even after the resumed flow-based path succeeds.
+- **Raw and canonical files are immutable.** The source PDF, `.ai-builder.raw.json`, `.canonical.json`, and `capture-pair.json` are retained exactly as written for that execution. Do not overwrite or normalize them in place.
+- **No cleanup is implied.** Successful proof, evaluation, approval, or synchronization does not authorize deletion. Cleanup is a separate explicit user decision.
+- **Local output is UTF-8 without BOM.** Repository-authored local JSON and Markdown outputs for this capture flow are written as UTF-8 without BOM unless an externally owned platform export dictates otherwise.
+- **No invented values.** Prediction values and confidence must come from retained source and raw bytes through a tested adapter. Screenshots supplement evidence only.
+- **No secrets or packages.** Do not place credentials, tokens, PAC profiles, solution ZIPs, or deployable artifacts in this tree.
 
 ## Command examples
 
-Initialize a new evidence run:
+Initialize or resume the tenant-local evidence root:
 
 ```powershell
-.\hr\src\scripts\Initialize-AiBuilderEvidenceRun.ps1 `
-    -RunId 'tenant2-dev-2026-09-28-a' `
-    -TenantKey 'tenant-2' `
-    -EnvironmentId ([guid]'84ad4c54-41d9-e5df-ba07-188b4719594a') `
-    -EnvironmentStage DEV `
-    -SolutionUniqueName 'caldovahrfrontier' `
-    -SolutionVersion '0.0.0.1' `
-    -OperatorUpn 'admin@caldova25668747.onmicrosoft.com' `
-    -OutputDirectory '.\hr\evidence\ai-builder\tenant-2\DEV\tenant2-dev-2026-09-28-a'
+$runId = 't2-dev-20260925-001'
+$evidenceDirectory = ".\hr\evidence\ai-builder\tenant-2\DEV\$runId"
 ```
 
-Import retained Quick Test exports through a tested adapter:
+Run focused adapter and capture-contract tests before claiming capability from a proof capture:
 
 ```powershell
+powershell.exe -NoProfile -Command "& {
+    Import-Module 'C:\Users\anrizzi\OneDrive - Microsoft\Documents\PowerShell\Modules\Pester\5.7.1\Pester.psd1' -Force
+    Invoke-Pester -Path 'hr/tests/pester/AiBuilderEvidence.Tests.ps1' -FullNameFilter '*AI Builder evaluation capture schema contracts*'
+}"
+```
+
+Import retained Power Automate `Process documents` captures through the approved adapter:
+
+```powershell
+$adapterScriptPath = '.\hr\src\scripts\adapters\ConvertFrom-HrAiBuilderEvaluationCapture.ps1'
+
 .\hr\src\scripts\Import-AiBuilderQuickTestResults.ps1 `
-    -RunManifestPath '.\hr\evidence\ai-builder\tenant-2\DEV\tenant2-dev-2026-09-28-a\run-manifest.json' `
-    -ModelSchemaRecordPath '.\hr\evidence\ai-builder\tenant-2\DEV\tenant2-dev-2026-09-28-a\model-schema-record-fixed.json' `
-    -RawExportDirectory '.\hr\evidence\ai-builder\tenant-2\DEV\tenant2-dev-2026-09-28-a\raw-fixed' `
-    -AdapterScriptPath '.\hr\src\scripts\adapters\ConvertFrom-HrAiBuilderQuickTestExport.ps1' `
+    -RunManifestPath "$evidenceDirectory\run-manifest.json" `
+    -ModelSchemaRecordPath "$evidenceDirectory\model-schema-record-fixed.json" `
+    -RawExportDirectory "$evidenceDirectory\capture\<approved-evidence-folder-name>" `
+    -AdapterScriptPath $adapterScriptPath `
     -TargetModelName 'PersonalMasterDataFixed' `
-    -OutputPath '.\hr\evidence\ai-builder\tenant-2\DEV\tenant2-dev-2026-09-28-a\prediction-capture-fixed.json'
+    -OutputPath "$evidenceDirectory\prediction-capture-fixed.json"
 ```
 
-Measure the held-out evaluation and derive strict gates:
+Measure the fixed holdout evaluation from the imported capture:
 
 ```powershell
 .\hr\src\scripts\Measure-AiBuilderEvaluation.ps1 `
-    -RunManifestPath '.\hr\evidence\ai-builder\tenant-2\DEV\tenant2-dev-2026-09-28-a\run-manifest.json' `
-    -CorpusQualityPath '.\hr\evidence\ai-builder\tenant-2\DEV\tenant2-dev-2026-09-28-a\corpus-quality.json' `
+    -RunManifestPath "$evidenceDirectory\run-manifest.json" `
+    -CorpusQualityPath "$evidenceDirectory\corpus-quality.json" `
     -FieldContractPath '.\hr\src\ai-builder\contracts\field-contract.json' `
-    -ModelSchemaRecordPath '.\hr\evidence\ai-builder\tenant-2\DEV\tenant2-dev-2026-09-28-a\model-schema-record-fixed.json' `
-    -PredictionCapturePath '.\hr\evidence\ai-builder\tenant-2\DEV\tenant2-dev-2026-09-28-a\prediction-capture-fixed.json' `
+    -ModelSchemaRecordPath "$evidenceDirectory\model-schema-record-fixed.json" `
+    -PredictionCapturePath "$evidenceDirectory\prediction-capture-fixed.json" `
     -GroundTruthPath '.\hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template\ground-truth.json' `
-    -EvidenceDirectory '.\hr\evidence\ai-builder\tenant-2\DEV\tenant2-dev-2026-09-28-a'
+    -EvidenceDirectory $evidenceDirectory
 ```
