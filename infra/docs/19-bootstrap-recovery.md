@@ -2,92 +2,101 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-24 |
+| **Version** | 2.0 |
+| **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
-| **References** | [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Bootstrap and Provisioning](./17-bootstrap-and-provisioning.md) |
+| **References** | [Tenant 1 Lean Platform Runbook](24-tenant-1-lean-platform-runbook.md), [Bootstrap and Provisioning](17-bootstrap-and-provisioning.md), [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md) |
 
-This Proposed Baseline defines attended recovery for future tenant bootstrap operations. It does not prove that any tenant, trust, identity, role, resource, Environment, or service currently exists. Recovery resumes from the last proven state, preserves approval gates, and never introduces broad permissions, stored credentials, or an Azure deployment.
+This Proposed Baseline defines recovery for the attended Tenant 1 local validation path. Recovery resumes from a newly proven state. It never broadens permissions, mutates a role, activates trust, changes tenant, creates a deployment, or deletes a tracked transition file.
 
-## Trust creation
+## Universal Stop Rule
 
-- **Last trusted state:** Reviewed tenant manifest and current required discovery evidence, plus optional SharePoint metadata evidence when declared; no trust object is assumed to exist.
-- **Required operator role:** Attended tenant Application Administrator or Cloud Application Administrator plus verified GitHub repository administrator.
-- **Read-only diagnostics:** Query applications by reviewed object ID or exact display name, related service principals, federated credentials, GitHub Environments, and non-secret Environment variable names. Classify zero, one, or multiple matches explicitly.
-- **Repair action:** Stop on ambiguity. After explicit approval, create or correct only the reviewed single-tenant app, related service principal, exact federated credential, tenant Environment, and three non-secret variables. Never add a password, certificate credential, or broader permission as a workaround.
-- **Revalidation command/check:** Read back sign-in audience, app/service-principal relationship, empty credential collections, issuer, audience, subject, Environment name, branch restriction, reviewer, and variable names.
-- **Escalation boundary:** Escalate when stable IDs conflict, duplicate candidates exist, required consent is unavailable, or the repair would exceed reviewed trust scope.
+On any failure:
 
-## OIDC mismatch
+1. stop later steps;
+2. preserve local evidence outside Git;
+3. record a sanitized failure summary without credentials or private values;
+4. identify the accountable owner for the failed boundary;
+5. correct the underlying issue through a separately reviewed action; and
+6. restart at attended context and minimum-access preflight.
 
-- **Last trusted state:** Trust objects were read back successfully, but OIDC has not authenticated to the reviewed context.
-- **Required operator role:** Attended tenant application administrator and GitHub repository administrator; subscription reader for context verification.
-- **Read-only diagnostics:** Compare tokenless workflow configuration, Environment name, federated issuer, audience, case-sensitive subject, client ID, tenant ID, subscription ID, and authenticated-context error metadata without printing a token.
-- **Repair action:** Correct the reviewed manifest, Environment binding, non-secret variable, or federated credential only after approval. Do not add a client secret, private key, repository-wide subject, or wildcard trust.
-- **Revalidation command/check:** Run the approved Environment-bound OIDC validation and confirm client, tenant, subscription, repository, and exact subject all match.
-- **Escalation boundary:** Escalate if the platform emits a different subject format, repository identity changed, or exact binding cannot be proven without weakening trust.
+Never splice discovery, access evidence, parameters, or `what-if` output from different attempts.
 
-## Service discovery authorization
+## Private Configuration or Backup Failure
 
-- **Last trusted state:** Manifest validation and any successfully collected read-only service results from the same run.
-- **Required operator role:** Service-specific administrator able to review minimum read permissions; no standing broad administrator role is assumed.
-- **Read-only diagnostics:** Record which of GitHub, Entra, Azure, Azure DevOps, or Power Platform returned `Unauthorized`, the requested allowlisted scope, API, principal ID, and status code without raw response bodies or credentials.
-- **Repair action:** After explicit approval, grant only the documented minimum read permission or correct the selected principal. Re-run the whole discovery to produce one run ID. Never substitute a secret or query business data.
-- **Revalidation command/check:** Validate that all five service results share one run ID and return acceptable current outcomes with stable IDs and evidence hashes.
-- **Escalation boundary:** Escalate when app-only access is unsupported, minimum read permission is unknown, admin consent is unavailable, or only a broad role would succeed.
+- **Last trusted state:** no authenticated operation.
+- **Diagnostics:** confirm the explicit path exists, is a data-only `.psd1` file, is ignored and untracked, matches `tenant1`, and has a protected external backup.
+- **Recovery:** restore from the verified backup to `tenant1.local.psd1`, validate without logging values, and rerun discovery.
+- **Stop boundary:** do not fall back to the tracked transition files or `_template.psd1`.
 
-## Stale evidence
+The two tracked Tenant 1 files remain because deletion approval was unavailable. Recovery does not delete or reactivate them.
 
-- **Last trusted state:** Previously normalized evidence remains historical but no longer authorizes change.
-- **Required operator role:** Attended discovery operator or approved OIDC workflow reviewer with read access to all five services.
-- **Read-only diagnostics:** Check collection start time, completion time, run ID consistency, source API versions, manifest commit, and service statuses.
-- **Repair action:** Collect a new complete read-only discovery run and review its normalized diff. Do not alter timestamps, mix service results from different runs, or reuse evidence older than 24 hours for bootstrap.
-- **Revalidation command/check:** Confirm the new evidence passes schema, prohibited-data, age, run-ID, and service-completeness gates.
-- **Escalation boundary:** Escalate if a required service cannot be queried in the evidence window or observed stable IDs differ from reviewed intent.
+## Attended Context Failure
 
-## Ambiguous object
+- **Last trusted state:** local configuration validation.
+- **Diagnostics:** run `az account show` and `az ad signed-in-user show`; compare user type, tenant, subscription, and GUID principal locally.
+- **Recovery:** end the incorrect session and establish the separately approved attended session.
+- **Stop boundary:** do not use a workload identity, environment variable override, different tenant, or stored credential.
 
-- **Last trusted state:** Current discovery identified more than one candidate and made no intent decision.
-- **Required operator role:** Service owner able to identify authoritative stable IDs; a deletion-capable role is not required for diagnosis.
-- **Read-only diagnostics:** Compare candidate stable IDs, names, scopes, URLs, ownership, and creation metadata using allowlisted reads. Preserve ambiguity in evidence.
-- **Repair action:** Stop automation. Resolve ownership through attended review, then update the manifest with one reviewed stable ID or separately approve exact-object cleanup. Never choose the first match or create another duplicate.
-- **Revalidation command/check:** Re-run discovery and require exactly one candidate matching the reviewed `Existing` ID, or no conflict for reviewed `Create` intent.
-- **Escalation boundary:** Escalate when ownership cannot be proven or remediation would delete, rename, transfer, or broaden access to a live object.
+## Minimum-Access Preflight Failure
 
-## Bicep build
+- **Last trusted state:** exact attended context.
+- **Diagnostics:** preserve the read-only exact-scope assignment and role-definition result; distinguish missing capability, foreign scope, malformed data, and authorization failure.
+- **Recovery:** the access owner reviews and corrects access outside this sprint under a separate approval.
+- **Stop boundary:** Task 4 never creates, changes, or deletes an assignment and never invokes temporary-role scripts.
 
-- **Last trusted state:** Manifest, evidence, and reviewed intent passed; no `what-if` result is trusted.
-- **Required operator role:** Repository contributor for source repair; no cloud role is required for local format and build.
-- **Read-only diagnostics:** Run Bicep format/build diagnostics, inspect API schemas, parameter derivation, allowed resource types, and target scope. Do not suppress compiler diagnostics.
-- **Repair action:** Correct the typed Bicep or generated non-secret parameters through review. Do not remove validation, expand the resource allowlist, or replace build with a deployment command.
-- **Revalidation command/check:** Require clean format and successful `az bicep build --file infra/src/bicep/main.bicep --stdout`, then rerun repository tests.
-- **Escalation boundary:** Escalate when the required design is unsupported by the selected stable API or correcting it changes approved resource scope.
+After correction, restart the whole sequence. Do not treat a `403`, `404`, empty result, or indeterminate response as evidence of absence.
 
-## Out-of-boundary what-if
+## Discovery Failure
 
-- **Last trusted state:** Bicep built successfully, but the machine-readable `what-if` is rejected and authorizes no deployment.
-- **Required operator role:** Subscription reader for diagnostics and repository contributor for reviewed source correction.
-- **Read-only diagnostics:** Identify every unexpected type, scope, resource group, location, delete, ignored diagnostic, and error in the `what-if` result.
-- **Repair action:** Correct manifest, parameters, or Bicep so the result contains only approved resources. Do not ignore changes, expand the allowlist, or execute a deployment.
-- **Revalidation command/check:** Re-run subscription `what-if` and the boundary validator; require zero offending changes and no delete.
-- **Escalation boundary:** Escalate when observed Azure state requires a design change, an approved resource would be replaced or deleted, or validation cannot explain the result.
+- **Last trusted state:** context and access preflight.
+- **Diagnostics:** identify the service, requested allowlisted scope, principal, status, and sanitized error class.
+- **Recovery:** correct the reviewed selector or separately owned service access, then collect one new complete discovery record.
+- **Stop boundary:** do not query business data, introduce a secret, infer an object, or mix service results from different runs.
 
-## Role cleanup
+## Sanitized Review Failure
 
-- **Last trusted state:** Exact temporary assignment IDs, expected principal, roles, and subscription scope were recorded; cleanup completion is not trusted.
-- **Required operator role:** Attended role administrator authorized to remove the two exact assignments, with explicit deletion approval for this attempt.
-- **Read-only diagnostics:** Read each assignment by exact ID and compare principal, role definition, scope, and current presence. Do not enumerate unrelated assignments as cleanup targets.
-- **Repair action:** After explicit approval, remove Contributor first and Role Based Access Control Administrator last by exact ID; treat an already absent exact ID as success. Never delete by role name, principal-wide filter, or guessed ID.
-- **Revalidation command/check:** Poll read-only authorization state with a bounded retry until both exact assignment IDs are absent.
-- **Escalation boundary:** Escalate when an assignment differs from the recorded principal/role/scope, deletion approval is withheld, removal fails, or absence cannot be verified.
+- **Last trusted state:** local raw discovery only.
+- **Diagnostics:** identify prohibited, ambiguous, stale, or mismatched fields without publishing the raw record.
+- **Recovery:** rerun discovery after correcting the source issue or produce a new sanitized summary.
+- **Stop boundary:** do not commit raw evidence or remove required fields merely to pass review.
 
-## GitHub read-back
+## Bicep Build Failure
 
-- **Last trusted state:** A reviewed GitHub mutation was attempted, but applied state has not been proven.
-- **Required operator role:** GitHub repository administrator with read access to rulesets, Environments, variables, and workflow results.
-- **Read-only diagnostics:** Query the exact ruleset and tenant Environment; compare enforcement, target branch, pull-request rules, status checks, bypass actor, reviewer, self-review, branch restriction, and non-secret variable names.
-- **Repair action:** Stop dependent work. After explicit approval, correct only fields in reviewed desired state; do not disable protection, add a direct-push bypass, expose secret values, or accept partial state.
-- **Revalidation command/check:** Repeat API read-back and require every reviewed property to match plus a successful validator run on `main`.
-- **Escalation boundary:** Escalate on duplicate rulesets, inaccessible settings, unexpected bypass actors, missing required checks, or any repair that weakens approved governance.
+- **Last trusted state:** reviewed local discovery and parameters.
+- **Diagnostics:** inspect compiler diagnostics, parameter derivation, target scope, and allowed resource types.
+- **Recovery:** correct source through a reviewed pull request and regenerate parameters for the same attended principal.
+- **Stop boundary:** do not suppress diagnostics, broaden the boundary, or replace build with deployment.
+
+## What-If Failure
+
+- **Last trusted state:** successful Bicep build; no `what-if` result is trusted.
+- **Diagnostics:** preserve the local exit code and sanitized Azure error class.
+- **Recovery:** correct the source, parameters, access, or transient platform issue through the accountable owner, then restart.
+- **Stop boundary:** never substitute a deployment-create command.
+
+## Out-of-Boundary Result
+
+- **Last trusted state:** successful `what-if` API response that authorizes no action.
+- **Diagnostics:** identify every unsupported type, scope, resource group, location, delete, warning, error, ignored diagnostic, and malformed change.
+- **Recovery:** correct configuration, parameters, or Bicep through review and rerun the complete attended sequence.
+- **Stop boundary:** do not expand the allowlist or ignore a change to make the result pass.
+
+## Context or Access Read-Back Drift
+
+- **Last trusted state:** the preflight record; acceptance is blocked.
+- **Diagnostics:** compare principal, tenant, subscription, scope, assignment IDs, role definitions, actions, and exclusions.
+- **Recovery:** preserve both local views, notify the access owner, and investigate the external change.
+- **Stop boundary:** do not restore or remove access under this runbook and do not accept the `what-if`.
+
+## GitHub, Boards, or Empty-Repository Checkpoint Failure
+
+GitHub governance, Basic Boards, and any empty Azure Repo deletion have separate owners and approvals. A failed read, ambiguous object, unexpected branch, wrong work-item process, unresolved conversation, or failed status check blocks the final governed transaction.
+
+Do not weaken the ruleset, create a second workflow, convert Boards to Agile, delete an Issue, or delete an Azure Repo without exact pre-state and explicit approval.
+
+## Dormant Trust Artifact
+
+`Initialize-TenantTrust.ps1` is dormant and unsupported. Recovery never invokes it. A trust or delivery-identity need requires a new reviewed design; see the [superseded stop notice](20-tenant-trust-activation-runbook.md).

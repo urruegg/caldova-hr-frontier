@@ -9,6 +9,12 @@ BeforeAll {
         )
 
         $content = Get-Content -Raw -LiteralPath $Path
+        $content = [regex]::Replace(
+            $content,
+            '(?ms)^```.*?^```\s*',
+            '',
+            [Text.RegularExpressions.RegexOptions]::CultureInvariant
+        )
         $matches = [regex]::Matches(
             $content,
             '\[[^\]]+\]\((?<target>[^)]+)\)',
@@ -41,7 +47,8 @@ Describe 'Runbook documentation contracts' {
             'infra/docs/runbooks/README.md',
             'infra/docs/runbooks/01-developer-workstation.md',
             'infra/docs/runbooks/02-cloud-service-foundation.md',
-            'infra/docs/runbooks/03-customer-handover.md'
+            'infra/docs/runbooks/03-customer-handover.md',
+            'infra/docs/24-tenant-1-lean-platform-runbook.md'
         )) {
             $path = Join-Path $script:repositoryRoot $relative
             $path | Should -Exist
@@ -112,12 +119,36 @@ Describe 'Runbook documentation contracts' {
         $readme | Should -Match '\[Customer Repository Handover\]\(docs/runbooks/03-customer-handover\.md\)'
     }
 
+    It 'documents the complete Tenant 1 lean operator sequence' {
+        $path = Join-Path $script:repositoryRoot 'infra\docs\24-tenant-1-lean-platform-runbook.md'
+        $path | Should -Exist
+        $content = Get-Content -Raw -LiteralPath $path
+        foreach ($heading in @(
+            'Private Configuration and Backup',
+            'Attended Context and Minimum Access',
+            'Local Discovery',
+            'Sanitized Review',
+            'Bicep Build',
+            'Subscription What-If',
+            'Boundary and Access Read-Back',
+            'GitHub Governance',
+            'Basic Boards',
+            'Empty Azure Repo Checkpoint',
+            'Final Governed Transaction',
+            'Failure and Recovery',
+            'Acceptance'
+        )) {
+            $content | Should -Match ("(?m)^## {0}\r?$" -f [regex]::Escape($heading))
+        }
+    }
+
     It 'resolves every local markdown destination referenced by the runbook documents' {
         foreach ($relative in @(
             'infra/docs/runbooks/README.md',
             'infra/docs/runbooks/01-developer-workstation.md',
             'infra/docs/runbooks/02-cloud-service-foundation.md',
-            'infra/docs/runbooks/03-customer-handover.md'
+            'infra/docs/runbooks/03-customer-handover.md',
+            'infra/docs/24-tenant-1-lean-platform-runbook.md'
         )) {
             $path = Join-Path $script:repositoryRoot $relative
             foreach ($link in @(Get-MarkdownRelativeLinks -Path $path)) {

@@ -2,123 +2,87 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.3 |
-| **Date** | 2026-09-28 |
+| **Version** | 2.0 |
+| **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
-| **References** | [Tenant 1 Engineering Platform Remediation Design](../../docs/specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md), [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json), [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) |
+| **References** | [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md), [Tenant 1 Lean Platform Runbook](24-tenant-1-lean-platform-runbook.md) |
 
-This document applies the approved Wave 0 per-tenant topology to the Proposed Baseline onboarding guidance. It does not prove that Tenant 1, Tenant 2, Tenant 3, or any associated Azure, Entra, Azure DevOps, Power Platform, GitHub, pipeline, identity, or service configuration currently exists.
-
-> **Revision note.** This section previously described one shared repository serving all three tenants. The now-approved [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) replaced that with one product-source repository, one Azure DevOps project, and one private configuration repository per tenant. The Azure Boards GitHub App enforces the repository-to-project boundary at the platform level.
+This Proposed Baseline records the per-tenant isolation target and the narrower current Tenant 1 slice. It does not authorize onboarding, mutation, migration, or deletion for another tenant.
 
 ## Per-Tenant Repository Model
 
-Each tenant has its own dedicated GitHub repository, seeded from Tenant 1's repository as a one-time copy - never a live fork, never automatic sync. See [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) for the account-type decision per tenant, and the [Customer Repository Export and Handover design](../../docs/specs/2026-09-27-customer-repository-export-and-handover-design.md) for the runbooks that carry out the seeding and clean-up.
+Each tenant has a distinct GitHub product-source repository and Azure DevOps project. Tenant 1 uses `urruegg/caldova-hr-frontier`. A future customer repository is seeded through a separately reviewed one-time handover, never a live fork or automatic synchronization.
 
-```text
-urruegg/caldova-hr-frontier (Tenant 1)
-`-- private Tenant 1 configuration -> bootstrap-tenant1 -> dedicated Tenant 1 app/SP
+The current sprint does not create a private configuration repository, bootstrap Environment, trust identity, Azure Pipeline, tenant catalogue, transition package, or handoff workflow.
 
-AndreaRizzi/caldova-hr-frontier (Tenant 2, not yet created)
-`-- private Tenant 2 configuration -> tenant-specific bootstrap -> dedicated Tenant 2 app/SP
+## Current Tenant 1 Contract
 
-<Georg Fischer's GitHub Organization>/<repository> (Tenant 3, not yet created)
-`-- private Tenant 3 configuration -> tenant-specific bootstrap -> dedicated Tenant 3 app/SP
-```
+Tenant 1 uses:
 
-A workflow run in a tenant's repository selects that repository's own tenant and binds to that tenant's Environment. In this repository the only bootstrap target is `tenant1`, bound to `bootstrap-tenant1`; self-review is disabled. Tenant 2's existing manifest and discovery evidence are the temporary hash-pinned exception until Slice 5 and cannot be selected for bootstrap. Each tenant's application, variables, evidence, stable IDs, temporary roles, approvals, and results are isolated by repository boundary, not merely by naming convention.
+- this GitHub repository as product source;
+- its existing Azure DevOps project and Basic Boards process;
+- the ignored local `tenant1.local.psd1` configuration;
+- an operator-owned protected backup outside Git;
+- attended local discovery and sanitized review;
+- locally generated Bicep parameters;
+- the operator's pre-existing separately approved least-privilege access; and
+- subscription `what-if` plus boundary and access read-back.
 
-## Per-Tenant Contract
-
-Each onboarded tenant has:
-
-- one reviewed configuration overlay at an approved private path in that tenant's `caldova-hr-frontier-config` Azure Repo;
-- one immutable six-character naming suffix generated once and reviewed;
-- one canonical naming root;
-- one tenant-specific GitHub Environment; this repository uses `bootstrap-tenant1`;
-- one dedicated single-tenant Entra application and service principal;
-- one normalized discovery record;
-- explicit `Existing` or `Create` intent for every managed component;
-- tenant-specific approvals and exact OIDC subject;
-- independently reviewed Azure region, subscription, Azure DevOps hints, and Power Platform URLs.
-
-Tenant IDs, subscription IDs, stable object IDs, project names, and approved service URLs are non-secret metadata and may be versioned for validation. Credentials, tokens, private keys, and personal HR data never are.
+The sprint creates, changes, and deletes no role assignment, trust object, deployment, pipeline, environment, or application.
 
 ## Isolation Controls
 
 | Risk | Required control |
 |---|---|
-| Wrong tenant selected | Validate alias, tenant ID, subscription ID, Environment variables, and authenticated context before action |
-| Cross-tenant credential reuse | Dedicated app and service principal per tenant; exact Environment OIDC subject |
-| Shared approval | Tenant-specific Environment reviewer and one-tenant concurrency |
-| Ambiguous existing object | Read-only discovery plus exact stable-ID match |
-| Accidental creation | Explicit reviewed `Create`; no automatic mode |
-| Stale evidence | One run ID and collection start within 24 hours for a changing bootstrap run |
-| Cross-tenant output | Tenant-specific paths and allowlisted normalized evidence only |
+| Wrong tenant selected | Require `PublicTenantKey tenant1`, an explicit local path, and exact authenticated tenant/subscription checks |
+| Cross-tenant input | No default path, repository scan, matrix, workflow selector, or fallback |
+| Shared authorization | Record the exact attended Tenant 1 principal and exact subscription-scope access before and after `what-if` |
+| Ambiguous existing object | Read-only discovery plus exact stable-ID review |
+| Accidental creation | `WhatIfOnly` hard guard and no deployment-create command |
+| Stale evidence | Fresh attended discovery and one local review sequence |
+| Cross-tenant output | Local Tenant 1 operator root outside Git |
 
-Managed identities remain future workload identities and are not shared bootstrap identities.
+Failure for Tenant 1 never authorizes an action in Tenant 2 or Tenant 3.
 
 ## Tenant Status
 
-| Tenant | Repository | Status | Allowed activity |
-|---|---|---|---|
-| Tenant 1 (`caldova25156897`) | `urruegg/caldova-hr-frontier` (this repository) | Reviewed discovery evidence and bootstrap intent. GitHub-to-Boards connection verified live and valid. | Bootstrap validation and subscription `what-if` only |
-| Tenant 2 (`caldova25668747`) | `AndreaRizzi/caldova-hr-frontier` (not yet created) | Existing manifest and discovery evidence remain hash-pinned in this repository until Slice 5 verifies destination handoff | Attended read-only discovery only |
-| Tenant 3 (Georg Fischer) | New organization-owned repository (not yet created) | Schema-ready; no manifest | No live action |
+| Tenant | Current repository status | Allowed activity in this sprint |
+|---|---|---|
+| Tenant 1 | Active product-source repository with ignored local configuration | Attended local discovery, build, subscription `what-if`, and read-back |
+| Tenant 2 | Tracked transition manifest and evidence remain temporarily | No selection, change, validation, migration, or deletion |
+| Tenant 3 | No current onboarding artifact | No live action |
 
-Tenant 2 files remain until Slice 5. The existing manifest and discovery evidence may receive only the neutral public-key metadata required by the explicit-path contract before both are pinned by reviewed hash. They must not be removed or modified beyond that exception until destination read-back proves the handoff. Tenant 3 artifacts remain absent and must not be created as placeholders or speculative configuration.
+## Tracked Transition Files
 
-## Tenant 1 Blueprint Verification
+The two tracked Tenant 1 files remain temporarily because deletion approval was unavailable. They are not the active configuration or evidence path. Do not delete or reactivate them under Task 4.
 
-`infra/tests/pester/TenantBlueprintVerification.Tests.ps1` remains the pre-migration characterization for Tenant 1's existing manifest and discovery evidence. The approved target moves Tenant 1 private values to `caldova-hr-frontier-config`; later implementation must replace this public-path dependency with validation against the attended private path. Re-run the current suite until that migration is complete.
+Tenant 2's existing tracked files also remain unchanged under the prior decision. Future migration or deletion requires current hashes, destination proof, a reviewed plan, and explicit approval.
 
-This proves the manifest and evidence agree with each other. It does not prove the underlying Azure, Azure DevOps, or GitHub resources still exist - that requires fresh, live discovery, which remains a separate, attended action.
+## Future Onboarding
 
-Separately, `infra/src/scripts/Initialize-TenantTrust.ps1` was reviewed (2026-09-27) against Tenant 1's six remaining `Mode = 'Create'` components (`EntraApplication`, `EntraServicePrincipal`, `EntraFederatedIdentityCredential`, `GitHubEnvironment`, `AzureDevOpsServicePrincipalEntitlement`, `AzureDevOpsReadersMembership`) and confirmed complete and gap-free: each has its own plan item, mutation-queue entry, and `ShouldProcess`-gated execution block in that script. Running it live remains a separate, attended activity - this review only confirms the path exists and is correct, not that it has been executed.
+A future tenant begins with a new reviewed design. At minimum it must define:
 
-For the concrete, tenant-agnostic procedure - not just the sequence below - see the [Customer Repository Export and Handover Runbook](./23-customer-repository-export-and-handover-runbook.md), which in turn uses the [Repository Clean-Up Runbook](./22-repository-cleanup-runbook.md).
+1. accountable owners and the dedicated repository/project boundary;
+2. explicit private configuration and backup ownership;
+3. attended identity and minimum-access approval;
+4. tenant-specific discovery and evidence sanitization;
+5. exact Bicep, `what-if`, and resource-boundary contracts;
+6. cross-tenant isolation tests;
+7. failure recovery; and
+8. deletion or handover approvals.
 
-## Future Onboarding Sequence
+Do not copy Tenant 1 identifiers, access, local artifacts, or approvals. Dormant trust code and superseded runbooks are not onboarding templates.
 
-For one approved tenant at a time:
+## Tenant 1 Verification
 
-1. collect reviewed non-secret metadata;
-2. generate and review the tenant-private configuration at the approved private path;
-3. perform attended read-only discovery across all five services;
-4. commit normalized evidence;
-5. review exact `Existing` or `Create` intent;
-6. establish the tenant's dedicated secretless trust;
-7. validate exact OIDC context;
-8. run fresh discovery;
-9. build Bicep and run bounded subscription `what-if` only;
-10. clean up temporary authorization after explicit approval;
-11. record results before any other tenant begins.
+Tenant 1 validation proves only:
 
-Failure for one tenant does not authorize changes in another. Recovery resumes from the last trusted state for the selected tenant only.
+- the selected local configuration matches the attended tenant and subscription;
+- current discovery agrees with reviewed intent;
+- Bicep compiles for the exact attended principal;
+- subscription `what-if` stays within the allowed boundary; and
+- context and access remain unchanged.
 
-## Power Platform Lineage
-
-All tenants use the same domain split: Infrastructure source precedes HR source in DEV, TEST, and PROD. A tenant may adopt the reviewed publisher lineage or choose a separate lineage before any component exists, but that decision changes compatibility with reference managed solutions and requires separate review.
-
-Task 1 creates no publisher, solution, environment, application user, or deployment pipeline. Microsoft documents the publisher ownership constraint in [Solution concepts](https://learn.microsoft.com/en-us/power-platform/alm/solution-concepts-alm).
-
-## Azure DevOps and Power Platform Hints
-
-Tenant-specific organization names, project names, and environment URLs are discovery inputs. They do not become `Existing` until stable IDs match current evidence. Azure DevOps organization creation remains an attended prerequisite and is not automated. Power Platform environment creation is outside this sprint.
-
-## Verification Per Tenant
-
-A later onboarding review must prove:
-
-- the private configuration validates and contains no prohibited data;
-- all five discovery services return acceptable, current evidence;
-- every `Existing` stable ID matches exactly;
-- every `Create` decision has no conflict or ambiguity;
-- OIDC resolves to the selected app, tenant, subscription, repository, and Environment;
-- `what-if` remains within the approved resource boundary;
-- temporary role assignments are absent afterward;
-- no other tenant's files, variables, identities, or evidence were touched, except for the exact hash-pinned Tenant 2 transition files permitted until Slice 5.
-
-Until those checks are recorded, the tenant remains unprovisioned.
+It does not prove deployed infrastructure or another tenant's readiness.

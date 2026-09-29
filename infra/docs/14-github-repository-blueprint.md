@@ -2,99 +2,87 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-09-28 |
+| **Version** | 2.0 |
+| **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
-| **References** | [Tenant 1 Engineering Platform Remediation Design](../../docs/specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md), [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json), [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) |
+| **References** | [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Tenant 1 Lean Platform Runbook](24-tenant-1-lean-platform-runbook.md), [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) |
 
-This document applies the approved Wave 0 repository topology to the Proposed Baseline GitHub governance guidance. It does not prove that any ruleset, branch protection, Environment, reviewer, variable, workflow, check, app registration, or service integration is currently configured.
+This Proposed Baseline defines the lean Tenant 1 repository target. It does not claim that a setting, ruleset, check, app connection, or Azure Boards transition is active until current read-back proves it.
 
-## Revision Note (v1.2)
+## One Product-Source Repository
 
-This section previously described one shared repository serving all three tenants. The now-approved [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) replaced that with one repository per tenant, after confirming live that the Azure Boards GitHub App enforces a real platform constraint — one repository connects to exactly one Azure DevOps organization at a time — which the shared-repository design silently violated for any second tenant. This document is rewritten below to match; see ADR-0012 for the full rationale and alternatives.
+`urruegg/caldova-hr-frontier` is Tenant 1's sole product-source repository. Tenant 2 and Tenant 3 use separate repository and Azure DevOps project boundaries when their onboarding is separately approved.
 
-## One Repository Per Tenant
-
-Caldova HR Frontier is Tenant 1's dedicated repository — `urruegg/caldova-hr-frontier`, this repository. Tenant 2 and Tenant 3 (Georg Fischer) each receive their own dedicated repository, seeded from this one as a one-time copy, never a live fork or automatic sync. See [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) for the account-type decision per tenant and the seeding mechanism, and the [Customer Repository Export and Handover design](../../docs/specs/2026-09-27-customer-repository-export-and-handover-design.md) for the runbooks that carry this out.
-
-A workflow run in this repository selects only Tenant 1 and binds to the `bootstrap-tenant1` Environment. Repository compromise risk is constrained through private-path configuration, Environment approval, exact OIDC subjects, the Tenant 1 application, and evidence gates. Tenant 2's hash-pinned manifest and discovery evidence remain only as the approved transition exception until Slice 5 and cannot be selected for bootstrap.
+Tenant 1 validation uses the explicit ignored local configuration path. There is no active private configuration repository dependency, bootstrap GitHub Environment, workload federation, or workflow-hosted tenant discovery. The two tracked Tenant 1 transition files remain temporarily because deletion approval was unavailable and are not active validation inputs.
 
 ## Repository Ownership
 
 | Path | Ownership |
 |---|---|
-| `.github/` | Repository governance, agent customization, issue forms, and later workflow definitions |
+| `.github/` | Repository governance, agent customization, issue forms, pull-request template, and the single validation workflow |
 | `docs/` | Cross-cutting specifications, plans, decisions, policies, and reviews |
-| `infra/` | Infrastructure documentation and later tenant bootstrap source |
-| `hr/` | HR domain documentation and later solution source |
-| `data/` | Synthetic-data guidance and later reviewed synthetic assets |
+| `infra/` | Infrastructure documentation, source, tests, and attended local validation |
+| `hr/` | HR domain documentation and solution source |
+| `data/` | Synthetic-data guidance and reviewed synthetic assets |
 
-The current repository already contains reviewed Phase 1 and Phase 2 documentation. Task 1 adds only the Infrastructure documentation surface. A path mentioned for a later task is not evidence that its file or runtime control exists now.
+Private configuration, raw discovery, generated parameters, access evidence, and raw `what-if` output stay outside Git.
 
-## Tenant-Specific Environments
+## Lean `main` Governance
 
-The approved Tenant 1 bootstrap Environment name is fixed without operator choice:
+The approved minimum target is:
 
-```text
-bootstrap-tenant1
-```
+- every change to `main` uses a pull request;
+- required approving reviews remain zero while there is only one eligible maintainer;
+- CODEOWNERS remains an ownership map, not a required solo-owner review gate;
+- every review conversation is resolved;
+- `Repository setup validation` is the sole required status check;
+- force pushes and branch deletion are blocked;
+- squash is the only enabled merge method;
+- merged branches are deleted automatically;
+- GitHub Projects is disabled; and
+- Dependabot security updates are enabled.
 
-The `bootstrap-tenant1` Environment must:
+When a second eligible maintainer is added, requiring one approval and CODEOWNERS review is a separate reviewed governance change.
 
-- allow deployments from `main` only;
-- name the reviewed tenant administrator's GitHub identity as required reviewer;
-- prevent self-review;
-- expose only `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` as non-secret variables;
-- bind OIDC to the exact immutable repository and Environment subject.
+## Validation Workflow Boundary
 
-The manifest carries the GitHub owner and repository names plus their immutable numeric IDs. Before a federated credential is created, read-only API evidence must confirm that immutable subjects are enabled and that GitHub's `sub_claim_prefix` exactly matches those four fields. Tenant 1's verified prefix is `repo:urruegg@46865858/caldova-hr-frontier@1371297722`; the Environment context is appended to that prefix.
+Repository setup validation runs repository-owned tests, infrastructure tests, HR tests, safety checks, maintained Bicep compilation, and whitespace validation. It does not authenticate to Tenant 1, retrieve private configuration, run discovery, create trust, alter roles, call Azure `what-if`, or create a deployment.
 
-Task 1 creates none of these Environments or variables. Tenant 2 and Tenant 3 Environments are absent until their attended onboarding is approved.
-
-GitHub documents Environment protection and secrets in [Managing environments for deployment](https://docs.github.com/en/actions/deployment/targeting-different-environments/managing-environments-for-deployment).
-
-## Approved `main` Governance Contract
-
-A later attended implementation must require:
-
-- pull requests for changes to `main`;
-- one approval and CODEOWNERS review;
-- dismissal of stale approvals;
-- resolved review conversations;
-- the repository validator status check;
-- blocked force pushes and branch deletion;
-- administrator bypass through pull request only, with a separate documented break-glass process.
-
-The ruleset is activated only after implementation reaches `main`, repository validation succeeds on `main`, Tenant 1 `what-if` succeeds within boundary, and temporary Azure roles are confirmed absent. Task 1 does not claim that any branch rule is active.
-
-GitHub ruleset behavior is described in [About rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets). CODEOWNERS syntax and branch semantics are described in [About code owners](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners).
+No separate traceability workflow is required. The pull-request template requires an Azure Boards reference and human review confirms the final proof uses `Fixes AB#<positive-integer>`.
 
 ## Public Repository Safety
 
-The repository contains reproducible source and reviewed non-secret metadata. It never contains:
+The repository never contains:
 
-- passwords, tokens, private keys, certificates, connection strings, or authentication headers;
-- raw service responses or unrestricted membership lists;
+- credentials, tokens, keys, certificates, connection strings, or authentication headers;
+- Tenant 1 local configuration or its backup;
+- raw discovery, access evidence, or `what-if` output;
+- unrestricted object or membership lists;
 - personal or special-category HR data;
-- environment-specific Power Platform values or ZIP exports;
-- temporary role-assignment state or raw `what-if` output.
+- generated environment-specific Power Platform values; or
+- temporary authorization state.
 
-Secret scanning and push protection are useful controls for public repositories, but their active status must be verified rather than inferred. They do not replace human review for personal data. See [About secret scanning](https://docs.github.com/en/code-security/secret-scanning/introduction/about-secret-scanning) and [About push protection](https://docs.github.com/en/code-security/secret-scanning/protecting-pushes-with-secret-scanning).
-
-## Workflow Boundary
-
-Later manual workflows may perform read-only discovery and subscription `what-if` through secretless OIDC. They must use minimal permissions, select one tenant, avoid automatic commits or pushes, and publish only normalized redacted evidence.
-
-No bootstrap, discovery, Power Platform ALM, or deployment workflow is added in Task 1. No workflow in this sprint may deploy the proposed Azure platform resources.
+Secret scanning and push protection supplement but do not replace review. Their active status must be read back rather than inferred.
 
 ## GitHub and Azure Boards
 
-GitHub is the sole product-source and pull-request plane. Azure Boards is the single backlog after its existing project and GitHub App connection are discovered and verified. GitHub Projects is disabled, and GitHub Issues remain an intake surface, not a second backlog. The initial Azure Boards GitHub App authorization is attended and is not performed by Task 1.
+GitHub is the product-source and pull-request plane. Azure Boards is the single backlog. The Azure Boards GitHub App, not a workflow credential, proves the real link and state transition.
 
-The Tenant 1 private Azure Repo `caldova-hr-frontier-config` contains configuration, governed templates, runbooks, schemas, and sanitized evidence only. It contains no product source, credential, unrestricted membership export, synchronization, or initial disaster-recovery mirror.
+Tenant 1 keeps the Basic process and native `Epic -> Issue -> Task` hierarchy. One durable Basic Issue is used for the final `Fixes AB#` proof. The current lean sprint does not create a second team, a second area, six iterations, or a parallel GitHub Projects backlog.
+
+## Deferred Controls
+
+A bootstrap Environment, workload federation, private configuration repository, required delivery template, Azure Pipeline, or separate delivery identity may return only through a new reviewed design. Historical documents and dormant code are not active prerequisites.
 
 ## Verification Contract
 
-A later governance review must read back and compare every ruleset and Environment field with reviewed desired state. It must also confirm the exact immutable OIDC subject and repository prefix, three allowed variable names, branch restriction, reviewer identity, self-review prevention, and successful validator check. Until that evidence exists, these approved controls are not active.
+Current read-back must compare the exact ruleset and repository settings with the lean target and prove:
+
+1. only `Repository setup validation` is required;
+2. solo-owner review settings do not deadlock merge;
+3. squash-only merge and branch deletion settings are active;
+4. GitHub Projects remains disabled;
+5. the Boards connection and one real `Fixes AB#` transition work; and
+6. no private Tenant 1 artifact or dormant trust path is an active dependency.

@@ -890,7 +890,6 @@ $phase3RequiredPaths = @(
     'infra/tests/pester/Naming.Tests.ps1',
     'infra/tests/pester/TemporaryRoleCleanup.Tests.ps1',
     'infra/tests/pester/TenantConfiguration.Tests.ps1',
-    'infra/tests/pester/TenantTrust.Tests.ps1',
     'infra/tests/pester/WhatIfBoundary.Tests.ps1'
 )
 foreach ($relativePath in $phase3RequiredPaths) {
@@ -991,8 +990,10 @@ if (Test-Path -LiteralPath $tenantManifestRoot -PathType Container) {
         }
         if ($tenantManifest.Name -ceq 'tenant1.local.psd1' -and $null -ne $gitCommand) {
             $relativeTenantManifestPath = 'infra/src/config/tenants/tenant1.local.psd1'
-            & $gitCommand.Source -C $repositoryRoot ls-files --error-unmatch -- $relativeTenantManifestPath 2>$null | Out-Null
-            if ($LASTEXITCODE -eq 0) {
+            $trackedTenantManifestPaths = @(
+                & $gitCommand.Source -C $repositoryRoot ls-files -- $relativeTenantManifestPath
+            )
+            if ($trackedTenantManifestPaths.Count -gt 0) {
                 Add-Failure 'The local Tenant 1 manifest must not be tracked by Git.'
             }
             & $gitCommand.Source -C $repositoryRoot check-ignore --quiet -- $relativeTenantManifestPath

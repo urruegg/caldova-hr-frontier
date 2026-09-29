@@ -2,97 +2,79 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 2.0 |
+| **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
-| **References** | [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json) |
+| **References** | [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Tenant 1 Lean Platform Runbook](24-tenant-1-lean-platform-runbook.md), [Tenant Trust Stop Notice](20-tenant-trust-activation-runbook.md) |
 
-This source-derived Proposed Baseline describes intended identity and access architecture. It does not prove that any tenant, Azure resource, Azure DevOps object, Power Platform environment, GitHub governance control, pipeline, identity, permission, or service is currently deployed or configured.
+This Proposed Baseline defines the current attended identity and access boundary. It does not prove that a tenant control, Azure role, GitHub rule, pipeline, or Power Platform permission is configured.
 
-## Identity Boundary
+## Current Identity Boundary
 
-| Identity | Intended use | Prohibited use |
+| Identity | Current use | Prohibited use |
 |---|---|---|
-| Reviewed tenant administrator | Attended initial trust, consent, and exceptional portal-only setup | CI/CD credential, stored password, or unattended runtime identity |
-| Dedicated per-tenant bootstrap application and service principal | Secretless OIDC discovery, validation, and the approved bootstrap control plane for this repository | Human sign-in, shared cross-tenant identity, or workload runtime identity |
-| Future workload managed identity | Azure-hosted application runtime after a separately reviewed deployment | Tenant bootstrap or reuse of the provisioning principal |
-| Future Power Platform application user | Minimum approved metadata and `who-am-i` access, then separately reviewed ALM duties | Broad administrator access by default |
+| Attended Tenant 1 operator | Local context validation, discovery, Bicep build, subscription `what-if`, and read-back | CI/CD credential, stored password, unattended workload identity, or cross-tenant operation |
+| Future workload managed identity | Separately reviewed Azure-hosted runtime | Tenant bootstrap or current local validation |
+| Future Power Platform application user | Separately reviewed ALM duties | Current sprint or broad administrator access |
 
-Each independent tenant receives its own single-tenant app registration and service principal. Managed identities are reserved for future Azure-hosted workloads and are not used to solve the bootstrap trust problem.
+The current sprint has no bootstrap Entra application, service principal, federated credential, or GitHub bootstrap Environment. `Initialize-TenantTrust.ps1` is dormant and unsupported; see the [superseded stop notice](20-tenant-trust-activation-runbook.md).
 
 ## Attended Administration
 
-Tenant 1 uses `admin@Caldova25156897.onmicrosoft.com` only as the reviewed selector for an attended administrator session. The operator verifies the signed-in tenant and account directly. Scripts never request or relay a password, MFA response, token, recovery code, or private key.
+The operator signs in personally and verifies:
 
-Microsoft recommends workload identities for automation in [Plan for mandatory multifactor authentication](https://learn.microsoft.com/en-us/entra/identity/authentication/concept-mandatory-multifactor-authentication). Emergency-access and privileged-role design remain important attended prerequisites; see [Manage emergency access accounts](https://learn.microsoft.com/en-us/entra/identity/role-based-access-control/security-emergency-access) and [Microsoft Entra role security planning](https://learn.microsoft.com/en-us/entra/identity/role-based-access-control/security-planning).
+- `az account show` reports `user.type` as `user`;
+- the tenant ID matches the local Tenant 1 configuration;
+- the subscription ID matches the local Tenant 1 configuration; and
+- `az ad signed-in-user show` returns a GUID object ID.
 
-Task 1 does not prove that MFA, Conditional Access, PIM, break-glass accounts, or administrator roles are configured.
+The same checks run after subscription `what-if`. A changed principal, tenant, subscription, non-user context, failed lookup, or malformed identifier blocks acceptance.
 
-## Secretless GitHub OIDC
+Scripts never request, relay, print, or store a password, MFA response, token, recovery code, client secret, certificate secret, or private key. MFA, Conditional Access, PIM, emergency access, and administrator-role governance remain separately owned controls.
 
-The dedicated application trusts one exact GitHub Environment subject per tenant:
+## Separately Approved Minimum Access
 
-```text
-Issuer: https://token.actions.githubusercontent.com
-Audience: api://AzureADTokenExchange
-Subject: repo:${owner}@${ownerId}/${repository}@${repositoryId}:environment:bootstrap-${tenantAlias}
-```
+The operator's access exists and is approved outside this sprint. Before discovery and `what-if`, the bootstrap script reads effective role assignments for the exact attended principal at the exact Tenant 1 subscription scope and resolves their role definitions.
 
-The manifest stores the GitHub owner and repository names plus their immutable numeric IDs as reviewed non-secret metadata. Before trust creation, read-only GitHub API calls must return `use_default: true`, `use_immutable_subject: true`, and a `sub_claim_prefix` that exactly matches those fields. A mismatch stops the operation.
+Evidence must show at least one effective assignment that permits `Microsoft.Resources/deployments/whatIf/action`. The preflight records:
 
-Read-only API evidence collected on 2026-09-19 returned owner ID `46865858`, repository ID `1371297722`, and prefix `repo:urruegg@46865858/caldova-hr-frontier@1371297722`. Tenant 1 therefore uses:
+- exact principal object ID;
+- exact tenant and subscription IDs;
+- exact subscription scope;
+- assignment IDs;
+- role-definition IDs and names; and
+- effective actions and exclusions.
 
-```text
-repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-caldova25156897
-```
+The same evidence is collected after `what-if` and compared. Missing capability, a foreign or inherited scope represented as exact access, duplicate assignment evidence, context mismatch, or any access drift fails closed.
 
-The Environment name, tenant ID, subscription ID, client ID, issuer, audience, and subject are compared case-sensitively with the reviewed manifest and API read-back. A mismatch stops the run. The trust contains no stored credential. GitHub's Azure OIDC guidance is [Configuring OpenID Connect in Azure](https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-azure).
+Task 4 does not create, update, or delete a role definition or role assignment. It does not call the historical temporary-role grant, state, or cleanup path.
 
-No GitHub Environment, app registration, service principal, federated credential, variable, permission, or ruleset is created in Task 1.
+## Local Evidence Boundary
 
-## Least-Privilege Discovery
+Access evidence is written beside the operator's local discovery file, outside Git. It supports attended review but is not proof of deployment or authorization approval. The approval record remains in its separately governed system.
 
-Discovery is read-only across five services:
+Do not commit raw assignment evidence, raw discovery, generated parameters, or raw `what-if` output. A shareable summary contains only the minimum stable identifiers, status, timestamps, and hashes needed for review.
 
-- GitHub repository controls visible to the authenticated principal;
-- Entra application, service-principal, federated-credential, and consent metadata;
-- Azure subscription identity, resources, role assignments, policies, and diagnostics;
-- Azure DevOps organization, project, repositories, pipelines, environments, checks, and effective permissions;
-- Power Platform environment IDs, URLs, types, states, and available governance metadata.
+## Discovery Authorization
 
-`Unauthorized`, `Unavailable`, and `Ambiguous` are distinct outcomes and all fail the bootstrap decision gate. A lack of permission is never treated as absence.
+Discovery is read-only. `Unauthorized`, `Unavailable`, and `Ambiguous` are distinct outcomes and all block the run. A lack of permission is never interpreted as absence.
 
-Azure DevOps authorization is controlled by Azure DevOps permissions rather than Microsoft Graph application roles. Service principals must be added explicitly and should receive only the access needed for the reviewed scenario; see [Service principals and managed identities in Azure DevOps](https://learn.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/service-principal-managed-identity).
+Service-specific access beyond the Azure subscription `what-if` capability remains outside this task. Do not broaden access, add a stored credential, create an application user, or query business data to make discovery pass.
 
-## Temporary Azure Authorization
+## Deferred Identity Designs
 
-A later attended task may grant the bootstrap service principal exactly two temporary subscription-scope roles for the validation window:
-
-- `Contributor`;
-- `Role Based Access Control Administrator`.
-
-Their exact assignment IDs are recorded outside Git and validated before use. Cleanup removes Contributor first and role administration last, then polls read-only state until both exact IDs are absent. Any deletion remains an explicit attended approval gate. Standing elevated access is not an acceptable end state.
-
-The steady-state custom permission set is limited to reads plus deployment validation and `what-if`; it has no resource-provider write or delete permission. Task 1 creates neither the custom role nor any assignment.
-
-## Power Platform Access
-
-The three supplied Power Platform URLs are existing candidates only. After OIDC trust is reviewed, an attended administrator may add the application as an application user in each verified environment with only the minimum existing role that supports `who-am-i` and approved metadata reads.
-
-That action requires separate approval per environment. It must not create an environment, query business data, assign System Administrator as a shortcut, introduce a stored credential, or broaden access when the minimum role is insufficient. If secretless access or minimum-role discovery cannot be proven, the design is reopened rather than weakened. Microsoft documents application-user management in [Manage application users](https://learn.microsoft.com/en-us/power-platform/admin/manage-application-users).
+A bootstrap workload identity, trust federation, delivery identity, or Power Platform application user may return only through a new reviewed design. Historical specifications and the dormant command are not active prerequisites and provide no execution approval.
 
 ## Verification Contract
 
-A later identity review must prove:
+Acceptance requires:
 
-1. one app and one related service principal exist for the selected tenant;
-2. the app is single-tenant and carries no password or certificate credential;
-3. the exact federated issuer, audience, and Environment subject match;
-4. every permission and consent is reviewed and read back;
-5. the authenticated Azure context matches the manifest;
-6. temporary role assignments are absent after validation;
-7. no human account owns an unattended pipeline.
-
-Until those checks produce current evidence, every identity and control remains proposed.
+1. an attended user context before and after `what-if`;
+2. exact Tenant 1 tenant and subscription matches;
+3. one stable GUID principal through the full run;
+4. separately approved pre-existing capability at the exact subscription scope;
+5. identical access evidence before and after `what-if`;
+6. no role mutation; and
+7. no unattended identity, trust activation, or deployment creation.
