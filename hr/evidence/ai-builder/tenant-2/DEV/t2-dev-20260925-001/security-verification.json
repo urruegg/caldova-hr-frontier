@@ -1,0 +1,158 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "status": "blocked",
+  "tenant_key": "tenant-2",
+  "environment_stage": "DEV",
+  "power_platform_environment_id": "84ad4c54-41d9-e5df-ba07-188b4719594a",
+  "environment_url": "https://calhrfrontierdev.crm17.dynamics.com/",
+  "operator_upn": "admin@caldova25668747.onmicrosoft.com",
+  "observed_at_utc": "2026-09-29T14:29:09.9940581Z",
+  "blocker": {
+    "id": "publisher_not_recorded_in_intent",
+    "status": "failed",
+    "observation": "evaluation-capture-intent.json records the exact approved solution, flow, folder, connection-reference, owner, environment, and model values, but it does not record an approved publisher after read-back. Task 5 Step 2 requires a separate publisher decision in this condition, so no tenant mutation was started.",
+    "required_resolution": "Record a separately approved existing publisher in evaluation-capture-intent.json after supported read-back, then re-run Task 5 from Step 1."
+  },
+  "publication_dependency": {
+    "status": "passed",
+    "model_name": "PersonalMasterDataFixed",
+    "model_id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+    "model_version": "1.0",
+    "lifecycle_stage": "evaluation_published",
+    "portal_status": "Published",
+    "draft_2_0_observation": "The supported Power Apps model page retained the open-draft warning. The draft was not opened, selected, edited, trained, discarded, deleted, published, or otherwise mutated.",
+    "sources": [
+      "model-evaluation-publication.json",
+      "model-inventory.json",
+      "run-manifest.json",
+      "evaluation-flow-publication-dependency.png"
+    ]
+  },
+  "approval": {
+    "status": "passed",
+    "evidence_path": "evaluation-capture-readiness.json",
+    "effective_approval_at_utc": "2026-09-29T13:47:08.4090000Z",
+    "authorized_tasks": [
+      "Task 4",
+      "Task 5",
+      "Task 6"
+    ]
+  },
+  "resource_read_back": {
+    "evaluation_solution": {
+      "display_name": "Caldova HR AI Evaluation DEV",
+      "unique_name": "calhr_ai_evaluation_dev",
+      "state": "not_created",
+      "exact_name_match_count": 0,
+      "source": "pac solution list"
+    },
+    "business_solution": {
+      "unique_name": "caldovahrfrontier",
+      "state": "unchanged",
+      "managed": false,
+      "exact_name_match_count": 1,
+      "source": "pac solution list"
+    },
+    "flow": {
+      "display_name": "Capture AI Builder Evaluation Evidence",
+      "state": "not_created",
+      "exact_name_match_count": 0,
+      "source": "pac power-automate list-cloud-flows"
+    },
+    "ai_builder_connection_reference": {
+      "display_name": "Caldova HR AI Evaluation DEV AI Builder",
+      "unique_name": "calhr_ai_evaluation_dev_aibuilder",
+      "state": "not_created"
+    },
+    "sharepoint_connection_reference": {
+      "display_name": "Caldova HR AI Evaluation DEV SharePoint",
+      "unique_name": "calhr_ai_evaluation_dev_sharepoint",
+      "state": "not_created"
+    },
+    "sharepoint_folder": {
+      "url": "https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence",
+      "state": "not_created",
+      "source": "evaluation-capture-readiness.json plus no Task 5 mutation"
+    }
+  },
+  "checks": [
+    {
+      "id": "tenant_identity",
+      "status": "passed",
+      "observation": "pac org who returned calhrfrontierdev, environment ID 84ad4c54-41d9-e5df-ba07-188b4719594a, and admin@caldova25668747.onmicrosoft.com.",
+      "source": "pac org who"
+    },
+    {
+      "id": "publication_lineage",
+      "status": "passed",
+      "observation": "Repository evidence and the supported Power Apps page agree that exact fixed 1.0 is Published as evaluation_published, while the open draft remains present and untouched.",
+      "source": "model-evaluation-publication.json; model-inventory.json; run-manifest.json; evaluation-flow-publication-dependency.png"
+    },
+    {
+      "id": "approved_publisher",
+      "status": "failed",
+      "observation": "No publisher display name, unique name, or prefix is recorded in evaluation-capture-intent.json after read-back.",
+      "source": "evaluation-capture-intent.json"
+    },
+    {
+      "id": "flow_state_off",
+      "status": "unknown",
+      "observation": "No flow was created because the publisher gate failed; there is no flow state to inspect.",
+      "source": "pac power-automate list-cloud-flows"
+    },
+    {
+      "id": "owner_and_run_only",
+      "status": "unknown",
+      "observation": "No flow was created, so ownership and run-only permissions were not applied or inspected.",
+      "source": "Task 5 stopped before mutation"
+    },
+    {
+      "id": "secure_inputs_outputs",
+      "status": "unknown",
+      "observation": "No trigger or AI Builder action was created, so secure inputs and outputs were not configured or inspected.",
+      "source": "Task 5 stopped before mutation"
+    },
+    {
+      "id": "connector_inventory",
+      "status": "unknown",
+      "observation": "No evaluation solution or flow was created, so a flow connector inventory does not exist.",
+      "source": "Task 5 stopped before mutation"
+    },
+    {
+      "id": "model_binding",
+      "status": "unknown",
+      "observation": "No Process documents action was created, so no flow binding to published fixed 1.0 exists.",
+      "source": "Task 5 stopped before mutation"
+    },
+    {
+      "id": "immutable_no_overwrite",
+      "status": "unknown",
+      "observation": "No flow definition was created, so raw/canonical create-file collision behavior was not configured or inspected.",
+      "source": "Task 5 stopped before mutation"
+    },
+    {
+      "id": "no_auto_delete",
+      "status": "passed",
+      "observation": "No flow or folder was created and no delete, cleanup, or retention action was performed.",
+      "source": "Task 5 attended operation record"
+    },
+    {
+      "id": "no_forbidden_actions",
+      "status": "passed",
+      "observation": "No tenant component was created and no HTTP, custom connector, email, Teams, Workday, agent, Dataverse table, schedule, recurrence, event trigger, production source, or child flow was used.",
+      "source": "Task 5 attended operation record"
+    },
+    {
+      "id": "no_pdf_submission",
+      "status": "passed",
+      "observation": "No PDF was uploaded, submitted, or processed.",
+      "source": "Task 5 attended operation record"
+    }
+  ],
+  "attended_evidence": {
+    "screenshot": "evaluation-flow-publication-dependency.png",
+    "screenshot_sha256": "5f46de223fda357072f88c52475f8fe46d651b905538cbc2ce897cbcafb3287b",
+    "observation": "The supported Power Apps model page displayed PersonalMasterDataFixed as Published and displayed the open-draft warning before Task 5 stopped at the publisher gate."
+  }
+}
