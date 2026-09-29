@@ -110,5 +110,12 @@
       "No deletion"
     ]
   },
+  "selection_confirmation": {
+    "connection_reference_names": {
+      "status": "explicit_user_confirmed",
+      "confirmed_at_utc": "2026-09-29T13:37:13.6480000Z",
+      "observation": "The user explicitly confirmed the AI Builder and SharePoint connection-reference display and unique names in the current interaction, so they are no longer treated as inferred or derived."
+    }
+  },
   "current_task_boundary": "Task 3 records the selected names, readiness observations, and explicit approval only. No tenant mutation was performed in this task."
 }

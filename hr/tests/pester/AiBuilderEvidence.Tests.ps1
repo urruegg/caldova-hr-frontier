@@ -282,6 +282,9 @@ Describe 'AI Builder field and corpus contracts' {
             $intent.selection.connection_references.ai_builder.unique_name | Should -Be 'calhr_ai_evaluation_dev_aibuilder'
             $intent.selection.connection_references.sharepoint.display_name | Should -Be 'Caldova HR AI Evaluation DEV SharePoint'
             $intent.selection.connection_references.sharepoint.unique_name | Should -Be 'calhr_ai_evaluation_dev_sharepoint'
+            $intent.selection.connection_references.confirmation.status | Should -Be 'explicit_user_confirmed'
+            ([datetime]$intent.selection.connection_references.confirmation.confirmed_at_utc).ToString('o') | Should -Be '2026-09-29T13:37:13.6480000Z'
+            $intent.selection.connection_references.confirmation.source | Should -Be 'user message'
 
             $intent.fixed_model.display_name | Should -Be 'PersonalMasterDataFixed'
             $intent.fixed_model.model_id | Should -Be '74b09a72-d1f1-4598-bc4d-3746d5c97acc'
@@ -310,6 +313,9 @@ Describe 'AI Builder field and corpus contracts' {
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No holdout submission'
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No draft 2.0 mutation'
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No deletion'
+            $readiness.selection_confirmation.connection_reference_names.status | Should -Be 'explicit_user_confirmed'
+            ([datetime]$readiness.selection_confirmation.connection_reference_names.confirmed_at_utc).ToString('o') | Should -Be '2026-09-29T13:37:13.6480000Z'
+            $readiness.selection_confirmation.connection_reference_names.observation | Should -Match 'explicitly confirmed'
         }
 
         It 'updates the fixed-model test register to cite the approval evidence before tenant mutation' {

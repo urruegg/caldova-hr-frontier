@@ -32,6 +32,11 @@
         "display_name": "Caldova HR AI Evaluation DEV SharePoint",
         "unique_name": "calhr_ai_evaluation_dev_sharepoint",
         "connector_id": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+      },
+      "confirmation": {
+        "status": "explicit_user_confirmed",
+        "confirmed_at_utc": "2026-09-29T13:37:13.6480000Z",
+        "source": "user message"
       }
     }
   },
@@ -43,6 +48,7 @@
   "approval_recorded_at_utc": "2026-09-29T13:24:26.7090000Z",
   "notes": [
     "This record captures only the approved DEV-only evaluation naming, ownership, connector, and storage selections for later Tasks 4-6.",
+    "The AI Builder and SharePoint connection-reference names were explicitly confirmed by the user after the initial Task 3 completion commit.",
     "No tenant mutation was performed when this record was written."
   ]
 }
