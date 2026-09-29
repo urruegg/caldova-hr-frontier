@@ -323,6 +323,69 @@ Describe 'AI Builder field and corpus contracts' {
             ([datetime]$readiness.explicit_approval_artifact.responded_at_utc).ToString('o') | Should -Be '2026-09-29T13:47:08.4090000Z'
         }
 
+        It 'records the separately approved publisher after exact read-back and preserves the blocked publisher-gate attempt' {
+            $intent = Get-Content -LiteralPath $script:EvaluationIntentPath -Raw | ConvertFrom-Json
+            $readiness = Get-Content -LiteralPath $script:EvaluationReadinessPath -Raw | ConvertFrom-Json
+
+            $intent.selection.publisher.friendly_name | Should -Be 'Caldova HR frontier'
+            $intent.selection.publisher.unique_name | Should -Be 'calhrfrontier'
+            $intent.selection.publisher.prefix | Should -Be 'calhr'
+            $intent.selection.publisher.publisher_id | Should -Be '6b6eabd8-57b6-40b7-9d12-7b2a045978e8'
+            $intent.selection.publisher.confirmation.status | Should -Be 'explicit_user_approved_after_read_back'
+            ([datetime]$intent.selection.publisher.confirmation.approved_at_utc).ToString('o') | Should -Be '2026-09-29T14:32:33.6190000Z'
+            ([datetime]$intent.selection.publisher.confirmation.read_back_at_utc).ToString('o') | Should -Be '2026-09-29T14:34:04.9180873Z'
+            $intent.selection.publisher.confirmation.source | Should -Be 'user message; pac env fetch'
+
+            $readiness.selection_confirmation.publisher.status | Should -Be 'explicit_user_approved_after_read_back'
+            $readiness.selection_confirmation.publisher.friendly_name | Should -Be 'Caldova HR frontier'
+            $readiness.selection_confirmation.publisher.unique_name | Should -Be 'calhrfrontier'
+            $readiness.selection_confirmation.publisher.prefix | Should -Be 'calhr'
+            $readiness.selection_confirmation.publisher.publisher_id | Should -Be '6b6eabd8-57b6-40b7-9d12-7b2a045978e8'
+            ([datetime]$readiness.selection_confirmation.publisher.approved_at_utc).ToString('o') | Should -Be '2026-09-29T14:32:33.6190000Z'
+            ([datetime]$readiness.selection_confirmation.publisher.read_back_at_utc).ToString('o') | Should -Be '2026-09-29T14:34:04.9180873Z'
+
+            $blockedAttempt = @($readiness.task_5_attempt_history | Where-Object {
+                    $_.attempt -eq 1 -and $_.status -eq 'blocked' -and $_.blocker_id -eq 'publisher_not_recorded_in_intent'
+                })
+            $blockedAttempt.Count | Should -Be 1
+            $blockedAttempt[0].evidence_commit | Should -Be 'dbcd3684a2e5a790382e58af8d8808a1471073a4'
+            $blockedAttempt[0].evidence_path | Should -Be 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\security-verification.json'
+        }
+
+        It 'records the resumed Task 5 resources and the supported AI Builder connector blocker without erasing attempt 1' {
+            $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+            $securityPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\security-verification.json'
+            $readiness = Get-Content -LiteralPath $script:EvaluationReadinessPath -Raw | ConvertFrom-Json
+            $security = Get-Content -LiteralPath $securityPath -Raw | ConvertFrom-Json
+
+            $security.status | Should -Be 'blocked'
+            $security.current_attempt.attempt | Should -Be 2
+            $security.current_attempt.blocker.id | Should -Be 'ai_builder_connection_reference_unavailable'
+            $security.resource_read_back.evaluation_solution.solution_id | Should -Be 'df590fd2-13bc-f111-aaae-7ced8d44be51'
+            $security.resource_read_back.evaluation_solution.state | Should -Be 'created_unmanaged'
+            $security.resource_read_back.sharepoint_connection_reference.connection_reference_id | Should -Be '94b29de5-14bc-f111-aaae-70a8a505d538'
+            $security.resource_read_back.sharepoint_connection_reference.connector_id | Should -Be '/providers/Microsoft.PowerApps/apis/shared_sharepointonline'
+            $security.resource_read_back.ai_builder_connection_reference.state | Should -Be 'not_created'
+            $security.resource_read_back.ai_builder_connection_reference.supported_connector_match_count | Should -Be 0
+            $security.resource_read_back.sharepoint_folder.state | Should -Be 'created_restricted'
+            @($security.resource_read_back.sharepoint_folder.principals) | Should -Be @('admin@caldova25668747.onmicrosoft.com')
+            $security.resource_read_back.flow.state | Should -Be 'not_created'
+            $security.resource_read_back.flow.exact_name_match_count | Should -Be 0
+
+            $history = @($readiness.task_5_attempt_history)
+            $history.Count | Should -Be 2
+            $history[0].attempt | Should -Be 1
+            $history[0].blocker_id | Should -Be 'publisher_not_recorded_in_intent'
+            $history[1].attempt | Should -Be 2
+            $history[1].blocker_id | Should -Be 'ai_builder_connection_reference_unavailable'
+
+            foreach ($evidence in @($security.attended_evidence)) {
+                $evidencePath = Join-Path (Split-Path -Parent $securityPath) $evidence.screenshot
+                $evidencePath | Should -Exist
+                (Get-FileHash -LiteralPath $evidencePath -Algorithm SHA256).Hash | Should -Be $evidence.screenshot_sha256
+            }
+        }
+
         It 'updates the fixed-model test register to cite the approval evidence before tenant mutation' {
             $script:TestBoM | Should -Match 'evaluation-capture-intent\.json'
             $script:TestBoM | Should -Match 'evaluation-capture-readiness\.json'

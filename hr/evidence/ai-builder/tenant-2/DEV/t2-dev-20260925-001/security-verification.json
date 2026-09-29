@@ -7,12 +7,30 @@
   "power_platform_environment_id": "84ad4c54-41d9-e5df-ba07-188b4719594a",
   "environment_url": "https://calhrfrontierdev.crm17.dynamics.com/",
   "operator_upn": "admin@caldova25668747.onmicrosoft.com",
-  "observed_at_utc": "2026-09-29T14:29:09.9940581Z",
-  "blocker": {
-    "id": "publisher_not_recorded_in_intent",
-    "status": "failed",
-    "observation": "evaluation-capture-intent.json records the exact approved solution, flow, folder, connection-reference, owner, environment, and model values, but it does not record an approved publisher after read-back. Task 5 Step 2 requires a separate publisher decision in this condition, so no tenant mutation was started.",
-    "required_resolution": "Record a separately approved existing publisher in evaluation-capture-intent.json after supported read-back, then re-run Task 5 from Step 1."
+  "observed_at_utc": "2026-09-29T18:40:30.7891960Z",
+  "attempt_history": [
+    {
+      "attempt": 1,
+      "status": "blocked",
+      "blocker": {
+        "id": "publisher_not_recorded_in_intent",
+        "observation": "The first Task 5 attempt stopped before tenant mutation because evaluation-capture-intent.json did not yet record an approved publisher after read-back.",
+        "required_resolution": "Record a separately approved existing publisher after supported read-back and restart Task 5 from Step 1."
+      },
+      "observed_at_utc": "2026-09-29T14:29:09.9940581Z",
+      "evidence_commit": "dbcd3684a2e5a790382e58af8d8808a1471073a4"
+    }
+  ],
+  "current_attempt": {
+    "attempt": 2,
+    "status": "blocked",
+    "blocker": {
+      "id": "ai_builder_connection_reference_unavailable",
+      "observation": "The supported Power Apps connection-reference picker exposed no AI Builder connector, shared_aibuilder entry, or connector containing Builder. Supported pac connectivity list-connectors read-back also returned zero AI Builder/shared_aibuilder matches. The exact approved AI Builder connection reference could therefore not be created. No substitute connector was selected.",
+      "required_resolution": "Confirm a supported tenant mechanism that exposes /providers/Microsoft.PowerApps/apis/shared_aibuilder as an explicit solution connection reference without a forbidden connector. Restart Task 5 from Step 1 only after that mechanism is approved and available."
+    },
+    "started_after_publisher_read_back_at_utc": "2026-09-29T14:34:04.9180873Z",
+    "observed_at_utc": "2026-09-29T18:40:30.7891960Z"
   },
   "publication_dependency": {
     "status": "passed",
@@ -21,7 +39,7 @@
     "model_version": "1.0",
     "lifecycle_stage": "evaluation_published",
     "portal_status": "Published",
-    "draft_2_0_observation": "The supported Power Apps model page retained the open-draft warning. The draft was not opened, selected, edited, trained, discarded, deleted, published, or otherwise mutated.",
+    "draft_2_0_observation": "The supported Power Apps model page retained the open-draft warning. Draft 2.0 was not opened, selected, edited, trained, discarded, deleted, published, or otherwise mutated.",
     "sources": [
       "model-evaluation-publication.json",
       "model-inventory.json",
@@ -33,6 +51,8 @@
     "status": "passed",
     "evidence_path": "evaluation-capture-readiness.json",
     "effective_approval_at_utc": "2026-09-29T13:47:08.4090000Z",
+    "publisher_approval_at_utc": "2026-09-29T14:32:33.6190000Z",
+    "publisher_read_back_at_utc": "2026-09-29T14:34:04.9180873Z",
     "authorized_tasks": [
       "Task 4",
       "Task 5",
@@ -43,9 +63,14 @@
     "evaluation_solution": {
       "display_name": "Caldova HR AI Evaluation DEV",
       "unique_name": "calhr_ai_evaluation_dev",
-      "state": "not_created",
-      "exact_name_match_count": 0,
-      "source": "pac solution list"
+      "solution_id": "df590fd2-13bc-f111-aaae-7ced8d44be51",
+      "version": "1.0.0.0",
+      "state": "created_unmanaged",
+      "managed": false,
+      "publisher_friendly_name": "Caldova HR frontier",
+      "publisher_unique_name": "calhrfrontier",
+      "publisher_prefix": "calhr",
+      "source": "pac solution list; pac env fetch"
     },
     "business_solution": {
       "unique_name": "caldovahrfrontier",
@@ -58,22 +83,38 @@
       "display_name": "Capture AI Builder Evaluation Evidence",
       "state": "not_created",
       "exact_name_match_count": 0,
-      "source": "pac power-automate list-cloud-flows"
+      "source": "pac env fetch workflow exact-name query; Power Apps solution object inventory"
     },
     "ai_builder_connection_reference": {
       "display_name": "Caldova HR AI Evaluation DEV AI Builder",
       "unique_name": "calhr_ai_evaluation_dev_aibuilder",
-      "state": "not_created"
+      "connector_id": "/providers/Microsoft.PowerApps/apis/shared_aibuilder",
+      "state": "not_created",
+      "supported_connector_match_count": 0,
+      "supported_picker_match_count": 0,
+      "source": "Power Apps supported connection-reference picker; pac connectivity list-connectors"
     },
     "sharepoint_connection_reference": {
       "display_name": "Caldova HR AI Evaluation DEV SharePoint",
       "unique_name": "calhr_ai_evaluation_dev_sharepoint",
-      "state": "not_created"
+      "connection_reference_id": "94b29de5-14bc-f111-aaae-70a8a505d538",
+      "connector_id": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+      "connection_id": "shared-sharepointonl-3564c2d3-b82d-44f4-af6c-ed0255c43367",
+      "state": "created_active",
+      "source": "pac env fetch"
     },
     "sharepoint_folder": {
       "url": "https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence",
-      "state": "not_created",
-      "source": "evaluation-capture-readiness.json plus no Task 5 mutation"
+      "library_id": "80372866-2ba7-490d-b72e-a591b981ddc4",
+      "list_item_id": 1,
+      "state": "created_restricted",
+      "inheritance": "unique",
+      "principals": [
+        "admin@caldova25668747.onmicrosoft.com"
+      ],
+      "permission_level": "Full Control",
+      "content_state": "empty",
+      "source": "supported SharePoint folder permissions UI"
     }
   },
   "checks": [
@@ -86,73 +127,115 @@
     {
       "id": "publication_lineage",
       "status": "passed",
-      "observation": "Repository evidence and the supported Power Apps page agree that exact fixed 1.0 is Published as evaluation_published, while the open draft remains present and untouched.",
+      "observation": "Repository evidence and the supported Power Apps page agree that exact fixed 1.0 is Published as evaluation_published while draft 2.0 remains present and untouched.",
       "source": "model-evaluation-publication.json; model-inventory.json; run-manifest.json; evaluation-flow-publication-dependency.png"
     },
     {
       "id": "approved_publisher",
+      "status": "passed",
+      "observation": "Supported read-back exactly matched the separately approved Caldova HR frontier / calhrfrontier / calhr publisher before resumed mutation.",
+      "source": "evaluation-capture-intent.json; evaluation-capture-readiness.json; pac env fetch"
+    },
+    {
+      "id": "evaluation_solution",
+      "status": "passed",
+      "observation": "The exact evaluation solution exists as unmanaged version 1.0.0.0 under the approved publisher.",
+      "source": "pac solution list; pac env fetch; evaluation-solution-resources.png"
+    },
+    {
+      "id": "sharepoint_connection_reference",
+      "status": "passed",
+      "observation": "The exact SharePoint connection reference exists and is active with the approved SharePoint connector family.",
+      "source": "pac env fetch; evaluation-solution-resources.png"
+    },
+    {
+      "id": "sharepoint_folder_acl",
+      "status": "passed",
+      "observation": "The exact empty folder has unique permissions and only Microsoft Administrator has Full Control.",
+      "source": "evaluation-folder-permissions.png"
+    },
+    {
+      "id": "ai_builder_connection_reference",
       "status": "failed",
-      "observation": "No publisher display name, unique name, or prefix is recorded in evaluation-capture-intent.json after read-back.",
-      "source": "evaluation-capture-intent.json"
+      "observation": "The exact AI Builder connection reference does not exist because neither the supported picker nor supported PAC connector inventory exposed the approved AI Builder connector.",
+      "source": "Power Apps supported connection-reference picker; pac connectivity list-connectors; pac env fetch"
     },
     {
       "id": "flow_state_off",
       "status": "unknown",
-      "observation": "No flow was created because the publisher gate failed; there is no flow state to inspect.",
-      "source": "pac power-automate list-cloud-flows"
+      "observation": "No flow was created, so there is no executable flow state to inspect. The safe outcome is absence rather than an unverified saved flow.",
+      "source": "pac env fetch workflow exact-name query; Power Apps solution object inventory"
     },
     {
       "id": "owner_and_run_only",
       "status": "unknown",
-      "observation": "No flow was created, so ownership and run-only permissions were not applied or inspected.",
-      "source": "Task 5 stopped before mutation"
+      "observation": "No flow exists, so flow ownership and run-only permissions could not be applied or verified. Folder access is restricted separately.",
+      "source": "Task 5 attempt 2 stopped before flow creation"
     },
     {
       "id": "secure_inputs_outputs",
       "status": "unknown",
-      "observation": "No trigger or AI Builder action was created, so secure inputs and outputs were not configured or inspected.",
-      "source": "Task 5 stopped before mutation"
+      "observation": "No manual trigger or AI Builder action exists, so secure inputs and outputs could not be configured or inspected.",
+      "source": "Task 5 attempt 2 stopped before flow creation"
     },
     {
       "id": "connector_inventory",
-      "status": "unknown",
-      "observation": "No evaluation solution or flow was created, so a flow connector inventory does not exist.",
-      "source": "Task 5 stopped before mutation"
+      "status": "failed",
+      "observation": "The solution contains the approved SharePoint family but lacks the required approved AI Builder family. No other connector family was introduced.",
+      "source": "pac env fetch; Power Apps solution object inventory"
     },
     {
       "id": "model_binding",
       "status": "unknown",
       "observation": "No Process documents action was created, so no flow binding to published fixed 1.0 exists.",
-      "source": "Task 5 stopped before mutation"
+      "source": "Task 5 attempt 2 stopped before flow creation"
     },
     {
       "id": "immutable_no_overwrite",
       "status": "unknown",
       "observation": "No flow definition was created, so raw/canonical create-file collision behavior was not configured or inspected.",
-      "source": "Task 5 stopped before mutation"
+      "source": "Task 5 attempt 2 stopped before flow creation"
     },
     {
       "id": "no_auto_delete",
       "status": "passed",
-      "observation": "No flow or folder was created and no delete, cleanup, or retention action was performed.",
-      "source": "Task 5 attended operation record"
+      "observation": "No flow, delete action, cleanup action, retention action, or automatic behavior exists. The empty folder was retained.",
+      "source": "Power Apps solution object inventory; attended operation record"
     },
     {
       "id": "no_forbidden_actions",
       "status": "passed",
-      "observation": "No tenant component was created and no HTTP, custom connector, email, Teams, Workday, agent, Dataverse table, schedule, recurrence, event trigger, production source, or child flow was used.",
-      "source": "Task 5 attended operation record"
+      "observation": "No HTTP, custom connector, email, Teams, Workday, agent, Dataverse table, schedule, recurrence, event trigger, production source, child flow, or substitute connector was introduced.",
+      "source": "Power Apps solution object inventory; attended operation record"
     },
     {
       "id": "no_pdf_submission",
       "status": "passed",
-      "observation": "No PDF was uploaded, submitted, or processed.",
-      "source": "Task 5 attended operation record"
+      "observation": "No PDF was uploaded, submitted, or processed; the evidence folder remains empty.",
+      "source": "supported SharePoint UI; attended operation record"
+    },
+    {
+      "id": "draft_2_0_untouched",
+      "status": "passed",
+      "observation": "Draft 2.0 was not opened, selected, edited, trained, discarded, deleted, published, or otherwise mutated.",
+      "source": "supported Power Apps model page; attended operation record"
     }
   ],
-  "attended_evidence": {
-    "screenshot": "evaluation-flow-publication-dependency.png",
-    "screenshot_sha256": "5f46de223fda357072f88c52475f8fe46d651b905538cbc2ce897cbcafb3287b",
-    "observation": "The supported Power Apps model page displayed PersonalMasterDataFixed as Published and displayed the open-draft warning before Task 5 stopped at the publisher gate."
-  }
+  "attended_evidence": [
+    {
+      "screenshot": "evaluation-flow-publication-dependency.png",
+      "screenshot_sha256": "5F46DE223FDA357072F88C52475F8FE46D651B905538CBC2CE897CBCAFB3287B",
+      "observation": "Published fixed-model dependency and preserved open-draft warning."
+    },
+    {
+      "screenshot": "evaluation-solution-resources.png",
+      "screenshot_sha256": "DFFEBE8D5E3EA6BED0612A6652230E0385622E863E78D5A766E2AB85BDC9B1F9",
+      "observation": "Exact evaluation solution object inventory: one SharePoint connection reference and zero cloud flows."
+    },
+    {
+      "screenshot": "evaluation-folder-permissions.png",
+      "screenshot_sha256": "762030649DD6F706DD1A4607DADC077903A9366B0DAA2C33BE924D82090F2B17",
+      "observation": "Exact folder with unique permissions and Microsoft Administrator as the sole principal."
+    }
+  ]
 }

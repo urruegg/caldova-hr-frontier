@@ -11,6 +11,18 @@
       "display_name": "Caldova HR AI Evaluation DEV",
       "unique_name": "calhr_ai_evaluation_dev"
     },
+    "publisher": {
+      "friendly_name": "Caldova HR frontier",
+      "unique_name": "calhrfrontier",
+      "prefix": "calhr",
+      "publisher_id": "6b6eabd8-57b6-40b7-9d12-7b2a045978e8",
+      "confirmation": {
+        "status": "explicit_user_approved_after_read_back",
+        "approved_at_utc": "2026-09-29T14:32:33.6190000Z",
+        "read_back_at_utc": "2026-09-29T14:34:04.9180873Z",
+        "source": "user message; pac env fetch"
+      }
+    },
     "flow": {
       "display_name": "Capture AI Builder Evaluation Evidence"
     },
@@ -50,6 +62,8 @@
     "This record captures only the approved DEV-only evaluation naming, ownership, connector, and storage selections for later Tasks 4-6.",
     "The AI Builder and SharePoint connection-reference names were explicitly confirmed by the user after the initial Task 3 completion commit.",
     "Approved status now relies on the fresh post-confirmation proceed response rather than the earlier please proceed interaction.",
+    "The existing publisher Caldova HR frontier (calhrfrontier, prefix calhr) was separately approved after exact supported FetchXML read-back.",
+    "The first Task 5 attempt remains preserved as a blocked publisher-gate event in evaluation-capture-readiness.json and security-verification.json.",
     "No tenant mutation was performed when this record was written."
   ]
 }

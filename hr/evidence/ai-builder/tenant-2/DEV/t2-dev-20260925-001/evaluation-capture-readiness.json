@@ -128,7 +128,37 @@
       "status": "explicit_user_confirmed",
       "confirmed_at_utc": "2026-09-29T13:37:13.6480000Z",
       "observation": "The user explicitly confirmed the AI Builder and SharePoint connection-reference display and unique names in the current interaction, so they are no longer treated as inferred or derived."
+    },
+    "publisher": {
+      "status": "explicit_user_approved_after_read_back",
+      "friendly_name": "Caldova HR frontier",
+      "unique_name": "calhrfrontier",
+      "prefix": "calhr",
+      "publisher_id": "6b6eabd8-57b6-40b7-9d12-7b2a045978e8",
+      "approved_at_utc": "2026-09-29T14:32:33.6190000Z",
+      "read_back_at_utc": "2026-09-29T14:34:04.9180873Z",
+      "source": "user message; pac env fetch",
+      "observation": "Supported Dataverse FetchXML read-back exactly matched the separately approved existing publisher before the resumed Task 5 mutation."
     }
   },
-  "current_task_boundary": "Task 3 records the selected names, readiness observations, and explicit approval only. No tenant mutation was performed in this task."
+  "task_5_attempt_history": [
+    {
+      "attempt": 1,
+      "status": "blocked",
+      "blocker_id": "publisher_not_recorded_in_intent",
+      "observed_at_utc": "2026-09-29T14:29:09.9940581Z",
+      "evidence_commit": "dbcd3684a2e5a790382e58af8d8808a1471073a4",
+      "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\security-verification.json",
+      "observation": "The first Task 5 attempt stopped before mutation because intent did not yet record an approved publisher after read-back. This historical failure is append-only and remains authoritative for attempt 1."
+    },
+    {
+      "attempt": 2,
+      "status": "blocked",
+      "blocker_id": "ai_builder_connection_reference_unavailable",
+      "observed_at_utc": "2026-09-29T18:40:30.7891960Z",
+      "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\security-verification.json",
+      "observation": "After exact publisher read-back, Task 5 created the approved unmanaged evaluation solution, SharePoint connection reference, and restricted empty folder. The supported Power Apps connection-reference picker and supported PAC connector inventory exposed no AI Builder/shared_aibuilder connector, so the exact AI Builder reference could not be created. No substitute connector or flow was created."
+    }
+  ],
+  "current_task_boundary": "Task 5 attempt 2 is blocked. The approved unmanaged evaluation solution, SharePoint connection reference, and restricted empty folder exist in Tenant 2 DEV. The AI Builder connection reference and evaluation flow do not exist; no PDF was uploaded or submitted."
 }
