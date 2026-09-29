@@ -39,6 +39,52 @@ BeforeAll {
             }
         }
     }
+
+    function Get-ProhibitedActiveBootstrapClaims {
+        param(
+            [Parameter(Mandatory)]
+            [string]$Content
+        )
+
+        $statusMatch = [regex]::Match(
+            $Content,
+            '(?im)^\|\s+\*\*Status\*\*\s+\|\s+(?<Status>[^|]+?)\s+\|\s*$'
+        )
+        if (-not $statusMatch.Success) {
+            throw 'Maintained documentation must declare metadata Status before bootstrap-claim scanning.'
+        }
+        if ($statusMatch.Groups['Status'].Value.Trim().StartsWith(
+            'Superseded',
+            [StringComparison]::OrdinalIgnoreCase
+        )) {
+            return @()
+        }
+
+        $bootstrapAuthTarget = '(?:OIDC|GitHub (?:bootstrap[- ]?)?Environment|bootstrap[- ]Environment)'
+        $temporaryRoleTarget = 'temporary(?:-| )(?:subscription(?:-| ))?role(?:s|(?:-| )assignments?)?'
+        $patterns = @(
+            "\b${bootstrapAuthTarget}\b[^.;\r\n]{0,80}\b(?:is|remains|becomes)\s+(?:required|supported|current|a prerequisite|an? dependency)\b",
+            "(?<!not )(?<!never )(?<!do not )\b(?:requires?|uses?|depends? on)\b(?:(?!\b(?:no|not|without)\b)[^.;\r\n]){0,120}\b${bootstrapAuthTarget}\b",
+            "(?<!not )(?<!never )\bauthenticates?\s+(?:through|with|using)\b[^.;\r\n]{0,120}\b${bootstrapAuthTarget}\b",
+            "\b${temporaryRoleTarget}\b[^.;\r\n]{0,120}\b(?:is|are|remain|becomes?|must be)\s+(?:required|supported|current|grant(?:ed)?|time-bound|recorded|delet(?:e|ed)|remov(?:e|ed)|cleanup|cleaned|verified)\b",
+            "\b${temporaryRoleTarget}(?:-| )cleanup\b[^.;\r\n]{0,80}\b(?:is|remains|becomes)\s+(?:required|supported|current)\b",
+            "\b(?:grant(?:ed)?|creat(?:e|ed)|delet(?:e|ed)|remov(?:e|ed)|clean(?:\s+up|ed)|cleanup)\b[^.;\r\n]{0,120}\b${temporaryRoleTarget}\b"
+        )
+        $claims = [System.Collections.Generic.List[string]]::new()
+        foreach ($pattern in $patterns) {
+            foreach ($match in [regex]::Matches(
+                $Content,
+                $pattern,
+                [Text.RegularExpressions.RegexOptions]::IgnoreCase -bor
+                    [Text.RegularExpressions.RegexOptions]::Singleline -bor
+                    [Text.RegularExpressions.RegexOptions]::CultureInvariant
+            )) {
+                $claims.Add($match.Value) | Out-Null
+            }
+        }
+
+        @($claims)
+    }
 }
 
 Describe 'Runbook documentation contracts' {
@@ -173,25 +219,82 @@ Describe 'Runbook documentation contracts' {
         $security | Should -Match 'no bootstrap OIDC or GitHub Environment dependency'
         $security | Should -Match 'attended principal, tenant, subscription, and exact approved validation-role access read-back'
 
-        $explicitlyInactive = '(?:' +
-            '\b(?:superseded|deferred|historical|dormant|unsupported|prohibited)\b|' +
-            '\bno\b[^.\r\n]{0,120}\b(?:bootstrap identity|service principal|OIDC|GitHub Environment|temporary role|role cleanup|cleanup)\b|' +
-            '\bnot (?:a )?(?:current|supported|approved|required|dependency)\b' +
-        ')'
-        $activeOidcClaims = @(
-            [regex]::Matches(
-                $security,
-                '(?im)^.*\b(?:bootstrap identity|GitHub Environment|OIDC|federated credential|service principal)\b.*$'
-            ) | Where-Object { $_.Value -notmatch $explicitlyInactive }
-        )
-        $activeTemporaryRoleClaims = @(
-            [regex]::Matches(
-                $security,
-                '(?im)^.*\b(?:temporary (?:subscription )?roles?|temporary role-assignment|role cleanup|cleanup failure)\b.*$'
-            ) | Where-Object { $_.Value -notmatch $explicitlyInactive }
-        )
-        $activeOidcClaims.Count | Should -Be 0 -Because 'OIDC and bootstrap identity claims must be explicitly inactive'
-        $activeTemporaryRoleClaims.Count | Should -Be 0 -Because 'temporary-role and cleanup claims must be explicitly inactive'
+        foreach ($relative in @(
+            'README.md',
+            'docs/README.md',
+            'infra/docs/11-identity-and-access.md',
+            'infra/docs/16-security-governance-and-compliance.md',
+            'infra/docs/17-bootstrap-and-provisioning.md',
+            'infra/docs/19-bootstrap-recovery.md',
+            'infra/docs/20-tenant-trust-activation-runbook.md',
+            'infra/docs/21-azure-boards-population-runbook.md',
+            'infra/docs/23-customer-repository-export-and-handover-runbook.md',
+            'infra/docs/24-tenant-1-lean-platform-runbook.md',
+            'infra/docs/runbooks/README.md',
+            'infra/docs/runbooks/01-developer-workstation.md',
+            'infra/docs/runbooks/02-cloud-service-foundation.md',
+            'infra/docs/runbooks/03-customer-handover.md'
+        )) {
+            $content = Get-Content -Raw (Join-Path $script:repositoryRoot $relative)
+            @(Get-ProhibitedActiveBootstrapClaims -Content $content).Count |
+                Should -Be 0 -Because "$relative must not require bootstrap OIDC, Environments, or temporary roles"
+        }
+    }
+
+    It 'rejects active bootstrap claims despite a same-line <Marker> qualifier' -ForEach @(
+        @{
+            Marker = 'unsupported'
+            Claim = 'OIDC is required; the previous flow is unsupported.'
+        }
+        @{
+            Marker = 'historical'
+            Claim = 'The GitHub bootstrap Environment is required; this is historical wording.'
+        }
+        @{
+            Marker = 'previous'
+            Claim = 'Temporary subscription roles are granted and deleted; this was the previous flow.'
+        }
+        @{
+            Marker = 'deferred'
+            Claim = 'Temporary-role cleanup is required; later redesign is deferred.'
+        }
+    ) {
+        param($Marker, $Claim)
+
+        $fixture = @"
+# Active fixture
+
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-29 |
+| **Author** | test |
+| **Status** | Active |
+| **Scope** | Test |
+| **References** | None |
+
+$Claim
+"@
+        @(Get-ProhibitedActiveBootstrapClaims -Content $fixture).Count | Should -BeGreaterThan 0
+    }
+
+    It 'excludes prohibited historical claims only when document status is Superseded' {
+        $fixture = @'
+# Superseded fixture
+
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-29 |
+| **Author** | test |
+| **Status** | Superseded |
+| **Scope** | Test |
+| **References** | None |
+
+OIDC is required.
+Temporary subscription roles are granted and deleted.
+'@
+        @(Get-ProhibitedActiveBootstrapClaims -Content $fixture).Count | Should -Be 0
     }
 
     It 'resolves every local markdown destination referenced by the runbook documents' {
