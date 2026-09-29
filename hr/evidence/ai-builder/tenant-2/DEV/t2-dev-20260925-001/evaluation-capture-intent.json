@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "tenant_key": "tenant-2",
+  "power_platform_environment_id": "84ad4c54-41d9-e5df-ba07-188b4719594a",
+  "environment_stage": "DEV",
+  "status": "approved",
+  "owner_run_identity": "admin@caldova25668747.onmicrosoft.com",
+  "selection": {
+    "solution": {
+      "display_name": "Caldova HR AI Evaluation DEV",
+      "unique_name": "calhr_ai_evaluation_dev"
+    },
+    "flow": {
+      "display_name": "Capture AI Builder Evaluation Evidence"
+    },
+    "folder": {
+      "name": "AIBuilderEvaluationEvidence"
+    },
+    "storage": {
+      "connector": "Tenant 2 SharePoint",
+      "location": "DEV Documents root",
+      "exact_folder_url": "https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence"
+    },
+    "connection_references": {
+      "ai_builder": {
+        "display_name": "Caldova HR AI Evaluation DEV AI Builder",
+        "unique_name": "calhr_ai_evaluation_dev_aibuilder",
+        "connector_id": "/providers/Microsoft.PowerApps/apis/shared_aibuilder"
+      },
+      "sharepoint": {
+        "display_name": "Caldova HR AI Evaluation DEV SharePoint",
+        "unique_name": "calhr_ai_evaluation_dev_sharepoint",
+        "connector_id": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+      }
+    }
+  },
+  "fixed_model": {
+    "display_name": "PersonalMasterDataFixed",
+    "model_id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+    "version": "1.0"
+  },
+  "approval_recorded_at_utc": "2026-09-29T13:24:26.7090000Z",
+  "notes": [
+    "This record captures only the approved DEV-only evaluation naming, ownership, connector, and storage selections for later Tasks 4-6.",
+    "No tenant mutation was performed when this record was written."
+  ]
+}

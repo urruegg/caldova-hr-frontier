@@ -250,6 +250,75 @@ Describe 'AI Builder field and corpus contracts' {
         }
     }
 
+    Describe 'AI Builder evaluation capture intent evidence' {
+        BeforeAll {
+            $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+            $script:EvaluationIntentPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\evaluation-capture-intent.json'
+            $script:EvaluationReadinessPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\evaluation-capture-readiness.json'
+            $script:TestBoM = Get-Content -LiteralPath (
+                Join-Path $root 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\bom-0002-ai-builder-test-inputs-and-outcomes.md'
+            ) -Raw
+        }
+
+        It 'records the selected DEV-only evaluation names, owner, connection references, and storage boundary' {
+            $script:EvaluationIntentPath | Should -Exist
+            $intent = Get-Content -LiteralPath $script:EvaluationIntentPath -Raw | ConvertFrom-Json
+
+            $intent.schema_version | Should -Be '1.0'
+            $intent.run_id | Should -Be 't2-dev-20260925-001'
+            $intent.status | Should -Be 'approved'
+            $intent.owner_run_identity | Should -Be 'admin@caldova25668747.onmicrosoft.com'
+            $intent.power_platform_environment_id | Should -Be '84ad4c54-41d9-e5df-ba07-188b4719594a'
+
+            $intent.selection.solution.display_name | Should -Be 'Caldova HR AI Evaluation DEV'
+            $intent.selection.solution.unique_name | Should -Be 'calhr_ai_evaluation_dev'
+            $intent.selection.flow.display_name | Should -Be 'Capture AI Builder Evaluation Evidence'
+            $intent.selection.folder.name | Should -Be 'AIBuilderEvaluationEvidence'
+            $intent.selection.storage.connector | Should -Be 'Tenant 2 SharePoint'
+            $intent.selection.storage.location | Should -Be 'DEV Documents root'
+            $intent.selection.storage.exact_folder_url | Should -Be 'https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence'
+
+            $intent.selection.connection_references.ai_builder.display_name | Should -Be 'Caldova HR AI Evaluation DEV AI Builder'
+            $intent.selection.connection_references.ai_builder.unique_name | Should -Be 'calhr_ai_evaluation_dev_aibuilder'
+            $intent.selection.connection_references.sharepoint.display_name | Should -Be 'Caldova HR AI Evaluation DEV SharePoint'
+            $intent.selection.connection_references.sharepoint.unique_name | Should -Be 'calhr_ai_evaluation_dev_sharepoint'
+
+            $intent.fixed_model.display_name | Should -Be 'PersonalMasterDataFixed'
+            $intent.fixed_model.model_id | Should -Be '74b09a72-d1f1-4598-bc4d-3746d5c97acc'
+            $intent.fixed_model.version | Should -Be '1.0'
+        }
+
+        It 'records the explicit approval response, preserved blocked evidence hash, and mutation exclusions' {
+            $script:EvaluationReadinessPath | Should -Exist
+            $readiness = Get-Content -LiteralPath $script:EvaluationReadinessPath -Raw | ConvertFrom-Json
+
+            $readiness.schema_version | Should -Be '1.0'
+            $readiness.run_id | Should -Be 't2-dev-20260925-001'
+            $readiness.status | Should -Be 'passed'
+            @($readiness.failed_gates).Count | Should -Be 0
+            $readiness.owner_run_identity | Should -Be 'admin@caldova25668747.onmicrosoft.com'
+            $readiness.preserved_blocked_evidence.path | Should -Be 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\model-test-capability.json'
+            $readiness.preserved_blocked_evidence.sha256 | Should -Be 'B745FAA53C2847836B23325581FFE7992DCBAD52C338B560B5EF5F613620E1CC'
+            $readiness.explicit_approval.response | Should -Be 'please proceed'
+            ([datetime]$readiness.explicit_approval.responded_at_utc).ToString('o') | Should -Be '2026-09-29T13:24:26.7090000Z'
+            $readiness.explicit_approval.scope_summary | Should -Match 'publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1\.0 for evaluation'
+            $readiness.explicit_approval.scope_summary | Should -Match 'create the unmanaged solution, manual flow, AI Builder and SharePoint connection references, and the selected SharePoint folder'
+            @($readiness.explicit_approval.authorized_later_tasks) | Should -Be @('Task 4', 'Task 5', 'Task 6')
+            @($readiness.explicit_approval.exclusions) | Should -Contain 'No TEST or PROD mutation'
+            @($readiness.explicit_approval.exclusions) | Should -Contain 'No Tenant 1 mutation'
+            @($readiness.explicit_approval.exclusions) | Should -Contain 'No Workday integration'
+            @($readiness.explicit_approval.exclusions) | Should -Contain 'No holdout submission'
+            @($readiness.explicit_approval.exclusions) | Should -Contain 'No draft 2.0 mutation'
+            @($readiness.explicit_approval.exclusions) | Should -Contain 'No deletion'
+        }
+
+        It 'updates the fixed-model test register to cite the approval evidence before tenant mutation' {
+            $script:TestBoM | Should -Match 'evaluation-capture-intent\.json'
+            $script:TestBoM | Should -Match 'evaluation-capture-readiness\.json'
+            $script:TestBoM | Should -Match 'Explicit pre-mutation approval is recorded before any evaluation publication or flow creation'
+        }
+    }
+
     Describe 'AI Builder corpus qualification' {
         BeforeAll {
             $script:ModulePath = Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.AiBuilder\Caldova.HrFrontier.AiBuilder.psd1'

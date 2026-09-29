@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.2 |
-| **Date** | 2026-09-28 |
+| **Version** | 0.3 |
+| **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | UC-0001 AI Builder test-run input and outcome traceability |
@@ -124,10 +124,10 @@ Planned field-result counts are the held-out document count multiplied by the 17
 
 | Test BoM ID | `run_id` | Model version | Deployment context | Solution version | Corpus and generator revisions | Input status | Outcome status | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| `BOM-0002-R01` | `t2-dev-20260925-001` | `1.0` | [Run manifest](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/run-manifest.json) | `0.0.0.1` | Corpus `c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db`; generator `a0829d218dbce15157e35ca7a4da36c0b8241084597818836871441314f175bd` | `Qualified` | `Evidence incomplete` | [Readiness](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/readiness.json); [fixed schema](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-schema-fixed.json); [blocked test capability](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-test-capability.json) |
+| `BOM-0002-R01` | `t2-dev-20260925-001` | `1.0` | [Run manifest](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/run-manifest.json) | `0.0.0.1` | Corpus `c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db`; generator `a0829d218dbce15157e35ca7a4da36c0b8241084597818836871441314f175bd` | `Qualified` | `Evidence incomplete` | [Readiness](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/readiness.json); [evaluation capture intent](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-capture-intent.json); [evaluation capture readiness](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-capture-readiness.json); [fixed schema](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-schema-fixed.json); [blocked test capability](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-test-capability.json) |
 | `BOM-0002-R02` | `t2-dev-20260925-001` | Not created | [Run manifest](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/run-manifest.json) | `0.0.0.1` | Corpus `c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db`; generator `a0829d218dbce15157e35ca7a4da36c0b8241084597818836871441314f175bd` | `Qualified` | `Not run - no evidence` | [Readiness](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/readiness.json); [corpus quality](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/corpus-quality.json) |
 
-The readiness gate passed. Capacity is available through the enabled tenant unassigned-credit setting, and the attended System Administrator role supplies maker authorization. `PersonalMasterDataFixed` reached trained version `1.0`, but the required no-flow capture capability is blocked because AI Builder Quick Test exposed no supported machine-readable export, retained raw bytes, or exact document identity. No held-out fixed document was submitted. `PersonalMasterDataGeneral` remains uncreated.
+The readiness gate passed. Capacity is available through the enabled tenant unassigned-credit setting, and the attended System Administrator role supplies maker authorization. Explicit pre-mutation approval is recorded before any evaluation publication or flow creation. That approval fixes the DEV-only evaluation solution, manual-flow, connection-reference, and SharePoint evidence-folder names for later Tasks 4-6 while still prohibiting business use, TEST/PROD, Tenant 1, Workday, holdout submission, draft `2.0` mutation, and deletion. `PersonalMasterDataFixed` reached trained version `1.0`, but the required no-flow capture capability is blocked because AI Builder Quick Test exposed no supported machine-readable export, retained raw bytes, or exact document identity. No held-out fixed document was submitted. `PersonalMasterDataGeneral` remains uncreated.
 
 ## 7. Outcome Summary
 
@@ -157,6 +157,8 @@ hr/evidence/ai-builder/
     └── <environment-stage>/
         └── <run-id>/
             ├── readiness.json
+            ├── evaluation-capture-intent.json
+            ├── evaluation-capture-readiness.json
             ├── corpus-quality.json
             ├── model-inventory.json
             ├── run-manifest.json

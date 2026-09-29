@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "status": "passed",
+  "failed_gates": [],
+  "owner_run_identity": "admin@caldova25668747.onmicrosoft.com",
+  "preserved_blocked_evidence": {
+    "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\model-test-capability.json",
+    "sha256": "B745FAA53C2847836B23325581FFE7992DCBAD52C338B560B5EF5F613620E1CC"
+  },
+  "checks": [
+    {
+      "id": "baseline_preserved",
+      "status": "passed",
+      "observation": "run-manifest.json still records PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 at lifecycle blocked, PersonalMasterDataGeneral remains not_created, and the preserved blocked evidence hash matched without modification.",
+      "source": "run-manifest.json; model-test-capability.json SHA-256",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "tenant_identity",
+      "status": "passed",
+      "observation": "Tenant 2 DEV resolved to https://calhrfrontierdev.crm17.dynamics.com/ with environment ID 84ad4c54-41d9-e5df-ba07-188b4719594a and connected user admin@caldova25668747.onmicrosoft.com.",
+      "source": "Connect-PowerPlatformEnvironment.ps1; pac org who",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "owner_identity_active",
+      "status": "passed",
+      "observation": "Microsoft Graph returned Microsoft Administrator / admin@caldova25668747.onmicrosoft.com as an enabled member account.",
+      "source": "Microsoft Graph user read",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "fixed_model_state",
+      "status": "passed",
+      "observation": "The fixed model detail and list pages showed PersonalMasterDataFixed as trained and not published.",
+      "source": "Power Apps AI Builder read-only browser inspection",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "draft_state",
+      "status": "passed",
+      "observation": "The AI Builder model list showed the preserved draft entry 048a9ae4-5a09-4db8-b2b2-b6de33b53893 in Draft state, unchanged and untrained, with no publish signal observed.",
+      "source": "Power Apps AI Builder model list read-only browser inspection; readiness-sources\\power-apps-ai-builder.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "solution_state",
+      "status": "passed",
+      "observation": "The unmanaged business solution caldovahrfrontier version 0.0.0.1 remains present, and no current solution collision was observed for Caldova HR AI Evaluation DEV or calhr_ai_evaluation_dev.",
+      "source": "pac solution list",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "flow_collision",
+      "status": "passed",
+      "observation": "No existing cloud flow matched the selected display name Capture AI Builder Evaluation Evidence.",
+      "source": "pac power-automate list-cloud-flows",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "connector_boundary",
+      "status": "passed",
+      "observation": "The selected Tenant 2 SharePoint connector is registered and the existing admin maker connection is connected. AI Builder availability is evidenced by the current trained model surfaces and preserved readiness evidence.",
+      "source": "pac connectivity list-connectors; pac connectivity list-connections; readiness.json; readiness-sources\\power-apps-ai-builder.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "folder_collision",
+      "status": "passed",
+      "observation": "The selected SharePoint DEV Documents root did not contain AIBuilderEvaluationEvidence at the time of the read-only Graph check.",
+      "source": "Microsoft Graph SharePoint drive read",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "connection_reference_names_reserved",
+      "status": "passed",
+      "observation": "The approved connection-reference names were recorded for later Tasks 4-6 and no relevant evaluation/capture naming collision was observed in the existing connection-reference inventory.",
+      "source": "Dataverse connectionreferences read-only query",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    }
+  ],
+  "explicit_approval": {
+    "response": "please proceed",
+    "responded_at_utc": "2026-09-29T13:24:26.7090000Z",
+    "recorded_interpretation": "Explicit approval of the previously presented exact DEV-only mutation scope and exclusions.",
+    "scope_summary": "Approval covers later Tasks 4-6 only: publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 for evaluation, then create the unmanaged solution, manual flow, AI Builder and SharePoint connection references, and the selected SharePoint folder. It does not authorize business use, TEST/PROD, Tenant 1, Workday, holdout submission, draft 2.0 mutation, or deletion.",
+    "authorized_later_tasks": [
+      "Task 4",
+      "Task 5",
+      "Task 6"
+    ],
+    "exclusions": [
+      "No business use",
+      "No TEST or PROD mutation",
+      "No Tenant 1 mutation",
+      "No Workday integration",
+      "No holdout submission",
+      "No draft 2.0 mutation",
+      "No deletion"
+    ]
+  },
+  "current_task_boundary": "Task 3 records the selected names, readiness observations, and explicit approval only. No tenant mutation was performed in this task."
+}
