@@ -25,6 +25,8 @@ hr/evidence/ai-builder/
             ├── model-inventory.json
             ├── run-manifest.json
             ├── model-test-capability.json
+            ├── model-evaluation-publication.json
+            ├── model-evaluation-published-fixed.png
             ├── prediction-capture-fixed-training-proof.json
             ├── prediction-capture-fixed.json
             ├── validation-results-fixed.csv

@@ -12,7 +12,7 @@
       "model_kind": "Fixed",
       "model_id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
       "version": "1.0",
-      "lifecycle_stage": "blocked",
+      "lifecycle_stage": "evaluation_published",
       "documents": [
         {
           "document": "a01-CAND-2026-0411-brunner.pdf",
@@ -211,6 +211,10 @@
         {
           "stage": "blocked",
           "changed_at_utc": "2026-09-29T09:13:38.1846955Z"
+        },
+        {
+          "stage": "evaluation_published",
+          "changed_at_utc": "2026-09-29T14:16:34.8902538Z"
         }
       ]
     },
