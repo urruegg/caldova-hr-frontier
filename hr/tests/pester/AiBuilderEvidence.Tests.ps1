@@ -289,6 +289,7 @@ Describe 'AI Builder field and corpus contracts' {
             $intent.fixed_model.display_name | Should -Be 'PersonalMasterDataFixed'
             $intent.fixed_model.model_id | Should -Be '74b09a72-d1f1-4598-bc4d-3746d5c97acc'
             $intent.fixed_model.version | Should -Be '1.0'
+            ([datetime]$intent.approval_recorded_at_utc).ToString('o') | Should -Be '2026-09-29T13:47:08.4090000Z'
         }
 
         It 'records the explicit approval response, preserved blocked evidence hash, and mutation exclusions' {
@@ -302,8 +303,8 @@ Describe 'AI Builder field and corpus contracts' {
             $readiness.owner_run_identity | Should -Be 'admin@caldova25668747.onmicrosoft.com'
             $readiness.preserved_blocked_evidence.path | Should -Be 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\model-test-capability.json'
             $readiness.preserved_blocked_evidence.sha256 | Should -Be 'B745FAA53C2847836B23325581FFE7992DCBAD52C338B560B5EF5F613620E1CC'
-            $readiness.explicit_approval.response | Should -Be 'please proceed'
-            ([datetime]$readiness.explicit_approval.responded_at_utc).ToString('o') | Should -Be '2026-09-29T13:24:26.7090000Z'
+            $readiness.explicit_approval.response | Should -Be 'proceed'
+            ([datetime]$readiness.explicit_approval.responded_at_utc).ToString('o') | Should -Be '2026-09-29T13:47:08.4090000Z'
             $readiness.explicit_approval.scope_summary | Should -Match 'publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1\.0 for evaluation'
             $readiness.explicit_approval.scope_summary | Should -Match 'create the unmanaged solution, manual flow, AI Builder and SharePoint connection references, and the selected SharePoint folder'
             @($readiness.explicit_approval.authorized_later_tasks) | Should -Be @('Task 4', 'Task 5', 'Task 6')
@@ -316,6 +317,10 @@ Describe 'AI Builder field and corpus contracts' {
             $readiness.selection_confirmation.connection_reference_names.status | Should -Be 'explicit_user_confirmed'
             ([datetime]$readiness.selection_confirmation.connection_reference_names.confirmed_at_utc).ToString('o') | Should -Be '2026-09-29T13:37:13.6480000Z'
             $readiness.selection_confirmation.connection_reference_names.observation | Should -Match 'explicitly confirmed'
+            ([datetime]$readiness.explicit_approval.responded_at_utc) -gt ([datetime]$readiness.selection_confirmation.connection_reference_names.confirmed_at_utc) | Should -BeTrue
+            $readiness.explicit_approval_artifact.prompt | Should -Be 'All final names are now explicitly confirmed. Do you freshly approve this exact Tenant 2 DEV-only scope: publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 as evaluation-only; create unmanaged solution Caldova HR AI Evaluation DEV (calhr_ai_evaluation_dev); create manual flow Capture AI Builder Evaluation Evidence; create AI Builder reference Caldova HR AI Evaluation DEV AI Builder (calhr_ai_evaluation_dev_aibuilder); create SharePoint reference Caldova HR AI Evaluation DEV SharePoint (calhr_ai_evaluation_dev_sharepoint); and create folder https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence, owned/run only by admin@caldova25668747.onmicrosoft.com? This does not authorize business use, TEST/PROD, Tenant 1, Workday, holdouts, draft 2.0 changes, automatic deletion, or any other deletion.'
+            $readiness.explicit_approval_artifact.response | Should -Be 'proceed'
+            ([datetime]$readiness.explicit_approval_artifact.responded_at_utc).ToString('o') | Should -Be '2026-09-29T13:47:08.4090000Z'
         }
 
         It 'updates the fixed-model test register to cite the approval evidence before tenant mutation' {

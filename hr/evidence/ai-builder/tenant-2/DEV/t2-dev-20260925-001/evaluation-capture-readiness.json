@@ -91,9 +91,9 @@
     }
   ],
   "explicit_approval": {
-    "response": "please proceed",
-    "responded_at_utc": "2026-09-29T13:24:26.7090000Z",
-    "recorded_interpretation": "Explicit approval of the previously presented exact DEV-only mutation scope and exclusions.",
+    "response": "proceed",
+    "responded_at_utc": "2026-09-29T13:47:08.4090000Z",
+    "recorded_interpretation": "Fresh explicit approval after every final name had been explicitly confirmed. This is the effective approval for later Tasks 4-6.",
     "scope_summary": "Approval covers later Tasks 4-6 only: publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 for evaluation, then create the unmanaged solution, manual flow, AI Builder and SharePoint connection references, and the selected SharePoint folder. It does not authorize business use, TEST/PROD, Tenant 1, Workday, holdout submission, draft 2.0 mutation, or deletion.",
     "authorized_later_tasks": [
       "Task 4",
@@ -110,6 +110,19 @@
       "No deletion"
     ]
   },
+  "explicit_approval_artifact": {
+    "prompt": "All final names are now explicitly confirmed. Do you freshly approve this exact Tenant 2 DEV-only scope: publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 as evaluation-only; create unmanaged solution Caldova HR AI Evaluation DEV (calhr_ai_evaluation_dev); create manual flow Capture AI Builder Evaluation Evidence; create AI Builder reference Caldova HR AI Evaluation DEV AI Builder (calhr_ai_evaluation_dev_aibuilder); create SharePoint reference Caldova HR AI Evaluation DEV SharePoint (calhr_ai_evaluation_dev_sharepoint); and create folder https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence, owned/run only by admin@caldova25668747.onmicrosoft.com? This does not authorize business use, TEST/PROD, Tenant 1, Workday, holdouts, draft 2.0 changes, automatic deletion, or any other deletion.",
+    "response": "proceed",
+    "responded_at_utc": "2026-09-29T13:47:08.4090000Z"
+  },
+  "approval_history": [
+    {
+      "response": "please proceed",
+      "responded_at_utc": "2026-09-29T13:24:26.7090000Z",
+      "status": "superseded_history_only",
+      "observation": "Recorded before the final explicit confirmation of the connection-reference names; retained as history only and not used as the effective approval."
+    }
+  ],
   "selection_confirmation": {
     "connection_reference_names": {
       "status": "explicit_user_confirmed",

@@ -45,10 +45,11 @@
     "model_id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
     "version": "1.0"
   },
-  "approval_recorded_at_utc": "2026-09-29T13:24:26.7090000Z",
+  "approval_recorded_at_utc": "2026-09-29T13:47:08.4090000Z",
   "notes": [
     "This record captures only the approved DEV-only evaluation naming, ownership, connector, and storage selections for later Tasks 4-6.",
     "The AI Builder and SharePoint connection-reference names were explicitly confirmed by the user after the initial Task 3 completion commit.",
+    "Approved status now relies on the fresh post-confirmation proceed response rather than the earlier please proceed interaction.",
     "No tenant mutation was performed when this record was written."
   ]
 }
