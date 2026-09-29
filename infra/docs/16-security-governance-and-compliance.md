@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -66,11 +66,11 @@ No Dataverse table, role, profile, hierarchy, business unit, or record is create
 
 ## Identity and Privilege Controls
 
-The bootstrap identity is one dedicated single-tenant application and service principal per independent tenant. It authenticates through the exact tenant-specific GitHub Environment OIDC subject and carries no stored credential.
+The active Tenant 1 bootstrap path uses an attended local user context. It validates the exact signed-in user, tenant, and subscription before and after subscription `what-if`.
 
-Managed identities are reserved for future Azure-hosted workloads. Temporary subscription roles are time-bound, recorded by exact assignment ID, deleted only after explicit approval, and verified absent. A cleanup failure fails the run.
+Access is a pre-existing, separately approved exact least-privilege custom validation role. Its deterministic role definition, exact action set, user-or-group assignment, and subscription scope are read before and after `what-if`. This sprint performs no role mutation.
 
-No app registration, service principal, federated credential, role definition, role assignment, consent, or Power Platform application user is created in Task 1.
+There is no bootstrap OIDC or GitHub Environment dependency. The former trust command is dormant and unsupported; reuse is deferred until a new reviewed design. No app registration, service principal, federated credential, role definition, role assignment, consent, or Power Platform application user is created in this sprint.
 
 ## Audit and Monitoring Proposals
 

@@ -167,8 +167,31 @@ Describe 'Runbook documentation contracts' {
         $handover | Should -Match 'delivery identity or trust activation.+Deferred.+new reviewed design'
         $handover | Should -Not -Match 'Activating your tenant''s trust.+Tenant Trust Activation Runbook'
 
+        $security | Should -Match 'attended local user context'
+        $security | Should -Match 'pre-existing, separately approved exact least-privilege custom validation role'
+        $security | Should -Match 'no role mutation'
+        $security | Should -Match 'no bootstrap OIDC or GitHub Environment dependency'
         $security | Should -Match 'attended principal, tenant, subscription, and exact approved validation-role access read-back'
-        $security | Should -Not -Match 'OIDC issuer|temporary role-assignment cleanup|GitHub ruleset and Environment API'
+
+        $explicitlyInactive = '(?:' +
+            '\b(?:superseded|deferred|historical|dormant|unsupported|prohibited)\b|' +
+            '\bno\b[^.\r\n]{0,120}\b(?:bootstrap identity|service principal|OIDC|GitHub Environment|temporary role|role cleanup|cleanup)\b|' +
+            '\bnot (?:a )?(?:current|supported|approved|required|dependency)\b' +
+        ')'
+        $activeOidcClaims = @(
+            [regex]::Matches(
+                $security,
+                '(?im)^.*\b(?:bootstrap identity|GitHub Environment|OIDC|federated credential|service principal)\b.*$'
+            ) | Where-Object { $_.Value -notmatch $explicitlyInactive }
+        )
+        $activeTemporaryRoleClaims = @(
+            [regex]::Matches(
+                $security,
+                '(?im)^.*\b(?:temporary (?:subscription )?roles?|temporary role-assignment|role cleanup|cleanup failure)\b.*$'
+            ) | Where-Object { $_.Value -notmatch $explicitlyInactive }
+        )
+        $activeOidcClaims.Count | Should -Be 0 -Because 'OIDC and bootstrap identity claims must be explicitly inactive'
+        $activeTemporaryRoleClaims.Count | Should -Be 0 -Because 'temporary-role and cleanup claims must be explicitly inactive'
     }
 
     It 'resolves every local markdown destination referenced by the runbook documents' {
