@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.0 |
+| **Version** | 2.1 |
 | **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -44,7 +44,7 @@ Every transition validates the previous state. Missing, stale, unauthorized, una
 
 1. Resolve the explicit ignored local Tenant 1 configuration and verify its protected backup.
 2. Read the attended user, tenant, and subscription.
-3. Read exact-scope assignments and role definitions; require pre-existing capability for the reviewed `what-if`.
+3. Query the attended user with group expansion and require exactly one direct-user or group assignment to the deterministic approved custom validation role and its exact read/validate/`whatIf` action set.
 4. Collect local discovery and review a sanitized summary.
 5. Generate parameters for the exact attended principal.
 6. Build the maintained Bicep and parameter file.

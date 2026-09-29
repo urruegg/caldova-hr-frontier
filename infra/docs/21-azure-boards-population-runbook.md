@@ -2,27 +2,29 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-25 |
+| **Version** | 2.0 |
+| **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed Baseline |
+| **Status** | Superseded |
 | **Scope** | Infrastructure (Tenant 1) |
-| **References** | [Azure Boards Population Design](../../docs/specs/2026-09-25-azure-boards-population-design.md), [Tenant Trust Activation Runbook](./20-tenant-trust-activation-runbook.md) |
+| **References** | [Azure Boards Population Design](../../docs/specs/2026-09-25-azure-boards-population-design.md), [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Tenant Trust Stop Notice](./20-tenant-trust-activation-runbook.md) |
 
-This runbook populates Azure DevOps Boards with one `Epic` per HR use-case idea (19 total), using `infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1`. It assumes Tenant 1's trust is already active — see the [Tenant Trust Activation Runbook](./20-tenant-trust-activation-runbook.md) — and that you have an authenticated Azure DevOps session (either the same OIDC trust that runbook establishes, or your own `az devops login`).
+> **STOP — SUPERSEDED.** This 19-Epic population procedure is dormant and not a lean-platform prerequisite. Do not execute it in the current sprint. Reuse requires a new reviewed design that reconciles it with the approved Basic `Epic -> Issue -> Task` operating model.
 
-## Who Can Run This
+This historical runbook formerly populated Azure DevOps Boards with one `Epic` per HR use-case idea using `infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1`. The optional portfolio tooling and its former authentication assumptions are retained for context only; no current trust or authentication route is approved here.
+
+## Historical Operator Context
 
 - **Azure DevOps role:** at least **Contributor** on the `Caldova HR Frontier` project — enough to create work items and add relations; no administrative role is required.
 - **Content judgment:** this script only ever copies text already reviewed and committed in `hr/docs/ideas/*.md` into Azure Boards — it never generates new characterizations of a use case. Even so, a human should trigger the first live write of this portfolio into a system other people at GF will read as authoritative — see the spec's Runbook section for why.
 
-## Prerequisites Checklist
+## Historical Prerequisites (Not Current Approval)
 
 - [ ] `az` CLI is installed with the `azure-devops` extension (`az extension add --name azure-devops` if `az boards -h` reports the command group is missing).
-- [ ] You are authenticated to Azure DevOps for organization `https://dev.azure.com/caldova25156897/` (`az devops login` or an already-active OIDC session).
+- [ ] No current authentication route is approved by this superseded runbook.
 - [ ] `Invoke-Pester -Path infra/tests/pester/AzureBoardsPopulation.Tests.ps1 -Output Detailed -CI` passes on the current `main` before you begin.
 
-## Steps
+## Historical Steps (Do Not Execute)
 
 1. **Review the plan with zero mutation.**
 
@@ -40,7 +42,7 @@ This runbook populates Azure DevOps Boards with one `Epic` per HR use-case idea 
    .\infra\src\scripts\Initialize-AzureDevOpsWorkItems.ps1 -TenantAlias caldova25156897 -PlanOutputPath $planPath
    ```
 
-   PowerShell's default confirmation preference (`High`, matching the script's declared `ConfirmImpact = 'High'`) prompts once per `Create`-mode Epic before creating it. Answer `Y` for each one you approve; never answer `A` ("Yes to All") — the same reasoning as the [Tenant Trust Activation Runbook](./20-tenant-trust-activation-runbook.md) Step 3 applies here too: a single blanket approval silently skips reviewing the remaining items.
+   The historical procedure required one-at-a-time confirmation and prohibited `A` ("Yes to All"). This remains context, not current execution approval.
 
 3. **Handle a partial failure.**
 
@@ -62,7 +64,7 @@ This runbook populates Azure DevOps Boards with one `Epic` per HR use-case idea 
 | Creating Features, User Stories, Tasks, or Bugs under any Epic | Deliberately out of scope — see the spec's Ruling 1; only `UC-0001` has a PRD, and even its Definition of Ready is not yet met |
 | Azure DevOps project configuration (area paths, iterations, delivery plans, Azure Repos repurposing) | Tracked as a separate, not-yet-started sub-project |
 | The Azure Boards↔GitHub App connection and the `AB#` commit convention | Attended-only (one-time browser OAuth); see `docs/specs/2026-09-24-azure-devops-github-single-source-of-truth-design.md` |
-| Activating Tenant 1's trust in the first place | [Tenant Trust Activation Runbook](./20-tenant-trust-activation-runbook.md) — must already be complete before this runbook can authenticate |
+| Tenant trust or a delivery identity | Deferred; the [superseded stop notice](./20-tenant-trust-activation-runbook.md) requires a new reviewed design before any reuse |
 
 ## Troubleshooting
 

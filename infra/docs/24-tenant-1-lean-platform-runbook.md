@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -52,7 +52,18 @@ $Caller = az ad signed-in-user show --output json | ConvertFrom-Json
 $ValidationPrincipalId = [guid]$Caller.id
 ```
 
-Compare `$Account.tenantId` and `$Account.id` with the locally reviewed configuration before continuing. Confirm the access approval through the separately governed record; do not copy that approval into Git. `Invoke-TenantBootstrap.ps1` lists effective access at the exact subscription scope, resolves role definitions read-only, and stops when no effective assignment permits `Microsoft.Resources/deployments/whatIf/action`.
+Compare `$Account.tenantId` and `$Account.id` with the locally reviewed configuration before continuing. Confirm the access approval through the separately governed record; do not copy that approval into Git.
+
+`Invoke-TenantBootstrap.ps1` queries the attended user with Azure CLI group expansion, then requires exactly one direct-user or group assignment to the approved custom `<NamingRoot>-deployment-validation` role at the exact subscription scope. Its role definition must contain exactly:
+
+```text
+*/read
+Microsoft.Resources/deployments/read
+Microsoft.Resources/deployments/validate/action
+Microsoft.Resources/deployments/whatIf/action
+```
+
+The role must be `CustomRole`, have one permission block, use only the exact subscription as its assignable scope, and have empty `notActions`, `dataActions`, and `notDataActions`. Wildcard `*`, Owner, Contributor, User Access Administrator, Role Based Access Control Administrator, additional assignments, and any extra write or delete action fail preflight.
 
 Do not run `az role assignment create`, `az role assignment delete`, `Grant-TemporaryBootstrapRoles.ps1`, or `Remove-TemporaryRoleAssignments.ps1`.
 
@@ -116,7 +127,7 @@ The script invokes `az deployment sub what-if`; it has no deployment-create path
 
 The bootstrap script writes `what-if.json` and `access-validation.json` beside the local discovery file. It validates the `what-if` boundary, then repeats `az account show`, signed-in-user discovery, exact-scope assignment reads, and role-definition reads.
 
-Acceptance requires the same attended principal, tenant, subscription, scope, assignment IDs, role definitions, actions, and exclusions before and after `what-if`. Any context or access drift blocks acceptance. Confirm that Tenant 2 was neither selected nor changed and that no private artifact is tracked:
+Acceptance requires the same attended principal, tenant, subscription, assignee query, user-or-group principal type, scope, assignment ID, exact custom role definition, action sets, and exclusions before and after `what-if`. Any context or access drift blocks acceptance. Confirm that Tenant 2 was neither selected nor changed and that no private artifact is tracked:
 
 ```powershell
 git status --short

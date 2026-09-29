@@ -8,9 +8,17 @@ Describe 'Tenant 1 attended what-if orchestration' {
         $script:TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
         $script:SubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
         $script:PrincipalObjectId = '55555555-5555-5555-5555-555555555555'
+        $script:GroupObjectId = '77777777-7777-7777-7777-777777777777'
         $script:Scope = "/subscriptions/$($script:SubscriptionId)"
-        $script:RoleDefinitionId = "$($script:Scope)/providers/Microsoft.Authorization/roleDefinitions/11111111-1111-1111-1111-111111111111"
+        $script:RoleName = 'cal-hr-agentic-bc8rbt-deployment-validation'
+        $script:RoleDefinitionId = "$($script:Scope)/providers/Microsoft.Authorization/roleDefinitions/9535bca5-5fef-5443-acf9-c0e0486562fd"
         $script:RoleAssignmentId = "$($script:Scope)/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        $script:RoleActions = @(
+            '*/read'
+            'Microsoft.Resources/deployments/read'
+            'Microsoft.Resources/deployments/validate/action'
+            'Microsoft.Resources/deployments/whatIf/action'
+        )
 
         $script:HarnessRoot = Join-Path $TestDrive 'bootstrap-harness'
         foreach ($relativePath in @(
@@ -105,7 +113,15 @@ Describe 'Tenant 1 attended what-if orchestration' {
         function script:New-AccessEvidence {
             param(
                 [string]$PrincipalObjectId = $script:PrincipalObjectId,
-                [string]$AssignmentId = $script:RoleAssignmentId
+                [string]$AssignmentId = $script:RoleAssignmentId,
+                [string]$AssignmentPrincipalObjectId = $PrincipalObjectId,
+                [ValidateSet('User', 'Group')]
+                [string]$PrincipalType = 'User',
+                [string]$Scope = $script:Scope,
+                [string]$AssigneeObjectId = $PrincipalObjectId,
+                [string]$RoleDefinitionId = $script:RoleDefinitionId,
+                [string]$RoleName = $script:RoleName,
+                [string[]]$Actions = $script:RoleActions
             )
 
             [pscustomobject][ordered]@{
@@ -113,16 +129,24 @@ Describe 'Tenant 1 attended what-if orchestration' {
                 TenantId = $script:TenantId
                 SubscriptionId = $script:SubscriptionId
                 PrincipalObjectId = $PrincipalObjectId
-                Scope = $script:Scope
+                AssigneeObjectId = $AssigneeObjectId
+                IncludeGroups = $true
+                Scope = $Scope
                 Assignments = @(
                     [pscustomobject][ordered]@{
                         Id = $AssignmentId
-                        PrincipalObjectId = $PrincipalObjectId
-                        Scope = $script:Scope
-                        RoleDefinitionId = $script:RoleDefinitionId
-                        RoleName = 'Tenant 1 What-If Operator'
-                        Actions = @('Microsoft.Resources/deployments/whatIf/action')
+                        PrincipalObjectId = $AssignmentPrincipalObjectId
+                        PrincipalType = $PrincipalType
+                        Scope = $Scope
+                        RoleDefinitionId = $RoleDefinitionId
+                        RoleName = $RoleName
+                        RoleType = 'CustomRole'
+                        PermissionBlockCount = 1
+                        AssignableScopes = @($Scope)
+                        Actions = @($Actions)
                         NotActions = @()
+                        DataActions = @()
+                        NotDataActions = @()
                     }
                 )
             }
@@ -253,6 +277,85 @@ Describe 'Tenant 1 attended what-if orchestration' {
         $nativeCalls | Should -Be 0
     }
 
+    It 'accepts the exact approved validation role through an assignee group query' {
+        $evidence = New-AccessEvidence `
+            -AssignmentPrincipalObjectId $script:GroupObjectId `
+            -PrincipalType Group
+        $invocation = Get-ValidInvocation -AccessPreflightValidator ({ $evidence }.GetNewClosure())
+
+        $result = & $script:BootstrapScriptPath @invocation
+
+        $result.PrincipalObjectId | Should -BeExactly $script:PrincipalObjectId
+    }
+
+    It 'rejects <Case> access evidence' -ForEach @(
+        @{ Case = 'wildcard action'; Kind = 'Wildcard'; Expected = '*approved validation role*' }
+        @{ Case = 'Owner'; Kind = 'Owner'; Expected = '*approved validation role*' }
+        @{ Case = 'Contributor'; Kind = 'Contributor'; Expected = '*approved validation role*' }
+        @{ Case = 'User Access Administrator'; Kind = 'UserAccessAdministrator'; Expected = '*approved validation role*' }
+        @{ Case = 'Role Based Access Control Administrator'; Kind = 'RbacAdministrator'; Expected = '*approved validation role*' }
+        @{ Case = 'extra write action'; Kind = 'ExtraWrite'; Expected = '*approved validation role*' }
+        @{ Case = 'extra delete action'; Kind = 'ExtraDelete'; Expected = '*approved validation role*' }
+        @{ Case = 'foreign role definition'; Kind = 'ForeignRoleDefinition'; Expected = '*approved validation role*' }
+        @{ Case = 'ambiguous duplicate assignment'; Kind = 'Ambiguous'; Expected = '*exactly one*approved*assignment*' }
+        @{ Case = 'foreign assignee group query'; Kind = 'ForeignAssignee'; Expected = '*assignee query*attended principal*' }
+        @{ Case = 'foreign group scope'; Kind = 'ForeignGroupScope'; Expected = '*exact subscription scope*' }
+    ) {
+        param($Case, $Kind, $Expected)
+
+        $evidence = New-AccessEvidence
+        switch ($Kind) {
+            'Wildcard' {
+                $evidence.Assignments[0].Actions = @('*')
+            }
+            'Owner' {
+                $evidence.Assignments[0].RoleName = 'Owner'
+                $evidence.Assignments[0].RoleDefinitionId = "$($script:Scope)/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635"
+            }
+            'Contributor' {
+                $evidence.Assignments[0].RoleName = 'Contributor'
+                $evidence.Assignments[0].RoleDefinitionId = "$($script:Scope)/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+            }
+            'UserAccessAdministrator' {
+                $evidence.Assignments[0].RoleName = 'User Access Administrator'
+                $evidence.Assignments[0].RoleDefinitionId = "$($script:Scope)/providers/Microsoft.Authorization/roleDefinitions/18d7d88d-0ab5-4642-9ea2-65de77e3224f"
+            }
+            'RbacAdministrator' {
+                $evidence.Assignments[0].RoleName = 'Role Based Access Control Administrator'
+                $evidence.Assignments[0].RoleDefinitionId = "$($script:Scope)/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168"
+            }
+            'ExtraWrite' {
+                $evidence.Assignments[0].Actions = @($script:RoleActions) + 'Microsoft.Resources/deployments/write'
+            }
+            'ExtraDelete' {
+                $evidence.Assignments[0].Actions = @($script:RoleActions) + 'Microsoft.Resources/deployments/delete'
+            }
+            'ForeignRoleDefinition' {
+                $evidence.Assignments[0].RoleDefinitionId = "$($script:Scope)/providers/Microsoft.Authorization/roleDefinitions/22222222-2222-2222-2222-222222222222"
+            }
+            'Ambiguous' {
+                $duplicate = New-AccessEvidence `
+                    -AssignmentId "$($script:Scope)/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+                $evidence.Assignments = @($evidence.Assignments) + @($duplicate.Assignments)
+            }
+            'ForeignAssignee' {
+                $evidence.AssigneeObjectId = '66666666-6666-6666-6666-666666666666'
+                $evidence.Assignments[0].PrincipalObjectId = $script:GroupObjectId
+                $evidence.Assignments[0].PrincipalType = 'Group'
+            }
+            'ForeignGroupScope' {
+                $foreignScope = '/subscriptions/00000000-0000-0000-0000-000000000000'
+                $evidence.Assignments[0].PrincipalObjectId = $script:GroupObjectId
+                $evidence.Assignments[0].PrincipalType = 'Group'
+                $evidence.Assignments[0].Scope = $foreignScope
+                $evidence.Assignments[0].AssignableScopes = @($foreignScope)
+            }
+        }
+        $invocation = Get-ValidInvocation -AccessPreflightValidator ({ $evidence }.GetNewClosure())
+
+        { & $script:BootstrapScriptPath @invocation } | Should -Throw $Expected
+    }
+
     It 'keeps the WhatIfOnly guard as a hard failure before deployment API execution' {
         $nativeCalls = 0
         $invocation = Get-ValidInvocation -NativeCommandRunner {
@@ -354,7 +457,7 @@ Describe 'Tenant 1 attended what-if orchestration' {
         @($record.ReadBack.Assignments).Count | Should -Be 1
     }
 
-    It 'uses the default attended and access validators through read-only Azure CLI commands' {
+    It 'accepts the exact approved direct-user role through the default group-aware Azure CLI query' {
         $tenantConfigurationPath = New-TenantConfigurationFile
         $evidencePath = New-PrivateFile -Name 'default-discovery.json' -Content '{}'
         $parameterFile = New-PrivateFile -Name 'default-main.bicepparam' -Content "using '../src/bicep/main.bicep'"
@@ -386,18 +489,21 @@ Describe 'Tenant 1 attended what-if orchestration' {
             [ordered]@{
                 id = $script:RoleAssignmentId
                 principalId = $script:PrincipalObjectId
+                principalType = 'User'
                 roleDefinitionId = $script:RoleDefinitionId
-                roleDefinitionName = 'Tenant 1 What-If Operator'
+                roleDefinitionName = $script:RoleName
                 scope = $script:Scope
             }
         ) -Depth 10 -Compress
         $roleDefinitionPayload = ConvertTo-Json -InputObject @(
             [ordered]@{
                 id = $script:RoleDefinitionId
-                roleName = 'Tenant 1 What-If Operator'
+                roleName = $script:RoleName
+                roleType = 'CustomRole'
+                assignableScopes = @($script:Scope)
                 permissions = @(
                     [ordered]@{
-                        actions = @('Microsoft.Resources/deployments/whatIf/action')
+                        actions = @($script:RoleActions)
                         notActions = @()
                         dataActions = @()
                         notDataActions = @()
@@ -421,7 +527,7 @@ Describe 'Tenant 1 attended what-if orchestration' {
                 '^ad signed-in-user show --output json$' {
                     return [pscustomobject]@{ ExitCode = 0; StdOut = '{"id":"55555555-5555-5555-5555-555555555555"}'; StdErr = '' }
                 }
-                '^role assignment list --assignee-object-id .+ --scope .+ --output json$' {
+                '^role assignment list --assignee-object-id .+ --include-groups --scope .+ --output json$' {
                     return [pscustomobject]@{ ExitCode = 0; StdOut = $assignmentPayload; StdErr = '' }
                 }
                 '^role definition list --name .+ --output json$' {
@@ -470,6 +576,14 @@ Describe 'Tenant 1 attended what-if orchestration' {
         @($nativeCalls | Where-Object {
             $_.ArgumentList[0..2] -join ' ' -ceq 'role assignment list'
         }).Count | Should -Be 2
+        foreach ($accessCall in @($nativeCalls | Where-Object {
+            $_.ArgumentList[0..2] -join ' ' -ceq 'role assignment list'
+        })) {
+            $accessCall.ArgumentList | Should -Contain '--include-groups'
+            $accessCall.ArgumentList | Should -Contain '--assignee-object-id'
+            $accessCall.ArgumentList | Should -Contain $script:PrincipalObjectId
+            $accessCall.ArgumentList | Should -Contain $script:Scope
+        }
     }
 
     It 'requires explicit local configuration and keeps every private path outside the repository' {

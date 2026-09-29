@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.0 |
+| **Version** | 2.1 |
 | **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -36,18 +36,19 @@ Scripts never request, relay, print, or store a password, MFA response, token, r
 
 ## Separately Approved Minimum Access
 
-The operator's access exists and is approved outside this sprint. Before discovery and `what-if`, the bootstrap script reads effective role assignments for the exact attended principal at the exact Tenant 1 subscription scope and resolves their role definitions.
+The operator's access exists and is approved outside this sprint. Before discovery and `what-if`, the bootstrap script queries the exact attended principal with group expansion at the exact Tenant 1 subscription scope and resolves the returned role definition.
 
-Evidence must show at least one effective assignment that permits `Microsoft.Resources/deployments/whatIf/action`. The preflight records:
+Evidence must show exactly one direct-user or group assignment to the deterministic `<NamingRoot>-deployment-validation` custom role. That role uses the exact subscription as its only assignable scope and contains exactly `*/read`, deployment read, deployment validate, and deployment `whatIf` actions, with every exclusion and data-action list empty. The preflight records:
 
 - exact principal object ID;
 - exact tenant and subscription IDs;
 - exact subscription scope;
 - assignment IDs;
-- role-definition IDs and names; and
-- effective actions and exclusions.
+- user-or-group principal type;
+- role-definition ID, name, type, and assignable scope; and
+- exact actions, exclusions, and data-action lists.
 
-The same evidence is collected after `what-if` and compared. Missing capability, a foreign or inherited scope represented as exact access, duplicate assignment evidence, context mismatch, or any access drift fails closed.
+The same evidence is collected after `what-if` and compared. Wildcard `*`, Owner, Contributor, User Access Administrator, Role Based Access Control Administrator, extra assignment, extra write/delete action, foreign scope, context mismatch, or any access drift fails closed.
 
 Task 4 does not create, update, or delete a role definition or role assignment. It does not call the historical temporary-role grant, state, or cleanup path.
 

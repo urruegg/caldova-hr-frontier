@@ -183,22 +183,85 @@ function Get-DefaultAttendedUserPrincipal {
     $principalObjectId.Guid
 }
 
-function Test-ActionPattern {
-    param(
-        [Parameter(Mandatory)]
-        [string]$Action,
+function Convert-GuidByteOrder {
+    param([Parameter(Mandatory)][byte[]]$Bytes)
 
-        [AllowEmptyCollection()]
-        [string[]]$Patterns
-    )
+    [Array]::Reverse($Bytes, 0, 4)
+    [Array]::Reverse($Bytes, 4, 2)
+    [Array]::Reverse($Bytes, 6, 2)
+    ,$Bytes
+}
 
-    foreach ($pattern in @($Patterns)) {
-        if (-not [string]::IsNullOrWhiteSpace($pattern) -and $Action -like $pattern) {
-            return $true
-        }
+function New-ArmGuid {
+    param([Parameter(Mandatory)][string[]]$Values)
+
+    $namespace = [guid]'11fb06fb-712d-4ddd-98c7-e71bbd588830'
+    [byte[]]$namespaceBytes = Convert-GuidByteOrder -Bytes $namespace.ToByteArray()
+    [byte[]]$nameBytes = [System.Text.Encoding]::UTF8.GetBytes(($Values -join '-'))
+    [byte[]]$combined = New-Object byte[] ($namespaceBytes.Length + $nameBytes.Length)
+    [Array]::Copy($namespaceBytes, 0, $combined, 0, $namespaceBytes.Length)
+    [Array]::Copy($nameBytes, 0, $combined, $namespaceBytes.Length, $nameBytes.Length)
+
+    $sha1 = [System.Security.Cryptography.SHA1]::Create()
+    try {
+        [byte[]]$hash = $sha1.ComputeHash($combined)
+    }
+    finally {
+        $sha1.Dispose()
     }
 
-    $false
+    [byte[]]$guidBytes = New-Object byte[] 16
+    [Array]::Copy($hash, $guidBytes, 16)
+    $guidBytes[6] = ($guidBytes[6] -band 0x0f) -bor 0x50
+    $guidBytes[8] = ($guidBytes[8] -band 0x3f) -bor 0x80
+    [byte[]]$orderedBytes = Convert-GuidByteOrder -Bytes $guidBytes
+    ([guid]::new($orderedBytes)).ToString()
+}
+
+function Test-ExactStringSet {
+    param(
+        [AllowNull()]
+        [object[]]$Actual,
+
+        [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        [string[]]$Expected
+    )
+
+    $actualValues = @($Actual | ForEach-Object { [string]$_ } | Sort-Object)
+    $expectedValues = @($Expected | Sort-Object)
+    if ($actualValues.Count -ne $expectedValues.Count) {
+        return $false
+    }
+
+    @((Compare-Object -ReferenceObject $expectedValues -DifferenceObject $actualValues -CaseSensitive)).Count -eq 0
+}
+
+function Get-ApprovedValidationRoleContract {
+    param([Parameter(Mandatory)][object]$TenantConfiguration)
+
+    $scope = "/subscriptions/$([string]$TenantConfiguration.SubscriptionId)"
+    $roleName = Get-TenantResourceName `
+        -NamingRoot ([string]$TenantConfiguration.NamingRoot) `
+        -ResourceType DeploymentValidationRole
+    $roleDefinitionGuid = New-ArmGuid -Values @($scope, $roleName)
+
+    [pscustomobject][ordered]@{
+        Scope = $scope
+        RoleName = $roleName
+        RoleDefinitionId = "$scope/providers/Microsoft.Authorization/roleDefinitions/$roleDefinitionGuid"
+        RoleType = 'CustomRole'
+        Actions = @(
+            '*/read'
+            'Microsoft.Resources/deployments/read'
+            'Microsoft.Resources/deployments/validate/action'
+            'Microsoft.Resources/deployments/whatIf/action'
+        )
+        NotActions = @()
+        DataActions = @()
+        NotDataActions = @()
+        AssignableScopes = @($scope)
+    }
 }
 
 function Get-DefaultAccessEvidence {
@@ -217,6 +280,7 @@ function Get-DefaultAccessEvidence {
             'assignment',
             'list',
             '--assignee-object-id', $PrincipalObjectId,
+            '--include-groups',
             '--scope', $scope,
             '--output', 'json'
         )
@@ -224,10 +288,6 @@ function Get-DefaultAccessEvidence {
 
     $assignments = [System.Collections.Generic.List[object]]::new()
     foreach ($assignment in $rawAssignments) {
-        if ([string]$assignment.principalId -cne $PrincipalObjectId -or [string]$assignment.scope -cne $scope) {
-            continue
-        }
-
         $roleDefinitionId = [string]$assignment.roleDefinitionId
         $roleDefinitions = @(
             Invoke-NativeJsonCommand -FilePath 'az' -ArgumentList @(
@@ -249,15 +309,27 @@ function Get-DefaultAccessEvidence {
         $notActions = @($roleDefinition.permissions | ForEach-Object { @($_.notActions) }) |
             Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } |
             Sort-Object -Unique
+        $dataActions = @($roleDefinition.permissions | ForEach-Object { @($_.dataActions) }) |
+            Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } |
+            Sort-Object -Unique
+        $notDataActions = @($roleDefinition.permissions | ForEach-Object { @($_.notDataActions) }) |
+            Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } |
+            Sort-Object -Unique
 
         $assignments.Add([pscustomobject][ordered]@{
             Id = [string]$assignment.id
             PrincipalObjectId = [string]$assignment.principalId
+            PrincipalType = [string]$assignment.principalType
             Scope = [string]$assignment.scope
             RoleDefinitionId = $roleDefinitionId
             RoleName = [string]$roleDefinition.roleName
+            RoleType = [string]$roleDefinition.roleType
+            PermissionBlockCount = @($roleDefinition.permissions).Count
+            AssignableScopes = @($roleDefinition.assignableScopes)
             Actions = @($actions)
             NotActions = @($notActions)
+            DataActions = @($dataActions)
+            NotDataActions = @($notDataActions)
         }) | Out-Null
     }
 
@@ -266,6 +338,8 @@ function Get-DefaultAccessEvidence {
         TenantId = [string]$TenantConfiguration.TenantId
         SubscriptionId = [string]$TenantConfiguration.SubscriptionId
         PrincipalObjectId = $PrincipalObjectId
+        AssigneeObjectId = $PrincipalObjectId
+        IncludeGroups = $true
         Scope = $scope
         Assignments = @($assignments)
     }
@@ -283,7 +357,8 @@ function Assert-MinimumWhatIfAccessEvidence {
         [string]$PrincipalObjectId
     )
 
-    $scope = "/subscriptions/$([string]$TenantConfiguration.SubscriptionId)"
+    $contract = Get-ApprovedValidationRoleContract -TenantConfiguration $TenantConfiguration
+    $scope = [string]$contract.Scope
     if ([string]$Evidence.SchemaVersion -cne '1.0' -or
         [string]$Evidence.TenantId -cne [string]$TenantConfiguration.TenantId -or
         [string]$Evidence.SubscriptionId -cne [string]$TenantConfiguration.SubscriptionId -or
@@ -292,31 +367,56 @@ function Assert-MinimumWhatIfAccessEvidence {
         throw 'Access evidence does not match the attended Tenant 1 context.'
     }
 
-    $requiredAction = 'Microsoft.Resources/deployments/whatIf/action'
-    $effectiveAssignments = [System.Collections.Generic.List[object]]::new()
-    $seenAssignmentIds = @{}
-    foreach ($assignment in @($Evidence.Assignments)) {
-        $assignmentId = [string]$assignment.Id
-        if ([string]::IsNullOrWhiteSpace($assignmentId) -or $seenAssignmentIds.ContainsKey($assignmentId)) {
-            throw 'Access evidence assignment ids must be present and unique.'
-        }
-        $seenAssignmentIds[$assignmentId] = $true
+    if ([string]$Evidence.AssigneeObjectId -cne $PrincipalObjectId -or
+        $Evidence.IncludeGroups -isnot [bool] -or
+        $Evidence.IncludeGroups -ne $true) {
+        throw 'Access evidence must prove the assignee query targeted the attended principal with group expansion.'
+    }
 
-        if ([string]$assignment.PrincipalObjectId -cne $PrincipalObjectId -or
-            [string]$assignment.Scope -cne $scope -or
-            [string]::IsNullOrWhiteSpace([string]$assignment.RoleDefinitionId)) {
-            throw 'Access evidence assignments must match the attended principal and exact subscription scope.'
-        }
+    $assignments = @($Evidence.Assignments)
+    if ($assignments.Count -eq 0) {
+        throw 'No separately approved effective assignment permits the reviewed subscription what-if.'
+    }
+    if ($assignments.Count -ne 1) {
+        throw 'Access evidence must contain exactly one separately approved assignment for the reviewed validation role.'
+    }
 
-        $allowed = Test-ActionPattern -Action $requiredAction -Patterns @($assignment.Actions)
-        $denied = Test-ActionPattern -Action $requiredAction -Patterns @($assignment.NotActions)
-        if ($allowed -and -not $denied) {
-            $effectiveAssignments.Add($assignment) | Out-Null
+    $assignment = $assignments[0]
+    $assignmentIdPattern = '^' + [regex]::Escape("$scope/providers/Microsoft.Authorization/roleAssignments/") +
+        '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+    if ([string]$assignment.Id -cnotmatch $assignmentIdPattern) {
+        throw 'Access evidence assignment id must identify one assignment at the exact subscription scope.'
+    }
+    if ([string]$assignment.Scope -cne $scope) {
+        throw 'Access evidence assignment must use the exact subscription scope.'
+    }
+
+    $assignmentPrincipalObjectId = [guid]::Empty
+    if (-not [guid]::TryParse([string]$assignment.PrincipalObjectId, [ref]$assignmentPrincipalObjectId)) {
+        throw 'Access evidence assignment principal must be a GUID user or group.'
+    }
+    switch -CaseSensitive ([string]$assignment.PrincipalType) {
+        'User' {
+            if ($assignmentPrincipalObjectId -ne [guid]$PrincipalObjectId) {
+                throw 'A direct user assignment must match the attended principal.'
+            }
+        }
+        'Group' { }
+        default {
+            throw 'Access evidence assignment principal type must equal User or Group.'
         }
     }
 
-    if ($effectiveAssignments.Count -eq 0) {
-        throw 'No separately approved effective assignment permits the reviewed subscription what-if.'
+    if ([string]$assignment.RoleDefinitionId -cne [string]$contract.RoleDefinitionId -or
+        [string]$assignment.RoleName -cne [string]$contract.RoleName -or
+        [string]$assignment.RoleType -cne [string]$contract.RoleType -or
+        [int]$assignment.PermissionBlockCount -ne 1 -or
+        -not (Test-ExactStringSet -Actual @($assignment.AssignableScopes) -Expected @($contract.AssignableScopes)) -or
+        -not (Test-ExactStringSet -Actual @($assignment.Actions) -Expected @($contract.Actions)) -or
+        -not (Test-ExactStringSet -Actual @($assignment.NotActions) -Expected @($contract.NotActions)) -or
+        -not (Test-ExactStringSet -Actual @($assignment.DataActions) -Expected @($contract.DataActions)) -or
+        -not (Test-ExactStringSet -Actual @($assignment.NotDataActions) -Expected @($contract.NotDataActions))) {
+        throw 'Access evidence must match the exact approved validation role boundary.'
     }
 
     $Evidence
@@ -326,15 +426,23 @@ function Get-AccessEvidenceSignature {
     param([Parameter(Mandatory)][object]$Evidence)
 
     @(
+        [string]$Evidence.AssigneeObjectId
+        [string]$Evidence.IncludeGroups
         foreach ($assignment in @($Evidence.Assignments) | Sort-Object -Property Id) {
             @(
                 [string]$assignment.Id
                 [string]$assignment.PrincipalObjectId
+                [string]$assignment.PrincipalType
                 [string]$assignment.Scope
                 [string]$assignment.RoleDefinitionId
                 [string]$assignment.RoleName
+                [string]$assignment.RoleType
+                [string]$assignment.PermissionBlockCount
+                (@($assignment.AssignableScopes) | Sort-Object) -join ','
                 (@($assignment.Actions) | Sort-Object) -join ','
                 (@($assignment.NotActions) | Sort-Object) -join ','
+                (@($assignment.DataActions) | Sort-Object) -join ','
+                (@($assignment.NotDataActions) | Sort-Object) -join ','
             ) -join '|'
         }
     ) -join ';'

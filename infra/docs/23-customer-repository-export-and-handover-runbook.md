@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -106,7 +106,7 @@ This runbook is the end-to-end procedure a new tenant owner follows to turn a co
 | Not covered here | Where it lives instead |
 |---|---|
 | Removing other tenants' configuration and evidence | [Repository Clean-Up Runbook](./22-repository-cleanup-runbook.md) -- referenced as Step 3 above, not duplicated |
-| Activating your tenant's trust (Entra Application, Service Principal, Federated Identity Credential) | [Tenant Trust Activation Runbook](./20-tenant-trust-activation-runbook.md) |
+| A delivery identity or trust activation | Deferred; requires a new reviewed design. The [Tenant Trust Activation Runbook](./20-tenant-trust-activation-runbook.md) is only a superseded stop notice. |
 | Populating your tenant's Azure Boards with HR use-case Epics | [Azure Boards Population Runbook](./21-azure-boards-population-runbook.md) |
 | Choosing your account type (personal vs. GitHub Organization) | [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) -- must already be decided before Step 1 |
 

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.3 |
-| **Date** | 2026-09-28 |
+| **Version** | 1.4 |
+| **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Repository |
@@ -280,8 +280,8 @@ The attended [Tenant 1 Lean Engineering Platform Design](docs/specs/2026-09-28-t
 | `infra/src/config/tenants/tenant1.local.psd1` | Ignored local Tenant 1 configuration supplied explicitly to attended commands and backed up encrypted outside Git. |
 | `infra/src/config/tenants/caldova25668747.psd1` | Existing Tenant 2 file, out of scope and untouched by the lean sprint. |
 | `infra/src/scripts/Invoke-TenantDiscovery.ps1` | Read-only discovery entry point for the five core services and optional SharePoint site metadata. |
-| `infra/src/scripts/Initialize-TenantTrust.ps1` | Attended trust entry point, gated by reviewed intent and separate authorization before any mutation. |
-| `infra/src/scripts/Invoke-TenantBootstrap.ps1` | Local orchestration for validation, Bicep parameter generation, `what-if`, boundary checks, and exact-ID cleanup; it does not deploy. |
+| `infra/src/scripts/Initialize-TenantTrust.ps1` | Dormant and unsupported historical artifact; the superseded stop notice requires a new reviewed design before reuse. |
+| `infra/src/scripts/Invoke-TenantBootstrap.ps1` | Attended local orchestration for exact context and minimum-access preflight, discovery, Bicep build, `what-if`, boundary validation, and read-back; it performs no role mutation or deployment. |
 | `infra/src/bicep/main.bicep` | Subscription-scope Bicep composition constrained to the reviewed resource-type allowlist. |
 
 No live deployment is authorized by this repository state.

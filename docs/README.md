@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.4 |
-| **Date** | 2026-09-28 |
+| **Version** | 1.5 |
+| **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -136,10 +136,10 @@ The Infrastructure domain contains the approved lean control-plane topology toge
 | [GitHub Repository Blueprint](../infra/docs/14-github-repository-blueprint.md) | Proposed guidance retained for context; the approved solo-owner profile requires pull requests and validation, with zero mandatory approvals and no required CODEOWNERS review. |
 | [Agent and Workload Configuration](../infra/docs/15-agent-workload-configuration.md) | Defines future agent, flow, app, grounding, packaging, release, and data-prohibition contracts. |
 | [Security, Governance and Compliance](../infra/docs/16-security-governance-and-compliance.md) | Defines evidence-first security principles and proposed DLP, Dataverse, identity, audit, and compliance controls. |
-| [Bootstrap and Provisioning](../infra/docs/17-bootstrap-and-provisioning.md) | Defines the evidence-gated state machine, attended trust, subscription `what-if`, and no-deployment boundary. |
+| [Bootstrap and Provisioning](../infra/docs/17-bootstrap-and-provisioning.md) | Defines the attended local state machine, exact minimum-access preflight/read-back, subscription `what-if`, and no-deployment boundary. |
 | [Multi-Tenant Provisioning](../infra/docs/18-multi-tenant-provisioning.md) | Proposed guidance retained for context; the lean sprint is Tenant 1 only and does not alter or migrate existing Tenant 2 files. |
 | [Bootstrap Recovery](../infra/docs/19-bootstrap-recovery.md) | Defines attended recovery from nine failure states without bypassing validation, approvals, or least privilege. |
-| [Tenant Trust Activation Runbook](../infra/docs/20-tenant-trust-activation-runbook.md) | Operator runbook for activating a tenant's Entra/GitHub/Azure DevOps trust using the existing Initialize-TenantTrust.ps1. |
+| [Tenant Trust Activation Runbook](../infra/docs/20-tenant-trust-activation-runbook.md) | Superseded stop notice for the dormant and unsupported trust command; reuse requires a new reviewed design. |
 | [Infrastructure Solution Sources](../infra/src/solutions/README.md) | Defines ownership and exclusions for future unpacked Infrastructure Power Platform solution source. |
 
 **This map is unchanged by the Phase 4 HR solution intake.** The approved Tenant 1 target keeps product source and [Bicep Composition](../infra/src/bicep/main.bicep) in GitHub. Tenant 1 private configuration uses the ignored local `tenant1.local.psd1` with an encrypted, restore-tested backup outside Git. Azure Boards remains on Basic, and a future Azure Pipeline consumes GitHub directly. No private Azure Repo, OIDC bootstrap, `bootstrap-tenant1` Environment, Basic-to-Agile conversion, Azure Pipeline, or live deployment is a current target.

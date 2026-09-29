@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
-| **References** | [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json) |
+| **References** | [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Tenant 1 Lean Platform Runbook](24-tenant-1-lean-platform-runbook.md), [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md) |
 
 This source-derived Proposed Baseline describes intended security, governance, and compliance controls. It does not prove that any policy, role, audit setting, DLP rule, Managed Environment, security group, ruleset, scanning feature, identity, or service is currently configured.
 
@@ -85,10 +85,10 @@ A later control review must record:
 - the reviewed desired-state commit;
 - normalized discovery run ID, collection time, stable IDs, and service status;
 - approval records for every live mutation;
-- OIDC issuer, audience, subject, tenant, subscription, and client read-back;
+- attended principal, tenant, subscription, and exact approved validation-role access read-back;
 - Bicep build result and bounded subscription `what-if` output;
-- exact temporary role-assignment cleanup evidence;
-- GitHub ruleset and Environment API read-back;
+- evidence that no role mutation or deployment-create path ran;
+- GitHub ruleset and repository-settings read-back;
 - validation output showing repository contracts pass.
 
 Documentation alone is not compliance evidence. Until each item is observed and reviewed, it remains proposed.

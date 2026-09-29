@@ -44,6 +44,12 @@ BeforeAll {
 Describe 'Runbook documentation contracts' {
     It 'includes metadata-compliant infrastructure runbooks in the documentation set' {
         foreach ($relative in @(
+            'README.md',
+            'docs/README.md',
+            'infra/docs/16-security-governance-and-compliance.md',
+            'infra/docs/20-tenant-trust-activation-runbook.md',
+            'infra/docs/21-azure-boards-population-runbook.md',
+            'infra/docs/23-customer-repository-export-and-handover-runbook.md',
             'infra/docs/runbooks/README.md',
             'infra/docs/runbooks/01-developer-workstation.md',
             'infra/docs/runbooks/02-cloud-service-foundation.md',
@@ -142,8 +148,37 @@ Describe 'Runbook documentation contracts' {
         }
     }
 
+    It 'labels dormant trust OIDC and role-cleanup paths as unsupported' {
+        $repositoryReadme = Get-Content -Raw (Join-Path $script:repositoryRoot 'README.md')
+        $documentationIndex = Get-Content -Raw (Join-Path $script:repositoryRoot 'docs\README.md')
+        $security = Get-Content -Raw (Join-Path $script:repositoryRoot 'infra\docs\16-security-governance-and-compliance.md')
+        $boards = Get-Content -Raw (Join-Path $script:repositoryRoot 'infra\docs\21-azure-boards-population-runbook.md')
+        $handover = Get-Content -Raw (Join-Path $script:repositoryRoot 'infra\docs\23-customer-repository-export-and-handover-runbook.md')
+
+        $repositoryReadme | Should -Match 'Initialize-TenantTrust\.ps1` \| Dormant and unsupported'
+        $repositoryReadme | Should -Match 'Invoke-TenantBootstrap\.ps1` \| Attended local orchestration.+no role mutation'
+        $documentationIndex | Should -Match 'Tenant Trust Activation Runbook.+Superseded stop notice'
+        $documentationIndex | Should -Match 'Bootstrap and Provisioning.+attended local.+minimum-access'
+
+        $boards | Should -Match '\|\s+\*\*Status\*\*\s+\|\s+Superseded\s+\|'
+        $boards | Should -Match 'STOP.+dormant.+not a lean-platform prerequisite'
+        $boards | Should -Not -Match 'assumes Tenant 1''s trust is already active|already-active OIDC session|must already be complete before this runbook can authenticate'
+
+        $handover | Should -Match 'delivery identity or trust activation.+Deferred.+new reviewed design'
+        $handover | Should -Not -Match 'Activating your tenant''s trust.+Tenant Trust Activation Runbook'
+
+        $security | Should -Match 'attended principal, tenant, subscription, and exact approved validation-role access read-back'
+        $security | Should -Not -Match 'OIDC issuer|temporary role-assignment cleanup|GitHub ruleset and Environment API'
+    }
+
     It 'resolves every local markdown destination referenced by the runbook documents' {
         foreach ($relative in @(
+            'README.md',
+            'docs/README.md',
+            'infra/docs/16-security-governance-and-compliance.md',
+            'infra/docs/20-tenant-trust-activation-runbook.md',
+            'infra/docs/21-azure-boards-population-runbook.md',
+            'infra/docs/23-customer-repository-export-and-handover-runbook.md',
             'infra/docs/runbooks/README.md',
             'infra/docs/runbooks/01-developer-workstation.md',
             'infra/docs/runbooks/02-cloud-service-foundation.md',
