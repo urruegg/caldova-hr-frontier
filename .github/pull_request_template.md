@@ -23,6 +23,10 @@
 
 AB#
 
+For the final governed proof, use the literal `Fixes AB#` prefix followed by the
+selected Azure Boards Issue ID. Human review verifies the reference; no separate
+traceability workflow is required.
+
 ## Journey stage
 
 <!-- Attract | Hire | Pre-board | Onboard | Enable | Grow | Change | Offboard | Alumni | Cross-cutting -->

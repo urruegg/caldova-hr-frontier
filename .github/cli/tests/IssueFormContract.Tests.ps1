@@ -248,6 +248,20 @@ Describe 'Pull request template contract' {
             $lines | Should -Contain "- [ ] $environment"
         }
     }
+
+    It 'requires the governed Azure Boards closing prefix without another workflow' {
+        $content = Get-FileContentIfPresent -Path (
+            Join-Path $script:repositoryRoot '.github\pull_request_template.md'
+        )
+        $normalized = $content.Replace("`r`n", "`n").Replace("`r", "`n")
+        $expected = @'
+For the final governed proof, use the literal `Fixes AB#` prefix followed by the
+selected Azure Boards Issue ID. Human review verifies the reference; no separate
+traceability workflow is required.
+'@.Trim().Replace("`r`n", "`n").Replace("`r", "`n")
+
+        $normalized | Should -Match ([regex]::Escape($expected))
+    }
 }
 
 Describe '.gitignore collaboration additions' {

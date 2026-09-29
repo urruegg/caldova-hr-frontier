@@ -6,6 +6,8 @@
     "$schema",
     "schemaVersion",
     "repository",
+    "repositorySettings",
+    "security",
     "rulesets"
   ],
   "properties": {
@@ -20,6 +22,12 @@
     "repository": {
       "type": "string",
       "const": "urruegg/caldova-hr-frontier"
+    },
+    "repositorySettings": {
+      "$ref": "#/$defs/repositorySettings"
+    },
+    "security": {
+      "$ref": "#/$defs/security"
     },
     "rulesets": {
       "type": "array",
@@ -58,11 +66,8 @@
         },
         "bypassActors": {
           "type": "array",
-          "minItems": 1,
-          "maxItems": 1,
-          "items": {
-            "$ref": "#/$defs/bypassActor"
-          }
+          "maxItems": 0,
+          "items": false
         },
         "conditions": {
           "$ref": "#/$defs/conditions"
@@ -89,26 +94,54 @@
         }
       }
     },
-    "bypassActor": {
+    "repositorySettings": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "actorType",
-        "login",
-        "bypassMode"
+        "defaultBranch",
+        "allowMergeCommit",
+        "allowRebaseMerge",
+        "allowSquashMerge",
+        "deleteBranchOnMerge",
+        "hasProjects"
       ],
       "properties": {
-        "actorType": {
+        "defaultBranch": {
           "type": "string",
-          "const": "User"
+          "const": "main"
         },
-        "login": {
-          "type": "string",
-          "const": "urruegg"
+        "allowMergeCommit": {
+          "type": "boolean",
+          "const": false
         },
-        "bypassMode": {
-          "type": "string",
-          "const": "pull_request"
+        "allowRebaseMerge": {
+          "type": "boolean",
+          "const": false
+        },
+        "allowSquashMerge": {
+          "type": "boolean",
+          "const": true
+        },
+        "deleteBranchOnMerge": {
+          "type": "boolean",
+          "const": true
+        },
+        "hasProjects": {
+          "type": "boolean",
+          "const": false
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dependabotSecurityUpdates"
+      ],
+      "properties": {
+        "dependabotSecurityUpdates": {
+          "type": "boolean",
+          "const": true
         }
       }
     },
@@ -203,7 +236,7 @@
             },
             "requireCodeOwnerReview": {
               "type": "boolean",
-              "const": true
+              "const": false
             },
             "requireLastPushApproval": {
               "type": "boolean",
@@ -211,7 +244,7 @@
             },
             "requiredApprovingReviewCount": {
               "type": "integer",
-              "const": 1
+              "const": 0
             },
             "requiredReviewThreadResolution": {
               "type": "boolean",
@@ -219,20 +252,12 @@
             },
             "allowedMergeMethods": {
               "type": "array",
-              "minItems": 3,
-              "maxItems": 3,
+              "minItems": 1,
+              "maxItems": 1,
               "prefixItems": [
                 {
                   "type": "string",
-                  "const": "merge"
-                },
-                {
-                  "type": "string",
                   "const": "squash"
-                },
-                {
-                  "type": "string",
-                  "const": "rebase"
                 }
               ],
               "items": false
