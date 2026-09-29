@@ -568,6 +568,33 @@ Describe 'AI Builder field and corpus contracts' {
                         @baseRecordArguments -ResumeEvidencePath $tamperedBlockedCapabilityPath
                 } | Should -Throw '*blocked*'
             }
+
+            It 'rejects resume requests that try to overwrite the preserved 1.0 model version' {
+                $paths = New-TestLifecycleFixture -Name 'lifecycle-resume-version-mismatch' -RunId 't2-dev-20260925-001'
+                $blockedCapabilityPath = Join-Path $script:RepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\model-test-capability.json'
+                $originalBlockedCapabilityBytes = Get-Content -LiteralPath $blockedCapabilityPath -Raw
+
+                foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained', 'blocked') {
+                    Set-HrAiBuilderModelRecord -RunManifestPath $paths.ManifestPath `
+                        -ModelInventoryPath $paths.InventoryPath -ModelName 'PersonalMasterDataFixed' `
+                        -ModelId '74b09a72-d1f1-4598-bc4d-3746d5c97acc' -ModelVersion '1.0' -LifecycleStage $stage | Out-Null
+                }
+
+                $manifestBefore = Get-Content -LiteralPath $paths.ManifestPath -Raw
+                $inventoryBefore = Get-Content -LiteralPath $paths.InventoryPath -Raw
+
+                {
+                    Set-HrAiBuilderModelRecord -RunManifestPath $paths.ManifestPath `
+                        -ModelInventoryPath $paths.InventoryPath -ModelName 'PersonalMasterDataFixed' `
+                        -ModelId '74b09a72-d1f1-4598-bc4d-3746d5c97acc' -ModelVersion '2.0' `
+                        -LifecycleStage 'evaluation_published' -ResumeBlockedEvaluation `
+                        -ResumeEvidencePath $blockedCapabilityPath
+                } | Should -Throw '*ModelVersion*1.0*'
+
+                (Get-Content -LiteralPath $blockedCapabilityPath -Raw) | Should -BeExactly $originalBlockedCapabilityBytes
+                (Get-Content -LiteralPath $paths.ManifestPath -Raw) | Should -BeExactly $manifestBefore
+                (Get-Content -LiteralPath $paths.InventoryPath -Raw) | Should -BeExactly $inventoryBefore
+            }
         }
 
         It 'derives blocked final status and refuses later mutation' {
@@ -1003,6 +1030,44 @@ Describe 'AI Builder field and corpus contracts' {
                 'captured_at_utc',
                 'fields'
             )
+
+            function Test-JsonSchemaDocument {
+                param(
+                    [Parameter(Mandatory)]
+                    [string]$SchemaPath,
+
+                    [Parameter(Mandatory)]
+                    [string]$DocumentPath
+                )
+
+                $pythonScript = @'
+import json
+import sys
+from jsonschema import Draft202012Validator
+
+with open(sys.argv[1], 'r', encoding='utf-8') as schema_file:
+    schema = json.load(schema_file)
+
+with open(sys.argv[2], 'r', encoding='utf-8') as document_file:
+    document = json.load(document_file)
+
+validator = Draft202012Validator(schema)
+errors = sorted(validator.iter_errors(document), key=lambda error: list(error.path))
+if errors:
+    for error in errors:
+        path = '.'.join(str(segment) for segment in error.path)
+        print("{}: {}".format(path, error.message) if path else error.message)
+    sys.exit(1)
+'@
+
+                $pythonOutput = & python -c $pythonScript $SchemaPath $DocumentPath 2>&1
+                $pythonExitCode = $LASTEXITCODE
+
+                [pscustomobject]@{
+                    Passed = ($pythonExitCode -eq 0)
+                    Output = @($pythonOutput) -join [Environment]::NewLine
+                }
+            }
         }
 
         It 'defines the canonical envelope property order and 17 contract fields' {
@@ -1062,6 +1127,56 @@ Describe 'AI Builder field and corpus contracts' {
             $predictionSchemaText | Should -Not -Match 'AI Builder Quick Test'
             $predictionSchemaText | Should -Not -Match 'replayable-v1'
             $predictionSchemaText | Should -Not -Match 'test-fixture-json-v1'
+        }
+
+        It 'accepts a complete valid capture-pair record and rejects an extra top-level property' {
+            $validRecordPath = Join-Path $TestDrive 'evaluation-capture-valid.json'
+            $extraPropertyRecordPath = Join-Path $TestDrive 'evaluation-capture-extra.json'
+            $fields = [ordered]@{}
+            foreach ($fieldDefinition in $script:ExpectedFieldDefinitions) {
+                $fields[$fieldDefinition.name] = [ordered]@{
+                    value = $null
+                    confidence = $null
+                }
+            }
+
+            $validRecord = [ordered]@{
+                schema_version = '1.0'
+                run_id = 'cap-20260929100000000Z-7f3a9c2d'
+                corpus_revision = 'c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db'
+                filename = 'a01-CAND-2026-0411-brunner.pdf'
+                claimed_sha256 = '9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd'
+                model_name = 'PersonalMasterDataFixed'
+                model_version = '1.0'
+                captured_at_utc = '2026-09-29T10:00:00.000Z'
+                fields = $fields
+                artifacts = [ordered]@{
+                    source_pdf = [ordered]@{
+                        path = 'source/a01-CAND-2026-0411-brunner.pdf'
+                        sha256 = '9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd'
+                    }
+                    raw_response = [ordered]@{
+                        path = 'cap-20260929100000000Z-7f3a9c2d.ai-builder.raw.json'
+                        sha256 = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+                    }
+                    canonical_envelope = [ordered]@{
+                        path = 'cap-20260929100000000Z-7f3a9c2d.canonical.json'
+                        sha256 = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+                    }
+                }
+            }
+
+            $validRecord | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $validRecordPath -Encoding UTF8
+            $validResult = Test-JsonSchemaDocument -SchemaPath $script:EvaluationCapturePairSchemaPath -DocumentPath $validRecordPath
+            $validResult.Passed | Should -BeTrue -Because $validResult.Output
+
+            $invalidRecord = [ordered]@{} + $validRecord
+            $invalidRecord.unexpected = 'forbidden'
+            $invalidRecord | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $extraPropertyRecordPath -Encoding UTF8
+
+            $invalidResult = Test-JsonSchemaDocument -SchemaPath $script:EvaluationCapturePairSchemaPath -DocumentPath $extraPropertyRecordPath
+            $invalidResult.Passed | Should -BeFalse
+            $invalidResult.Output | Should -Match 'unexpected'
         }
     }
 

@@ -67,6 +67,12 @@ function Set-HrAiBuilderModelRecord {
             throw "ResumeBlockedEvaluation only supports PersonalMasterDataFixed version 1.0 for run 't2-dev-20260925-001'."
         }
 
+        if (-not $PSBoundParameters.ContainsKey('ModelVersion') -or
+            [string]::IsNullOrWhiteSpace($ModelVersion) -or
+            [string]$ModelVersion -ne [string]$inventoryModel.version) {
+            throw "ResumeBlockedEvaluation requires ModelVersion '$([string]$inventoryModel.version)' to match the recorded model version before writing."
+        }
+
         $history = @($inventoryModel.lifecycle_history)
         if ($currentStage -ne 'blocked' -or $history.Count -lt 2) {
             throw "ResumeBlockedEvaluation requires model '$ModelName' to be blocked immediately after training."
