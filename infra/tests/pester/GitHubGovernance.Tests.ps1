@@ -114,6 +114,8 @@ Describe 'Lean GitHub governance activation' {
                 MainReadCount = 0
                 ValidatorReadCount = 0
                 BeforeSecondSnapshot = $null
+                ClassicProtectionResponses = @($false)
+                ClassicProtectionReadCount = 0
                 RepositorySettings = [ordered]@{
                     default_branch = 'main'
                     allow_merge_commit = $false
@@ -138,6 +140,8 @@ Describe 'Lean GitHub governance activation' {
                         conclusion = 'success'
                     }
                 )
+                AdditionalValidatorJobPages = @()
+                ValidatorJobTotalCount = $null
                 Codeowners = "* @urruegg`n"
                 Rulesets = @()
                 AdditionalRulesetPages = @()
@@ -230,12 +234,53 @@ Describe 'Lean GitHub governance activation' {
 
                 $jobsArguments = @('api', "repos/$repository/actions/runs/$validatorRunId/jobs?per_page=100")
                 if (& $testExactArguments -Actual $ArgumentList -Expected $jobsArguments) {
+                    $totalCount = if ($null -ne $State.ValidatorJobTotalCount) {
+                        [long]$State.ValidatorJobTotalCount
+                    }
+                    else {
+                        @($State.ValidatorJobs).Count +
+                            @($State.AdditionalValidatorJobPages | ForEach-Object { @($_).Count } |
+                                Measure-Object -Sum).Sum
+                    }
                     return [pscustomobject]@{
                         ExitCode = 0
                         StdOut = ([ordered]@{
-                            total_count = @($State.ValidatorJobs).Count
+                            total_count = $totalCount
                             jobs = @($State.ValidatorJobs)
                         } | ConvertTo-Json -Depth 10 -Compress)
+                        StdErr = ''
+                    }
+                }
+
+                $pagedJobsArguments = @(
+                    'api',
+                    '--paginate',
+                    '--slurp',
+                    "repos/$repository/actions/runs/$validatorRunId/jobs?per_page=100"
+                )
+                if (& $testExactArguments -Actual $ArgumentList -Expected $pagedJobsArguments) {
+                    $totalCount = if ($null -ne $State.ValidatorJobTotalCount) {
+                        [long]$State.ValidatorJobTotalCount
+                    }
+                    else {
+                        @($State.ValidatorJobs).Count +
+                            @($State.AdditionalValidatorJobPages | ForEach-Object { @($_).Count } |
+                                Measure-Object -Sum).Sum
+                    }
+                    $pageTexts = [System.Collections.Generic.List[string]]::new()
+                    $pageTexts.Add(([ordered]@{
+                        total_count = $totalCount
+                        jobs = @($State.ValidatorJobs)
+                    } | ConvertTo-Json -Depth 10 -Compress))
+                    foreach ($page in @($State.AdditionalValidatorJobPages)) {
+                        $pageTexts.Add(([ordered]@{
+                            total_count = $totalCount
+                            jobs = @($page)
+                        } | ConvertTo-Json -Depth 10 -Compress))
+                    }
+                    return [pscustomobject]@{
+                        ExitCode = 0
+                        StdOut = '[' + ($pageTexts -join ',') + ']'
                         StdErr = ''
                     }
                 }
@@ -256,6 +301,32 @@ Describe 'Lean GitHub governance activation' {
                         ExitCode = 0
                         StdOut = ($State.RepositorySettings | ConvertTo-Json -Depth 10 -Compress)
                         StdErr = ''
+                    }
+                }
+
+                $classicProtectionArguments = @(
+                    'api',
+                    '--include',
+                    "repos/$repository/branches/main/protection"
+                )
+                if (& $testExactArguments -Actual $ArgumentList -Expected $classicProtectionArguments) {
+                    $responseIndex = [Math]::Min(
+                        [int]$State.ClassicProtectionReadCount,
+                        @($State.ClassicProtectionResponses).Count - 1
+                    )
+                    $isPresent = [bool]$State.ClassicProtectionResponses[$responseIndex]
+                    $State.ClassicProtectionReadCount++
+                    if ($isPresent) {
+                        return [pscustomobject]@{
+                            ExitCode = 0
+                            StdOut = "HTTP/2.0 200 OK`n`n{}"
+                            StdErr = ''
+                        }
+                    }
+                    return [pscustomobject]@{
+                        ExitCode = 1
+                        StdOut = "HTTP/2.0 404 Not Found`n"
+                        StdErr = 'gh: Branch not protected (HTTP 404)'
                     }
                 }
 
@@ -592,6 +663,35 @@ Describe 'Lean GitHub governance activation' {
         @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
     }
 
+    It 'rejects validator job total_count that exceeds the retrieved pages' {
+        $state = New-TestState
+        $state.ValidatorJobTotalCount = 2
+        $harness = New-NativeHarness -State $state
+
+        { Invoke-TestGovernance -Harness $harness -WhatIf } |
+            Should -Throw '*Validator workflow jobs total_count does not match retrieved jobs*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'reads every validator job page before enforcing the unique setup job' {
+        $state = New-TestState
+        $state.AdditionalValidatorJobPages = @(
+            @(
+                [ordered]@{
+                    id = 7002
+                    name = 'Repository setup validation'
+                    status = 'completed'
+                    conclusion = 'success'
+                }
+            )
+        )
+        $harness = New-NativeHarness -State $state
+
+        { Invoke-TestGovernance -Harness $harness -WhatIf } |
+            Should -Throw '*exactly one successful*Repository setup validation*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
     It 'requires a non-empty current-main CODEOWNERS ownership map' -ForEach @(
         @{ Name = 'empty'; Value = '' },
         @{ Name = 'comments only'; Value = "# owner map pending`n" }
@@ -601,6 +701,52 @@ Describe 'Lean GitHub governance activation' {
         $harness = New-NativeHarness -State $state
 
         { Invoke-TestGovernance -Harness $harness -WhatIf } | Should -Throw '*CODEOWNERS*ownership map*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects conflicting classic main branch protection before proposal' {
+        $state = New-TestState
+        $state.ClassicProtectionResponses = @($true)
+        $harness = New-NativeHarness -State $state
+
+        { Invoke-TestGovernance -Harness $harness -WhatIf } |
+            Should -Throw '*Classic main branch protection must be absent*'
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects classic main branch protection appearing during final read-back' {
+        $state = New-TestState
+        $state.ClassicProtectionResponses = @($false, $true)
+        $harness = New-NativeHarness -State $state
+
+        { Invoke-TestGovernance -Harness $harness } |
+            Should -Throw '*Classic main branch protection must be absent*'
+        $state.ClassicProtectionReadCount | Should -Be 2
+    }
+
+    It 'rejects a non-boolean governed repository setting before mutation' -ForEach @(
+        @{ Name = 'null merge setting'; Property = 'allow_merge_commit'; Value = $null },
+        @{ Name = 'numeric rebase setting'; Property = 'allow_rebase_merge'; Value = 0 },
+        @{ Name = 'string squash setting'; Property = 'allow_squash_merge'; Value = 'false' },
+        @{ Name = 'numeric delete-branch setting'; Property = 'delete_branch_on_merge'; Value = 1 },
+        @{ Name = 'empty-string Projects setting'; Property = 'has_projects'; Value = '' }
+    ) {
+        $state = New-TestState
+        $state.RepositorySettings[$Property] = $Value
+        $harness = New-NativeHarness -State $state
+
+        { Invoke-TestGovernance -Harness $harness -WhatIf } |
+            Should -Throw "*Repository settings property '$Property' must be a JSON boolean*"
+        @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
+    }
+
+    It 'rejects a missing governed repository setting before mutation' {
+        $state = New-TestState
+        $state.RepositorySettings.Remove('has_projects')
+        $harness = New-NativeHarness -State $state
+
+        { Invoke-TestGovernance -Harness $harness -WhatIf } |
+            Should -Throw "*Repository settings is missing required property 'has_projects'*"
         @(Get-MutationCalls -Harness $harness) | Should -HaveCount 0
     }
 

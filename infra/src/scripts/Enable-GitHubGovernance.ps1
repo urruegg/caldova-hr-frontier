@@ -475,6 +475,68 @@ function Invoke-GhPagedJson {
     $items.ToArray()
 }
 
+function Invoke-GhPagedPropertyJson {
+    param(
+        [Parameter(Mandatory)][scriptblock]$Runner,
+        [Parameter(Mandatory)][string]$Endpoint,
+        [Parameter(Mandatory)][string]$PropertyName,
+        [Parameter(Mandatory)][string]$Context
+    )
+
+    $text = Invoke-NativeCommand `
+        -Runner $Runner `
+        -ArgumentList @('api', '--paginate', '--slurp', $Endpoint)
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        throw "$Context returned no JSON."
+    }
+    try {
+        $pages = $text | ConvertFrom-Json
+    }
+    catch {
+        throw "$Context returned malformed paginated JSON."
+    }
+    if ($pages -isnot [System.Array] -or $pages.Count -eq 0) {
+        throw "$Context must return a non-empty array of pages."
+    }
+
+    $expectedTotalCount = $null
+    $items = [System.Collections.Generic.List[object]]::new()
+    foreach ($page in @($pages)) {
+        if ($null -eq $page -or
+            $page -is [string] -or
+            $page -is [ValueType] -or
+            $page -is [System.Array]) {
+            throw "$Context must return each page as an object."
+        }
+        $pageProperties = ConvertTo-PropertyTable -InputObject $page
+        if (-not $pageProperties.ContainsKey('total_count')) {
+            throw "$Context page is missing total_count."
+        }
+        if (-not (Test-IntegerValue -Value $pageProperties.total_count) -or
+            [long]$pageProperties.total_count -lt 0) {
+            throw "$Context page total_count must be a non-negative integer."
+        }
+        if ($null -eq $expectedTotalCount) {
+            $expectedTotalCount = [long]$pageProperties.total_count
+        }
+        elseif ([long]$pageProperties.total_count -ne $expectedTotalCount) {
+            throw "$Context total_count changed between pages."
+        }
+        if (-not $pageProperties.ContainsKey($PropertyName)) {
+            throw "$Context page is missing $PropertyName."
+        }
+        Assert-ArrayValue -Value $pageProperties[$PropertyName] -Context "$Context page $PropertyName"
+        foreach ($item in @($pageProperties[$PropertyName])) {
+            $items.Add($item) | Out-Null
+        }
+    }
+
+    if ($items.Count -ne $expectedTotalCount) {
+        throw "$Context total_count does not match retrieved $PropertyName."
+    }
+    $items.ToArray()
+}
+
 function Assert-ValidatorRun {
     param(
         [Parameter(Mandatory)][object]$Run,
@@ -491,15 +553,18 @@ function Assert-ValidatorRun {
 }
 
 function Assert-ValidatorJobs {
-    param([Parameter(Mandatory)][object]$JobsResponse)
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        [object[]]$Jobs
+    )
 
-    $jobs = @($JobsResponse.jobs)
-    $matching = @($jobs | Where-Object {
+    $matching = @($Jobs | Where-Object {
         [string]$_.name -ceq 'Repository setup validation' -and
         [string]$_.conclusion -ceq 'success'
     })
     if ($matching.Count -ne 1 -or
-        @($jobs | Where-Object { [string]$_.name -ceq 'Repository setup validation' }).Count -ne 1) {
+        @($Jobs | Where-Object { [string]$_.name -ceq 'Repository setup validation' }).Count -ne 1) {
         throw 'Validator run must contain exactly one successful Repository setup validation job.'
     }
 }
@@ -828,12 +893,28 @@ function Test-RepositorySettings {
         [Parameter(Mandatory)][object]$DesiredSettings
     )
 
+    $propertyTable = ConvertTo-PropertyTable -InputObject $RepositoryState
+    foreach ($property in @(
+        'allow_merge_commit',
+        'allow_rebase_merge',
+        'allow_squash_merge',
+        'delete_branch_on_merge',
+        'has_projects'
+    )) {
+        if (-not $propertyTable.ContainsKey($property)) {
+            throw "Repository settings is missing required property '$property'."
+        }
+        if ($propertyTable[$property] -isnot [bool]) {
+            throw "Repository settings property '$property' must be a JSON boolean."
+        }
+    }
+
     [string]$RepositoryState.default_branch -ceq [string]$DesiredSettings.defaultBranch -and
-        [bool]$RepositoryState.allow_merge_commit -eq [bool]$DesiredSettings.allowMergeCommit -and
-        [bool]$RepositoryState.allow_rebase_merge -eq [bool]$DesiredSettings.allowRebaseMerge -and
-        [bool]$RepositoryState.allow_squash_merge -eq [bool]$DesiredSettings.allowSquashMerge -and
-        [bool]$RepositoryState.delete_branch_on_merge -eq [bool]$DesiredSettings.deleteBranchOnMerge -and
-        [bool]$RepositoryState.has_projects -eq [bool]$DesiredSettings.hasProjects
+        $propertyTable.allow_merge_commit -eq $DesiredSettings.allowMergeCommit -and
+        $propertyTable.allow_rebase_merge -eq $DesiredSettings.allowRebaseMerge -and
+        $propertyTable.allow_squash_merge -eq $DesiredSettings.allowSquashMerge -and
+        $propertyTable.delete_branch_on_merge -eq $DesiredSettings.deleteBranchOnMerge -and
+        $propertyTable.has_projects -eq $DesiredSettings.hasProjects
 }
 
 function Get-RepositoryRulesetState {
@@ -916,6 +997,29 @@ function Get-DependabotSecurityUpdatesState {
     throw "Dependabot security updates status returned HTTP $status."
 }
 
+function Assert-ClassicMainBranchProtectionAbsent {
+    param([Parameter(Mandatory)][scriptblock]$Runner)
+
+    $result = Invoke-NativeCommandResult `
+        -Runner $Runner `
+        -FilePath 'gh' `
+        -ArgumentList @('api', '--include', "repos/$expectedRepository/branches/main/protection")
+    $combined = "$($result.StdOut)`n$($result.StdErr)"
+    $match = [regex]::Match($combined, '(?im)^HTTP/\S+\s+(?<status>\d{3})\b')
+    if (-not $match.Success) {
+        throw 'Classic main branch protection status returned no HTTP status.'
+    }
+
+    $status = [int]$match.Groups['status'].Value
+    if ($status -eq 404) {
+        return 'Absent'
+    }
+    if ($status -eq 200) {
+        throw 'Classic main branch protection must be absent; remove it explicitly before lean governance activation.'
+    }
+    throw "Classic main branch protection status returned HTTP $status."
+}
+
 function Get-GovernanceState {
     param(
         [Parameter(Mandatory)][scriptblock]$Runner,
@@ -923,6 +1027,7 @@ function Get-GovernanceState {
         [Parameter(Mandatory)][object]$ExpectedPayload
     )
 
+    $classicMainBranchProtection = Assert-ClassicMainBranchProtectionAbsent -Runner $Runner
     $repositoryState = Invoke-GhJson `
         -Runner $Runner `
         -ArgumentList @('api', "repos/$expectedRepository") `
@@ -939,6 +1044,7 @@ function Get-GovernanceState {
     $dependabotEnabled = Get-DependabotSecurityUpdatesState -Runner $Runner
 
     [pscustomobject]@{
+        ClassicMainBranchProtection = $classicMainBranchProtection
         RepositorySettings = $repositoryState
         RulesetState = $rulesetState
         DependabotSecurityUpdates = $dependabotEnabled
@@ -1030,11 +1136,14 @@ function Invoke-GitHubGovernanceCore {
         -ArgumentList @('api', "repos/$expectedRepository/actions/runs/$ValidatorRunId") `
         -Context 'Validator workflow run'
     Assert-ValidatorRun -Run $validatorRun -CurrentMainSha $currentMainSha
-    $validatorJobs = Invoke-GhJson `
-        -Runner $NativeCommandRunner `
-        -ArgumentList @('api', "repos/$expectedRepository/actions/runs/$ValidatorRunId/jobs?per_page=100") `
-        -Context 'Validator workflow jobs'
-    Assert-ValidatorJobs -JobsResponse $validatorJobs
+    $validatorJobs = @(
+        Invoke-GhPagedPropertyJson `
+            -Runner $NativeCommandRunner `
+            -Endpoint "repos/$expectedRepository/actions/runs/$ValidatorRunId/jobs?per_page=100" `
+            -PropertyName 'jobs' `
+            -Context 'Validator workflow jobs'
+    )
+    Assert-ValidatorJobs -Jobs $validatorJobs
 
     $codeowners = Invoke-NativeCommand `
         -Runner $NativeCommandRunner `
@@ -1100,6 +1209,7 @@ function Invoke-GitHubGovernanceCore {
         DependabotSecurityUpdatesAction = $dependabotAction
         RulesetPayload = $payload
         PreviousState = [pscustomobject]([ordered]@{
+            ClassicMainBranchProtection = $preState.ClassicMainBranchProtection
             RepositorySettings = $preState.RepositorySettings
             Ruleset = $preState.RulesetState.ExistingRulesetDetail
             AllRulesets = $preState.RulesetState.AllRulesetDetails
