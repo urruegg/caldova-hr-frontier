@@ -10,9 +10,9 @@
     {
       "display_name": "PersonalMasterDataFixed",
       "model_kind": "Fixed",
-      "model_id": "",
-      "version": "",
-      "lifecycle_stage": "not_created",
+      "model_id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+      "version": "1.0",
+      "lifecycle_stage": "blocked",
       "documents": [
         {
           "document": "a01-CAND-2026-0411-brunner.pdf",
@@ -191,6 +191,26 @@
         {
           "stage": "not_created",
           "changed_at_utc": "2026-09-28T14:15:49.4691784Z"
+        },
+        {
+          "stage": "created",
+          "changed_at_utc": "2026-09-29T06:42:34.4504815Z"
+        },
+        {
+          "stage": "schema_defined",
+          "changed_at_utc": "2026-09-29T06:42:34.5916192Z"
+        },
+        {
+          "stage": "tagged",
+          "changed_at_utc": "2026-09-29T09:11:11.1735703Z"
+        },
+        {
+          "stage": "trained",
+          "changed_at_utc": "2026-09-29T09:11:11.2151672Z"
+        },
+        {
+          "stage": "blocked",
+          "changed_at_utc": "2026-09-29T09:13:38.1846955Z"
         }
       ]
     },
