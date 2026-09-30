@@ -1,6 +1,9 @@
 [CmdletBinding()]
 param(
-    [string]$RepositoryRoot
+    [string]$RepositoryRoot,
+
+    [ValidatePattern('^[0-9a-f]{64}$')]
+    [string[]]$AdditionalProtectedTenantPayloadFingerprint = @()
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,7 +46,7 @@ $protectedTenant1Fingerprints = @(
     '081abe64cf7b0f154e8dc645aea836838caa1bf828124da8c17eb619b5bb6632'
 )
 $protectedTenant1FingerprintSet = [Collections.Generic.HashSet[string]]::new(
-    [string[]]$protectedTenant1Fingerprints,
+    [string[]]@($protectedTenant1Fingerprints + $AdditionalProtectedTenantPayloadFingerprint),
     [StringComparer]::Ordinal
 )
 
