@@ -13,6 +13,504 @@ function script:Set-TestUtf8BomContent {
     [System.IO.File]::WriteAllText($Path, $Content, $utf8Bom)
 }
 
+Describe 'AI Builder observed capture replay projection' {
+    BeforeAll {
+        $script:ReplayRepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+        $script:ReplayModulePath = Join-Path $script:ReplayRepositoryRoot 'hr\src\scripts\modules\Caldova.HrFrontier.AiBuilder\Caldova.HrFrontier.AiBuilder.psd1'
+        $script:ReplayFixtureRoot = Join-Path $script:ReplayRepositoryRoot 'hr\tests\fixtures\ai-builder\evaluation-capture'
+        $script:ReplayRawFixturePath = Join-Path $script:ReplayFixtureRoot 'process-documents-response.json'
+        $script:ReplayCanonicalFixturePath = Join-Path $script:ReplayFixtureRoot 'canonical-envelope.json'
+        $script:ReplayContractPath = Join-Path $script:ReplayRepositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
+        $script:ReplaySourcePath = Join-Path $script:ReplayRepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template\documents\a-personalblatt\a01-CAND-2026-0411-brunner.pdf'
+        $script:ReplayFieldNames = @(
+            (Get-Content -LiteralPath $script:ReplayContractPath -Raw | ConvertFrom-Json).fields.name
+        )
+        Import-Module $script:ReplayModulePath -Force
+
+        function Update-TestReplayPairHashes {
+            param([Parameter(Mandatory)][object]$Fixture)
+
+            $pair = Get-Content -LiteralPath $Fixture.PairPath -Raw | ConvertFrom-Json
+            $pair.raw.sha256 = (Get-FileHash -LiteralPath $Fixture.RawPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            $pair.raw.size_bytes = (Get-Item -LiteralPath $Fixture.RawPath).Length
+            $pair.canonical.sha256 = (Get-FileHash -LiteralPath $Fixture.CanonicalPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            $pair.canonical.size_bytes = (Get-Item -LiteralPath $Fixture.CanonicalPath).Length
+            Set-TestUtf8NoBomContent -Path $Fixture.PairPath -Content ($pair | ConvertTo-Json -Depth 12)
+        }
+
+        function New-TestObservedCaptureFixture {
+            $root = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+            $captureRoot = Join-Path $root 'capture'
+            $captureDirectory = Join-Path $captureRoot 'cap-20260930000000000Z-00000000'
+            $sourceDirectory = Join-Path $captureDirectory 'source'
+            New-Item -ItemType Directory -Path $sourceDirectory -Force | Out-Null
+
+            $rawPath = Join-Path $captureDirectory 'cap-20260930000000000Z-00000000.ai-builder.raw.json'
+            $canonicalPath = Join-Path $captureDirectory 'cap-20260930000000000Z-00000000.canonical.json'
+            $sourcePath = Join-Path $sourceDirectory 'a01-CAND-2026-0411-brunner.pdf'
+            Copy-Item -LiteralPath $script:ReplayRawFixturePath -Destination $rawPath
+            Copy-Item -LiteralPath $script:ReplayCanonicalFixturePath -Destination $canonicalPath
+            Copy-Item -LiteralPath $script:ReplaySourcePath -Destination $sourcePath
+
+            $contract = Get-Content -LiteralPath $script:ReplayContractPath -Raw | ConvertFrom-Json
+            $manifestPath = Join-Path $root 'run-manifest.json'
+            $manifest = [ordered]@{
+                schema_version = '1.0'
+                run_id = 'fixture-evaluation-run-001'
+                operator = 'operator@example.invalid'
+                corpus_revision = 'c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db'
+                models = @(
+                    [ordered]@{
+                        display_name = 'PersonalMasterDataFixed'
+                        model_kind = 'Fixed'
+                        model_id = '00000000-0000-0000-0000-000000000001'
+                        version = '1.0'
+                        documents = @(
+                            [ordered]@{
+                                document = 'a01-CAND-2026-0411-brunner.pdf'
+                                collection_or_family = 'a-personalblatt'
+                                assignment = 'training'
+                                sha256 = (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash.ToLowerInvariant()
+                                source_path = $sourcePath
+                            }
+                        )
+                    }
+                )
+            }
+            Set-TestUtf8NoBomContent -Path $manifestPath -Content ($manifest | ConvertTo-Json -Depth 12)
+
+            $schemaPath = Join-Path $root 'model-schema-fixed.json'
+            $schema = [ordered]@{
+                schema_version = '1.0'
+                model_name = 'PersonalMasterDataFixed'
+                model_id = '00000000-0000-0000-0000-000000000001'
+                observed_model_version = '1.0'
+                operator = 'operator@example.invalid'
+                observed_at_utc = '2026-09-30T00:00:00Z'
+                fields = @($contract.fields | ForEach-Object {
+                    [ordered]@{ name = [string]$_.name; ai_builder_type = [string]$_.ai_builder_type }
+                })
+            }
+            Set-TestUtf8NoBomContent -Path $schemaPath -Content ($schema | ConvertTo-Json -Depth 12)
+
+            $pairPath = Join-Path $captureDirectory 'capture-pair.json'
+            $pair = [ordered]@{
+                schema_version = '1.0'
+                run_id = 'cap-20260930000000000Z-00000000'
+                capture_stage = 'training-proof'
+                operator_upn = 'operator@example.invalid'
+                captured_at_utc = '2026-09-30T00:00:00.0000000Z'
+                corpus_revision = $manifest.corpus_revision
+                model = [ordered]@{
+                    name = 'PersonalMasterDataFixed'
+                    id = '00000000-0000-0000-0000-000000000001'
+                    version = '1.0'
+                }
+                source = [ordered]@{
+                    local_path = 'capture\cap-20260930000000000Z-00000000\source\a01-CAND-2026-0411-brunner.pdf'
+                    filename = 'a01-CAND-2026-0411-brunner.pdf'
+                    size_bytes = (Get-Item -LiteralPath $sourcePath).Length
+                    sha256 = (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash.ToLowerInvariant()
+                }
+                raw = [ordered]@{
+                    local_path = 'capture\cap-20260930000000000Z-00000000\cap-20260930000000000Z-00000000.ai-builder.raw.json'
+                    size_bytes = (Get-Item -LiteralPath $rawPath).Length
+                    sha256 = (Get-FileHash -LiteralPath $rawPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                }
+                canonical = [ordered]@{
+                    local_path = 'capture\cap-20260930000000000Z-00000000\cap-20260930000000000Z-00000000.canonical.json'
+                    size_bytes = (Get-Item -LiteralPath $canonicalPath).Length
+                    sha256 = (Get-FileHash -LiteralPath $canonicalPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                }
+            }
+            Set-TestUtf8NoBomContent -Path $pairPath -Content ($pair | ConvertTo-Json -Depth 12)
+
+            return [pscustomobject]@{
+                Root = $root
+                CaptureDirectory = $captureDirectory
+                SourcePath = $sourcePath
+                RawPath = $rawPath
+                CanonicalPath = $canonicalPath
+                PairPath = $pairPath
+                ManifestPath = $manifestPath
+                SchemaPath = $schemaPath
+                OutputPath = Join-Path $root 'prediction-capture.json'
+            }
+        }
+
+        function Invoke-TestObservedCaptureReplay {
+            param([Parameter(Mandatory)][object]$Fixture)
+
+            ConvertFrom-HrAiBuilderEvaluationCapture `
+                -CaptureDirectory $Fixture.CaptureDirectory `
+                -RunManifestPath $Fixture.ManifestPath `
+                -FieldContractPath $script:ReplayContractPath `
+                -ModelSchemaRecordPath $Fixture.SchemaPath `
+                -ModelName 'PersonalMasterDataFixed' `
+                -ModelVersion '1.0' `
+                -Operator 'operator@example.invalid' `
+                -OutputPath $Fixture.OutputPath
+        }
+
+        function Copy-TestObservedCaptureFixture {
+            param(
+                [Parameter(Mandatory)][object]$Fixture,
+                [Parameter(Mandatory)][string]$RunId
+            )
+
+            $destination = Join-Path (Split-Path -Parent $Fixture.CaptureDirectory) $RunId
+            Copy-Item -LiteralPath $Fixture.CaptureDirectory -Destination $destination -Recurse
+            $oldRunId = Split-Path -Leaf $Fixture.CaptureDirectory
+            $oldRawPath = Join-Path $destination ($oldRunId + '.ai-builder.raw.json')
+            $oldCanonicalPath = Join-Path $destination ($oldRunId + '.canonical.json')
+            $newRawPath = Join-Path $destination ($RunId + '.ai-builder.raw.json')
+            $newCanonicalPath = Join-Path $destination ($RunId + '.canonical.json')
+            Move-Item -LiteralPath $oldRawPath -Destination $newRawPath
+            Move-Item -LiteralPath $oldCanonicalPath -Destination $newCanonicalPath
+
+            $canonical = [IO.File]::ReadAllText(
+                $newCanonicalPath,
+                [Text.UTF8Encoding]::new($false, $true)
+            ) | ConvertFrom-Json
+            $canonical.run_id = $RunId
+            [IO.File]::WriteAllBytes(
+                $newCanonicalPath,
+                (InModuleScope Caldova.HrFrontier.AiBuilder -Parameters @{ Canonical = $canonical } {
+                    param($Canonical)
+                    ConvertTo-HrAiBuilderCanonicalJson -InputObject $Canonical
+                })
+            )
+
+            $pairPath = Join-Path $destination 'capture-pair.json'
+            $pair = Get-Content -LiteralPath $pairPath -Raw | ConvertFrom-Json
+            $pair.run_id = $RunId
+            $pair.raw.local_path = "capture\$RunId\$RunId.ai-builder.raw.json"
+            $pair.raw.sha256 = (Get-FileHash -LiteralPath $newRawPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            $pair.raw.size_bytes = (Get-Item -LiteralPath $newRawPath).Length
+            $pair.canonical.local_path = "capture\$RunId\$RunId.canonical.json"
+            $pair.canonical.sha256 = (Get-FileHash -LiteralPath $newCanonicalPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            $pair.canonical.size_bytes = (Get-Item -LiteralPath $newCanonicalPath).Length
+            $pair.source.local_path = "capture\$RunId\source\a01-CAND-2026-0411-brunner.pdf"
+            Set-TestUtf8NoBomContent -Path $pairPath -Content ($pair | ConvertTo-Json -Depth 12)
+
+            return $destination
+        }
+    }
+
+    It 'provides the three deterministic replay functions' {
+        InModuleScope Caldova.HrFrontier.AiBuilder {
+            Get-Command ConvertTo-HrAiBuilderCanonicalJson -ErrorAction Stop | Should -Not -BeNullOrEmpty
+        }
+        Get-Command Test-HrAiBuilderCapturePair -ErrorAction Stop | Should -Not -BeNullOrEmpty
+        Get-Command ConvertFrom-HrAiBuilderEvaluationCapture -ErrorAction Stop | Should -Not -BeNullOrEmpty
+    }
+
+    It 'projects the observed response into the exact ordered prediction capture' {
+        $fixture = New-TestObservedCaptureFixture
+
+        $result = Invoke-TestObservedCaptureReplay -Fixture $fixture
+
+        $result.status | Should -Be 'passed' -Because ($result.failed_gates -join ', ')
+        $capture = Get-Content -LiteralPath $fixture.OutputPath -Raw | ConvertFrom-Json
+        $capture.run_id | Should -BeExactly 'fixture-evaluation-run-001'
+        $capture.model_name | Should -BeExactly 'PersonalMasterDataFixed'
+        $capture.model_version | Should -BeExactly '1.0'
+        $capture.capture_mechanism | Should -BeExactly 'Power Automate Process documents'
+        $capture.adapter_contract | Should -BeExactly 'replayable-v2'
+        $capture.raw_export_format | Should -BeExactly 'ai-builder-process-documents-v1'
+        @($capture.documents).Count | Should -Be 1
+        $document = $capture.documents[0]
+        $document.document | Should -BeExactly 'a01-CAND-2026-0411-brunner.pdf'
+        $document.document_sha256 | Should -BeExactly '9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd'
+        @($document.fields.PSObject.Properties.Name) | Should -Be @($script:ReplayFieldNames)
+        $document.fields.candidate_id.value | Should -BeExactly 'CAND-2026-0411'
+        $document.fields.candidate_id.confidence | Should -BeOfType [ValueType]
+        $document.fields.dob.value | Should -BeNullOrEmpty
+        $document.fields.dob.confidence | Should -BeOfType [ValueType]
+        $result.hashes.source_sha256 | Should -BeExactly $document.document_sha256
+    }
+
+    It 'accepts numeric confidence boundaries and observed numeric representations' -TestCases @(
+        @{ Confidence = 0 }
+        @{ Confidence = 1 }
+        @{ Confidence = 0.5 }
+    ) {
+        param($Confidence)
+        $fixture = New-TestObservedCaptureFixture
+        $raw = Get-Content -LiteralPath $fixture.RawPath -Raw | ConvertFrom-Json
+        $raw.responsev2.predictionOutput.labels.candidate_id.confidence = $Confidence
+        Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
+        $canonical = Get-Content -LiteralPath $fixture.CanonicalPath -Raw | ConvertFrom-Json
+        $canonical.fields.candidate_id.confidence = $Confidence
+        $canonicalBytes = InModuleScope Caldova.HrFrontier.AiBuilder -Parameters @{ Canonical = $canonical } {
+            param($Canonical)
+            ConvertTo-HrAiBuilderCanonicalJson -InputObject $canonical
+        }
+        [IO.File]::WriteAllBytes($fixture.CanonicalPath, $canonicalBytes)
+        Update-TestReplayPairHashes -Fixture $fixture
+
+        (Invoke-TestObservedCaptureReplay -Fixture $fixture).status | Should -Be 'passed'
+        $capture = Get-Content -LiteralPath $fixture.OutputPath -Raw | ConvertFrom-Json
+        $capture.documents[0].fields.candidate_id.confidence | Should -Be $Confidence
+        $capture.documents[0].fields.candidate_id.confidence | Should -BeOfType [ValueType]
+    }
+
+    It 'accepts null confidence only with a null value' {
+        $fixture = New-TestObservedCaptureFixture
+        $raw = Get-Content -LiteralPath $fixture.RawPath -Raw | ConvertFrom-Json
+        $raw.responsev2.predictionOutput.labels.dob.confidence = $null
+        Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
+        $canonical = Get-Content -LiteralPath $fixture.CanonicalPath -Raw | ConvertFrom-Json
+        $canonical.fields.dob.confidence = $null
+        [IO.File]::WriteAllBytes(
+            $fixture.CanonicalPath,
+            (InModuleScope Caldova.HrFrontier.AiBuilder -Parameters @{ Canonical = $canonical } {
+                param($Canonical)
+                ConvertTo-HrAiBuilderCanonicalJson -InputObject $Canonical
+            })
+        )
+        Update-TestReplayPairHashes -Fixture $fixture
+
+        $result = Invoke-TestObservedCaptureReplay -Fixture $fixture
+        $result.status | Should -Be 'passed' -Because ($result.failed_gates -join ', ')
+    }
+
+    It 'blocks invalid value and confidence pair <Case>' -TestCases @(
+        @{ Case = 'string confidence'; Field = 'candidate_id'; Value = 'CAND-2026-0411'; Confidence = '0.9' }
+        @{ Case = 'negative confidence'; Field = 'candidate_id'; Value = 'CAND-2026-0411'; Confidence = -0.01 }
+        @{ Case = 'confidence over one'; Field = 'candidate_id'; Value = 'CAND-2026-0411'; Confidence = 1.01 }
+        @{ Case = 'value with null confidence'; Field = 'candidate_id'; Value = 'CAND-2026-0411'; Confidence = $null }
+    ) {
+        param($Field, $Value, $Confidence)
+        $fixture = New-TestObservedCaptureFixture
+        $raw = Get-Content -LiteralPath $fixture.RawPath -Raw | ConvertFrom-Json
+        $raw.responsev2.predictionOutput.labels.$Field.value = $Value
+        $raw.responsev2.predictionOutput.labels.$Field.confidence = $Confidence
+        Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
+        Update-TestReplayPairHashes -Fixture $fixture
+
+        $result = Invoke-TestObservedCaptureReplay -Fixture $fixture
+
+        $result.status | Should -Be 'blocked'
+        $result.failed_gates | Should -Contain 'prediction_capture_schema'
+        $fixture.OutputPath | Should -Not -Exist
+    }
+
+    It 'accepts the observed null value with numeric confidence' {
+        $fixture = New-TestObservedCaptureFixture
+
+        (Invoke-TestObservedCaptureReplay -Fixture $fixture).status | Should -Be 'passed'
+        (Get-Content -LiteralPath $fixture.OutputPath -Raw | ConvertFrom-Json).documents[0].fields.dob.confidence |
+            Should -Be 0.99
+    }
+
+    It 'blocks a <Case> observed field condition' -TestCases @(
+        @{ Case = 'missing'; Mutation = 'missing' }
+        @{ Case = 'additional'; Mutation = 'additional' }
+        @{ Case = 'duplicate source filename'; Mutation = 'duplicate' }
+    ) {
+        param($Mutation)
+        $fixture = New-TestObservedCaptureFixture
+        if ($Mutation -eq 'duplicate') {
+            Copy-TestObservedCaptureFixture -Fixture $fixture -RunId 'cap-20260930000000000Z-11111111' | Out-Null
+            $fixture.CaptureDirectory = Split-Path -Parent $fixture.CaptureDirectory
+        }
+        else {
+            $raw = Get-Content -LiteralPath $fixture.RawPath -Raw | ConvertFrom-Json
+            if ($Mutation -eq 'missing') {
+                $raw.responsev2.predictionOutput.labels.PSObject.Properties.Remove('candidate_id')
+            }
+            else {
+                $raw.responsev2.predictionOutput.labels | Add-Member -NotePropertyName unexpected_field -NotePropertyValue (
+                    [pscustomobject]@{ value = 'unexpected'; confidence = 0.5 }
+                )
+            }
+            Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
+            Update-TestReplayPairHashes -Fixture $fixture
+        }
+
+        $result = Invoke-TestObservedCaptureReplay -Fixture $fixture
+
+        $result.status | Should -Be 'blocked'
+        $result.failed_gates | Should -Contain 'exact_field_contract'
+        $fixture.OutputPath | Should -Not -Exist
+    }
+
+    It 'serializes canonical JSON to deterministic UTF-8 bytes' {
+        $input = [ordered]@{
+            schema_version = '1.0'
+            text = 'Müller says "yes" at C:\HR'
+            nullable = $null
+            confidence = 0.99
+        }
+
+        $first = InModuleScope Caldova.HrFrontier.AiBuilder -Parameters @{ InputValue = $input } {
+            param($InputValue)
+            ConvertTo-HrAiBuilderCanonicalJson -InputObject $InputValue
+        }
+        $second = InModuleScope Caldova.HrFrontier.AiBuilder -Parameters @{ InputValue = $input } {
+            param($InputValue)
+            ConvertTo-HrAiBuilderCanonicalJson -InputObject $InputValue
+        }
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try {
+            $firstHash = ([BitConverter]::ToString($sha.ComputeHash($first)) -replace '-', '').ToLowerInvariant()
+            $secondHash = ([BitConverter]::ToString($sha.ComputeHash($second)) -replace '-', '').ToLowerInvariant()
+        }
+        finally {
+            $sha.Dispose()
+        }
+        $text = [Text.UTF8Encoding]::new($false, $true).GetString($first)
+
+        $firstHash | Should -BeExactly $secondHash
+        $firstHash | Should -Match '^[a-f0-9]{64}$'
+        @($first[0..2]) | Should -Not -Be @(0xEF, 0xBB, 0xBF)
+        $first[-1] | Should -Be 0x0A
+        $first[-2] | Should -Not -Be 0x0A
+        $first | Should -Not -Contain 0x0D
+        $text | Should -Match '^\{"schema_version":"1\.0","text":'
+        $text | Should -Match 'Müller'
+        $text | Should -Match '\\"yes\\"'
+        $text | Should -Match 'C:\\\\HR'
+    }
+
+    It 'changes canonical bytes when <Mutation> changes' -TestCases @(
+        @{ Mutation = 'a value'; Changed = [ordered]@{ a = 'changed'; b = $null; confidence = 0.5 } }
+        @{ Mutation = 'a null'; Changed = [ordered]@{ a = $null; b = 'value'; confidence = 0.5 } }
+        @{ Mutation = 'confidence'; Changed = [ordered]@{ a = 'value'; b = $null; confidence = 0.6 } }
+        @{ Mutation = 'property order'; Changed = [ordered]@{ confidence = 0.5; b = $null; a = 'value' } }
+    ) {
+        param($Changed)
+        $original = [ordered]@{ a = 'value'; b = $null; confidence = 0.5 }
+
+        $originalBytes = InModuleScope Caldova.HrFrontier.AiBuilder -Parameters @{ Value = $original } {
+            param($Value)
+            ConvertTo-HrAiBuilderCanonicalJson -InputObject $Value
+        }
+        $changedBytes = InModuleScope Caldova.HrFrontier.AiBuilder -Parameters @{ Value = $Changed } {
+            param($Value)
+            ConvertTo-HrAiBuilderCanonicalJson -InputObject $Value
+        }
+
+        [Convert]::ToBase64String($changedBytes) | Should -Not -BeExactly ([Convert]::ToBase64String($originalBytes))
+    }
+
+    It 'fails closed at <Gate> for <Mutation>' -TestCases @(
+        @{ Mutation = 'changed source bytes'; Gate = 'source_sha256' }
+        @{ Mutation = 'case-only filename'; Gate = 'exact_correlation' }
+        @{ Mutation = 'raw run id'; Gate = 'exact_correlation' }
+        @{ Mutation = 'envelope corpus revision'; Gate = 'exact_correlation' }
+        @{ Mutation = 'model version'; Gate = 'exact_model_version' }
+        @{ Mutation = 'changed raw response'; Gate = 'adapter_replay' }
+        @{ Mutation = 'canonical BOM'; Gate = 'canonical_serialization' }
+        @{ Mutation = 'existing output'; Gate = 'immutable_output' }
+        @{ Mutation = 'path escape'; Gate = 'evidence_boundary' }
+    ) {
+        param($Mutation, $Gate)
+        $fixture = New-TestObservedCaptureFixture
+        $arguments = @{
+            CaptureDirectory = $fixture.CaptureDirectory
+            RunManifestPath = $fixture.ManifestPath
+            FieldContractPath = $script:ReplayContractPath
+            ModelSchemaRecordPath = $fixture.SchemaPath
+            ModelName = 'PersonalMasterDataFixed'
+            ModelVersion = '1.0'
+            Operator = 'operator@example.invalid'
+            OutputPath = $fixture.OutputPath
+        }
+
+        switch ($Mutation) {
+            'changed source bytes' {
+                [IO.File]::AppendAllText($fixture.SourcePath, 'changed', [Text.UTF8Encoding]::new($false))
+            }
+            'case-only filename' {
+                $pair = Get-Content -LiteralPath $fixture.PairPath -Raw | ConvertFrom-Json
+                $pair.source.filename = 'A01-CAND-2026-0411-brunner.pdf'
+                Set-TestUtf8NoBomContent -Path $fixture.PairPath -Content ($pair | ConvertTo-Json -Depth 12)
+            }
+            'raw run id' {
+                $raw = [IO.File]::ReadAllText($fixture.RawPath, [Text.UTF8Encoding]::new($false, $true)) | ConvertFrom-Json
+                $raw.responsev2 | Add-Member -NotePropertyName run_id -NotePropertyValue 'cap-20260930000000000Z-wrong000'
+                Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
+                Update-TestReplayPairHashes -Fixture $fixture
+            }
+            'envelope corpus revision' {
+                $canonical = [IO.File]::ReadAllText($fixture.CanonicalPath, [Text.UTF8Encoding]::new($false, $true)) | ConvertFrom-Json
+                $canonical.corpus_revision = ('f' * 64)
+                [IO.File]::WriteAllBytes(
+                    $fixture.CanonicalPath,
+                    (InModuleScope Caldova.HrFrontier.AiBuilder -Parameters @{ Canonical = $canonical } {
+                        param($Canonical)
+                        ConvertTo-HrAiBuilderCanonicalJson -InputObject $Canonical
+                    })
+                )
+                Update-TestReplayPairHashes -Fixture $fixture
+            }
+            'model version' {
+                $arguments.ModelVersion = '2.0'
+            }
+            'changed raw response' {
+                $raw = [IO.File]::ReadAllText($fixture.RawPath, [Text.UTF8Encoding]::new($false, $true)) | ConvertFrom-Json
+                $raw.responsev2.predictionOutput.labels.candidate_id.value = 'CHANGED'
+                Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
+                Update-TestReplayPairHashes -Fixture $fixture
+            }
+            'canonical BOM' {
+                $bytes = [IO.File]::ReadAllBytes($fixture.CanonicalPath)
+                $withBom = [byte[]]::new($bytes.Length + 3)
+                $withBom[0] = 0xEF
+                $withBom[1] = 0xBB
+                $withBom[2] = 0xBF
+                [Array]::Copy($bytes, 0, $withBom, 3, $bytes.Length)
+                [IO.File]::WriteAllBytes($fixture.CanonicalPath, $withBom)
+                Update-TestReplayPairHashes -Fixture $fixture
+            }
+            'existing output' {
+                Set-TestUtf8NoBomContent -Path $fixture.OutputPath -Content '{}'
+            }
+            'path escape' {
+                $outside = Join-Path $fixture.Root 'outside.pdf'
+                Copy-Item -LiteralPath $fixture.SourcePath -Destination $outside
+                $pair = Get-Content -LiteralPath $fixture.PairPath -Raw | ConvertFrom-Json
+                $pair.source.local_path = '..\outside.pdf'
+                Set-TestUtf8NoBomContent -Path $fixture.PairPath -Content ($pair | ConvertTo-Json -Depth 12)
+            }
+        }
+
+        $result = ConvertFrom-HrAiBuilderEvaluationCapture @arguments
+
+        $result.status | Should -Be 'blocked'
+        $result.failed_gates | Should -Contain $Gate
+        if ($Mutation -ne 'existing output') {
+            $fixture.OutputPath | Should -Not -Exist
+        }
+    }
+
+    It 'imports the observed capture through the compatible six-parameter adapter entry point' {
+        $fixture = New-TestObservedCaptureFixture
+        $manifest = Get-Content -LiteralPath $fixture.ManifestPath -Raw | ConvertFrom-Json
+        $manifest.models[0].documents[0].assignment = 'held-out'
+        Set-TestUtf8NoBomContent -Path $fixture.ManifestPath -Content ($manifest | ConvertTo-Json -Depth 12)
+        $importPath = Join-Path $script:ReplayRepositoryRoot 'hr\src\scripts\Import-AiBuilderQuickTestResults.ps1'
+        $adapterPath = Join-Path $script:ReplayRepositoryRoot 'hr\src\scripts\adapters\ConvertFrom-HrAiBuilderEvaluationCapture.ps1'
+
+        $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $importPath `
+            -RunManifestPath $fixture.ManifestPath `
+            -ModelSchemaRecordPath $fixture.SchemaPath `
+            -RawExportDirectory $fixture.CaptureDirectory `
+            -AdapterScriptPath $adapterPath `
+            -TargetModelName 'PersonalMasterDataFixed' `
+            -OutputPath $fixture.OutputPath 2>&1
+        $exitCode = $LASTEXITCODE
+
+        $exitCode | Should -Be 0 -Because ($output -join [Environment]::NewLine)
+        $capture = Get-Content -LiteralPath $fixture.OutputPath -Raw | ConvertFrom-Json
+        $capture.capture_mechanism | Should -BeExactly 'Power Automate Process documents'
+        $capture.adapter_contract | Should -BeExactly 'replayable-v2'
+        $capture.raw_export_format | Should -BeExactly 'ai-builder-process-documents-v1'
+    }
+}
+
 function script:Set-TestUtf8NoBomContent {
     param(
         [Parameter(Mandatory)]
@@ -303,7 +801,7 @@ Describe 'AI Builder field and corpus contracts' {
             $intent.fixed_model.display_name | Should -Be 'PersonalMasterDataFixed'
             $intent.fixed_model.model_id | Should -Be '74b09a72-d1f1-4598-bc4d-3746d5c97acc'
             $intent.fixed_model.version | Should -Be '1.0'
-            ([datetime]$intent.approval_recorded_at_utc).ToString('o') | Should -Be '2026-09-29T13:47:08.4090000Z'
+            ([datetime]$intent.approval_recorded_at_utc).ToUniversalTime().ToString('o') | Should -Be '2026-09-29T13:47:08.4090000Z'
         }
 
         It 'records the explicit approval response, preserved blocked evidence hash, and mutation exclusions' {
@@ -318,7 +816,7 @@ Describe 'AI Builder field and corpus contracts' {
             $readiness.preserved_blocked_evidence.path | Should -Be 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\model-test-capability.json'
             $readiness.preserved_blocked_evidence.sha256 | Should -Be 'B745FAA53C2847836B23325581FFE7992DCBAD52C338B560B5EF5F613620E1CC'
             $readiness.explicit_approval.response | Should -Be 'proceed'
-            ([datetime]$readiness.explicit_approval.responded_at_utc).ToString('o') | Should -Be '2026-09-29T13:47:08.4090000Z'
+            ([datetime]$readiness.explicit_approval.responded_at_utc).ToUniversalTime().ToString('o') | Should -Be '2026-09-29T13:47:08.4090000Z'
             $readiness.explicit_approval.scope_summary | Should -Match 'publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1\.0 for evaluation'
             $readiness.explicit_approval.scope_summary | Should -Match 'create the unmanaged solution, manual flow, AI Builder and SharePoint connection references, and the selected SharePoint folder'
             @($readiness.explicit_approval.authorized_later_tasks) | Should -Be @('Task 4', 'Task 5', 'Task 6')
@@ -340,12 +838,12 @@ Describe 'AI Builder field and corpus contracts' {
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No draft 2.0 mutation'
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No deletion'
             $readiness.selection_confirmation.connection_reference_names.status | Should -Be 'explicit_user_confirmed'
-            ([datetime]$readiness.selection_confirmation.connection_reference_names.confirmed_at_utc).ToString('o') | Should -Be '2026-09-29T13:37:13.6480000Z'
+            ([datetime]$readiness.selection_confirmation.connection_reference_names.confirmed_at_utc).ToUniversalTime().ToString('o') | Should -Be '2026-09-29T13:37:13.6480000Z'
             $readiness.selection_confirmation.connection_reference_names.observation | Should -Match 'explicitly confirmed'
             ([datetime]$readiness.explicit_approval.responded_at_utc) -gt ([datetime]$readiness.selection_confirmation.connection_reference_names.confirmed_at_utc) | Should -BeTrue
             $readiness.explicit_approval_artifact.prompt | Should -Be 'All final names are now explicitly confirmed. Do you freshly approve this exact Tenant 2 DEV-only scope: publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 as evaluation-only; create unmanaged solution Caldova HR AI Evaluation DEV (calhr_ai_evaluation_dev); create manual flow Capture AI Builder Evaluation Evidence; create AI Builder reference Caldova HR AI Evaluation DEV AI Builder (calhr_ai_evaluation_dev_aibuilder); create SharePoint reference Caldova HR AI Evaluation DEV SharePoint (calhr_ai_evaluation_dev_sharepoint); and create folder https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence, owned/run only by admin@caldova25668747.onmicrosoft.com? This does not authorize business use, TEST/PROD, Tenant 1, Workday, holdouts, draft 2.0 changes, automatic deletion, or any other deletion.'
             $readiness.explicit_approval_artifact.response | Should -Be 'proceed'
-            ([datetime]$readiness.explicit_approval_artifact.responded_at_utc).ToString('o') | Should -Be '2026-09-29T13:47:08.4090000Z'
+            ([datetime]$readiness.explicit_approval_artifact.responded_at_utc).ToUniversalTime().ToString('o') | Should -Be '2026-09-29T13:47:08.4090000Z'
         }
 
         It 'records the single blocked training capture attempt without a retry or capability claim' {
@@ -421,20 +919,22 @@ Describe 'AI Builder field and corpus contracts' {
                 (Get-FileHash -LiteralPath $rawPath -Algorithm SHA256).Hash.ToLowerInvariant() | Should -Be $record.sha256
             }
 
-            $folderItem = Get-Content -LiteralPath (Join-Path $evidenceRoot 'task6-folder-item.raw.json') -Raw | ConvertFrom-Json -AsHashtable
-            $roleAssignments = Get-Content -LiteralPath (Join-Path $evidenceRoot 'task6-folder-role-assignments.raw.json') -Raw | ConvertFrom-Json -AsHashtable
-            $currentUser = Get-Content -LiteralPath (Join-Path $evidenceRoot 'task6-current-user.raw.json') -Raw | ConvertFrom-Json -AsHashtable
-            $roleDefinitions = Get-Content -LiteralPath (Join-Path $evidenceRoot 'task6-role-definitions.raw.json') -Raw | ConvertFrom-Json -AsHashtable
+            $folderItemText = Get-Content -LiteralPath (Join-Path $evidenceRoot 'task6-folder-item.raw.json') -Raw
+            $roleAssignments = Get-Content -LiteralPath (Join-Path $evidenceRoot 'task6-folder-role-assignments.raw.json') -Raw | ConvertFrom-Json
+            $currentUser = Get-Content -LiteralPath (Join-Path $evidenceRoot 'task6-current-user.raw.json') -Raw | ConvertFrom-Json
+            $roleDefinitions = Get-Content -LiteralPath (Join-Path $evidenceRoot 'task6-role-definitions.raw.json') -Raw | ConvertFrom-Json
 
-            $folderItem['HasUniqueRoleAssignments'] | Should -Be $analysis.folder.has_unique_role_assignments
-            $folderItem['Id'] | Should -Be $analysis.folder.list_item_id
-            @($roleAssignments['value']).Count | Should -Be 1
-            $roleAssignments['value'][0]['PrincipalId'] | Should -Be $analysis.role_assignments[0].principal_id
-            $roleAssignments['value'][0]['Member']['LoginName'] | Should -Be $analysis.role_assignments[0].login_name
-            $roleAssignments['value'][0]['RoleDefinitionBindings'][0]['Name'] | Should -Be $analysis.role_assignments[0].role_definition_name
-            $currentUser['Id'] | Should -Be $analysis.current_user.principal_id
-            $currentUser['IsSiteAdmin'] | Should -Be $analysis.current_user.is_site_admin
-            @($roleDefinitions['value'] | Where-Object { $_['Id'] -eq $analysis.role_assignments[0].role_definition_id } | ForEach-Object { $_['Name'] }) |
+            [bool]::Parse([regex]::Match($folderItemText, '"HasUniqueRoleAssignments":(?<value>true|false)').Groups['value'].Value) |
+                Should -Be $analysis.folder.has_unique_role_assignments
+            [int][regex]::Match($folderItemText, '"Id":(?<value>\d+)').Groups['value'].Value |
+                Should -Be $analysis.folder.list_item_id
+            @($roleAssignments.value).Count | Should -Be 1
+            $roleAssignments.value[0].PrincipalId | Should -Be $analysis.role_assignments[0].principal_id
+            $roleAssignments.value[0].Member.LoginName | Should -Be $analysis.role_assignments[0].login_name
+            $roleAssignments.value[0].RoleDefinitionBindings[0].Name | Should -Be $analysis.role_assignments[0].role_definition_name
+            $currentUser.Id | Should -Be $analysis.current_user.principal_id
+            $currentUser.IsSiteAdmin | Should -Be $analysis.current_user.is_site_admin
+            @($roleDefinitions.value | Where-Object { $_.Id -eq $analysis.role_assignments[0].role_definition_id } | ForEach-Object { $_.Name }) |
                 Should -Be @('Full Control')
 
             $failedRequest.page_origin | Should -Be 'https://caldova25668747.sharepoint.com'
@@ -595,8 +1095,8 @@ Describe 'AI Builder field and corpus contracts' {
             $intent.selection.publisher.prefix | Should -Be 'calhr'
             $intent.selection.publisher.publisher_id | Should -Be '6b6eabd8-57b6-40b7-9d12-7b2a045978e8'
             $intent.selection.publisher.confirmation.status | Should -Be 'explicit_user_approved_after_read_back'
-            ([datetime]$intent.selection.publisher.confirmation.approved_at_utc).ToString('o') | Should -Be '2026-09-29T14:32:33.6190000Z'
-            ([datetime]$intent.selection.publisher.confirmation.read_back_at_utc).ToString('o') | Should -Be '2026-09-29T14:34:04.9180873Z'
+            ([datetime]$intent.selection.publisher.confirmation.approved_at_utc).ToUniversalTime().ToString('o') | Should -Be '2026-09-29T14:32:33.6190000Z'
+            ([datetime]$intent.selection.publisher.confirmation.read_back_at_utc).ToUniversalTime().ToString('o') | Should -Be '2026-09-29T14:34:04.9180873Z'
             $intent.selection.publisher.confirmation.source | Should -Be 'user message; pac env fetch'
 
             $readiness.selection_confirmation.publisher.status | Should -Be 'explicit_user_approved_after_read_back'
@@ -604,8 +1104,8 @@ Describe 'AI Builder field and corpus contracts' {
             $readiness.selection_confirmation.publisher.unique_name | Should -Be 'calhrfrontier'
             $readiness.selection_confirmation.publisher.prefix | Should -Be 'calhr'
             $readiness.selection_confirmation.publisher.publisher_id | Should -Be '6b6eabd8-57b6-40b7-9d12-7b2a045978e8'
-            ([datetime]$readiness.selection_confirmation.publisher.approved_at_utc).ToString('o') | Should -Be '2026-09-29T14:32:33.6190000Z'
-            ([datetime]$readiness.selection_confirmation.publisher.read_back_at_utc).ToString('o') | Should -Be '2026-09-29T14:34:04.9180873Z'
+            ([datetime]$readiness.selection_confirmation.publisher.approved_at_utc).ToUniversalTime().ToString('o') | Should -Be '2026-09-29T14:32:33.6190000Z'
+            ([datetime]$readiness.selection_confirmation.publisher.read_back_at_utc).ToUniversalTime().ToString('o') | Should -Be '2026-09-29T14:34:04.9180873Z'
 
             $blockedAttempt = @($readiness.task_5_attempt_history | Where-Object {
                     $_.attempt -eq 1 -and $_.status -eq 'blocked' -and $_.blocker_id -eq 'publisher_not_recorded_in_intent'
@@ -928,7 +1428,7 @@ Describe 'AI Builder field and corpus contracts' {
             $manifest.power_platform_environment_id | Should -Be '84ad4c54-41d9-e5df-ba07-188b4719594a'
             $manifest.environment_stage | Should -Be 'DEV'
             $manifest.operator | Should -Be 'operator@example.invalid'
-            ([datetime]$manifest.started_at_utc).ToString('o') | Should -Be '2026-09-25T08:00:00.0000000Z'
+            ([datetime]$manifest.started_at_utc).ToUniversalTime().ToString('o') | Should -Be '2026-09-25T08:00:00.0000000Z'
             $manifest.corpus_revision | Should -Match '^[a-f0-9]{64}$'
             $manifest.generator_revision | Should -Match '^[a-f0-9]{64}$'
         }
@@ -1474,7 +1974,7 @@ Describe 'AI Builder field and corpus contracts' {
             (Join-Path $outputDirectory 'corpus-quality.json') | Should -Exist
             (Join-Path $outputDirectory 'run-manifest.json') | Should -Exist
             (Join-Path $outputDirectory 'model-inventory.json') | Should -Exist
-            ([datetime](Get-Content -LiteralPath (Join-Path $outputDirectory 'run-manifest.json') -Raw | ConvertFrom-Json).started_at_utc).ToString('o') |
+            ([datetime](Get-Content -LiteralPath (Join-Path $outputDirectory 'run-manifest.json') -Raw | ConvertFrom-Json).started_at_utc).ToUniversalTime().ToString('o') |
                 Should -Match 'Z$'
             ($output -join [Environment]::NewLine) | Should -Match 'Corpus qualification passed\.'
         }

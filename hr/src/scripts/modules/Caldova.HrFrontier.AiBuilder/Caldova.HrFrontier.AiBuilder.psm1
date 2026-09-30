@@ -14,7 +14,8 @@ function Read-HrAiBuilderJson {
     }
 
     try {
-        return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+        $utf8 = [Text.UTF8Encoding]::new($false, $true)
+        return [IO.File]::ReadAllText([IO.Path]::GetFullPath($Path), $utf8) | ConvertFrom-Json
     }
     catch {
         throw "$Description file '$Path' is malformed JSON. $($_.Exception.Message)"
@@ -309,5 +310,7 @@ Export-ModuleMember -Function @(
     'Measure-HrAiBuilderEvaluation',
     'New-HrAiBuilderModelSchemaRecord',
     'Set-HrAiBuilderPredictionCaptureAdapterMetadata',
-    'Test-HrAiBuilderStrictGates'
+    'Test-HrAiBuilderStrictGates',
+    'Test-HrAiBuilderCapturePair',
+    'ConvertFrom-HrAiBuilderEvaluationCapture'
 )

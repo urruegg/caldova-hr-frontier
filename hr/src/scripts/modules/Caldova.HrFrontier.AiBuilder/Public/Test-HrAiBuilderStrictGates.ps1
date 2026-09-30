@@ -97,6 +97,19 @@ function Test-HrAiBuilderStrictGates {
         return [string]::Equals([string]$Left, [string]$Right, [System.StringComparison]::Ordinal)
     }
 
+    function Test-HrAiBuilderSupportedAdapterContract {
+        param([Parameter(Mandatory)][object]$Capture)
+
+        $legacy = (Test-HrAiBuilderOrdinalEquals $Capture.capture_mechanism 'AI Builder Quick Test') -and
+            (Test-HrAiBuilderOrdinalEquals $Capture.adapter_contract 'replayable-v1') -and
+            (Test-HrAiBuilderOrdinalEquals $Capture.raw_export_format 'test-fixture-json-v1')
+        $observed = (Test-HrAiBuilderOrdinalEquals $Capture.capture_mechanism 'Power Automate Process documents') -and
+            (Test-HrAiBuilderOrdinalEquals $Capture.adapter_contract 'replayable-v2') -and
+            (Test-HrAiBuilderOrdinalEquals $Capture.raw_export_format 'ai-builder-process-documents-v1')
+
+        return ($legacy -or $observed)
+    }
+
     function Compare-HrAiBuilderPredictionCaptures {
         param(
             [Parameter(Mandatory)]
@@ -204,8 +217,7 @@ function Test-HrAiBuilderStrictGates {
             [string[]]$ContractFieldNames
         )
 
-        if (-not (Test-HrAiBuilderOrdinalEquals -Left $PredictionCapture.adapter_contract -Right 'replayable-v1') -or
-            -not (Test-HrAiBuilderOrdinalEquals -Left $PredictionCapture.raw_export_format -Right 'test-fixture-json-v1')) {
+        if (-not (Test-HrAiBuilderSupportedAdapterContract -Capture $PredictionCapture)) {
             return $false
         }
 
@@ -300,15 +312,13 @@ function Test-HrAiBuilderStrictGates {
         $predictionCaptureSchemaValid = $false
     }
     elseif ([string]$PredictionCapture.schema_version -ne '1.0' -or
-        [string]$PredictionCapture.capture_mechanism -ne 'AI Builder Quick Test' -or
+        -not (Test-HrAiBuilderSupportedAdapterContract -Capture $PredictionCapture) -or
         [string]::IsNullOrWhiteSpace([string]$PredictionCapture.run_id) -or
         [string]::IsNullOrWhiteSpace([string]$PredictionCapture.model_name) -or
         [string]::IsNullOrWhiteSpace([string]$PredictionCapture.model_version) -or
         [string]::IsNullOrWhiteSpace([string]$PredictionCapture.adapter_version) -or
-        [string]$PredictionCapture.adapter_contract -ne 'replayable-v1' -or
         [string]::IsNullOrWhiteSpace([string]$PredictionCapture.adapter_script_path) -or
         [string]$PredictionCapture.adapter_script_sha256 -notmatch '^[a-f0-9]{64}$' -or
-        [string]$PredictionCapture.raw_export_format -ne 'test-fixture-json-v1' -or
         [string]::IsNullOrWhiteSpace([string]$PredictionCapture.operator)) {
         $predictionCaptureSchemaValid = $false
     }
@@ -364,6 +374,64 @@ function Test-HrAiBuilderStrictGates {
 
     if (-not $predictionCaptureSchemaValid) {
         Add-HrAiBuilderFailedGate -FailedGates $failedGates -Gate 'prediction_capture_schema'
+    }
+
+    $isObservedCapture = Test-HrAiBuilderOrdinalEquals $PredictionCapture.adapter_contract 'replayable-v2'
+    if ($isObservedCapture) {
+        $capturePairProvenancePassed = $true
+        $canonicalSerializationPassed = $true
+        foreach ($document in $captureDocuments) {
+            $captureDirectory = Split-Path -Parent ([string]$document.source_export_path)
+            $pairPath = Join-Path $captureDirectory 'capture-pair.json'
+            $canonicalFiles = @(Get-ChildItem -LiteralPath $captureDirectory -Filter '*.canonical.json' -File -ErrorAction SilentlyContinue)
+            if (-not (Test-Path -LiteralPath $pairPath -PathType Leaf) -or $canonicalFiles.Count -ne 1) {
+                $capturePairProvenancePassed = $false
+                $canonicalSerializationPassed = $false
+                continue
+            }
+
+            try {
+                $pair = Read-HrAiBuilderJson -Path $pairPath -Description 'Capture pair'
+                if (-not (Test-HrAiBuilderOrdinalEquals (Get-HrAiBuilderFileSha256 -Path $document.source_export_path) $document.source_export_sha256) -or
+                    -not (Test-HrAiBuilderOrdinalEquals (Get-HrAiBuilderFileSha256 -Path $document.source_export_path) $pair.raw.sha256) -or
+                    -not (Test-HrAiBuilderOrdinalEquals (Get-HrAiBuilderFileSha256 -Path $canonicalFiles[0].FullName) $pair.canonical.sha256)) {
+                    $capturePairProvenancePassed = $false
+                }
+
+                $canonicalBytes = [IO.File]::ReadAllBytes($canonicalFiles[0].FullName)
+                $hasBom = $canonicalBytes.Length -ge 3 -and
+                    $canonicalBytes[0] -eq 0xEF -and $canonicalBytes[1] -eq 0xBB -and $canonicalBytes[2] -eq 0xBF
+                $terminalLfCount = 0
+                for ($index = $canonicalBytes.Length - 1; $index -ge 0 -and $canonicalBytes[$index] -eq 0x0A; $index--) {
+                    $terminalLfCount++
+                }
+                if ($hasBom -or $terminalLfCount -ne 1 -or $canonicalBytes -contains 0x0D) {
+                    $canonicalSerializationPassed = $false
+                }
+            }
+            catch {
+                $capturePairProvenancePassed = $false
+                $canonicalSerializationPassed = $false
+            }
+        }
+        if (-not $capturePairProvenancePassed) {
+            Add-HrAiBuilderFailedGate -FailedGates $failedGates -Gate 'capture_pair_provenance'
+        }
+        if (-not $canonicalSerializationPassed) {
+            Add-HrAiBuilderFailedGate -FailedGates $failedGates -Gate 'canonical_serialization'
+        }
+
+        if ($manifestModel.Count -ne 1 -or
+            -not (Test-HrAiBuilderOrdinalEquals $PredictionCapture.run_id $RunManifest.run_id) -or
+            -not (Test-HrAiBuilderOrdinalEquals $PredictionCapture.model_name $ModelSchemaRecord.model_name) -or
+            -not (Test-HrAiBuilderOrdinalEquals $PredictionCapture.operator $RunManifest.operator)) {
+            Add-HrAiBuilderFailedGate -FailedGates $failedGates -Gate 'exact_correlation'
+        }
+        if ($manifestModel.Count -ne 1 -or
+            -not (Test-HrAiBuilderOrdinalEquals $PredictionCapture.model_version $manifestModel[0].version) -or
+            -not (Test-HrAiBuilderOrdinalEquals $PredictionCapture.model_version $ModelSchemaRecord.observed_model_version)) {
+            Add-HrAiBuilderFailedGate -FailedGates $failedGates -Gate 'exact_model_version'
+        }
     }
 
     if ($predictionCaptureSchemaValid -and -not (Test-HrAiBuilderAdapterReplay -PredictionCapture $PredictionCapture -ContractFieldNames $contractFieldNames)) {

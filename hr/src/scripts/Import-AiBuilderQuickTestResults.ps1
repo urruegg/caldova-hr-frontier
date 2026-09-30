@@ -162,6 +162,19 @@ function Test-ImportOrdinalEquals {
     return [string]::Equals([string]$Left, [string]$Right, [System.StringComparison]::Ordinal)
 }
 
+function Test-ImportSupportedAdapterContract {
+    param([Parameter(Mandatory)][object]$PredictionCapture)
+
+    $legacy = (Test-ImportOrdinalEquals -Left $PredictionCapture.capture_mechanism -Right 'AI Builder Quick Test') -and
+        (Test-ImportOrdinalEquals -Left $PredictionCapture.adapter_contract -Right 'replayable-v1') -and
+        (Test-ImportOrdinalEquals -Left $PredictionCapture.raw_export_format -Right 'test-fixture-json-v1')
+    $observed = (Test-ImportOrdinalEquals -Left $PredictionCapture.capture_mechanism -Right 'Power Automate Process documents') -and
+        (Test-ImportOrdinalEquals -Left $PredictionCapture.adapter_contract -Right 'replayable-v2') -and
+        (Test-ImportOrdinalEquals -Left $PredictionCapture.raw_export_format -Right 'ai-builder-process-documents-v1')
+
+    return ($legacy -or $observed)
+}
+
 function Compare-ImportPredictionCapture {
     param(
         [Parameter(Mandatory)][object]$Expected,
@@ -261,8 +274,7 @@ function Test-ImportAdapterReplay {
         [Parameter(Mandatory)][string[]]$FieldNames
     )
 
-    if (-not (Test-ImportOrdinalEquals -Left $PredictionCapture.adapter_contract -Right 'replayable-v1') -or
-        -not (Test-ImportOrdinalEquals -Left $PredictionCapture.raw_export_format -Right 'test-fixture-json-v1')) {
+    if (-not (Test-ImportSupportedAdapterContract -PredictionCapture $PredictionCapture)) {
         return $false
     }
 
@@ -343,13 +355,12 @@ function Test-ImportPredictionCapture {
         throw "Model schema record does not match manifest model '$TargetModelName'."
     }
 
-    if (-not (Test-ImportOrdinalEquals -Left $PredictionCapture.adapter_contract -Right 'replayable-v1') -or
-        -not (Test-ImportOrdinalEquals -Left $PredictionCapture.raw_export_format -Right 'test-fixture-json-v1')) {
+    if (-not (Test-ImportSupportedAdapterContract -PredictionCapture $PredictionCapture)) {
         throw 'Prediction capture adapter verification contract is unsupported.'
     }
 
     if (-not (Test-ImportOrdinalEquals -Left $PredictionCapture.schema_version -Right '1.0') -or
-        -not (Test-ImportOrdinalEquals -Left $PredictionCapture.capture_mechanism -Right 'AI Builder Quick Test') -or
+        -not (Test-ImportSupportedAdapterContract -PredictionCapture $PredictionCapture) -or
         -not (Test-ImportOrdinalEquals -Left $PredictionCapture.run_id -Right $RunManifest.run_id) -or
         -not (Test-ImportOrdinalEquals -Left $PredictionCapture.model_name -Right $TargetModelName) -or
         -not (Test-ImportOrdinalEquals -Left $PredictionCapture.model_version -Right $manifestModel.version) -or
