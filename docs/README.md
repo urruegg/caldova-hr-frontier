@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.5 |
-| **Date** | 2026-09-29 |
+| **Version** | 1.6 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -140,6 +140,8 @@ The Infrastructure domain contains the approved lean control-plane topology toge
 | [Multi-Tenant Provisioning](../infra/docs/18-multi-tenant-provisioning.md) | Proposed guidance retained for context; the lean sprint is Tenant 1 only and does not alter or migrate existing Tenant 2 files. |
 | [Bootstrap Recovery](../infra/docs/19-bootstrap-recovery.md) | Defines attended recovery from nine failure states without bypassing validation, approvals, or least privilege. |
 | [Tenant Trust Activation Runbook](../infra/docs/20-tenant-trust-activation-runbook.md) | Superseded stop notice for the dormant and unsupported trust command; reuse requires a new reviewed design. |
+| [Tenant 1 Lean Engineering Platform Runbook](../infra/docs/24-tenant-1-lean-platform-runbook.md) | Orders tool merge, current-main validation, attended local read-back, governance, Basic Boards, optional empty-repository decision, final governed transaction, and acceptance read-back without claiming execution. |
+| [Tenant 1 Lean Engineering Platform Acceptance Review](reviews/2026-09-28-tenant-1-lean-engineering-platform-acceptance-review.md) | Draft control-by-control acceptance record; every outcome remains `Not Run` until supported by current sanitized read-back. |
 | [Infrastructure Solution Sources](../infra/src/solutions/README.md) | Defines ownership and exclusions for future unpacked Infrastructure Power Platform solution source. |
 
 **This map is unchanged by the Phase 4 HR solution intake.** The approved Tenant 1 target keeps product source and [Bicep Composition](../infra/src/bicep/main.bicep) in GitHub. Tenant 1 private configuration uses the ignored local `tenant1.local.psd1` with an encrypted, restore-tested backup outside Git. Azure Boards remains on Basic, and a future Azure Pipeline consumes GitHub directly. No private Azure Repo, OIDC bootstrap, `bootstrap-tenant1` Environment, Basic-to-Agile conversion, Azure Pipeline, or live deployment is a current target.

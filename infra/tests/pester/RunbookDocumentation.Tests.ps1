@@ -194,6 +194,28 @@ Describe 'Runbook documentation contracts' {
         }
     }
 
+    It 'documents the irreversible checkpoint order without claiming execution' {
+        $path = Join-Path $script:repositoryRoot 'infra\docs\24-tenant-1-lean-platform-runbook.md'
+        $content = Get-Content -Raw -LiteralPath $path
+        $headings = @(
+            'Merge Tool Changes',
+            'Current-Main Validator',
+            'Local Validation and Access Read-Back',
+            'GitHub Governance',
+            'Basic Boards Issue',
+            'Empty Azure Repo Checkpoint',
+            'Final Governed Transaction',
+            'Acceptance Read-Back'
+        )
+        $positions = @($headings | ForEach-Object { $content.IndexOf("## $_", [StringComparison]::Ordinal) })
+        @($positions | Where-Object { $_ -lt 0 }).Count | Should -Be 0
+        for ($index = 1; $index -lt $positions.Count; $index++) {
+            $positions[$index] | Should -BeGreaterThan $positions[$index - 1]
+        }
+        $content | Should -Match 'Do not apply.+governance.+before.+tool.+main'
+        $content | Should -Match 'Not Run'
+    }
+
     It 'labels dormant trust OIDC and role-cleanup paths as unsupported' {
         $repositoryReadme = Get-Content -Raw (Join-Path $script:repositoryRoot 'README.md')
         $documentationIndex = Get-Content -Raw (Join-Path $script:repositoryRoot 'docs\README.md')

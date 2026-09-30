@@ -2,14 +2,32 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.3 |
+| **Version** | 1.4 |
 | **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Tenant 1 engineering platform |
-| **References** | [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Implementation Plan](../../docs/plans/2026-09-28-tenant-1-lean-engineering-platform-implementation.md), [Bootstrap Recovery](19-bootstrap-recovery.md), [Azure Boards Population Runbook](21-azure-boards-population-runbook.md) |
+| **References** | [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Implementation Plan](../../docs/plans/2026-09-28-tenant-1-lean-engineering-platform-implementation.md), [Draft Acceptance Review](../../docs/reviews/2026-09-28-tenant-1-lean-engineering-platform-acceptance-review.md), [Bootstrap Recovery](19-bootstrap-recovery.md), [Azure Boards Population Runbook](21-azure-boards-population-runbook.md) |
 
 This runbook is the active Tenant 1 operator path. It is attended, local, and fail-closed. It performs discovery, Bicep build, subscription `what-if`, boundary validation, and context and access read-back. It creates no deployment, trust, identity, role assignment, GitHub Environment, Azure Pipeline, or Power Platform deployment.
+
+Every checkpoint below is `Not Run`. This document fixes the order and acceptance evidence; it does not authorize or record execution.
+
+## Merge Tool Changes
+
+**Outcome: Not Run.** Merge the reviewed Tasks 1-7 changes and the Task 8 source and safety-verification changes before activating governance. The implementation pull request uses the old governance state. It must not apply the desired ruleset, change repository settings, create a Boards item, delete an Azure Repo, or perform any other live action.
+
+The merge must preserve the clean branch history and the deferred tracked Tenant 1 transition-file deletion. Record only the reviewed merge commit and merge-base safety result in the Draft acceptance review; do not treat this runbook or a source commit as execution evidence.
+
+## Current-Main Validator
+
+**Outcome: Not Run.** After the implementation pull request is merged, check out the merged `main` commit and run the repository validator against that exact SHA. Require one completed, successful `.github/workflows/validate-repository.yml` run and exactly one successful job named `Repository setup validation`.
+
+Do not apply GitHub governance before the tool changes are merged to `main` and the successful current-`main` validator run has been read back. Pass that run ID to `Enable-GitHubGovernance.ps1`; never substitute a branch run, stale SHA, inferred status, or second check.
+
+## Local Validation and Access Read-Back
+
+**Outcome: Not Run.** Complete the attended local checkpoint before GitHub governance. It comprises the following backup, access, discovery, sanitized-review, Bicep-build, subscription-`what-if`, boundary, and access-read-back sections. A failure in any section stops the sequence; local validation does not authorize a governance, Boards, repository, role, or deployment mutation.
 
 ## Private Configuration and Backup
 
@@ -137,9 +155,15 @@ if ($TrackedLocalConfig.Count -gt 0) { throw 'The local Tenant 1 configuration i
 
 ## GitHub Governance
 
+**Outcome: Not Run.** This checkpoint starts only after the successful current-`main` validator and the complete local validation and access read-back. A separately attended repository owner runs the reviewed governance script first with `-WhatIf`, reviews the closed proposal, and only then may provide separate approval for apply and exact read-back.
+
 Tenant 1 uses this GitHub repository as the sole product-source repository. The lean governance target is the minimal `main` ruleset and repository settings described by the approved design, read back after any separately approved change. This runbook does not create a bootstrap Environment, OIDC trust, or workflow-hosted discovery path.
 
-No governance mutation is authorized by the local Azure validation steps. Use a separately reviewed governance task and preserve the single `Repository setup validation` check.
+The solo-owner target requires pull requests, resolved conversations, the single `Repository setup validation` check, blocked force pushes and branch deletion, squash-only merge, merged-branch deletion, disabled GitHub Projects, and enabled Dependabot security updates. It requires zero approving reviews and does not require CODEOWNERS review. No governance mutation is authorized by the local Azure validation steps.
+
+## Basic Boards Issue
+
+**Outcome: Not Run.** Start this checkpoint only after GitHub governance has been applied and read back exactly. Planning is non-mutating. Applying the reviewed unchanged plan requires separate attended approval and must preserve the built-in Basic process, existing team, project-root area, and selected current sprint. The sprint performs no role mutation.
 
 ## Basic Boards
 
@@ -177,6 +201,8 @@ Issue creation uses `POST` to the `wit/workitems` resource with route parameters
 Require `Status = Applied` and a positive `IssueId`. Preserve that Issue as the durable cross-system traceability item.
 
 ## Empty Azure Repo Checkpoint
+
+**Outcome: Not Run.** This is optional and is not a dependency of local validation, governance, the Basic Boards Issue, or the final governed transaction. Proof collection is read-only. Deletion is destructive and remains behind the separate attended checkpoint below; an empty-repository proof is not deletion approval.
 
 The empty Azure Repo has no lean-platform dependency. This implementation collects proof only: it does not delete or mutate the repository. Obtain the exact repository and project IDs as attended input, then read metadata, refs, and recursive items through Azure DevOps REST 7.1:
 
@@ -302,6 +328,8 @@ This runbook supplies no deletion approval and does not run the command. Without
 
 ## Final Governed Transaction
 
+**Outcome: Not Run.** Begin only after GitHub governance and the durable Basic Boards Issue are applied and read back. The optional empty Azure Repo checkpoint is not a prerequisite and cannot be used to imply deletion approval.
+
 After the separately approved GitHub and Boards checkpoints are complete, use one real product-source transaction:
 
 1. select the durable Basic Issue;
@@ -313,6 +341,12 @@ After the separately approved GitHub and Boards checkpoints are complete, use on
 7. verify the source branch is deleted, `main` is green, and the Boards link and state transition read back correctly.
 
 The transaction does not prove an Azure deployment, Power Platform deployment, or Azure Pipeline.
+
+## Acceptance Read-Back
+
+**Outcome: Not Run.** Use the [Draft Acceptance Review](../../docs/reviews/2026-09-28-tenant-1-lean-engineering-platform-acceptance-review.md) as the control-by-control record. Keep every outcome `Not Run` until the applicable checkpoint has current, sanitized read-back. Task 8 may record source and safety-verification evidence, but post-merge, governance, Boards, optional deletion-decision, final-transaction, and merged-`main` outcomes remain `Not Run` until their own later attended execution.
+
+Do not promote the review from `Draft` or infer success from source, plans, `what-if`, historical evidence, or this ordered procedure. The tracked Tenant 1 transition-file deletion remains a separate open control at `Not Run`; the empty Azure Repo decision remains optional and destructive.
 
 ## Failure and Recovery
 
@@ -330,4 +364,6 @@ Accept this run only when:
 - no role assignment, trust, GitHub Environment, Azure Pipeline, deployment, or Power Platform release was created, changed, or deleted;
 - Tenant 2 was not selected or changed;
 - `what-if` is recorded only as planning evidence; and
-- later governance, Boards, repository, and final-transaction checkpoints are supported by their own current read-back.
+- later governance, Boards, repository, and final-transaction checkpoints are supported by their own current read-back;
+- the tracked Tenant 1 transition-file deletion control remains `Not Run` until separately approved and verified; and
+- the optional empty Azure Repo decision is never treated as a prerequisite or implicit deletion approval.
