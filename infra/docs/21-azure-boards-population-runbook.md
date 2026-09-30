@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.3 |
+| **Version** | 2.4 |
 | **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Superseded |
@@ -16,6 +16,8 @@ This runbook separates the active lean Basic Boards operation from the optional 
 ## Lean Basic Boards Operation
 
 Use only the existing Basic project, current team, project-root area, and exact current sprint. The operation creates or reuses one durable `Issue` identified by the stable tag `tenant1-lean-platform-traceability`. It never creates or deletes a team, area, iteration, Epic, Task, or process.
+
+The team-iteration response contract follows [Azure DevOps REST 7.1 Iterations - List](https://learn.microsoft.com/rest/api/azure/devops/work/iterations/list?view=azure-devops-rest-7.1).
 
 Run the locked planning command first. Keep the plan outside Git:
 
@@ -34,7 +36,7 @@ Get-Content -LiteralPath $BoardsPlanPath -Raw | ConvertFrom-Json |
     Format-List ProcessName, TeamName, AreaPath, CurrentSprintPath, SprintDateMode, IssueMode, IssueId, Status
 ```
 
-The expected plan reports `Basic`, the exact existing team, `Caldova HR Frontier` as the root area, the exact current sprint, and `Status = Planned`. Before issue planning, the script reads the selected team's `System.AreaPath` settings and its current iterations with `timeframe=current`. It requires exactly the project-root area and exactly one current team iteration whose full path equals `CurrentSprintPath`; missing, multiple, malformed, or mismatched state stops. A matching classification node by itself is insufficient. `IssueMode` is `Create` only when an actual WIQL `workItems` array is present and empty; missing, null, or wrong-type `workItems` is indeterminate and stops. `Reuse` requires exactly one matching Issue, and more than one match is ambiguous and stops. The full observed sprint path is converted to the project-relative classification-node route (`Caldova HR Frontier\Current` becomes `Current`); foreign, relative-only, REST-prefixed, or ambiguous paths stop.
+The expected plan reports `Basic`, the exact existing team, `Caldova HR Frontier` as the root area, the exact current sprint, and `Status = Planned`. Before issue planning, the script reads the selected team's `System.AreaPath` settings and its current iterations using the literal query key `$timeframe=current`. The REST 7.1 response must contain a `values` array. It requires exactly the project-root area and exactly one current team iteration whose full path equals `CurrentSprintPath`; missing, non-array, empty, multiple, or mismatched state stops. A matching classification node by itself is insufficient. `IssueMode` is `Create` only when an actual WIQL `workItems` array is present and empty; missing, null, or wrong-type `workItems` is indeterminate and stops. `Reuse` requires exactly one matching Issue, and more than one match is ambiguous and stops. The full observed sprint path is converted to the project-relative classification-node route (`Caldova HR Frontier\Current` becomes `Current`, and nested suffixes remain nested); foreign, relative-only, REST-prefixed, or ambiguous paths stop.
 
 Current-sprint dates are deliberately omitted. Add both `SprintStartDate` and `SprintFinishDate` only when the attended owner supplies and approves both exact dates. Supplying one date, a reversed range, or an unverified read-back stops without further mutation.
 

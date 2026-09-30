@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.0 |
+| **Version** | 2.1 |
 | **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Superseded |
@@ -19,7 +19,7 @@ Use the [Tenant 1 Lean Platform Runbook](../24-tenant-1-lean-platform-runbook.md
 
 ## Dormant Compatibility Boundary
 
-Generic cloud-foundation module internals may remain for compatibility with historical tests and future reconsideration. They are not active dependencies, operator defaults, or supported entry points. The two public scripts stop before importing modules, reading tenant configuration, resolving tools, creating output, authenticating, or contacting a provider.
+Generic cloud-foundation module internals may remain for compatibility with historical tests and future reconsideration. They are not active dependencies, operator defaults, or supported entry points. The two public scripts stop before importing modules, reading tenant configuration, resolving tools, creating output, authenticating, or contacting a provider. Dormant assessment or deployment compatibility requires an explicitly injected `WhatIfValidator`; there is no fallback call into the active Tenant 1 validator, and missing injection fails closed before deployment mutation.
 
 The historical operational-runbook design and implementation plan remain point-in-time records. Their former commands provide no execution approval.
 

@@ -204,6 +204,19 @@ Describe 'Dormant cloud foundation module compatibility' {
         }
         finally { Pop-Location }
         $assessment.repositoryRoot | Should -BeExactly ([IO.Path]::GetFullPath($repositoryRoot))
+
+        $missingValidatorRunDirectory = Join-Path $TestDrive 'missing-validator-assessment'
+        New-Item -ItemType Directory -Path $missingValidatorRunDirectory -Force | Out-Null
+        $missingValidatorAssessment = Get-CloudFoundationAssessment `
+            -TenantConfiguration $tenant `
+            -VerifiedContext $context -ToolResolutions $tools `
+            -RunDirectory $missingValidatorRunDirectory `
+            -RepositoryRoot $repositoryRoot -NativeCommandRunner $runner `
+            -NowUtc ([datetime]'2026-09-26T12:00:00Z')
+        $missingValidatorAssessment.services.azure.state | Should -BeExactly 'Blocked'
+        $missingValidatorAssessment.services.azure.reason |
+            Should -BeExactly 'Dormant cloud compatibility requires an explicitly injected WhatIfValidator.'
+
         $staleContext=$context.PSObject.Copy()
         $staleContext.verifiedAtUtc='2026-09-26T11:54:59Z'
         { Get-CloudFoundationAssessment -TenantConfiguration $tenant -VerifiedContext $staleContext `

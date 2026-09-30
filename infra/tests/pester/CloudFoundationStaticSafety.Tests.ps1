@@ -125,6 +125,17 @@ Describe 'Cloud foundation static safety' {
         $ado | Should -Not -Match "'devops','project','update'"
     }
 
+    It 'requires an injected validator without binding the retired active validator signature' {
+        foreach ($relativePath in @(
+            'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Public\Get-CloudFoundationAssessment.ps1',
+            'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Private\Invoke-AzureFoundationMutation.ps1'
+        )) {
+            $content = Get-Content -Raw -LiteralPath (Join-Path $script:RepositoryRoot $relativePath)
+            $content | Should -Not -Match 'Test-WhatIfBoundary|ExpectedPrincipalObjectId'
+            $content | Should -Match 'Dormant cloud compatibility requires an explicitly injected WhatIfValidator'
+        }
+    }
+
     It 'keeps planning manual records on the exact closed six-field contract' {
         $fixture=Get-Content -Raw (Join-Path $script:RepositoryRoot 'infra\tests\fixtures\runbooks\cloud-assessment.json') | ConvertFrom-Json
         foreach($item in $fixture.manualItems) {

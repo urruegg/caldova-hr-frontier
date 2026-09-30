@@ -121,10 +121,18 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
                 }
                 'GetCurrentTeamIterations' {
                     if ($state.AdapterMode -ceq 'MissingCurrentIterations') {
-                        return [pscustomobject]@{ count = 0; value = [object[]]@() }
+                        return [pscustomobject]@{}
                     }
-                    if ($state.AdapterMode -ceq 'MalformedCurrentIterations') {
-                        return [pscustomobject]@{ count = 1; value = $null }
+                    if ($state.AdapterMode -ceq 'NonArrayCurrentIterations') {
+                        return [pscustomobject]@{
+                            values = [pscustomobject]@{
+                                id = '00000000-0000-0000-0000-000000000010'
+                                path = $iterationPath
+                            }
+                        }
+                    }
+                    if ($state.AdapterMode -ceq 'EmptyCurrentIterations') {
+                        return [pscustomobject]@{ values = [object[]]@() }
                     }
                     $currentIterations = if ($state.AdapterMode -ceq 'MultipleCurrentIterations') {
                         [object[]]@(
@@ -144,8 +152,7 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
                     }
                     $currentIterations = [object[]]@($currentIterations)
                     return [pscustomobject]@{
-                        count = $currentIterations.Count
-                        value = $currentIterations
+                        values = $currentIterations
                     }
                 }
                 'GetProjectRootArea' {
@@ -311,8 +318,9 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
 
     It 'fails closed on missing or malformed team sprint settings' -TestCases @(
         @{ Mode = 'MalformedTeamArea'; Expected = '*team*area*malformed*' }
-        @{ Mode = 'MissingCurrentIterations'; Expected = '*exactly one current team iteration*' }
-        @{ Mode = 'MalformedCurrentIterations'; Expected = '*current team iterations*malformed*' }
+        @{ Mode = 'MissingCurrentIterations'; Expected = '*current team iterations*values*array*' }
+        @{ Mode = 'NonArrayCurrentIterations'; Expected = '*current team iterations*values*array*' }
+        @{ Mode = 'EmptyCurrentIterations'; Expected = '*exactly one current team iteration*' }
     ) {
         param($Mode, $Expected)
 
@@ -550,7 +558,7 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
                 return '{"field":{"referenceName":"System.AreaPath"},"defaultValue":"Synthetic HR Frontier","values":[{"value":"Synthetic HR Frontier","includeChildren":false}]}'
             }
             if ($resource -ceq 'teamsettingsiterations') {
-                return '{"count":1,"value":[{"id":"00000000-0000-0000-0000-000000000010","path":"Synthetic HR Frontier\\Current"}]}'
+                return '{"values":[{"id":"00000000-0000-0000-0000-000000000010","path":"Synthetic HR Frontier\\Current"}]}'
             }
             if ($resource -ceq 'classificationnodes' -and $arguments -contains 'structureGroup=areas') {
                 return '{"id":1,"name":"Area","path":"\\Synthetic HR Frontier\\Area","structureType":"area"}'
@@ -621,7 +629,7 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
                     '--area', 'work',
                     '--resource', 'teamsettingsiterations',
                     '--route-parameters', 'project=Synthetic HR Frontier', 'team=Synthetic HR Frontier Team',
-                    '--query-parameters', 'timeframe=current',
+                    '--query-parameters', '$timeframe=current',
                     '--api-version', '7.1',
                     '--output', 'json'
                 ) -join '|'
@@ -703,7 +711,7 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
                 return '{"field":{"referenceName":"System.AreaPath"},"defaultValue":"Synthetic HR Frontier","values":[{"value":"Synthetic HR Frontier","includeChildren":false}]}'
             }
             if ($resource -ceq 'teamsettingsiterations') {
-                return '{"count":1,"value":[{"id":"00000000-0000-0000-0000-000000000010","path":"Synthetic HR Frontier\\Release 1\\Current"}]}'
+                return '{"values":[{"id":"00000000-0000-0000-0000-000000000010","path":"Synthetic HR Frontier\\Release 1\\Current"}]}'
             }
             if ($resource -ceq 'classificationnodes' -and $arguments -contains 'structureGroup=areas') {
                 return '{"id":1,"name":"Area","path":"\\Synthetic HR Frontier\\Area","structureType":"area"}'

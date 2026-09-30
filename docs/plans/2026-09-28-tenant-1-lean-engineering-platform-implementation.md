@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.6 |
+| **Version** | 1.8 |
 | **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -27,6 +27,7 @@
 - Preserve that historical worktree on the lineage containing `e01ca1156bb973c5c90c2ebe5cbe7c7453219e6c` and the future plan commit, with its existing uncommitted change to `infra/tests/pester/CloudFoundationStaticSafety.Tests.ps1`.
 - Do not create or run an Azure Pipeline, service connection, artifact, Power Platform import, infrastructure deployment, or `az deployment sub create`.
 - Keep `Get-CloudFoundationPlan.ps1` and `Invoke-CloudFoundation.ps1` as fail-closed dormant stop entry points only. Generic cloud-foundation module internals may remain for compatibility, but no active catalogue, runbook, default, validator, or operator procedure may expose a planner or apply path.
+- Dormant cloud assessment/deployment helpers cannot call the active local boundary without its validated private context. Require an explicitly injected `WhatIfValidator`; missing injection uses the stable compatibility failure and occurs before deployment mutation.
 - Do not activate tenant trust, create a bootstrap Entra application or service principal, add a federated credential, create a `bootstrap-tenant1` GitHub Environment, or fetch private configuration in a workflow.
 - Keep `infra/src/config/tenants/_template.psd1` tracked and synthetic. Keep Tenant 1 configuration only at ignored path `infra/src/config/tenants/tenant1.local.psd1`.
 - Treat payload isolation as part of the private boundary: active source, workflows, tests, and fixtures must contain no protected Tenant 1 operational-payload fingerprint. The verifier reports only offending paths. Immutable point-in-time audit evidence and the exact protected Tenant 2 transition blobs remain unchanged and outside this scan.
@@ -40,7 +41,7 @@
 - Remove role-definition and role-assignment resources, parameters, and outputs from the lean Bicep composition. `Test-WhatIfBoundary.ps1` rejects authorization role-definition/assignment Create, Modify, and Delete results; exact pre-existing user/group access remains a PowerShell preflight/read-back concern outside deployment code.
 - GitHub governance mutation requires a successful completed run of `.github/workflows/validate-repository.yml` on the current `main` SHA and the exact job/check `Repository setup validation`.
 - Azure Boards remains on the built-in Basic process, existing team, and project-root area. Do not convert to Agile, create six iterations, create a second team or area, or alter the optional 19-Epic portfolio tooling.
-- Before Boards planning or mutation, read the selected team's exact area settings and `teamsettings/iterations?timeframe=current` equivalent. Require exactly the project-root area and exactly one current team iteration whose full path equals `CurrentSprintPath`; missing, multiple, malformed, or mismatched state fails closed.
+- Before Boards planning or mutation, read the selected team's exact area settings and `teamsettings/iterations?$timeframe=current`. Require a documented `values` array with exactly one current team iteration whose full path equals `CurrentSprintPath`; missing, non-array, empty, multiple, or mismatched state fails closed.
 - Every implementation change follows red/green/refactor, a scoped review, and a scoped commit. Every new commit uses `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>`.
 - Install nothing proactively. If a focused test proves Pester 5.7.1 absent, install exactly that version for the current user, rerun the failed command, and record the prerequisite correction.
 
@@ -1301,8 +1302,8 @@ Before `GetProjectRootArea`, issue production-adapter reads for the selected
 team's `teamfieldvalues` and `teamsettingsiterations` resources. The field
 values contract must identify `System.AreaPath`, exactly one value, and the
 project root as both default and configured area. The current-iterations call
-uses `timeframe=current`, returns a consistent array/count envelope with
-exactly one GUID-identified iteration, and its full path must equal
+uses the literal query key `$timeframe=current`, returns the documented
+`values` array with exactly one GUID-identified iteration, and its full path must equal
 `CurrentSprintPath`. Complete these reads before WIQL or any mutation.
 
 The production adapter uses Azure DevOps REST API 7.1 through `az devops invoke` with these exact resources:

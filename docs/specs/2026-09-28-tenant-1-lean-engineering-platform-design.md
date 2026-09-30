@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.7 |
+| **Version** | 1.9 |
 | **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
@@ -13,7 +13,7 @@
 
 The user explicitly confirmed **Option A — Lean single-tenant platform** through attended approval on 2026-09-28. That approval selects the lean Tenant 1 target and the control dispositions in this document.
 
-Version 1.7 records the pragmatic solo-owner review profile, the attended-access ruling, retirement of the cloud-foundation planner/apply path, payload-level private-boundary isolation, removal of authorization resources from the lean Bicep composition, and exact selected-team/current-iteration validation for Boards. Pull requests and successful validation remain mandatory, while required approvals and required CODEOWNERS review are deferred until a second eligible maintainer exists. Local validation uses the attended operator's pre-existing, separately approved least-privilege access and performs no role mutation. The retained generic cloud-foundation modules are dormant compatibility code, not a current-sprint dependency or supported mutation path.
+Version 1.9 records the pragmatic solo-owner review profile, the attended-access ruling, retirement of the cloud-foundation planner/apply path, payload-level private-boundary isolation, removal of authorization resources from the lean Bicep composition, exact selected-team/current-iteration validation for Boards using the documented Azure DevOps REST 7.1 contract, and the explicit validator-injection boundary for dormant cloud compatibility. Pull requests and successful validation remain mandatory, while required approvals and required CODEOWNERS review are deferred until a second eligible maintainer exists. Local validation uses the attended operator's pre-existing, separately approved least-privilege access and performs no role mutation. The retained generic cloud-foundation modules are dormant compatibility code, not a current-sprint dependency or supported mutation path.
 
 This design supersedes the broader [Tenant 1 Engineering Platform Remediation Design](2026-09-28-tenant-1-engineering-platform-remediation-design.md) and stops the associated [Engineering Control Plane Foundation Implementation Plan](../plans/2026-09-28-tenant-1-engineering-control-plane-foundation-implementation.md).
 
@@ -85,7 +85,7 @@ No separate traceability workflow is created. The pull-request template requires
 
 Existing tenant-trust code may remain dormant for future reconsideration. Dormant code is not an active dependency, is not invoked by validation, and must not be described as a current bootstrap path.
 
-The historical cloud-foundation planner and apply entry points are also retired. Their public scripts fail closed before configuration, tool, authentication, file-output, or provider access. Generic module internals may remain only as explicitly dormant compatibility code; active catalogues, runbooks, defaults, validation, and operator procedures do not expose them as supported. A new reviewed design and implementation plan are required before any such capability can return.
+The historical cloud-foundation planner and apply entry points are also retired. Their public scripts fail closed before configuration, tool, authentication, file-output, or provider access. Generic module internals may remain only as explicitly dormant compatibility code; active catalogues, runbooks, defaults, validation, and operator procedures do not expose them as supported. Dormant assessment/deployment helpers have no default bridge to the active local private-boundary validator: callers must explicitly inject a compatible `WhatIfValidator`, and missing injection fails closed before deployment mutation. A new reviewed design and implementation plan are required before any such capability can return.
 
 ## Tenant 1 Private Configuration
 
@@ -165,8 +165,9 @@ Epic
 The existing team and project-root area remain. Only the current sprint receives dates, and only after those dates are agreed and read back. The sprint does not convert Basic to Agile, generate six iterations, create a second team or area, or add a separate remediation-hierarchy script.
 
 Before planning any Boards mutation, the operation reads the selected team's
-area settings and the team current-iterations endpoint with
-`timeframe=current`. The team must have exactly the project-root area and
+area settings and the team current-iterations endpoint with the literal query
+key `$timeframe=current`. The documented response must contain a `values`
+array. The team must have exactly the project-root area and
 exactly one current iteration whose full path equals `CurrentSprintPath`.
 Missing, multiple, malformed, or mismatched state stops before issue planning
 or mutation. A valid project classification node alone is not sufficient.

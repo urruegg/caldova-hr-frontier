@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.5 |
+| **Version** | 1.6 |
 | **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -197,7 +197,7 @@ The solo-owner target requires pull requests, resolved conversations, the single
 
 ## Basic Boards Issue
 
-**Outcome: Not Run.** Start this checkpoint only after GitHub governance has been applied and read back exactly. Planning is non-mutating. Applying the reviewed unchanged plan requires separate attended approval and must preserve the built-in Basic process, existing team, project-root area, and selected current sprint. Before planning, require the selected team's settings to contain exactly the project-root area and its current-iterations endpoint to return exactly one item whose full path equals `CurrentSprintPath`. The sprint performs no role mutation.
+**Outcome: Not Run.** Start this checkpoint only after GitHub governance has been applied and read back exactly. Planning is non-mutating. Applying the reviewed unchanged plan requires separate attended approval and must preserve the built-in Basic process, existing team, project-root area, and selected current sprint. Before planning, require the selected team's settings to contain exactly the project-root area and its current-iterations endpoint, queried with `$timeframe=current`, to return a `values` array with exactly one item whose full path equals `CurrentSprintPath`. The sprint performs no role mutation.
 
 ## Basic Boards
 

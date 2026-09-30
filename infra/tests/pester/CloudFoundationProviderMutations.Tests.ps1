@@ -275,6 +275,20 @@ Describe 'Cloud foundation provider mutations' {
                 uri="azure://subscriptions/$($script:Tenant.SubscriptionId)"
                 providerInput=$input;bodyDigest=Get-RunbookContentDigest $input
             }
+            $mutationCalls = [System.Collections.Generic.List[string]]::new()
+            $missingValidatorRunner = {
+                param($FilePath, $ArgumentList)
+                $mutationCalls.Add(($ArgumentList -join ' ')) | Out-Null
+                throw 'provider mutation must not execute before validator failure'
+            }.GetNewClosure()
+            {
+                Invoke-CloudFoundationAction -Action $action -TenantConfiguration $script:Tenant `
+                    -VerifiedContext $script:Context -ToolResolutions $script:Tools `
+                    -RunDirectory $script:RunDirectory -RepositoryRoot $script:RepositoryRoot `
+                    -NativeCommandRunner $missingValidatorRunner
+            } | Should -Throw '*Dormant cloud compatibility requires an explicitly injected WhatIfValidator*'
+            $mutationCalls.Count | Should -Be 0
+
             { Invoke-CloudFoundationAction -Action $action -TenantConfiguration $script:Tenant `
                 -VerifiedContext $script:Context -ToolResolutions $script:Tools `
                 -RunDirectory $script:RunDirectory -RepositoryRoot $script:RepositoryRoot `

@@ -252,7 +252,10 @@ function Get-CloudFoundationAssessment {
         ([string]::IsNullOrWhiteSpace($contextPrincipalId) -or
          $contextPrincipalId -cne $validationPrincipalId)
     )
-    if ($validationPrincipalApproved) {
+    if ($validationPrincipalApproved -and $null -eq $WhatIfValidator) {
+        $azure.reason='Dormant cloud compatibility requires an explicitly injected WhatIfValidator.'
+    }
+    elseif ($validationPrincipalApproved) {
         try {
             $sourcePath = if ($null -ne $cloud -and
                 $cloud.PSObject.Properties.Name -contains 'SourceBicepPath') {
@@ -305,13 +308,7 @@ function Get-CloudFoundationAssessment {
                 '--result-format','FullResourcePayloads','--no-pretty-print','--output','json'
             ) -Runner $NativeCommandRunner
             [IO.File]::WriteAllText($whatIfPath,$whatIf,[Text.UTF8Encoding]::new($false))
-            $valid = if ($null -ne $WhatIfValidator) {
-                & $WhatIfValidator $whatIfPath
-            } else {
-                $validatorPath=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..\Test-WhatIfBoundary.ps1'))
-                & $validatorPath -WhatIfPayloadPath $whatIfPath -ExpectedPrincipalObjectId $validationPrincipalId
-                $true
-            }
+            $valid = & $WhatIfValidator $whatIfPath
             if (-not $valid) { throw 'Azure what-if boundary validation failed.' }
             $azureInput=[pscustomobject][ordered]@{
                 sourcePath=$sourcePath;sourceDigest=$sourceDigest;templatePath=$templatePath

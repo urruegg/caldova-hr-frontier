@@ -63,19 +63,6 @@ function ConvertTo-UtcIsoString {
     ([datetime]$Value).ToUniversalTime().ToString('o')
 }
 
-function Test-IsIntegerValue {
-    param([AllowNull()][object]$Value)
-
-    $Value -is [byte] -or
-        $Value -is [sbyte] -or
-        $Value -is [int16] -or
-        $Value -is [uint16] -or
-        $Value -is [int32] -or
-        $Value -is [uint32] -or
-        $Value -is [int64] -or
-        $Value -is [uint64]
-}
-
 function ConvertTo-ProjectRelativeIterationPath {
     param(
         [Parameter(Mandatory)]
@@ -223,7 +210,7 @@ function New-DefaultAzureDevOpsRequest {
                     '--area', 'work',
                     '--resource', 'teamsettingsiterations',
                     '--route-parameters', "project=$projectName", "team=$([string]$Arguments['TeamName'])",
-                    '--query-parameters', 'timeframe=current',
+                    '--query-parameters', '$timeframe=current',
                     '--api-version', '7.1',
                     '--output', 'json'
                 ))
@@ -557,21 +544,15 @@ if ($null -eq $currentTeamIterations) {
 }
 $currentTeamIterationsTable = ConvertTo-Hashtable -InputObject $currentTeamIterations
 $currentIterationValues = $null
-if ($currentTeamIterationsTable.ContainsKey('value')) {
-    $currentIterationValues = $currentTeamIterationsTable['value']
+if ($currentTeamIterationsTable.ContainsKey('values')) {
+    $currentIterationValues = $currentTeamIterationsTable['values']
 }
-if (-not $currentTeamIterationsTable.ContainsKey('count') -or
-    -not (Test-IsIntegerValue -Value $currentTeamIterationsTable['count']) -or
-    $null -eq $currentIterationValues -or
+if ($null -eq $currentIterationValues -or
     $currentIterationValues -isnot [System.Array]) {
-    throw "Selected team '$TeamName' current team iterations response is malformed."
+    throw "Selected team '$TeamName' current team iterations response must contain a values array."
 }
-$currentIterationCount = [int]$currentTeamIterationsTable['count']
 $currentIterationValues = @($currentIterationValues)
-if ($currentIterationCount -ne $currentIterationValues.Count) {
-    throw "Selected team '$TeamName' current team iterations response is malformed."
-}
-if ($currentIterationCount -ne 1) {
+if ($currentIterationValues.Count -ne 1) {
     throw "Selected team '$TeamName' must have exactly one current team iteration."
 }
 $currentTeamIteration = ConvertTo-Hashtable -InputObject $currentIterationValues[0]
