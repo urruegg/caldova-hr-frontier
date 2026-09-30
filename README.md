@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.4 |
+| **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Repository |
-| **References** | [HR Solution Functional Design Intake](docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+| **References** | [Tenant 1 Lean Engineering Platform Design](docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [HR Solution Functional Design Intake](docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 
 **A pure agentic, Frontier-driven HR organisation — with Workday as the system of record.**
 
@@ -143,7 +143,7 @@ HR Operations exports new-joiner PDFs from PeopleDoc to SharePoint. The agent re
 │   ├── prd.md                     FR-0001…FR-0014, NFR-0001…NFR-0012, roles, gates
 │   ├── solution-design.md         architecture, integration, security, ALM
 │   ├── hr-journey-and-raci.md     journey, RACI, sequencing, the seven declarations
-│   ├── adr/                       7 decision records — why, and what was rejected
+│   ├── adr/                       12 decision records — why, and what was rejected
 │   └── brand/                     BrandKit — tokens, Fluent 2 themes, logo slot
 │
 ├── hr/                        HR DOMAIN — what HR does
@@ -152,9 +152,9 @@ HR Operations exports new-joiner PDFs from PeopleDoc to SharePoint. The agent re
 │   │   └── uc-0002 … uc-0019.md       candidates
 │   └── src/solutions/             Power Platform solution source
 │
-├── infra/                     INFRASTRUCTURE DOMAIN — how it runs (untouched by this package)
+├── infra/                     INFRASTRUCTURE DOMAIN — how the approved Tenant 1 control plane runs
 │   ├── docs/10-19...               tenant setup, identity, ALM, bootstrap, recovery
-│   └── src/{bicep,scripts,config}/    IaC artefacts, Tenant 1 manifest
+│   └── src/{bicep,scripts,config}/    public IaC source; private Tenant 1 config stays in Azure Repos
 │
 └── data/                      field lists, mappings, test data
                                never real personal data
@@ -169,11 +169,11 @@ HR Operations exports new-joiner PDFs from PeopleDoc to SharePoint. The agent re
 | How is it built | [`docs/solution-design.md`](docs/solution-design.md) |
 | Who is accountable | [`docs/hr-journey-and-raci.md`](docs/hr-journey-and-raci.md) §5–6 |
 | **Why** was it decided | [`docs/adr/`](docs/adr/README.md) — and what was rejected |
-| How do we stand it up | [`infra/README.md`](infra/README.md) and its documentation map — untouched by this package, still Tenant 1 & 2 (Caldova) only |
+| How do we stand it up | [`infra/README.md`](infra/README.md) and its documentation map — Tenant 1 is the active repository scope; Tenant 2 files remain only as the approved transition exception until Slice 5 |
 | How must an agent behave | [`AGENTS.md`](AGENTS.md) |
 | What must it look like | [`docs/brand/`](docs/brand/README.md) — GF palette, Fluent themes, EN/DE/IT/FR/ES |
 
-**Authority rule.** More specific wins — except on governance, where the platform wins. A use-case PRD may add requirements; it may never weaken the platform's. An Accepted ADR outranks narrative text anywhere.
+**Authority rule.** More specific wins — except on governance, where the platform wins. A use-case PRD may add requirements; it may never weaken the platform's. A repository-level Approved ADR outranks narrative text anywhere.
 
 ### Naming convention
 
@@ -269,17 +269,19 @@ Where a source says TBD, this package says TBD. Nothing has been invented to fil
 
 ---
 
-### Phase 3 Infrastructure Map
+### Engineering Control Plane Map
 
-The [Phase 3 Infrastructure and Tenant Bootstrap Intake](docs/reviews/2026-09-17-phase-3-infrastructure-tenant-bootstrap-intake.md) approves the reviewed repository implementation for local validation, independently of this HR solution package. It covers Tenant 1 and Tenant 2 — the Caldova practice tenants; Tenant 3, the real customer, is out of scope for that intake and untouched by it.
+The attended [Tenant 1 Lean Engineering Platform Design](docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md) approves Option A: GitHub is the sole product-source and pull-request authority, Azure Boards Basic is the single delivery backlog, and repository validation runs in GitHub Actions. A future Azure Pipeline consumes GitHub directly; no Azure Pipeline or live platform mutation is authorized this sprint. Tenant 1 private configuration is an ignored local file with an encrypted, restore-tested backup outside Git.
 
-| Entry point | Current role |
+| Entry point | Approved role |
 |---|---|
-| `infra/src/config/tenants/caldova25156897.psd1` | Reviewed Tenant 1 desired-state manifest and immutable GitHub identity inputs. |
-| `infra/src/config/tenants/caldova25668747.psd1` | Reviewed Tenant 2 discovery manifest, including exact Power Platform and SharePoint candidates. |
+| GitHub repository | Sole product source, pull-request authority, and repository-validation surface. |
+| Azure Boards | Single delivery backlog, retained on the built-in Basic process. |
+| `infra/src/config/tenants/tenant1.local.psd1` | Ignored local Tenant 1 configuration supplied explicitly to attended commands and backed up encrypted outside Git. |
+| `infra/src/config/tenants/caldova25668747.psd1` | Existing Tenant 2 file, out of scope and untouched by the lean sprint. |
 | `infra/src/scripts/Invoke-TenantDiscovery.ps1` | Read-only discovery entry point for the five core services and optional SharePoint site metadata. |
-| `infra/src/scripts/Initialize-TenantTrust.ps1` | Attended trust entry point, gated by reviewed intent and separate authorization before any mutation. |
-| `infra/src/scripts/Invoke-TenantBootstrap.ps1` | Local orchestration for validation, Bicep parameter generation, `what-if`, boundary checks, and exact-ID cleanup; it does not deploy. |
+| `infra/src/scripts/Initialize-TenantTrust.ps1` | Dormant and unsupported historical artifact; the superseded stop notice requires a new reviewed design before reuse. |
+| `infra/src/scripts/Invoke-TenantBootstrap.ps1` | Attended local orchestration for exact context and minimum-access preflight, discovery, Bicep build, `what-if`, boundary validation, and read-back; it performs no role mutation or deployment. |
 | `infra/src/bicep/main.bicep` | Subscription-scope Bicep composition constrained to the reviewed resource-type allowlist. |
 
 No live deployment is authorized by this repository state.

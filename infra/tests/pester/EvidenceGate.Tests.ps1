@@ -51,12 +51,12 @@ Describe 'Discovery evidence gate' {
                 RunId = $runId
                 CollectionStartedUtc = $collectedUtc
                 CollectionCompletedUtc = $completedUtc
-                TenantAlias = 'caldova25156897'
-                TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
+                TenantAlias = 'fixturetenant42'
+                TenantId = '22222222-2222-2222-2222-222222222222'
                 Principal = [pscustomobject]@{
                     Type = 'User'
                     Id = 'user-synthetic-0001'
-                    Upn = 'admin@Caldova25156897.onmicrosoft.com'
+                    Upn = 'operator@fixture.example'
                 }
                 Services = [pscustomobject]$services
             }

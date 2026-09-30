@@ -8,6 +8,10 @@ BeforeAll {
 		'docs/adr/0003-bicep-and-powershell-for-infrastructure-as-code.md'
 		'docs/adr/0004-domain-solution-architecture-and-publisher.md'
 	)
+	$script:approvedLeanAdrPaths = @(
+		'docs/adr/0001-azure-devops-as-engineering-control-plane.md'
+		'docs/adr/0002-github-first-bootstrap-and-the-role-of-azure-repos.md'
+	)
 	$script:expectedEvaluationPath = 'docs/90-microsoft-best-practice-evaluation.md'
 
 	$script:expected = [ordered]@{
@@ -50,16 +54,23 @@ Describe 'Phase 2 source contract' {
 }
 
 Describe 'Imported authority status' {
-	It 'imports exactly the four proposed ADR candidates' {
+	It 'preserves the four imported ADRs while recognizing the two approved lean decisions' {
 		foreach ($relativePath in $script:expectedAdrCandidates) {
 			$path = Join-Path $script:repositoryRoot $relativePath
 			Test-Path -LiteralPath $path -PathType Leaf | Should -BeTrue -Because "$relativePath must exist as a regular file"
 
 			$content = Get-Content -LiteralPath $path -Raw
-			$content | Should -Match '\| \*\*Status\*\* \| Proposed Baseline \|'
+			if ($relativePath -in $script:approvedLeanAdrPaths) {
+				$content | Should -Match '\| \*\*Status\*\* \| Approved \|'
+				@([regex]::Matches($content, '(?m)^## Decision\s*$')).Count | Should -Be 1
+				$content | Should -Not -Match '(?m)^## Proposed Decision\s*$'
+			}
+			else {
+				$content | Should -Match '\| \*\*Status\*\* \| Proposed Baseline \|'
+				@([regex]::Matches($content, '(?m)^## Proposed Decision\s*$')).Count | Should -Be 1
+				$content | Should -Not -Match '(?m)^## Decision\s*$'
+			}
 			$content | Should -Not -Match '(?m)^- \*\*Status:\*\* Accepted$'
-			@([regex]::Matches($content, '(?m)^## Proposed Decision\s*$')).Count | Should -Be 1
-			$content | Should -Not -Match '(?m)^## Decision\s*$'
 		}
 
 		$discovered = Get-ChildItem -LiteralPath (Join-Path $script:repositoryRoot 'docs\adr') -File |

@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-26 |
+| **Version** | 1.2 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure operations |
-| **References** | [Operational Runbooks Design](../../../docs/specs/2026-09-26-operational-runbooks-design.md); [Infrastructure Domain](../../README.md) |
+| **References** | [Operational Runbooks Design](../../../docs/specs/2026-09-26-operational-runbooks-design.md); [Tenant 1 Lean Platform Runbook](../24-tenant-1-lean-platform-runbook.md); [Infrastructure Domain](../../README.md) |
 
 These runbooks govern attended, local operations for the infrastructure domain. They define how an operator proves readiness, previews reviewed intent, receives a digest for approval, executes only the approved changes, records redacted evidence, and closes with recovery when anything remains unresolved.
 
@@ -71,6 +71,8 @@ Repository-bundled Superpowers skills and custom agents are integrity and presen
 | Runbook | Scope | Status |
 |---|---|---|
 | [Developer Workstation](01-developer-workstation.md) | Independently runnable assessment, preview, approval, apply, read-back, and recovery for one approved Windows 11 administrator workstation. | In scope now |
-| [Cloud Service Foundation Runbook](02-cloud-service-foundation.md) | Independently runnable local attended assessment, digest approval, apply, evidence, and recovery for the reviewed cloud-service foundation. | In scope now |
+| [Cloud Service Foundation Runbook](02-cloud-service-foundation.md) | Superseded stop notice for dormant cloud-foundation entry points; retained generic modules are not an approved operating path. | Superseded |
 | [Customer Repository Handover](03-customer-handover.md) | Independently runnable local attended customer export assessment, approval, apply, independent validation, and human review after workstation prerequisites. | In scope now |
-| Future tenant trust, cloud foundation, publication, export, and production deployment runbooks | Later attended tenant operations that consume this workstation baseline. | Out of scope in this increment |
+| [Tenant 1 Lean Platform](../24-tenant-1-lean-platform-runbook.md) | Attended local private configuration, discovery, Bicep build, subscription `what-if`, boundary validation, and context/access read-back. | In scope now |
+| [Tenant Trust Activation](../20-tenant-trust-activation-runbook.md) | Stop notice for the dormant trust command; it is not an active prerequisite or supported procedure. | Superseded |
+| Future publication and production deployment runbooks | Later attended operations that consume this workstation baseline. | Out of scope in this increment |

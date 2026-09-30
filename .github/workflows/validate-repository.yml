@@ -24,25 +24,44 @@ jobs:
         shell: powershell
         run: Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck
 
-      - name: Run core contract tests
+      - name: Run all maintained tests
         shell: powershell
         run: |
-          $paths = @(
-            '.github/cli/tests/WorkflowContract.Tests.ps1'
-            '.github/cli/tests/RepositorySafety.Tests.ps1'
-            'infra/tests/pester'
-            'hr/tests/pester'
+          $ErrorActionPreference = 'Stop'
+          $githubTests = @(
+            Get-ChildItem -LiteralPath '.github\cli\tests' -Filter '*.Tests.ps1' -File |
+              Sort-Object FullName |
+              Select-Object -ExpandProperty FullName
           )
-          Invoke-Pester -Path $paths -Output Detailed -CI
+          $result = Invoke-Pester -Path @($githubTests + @('infra\tests\pester', 'hr\tests\pester')) -Output Detailed -CI -PassThru
+          if ($result.FailedCount -gt 0) {
+            throw "$($result.FailedCount) maintained test(s) failed."
+          }
 
       - name: Run repository safety validation
         shell: powershell
         run: powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-safety.ps1
 
-      - name: Build Bicep
+      - name: Build every maintained Bicep entry point
         shell: powershell
-        run: az bicep build --file infra/src/bicep/main.bicep --stdout
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $entryPoints = @(
+            Get-ChildItem -LiteralPath 'infra\src\bicep' -Filter '*.bicep' -File -Recurse |
+              Sort-Object FullName
+          )
+          if ($entryPoints.Count -eq 0) { throw 'No maintained Bicep entry point was found.' }
+          foreach ($entryPoint in $entryPoints) {
+            az bicep build --file $entryPoint.FullName --stdout | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "Bicep build failed: $($entryPoint.FullName)" }
+          }
 
       - name: Check branch whitespace
         shell: powershell
-        run: git diff --check origin/main...HEAD
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $baseRef = if ([string]::IsNullOrWhiteSpace($env:GITHUB_BASE_REF)) { 'origin/main' } else { "origin/$env:GITHUB_BASE_REF" }
+          $mergeBase = git merge-base $baseRef HEAD
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($mergeBase)) { throw 'Cannot resolve whitespace merge base.' }
+          git diff --check "$mergeBase...HEAD"
+          if ($LASTEXITCODE -ne 0) { throw 'Whitespace validation failed.' }

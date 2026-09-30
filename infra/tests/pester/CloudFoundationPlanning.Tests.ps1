@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest
 
-Describe 'Cloud foundation planning' {
+Describe 'Dormant cloud foundation module compatibility' {
     BeforeAll {
         $script:ModulePath = Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
         Import-Module $script:ModulePath -Force
@@ -24,17 +24,6 @@ Describe 'Cloud foundation planning' {
             }
 
         }
-    }
-
-    It 'provides the read-only digest-bound cloud plan entry point' {
-        $path = Join-Path $PSScriptRoot '..\..\src\scripts\runbooks\Get-CloudFoundationPlan.ps1'
-        Test-Path -LiteralPath $path | Should -BeTrue
-        $command = Get-Command $path
-        @($command.Parameters.Keys) | Should -Contain 'TenantAlias'
-        @($command.Parameters.Keys) | Should -Contain 'ReportPath'
-        @($command.Parameters.Keys) | Should -Contain 'Stages'
-        @($command.Parameters.Keys) | Should -Not -Contain 'Apply'
-        @($command.Parameters.Keys) | Should -Not -Contain 'RepositoryRoot'
     }
 
     It 'maps exact IDs, supported drift, manual surfaces, and exclusions to the closed classification set' {
@@ -215,6 +204,19 @@ Describe 'Cloud foundation planning' {
         }
         finally { Pop-Location }
         $assessment.repositoryRoot | Should -BeExactly ([IO.Path]::GetFullPath($repositoryRoot))
+
+        $missingValidatorRunDirectory = Join-Path $TestDrive 'missing-validator-assessment'
+        New-Item -ItemType Directory -Path $missingValidatorRunDirectory -Force | Out-Null
+        $missingValidatorAssessment = Get-CloudFoundationAssessment `
+            -TenantConfiguration $tenant `
+            -VerifiedContext $context -ToolResolutions $tools `
+            -RunDirectory $missingValidatorRunDirectory `
+            -RepositoryRoot $repositoryRoot -NativeCommandRunner $runner `
+            -NowUtc ([datetime]'2026-09-26T12:00:00Z')
+        $missingValidatorAssessment.services.azure.state | Should -BeExactly 'Blocked'
+        $missingValidatorAssessment.services.azure.reason |
+            Should -BeExactly 'Dormant cloud compatibility requires an explicitly injected WhatIfValidator.'
+
         $staleContext=$context.PSObject.Copy()
         $staleContext.verifiedAtUtc='2026-09-26T11:54:59Z'
         { Get-CloudFoundationAssessment -TenantConfiguration $tenant -VerifiedContext $staleContext `

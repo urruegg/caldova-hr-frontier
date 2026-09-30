@@ -59,7 +59,7 @@ Describe 'Active issue forms' {
         $config = Get-FileContentIfPresent -Path (
             Join-Path $script:issueTemplateRoot 'config.yml'
         )
-        $config | Should -Match 'https://dev.azure.com/caldova25156897'
+        $config | Should -Match 'https://dev.azure.com/'
         $config | Should -Match $script:governancePolicyUrlPattern
         $config | Should -Not -Match $script:interimGovernancePathPattern
     }
@@ -104,7 +104,7 @@ Describe 'Active issue forms' {
             'blank_issues_enabled: false'
             'contact_links:'
             '  - name: Backlog and delivery tracking'
-            '    url: https://dev.azure.com/caldova25156897'
+            '    url: https://dev.azure.com/'
             '    about: Work is planned and tracked in Azure Boards. This repository is the build plane.'
             '  - name: Governance and data rules'
             '    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/operating-model/04-hitl-governance.md'
@@ -247,6 +247,20 @@ Describe 'Pull request template contract' {
         foreach ($environment in @('DEV', 'TEST', 'PROD')) {
             $lines | Should -Contain "- [ ] $environment"
         }
+    }
+
+    It 'requires the governed Azure Boards closing prefix without another workflow' {
+        $content = Get-FileContentIfPresent -Path (
+            Join-Path $script:repositoryRoot '.github\pull_request_template.md'
+        )
+        $normalized = $content.Replace("`r`n", "`n").Replace("`r", "`n")
+        $expected = @'
+For the final governed proof, use the literal `Fixes AB#` prefix followed by the
+selected Azure Boards Issue ID. Human review verifies the reference; no separate
+traceability workflow is required.
+'@.Trim().Replace("`r`n", "`n").Replace("`r", "`n")
+
+        $normalized | Should -Match ([regex]::Escape($expected))
     }
 }
 

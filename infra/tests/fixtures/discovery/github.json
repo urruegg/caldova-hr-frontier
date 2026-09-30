@@ -10,7 +10,7 @@
       "scope": "repo:urruegg/caldova-hr-frontier",
       "ownerId": "46865858",
       "repositoryId": "1371297722",
-      "environment": "bootstrap-caldova25156897"
+      "environment": "bootstrap-fixturetenant42"
     },
     "oidcCustomization": {
       "use_default": true,

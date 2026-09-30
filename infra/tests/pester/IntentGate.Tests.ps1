@@ -11,12 +11,12 @@ Describe 'Tenant intent gate' {
                 RunId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
                 CollectionStartedUtc = '2026-09-19T10:15:30.0000000Z'
                 CollectionCompletedUtc = '2026-09-19T10:17:30.0000000Z'
-                TenantAlias = 'caldova25156897'
-                TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
+                TenantAlias = 'fixturetenant42'
+                TenantId = '22222222-2222-2222-2222-222222222222'
                 Principal = [pscustomobject]@{
                     Type = 'User'
                     Id = 'user-synthetic-0001'
-                    Upn = 'admin@Caldova25156897.onmicrosoft.com'
+                    Upn = 'operator@fixture.example'
                 }
                 Services = [pscustomobject]@{
                     GitHub = [pscustomobject]@{
@@ -63,7 +63,7 @@ Describe 'Tenant intent gate' {
                         Resources = @(
                             [pscustomobject]@{
                                 Type = 'AzureSubscription'
-                                Id = 'subscription-synthetic-edb45a24-408d-47c4-bbc7-685b9b3fc017'
+                                Id = 'subscription-synthetic-11111111-1111-1111-1111-111111111111'
                                 Name = 'Platform subscription'
                                 Status = 'Found'
                                 EvidenceReference = [pscustomobject]@{ Service = 'Azure'; SourceApi = 'Azure Resource Graph + ARM'; Scope = 'subscription'; CollectedUtc = '2026-09-19T10:15:30.0000000Z'; ResponseSha256 = $hash }
@@ -81,7 +81,7 @@ Describe 'Tenant intent gate' {
                             [pscustomobject]@{
                                 Type = 'AzureDevOpsProject'
                                 Id = 'ado-project-synthetic-33333333-3333-3333-3333-333333333333'
-                                Name = 'Caldova HR Frontier'
+                                Name = 'Synthetic HR Frontier'
                                 Status = 'Found'
                                 EvidenceReference = [pscustomobject]@{ Service = 'AzureDevOps'; SourceApi = 'Azure DevOps REST 7.1'; Scope = 'organization'; CollectedUtc = '2026-09-19T10:15:30.0000000Z'; ResponseSha256 = $hash }
                             }
@@ -112,7 +112,7 @@ Describe 'Tenant intent gate' {
                 Components = [pscustomobject]@{
                     GitHubRepository = [pscustomobject]@{ Mode = 'Existing'; Id = 'repo-synthetic-1371297722' }
                     EntraApplication = [pscustomobject]@{ Mode = 'Create' }
-                    AzureSubscription = [pscustomobject]@{ Mode = 'Existing'; Id = 'subscription-synthetic-edb45a24-408d-47c4-bbc7-685b9b3fc017' }
+                    AzureSubscription = [pscustomobject]@{ Mode = 'Existing'; Id = 'subscription-synthetic-11111111-1111-1111-1111-111111111111' }
                     AzureDevOpsProject = [pscustomobject]@{ Mode = 'Create' }
                     PowerPlatformEnvironmentDev = [pscustomobject]@{ Mode = 'Existing'; Id = 'pp-env-synthetic-dev-44444444-4444-4444-4444-444444444444' }
                 }

@@ -2,18 +2,23 @@
   "$schema": "../schemas/github-ruleset.schema.json",
   "schemaVersion": "1.0",
   "repository": "urruegg/caldova-hr-frontier",
+  "repositorySettings": {
+    "defaultBranch": "main",
+    "allowMergeCommit": false,
+    "allowRebaseMerge": false,
+    "allowSquashMerge": true,
+    "deleteBranchOnMerge": true,
+    "hasProjects": false
+  },
+  "security": {
+    "dependabotSecurityUpdates": true
+  },
   "rulesets": [
     {
       "name": "main",
       "target": "branch",
       "enforcement": "active",
-      "bypassActors": [
-        {
-          "actorType": "User",
-          "login": "urruegg",
-          "bypassMode": "pull_request"
-        }
-      ],
+      "bypassActors": [],
       "conditions": {
         "refName": {
           "include": [
@@ -33,14 +38,12 @@
           "type": "pull_request",
           "parameters": {
             "dismissStaleReviewsOnPush": true,
-            "requireCodeOwnerReview": true,
+            "requireCodeOwnerReview": false,
             "requireLastPushApproval": false,
-            "requiredApprovingReviewCount": 1,
+            "requiredApprovingReviewCount": 0,
             "requiredReviewThreadResolution": true,
             "allowedMergeMethods": [
-              "merge",
-              "squash",
-              "rebase"
+              "squash"
             ]
           }
         },

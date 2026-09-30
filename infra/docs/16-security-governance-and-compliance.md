@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.2 |
+| **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
-| **References** | [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json) |
+| **References** | [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Tenant 1 Lean Platform Runbook](24-tenant-1-lean-platform-runbook.md), [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md) |
 
 This source-derived Proposed Baseline describes intended security, governance, and compliance controls. It does not prove that any policy, role, audit setting, DLP rule, Managed Environment, security group, ruleset, scanning feature, identity, or service is currently configured.
 
@@ -66,11 +66,11 @@ No Dataverse table, role, profile, hierarchy, business unit, or record is create
 
 ## Identity and Privilege Controls
 
-The bootstrap identity is one dedicated single-tenant application and service principal per independent tenant. It authenticates through the exact tenant-specific GitHub Environment OIDC subject and carries no stored credential.
+The active Tenant 1 bootstrap path uses an attended local user context. It validates the exact signed-in user, tenant, and subscription before and after subscription `what-if`.
 
-Managed identities are reserved for future Azure-hosted workloads. Temporary subscription roles are time-bound, recorded by exact assignment ID, deleted only after explicit approval, and verified absent. A cleanup failure fails the run.
+Access is a pre-existing, separately approved exact least-privilege custom validation role. Its deterministic role definition, exact action set, user-or-group assignment, and subscription scope are read before and after `what-if`. This sprint performs no role mutation.
 
-No app registration, service principal, federated credential, role definition, role assignment, consent, or Power Platform application user is created in Task 1.
+There is no bootstrap OIDC or GitHub Environment dependency. The former trust command is dormant and unsupported; reuse is deferred until a new reviewed design. No app registration, service principal, federated credential, role definition, role assignment, consent, or Power Platform application user is created in this sprint.
 
 ## Audit and Monitoring Proposals
 
@@ -85,10 +85,10 @@ A later control review must record:
 - the reviewed desired-state commit;
 - normalized discovery run ID, collection time, stable IDs, and service status;
 - approval records for every live mutation;
-- OIDC issuer, audience, subject, tenant, subscription, and client read-back;
+- attended principal, tenant, subscription, and exact approved validation-role access read-back;
 - Bicep build result and bounded subscription `what-if` output;
-- exact temporary role-assignment cleanup evidence;
-- GitHub ruleset and Environment API read-back;
+- evidence that no role mutation or deployment-create path ran;
+- GitHub ruleset and repository-settings read-back;
 - validation output showing repository contracts pass.
 
 Documentation alone is not compliance evidence. Until each item is observed and reviewed, it remains proposed.

@@ -2,28 +2,36 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-27 |
+| **Version** | 3.0 |
+| **Date** | 2026-09-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed Baseline |
+| **Status** | Approved |
 | **Scope** | Cross-cutting (all solution domains) |
-| **References** | [Approved Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../reviews/2026-09-17-architecture-baseline-source-inventory.json), [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) |
+| **References** | [Approved Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md), [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Source Inventory](../reviews/2026-09-17-architecture-baseline-source-inventory.json), [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) |
 
-This candidate is not an accepted repository decision until attended review approves it.
+## Attended Decision
 
-## Revision Note (v1.1)
+Approved on 2026-09-28 for **Option A — Lean single-tenant platform**, as defined by
+the [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md).
+The lean design supersedes the broader remediation topology. This ADR approves a
+target and does not authorize a live service mutation.
 
-The "One organisation only" item under Consequences → Negative, below, was originally recorded as a limitation to accept while one repository served multiple tenants. Live verification later confirmed it is a real, enforced platform constraint, not a soft preference, and [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) has since turned it around: rather than a cost of a shared repository, it is now the reason each tenant gets its own dedicated repository. This ADR's original text is left intact below — the reasoning stays useful even though the multi-tenant repository assumption it was written against has changed; read the "One organisation only" line together with ADR-0012.
+## Revision Note (v3.0)
+
+Version 3.0 records the approved lean target: GitHub remains the sole product-source
+and pull-request authority, Azure Boards remains the single delivery backlog on the
+built-in Basic process, and Azure Pipelines is future delivery work rather than a
+current-sprint dependency.
 
 ## Context
 
-Caldova HR Frontier must be built by an **external GitHub identity** (`github.com/urruegg`, a personal account outside the demo tenant) using GitHub Copilot CLI, while delivery is proposed to be planned and governed inside the tenant's Azure DevOps organisation (`dev.azure.com/caldova25156897`).
+Caldova HR Frontier must be built by an **external GitHub identity** (`github.com/urruegg`, a personal account outside the demo tenant) using GitHub Copilot CLI, while delivery is planned and governed inside the tenant's Azure DevOps organisation (`dev.azure.com/caldova25156897`).
 
 That leaves an unavoidable question: where does the backlog live, and where does the code live?
 
 Three options were considered.
 
-### Option A — Everything in Azure DevOps
+### Historical alternative — Everything in Azure DevOps
 
 Azure Repos for source, Azure Boards for work, Azure Pipelines for delivery.
 
@@ -31,7 +39,7 @@ Azure Repos for source, Azure Boards for work, Azure Pipelines for delivery.
 - But: GitHub Copilot CLI, Copilot cloud agent, `copilot-instructions.md`, `AGENTS.md`, rulesets, secret scanning and push protection are GitHub features. Building with Copilot CLI against Azure Repos loses the repository-native Copilot surface that the showcase is partly meant to demonstrate.
 - Azure DevOps **public projects are retired and can no longer be created**, so the "build in the open" objective is not achievable there.
 
-### Option B — Everything in GitHub
+### Historical alternative — Everything in GitHub
 
 GitHub Issues and GitHub Projects for work, GitHub for source and Actions.
 
@@ -39,31 +47,37 @@ GitHub Issues and GitHub Projects for work, GitHub for source and Actions.
 - But: **issue types are an organisation-level feature** and `urruegg` is a personal account, so work item typing degrades to labels. There are no iterations, no delivery plans, and no approval checks that pipeline authors provably cannot modify.
 - It also removes Azure DevOps from a showcase whose stated scope explicitly includes it.
 
-### Option C — Azure Boards plans, GitHub builds
+### Historical alternative — Azure Boards plans, GitHub hosts source, Azure Pipelines delivers
 
-Azure Boards owns the backlog, iterations, delivery plans and deployment approvals. GitHub owns source, pull requests, Actions, releases and agent definitions. The two are joined by `AB#<work-item-id>` references.
+Azure Boards owns the backlog, iterations, delivery plans and deployment approvals. GitHub owns product source, pull requests, and agent definitions. GitHub Actions owns repository validation, while Azure Pipelines owns HR solution CI/CD and controlled TEST-to-PROD delivery. The systems are joined by `AB#<work-item-id>` references.
 
 ---
 
-## Proposed Decision
+## Decision
 
-**The proposed baseline adopts Option C.**
+GitHub is the sole product-source and pull-request authority. Azure Boards is the
+single delivery backlog and remains on the built-in Basic process. Repository
+validation runs in GitHub Actions. A future Azure Pipeline connects directly to GitHub
+and will consume this repository for HR solution CI/CD; no Azure Pipeline is created
+this sprint.
 
-- **Azure DevOps** is the Engineering Control Plane: Epics, Features, User Stories, Tasks, Bugs, iterations, Delivery Plans, and the PROD approval gate.
-- **GitHub** is the Digital Factory: the public repository, pull requests, GitHub Actions, releases, `.github/agents/`, Copilot instructions and Copilot CLI.
-- **Azure Boards is the proposed single backlog.** GitHub Projects is not part of the proposed operating model. GitHub Issues exist only as an intake funnel that is triaged into Azure Boards.
-- Linkage is the `AB#` convention, to be enforced mechanically by a ruleset commit-message pattern and by the pull request template.
-- The connection uses the **Azure Boards GitHub App**, not a personal access token.
+Tenant 1 private configuration is an ignored local file with an encrypted,
+restore-tested backup outside Git. A private Azure Repo, OIDC bootstrap,
+`bootstrap-tenant1` Environment, cloud workflow retrieval, and Basic-to-Agile
+conversion are not current targets.
+
+The Azure Boards GitHub App supplies native work-item linkage. The final proof uses a
+real Basic Issue and the literal `Fixes AB#<id>` convention. GitHub Projects is not
+part of the operating model.
 
 ---
 
 ## Rationale
 
-1. **It is the pattern Microsoft's integration is built for.** *"You can use GitHub for software development while using Azure Boards to plan and track your work."*
-2. **The GitHub App is the only viable connection type.** PAT connections — including fine-grained PATs — support neither pull request status checks nor GitHub Copilot integration with Azure Boards.
-3. **Approval integrity.** Azure DevOps approvals and checks *"aren't defined in the yaml file. Users modifying the pipeline yaml file can't modify the checks performed before start of a stage."* That property is worth one gate on its own.
-4. **The personal-account constraint is real.** Issue types, organisation rulesets and organisation secrets are unavailable to `urruegg`. Azure Boards supplies the structured work model that GitHub cannot here.
-5. **Public build, private governance.** The repository is public so the showcase is reproducible; the Azure DevOps project is private, which is now the only option anyway.
+1. **It matches Microsoft's supported integration.** GitHub supplies source and pull requests while Azure Boards plans and tracks work.
+2. **It keeps one source and one backlog.** The GitHub repository and the Basic-process backlog have distinct, reviewable responsibilities without a mirror or second board.
+3. **It is proportional to current need.** Repository validation and one real traceability transaction establish a usable foundation without prematurely creating delivery infrastructure.
+4. **It preserves the future path.** Azure Pipelines can consume GitHub directly when HR solution CI/CD is implemented.
 
 ---
 
@@ -71,24 +85,22 @@ Azure Boards owns the backlog, iterations, delivery plans and deployment approva
 
 ### Positive
 
-- Structured backlog, iterations and delivery plans without giving up GitHub's Copilot surface.
-- Traceability from work item → branch → commit → pull request → merge commit → build → release is intended to be produced automatically by the `AB#` convention.
-- Two different classes of approval gate are demonstrated: GitHub Environments for TEST, Azure DevOps Environment checks for PROD.
+- A structured Basic backlog without giving up GitHub's Copilot surface.
+- Native work-item, branch, commit, and pull-request traceability through the Azure Boards GitHub App.
+- A narrow current sprint with no claim that delivery infrastructure already exists.
 
 ### Negative
 
-- **Two systems to learn.** Contributors must know that work is tracked in one place and built in another.
-- **No bidirectional synchronisation.** The integration provides linking plus a one-way state transition on merge. Nothing else syncs. This is why GitHub Projects is disabled — a second board would drift immediately.
-- **You cannot query for work items that have GitHub links.** The available proxy is `External Link Count > 0`.
-- **State transitions only fire on merge to the default branch**, which must be explained or it looks broken.
-- **One organisation only.** The repository can be connected to exactly one Azure DevOps organisation and project.
+- **Two systems to learn.** Contributors must know that work is tracked in Azure Boards and source is governed in GitHub.
+- **No bidirectional synchronization.** The integration links work and source; it does not create another backlog or source replica.
+- **Delivery remains deferred.** The repository does not yet provide Azure Pipeline or Power Platform deployment evidence.
 
 ### Mitigations
 
-- The proposed commit-message ruleset rejects a push without `AB#`, so the convention cannot silently lapse.
-- The pull request template requires the work item reference as its first field.
-- `.github/copilot-instructions.md` and `AGENTS.md` state the proposed rule so that agent-produced commits comply.
-- The proposed "unlinked work" board query is built on `External Link Count = 0`.
+- The pull-request template requires an Azure Boards work-item reference.
+- The final proof reads back the real GitHub link and intended Basic Issue transition.
+- `Repository setup validation` is the sole required status check.
+- Under the current solo-owner profile, required approvals are zero and CODEOWNERS review is not required; both are revisited when a second eligible maintainer exists.
 
 ---
 
@@ -106,3 +118,4 @@ Microsoft endorses this split **implicitly** through the Azure Boards + GitHub i
 - [Approvals and checks](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals?view=azure-devops)
 - [Choose a process](https://learn.microsoft.com/en-us/azure/devops/boards/work-items/guidance/choose-process?view=azure-devops)
 - [Approved Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md); Infrastructure detail enters in Phase 3.
+- [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md)

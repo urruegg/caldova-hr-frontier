@@ -806,22 +806,18 @@ Test-RequiredContent '.github/workflows/validate-repository.yml' @(
     'name: Validate repository',
     (Get-ReviewedActionUse -Name 'actions/checkout'),
     'Repository setup validation',
-    'RepositorySafety.Tests.ps1',
-    'infra/tests/pester',
+    "Get-ChildItem -LiteralPath '.github\cli\tests' -Filter '*.Tests.ps1' -File",
+    "'infra\tests\pester'",
+    "'hr\tests\pester'",
     'verify-repository-safety.ps1',
-    'az bicep build --file infra/src/bicep/main.bicep --stdout'
-)
-Test-RequiredContent '.github/workflows/audit-repository.yml' @(
-    'name: Audit repository baseline',
-    'Repository baseline audit (advisory)',
-    'verify-repository-setup.ps1 -SkipIntegratedTests -SkipBicepBuild'
+    "Get-ChildItem -LiteralPath 'infra\src\bicep' -Filter '*.bicep' -File -Recurse",
+    'git merge-base',
+    'git diff --check'
 )
 
 $phase3RequiredPaths = @(
     '.github/cli/tests/Phase3SourceContract.Tests.ps1',
     '.github/workflows/README.md',
-    '.github/workflows/bootstrap-tenant.yml',
-    '.github/workflows/discover-tenant.yml',
     'docs/reviews/2026-09-17-phase-3-infrastructure-tenant-bootstrap-intake.md',
     'infra/README.md',
     'infra/docs/10-tenant-setup-and-configuration.md',
@@ -840,13 +836,11 @@ $phase3RequiredPaths = @(
     'infra/src/bicep/modules/log-analytics-workspace.bicep',
     'infra/src/bicep/modules/resource-group.bicep',
     'infra/src/bicep/modules/subscription-policy-assignments.bicep',
-    'infra/src/bicep/modules/validation-role.bicep',
     'infra/src/config/github/action-pins.json',
     'infra/src/config/schemas/bootstrap-result.schema.json',
     'infra/src/config/schemas/discovery.schema.json',
     'infra/src/config/schemas/tenant.schema.json',
     'infra/src/config/tenants/_template.psd1',
-    'infra/src/config/tenants/caldova25156897.psd1',
     'infra/src/config/tenants/caldova25668747.psd1',
     'infra/src/scripts/Get-TemporaryBootstrapRoleState.ps1',
     'infra/src/scripts/Grant-TemporaryBootstrapRoles.ps1',
@@ -893,9 +887,7 @@ $phase3RequiredPaths = @(
     'infra/tests/pester/Naming.Tests.ps1',
     'infra/tests/pester/TemporaryRoleCleanup.Tests.ps1',
     'infra/tests/pester/TenantConfiguration.Tests.ps1',
-    'infra/tests/pester/TenantTrust.Tests.ps1',
-    'infra/tests/pester/WhatIfBoundary.Tests.ps1',
-    'infra/tests/pester/WorkflowContract.Tests.ps1'
+    'infra/tests/pester/WhatIfBoundary.Tests.ps1'
 )
 foreach ($relativePath in $phase3RequiredPaths) {
     Test-RequiredContent $relativePath @()
@@ -908,6 +900,16 @@ foreach ($relativePath in $phase3RequiredPaths) {
 Test-RequiredContent 'infra/src/config/schemas/discovery.schema.json' @(
     '"GitHub"', '"Entra"', '"Azure"', '"AzureDevOps"', '"PowerPlatform"', '"SharePoint"'
 )
+Test-RequiredContent '.gitignore' @(
+    'infra/src/config/tenants/*.local.psd1'
+)
+Test-RequiredContent 'infra/src/config/tenants/_template.psd1' @(
+    "PublicTenantKey = 'tenant1'"
+)
+Test-RequiredContent 'infra/src/config/schemas/tenant.schema.json' @(
+    '"PublicTenantKey"',
+    '"^tenant[1-9][0-9]*$"'
+)
 Test-RequiredContent 'infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Test-ProhibitedData.ps1' @(
     'access[_-]?token', 'refresh[_-]?token', 'client[_-]?secret', 'authorization:\s*bearer',
     'AccountKey=', 'SharedAccessSignature=', 'PRIVATE KEY', 'Principal.Upn'
@@ -916,56 +918,8 @@ Test-RequiredContent 'infra/tests/pester/BicepComposition.Tests.ps1' @(
     'Microsoft.Resources/resourceGroups',
     'Microsoft.OperationalInsights/workspaces',
     'Microsoft.Insights/diagnosticSettings',
-    'Microsoft.Authorization/roleDefinitions',
-    'Microsoft.Authorization/roleAssignments',
     'Microsoft.Authorization/policyAssignments'
 )
-foreach ($workflowPath in @('.github/workflows/bootstrap-tenant.yml', '.github/workflows/discover-tenant.yml')) {
-    Test-RequiredContent $workflowPath @(
-        'permissions:',
-        'contents: read',
-        'id-token: write',
-        (Get-ReviewedActionUse -Name 'actions/checkout'),
-        (Get-ReviewedActionUse -Name 'azure/login'),
-        'environment: bootstrap-${{ inputs.tenantAlias }}'
-    )
-}
-
-$phase3TenantManifestRelativePath = 'infra/src/config/tenants/caldova25156897.psd1'
-$phase3TenantManifestPath = Join-Path $repositoryRoot ($phase3TenantManifestRelativePath.Replace('/', '\'))
-if (Test-Path -LiteralPath $phase3TenantManifestPath -PathType Leaf) {
-    try {
-        $tenantConfiguration = Import-PowerShellDataFile -LiteralPath $phase3TenantManifestPath
-        $expectedNamingRoot = '{0}-{1}-{2}' -f
-            $tenantConfiguration.CompanyTla,
-            $tenantConfiguration.WorkloadName,
-            $tenantConfiguration.UniqueSuffix
-        if ($tenantConfiguration.NamingRoot -cne $expectedNamingRoot -or
-            $tenantConfiguration.NamingRoot -cne 'cal-hr-agentic-bc8rbt') {
-            Add-Failure 'Tenant 1 NamingRoot does not match its reviewed derivation.'
-        }
-        if ($tenantConfiguration.GitHub.Owner -cne 'urruegg' -or
-            $tenantConfiguration.GitHub.OwnerId -cne '46865858' -or
-            $tenantConfiguration.GitHub.Repository -cne 'caldova-hr-frontier' -or
-            $tenantConfiguration.GitHub.RepositoryId -cne '1371297722' -or
-            $tenantConfiguration.GitHub.EnvironmentName -cne 'bootstrap-caldova25156897') {
-            Add-Failure 'Tenant 1 GitHub identity does not match the reviewed immutable IDs and Environment.'
-        }
-        $oidcSubject = 'repo:{0}@{1}/{2}@{3}:environment:{4}' -f
-            $tenantConfiguration.GitHub.Owner,
-            $tenantConfiguration.GitHub.OwnerId,
-            $tenantConfiguration.GitHub.Repository,
-            $tenantConfiguration.GitHub.RepositoryId,
-            $tenantConfiguration.GitHub.EnvironmentName
-        if ($oidcSubject -cne 'repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-caldova25156897') {
-            Add-Failure 'Tenant 1 immutable OIDC subject does not match the reviewed prefix and Environment.'
-        }
-    }
-    catch {
-        Add-Failure "Cannot validate the Tenant 1 manifest contract: $($_.Exception.Message)"
-    }
-}
-
 $tenant2ManifestRelativePath = 'infra/src/config/tenants/caldova25668747.psd1'
 $tenant2ManifestPath = Join-Path $repositoryRoot ($tenant2ManifestRelativePath.Replace('/', '\'))
 if (Test-Path -LiteralPath $tenant2ManifestPath -PathType Leaf) {
@@ -1019,10 +973,27 @@ if (Test-Path -LiteralPath $infraRoot -PathType Container) {
 
 $tenantManifestRoot = Join-Path $repositoryRoot 'infra\src\config\tenants'
 if (Test-Path -LiteralPath $tenantManifestRoot -PathType Container) {
-    $allowedTenantManifestNames = @('_template.psd1', 'caldova25156897.psd1', 'caldova25668747.psd1')
+    $allowedTenantManifestNames = @(
+        '_template.psd1',
+        'tenant1.local.psd1',
+        'caldova25668747.psd1'
+    )
     foreach ($tenantManifest in @(Get-ChildItem -LiteralPath $tenantManifestRoot -Filter '*.psd1' -File -Force)) {
         if ($allowedTenantManifestNames -cnotcontains $tenantManifest.Name) {
             Add-Failure "Unreviewed tenant manifest is not allowed: infra/src/config/tenants/$($tenantManifest.Name)"
+        }
+        if ($tenantManifest.Name -ceq 'tenant1.local.psd1' -and $null -ne $gitCommand) {
+            $relativeTenantManifestPath = 'infra/src/config/tenants/tenant1.local.psd1'
+            $trackedTenantManifestPaths = @(
+                & $gitCommand.Source -C $repositoryRoot ls-files -- $relativeTenantManifestPath
+            )
+            if ($trackedTenantManifestPaths.Count -gt 0) {
+                Add-Failure 'The local Tenant 1 manifest must not be tracked by Git.'
+            }
+            & $gitCommand.Source -C $repositoryRoot check-ignore --quiet -- $relativeTenantManifestPath
+            if ($LASTEXITCODE -ne 0) {
+                Add-Failure 'The local Tenant 1 manifest must be covered by the reviewed ignore rule.'
+            }
         }
     }
 }
@@ -1034,12 +1005,6 @@ if (Test-Path -LiteralPath (Join-Path $repositoryRoot 'infra\src\scripts') -Path
         $_.Extension -in @('.ps1', '.psm1')
     })) {
         [void]$phase3ExecutablePaths.Add($scriptFile.FullName)
-    }
-}
-foreach ($workflowPath in @('.github/workflows/bootstrap-tenant.yml', '.github/workflows/discover-tenant.yml')) {
-    $absoluteWorkflowPath = Join-Path $repositoryRoot ($workflowPath.Replace('/', '\'))
-    if (Test-Path -LiteralPath $absoluteWorkflowPath -PathType Leaf) {
-        [void]$phase3ExecutablePaths.Add($absoluteWorkflowPath)
     }
 }
 foreach ($executablePath in $phase3ExecutablePaths) {
@@ -1081,9 +1046,9 @@ if (Test-Path -LiteralPath $phase3ReviewPath -PathType Leaf) {
 }
 
 Test-RequiredContent 'README.md' @(
-    '### Phase 3 Infrastructure Map',
-    '[Phase 3 Infrastructure and Tenant Bootstrap Intake](docs/reviews/2026-09-17-phase-3-infrastructure-tenant-bootstrap-intake.md)',
-    '`infra/src/config/tenants/caldova25156897.psd1`',
+    '[Tenant 1 Lean Engineering Platform Design](docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md)',
+    'GitHub is the sole product-source and pull-request authority',
+    '`infra/src/config/tenants/tenant1.local.psd1`',
     '`infra/src/config/tenants/caldova25668747.psd1`',
     '`infra/src/scripts/Invoke-TenantDiscovery.ps1`',
     '`infra/src/scripts/Initialize-TenantTrust.ps1`',
