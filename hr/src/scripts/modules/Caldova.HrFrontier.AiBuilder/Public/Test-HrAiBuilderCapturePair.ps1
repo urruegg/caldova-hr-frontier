@@ -109,6 +109,25 @@ function Test-HrAiBuilderCapturePair {
                 'spans@odata.type', 'spans', 'valueLocation')
         }
         $expectedFieldType = if ($FieldName -ceq 'dob') { 'date' } else { 'string' }
+        $expectedRegionCounts = @{
+            candidate_id = 1
+            last_name = 1
+            first_name = 1
+            dob = 1
+            nationality = 1
+            marital = 1
+            heimatort = 4
+            permit = 1
+            street = 2
+            plz = 1
+            city = 1
+            ahv = 1
+            iban = 5
+            phone = 5
+            email = 1
+            ec_name = 2
+            ec_phone = 5
+        }
         if (-not (Test-CapturePairProperties -Node $Label -Expected $expectedProperties) -or
             -not (Test-CapturePairOrdinal $Label.'@odata.type' '#Microsoft.Dynamics.CRM.expando') -or
             -not (Test-CapturePairOrdinal $Label.displayName $FieldName) -or
@@ -145,7 +164,7 @@ function Test-HrAiBuilderCapturePair {
             -not (Test-CapturePairNumber $location.pageNumber) -or
             -not (Test-CapturePairOrdinal $location.'regions@odata.type' '#Collection(Microsoft.Dynamics.CRM.crmbaseentity)') -or
             -not ($location.regions -is [array]) -or
-            @($location.regions).Count -lt 1) {
+            @($location.regions).Count -ne $expectedRegionCounts[$FieldName]) {
             return $false
         }
 

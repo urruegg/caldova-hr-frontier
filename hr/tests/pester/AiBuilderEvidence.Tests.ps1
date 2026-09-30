@@ -346,6 +346,8 @@ Describe 'AI Builder observed capture replay projection' {
         @{ Case = 'spans changed from an array to an object' }
         @{ Case = 'missing nested boundingBox polygon' }
         @{ Case = 'additional nested coordinate property' }
+        @{ Case = 'additional valid region' }
+        @{ Case = 'missing valid region' }
     ) {
         param($Case)
         $fixture = New-TestObservedCaptureFixture
@@ -378,6 +380,16 @@ Describe 'AI Builder observed capture replay projection' {
             'additional nested coordinate property' {
                 $label.valueLocation.boundingBox.polygon.coordinates[0] |
                     Add-Member -NotePropertyName z -NotePropertyValue 0
+            }
+            'additional valid region' {
+                $label.valueLocation.regions = @(
+                    $label.valueLocation.regions
+                    $label.valueLocation.regions[0]
+                )
+            }
+            'missing valid region' {
+                $phone = $raw.responsev2.predictionOutput.labels.phone
+                $phone.valueLocation.regions = @($phone.valueLocation.regions | Select-Object -First 4)
             }
         }
         Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
