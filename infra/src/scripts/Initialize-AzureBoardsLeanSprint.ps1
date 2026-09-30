@@ -63,6 +63,34 @@ function ConvertTo-UtcIsoString {
     ([datetime]$Value).ToUniversalTime().ToString('o')
 }
 
+function ConvertTo-ProjectRelativeIterationPath {
+    param(
+        [Parameter(Mandatory)]
+        [string]$ProjectName,
+
+        [Parameter(Mandatory)]
+        [string]$CurrentSprintPath
+    )
+
+    $projectPrefix = "$ProjectName\"
+    $hasInvalidSeparator = $CurrentSprintPath.Contains('/')
+    $hasOuterSeparator = $CurrentSprintPath -cne $CurrentSprintPath.Trim('\')
+    if ($hasInvalidSeparator -or $hasOuterSeparator -or
+        -not $CurrentSprintPath.StartsWith($projectPrefix, [System.StringComparison]::Ordinal)) {
+        throw "CurrentSprintPath '$CurrentSprintPath' must be an exact project-relative path below '$ProjectName\'."
+    }
+
+    $relativePath = $CurrentSprintPath.Substring($projectPrefix.Length)
+    $segments = @($relativePath.Split('\'))
+    if ($segments.Count -eq 0 -or
+        @($segments | Where-Object { [string]::IsNullOrWhiteSpace($_) -or $_ -in @('.', '..') }).Count -gt 0 -or
+        $segments[0] -ceq 'Iteration') {
+        throw "CurrentSprintPath '$CurrentSprintPath' must be an unambiguous project-relative iteration path below '$ProjectName\'."
+    }
+
+    $relativePath
+}
+
 function Assert-OutputPathOutsideRepository {
     param(
         [Parameter(Mandatory)]
@@ -181,7 +209,7 @@ function New-DefaultAzureDevOpsRequest {
                     '--organization', $organizationUrl,
                     '--area', 'wit',
                     '--resource', 'classificationnodes',
-                    '--route-parameters', "project=$projectName", 'structureGroup=iterations', "path=$([string]$Arguments['IterationPath'])",
+                    '--route-parameters', "project=$projectName", 'structureGroup=iterations', "path=$([string]$Arguments['IterationRestPath'])",
                     '--api-version', '7.1',
                     '--output', 'json'
                 ))
@@ -201,7 +229,7 @@ function New-DefaultAzureDevOpsRequest {
                     '--organization', $organizationUrl,
                     '--area', 'wit',
                     '--resource', 'classificationnodes',
-                    '--route-parameters', "project=$projectName", 'structureGroup=iterations', "path=$([string]$Arguments['IterationPath'])",
+                    '--route-parameters', "project=$projectName", 'structureGroup=iterations', "path=$([string]$Arguments['IterationRestPath'])",
                     '--http-method', 'PATCH',
                     '--in-file', $bodyPath,
                     '--api-version', '7.1',
@@ -247,6 +275,7 @@ function New-DefaultAzureDevOpsRequest {
                     '--route-parameters', "project=$projectName", 'type=Issue',
                     '--http-method', 'POST',
                     '--in-file', $bodyPath,
+                    '--media-type', 'application/json-patch+json',
                     '--api-version', '7.1',
                     '--output', 'json'
                 ))
@@ -267,6 +296,37 @@ function New-DefaultAzureDevOpsRequest {
             }
         }
     }.GetNewClosure()
+}
+
+function Get-TraceabilityIssueIds {
+    param(
+        [AllowNull()]
+        [object]$QueryResult,
+
+        [Parameter(Mandatory)]
+        [string]$Context
+    )
+
+    if ($null -eq $QueryResult) {
+        throw "$Context state is indeterminate: response must contain a non-null workItems array."
+    }
+
+    $queryTable = ConvertTo-Hashtable -InputObject $QueryResult
+    if (-not $queryTable.ContainsKey('workItems') -or
+        $null -eq $queryTable['workItems'] -or
+        $queryTable['workItems'] -isnot [System.Array]) {
+        throw "$Context state is indeterminate: response must contain a non-null workItems array."
+    }
+
+    $issueIds = @($queryTable['workItems'] | ForEach-Object {
+        $itemTable = ConvertTo-Hashtable -InputObject $_
+        if ($itemTable.ContainsKey('id')) { [int]$itemTable['id'] } else { 0 }
+    })
+    if ($issueIds -contains 0) {
+        throw "$Context returned an indeterminate work item ID."
+    }
+
+    $issueIds
 }
 
 function Assert-WorkItemReadBack {
@@ -358,6 +418,9 @@ if ($hasStartDate -and $SprintStartDate -gt $SprintFinishDate) {
     throw 'Sprint start date must be on or before the sprint finish date.'
 }
 
+$relativeIterationPath = ConvertTo-ProjectRelativeIterationPath `
+    -ProjectName $ProjectName `
+    -CurrentSprintPath $CurrentSprintPath
 $resolvedPlanOutputPath = Assert-OutputPathOutsideRepository -Path $PlanOutputPath
 $requestBodyDirectory = [System.IO.Path]::GetDirectoryName($resolvedPlanOutputPath)
 $normalizedOrganizationUrl = $OrganizationUrl.TrimEnd('/') + '/'
@@ -424,6 +487,7 @@ if ([string]$areaTable['structureType'] -cne 'area' -or -not $isProjectRootArea)
 
 $iterationArguments = $commonArguments.Clone()
 $iterationArguments['IterationPath'] = $CurrentSprintPath
+$iterationArguments['IterationRestPath'] = $relativeIterationPath
 $iteration = Invoke-AzureDevOpsRequest -Request $request -Operation 'GetIteration' -Arguments $iterationArguments
 if ($null -eq $iteration) {
     throw "Current sprint iteration '$CurrentSprintPath' state is indeterminate."
@@ -431,13 +495,6 @@ if ($null -eq $iteration) {
 $iterationTable = ConvertTo-Hashtable -InputObject $iteration
 $observedIterationPath = [string]$iterationTable['path']
 $normalizedIterationPath = $observedIterationPath.Trim('\', '/')
-$projectPrefix = "$ProjectName\"
-$relativeIterationPath = if ($CurrentSprintPath.StartsWith($projectPrefix, [System.StringComparison]::Ordinal)) {
-    $CurrentSprintPath.Substring($projectPrefix.Length)
-}
-else {
-    $CurrentSprintPath
-}
 $restIterationPath = "$ProjectName\Iteration\$relativeIterationPath"
 $isExactIteration = $normalizedIterationPath -ceq $CurrentSprintPath -or
     $normalizedIterationPath -ceq $restIterationPath
@@ -457,18 +514,7 @@ $observedFinishDate = ConvertTo-UtcIsoString -Value $attributes['finishDate']
 $queryArguments = $commonArguments.Clone()
 $queryArguments['Tag'] = $TraceabilityTag
 $queryResult = Invoke-AzureDevOpsRequest -Request $request -Operation 'QueryTraceabilityIssue' -Arguments $queryArguments
-if ($null -eq $queryResult) {
-    throw 'Traceability Issue state is indeterminate.'
-}
-$queryTable = ConvertTo-Hashtable -InputObject $queryResult
-$workItems = if ($queryTable.ContainsKey('workItems')) { @($queryTable['workItems']) } else { @() }
-$issueIds = @($workItems | ForEach-Object {
-    $itemTable = ConvertTo-Hashtable -InputObject $_
-    if ($itemTable.ContainsKey('id')) { [int]$itemTable['id'] } else { 0 }
-})
-if ($issueIds -contains 0) {
-    throw 'Traceability Issue query returned an indeterminate work item ID.'
-}
+$issueIds = @(Get-TraceabilityIssueIds -QueryResult $queryResult -Context 'Traceability Issue query')
 if ($issueIds.Count -gt 1) {
     throw "Ambiguous traceability Issue state for tag '$TraceabilityTag': ids $($issueIds -join ', ')."
 }
@@ -574,6 +620,25 @@ if ($issueMode -ceq 'Create') {
 
 if ($issueId -le 0) {
     throw "Durable traceability Issue ID must be a positive integer; observed '$issueId'."
+}
+
+$postMutationQueryResult = Invoke-AzureDevOpsRequest `
+    -Request $request `
+    -Operation 'QueryTraceabilityIssue' `
+    -Arguments $queryArguments
+$postMutationIssueIds = @(
+    Get-TraceabilityIssueIds `
+        -QueryResult $postMutationQueryResult `
+        -Context 'Traceability Issue post-mutation query'
+)
+if ($postMutationIssueIds.Count -ne 1 -or [int]$postMutationIssueIds[0] -ne $issueId) {
+    $observedIds = if ($postMutationIssueIds.Count -eq 0) {
+        '<none>'
+    }
+    else {
+        $postMutationIssueIds -join ', '
+    }
+    throw "Traceability Issue post-mutation verification requires exactly one result with expected ID '$issueId'; observed '$observedIds'."
 }
 
 $plan.IssueId = $issueId

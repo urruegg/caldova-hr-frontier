@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.1 |
-| **Date** | 2026-09-29 |
+| **Version** | 2.2 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Superseded |
 | **Scope** | Infrastructure (Tenant 1) |
@@ -34,7 +34,7 @@ Get-Content -LiteralPath $BoardsPlanPath -Raw | ConvertFrom-Json |
     Format-List ProcessName, TeamName, AreaPath, CurrentSprintPath, SprintDateMode, IssueMode, IssueId, Status
 ```
 
-The expected plan reports `Basic`, the exact existing team, `Caldova HR Frontier` as the root area, the exact current sprint, and `Status = Planned`. `IssueMode` is `Create` when the stable tag is absent and `Reuse` when exactly one matching Issue exists. More than one match is ambiguous and stops.
+The expected plan reports `Basic`, the exact existing team, `Caldova HR Frontier` as the root area, the exact current sprint, and `Status = Planned`. `IssueMode` is `Create` only when an actual WIQL `workItems` array is present and empty; missing, null, or wrong-type `workItems` is indeterminate and stops. `Reuse` requires exactly one matching Issue, and more than one match is ambiguous and stops. The full observed sprint path is converted to the project-relative classification-node route (`Caldova HR Frontier\Current` becomes `Current`); foreign, relative-only, REST-prefixed, or ambiguous paths stop.
 
 Current-sprint dates are deliberately omitted. Add both `SprintStartDate` and `SprintFinishDate` only when the attended owner supplies and approves both exact dates. Supplying one date, a reversed range, or an unverified read-back stops without further mutation.
 
@@ -44,7 +44,7 @@ After a separately recorded attended approval, use the same locked parameters:
 .\infra\src\scripts\Initialize-AzureBoardsLeanSprint.ps1 @BoardsParameters -Apply
 ```
 
-Approve only the exact proposed mutation. The result must report `Status = Applied` and a positive `IssueId`. Preserve that durable Issue for the final `Fixes AB#<positive-integer>` transaction; never delete it.
+Approve only the exact proposed mutation. Issue creation sends its four-field JSON Patch body with media type `application/json-patch+json`. After creation or a sprint-date update, the script reruns the stable-tag query and requires exactly one result with the expected Issue ID; a concurrent duplicate stops before success. The result must report `Status = Applied` and a positive `IssueId`. Preserve that durable Issue for the final `Fixes AB#<positive-integer>` transaction; never delete it.
 
 ## Optional 19-Epic Portfolio Tooling
 

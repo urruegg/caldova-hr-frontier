@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-29 |
+| **Version** | 1.2 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Tenant 1 lean engineering platform, current sprint only |
@@ -1189,15 +1189,17 @@ Review `$TaskBase..HEAD` before Task 6.
 
 **Files:**
 - Create: `infra/src/scripts/Initialize-AzureBoardsLeanSprint.ps1`
+- Create: `infra/src/scripts/Assert-AzureRepoEmptyProof.ps1`
 - Create: `infra/tests/pester/AzureBoardsLeanSprint.Tests.ps1`
+- Create: `infra/tests/pester/AzureRepoEmptyProof.Tests.ps1`
 - Modify: `infra/docs/21-azure-boards-population-runbook.md`
 - Modify: `infra/docs/24-tenant-1-lean-platform-runbook.md`
 - Leave unchanged: `infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1`
 - Leave unchanged: `infra/tests/pester/AzureBoardsPopulation.Tests.ps1`
 
 **Interfaces:**
-- Consumes: authenticated attended Azure DevOps user context, exact organization/project/team/current-sprint inputs.
-- Produces: verified Basic/team/root/current-sprint state and one durable Issue ID; optional separate empty Azure Repo deletion checkpoint.
+- Consumes: authenticated attended Azure DevOps user context, exact organization/project/team/full current-sprint path inputs, and exact Azure Repo/project IDs.
+- Produces: verified Basic/team/root/current-sprint state and one durable Issue ID; project-relative classification-node REST routes; JSON Patch work-item creation with `application/json-patch+json`; fail-closed empty-repository proof for an optional separate deletion checkpoint.
 
 - [ ] **Step 1: Write failing Basic Boards tests**
 
@@ -1235,7 +1237,9 @@ It 'rejects unsafe state without mutation' -TestCases @(
 }
 ```
 
-Add tests that an existing exact tagged Issue is reused and never deleted, supplied dates change only the selected current sprint, omitted dates cause no iteration mutation, create/read-back mismatch fails, and `-WhatIf` performs zero mutations.
+Add tests that an existing exact tagged Issue is reused and never deleted, supplied dates change only the selected current sprint, omitted dates cause no iteration mutation, create/read-back mismatch fails, and `-WhatIf` performs zero mutations. Production-adapter tests assert the exact work-item resource, route parameters, `POST` method, `application/json-patch+json` media type, and four-operation JSON Patch body. Add root and nested iteration tests proving that full observed paths become project-relative REST paths, plus rejection tests for foreign, already-relative, REST-prefixed, mixed-separator, or empty-segment ambiguity. Missing, null, and wrong-type WIQL `workItems` values must fail closed. Create/update tests must prove a final stable-tag query returns exactly the expected ID and rejects a concurrent duplicate.
+
+Create `infra/tests/pester/AzureRepoEmptyProof.Tests.ps1` before its validator. Cover the valid exact response contract and reject `{}`, missing properties, wrong types, foreign repository/project IDs, non-numeric size, non-explicit default branch, non-array `value`, inconsistent `count`, refs, and items.
 
 - [ ] **Step 2: Run the new test and verify red**
 
@@ -1305,8 +1309,13 @@ az devops invoke --organization $OrganizationUrl --area core --resource teams `
 # Root area and exact current iteration
 az devops invoke --organization $OrganizationUrl --area wit --resource classificationnodes `
     --route-parameters "project=$ProjectName" 'structureGroup=areas' --api-version 7.1 --output json
+$ProjectPrefix = "$ProjectName\"
+if (-not $CurrentSprintPath.StartsWith($ProjectPrefix, [StringComparison]::Ordinal)) {
+    throw 'CurrentSprintPath is not below the exact project.'
+}
+$RelativeIterationPath = $CurrentSprintPath.Substring($ProjectPrefix.Length)
 az devops invoke --organization $OrganizationUrl --area wit --resource classificationnodes `
-    --route-parameters "project=$ProjectName" 'structureGroup=iterations' "path=$CurrentSprintPath" `
+    --route-parameters "project=$ProjectName" 'structureGroup=iterations' "path=$RelativeIterationPath" `
     --api-version 7.1 --output json
 
 # Exact Issue query
@@ -1320,13 +1329,26 @@ az devops invoke --organization $OrganizationUrl --area wit --resource wiql `
     --api-version 7.1 --output json
 ```
 
-`UpdateIterationDates` PATCHes only the exact `classificationnodes/iterations/{path}` attributes object. `CreateTraceabilityIssue` POSTs JSON Patch to `wit/workitems/$Issue`. The script writes request bodies beside `PlanOutputPath`, never in the repository, checks the native exit code and non-empty JSON body after every call, and deletes no work item.
+The conversion must also reject an empty suffix, empty path segment, `/`, `.` or `..` segment, and an `Iteration`-prefixed suffix so a foreign or already-REST-shaped path cannot become a different node. Both `GetIteration` and `UpdateIterationDates` send only the validated relative suffix in the `path` route parameter.
+
+`UpdateIterationDates` PATCHes only the exact `classificationnodes/iterations/{relative-path}` attributes object. `CreateTraceabilityIssue` uses this exact contract:
+
+```powershell
+az devops invoke --organization $OrganizationUrl --area wit --resource workitems `
+    --route-parameters "project=$ProjectName" 'type=Issue' `
+    --http-method POST --in-file $CreateBodyPath `
+    --media-type 'application/json-patch+json' `
+    --api-version 7.1 --output json
+```
+
+The body is an actual JSON Patch array containing exactly the four `add` operations for `System.Title`, `System.AreaPath`, `System.IterationPath`, and `System.Tags`. A WIQL response is determinate only when it contains a non-null actual `workItems` array; missing, null, scalar, or object values stop and can never select Create mode. Immediately before reporting `Applied`, rerun the stable-tag WIQL query and require exactly one result whose ID equals the created or reused/read-back Issue ID. The script writes request bodies beside `PlanOutputPath`, never in the repository, checks the native exit code and non-empty JSON body after every call, and deletes no work item.
 
 - [ ] **Step 4: Run Basic Boards tests and the untouched Epic suite**
 
 ```powershell
 Invoke-Pester -Path @(
     'infra\tests\pester\AzureBoardsLeanSprint.Tests.ps1'
+    'infra\tests\pester\AzureRepoEmptyProof.Tests.ps1'
     'infra\tests\pester\AzureBoardsPopulation.Tests.ps1'
 ) -Output Detailed
 ```
@@ -1343,37 +1365,32 @@ The runbook obtains the exact repo ID as attended input:
 
 ```powershell
 $AzureRepoId = (Read-Host 'Enter the exact empty Azure Repo GUID').Trim()
-if ($AzureRepoId -cnotmatch '^[0-9a-fA-F-]{36}$') { throw 'Azure Repo ID must be a GUID.' }
+$ParsedAzureRepoId = [guid]::Empty
+if ($AzureRepoId -cnotmatch '^[0-9a-fA-F-]{36}$' -or
+    -not [guid]::TryParse($AzureRepoId, [ref]$ParsedAzureRepoId)) {
+    throw 'Azure Repo ID must be a GUID.'
+}
 $OrganizationUrl = (Read-Host 'Enter the Azure DevOps organization URL').Trim()
 $ProjectId = (Read-Host 'Enter the exact Azure DevOps project GUID').Trim()
-if ($ProjectId -cnotmatch '^[0-9a-fA-F-]{36}$') { throw 'Project ID must be a GUID.' }
+$ParsedProjectId = [guid]::Empty
+if ($ProjectId -cnotmatch '^[0-9a-fA-F-]{36}$' -or
+    -not [guid]::TryParse($ProjectId, [ref]$ParsedProjectId)) {
+    throw 'Project ID must be a GUID.'
+}
 ```
 
-Use Azure DevOps REST 7.1 to read repository metadata, refs, and recursive items. Require all four predicates:
+Use checked native calls that capture the exit code and raw text before JSON parsing. Empty output, malformed JSON, or a nonzero exit code stops. Read repository metadata, refs, and recursive items through Azure DevOps REST 7.1, then invoke the tested validator:
 
 ```powershell
-$Repository = az repos show --id $AzureRepoId --organization $OrganizationUrl --project $ProjectId --output json |
-    ConvertFrom-Json
-if ($LASTEXITCODE -ne 0 -or $null -eq $Repository) { throw 'Cannot read exact Azure Repo metadata.' }
-
-$Refs = az devops invoke --organization $OrganizationUrl --area git --resource refs `
-    --route-parameters "project=$ProjectId" "repositoryId=$AzureRepoId" `
-    --api-version 7.1 --output json | ConvertFrom-Json
-if ($LASTEXITCODE -ne 0 -or $null -eq $Refs) { throw 'Cannot prove Azure Repo refs.' }
-
-$Items = az devops invoke --organization $OrganizationUrl --area git --resource items `
-    --route-parameters "project=$ProjectId" "repositoryId=$AzureRepoId" `
-    --query-parameters 'scopePath=/' 'recursionLevel=Full' 'includeContentMetadata=true' `
-    --api-version 7.1 --output json | ConvertFrom-Json
-if ($LASTEXITCODE -ne 0 -or $null -eq $Items) { throw 'Cannot prove Azure Repo items.' }
-
-if ([long]$Repository.size -ne 0) { throw 'Azure Repo size is not zero.' }
-if (-not [string]::IsNullOrWhiteSpace([string]$Repository.defaultBranch)) { throw 'Azure Repo has a default branch.' }
-if (@($Refs.value).Count -ne 0) { throw 'Azure Repo contains refs.' }
-if (@($Items.value).Count -ne 0) { throw 'Azure Repo contains items.' }
+$ValidatedRepoProof = & '.\infra\src\scripts\Assert-AzureRepoEmptyProof.ps1' `
+    -AzureRepoId $AzureRepoId `
+    -ProjectId $ProjectId `
+    -Repository $Repository `
+    -Refs $Refs `
+    -Items $Items
 ```
 
-Any failed call, `403`, `404`, empty body, malformed response, branch, ref, or item stops. Capture the sanitized proof and stable repo ID outside Git.
+`Repository` must be an object with exact matching string GUIDs in `id` and `project.id`, a non-empty string `name`, a numeric `size` equal to zero, and a present `defaultBranch` that is explicitly null or the empty string. `Refs` and `Items` must each be an object with numeric `count`, an actual array `value`, matching declared/actual counts, and zero elements. `{}`, missing properties, null/wrong-type values, string numeric values, count mismatches, foreign IDs, any failed call, `403`, `404`, branch, ref, or item stops. Capture the validator's exact IDs and sanitized predicates outside Git.
 
 - [ ] **Step 7: Define and stop at the destructive checkpoint**
 
@@ -1390,7 +1407,7 @@ This plan does not supply approval and does not run the command.
 - [ ] **Step 8: Commit the Boards slice**
 
 ```powershell
-git add infra/src/scripts/Initialize-AzureBoardsLeanSprint.ps1 infra/tests/pester/AzureBoardsLeanSprint.Tests.ps1 infra/docs/21-azure-boards-population-runbook.md infra/docs/24-tenant-1-lean-platform-runbook.md
+git add docs/plans/2026-09-28-tenant-1-lean-engineering-platform-implementation.md infra/src/scripts/Initialize-AzureBoardsLeanSprint.ps1 infra/src/scripts/Assert-AzureRepoEmptyProof.ps1 infra/tests/pester/AzureBoardsLeanSprint.Tests.ps1 infra/tests/pester/AzureRepoEmptyProof.Tests.ps1 infra/docs/21-azure-boards-population-runbook.md infra/docs/24-tenant-1-lean-platform-runbook.md
 git commit -m 'feat(boards): add lean sprint traceability operation' -m 'Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>'
 ```
 

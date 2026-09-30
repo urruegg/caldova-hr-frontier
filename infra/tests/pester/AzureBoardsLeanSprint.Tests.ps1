@@ -52,6 +52,7 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
             AdapterMode = 'Create'
             MutationCalls = [System.Collections.Generic.List[object]]::new()
             OperationCalls = [System.Collections.Generic.List[string]]::new()
+            QueryCalls = 0
             IterationStartDate = '2026-09-28T00:00:00Z'
             IterationFinishDate = '2026-10-09T00:00:00Z'
             CreatedIssueFields = $null
@@ -133,21 +134,44 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
                     return [pscustomobject]@{ path = $iterationPath }
                 }
                 'QueryTraceabilityIssue' {
-                    $workItems = switch ($state.AdapterMode) {
+                    $state.QueryCalls++
+                    switch ($state.AdapterMode) {
+                        'QueryMissingWorkItems' {
+                            return [pscustomobject]@{ count = 0 }
+                        }
+                        'QueryNullWorkItems' {
+                            return [pscustomobject]@{ workItems = $null }
+                        }
+                        'QueryWrongTypeWorkItems' {
+                            return [pscustomobject]@{ workItems = [pscustomobject]@{ id = 42 } }
+                        }
                         'DuplicateIssue' {
-                            @(
+                            return [pscustomobject]@{ workItems = @(
                                 [pscustomobject]@{ id = 41 }
                                 [pscustomobject]@{ id = 42 }
-                            )
+                            ) }
+                        }
+                        'ConcurrentDuplicate' {
+                            [object[]]$workItems = @()
+                            if ($null -ne $state.CreatedIssueFields) {
+                                $workItems = [object[]]@(
+                                    [pscustomobject]@{ id = 73 }
+                                    [pscustomobject]@{ id = 74 }
+                                )
+                            }
+                            return [pscustomobject]@{ workItems = $workItems }
                         }
                         { $_ -in @('Reuse', 'DateMismatch') } {
-                            @([pscustomobject]@{ id = 42 })
+                            return [pscustomobject]@{ workItems = [object[]]@([pscustomobject]@{ id = 42 }) }
                         }
                         default {
-                            @()
+                            [object[]]$workItems = @()
+                            if ($null -ne $state.CreatedIssueFields) {
+                                $workItems = [object[]]@([pscustomobject]@{ id = 73 })
+                            }
+                            return [pscustomobject]@{ workItems = $workItems }
                         }
                     }
-                    return [pscustomobject]@{ workItems = $workItems }
                 }
                 'CreateTraceabilityIssue' {
                     $state.CreatedIssueFields = $Arguments.Fields
@@ -225,6 +249,39 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
         @($script:MutationCalls).Count | Should -Be 0
     }
 
+    It 'rejects indeterminate WIQL response shapes without mutation' -TestCases @(
+        @{ Mode = 'QueryMissingWorkItems' }
+        @{ Mode = 'QueryNullWorkItems' }
+        @{ Mode = 'QueryWrongTypeWorkItems' }
+    ) {
+        param($Mode)
+
+        { Invoke-LeanBoardsScript -Mode $Mode -WhatIf } | Should -Throw '*Issue*indeterminate*workItems*array*'
+        @($script:MutationCalls).Count | Should -Be 0
+    }
+
+    It 'rejects foreign or ambiguous current sprint paths before any Azure DevOps call' -TestCases @(
+        @{ Path = 'Other Project\Current' }
+        @{ Path = 'Current' }
+        @{ Path = 'Caldova HR Frontier\Iteration\Current' }
+        @{ Path = 'Caldova HR Frontier\\Current' }
+    ) {
+        param($Path)
+
+        {
+            & $script:ScriptPath `
+                -OrganizationUrl 'https://dev.azure.com/example/' `
+                -ProjectName $script:ProjectName `
+                -TeamName $script:TeamName `
+                -CurrentSprintPath $Path `
+                -IssueTitle $script:IssueTitle `
+                -PlanOutputPath (Join-Path $TestDrive 'unsafe-path-plan.json') `
+                -AzureDevOpsRequest $script:ExactBasicState `
+                -WhatIf
+        } | Should -Throw '*CurrentSprintPath*project-relative*'
+        @($script:OperationCalls).Count | Should -Be 0
+    }
+
     It 'reuses one exact tagged Issue and exposes its positive ID without deletion' {
         $result = Invoke-LeanBoardsScript -Mode 'Reuse' -WhatIf
 
@@ -250,6 +307,9 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
         $script:MutationCalls[0].Arguments.StartDate | Should -Be $start
         $script:MutationCalls[0].Arguments.FinishDate | Should -Be $finish
         ($script:OperationCalls | Where-Object { $_ -ceq 'GetIteration' }).Count | Should -Be 2
+        $script:State.QueryCalls | Should -Be 2
+        $script:OperationCalls.LastIndexOf('QueryTraceabilityIssue') |
+            Should -BeGreaterThan $script:OperationCalls.IndexOf('UpdateIterationDates')
     }
 
     It 'preserves observed iteration dates when sprint dates are omitted' {
@@ -276,6 +336,17 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
         $script:State.CreatedIssueFields['System.AreaPath'] | Should -BeExactly $script:ProjectName
         $script:State.CreatedIssueFields['System.IterationPath'] | Should -BeExactly $script:IterationPath
         $script:State.CreatedIssueFields['System.Tags'] | Should -BeExactly $script:TraceabilityTag
+        $script:State.QueryCalls | Should -Be 2
+        $script:OperationCalls.LastIndexOf('QueryTraceabilityIssue') |
+            Should -BeGreaterThan $script:OperationCalls.IndexOf('CreateTraceabilityIssue')
+    }
+
+    It 'fails closed when a concurrent duplicate appears after Issue creation' {
+        { Invoke-LeanBoardsScript -Mode 'ConcurrentDuplicate' -Apply } |
+            Should -Throw '*post-mutation*exactly one*expected*73*'
+        $script:MutationCalls.Count | Should -Be 1
+        $script:MutationCalls[0].Operation | Should -BeExactly 'CreateTraceabilityIssue'
+        $script:State.QueryCalls | Should -Be 2
     }
 
     It 'fails when created Issue read-back does not match the exact requested fields' {
@@ -362,6 +433,7 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
 
     It 'uses the REST 7.1 production adapter without a live Azure DevOps call' {
         $global:LeanBoardsFakeAzCalls = [System.Collections.Generic.List[object]]::new()
+        $global:LeanBoardsFakeWiqlCalls = 0
         function global:az {
             $arguments = @($args | ForEach-Object { [string]$_ })
             $global:LeanBoardsFakeAzCalls.Add($arguments) | Out-Null
@@ -382,7 +454,11 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
                 return '{"id":2,"name":"Current","path":"\\Caldova HR Frontier\\Iteration\\Current","structureType":"iteration","attributes":{"startDate":"2026-09-28T00:00:00Z","finishDate":"2026-10-09T00:00:00Z"}}'
             }
             if ($resource -ceq 'wiql') {
-                return '{"workItems":[]}'
+                $global:LeanBoardsFakeWiqlCalls++
+                if ($global:LeanBoardsFakeWiqlCalls -eq 1) {
+                    return '{"workItems":[]}'
+                }
+                return '{"workItems":[{"id":73}]}'
             }
             if ($resource -ceq 'workitems' -and $arguments -contains 'POST') {
                 return '{"id":73}'
@@ -411,13 +487,126 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
             $result.Status | Should -BeExactly 'Applied'
             (Test-Path -LiteralPath (Join-Path $TestDrive 'traceability-issue-query.json')) | Should -BeTrue
             (Test-Path -LiteralPath (Join-Path $TestDrive 'traceability-issue-create.json')) | Should -BeTrue
-            @($global:LeanBoardsFakeAzCalls).Count | Should -Be 7
+            @($global:LeanBoardsFakeAzCalls).Count | Should -Be 8
             @($global:LeanBoardsFakeAzCalls | Where-Object { $_ -contains '--api-version' -and $_ -contains '7.1' }).Count |
-                Should -Be 6
+                Should -Be 7
+
+            $iterationCall = @($global:LeanBoardsFakeAzCalls | Where-Object {
+                $_ -contains '--resource' -and $_ -contains 'classificationnodes' -and
+                    $_ -contains 'structureGroup=iterations'
+            })[0]
+            ($iterationCall -join '|') | Should -BeExactly (
+                @(
+                    'devops', 'invoke',
+                    '--organization', 'https://dev.azure.com/example/',
+                    '--area', 'wit',
+                    '--resource', 'classificationnodes',
+                    '--route-parameters', 'project=Caldova HR Frontier', 'structureGroup=iterations', 'path=Current',
+                    '--api-version', '7.1',
+                    '--output', 'json'
+                ) -join '|'
+            )
+
+            $createBodyPath = Join-Path $TestDrive 'traceability-issue-create.json'
+            $createCall = @($global:LeanBoardsFakeAzCalls | Where-Object {
+                $_ -contains '--resource' -and $_ -contains 'workitems' -and $_ -contains 'POST'
+            })[0]
+            ($createCall -join '|') | Should -BeExactly (
+                @(
+                    'devops', 'invoke',
+                    '--organization', 'https://dev.azure.com/example/',
+                    '--area', 'wit',
+                    '--resource', 'workitems',
+                    '--route-parameters', 'project=Caldova HR Frontier', 'type=Issue',
+                    '--http-method', 'POST',
+                    '--in-file', $createBodyPath,
+                    '--media-type', 'application/json-patch+json',
+                    '--api-version', '7.1',
+                    '--output', 'json'
+                ) -join '|'
+            )
+
+            $createPatch = Get-Content -LiteralPath $createBodyPath -Raw | ConvertFrom-Json
+            $createPatch.Count | Should -Be 4
+            $createPatch[0].op | Should -BeExactly 'add'
+            $createPatch[0].path | Should -BeExactly '/fields/System.Title'
+            $createPatch[0].value | Should -BeExactly $script:IssueTitle
+            $createPatch[1].op | Should -BeExactly 'add'
+            $createPatch[1].path | Should -BeExactly '/fields/System.AreaPath'
+            $createPatch[1].value | Should -BeExactly $script:ProjectName
+            $createPatch[2].op | Should -BeExactly 'add'
+            $createPatch[2].path | Should -BeExactly '/fields/System.IterationPath'
+            $createPatch[2].value | Should -BeExactly $script:IterationPath
+            $createPatch[3].op | Should -BeExactly 'add'
+            $createPatch[3].path | Should -BeExactly '/fields/System.Tags'
+            $createPatch[3].value | Should -BeExactly $script:TraceabilityTag
         }
         finally {
             Remove-Item -Path Function:\global:az -ErrorAction SilentlyContinue
             Remove-Variable -Name LeanBoardsFakeAzCalls -Scope Global -ErrorAction SilentlyContinue
+            Remove-Variable -Name LeanBoardsFakeWiqlCalls -Scope Global -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'uses a nested project-relative classification-node path without a live Azure DevOps call' {
+        $global:LeanBoardsNestedFakeAzCalls = [System.Collections.Generic.List[object]]::new()
+        function global:az {
+            $arguments = @($args | ForEach-Object { [string]$_ })
+            $global:LeanBoardsNestedFakeAzCalls.Add($arguments) | Out-Null
+            $global:LASTEXITCODE = 0
+            $resourceIndex = [array]::IndexOf($arguments, '--resource')
+            $resource = if ($resourceIndex -ge 0) { $arguments[$resourceIndex + 1] } else { '' }
+
+            if ($arguments -contains 'project' -and $arguments -contains 'show') {
+                return '{"id":"00000000-0000-0000-0000-000000000001","name":"Caldova HR Frontier","capabilities":{"processTemplate":{"templateName":"Basic"}}}'
+            }
+            if ($resource -ceq 'teams') {
+                return '{"id":"00000000-0000-0000-0000-000000000002","name":"Caldova HR Frontier Team","projectName":"Caldova HR Frontier"}'
+            }
+            if ($resource -ceq 'classificationnodes' -and $arguments -contains 'structureGroup=areas') {
+                return '{"id":1,"name":"Area","path":"\\Caldova HR Frontier\\Area","structureType":"area"}'
+            }
+            if ($resource -ceq 'classificationnodes' -and $arguments -contains 'structureGroup=iterations') {
+                return '{"id":2,"name":"Current","path":"\\Caldova HR Frontier\\Iteration\\Release 1\\Current","structureType":"iteration","attributes":{"startDate":"2026-09-28T00:00:00Z","finishDate":"2026-10-09T00:00:00Z"}}'
+            }
+            if ($resource -ceq 'wiql') {
+                return '{"workItems":[]}'
+            }
+
+            $global:LASTEXITCODE = 1
+            return '{"error":"unexpected fake az command"}'
+        }
+
+        try {
+            $result = & $script:ScriptPath `
+                -OrganizationUrl 'https://dev.azure.com/example/' `
+                -ProjectName $script:ProjectName `
+                -TeamName $script:TeamName `
+                -CurrentSprintPath 'Caldova HR Frontier\Release 1\Current' `
+                -IssueTitle $script:IssueTitle `
+                -PlanOutputPath (Join-Path $TestDrive 'nested-production-adapter-plan.json') `
+                -WhatIf
+
+            $result.Status | Should -BeExactly 'Planned'
+            $iterationCall = @($global:LeanBoardsNestedFakeAzCalls | Where-Object {
+                $_ -contains '--resource' -and $_ -contains 'classificationnodes' -and
+                    $_ -contains 'structureGroup=iterations'
+            })[0]
+            ($iterationCall -join '|') | Should -BeExactly (
+                @(
+                    'devops', 'invoke',
+                    '--organization', 'https://dev.azure.com/example/',
+                    '--area', 'wit',
+                    '--resource', 'classificationnodes',
+                    '--route-parameters', 'project=Caldova HR Frontier', 'structureGroup=iterations', 'path=Release 1\Current',
+                    '--api-version', '7.1',
+                    '--output', 'json'
+                ) -join '|'
+            )
+        }
+        finally {
+            Remove-Item -Path Function:\global:az -ErrorAction SilentlyContinue
+            Remove-Variable -Name LeanBoardsNestedFakeAzCalls -Scope Global -ErrorAction SilentlyContinue
         }
     }
 }

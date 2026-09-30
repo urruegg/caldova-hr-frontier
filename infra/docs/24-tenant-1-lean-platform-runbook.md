@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-09-29 |
+| **Version** | 1.3 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Tenant 1 engineering platform |
@@ -162,7 +162,7 @@ $BoardsParameters = @{
 .\infra\src\scripts\Initialize-AzureBoardsLeanSprint.ps1 @BoardsParameters -WhatIf
 ```
 
-The plan must read back the Basic process, exact existing team, project-root area, exact current sprint, and either zero or one Issue with the stable tag `tenant1-lean-platform-traceability`. Zero matches plans `Create`; one exact match plans `Reuse`; more than one match stops as ambiguous. `-WhatIf` and the default mode perform no Azure DevOps mutation.
+The plan must read back the Basic process, exact existing team, project-root area, exact current sprint, and either zero or one Issue with the stable tag `tenant1-lean-platform-traceability`. Zero matches plans `Create`; one exact match plans `Reuse`; more than one match stops as ambiguous. A missing, null, or non-array WIQL `workItems` property is indeterminate and stops; it never plans `Create`. `CurrentSprintPath` is the full observed project path. The script removes exactly the `<project>\` prefix before calling the classification-node REST route (`Caldova HR Frontier\Current` becomes `Current`, and nested suffixes remain nested); relative, foreign-project, `Iteration`-prefixed, empty-segment, and mixed-separator paths stop before any Azure DevOps call. `-WhatIf` and the default mode perform no Azure DevOps mutation.
 
 Omit sprint dates unless the attended owner supplies and approves both exact current-sprint dates. When approved dates exist, add both `SprintStartDate` and `SprintFinishDate` to `$BoardsParameters`. The script changes only the selected current sprint and reads both dates back.
 
@@ -172,6 +172,8 @@ After separate attended approval, apply the unchanged plan:
 .\infra\src\scripts\Initialize-AzureBoardsLeanSprint.ps1 @BoardsParameters -Apply
 ```
 
+Issue creation uses `POST` to the `wit/workitems` resource with route parameters for the exact project and `type=Issue`, and sends the JSON Patch body as `application/json-patch+json`. After any create or sprint-date update, the script reruns the stable-tag WIQL query and requires exactly one result whose ID equals the read-back Issue ID. A missing result, changed ID, or concurrent duplicate stops before `Status = Applied`.
+
 Require `Status = Applied` and a positive `IssueId`. Preserve that Issue as the durable cross-system traceability item.
 
 ## Empty Azure Repo Checkpoint
@@ -180,52 +182,90 @@ The empty Azure Repo has no lean-platform dependency. This implementation collec
 
 ```powershell
 $AzureRepoId = (Read-Host 'Enter the exact empty Azure Repo GUID').Trim()
-if ($AzureRepoId -cnotmatch '^[0-9a-fA-F-]{36}$') { throw 'Azure Repo ID must be a GUID.' }
+$ParsedAzureRepoId = [guid]::Empty
+if ($AzureRepoId -cnotmatch '^[0-9a-fA-F-]{36}$' -or
+    -not [guid]::TryParse($AzureRepoId, [ref]$ParsedAzureRepoId)) {
+    throw 'Azure Repo ID must be a GUID.'
+}
 $OrganizationUrl = (Read-Host 'Enter the Azure DevOps organization URL').Trim()
 $ProjectId = (Read-Host 'Enter the exact Azure DevOps project GUID').Trim()
-if ($ProjectId -cnotmatch '^[0-9a-fA-F-]{36}$') { throw 'Project ID must be a GUID.' }
+$ParsedProjectId = [guid]::Empty
+if ($ProjectId -cnotmatch '^[0-9a-fA-F-]{36}$' -or
+    -not [guid]::TryParse($ProjectId, [ref]$ParsedProjectId)) {
+    throw 'Project ID must be a GUID.'
+}
 
-$Repository = az repos show --id $AzureRepoId --organization $OrganizationUrl --project $ProjectId --output json |
-    ConvertFrom-Json
-if ($LASTEXITCODE -ne 0 -or $null -eq $Repository) { throw 'Cannot read exact Azure Repo metadata.' }
+function Invoke-AzureDevOpsJsonRead {
+    param(
+        [Parameter(Mandatory)][string]$Description,
+        [Parameter(Mandatory)][string[]]$ArgumentList
+    )
 
-$Refs = az devops invoke --organization $OrganizationUrl --area git --resource refs `
-    --route-parameters "project=$ProjectId" "repositoryId=$AzureRepoId" `
-    --api-version 7.1 --output json | ConvertFrom-Json
-if ($LASTEXITCODE -ne 0 -or $null -eq $Refs) { throw 'Cannot prove Azure Repo refs.' }
+    $Output = @(& az @ArgumentList 2>&1)
+    $ExitCode = $LASTEXITCODE
+    $Text = ($Output | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+    if ($ExitCode -ne 0) { throw "$Description failed with exit code ${ExitCode}: $Text" }
+    if ([string]::IsNullOrWhiteSpace($Text)) { throw "$Description returned an empty body." }
+    try {
+        $Text | ConvertFrom-Json -ErrorAction Stop
+    }
+    catch {
+        throw "$Description returned malformed JSON: $($_.Exception.Message)"
+    }
+}
 
-$Items = az devops invoke --organization $OrganizationUrl --area git --resource items `
-    --route-parameters "project=$ProjectId" "repositoryId=$AzureRepoId" `
-    --query-parameters 'scopePath=/' 'recursionLevel=Full' 'includeContentMetadata=true' `
-    --api-version 7.1 --output json | ConvertFrom-Json
-if ($LASTEXITCODE -ne 0 -or $null -eq $Items) { throw 'Cannot prove Azure Repo items.' }
+$Repository = Invoke-AzureDevOpsJsonRead -Description 'Exact Azure Repo metadata read' -ArgumentList @(
+    'repos', 'show',
+    '--id', $AzureRepoId,
+    '--organization', $OrganizationUrl,
+    '--project', $ProjectId,
+    '--output', 'json'
+)
+$Refs = Invoke-AzureDevOpsJsonRead -Description 'Exact Azure Repo refs read' -ArgumentList @(
+    'devops', 'invoke',
+    '--organization', $OrganizationUrl,
+    '--area', 'git',
+    '--resource', 'refs',
+    '--route-parameters', "project=$ProjectId", "repositoryId=$AzureRepoId",
+    '--api-version', '7.1',
+    '--output', 'json'
+)
+$Items = Invoke-AzureDevOpsJsonRead -Description 'Exact Azure Repo recursive items read' -ArgumentList @(
+    'devops', 'invoke',
+    '--organization', $OrganizationUrl,
+    '--area', 'git',
+    '--resource', 'items',
+    '--route-parameters', "project=$ProjectId", "repositoryId=$AzureRepoId",
+    '--query-parameters', 'scopePath=/', 'recursionLevel=Full', 'includeContentMetadata=true',
+    '--api-version', '7.1',
+    '--output', 'json'
+)
 
-if ([long]$Repository.size -ne 0) { throw 'Azure Repo size is not zero.' }
-if (-not [string]::IsNullOrWhiteSpace([string]$Repository.defaultBranch)) { throw 'Azure Repo has a default branch.' }
-if (@($Refs.value).Count -ne 0) { throw 'Azure Repo contains refs.' }
-if (@($Items.value).Count -ne 0) { throw 'Azure Repo contains items.' }
+$ValidatedRepoProof = & (Join-Path $RepositoryRoot 'infra\src\scripts\Assert-AzureRepoEmptyProof.ps1') `
+    -AzureRepoId $AzureRepoId `
+    -ProjectId $ProjectId `
+    -Repository $Repository `
+    -Refs $Refs `
+    -Items $Items
 ```
 
-Any failed call, `403`, `404`, empty body, malformed response, branch, ref, item, ambiguity, or indeterminate result stops. Capture only the exact stable IDs and sanitized predicate results outside Git:
+The validator requires a repository response object with matching string GUIDs at `id` and `project.id`, a non-empty string `name`, numeric `size` equal to zero, and a present `defaultBranch` whose value is explicitly null or the empty string. It requires refs and items response objects with numeric `count`, an actual array `value`, equality between `count` and `value.Count`, and zero elements. `{}`, missing properties, null or wrong-type collections, string numeric values, count mismatches, and foreign IDs all stop. Any failed call, `403`, `404`, empty body, malformed response, branch, ref, item, ambiguity, or indeterminate result stops.
+
+Capture only the validated exact stable IDs and sanitized predicate results outside Git:
 
 ```powershell
 $RepoProofPath = Join-Path $OperatorRoot 'empty-azure-repo-proof.json'
 $RepoProof = [ordered]@{
     collectedAtUtc = [datetime]::UtcNow.ToString('o')
     organizationUrl = $OrganizationUrl
-    projectId = $ProjectId
-    repositoryId = $AzureRepoId
-    repositoryName = [string]$Repository.name
-    size = [long]$Repository.size
-    defaultBranch = [string]$Repository.defaultBranch
-    refCount = @($Refs.value).Count
-    itemCount = @($Items.value).Count
-    predicates = [ordered]@{
-        sizeIsZero = ([long]$Repository.size -eq 0)
-        defaultBranchIsEmpty = [string]::IsNullOrWhiteSpace([string]$Repository.defaultBranch)
-        refsAreEmpty = (@($Refs.value).Count -eq 0)
-        itemsAreEmpty = (@($Items.value).Count -eq 0)
-    }
+    projectId = $ValidatedRepoProof.projectId
+    repositoryId = $ValidatedRepoProof.repositoryId
+    repositoryName = $ValidatedRepoProof.repositoryName
+    size = $ValidatedRepoProof.size
+    defaultBranch = $ValidatedRepoProof.defaultBranch
+    refCount = $ValidatedRepoProof.refCount
+    itemCount = $ValidatedRepoProof.itemCount
+    predicates = $ValidatedRepoProof.predicates
 }
 [System.IO.File]::WriteAllText(
     $RepoProofPath,
