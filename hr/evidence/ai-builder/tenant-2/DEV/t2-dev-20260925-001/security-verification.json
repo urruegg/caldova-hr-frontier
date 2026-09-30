@@ -270,24 +270,40 @@
       "screenshot_sha256": "A37AE5866213CBE4E08975F6B4C1708E99A76C85D08C1FF0A3C7EACA3DAD290F",
       "hash_status": "verified",
       "observation": "The trigger editor visibly shows source_pdf, expected_filename, expected_sha256, and execution_run_id. The authoritative exported definition proves the complete six-input schema, capture-stage choices, and secure settings."
+    },
+    {
+      "screenshot": "task6-remediation-folder.png",
+      "screenshot_sha256": "98B1AEC1A710D4088A379C9DB9F1899BD6D70645ED9F7639B16D931681FAA73B",
+      "hash_status": "verified",
+      "observation": "The restricted folder contains the verified training source, retained mismatch, raw response, and canonical envelope."
+    },
+    {
+      "screenshot": "task6-remediation-run-succeeded-flow-off.png",
+      "screenshot_sha256": "C0E21C3BFC1F65CE3378AE1C985B8FB9B3E85398F4F67BB980E5E2AB3942AB68",
+      "hash_status": "verified",
+      "observation": "The sole attended run succeeded and the flow is Off."
     }
   ],
   "authorization_boundary": {
     "task_5": "complete",
-    "task_6": "blocked_before_capture",
-    "required_next_gate": "reviewed remediation plan and new explicit authorization before any retry",
-    "pdf_count": 1,
-    "processed_pdf_count": 0,
-    "run_count": 0,
+    "task_6": "capture_observation_complete",
+    "required_next_gate": "Task 7 deterministic local replay before any capability claim or holdout exposure",
+    "pdf_count": 2,
+    "processed_pdf_count": 1,
+    "run_count": 1,
     "flow_state_after_attempt": "Draft",
     "folder_file_count_after_attempt": 0,
     "folder_file_count_after_corrected_retry": 1,
     "processed_pdf_count_after_corrected_retry": 0,
+    "folder_file_count_after_remediation": 4,
+    "processed_pdf_count_after_remediation": 1,
     "retry_authorized": false,
     "operational_result_path": "training-capture-attempt.json",
     "permission_analysis_path": "task6-permission-analysis.json",
     "folder_permission_change_applied": false,
     "folder_permission_observation": "The folder has unique assignments and grants only the attended administrator Full Control. The HTTP 403 root cause was the tenant-root REST endpoint scope, not missing folder permission.",
-    "corrected_retry_observation": "The corrected endpoint created one source file, but immediate read-back failed exact size and SHA-256 verification. The flow remained Off with zero runs. The mismatched file is retained and no additional upload, replacement, or deletion is authorized."
+    "corrected_retry_observation": "The corrected endpoint created one source file, but immediate read-back failed exact size and SHA-256 verification. The flow remained Off with zero runs. The mismatched file was retained.",
+    "remediation_result_path": "training-capture-remediation.json",
+    "remediation_observation": "After explicit approval, the mismatch was renamed without changing its bytes. A native file-selection upload passed exact remote size and SHA-256 verification. One training-proof run succeeded, raw and canonical bytes were retained, the flow returned to Off, and no holdout was exposed."
   }
 }

@@ -114,13 +114,14 @@
   "effective_current_authorization": {
     "task_4": "completed",
     "task_5": "completed",
-    "task_6": "two_authorized_attempts_blocked_before_capture",
+    "task_6": "training_proof_capture_preserved_for_replay",
     "superseding_gate": "Task 6 Step 1 separate attended approval",
     "pdf_capture_authorized": false,
     "authorization_consumed": true,
     "retry_authorized": false,
     "operational_result_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-attempt.json",
-    "corrected_retry_result_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-retry.json"
+    "corrected_retry_result_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-retry.json",
+    "remediation_result_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-remediation.json"
   },
   "explicit_approval_artifact": {
     "prompt": "All final names are now explicitly confirmed. Do you freshly approve this exact Tenant 2 DEV-only scope: publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 as evaluation-only; create unmanaged solution Caldova HR AI Evaluation DEV (calhr_ai_evaluation_dev); create manual flow Capture AI Builder Evaluation Evidence; create AI Builder reference Caldova HR AI Evaluation DEV AI Builder (calhr_ai_evaluation_dev_aibuilder); create SharePoint reference Caldova HR AI Evaluation DEV SharePoint (calhr_ai_evaluation_dev_sharepoint); and create folder https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence, owned/run only by admin@caldova25668747.onmicrosoft.com? This does not authorize business use, TEST/PROD, Tenant 1, Workday, holdouts, draft 2.0 changes, automatic deletion, or any other deletion.",
@@ -197,17 +198,26 @@
       "observed_at_utc": "2026-09-30T09:21:25.7670113Z",
       "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-retry.json",
       "observation": "The separately authorized corrected retry used the HRFrontierDEV site endpoint and created the same training filename with overwrite disabled. Immediate read-back found 3,038 bytes and SHA-256 74c042e2419054136cc512c58ae252b9803f2a6cd7bdfc9d8acff2b04bc4b618 instead of the qualified 3,042 bytes and manifest hash. The flow was never enabled or invoked. The mismatched remote file is retained and no additional retry or deletion is authorized."
+    },
+    {
+      "attempt": 3,
+      "status": "captured_without_capability_claim",
+      "blocker_id": null,
+      "observed_at_utc": "2026-09-30T09:46:31.0000000Z",
+      "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-remediation.json",
+      "capture_pair_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\cap-20260930094537354Z-34bf8987\\capture-pair.json",
+      "observation": "After explicit design and filename-collision approval, the retained 3,038-byte mismatch was renamed without changing its bytes. Playwright native file selection transferred the qualified 3,042-byte training source under its original allow-listed filename. Exact remote read-back passed before enablement. The flow ran exactly once, succeeded, returned to Off, and produced retained raw and canonical bytes. No holdout was exposed and no capability claim was made."
     }
   ],
-  "current_task_boundary": "Task 6 corrected retry is blocked before capture because the stored SharePoint source bytes did not match the qualified manifest bytes. The second one-attempt authorization is consumed. The retained mismatched source remains in the restricted folder. The flow remains Off with zero runs; no PDF was processed and no holdout was exposed.",
+  "current_task_boundary": "Task 6 produced one immutable training-proof source/raw/canonical capture pair for deterministic replay. The flow is Off after exactly one successful run. The retained mismatched source remains preserved under a failure-evidence filename. No holdout was exposed and no capability or model-quality claim has been made.",
   "current_task_authorization": {
     "task_5": "complete",
-    "task_6": "blocked",
-    "required_next_gate": "reviewed remediation plan and new explicit authorization before any additional upload, replacement, deletion, or retry",
-    "folder_state": "contains_retained_mismatched_source",
-    "pdf_count": 1,
-    "processed_pdf_count": 0,
-    "run_count": 0,
+    "task_6": "capture_observation_complete",
+    "required_next_gate": "Task 7 deterministic local replay before any capability claim or holdout exposure",
+    "folder_state": "contains_verified_training_source_retained_mismatch_raw_and_canonical",
+    "pdf_count": 2,
+    "processed_pdf_count": 1,
+    "run_count": 1,
     "retry_authorized": false
   }
 }

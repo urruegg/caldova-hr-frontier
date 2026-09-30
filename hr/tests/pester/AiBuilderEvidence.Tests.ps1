@@ -262,6 +262,7 @@ Describe 'AI Builder field and corpus contracts' {
             $script:Task6FailedUploadRequestPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-failed-upload-request.json'
             $script:Task6TrainingCaptureRetryPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\training-capture-retry.json'
             $script:Task6RetryUploadRequestPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-retry-upload-request.json'
+            $script:Task6TrainingCaptureRemediationPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\training-capture-remediation.json'
             $script:TrainingCaptureFolderScreenshotPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-upload-failure-folder-empty.png'
             $script:TestBoM = Get-Content -LiteralPath (
                 Join-Path $root 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\bom-0002-ai-builder-test-inputs-and-outcomes.md'
@@ -324,13 +325,14 @@ Describe 'AI Builder field and corpus contracts' {
             $readiness.explicit_approval.authorization_status | Should -Be 'historical_scope_superseded_for_task_6_execution'
             $readiness.effective_current_authorization.task_4 | Should -Be 'completed'
             $readiness.effective_current_authorization.task_5 | Should -Be 'completed'
-            $readiness.effective_current_authorization.task_6 | Should -Be 'two_authorized_attempts_blocked_before_capture'
+            $readiness.effective_current_authorization.task_6 | Should -Be 'training_proof_capture_preserved_for_replay'
             $readiness.effective_current_authorization.pdf_capture_authorized | Should -BeFalse
             $readiness.effective_current_authorization.authorization_consumed | Should -BeTrue
             $readiness.effective_current_authorization.retry_authorized | Should -BeFalse
             $readiness.effective_current_authorization.operational_result_path | Should -Be 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\training-capture-attempt.json'
             $readiness.effective_current_authorization.corrected_retry_result_path | Should -Be 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\training-capture-retry.json'
-            @($readiness.task_6_attempt_history).Count | Should -Be 2
+            $readiness.effective_current_authorization.remediation_result_path | Should -Be 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\training-capture-remediation.json'
+            @($readiness.task_6_attempt_history).Count | Should -Be 3
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No TEST or PROD mutation'
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No Tenant 1 mutation'
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No Workday integration'
@@ -512,12 +514,76 @@ Describe 'AI Builder field and corpus contracts' {
             $retry.containment.remote_file_deleted | Should -BeFalse
             $retry.containment.retry_performed_after_mismatch | Should -BeFalse
             $retry.containment.additional_retry_authorized | Should -BeFalse
-            $security.authorization_boundary.pdf_count | Should -Be $retry.containment.folder_file_count
+            $security.authorization_boundary.pdf_count | Should -Be 2
             $security.authorization_boundary.folder_file_count_after_corrected_retry | Should -Be $retry.containment.folder_file_count
-            $security.authorization_boundary.processed_pdf_count | Should -Be $retry.containment.pdfs_processed
+            $security.authorization_boundary.processed_pdf_count | Should -Be 1
             $security.authorization_boundary.processed_pdf_count_after_corrected_retry | Should -Be $retry.containment.pdfs_processed
+            $security.authorization_boundary.run_count | Should -Be 1
             (Get-FileHash -LiteralPath $screenshot -Algorithm SHA256).Hash.ToLowerInvariant() |
                 Should -Be $retry.evidence[1].sha256
+        }
+
+        It 'preserves the failed bytes and uses native upload of the allow-listed filename before flow enablement' {
+            $script:Task6TrainingCaptureRemediationPath | Should -Exist
+            $remediation = Get-Content -LiteralPath $script:Task6TrainingCaptureRemediationPath -Raw | ConvertFrom-Json
+            $evidenceRoot = Split-Path -Parent $script:Task6TrainingCaptureRemediationPath
+            $qualifiedSource = Join-Path $script:RepositoryRoot $remediation.selected_document.qualified_local_path
+            $retainedMismatch = Join-Path $evidenceRoot $remediation.preserved_failure_evidence.local_evidence_filename
+            $verifiedSource = Join-Path $evidenceRoot $remediation.native_upload.remote_read_back_evidence_filename
+
+            $remediation.authorization.response | Should -Be 'Approve the design and controlled attempt (Recommended)'
+            $remediation.authorization.filename_collision_resolution | Should -Be 'rename_retained_mismatch_then_upload_allow_listed_filename'
+            $remediation.native_upload.method | Should -Be 'playwright_set_input_files'
+            $remediation.native_upload.inline_base64_used | Should -BeFalse
+            $remediation.native_upload.overwrite | Should -BeFalse
+            $remediation.native_upload.target_filename | Should -Be $remediation.selected_document.original_filename
+            $remediation.preserved_failure_evidence.remote_filename_after_rename |
+                Should -Not -Be $remediation.selected_document.original_filename
+            (Get-Item -LiteralPath $qualifiedSource).Length | Should -Be 3042
+            (Get-FileHash -LiteralPath $qualifiedSource -Algorithm SHA256).Hash.ToLowerInvariant() |
+                Should -Be '9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd'
+            (Get-Item -LiteralPath $retainedMismatch).Length | Should -Be 3038
+            (Get-FileHash -LiteralPath $retainedMismatch -Algorithm SHA256).Hash.ToLowerInvariant() |
+                Should -Be '74c042e2419054136cc512c58ae252b9803f2a6cd7bdfc9d8acff2b04bc4b618'
+            (Get-Item -LiteralPath $verifiedSource).Length | Should -Be $remediation.pre_flow_byte_verification.remote_size_bytes
+            (Get-FileHash -LiteralPath $verifiedSource -Algorithm SHA256).Hash.ToLowerInvariant() |
+                Should -Be $remediation.pre_flow_byte_verification.remote_sha256
+            $remediation.pre_flow_byte_verification.remote_size_bytes | Should -Be 3042
+            $remediation.pre_flow_byte_verification.remote_sha256 |
+                Should -Be '9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd'
+            $remediation.pre_flow_byte_verification.size_match | Should -BeTrue
+            $remediation.pre_flow_byte_verification.sha256_match | Should -BeTrue
+            $remediation.pre_flow_byte_verification.gate_passed | Should -BeTrue
+            $remediation.flow_invocation.status | Should -Be 'Succeeded'
+            $remediation.flow_invocation.invocation_count | Should -Be 1
+            $remediation.flow_invocation.flow_state_after_run | Should -Be 'Draft'
+            $remediation.flow_invocation.flow_portal_state_after_run | Should -Be 'Off'
+            $remediation.containment.flow_run_count | Should -Be 1
+            $remediation.containment.pdfs_processed | Should -Be 1
+            $remediation.containment.flow_state | Should -Be 'Draft'
+            $remediation.containment.flow_portal_state | Should -Be 'Off'
+            $remediation.containment.fixed_holdouts_exposed | Should -Be 0
+            $remediation.containment.general_holdouts_exposed | Should -Be 0
+
+            $capturePairPath = Join-Path $evidenceRoot $remediation.capture_artifacts.capture_pair_path
+            $capturePairPath | Should -Exist
+            (Get-Item -LiteralPath $capturePairPath).Length |
+                Should -Be $remediation.capture_artifacts.capture_pair_size_bytes
+            (Get-FileHash -LiteralPath $capturePairPath -Algorithm SHA256).Hash.ToLowerInvariant() |
+                Should -Be $remediation.capture_artifacts.capture_pair_sha256
+            $pair = Get-Content -LiteralPath $capturePairPath -Raw | ConvertFrom-Json
+            $pair.PSObject.Properties.Name | Should -Not -Contain 'status'
+            $pair.PSObject.Properties.Name | Should -Not -Contain 'pass'
+            $pair.run_id | Should -Be $remediation.flow_invocation.execution_run_id
+            $pair.capture_stage | Should -Be 'training-proof'
+            $pair.source.sha256 | Should -Be $remediation.pre_flow_byte_verification.remote_sha256
+            foreach ($artifactName in @('source', 'raw', 'canonical')) {
+                $artifact = $pair.$artifactName
+                $artifactPath = Join-Path $evidenceRoot $artifact.local_path
+                (Get-Item -LiteralPath $artifactPath).Length | Should -Be $artifact.size_bytes
+                (Get-FileHash -LiteralPath $artifactPath -Algorithm SHA256).Hash.ToLowerInvariant() |
+                    Should -Be $artifact.sha256
+            }
         }
 
         It 'records the separately approved publisher after exact read-back and preserves the blocked publisher-gate attempt' {

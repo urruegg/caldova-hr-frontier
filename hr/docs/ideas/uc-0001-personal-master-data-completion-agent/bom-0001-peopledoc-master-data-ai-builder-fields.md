@@ -124,6 +124,8 @@ Field-level result records reference this deployment context through `run_id`; t
 
 The [AI Builder Test Inputs and Outcomes BoM](bom-0002-ai-builder-test-inputs-and-outcomes.md) summarizes the qualified inputs, metrics, findings, and evidence for each model execution.
 
+Task 6 now has one immutable [training-proof capture](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-remediation.json) and [capture pair](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20260930094537354Z-34bf8987/capture-pair.json). These bytes are input to Task 7 deterministic replay. They do not yet change any field from `Blocked` or `Evidence incomplete`, because no replay gate or held-out field result has been calculated.
+
 ## 5. Tenant 1 Adaptation
 
 Tenant 1 reuses the BoM IDs, field names, types, contract rules and status definitions. It does not reuse Tenant 2 model stages, model versions, run IDs, verification results or evidence.

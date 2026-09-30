@@ -1,0 +1,108 @@
+{
+  "schema_version": "1.0",
+  "record_kind": "attended_training_capture_remediation",
+  "run_id": "t2-dev-20260925-001",
+  "status": "captured_without_capability_claim",
+  "capability_claimed": false,
+  "tenant_key": "tenant-2",
+  "environment_stage": "DEV",
+  "power_platform_environment_id": "84ad4c54-41d9-e5df-ba07-188b4719594a",
+  "operator_upn": "admin@caldova25668747.onmicrosoft.com",
+  "authorization": {
+    "response": "Approve the design and controlled attempt (Recommended)",
+    "responded_at_utc": "2026-09-30T09:40:27.2670000Z",
+    "scope": "Exactly one byte-exact training-proof upload and one flow invocation only after exact remote read-back.",
+    "filename_collision_response": "Rename the retained mismatch as failure evidence, then upload the qualified PDF under its original allow-listed filename (Recommended)",
+    "filename_collision_responded_at_utc": "2026-09-30T09:41:40.7100000Z",
+    "filename_collision_resolution": "rename_retained_mismatch_then_upload_allow_listed_filename"
+  },
+  "root_cause": {
+    "component": "inline_base64_request_construction",
+    "observation": "The corrected retry request body was already 3,038 bytes before SharePoint received it. SharePoint stored those submitted bytes exactly. The inline Base64 literal differed from the qualified source and was replaced by a native file-selection transfer.",
+    "sharepoint_storage_corruption_observed": false
+  },
+  "selected_document": {
+    "original_filename": "a01-CAND-2026-0411-brunner.pdf",
+    "assignment": "training",
+    "qualified_local_path": "hr\\docs\\ideas\\uc-0001-personal-master-data-completion-agent\\gf-aib-fixed-template\\documents\\a-personalblatt\\a01-CAND-2026-0411-brunner.pdf",
+    "qualified_size_bytes": 3042,
+    "qualified_sha256": "9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd",
+    "corpus_revision": "c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db"
+  },
+  "preserved_failure_evidence": {
+    "remote_unique_id": "d4c6d692-2a9d-48b8-aa8c-1b8e7d0592bf",
+    "remote_filename_before_rename": "a01-CAND-2026-0411-brunner.pdf",
+    "remote_filename_after_rename": "task6-retry-mismatch-a01-CAND-2026-0411-brunner.pdf",
+    "remote_size_bytes": 3038,
+    "remote_sha256": "74c042e2419054136cc512c58ae252b9803f2a6cd7bdfc9d8acff2b04bc4b618",
+    "local_evidence_filename": "task6-retry-remote-source-mismatch.pdf",
+    "content_changed": false
+  },
+  "native_upload": {
+    "method": "playwright_set_input_files",
+    "inline_base64_used": false,
+    "target_filename": "a01-CAND-2026-0411-brunner.pdf",
+    "overwrite": false,
+    "browser_selected_size_bytes": 3042,
+    "browser_selected_sha256": "9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd",
+    "http_status": 200,
+    "created_at_utc": "2026-09-30T09:42:37.0000000Z",
+    "remote_unique_id": "3920a097-9e70-4a46-bd40-a55fefd7e996",
+    "remote_path": "/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence/a01-CAND-2026-0411-brunner.pdf",
+    "remote_read_back_evidence_filename": "capture\\cap-20260930094537354Z-34bf8987\\source\\a01-CAND-2026-0411-brunner.pdf"
+  },
+  "pre_flow_byte_verification": {
+    "remote_size_bytes": 3042,
+    "remote_sha256": "9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd",
+    "size_match": true,
+    "sha256_match": true,
+    "gate_passed": true
+  },
+  "flow_invocation": {
+    "flow_name": "Capture AI Builder Evaluation Evidence",
+    "workflow_id": "24e38f04-9ebc-f111-aaae-7ced8d44be51",
+    "execution_run_id": "cap-20260930094537354Z-34bf8987",
+    "platform_run_id": "08584108453173059269239918098cU14",
+    "status": "Succeeded",
+    "duration_seconds": 23,
+    "invocation_count": 1,
+    "flow_state_after_run": "Draft",
+    "flow_portal_state_after_run": "Off"
+  },
+  "capture_artifacts": {
+    "capture_pair_path": "capture\\cap-20260930094537354Z-34bf8987\\capture-pair.json",
+    "capture_pair_size_bytes": 1846,
+    "capture_pair_sha256": "1f0119e420aec082d639abf69bde717e383e21a3ab984e1e49c5f1ad1ba2a6a4",
+    "raw_path": "capture\\cap-20260930094537354Z-34bf8987\\cap-20260930094537354Z-34bf8987.ai-builder.raw.json",
+    "raw_size_bytes": 124461,
+    "raw_sha256": "6ddf6d3ab1a79a25422fc7750d7eb1900c30957ca7bc5a6cd098a090706b39f3",
+    "canonical_path": "capture\\cap-20260930094537354Z-34bf8987\\cap-20260930094537354Z-34bf8987.canonical.json",
+    "canonical_size_bytes": 1293,
+    "canonical_sha256": "627dc0d4cc26b288ebbcd4109688972f14d7a23ed1f98eee7b2009e47a8fe3f7"
+  },
+  "containment": {
+    "flow_state": "Draft",
+    "flow_portal_state": "Off",
+    "flow_run_count": 1,
+    "pdfs_processed": 1,
+    "fixed_holdouts_exposed": 0,
+    "general_holdouts_exposed": 0,
+    "draft_2_0_touched": false,
+    "tenant_1_touched": false,
+    "workday_touched": false,
+    "business_use_authorized": false
+  },
+  "evidence": [
+    {
+      "path": "task6-remediation-folder.png",
+      "size_bytes": 69493,
+      "sha256": "98b1aec1a710d4088a379c9db9f1899bd6d70645ed9f7639b16d931681faa73b"
+    },
+    {
+      "path": "task6-remediation-run-succeeded-flow-off.png",
+      "size_bytes": 57609,
+      "sha256": "c0e21c3bfc1f65ce3378ae1c985b8fb9b3e85398f4f67bb980e5e2ab3942ab68"
+    }
+  ],
+  "next_action": "Proceed to Task 7 deterministic replay. This record proves only that one training source, raw response, canonical envelope, and pair metadata were captured; it does not claim capture capability or model quality."
+}
