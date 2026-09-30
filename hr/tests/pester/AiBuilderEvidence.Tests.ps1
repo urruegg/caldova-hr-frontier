@@ -22,6 +22,9 @@ Describe 'AI Builder observed capture replay projection' {
         $script:ReplayCanonicalFixturePath = Join-Path $script:ReplayFixtureRoot 'canonical-envelope.json'
         $script:ReplayContractPath = Join-Path $script:ReplayRepositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
         $script:ReplaySourcePath = Join-Path $script:ReplayRepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template\documents\a-personalblatt\a01-CAND-2026-0411-brunner.pdf'
+        $script:RetainedReplayRoot = Join-Path $script:ReplayRepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
+        $script:RetainedCaptureDirectory = Join-Path $script:RetainedReplayRoot 'capture\cap-20260930094537354Z-34bf8987'
+        $script:RetainedReplayHash = '627dc0d4cc26b288ebbcd4109688972f14d7a23ed1f98eee7b2009e47a8fe3f7'
         $script:ReplayFieldNames = @(
             (Get-Content -LiteralPath $script:ReplayContractPath -Raw | ConvertFrom-Json).fields.name
         )
@@ -231,6 +234,23 @@ Describe 'AI Builder observed capture replay projection' {
         $document.fields.dob.value | Should -BeNullOrEmpty
         $document.fields.dob.confidence | Should -BeOfType [ValueType]
         $result.hashes.source_sha256 | Should -BeExactly $document.document_sha256
+    }
+
+    It 'preserves the retained timestamp lexeme and reproduces its canonical hash' {
+        $result = Test-HrAiBuilderCapturePair `
+            -CaptureDirectory $script:RetainedCaptureDirectory `
+            -RunManifestPath (Join-Path $script:RetainedReplayRoot 'run-manifest.json') `
+            -FieldContractPath $script:ReplayContractPath `
+            -ModelSchemaRecordPath (Join-Path $script:RetainedReplayRoot 'model-schema-fixed.json') `
+            -ModelName 'PersonalMasterDataFixed' `
+            -ModelVersion '1.0' `
+            -Operator 'admin@caldova25668747.onmicrosoft.com'
+
+        $result.canonical_envelope.captured_at_utc |
+            Should -BeExactly '2026-09-30T09:46:29.7963762Z'
+        $result.hashes.canonical_sha256 | Should -BeExactly $script:RetainedReplayHash
+        $result.hashes.replay_sha256 | Should -BeExactly $script:RetainedReplayHash
+        $result.status | Should -Be 'passed' -Because ($result.failed_gates -join ', ')
     }
 
     It 'accepts numeric confidence boundaries and observed numeric representations' -TestCases @(

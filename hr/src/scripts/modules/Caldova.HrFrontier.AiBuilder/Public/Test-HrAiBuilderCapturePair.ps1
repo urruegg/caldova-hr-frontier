@@ -42,6 +42,42 @@ function Test-HrAiBuilderCapturePair {
         }
     }
 
+    function Read-CapturePairJson {
+        [CmdletBinding(DefaultParameterSetName = 'Path')]
+        param(
+            [Parameter(Mandatory, ParameterSetName = 'Path')]
+            [string]$Path,
+
+            [Parameter(Mandatory, ParameterSetName = 'Bytes')]
+            [byte[]]$Bytes,
+
+            [Parameter(Mandatory)]
+            [string]$Description
+        )
+
+        $text = if ($PSCmdlet.ParameterSetName -eq 'Path') {
+            [IO.File]::ReadAllText(
+                [IO.Path]::GetFullPath($Path),
+                [Text.UTF8Encoding]::new($false, $true)
+            )
+        }
+        else {
+            [Text.UTF8Encoding]::new($false, $true).GetString($Bytes)
+        }
+        $text = $text.TrimStart([char]0xFEFF)
+
+        try {
+            $convertFromJson = Get-Command ConvertFrom-Json -ErrorAction Stop
+            if ($convertFromJson.Parameters.ContainsKey('DateKind')) {
+                return $text | ConvertFrom-Json -DateKind String -ErrorAction Stop
+            }
+            return $text | ConvertFrom-Json -ErrorAction Stop
+        }
+        catch {
+            throw "$Description is not valid JSON: $($_.Exception.Message)"
+        }
+    }
+
     function Test-CapturePairOrdinal {
         param([AllowNull()][object]$Left, [AllowNull()][object]$Right)
         if ($null -eq $Left -or $null -eq $Right) {
@@ -241,16 +277,14 @@ function Test-HrAiBuilderCapturePair {
         -not (Test-CapturePairOrdinal $captureRunId (Split-Path -Leaf $capturePath))) {
         Add-CapturePairFailure 'exact_correlation'
     }
-
     try {
-        $pair = Read-HrAiBuilderJson -Path $pairFiles[0].FullName -Description 'Capture pair'
-        $manifest = Read-HrAiBuilderJson -Path $RunManifestPath -Description 'Run manifest'
-        $contract = Read-HrAiBuilderJson -Path $FieldContractPath -Description 'Field contract'
-        $schema = Read-HrAiBuilderJson -Path $ModelSchemaRecordPath -Description 'Model schema record'
+        $pair = Read-CapturePairJson -Path $pairFiles[0].FullName -Description 'Capture pair'
+        $manifest = Read-CapturePairJson -Path $RunManifestPath -Description 'Run manifest'
+        $contract = Read-CapturePairJson -Path $FieldContractPath -Description 'Field contract'
+        $schema = Read-CapturePairJson -Path $ModelSchemaRecordPath -Description 'Model schema record'
         $canonicalBytes = [IO.File]::ReadAllBytes($canonicalFiles[0].FullName)
-        $canonicalText = [Text.UTF8Encoding]::new($false, $true).GetString($canonicalBytes)
-        $canonical = $canonicalText.TrimStart([char]0xFEFF) | ConvertFrom-Json
-        $raw = Read-HrAiBuilderJson -Path $rawFiles[0].FullName -Description 'Raw response'
+        $canonical = Read-CapturePairJson -Bytes $canonicalBytes -Description 'Canonical envelope'
+        $raw = Read-CapturePairJson -Path $rawFiles[0].FullName -Description 'Raw response'
     }
     catch {
         Add-CapturePairFailure 'capture_pair_provenance'
