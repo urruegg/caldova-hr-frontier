@@ -869,6 +869,93 @@ Describe 'AI Builder field and corpus contracts' {
         }
     }
 
+    Describe 'AI Builder calculated capture capability evidence' {
+        BeforeAll {
+            $script:CapabilityRepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+            $script:CapabilityEvidenceRoot = Join-Path $script:CapabilityRepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
+            $script:CapabilityCaptureDirectory = Join-Path $script:CapabilityEvidenceRoot 'capture\cap-20260930094537354Z-34bf8987'
+            $script:CapabilityPath = Join-Path $script:CapabilityEvidenceRoot 'capture-capability.json'
+            $script:CapabilityManifestPath = Join-Path $script:CapabilityEvidenceRoot 'run-manifest.json'
+            $script:CapabilityInventoryPath = Join-Path $script:CapabilityEvidenceRoot 'model-inventory.json'
+            $script:CapabilityPairPath = Join-Path $script:CapabilityCaptureDirectory 'capture-pair.json'
+            $script:CapabilityAdapterPath = Join-Path $script:CapabilityRepositoryRoot 'hr\src\scripts\adapters\ConvertFrom-HrAiBuilderEvaluationCapture.ps1'
+            $script:CapabilityFieldBoMPath = Join-Path $script:CapabilityRepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\bom-0001-peopledoc-master-data-ai-builder-fields.md'
+            $script:CapabilityTestBoMPath = Join-Path $script:CapabilityRepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\bom-0002-ai-builder-test-inputs-and-outcomes.md'
+        }
+
+        It 'records all seven calculated capture gates as passed' {
+            $script:CapabilityPath | Should -Exist
+            $capability = Get-Content -LiteralPath $script:CapabilityPath -Raw | ConvertFrom-Json
+
+            $capability.schema_version | Should -Be '1.0'
+            $capability.run_id | Should -Be 't2-dev-20260925-001'
+            $capability.status | Should -Be 'passed'
+            $capability.decision | Should -Be 'capture_validated'
+            $capability.model.name | Should -Be 'PersonalMasterDataFixed'
+            $capability.model.id | Should -Be '74b09a72-d1f1-4598-bc4d-3746d5c97acc'
+            $capability.model.version | Should -Be '1.0'
+            @($capability.gates.id) | Should -Be @(
+                'AEC-G001', 'AEC-G002', 'AEC-G003', 'AEC-G004',
+                'AEC-G005', 'AEC-G006', 'AEC-G007'
+            )
+            @($capability.gates | Where-Object status -ne 'passed').Count | Should -Be 0
+            @($capability.failed_gates).Count | Should -Be 0
+        }
+
+        It 'binds the decision to the retained bytes and two byte-identical adapter replays' {
+            $capability = Get-Content -LiteralPath $script:CapabilityPath -Raw | ConvertFrom-Json
+            $pair = Get-Content -LiteralPath $script:CapabilityPairPath -Raw | ConvertFrom-Json
+
+            $capability.capture_pair.run_id | Should -Be 'cap-20260930094537354Z-34bf8987'
+            $capability.capture_pair.path | Should -Be 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\capture\cap-20260930094537354Z-34bf8987\capture-pair.json'
+            $capability.supporting_hashes.source_sha256 | Should -Be $pair.source.sha256
+            $capability.supporting_hashes.raw_sha256 | Should -Be $pair.raw.sha256
+            $capability.supporting_hashes.canonical_sha256 | Should -Be $pair.canonical.sha256
+            $capability.supporting_hashes.capture_pair_sha256 | Should -Be (
+                Get-FileHash -LiteralPath $script:CapabilityPairPath -Algorithm SHA256
+            ).Hash.ToLowerInvariant()
+            $capability.supporting_hashes.adapter_script_sha256 | Should -Be (
+                Get-FileHash -LiteralPath $script:CapabilityAdapterPath -Algorithm SHA256
+            ).Hash.ToLowerInvariant()
+            $capability.replay.first_sha256 | Should -Match '^[0-9a-f]{64}$'
+            $capability.replay.second_sha256 | Should -Be $capability.replay.first_sha256
+            $capability.replay.byte_deterministic | Should -BeTrue
+        }
+
+        It 'keeps the flow off and proves no holdout or general model exposure' {
+            $capability = Get-Content -LiteralPath $script:CapabilityPath -Raw | ConvertFrom-Json
+
+            $capability.flow_state | Should -Be 'Off'
+            $capability.holdout_exposed | Should -BeFalse
+            $capability.capture_pair.source_assignment | Should -Be 'training'
+            $capability.exclusions.tenant_call | Should -BeTrue
+            $capability.exclusions.model_2_0_mutation | Should -BeTrue
+            $capability.exclusions.business_use_claim | Should -BeTrue
+            $capability.exclusions.model_quality_claim | Should -BeTrue
+        }
+
+        It 'appends capture_validated and updates both BoMs without erasing blockers' {
+            $manifest = Get-Content -LiteralPath $script:CapabilityManifestPath -Raw | ConvertFrom-Json
+            $inventory = Get-Content -LiteralPath $script:CapabilityInventoryPath -Raw | ConvertFrom-Json
+            $manifestModel = @($manifest.models | Where-Object display_name -eq 'PersonalMasterDataFixed')[0]
+            $inventoryModel = @($inventory.models | Where-Object display_name -eq 'PersonalMasterDataFixed')[0]
+
+            $manifestModel.lifecycle_stage | Should -Be 'capture_validated'
+            $inventoryModel.lifecycle_stage | Should -Be 'capture_validated'
+            @($manifestModel.lifecycle_history.stage) | Should -Contain 'blocked'
+            @($inventoryModel.lifecycle_history.stage) | Should -Contain 'blocked'
+            @($manifestModel.lifecycle_history.stage)[-1] | Should -Be 'capture_validated'
+            @($inventoryModel.lifecycle_history.stage)[-1] | Should -Be 'capture_validated'
+
+            $fieldBoM = Get-Content -LiteralPath $script:CapabilityFieldBoMPath -Raw
+            $testBoM = Get-Content -LiteralPath $script:CapabilityTestBoMPath -Raw
+            $fieldBoM | Should -Match 'capture-capability\.json'
+            $fieldBoM | Should -Match '`Capture validated`'
+            $testBoM | Should -Match 'capture-capability\.json'
+            $testBoM | Should -Match 'capture capability passed'
+        }
+    }
+
     Describe 'AI Builder evaluation capture intent evidence' {
         BeforeAll {
             $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
@@ -1666,6 +1753,34 @@ Describe 'AI Builder field and corpus contracts' {
                     'evaluation_published', 'capture_validated', 'evaluated',
                     'approved_for_solution', 'added_to_solution'
                 )
+            }
+
+            It 'advances a capture blocker after evaluation publication without erasing it' {
+                $paths = New-TestLifecycleFixture -Name 'lifecycle-capture-blocker'
+                $recordArguments = @{
+                    RunManifestPath = $paths.ManifestPath
+                    ModelInventoryPath = $paths.InventoryPath
+                    ModelName = 'PersonalMasterDataFixed'
+                    ModelId = 'model-fixed-001'
+                    ModelVersion = '1.0'
+                }
+
+                foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained', 'evaluation_published', 'blocked') {
+                    Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage $stage | Out-Null
+                }
+
+                Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage 'capture_validated' | Out-Null
+
+                foreach ($path in @($paths.ManifestPath, $paths.InventoryPath)) {
+                    $model = @(
+                        @((Get-Content -LiteralPath $path -Raw | ConvertFrom-Json).models |
+                            Where-Object display_name -eq 'PersonalMasterDataFixed')
+                    )[0]
+                    $model.lifecycle_stage | Should -Be 'capture_validated'
+                    @($model.lifecycle_history.stage)[-3..-1] | Should -Be @(
+                        'evaluation_published', 'blocked', 'capture_validated'
+                    )
+                }
             }
 
             It 'resumes the blocked lifecycle only for the fixed 1.0 model and preserves the evidence bytes' {

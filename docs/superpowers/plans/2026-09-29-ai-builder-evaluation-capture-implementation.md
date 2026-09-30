@@ -804,7 +804,7 @@ git commit -m "feat: replay AI Builder flow capture evidence" `
 - Produces the calculated `AEC-G001` through `AEC-G007` decision.
 - Appends `capture_validated` only when every calculated gate passes.
 
-- [ ] **Step 1: Calculate `AEC-G001` through `AEC-G007`**
+- [x] **Step 1: Calculate `AEC-G001` through `AEC-G007`**
 
 Run `Test-HrAiBuilderCapturePair` and require all seven gates. Run the adapter twice to separate output paths and compare SHA-256:
 
@@ -823,7 +823,7 @@ Remove-Item -LiteralPath $first, $second -Force
 
 Expected: exact filename, source hash, raw bytes, 17 fields, confidence contract, deterministic naming/serialization, and replay all pass.
 
-- [ ] **Step 2: Record failure or append `capture_validated`**
+- [x] **Step 2: Record failure or append `capture_validated`**
 
 Write `capture-capability.json` with every calculated gate and supporting hash. If any gate fails or is unknown, keep the flow Off, preserve all bytes, append `blocked`, update BoMs and issue 13, commit evidence, and stop before any holdout. Only after calculated pass:
 

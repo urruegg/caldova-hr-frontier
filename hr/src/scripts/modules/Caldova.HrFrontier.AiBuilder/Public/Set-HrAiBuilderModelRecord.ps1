@@ -104,6 +104,10 @@ function Set-HrAiBuilderModelRecord {
 
         $allowed = $true
     }
+    elseif ($currentStage -eq 'blocked' -and $LifecycleStage -eq 'capture_validated') {
+        $history = @($inventoryModel.lifecycle_history)
+        $allowed = ($history.Count -ge 2 -and [string]$history[-2].stage -eq 'evaluation_published')
+    }
     else {
         $targetIndex = $order.IndexOf($LifecycleStage)
         $allowed = ($targetIndex -eq ($currentIndex + 1))
