@@ -17,9 +17,9 @@ Action-first discovery proved that AI Builder `Process documents` is represented
 
 The final trusted-source definition retrieves the document inside `Capture evidence` with SharePoint action `Get source PDF`, operation `GetFileContentByPath`, at `/Shared Documents/AIBuilderEvaluationEvidence/<expected_filename>`. `Process documents` runs after that action and its document input is exactly `@body('Get_source_PDF')`; it does not process trigger-uploaded bytes. The flow remains Off with zero runs and zero exposed PDFs.
 
-> **STOP — Task 6 is not authorized**
+> **STOP — Task 6 attempt 1 is blocked**
 >
-> Task 5 completion does not authorize a capture. Obtain separate attended approval before enabling or invoking the flow. No training PDF or holdout has been exposed, the restricted folder remains empty, and the flow must remain Off.
+> The user separately authorized exactly one attended training-proof attempt. The selected qualified training file `a01-CAND-2026-0411-brunner.pdf` matched its manifest SHA-256, but SharePoint rejected the required upload with HTTP 403 `System.UnauthorizedAccessException`. The flow was never enabled or invoked. The restricted folder remains empty, the flow remains Off with zero runs, and no holdout was exposed. The one-attempt authorization is consumed; do not retry without a reviewed remediation plan and new explicit authorization.
 
 ## 1. Authority, supersession, and preserved evidence
 

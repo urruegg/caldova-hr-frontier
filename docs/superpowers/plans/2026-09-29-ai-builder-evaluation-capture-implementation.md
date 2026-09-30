@@ -604,11 +604,13 @@ Task 6 is deliberately still unchecked. No Task 5 approval or completion authori
 - Produces exactly one attended training-PDF observation with immutable source, raw-response, canonical-envelope, and pair-metadata bytes for Task 7.
 - Makes no capability claim and does not append `capture_validated`; Task 8 owns the calculated decision.
 
-- [ ] **Step 1: Stop before the separate capture**
+- [x] **Step 1: Stop before the separate capture**
 
 **ATTENDED TENANT OPERATION — STOP FOR APPROVAL.** Present exact fixed model ID/version, `evaluation_published` evidence, passed security controls, flow Off state, and the fact that this is one irreversible attended observation rather than flow creation or capability proof. Continue only with explicit approval for one training-PDF capture.
 
 - [ ] **Step 2: Select one allow-listed training PDF**
+
+Attempt 1 selected and hash-verified `a01-CAND-2026-0411-brunner.pdf`, but the required copy to the restricted SharePoint folder failed with HTTP 403 `System.UnauthorizedAccessException`. The document remained local and the folder remained empty.
 
 Read one training record from the manifest, display its filename/hash, and copy only that qualified synthetic PDF to the dedicated folder. Record its exact manifest record. Do not select a held-out assignment.
 
@@ -624,7 +626,9 @@ $executionRunId = 'cap-{0}Z-{1}' -f `
 
 Wait for terminal status and disable the flow immediately. This is exactly one training-PDF capture attempt. Do not retry it and do not use a holdout.
 
-- [ ] **Step 4: Handle an operational capture failure**
+- [x] **Step 4: Handle an operational capture failure**
+
+Attempt 1 stopped before the flow was enabled. `training-capture-attempt.json` records the rejected upload, empty folder, Off flow, zero runs, zero processed PDFs, zero exposed holdouts, consumed one-attempt authorization, and no authorized retry.
 
 If trigger validation, source read, AI Builder, either write, download, or immediate disablement fails: ensure the flow is Off where possible; retain all available bytes; record the exact operational failure without asserting capability status; append lifecycle `blocked`; update BoMs and issue 13; commit evidence; and stop. Do not retry the training PDF and do not use a holdout.
 

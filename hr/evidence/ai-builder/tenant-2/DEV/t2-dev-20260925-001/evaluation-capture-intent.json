@@ -78,7 +78,9 @@
   "approval_recorded_at_utc": "2026-09-29T13:47:08.4090000Z",
   "current_authorization": {
     "task_5": "completed",
-    "task_6": "not_authorized_without_separate_attended_approval",
+    "task_6": "authorized_once_then_blocked_before_capture",
+    "authorization_consumed": true,
+    "retry_authorized": false,
     "pdfs_exposed": 0,
     "runs": 0
   },
@@ -99,6 +101,7 @@
     "The first Task 5 attempt remains preserved as a blocked publisher-gate event in evaluation-capture-readiness.json and security-verification.json.",
     "Attempt 2 remains preserved as the unavailable shared_aibuilder picker event.",
     "The user approved the narrower action-only Dataverse dependency discovered by creating Process documents first, retaining its generated unique name while changing display name only.",
-    "Task 5 is complete. Task 6 requires separate attended approval; no training PDF or holdout has been exposed."
+    "Task 5 is complete.",
+    "Task 6 received separate authorization for exactly one attended training-proof attempt. SharePoint rejected the selected qualified training PDF upload with HTTP 403 Access denied before the flow was enabled. The one-attempt authorization is consumed; no retry is authorized, no PDF was processed, and no holdout was exposed."
   ]
 }

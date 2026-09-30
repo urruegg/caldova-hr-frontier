@@ -114,9 +114,12 @@
   "effective_current_authorization": {
     "task_4": "completed",
     "task_5": "completed",
-    "task_6": "not_authorized",
+    "task_6": "authorized_once_then_blocked_before_capture",
     "superseding_gate": "Task 6 Step 1 separate attended approval",
-    "pdf_capture_authorized": false
+    "pdf_capture_authorized": false,
+    "authorization_consumed": true,
+    "retry_authorized": false,
+    "operational_result_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-attempt.json"
   },
   "explicit_approval_artifact": {
     "prompt": "All final names are now explicitly confirmed. Do you freshly approve this exact Tenant 2 DEV-only scope: publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 as evaluation-only; create unmanaged solution Caldova HR AI Evaluation DEV (calhr_ai_evaluation_dev); create manual flow Capture AI Builder Evaluation Evidence; create AI Builder reference Caldova HR AI Evaluation DEV AI Builder (calhr_ai_evaluation_dev_aibuilder); create SharePoint reference Caldova HR AI Evaluation DEV SharePoint (calhr_ai_evaluation_dev_sharepoint); and create folder https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence, owned/run only by admin@caldova25668747.onmicrosoft.com? This does not authorize business use, TEST/PROD, Tenant 1, Workday, holdouts, draft 2.0 changes, automatic deletion, or any other deletion.",
@@ -176,13 +179,24 @@
       "observation": "A third continuation reused the existing solution, SharePoint reference, and restricted empty folder. Action-first discovery created the supported Process documents dependency as shared_commondataserviceforapps. The user approved its action-only boundary and retaining generated unique name calhr_sharedcommondataserviceforapps_68a73 while changing display name only. The final trusted-source refinement uses SharePoint Get source PDF / GetFileContentByPath at /Shared Documents/AIBuilderEvaluationEvidence/<expected_filename>; Process documents runs after it and consumes @body('Get_source_PDF'), not trigger-uploaded bytes. The completed flow passed definition and security checks, was left Off, and has zero runs."
     }
   ],
-  "current_task_boundary": "Task 5 attempt 3 is complete and passed. Task 6 is not authorized without separate attended approval. The flow remains Off with zero runs; no training PDF or holdout was uploaded, submitted, or processed.",
+  "task_6_attempt_history": [
+    {
+      "attempt": 1,
+      "status": "blocked",
+      "blocker_id": "sharepoint_source_upload_access_denied",
+      "observed_at_utc": "2026-09-30T08:15:45.5000000Z",
+      "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-attempt.json",
+      "observation": "The explicitly authorized training-proof attempt selected and hash-verified a01-CAND-2026-0411-brunner.pdf, but SharePoint rejected the upload with HTTP 403 System.UnauthorizedAccessException. The flow was never enabled or invoked. The folder remains empty, the flow remains Off, and run count remains zero."
+    }
+  ],
+  "current_task_boundary": "Task 6 attempt 1 is blocked before capture because SharePoint denied adding the selected qualified training PDF. The one-attempt authorization is consumed. The flow remains Off with zero runs; no PDF was uploaded, submitted, or processed, and no holdout was exposed.",
   "current_task_authorization": {
     "task_5": "complete",
-    "task_6": "not_authorized",
-    "required_next_gate": "separate attended approval for exactly one training-PDF capture",
+    "task_6": "blocked",
+    "required_next_gate": "reviewed remediation plan and new explicit authorization before any retry",
     "folder_state": "empty_restricted",
     "pdf_count": 0,
-    "run_count": 0
+    "run_count": 0,
+    "retry_authorized": false
   }
 }

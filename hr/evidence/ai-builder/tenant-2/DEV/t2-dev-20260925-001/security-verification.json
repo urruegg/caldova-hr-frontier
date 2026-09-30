@@ -274,9 +274,13 @@
   ],
   "authorization_boundary": {
     "task_5": "complete",
-    "task_6": "not_authorized",
-    "required_next_gate": "separate attended approval before any training-PDF capture",
+    "task_6": "blocked_before_capture",
+    "required_next_gate": "reviewed remediation plan and new explicit authorization before any retry",
     "pdf_count": 0,
-    "run_count": 0
+    "run_count": 0,
+    "flow_state_after_attempt": "Draft",
+    "folder_file_count_after_attempt": 0,
+    "retry_authorized": false,
+    "operational_result_path": "training-capture-attempt.json"
   }
 }

@@ -257,6 +257,8 @@ Describe 'AI Builder field and corpus contracts' {
             $script:EvaluationReadinessPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\evaluation-capture-readiness.json'
             $script:EvaluationFlowDefinitionPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\evaluation-flow-definition.md'
             $script:EvaluationFlowExportPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\evaluation-flow-export.json'
+            $script:TrainingCaptureAttemptPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\training-capture-attempt.json'
+            $script:TrainingCaptureFolderScreenshotPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-upload-failure-folder-empty.png'
             $script:TestBoM = Get-Content -LiteralPath (
                 Join-Path $root 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\bom-0002-ai-builder-test-inputs-and-outcomes.md'
             ) -Raw
@@ -318,8 +320,11 @@ Describe 'AI Builder field and corpus contracts' {
             $readiness.explicit_approval.authorization_status | Should -Be 'historical_scope_superseded_for_task_6_execution'
             $readiness.effective_current_authorization.task_4 | Should -Be 'completed'
             $readiness.effective_current_authorization.task_5 | Should -Be 'completed'
-            $readiness.effective_current_authorization.task_6 | Should -Be 'not_authorized'
+            $readiness.effective_current_authorization.task_6 | Should -Be 'authorized_once_then_blocked_before_capture'
             $readiness.effective_current_authorization.pdf_capture_authorized | Should -BeFalse
+            $readiness.effective_current_authorization.authorization_consumed | Should -BeTrue
+            $readiness.effective_current_authorization.retry_authorized | Should -BeFalse
+            $readiness.effective_current_authorization.operational_result_path | Should -Be 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\training-capture-attempt.json'
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No TEST or PROD mutation'
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No Tenant 1 mutation'
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No Workday integration'
@@ -333,6 +338,43 @@ Describe 'AI Builder field and corpus contracts' {
             $readiness.explicit_approval_artifact.prompt | Should -Be 'All final names are now explicitly confirmed. Do you freshly approve this exact Tenant 2 DEV-only scope: publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 as evaluation-only; create unmanaged solution Caldova HR AI Evaluation DEV (calhr_ai_evaluation_dev); create manual flow Capture AI Builder Evaluation Evidence; create AI Builder reference Caldova HR AI Evaluation DEV AI Builder (calhr_ai_evaluation_dev_aibuilder); create SharePoint reference Caldova HR AI Evaluation DEV SharePoint (calhr_ai_evaluation_dev_sharepoint); and create folder https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence, owned/run only by admin@caldova25668747.onmicrosoft.com? This does not authorize business use, TEST/PROD, Tenant 1, Workday, holdouts, draft 2.0 changes, automatic deletion, or any other deletion.'
             $readiness.explicit_approval_artifact.response | Should -Be 'proceed'
             ([datetime]$readiness.explicit_approval_artifact.responded_at_utc).ToString('o') | Should -Be '2026-09-29T13:47:08.4090000Z'
+        }
+
+        It 'records the single blocked training capture attempt without a retry or capability claim' {
+            $script:TrainingCaptureAttemptPath | Should -Exist
+            $script:TrainingCaptureFolderScreenshotPath | Should -Exist
+            $attempt = Get-Content -LiteralPath $script:TrainingCaptureAttemptPath -Raw | ConvertFrom-Json
+
+            $attempt.status | Should -Be 'blocked'
+            $attempt.capture_stage | Should -Be 'training-proof'
+            $attempt.capability_claimed | Should -BeFalse
+            $attempt.authorization.response | Should -Be 'Approve exactly one training-proof capture (Recommended)'
+            $attempt.selected_document.document | Should -Be 'a01-CAND-2026-0411-brunner.pdf'
+            $attempt.selected_document.assignment | Should -Be 'training'
+            $attempt.selected_document.manifest_sha256 | Should -Be '9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd'
+            $attempt.selected_document.observed_sha256 | Should -Be $attempt.selected_document.manifest_sha256
+            $attempt.selected_document.hash_match | Should -BeTrue
+            $attempt.attempt.attempt_number | Should -Be 1
+            $attempt.attempt.http_status | Should -Be 403
+            $attempt.attempt.platform_error_code | Should -Match 'System\.UnauthorizedAccessException'
+            $attempt.attempt.platform_error_message | Should -Be 'Access denied.'
+            $attempt.attempt.retry_performed | Should -BeFalse
+            $attempt.attempt.retry_authorized | Should -BeFalse
+            $attempt.containment_verification.remote_file_count | Should -Be 0
+            $attempt.containment_verification.flow_state | Should -Be 'Draft'
+            $attempt.containment_verification.flow_portal_state | Should -Be 'Off'
+            $attempt.containment_verification.flow_run_count | Should -Be 0
+            $attempt.containment_verification.flow_enabled_during_attempt | Should -BeFalse
+            $attempt.containment_verification.ai_builder_invoked | Should -BeFalse
+            $attempt.containment_verification.pdfs_processed | Should -Be 0
+            $attempt.containment_verification.fixed_holdouts_exposed | Should -Be 0
+            $attempt.containment_verification.general_holdouts_exposed | Should -Be 0
+            $attempt.final_containment_verification.sharepoint_read_status | Should -Be 200
+            $attempt.final_containment_verification.remote_file_count | Should -Be 0
+            $attempt.final_containment_verification.flow_state | Should -Be 'Draft'
+            $attempt.final_containment_verification.flow_run_count | Should -Be 0
+            (Get-FileHash -LiteralPath $script:TrainingCaptureFolderScreenshotPath -Algorithm SHA256).Hash.ToLowerInvariant() |
+                Should -Be $attempt.evidence[0].sha256
         }
 
         It 'records the separately approved publisher after exact read-back and preserves the blocked publisher-gate attempt' {
