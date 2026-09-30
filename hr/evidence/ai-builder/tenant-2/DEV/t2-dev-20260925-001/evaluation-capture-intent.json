@@ -78,10 +78,11 @@
   "approval_recorded_at_utc": "2026-09-29T13:47:08.4090000Z",
   "current_authorization": {
     "task_5": "completed",
-    "task_6": "authorized_once_then_blocked_before_capture",
+    "task_6": "two_authorized_attempts_blocked_before_capture",
     "authorization_consumed": true,
     "retry_authorized": false,
-    "pdfs_exposed": 0,
+    "folder_source_files": 1,
+    "pdfs_processed": 0,
     "runs": 0
   },
   "selection_history": [
@@ -102,6 +103,7 @@
     "Attempt 2 remains preserved as the unavailable shared_aibuilder picker event.",
     "The user approved the narrower action-only Dataverse dependency discovered by creating Process documents first, retaining its generated unique name while changing display name only.",
     "Task 5 is complete.",
-    "Task 6 received separate authorization for exactly one attended training-proof attempt. SharePoint rejected the selected qualified training PDF upload with HTTP 403 Access denied before the flow was enabled. The one-attempt authorization is consumed; no retry is authorized, no PDF was processed, and no holdout was exposed."
+    "Task 6 received separate authorization for exactly one attended training-proof attempt. The first upload request failed with HTTP 403 before the flow was enabled.",
+    "A later separately authorized corrected retry created the same filename through the HRFrontierDEV site endpoint, but immediate read-back failed exact size and SHA-256 verification. The flow remained Off with zero runs. The mismatched source is retained; no PDF was processed, no holdout was exposed, and no additional upload, replacement, deletion, or retry is authorized."
   ]
 }

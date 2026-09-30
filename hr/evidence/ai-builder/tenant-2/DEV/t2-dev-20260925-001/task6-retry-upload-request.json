@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "record_kind": "browser_automation_execution_record",
+  "recorded_from": "The executed runPlaywrightCode request and returned response body for the separately authorized Task 6 corrected retry.",
+  "attempted_at_utc": "2026-09-30T09:20:30.0000000Z",
+  "page_origin": "https://caldova25668747.sharepoint.com",
+  "context_info_relative_url": "/sites/HRFrontierDEV/_api/contextinfo",
+  "request_relative_url": "/sites/HRFrontierDEV/_api/web/GetFolderByServerRelativeUrl('/sites/HRFrontierDEV/Shared%20Documents/AIBuilderEvaluationEvidence')/Files/add(url='a01-CAND-2026-0411-brunner.pdf',overwrite=false)",
+  "request_resolved_url": "https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/_api/web/GetFolderByServerRelativeUrl('/sites/HRFrontierDEV/Shared%20Documents/AIBuilderEvaluationEvidence')/Files/add(url='a01-CAND-2026-0411-brunner.pdf',overwrite=false)",
+  "method": "POST",
+  "overwrite": false,
+  "content_type": "application/pdf",
+  "request_body": {
+    "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-retry-remote-source-mismatch.pdf",
+    "size_bytes": 3038,
+    "sha256": "74c042e2419054136cc512c58ae252b9803f2a6cd7bdfc9d8acff2b04bc4b618"
+  },
+  "response": {
+    "http_status": 200,
+    "ok": true,
+    "raw_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-retry-upload-response.raw.json",
+    "size_bytes": 710,
+    "sha256": "554595e39bd635935604b75b057c2127a986826e8605630634dc1b3f086a2737"
+  }
+}

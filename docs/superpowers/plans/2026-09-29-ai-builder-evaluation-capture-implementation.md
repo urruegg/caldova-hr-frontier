@@ -632,6 +632,8 @@ Attempt 1 stopped before the flow was enabled. `training-capture-attempt.json` r
 
 Follow-up permission read-back proved that the folder has unique assignments and already grants only the attended administrator Full Control. The failed request used the tenant-root `/_api/web` scope instead of `/sites/HRFrontierDEV/_api/web`. No permission change or retry was performed. `task6-permission-analysis.json` records the diagnosis.
 
+A separately authorized corrected retry used the `HRFrontierDEV` site endpoint and created the same training filename with overwrite disabled. Immediate pre-flow read-back found 3,038 bytes and SHA-256 `74c042e2419054136cc512c58ae252b9803f2a6cd7bdfc9d8acff2b04bc4b618`, which did not match the qualified 3,042-byte source and manifest SHA-256. The flow was never enabled or invoked. The mismatched remote file is retained; no additional upload, replacement, deletion, or retry is authorized. `training-capture-retry.json` records the blocked result.
+
 If trigger validation, source read, AI Builder, either write, download, or immediate disablement fails: ensure the flow is Off where possible; retain all available bytes; record the exact operational failure without asserting capability status; append lifecycle `blocked`; update BoMs and issue 13; commit evidence; and stop. Do not retry the training PDF and do not use a holdout.
 
 - [ ] **Step 5: Preserve the exact observation and pair metadata**

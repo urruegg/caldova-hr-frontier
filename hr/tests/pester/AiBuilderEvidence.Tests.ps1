@@ -260,6 +260,8 @@ Describe 'AI Builder field and corpus contracts' {
             $script:TrainingCaptureAttemptPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\training-capture-attempt.json'
             $script:Task6PermissionAnalysisPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-permission-analysis.json'
             $script:Task6FailedUploadRequestPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-failed-upload-request.json'
+            $script:Task6TrainingCaptureRetryPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\training-capture-retry.json'
+            $script:Task6RetryUploadRequestPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-retry-upload-request.json'
             $script:TrainingCaptureFolderScreenshotPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-upload-failure-folder-empty.png'
             $script:TestBoM = Get-Content -LiteralPath (
                 Join-Path $root 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\bom-0002-ai-builder-test-inputs-and-outcomes.md'
@@ -322,11 +324,13 @@ Describe 'AI Builder field and corpus contracts' {
             $readiness.explicit_approval.authorization_status | Should -Be 'historical_scope_superseded_for_task_6_execution'
             $readiness.effective_current_authorization.task_4 | Should -Be 'completed'
             $readiness.effective_current_authorization.task_5 | Should -Be 'completed'
-            $readiness.effective_current_authorization.task_6 | Should -Be 'authorized_once_then_blocked_before_capture'
+            $readiness.effective_current_authorization.task_6 | Should -Be 'two_authorized_attempts_blocked_before_capture'
             $readiness.effective_current_authorization.pdf_capture_authorized | Should -BeFalse
             $readiness.effective_current_authorization.authorization_consumed | Should -BeTrue
             $readiness.effective_current_authorization.retry_authorized | Should -BeFalse
             $readiness.effective_current_authorization.operational_result_path | Should -Be 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\training-capture-attempt.json'
+            $readiness.effective_current_authorization.corrected_retry_result_path | Should -Be 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\training-capture-retry.json'
+            @($readiness.task_6_attempt_history).Count | Should -Be 2
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No TEST or PROD mutation'
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No Tenant 1 mutation'
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No Workday integration'
@@ -452,6 +456,68 @@ Describe 'AI Builder field and corpus contracts' {
                 0,
                 ([uri]$failedRequest.request_resolved_url).AbsolutePath.IndexOf('/GetFolderByServerRelativeUrl')
             )
+        }
+
+        It 'blocks the corrected retry when the stored source bytes differ before flow enablement' {
+            $script:Task6TrainingCaptureRetryPath | Should -Exist
+            $script:Task6RetryUploadRequestPath | Should -Exist
+            $retry = Get-Content -LiteralPath $script:Task6TrainingCaptureRetryPath -Raw | ConvertFrom-Json
+            $uploadRequest = Get-Content -LiteralPath $script:Task6RetryUploadRequestPath -Raw | ConvertFrom-Json
+            $evidenceRoot = Split-Path -Parent $script:Task6TrainingCaptureRetryPath
+            $security = Get-Content -LiteralPath (Join-Path $evidenceRoot 'security-verification.json') -Raw | ConvertFrom-Json
+            $localSource = Join-Path $script:RepositoryRoot $retry.selected_document.qualified_local_path
+            $remoteSource = Join-Path $evidenceRoot 'task6-retry-remote-source-mismatch.pdf'
+            $screenshot = Join-Path $evidenceRoot 'task6-retry-source-mismatch-folder.png'
+
+            $retry.status | Should -Be 'blocked'
+            $retry.capability_claimed | Should -BeFalse
+            $retry.selected_document.assignment | Should -Be 'training'
+            (Get-Item -LiteralPath $localSource).Length | Should -Be $retry.selected_document.qualified_size_bytes
+            (Get-FileHash -LiteralPath $localSource -Algorithm SHA256).Hash.ToLowerInvariant() |
+                Should -Be $retry.selected_document.qualified_sha256
+            $retry.upload.endpoint_scope | Should -Be '/sites/HRFrontierDEV/_api/web'
+            $retry.upload.overwrite | Should -BeFalse
+            $retry.upload.http_status | Should -Be 200
+            ([uri]$uploadRequest.request_resolved_url).AbsolutePath | Should -Match '^/sites/HRFrontierDEV/_api/web/'
+            $uploadRequest.method | Should -Be $retry.upload.method
+            $uploadRequest.overwrite | Should -Be $retry.upload.overwrite
+            $uploadRequest.response.http_status | Should -Be $retry.upload.http_status
+            $requestBodyPath = Join-Path $evidenceRoot ([IO.Path]::GetFileName([string]$uploadRequest.request_body.path))
+            (Get-Item -LiteralPath $requestBodyPath).Length | Should -Be $uploadRequest.request_body.size_bytes
+            (Get-FileHash -LiteralPath $requestBodyPath -Algorithm SHA256).Hash.ToLowerInvariant() |
+                Should -Be $uploadRequest.request_body.sha256
+            $uploadResponsePath = Join-Path $evidenceRoot ([IO.Path]::GetFileName([string]$uploadRequest.response.raw_path))
+            (Get-Item -LiteralPath $uploadResponsePath).Length | Should -Be $uploadRequest.response.size_bytes
+            (Get-FileHash -LiteralPath $uploadResponsePath -Algorithm SHA256).Hash.ToLowerInvariant() |
+                Should -Be $uploadRequest.response.sha256
+            $uploadResponse = Get-Content -LiteralPath $uploadResponsePath -Raw | ConvertFrom-Json
+            $uploadResponse.Name | Should -Be $retry.selected_document.document
+            $uploadResponse.ServerRelativeUrl | Should -Be $retry.upload.remote_path
+            $uploadResponse.UniqueId | Should -Be $retry.upload.remote_unique_id
+            [int]$uploadResponse.Length | Should -Be $retry.pre_flow_byte_verification.remote_size_bytes
+            (Get-Item -LiteralPath $remoteSource).Length | Should -Be $retry.pre_flow_byte_verification.remote_size_bytes
+            (Get-FileHash -LiteralPath $remoteSource -Algorithm SHA256).Hash.ToLowerInvariant() |
+                Should -Be $retry.pre_flow_byte_verification.remote_sha256
+            $retry.pre_flow_byte_verification.size_match | Should -BeFalse
+            $retry.pre_flow_byte_verification.sha256_match | Should -BeFalse
+            $retry.containment.flow_state | Should -Be 'Draft'
+            $retry.containment.flow_run_count | Should -Be 0
+            $retry.containment.flow_enabled_during_retry | Should -BeFalse
+            $retry.containment.ai_builder_invoked | Should -BeFalse
+            $retry.containment.pdfs_processed | Should -Be 0
+            $retry.containment.fixed_holdouts_exposed | Should -Be 0
+            $retry.containment.general_holdouts_exposed | Should -Be 0
+            $retry.containment.folder_file_count | Should -Be 1
+            $retry.containment.remote_file_retained | Should -BeTrue
+            $retry.containment.remote_file_deleted | Should -BeFalse
+            $retry.containment.retry_performed_after_mismatch | Should -BeFalse
+            $retry.containment.additional_retry_authorized | Should -BeFalse
+            $security.authorization_boundary.pdf_count | Should -Be $retry.containment.folder_file_count
+            $security.authorization_boundary.folder_file_count_after_corrected_retry | Should -Be $retry.containment.folder_file_count
+            $security.authorization_boundary.processed_pdf_count | Should -Be $retry.containment.pdfs_processed
+            $security.authorization_boundary.processed_pdf_count_after_corrected_retry | Should -Be $retry.containment.pdfs_processed
+            (Get-FileHash -LiteralPath $screenshot -Algorithm SHA256).Hash.ToLowerInvariant() |
+                Should -Be $retry.evidence[1].sha256
         }
 
         It 'records the separately approved publisher after exact read-back and preserves the blocked publisher-gate attempt' {

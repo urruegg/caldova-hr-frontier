@@ -23,6 +23,8 @@ The final trusted-source definition retrieves the document inside `Capture evide
 
 Permission read-back after the failure proved that the folder has unique assignments and already grants only the attended administrator Full Control. No permission change was required or applied. The failed request used the tenant-root `/_api/web` scope rather than the `HRFrontierDEV` site scope at `/sites/HRFrontierDEV/_api/web`. A corrected upload remains a retry and therefore still requires new explicit authorization.
 
+The user later authorized exactly one corrected retry. It reached the `HRFrontierDEV` site and created the same training filename with overwrite disabled, but immediate read-back found 3,038 bytes and a different SHA-256 from the qualified 3,042-byte source. The pre-flow byte gate stopped the retry. The flow remained Off with zero runs, AI Builder was not invoked, and no holdout was exposed. The mismatched source remains in the restricted folder as evidence. Do not replace, delete, upload again, or enable the flow without a new reviewed remediation plan and explicit authorization.
+
 ## 1. Authority, supersession, and preserved evidence
 
 This guide follows the approved addendum and the original design together. It supersedes only the no-flow capture requirement for attended evaluation capture. All other constraints, field definitions, corpus rules, strict gates, evidence rules, and stop conditions remain in force unless the addendum states a narrower rule.

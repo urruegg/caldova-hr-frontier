@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "tenant_key": "tenant-2",
+  "environment_stage": "DEV",
+  "power_platform_environment_id": "84ad4c54-41d9-e5df-ba07-188b4719594a",
+  "operator_upn": "admin@caldova25668747.onmicrosoft.com",
+  "task": "Task 6 corrected retry",
+  "capture_stage": "training-proof",
+  "status": "blocked",
+  "capability_claimed": false,
+  "authorization": {
+    "response": "Authorize exactly one corrected retry (Recommended)",
+    "scope": "Exactly one corrected Task 6 retry using the HRFrontierDEV site-scoped SharePoint endpoint, followed by one flow invocation only if the stored source bytes match the qualified manifest."
+  },
+  "selected_document": {
+    "document": "a01-CAND-2026-0411-brunner.pdf",
+    "assignment": "training",
+    "qualified_local_path": "hr\\docs\\ideas\\uc-0001-personal-master-data-completion-agent\\gf-aib-fixed-template\\documents\\a-personalblatt\\a01-CAND-2026-0411-brunner.pdf",
+    "qualified_size_bytes": 3042,
+    "qualified_sha256": "9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd",
+    "corpus_revision": "c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db"
+  },
+  "upload": {
+    "attempt_number": 2,
+    "created_at_utc": "2026-09-30T09:20:30.0000000Z",
+    "endpoint_scope": "/sites/HRFrontierDEV/_api/web",
+    "method": "POST",
+    "overwrite": false,
+    "http_status": 200,
+    "request_record_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-retry-upload-request.json",
+    "raw_response_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-retry-upload-response.raw.json",
+    "raw_response_size_bytes": 710,
+    "raw_response_sha256": "554595e39bd635935604b75b057c2127a986826e8605630634dc1b3f086a2737",
+    "remote_path": "/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence/a01-CAND-2026-0411-brunner.pdf",
+    "remote_unique_id": "d4c6d692-2a9d-48b8-aa8c-1b8e7d0592bf"
+  },
+  "pre_flow_byte_verification": {
+    "status": "failed",
+    "observed_at_utc": "2026-09-30T09:21:25.7670113Z",
+    "remote_size_bytes": 3038,
+    "remote_sha256": "74c042e2419054136cc512c58ae252b9803f2a6cd7bdfc9d8acff2b04bc4b618",
+    "size_match": false,
+    "sha256_match": false,
+    "first_difference_offset": 1120,
+    "blocked_reason": "The stored SharePoint source bytes did not match the qualified manifest source. The pre-flow byte gate stopped the retry before flow enablement."
+  },
+  "containment": {
+    "flow_state": "Draft",
+    "flow_portal_state": "Off",
+    "flow_run_count": 0,
+    "flow_enabled_during_retry": false,
+    "ai_builder_invoked": false,
+    "pdfs_processed": 0,
+    "fixed_holdouts_exposed": 0,
+    "general_holdouts_exposed": 0,
+    "folder_file_count": 1,
+    "remote_file_retained": true,
+    "remote_file_deleted": false,
+    "retry_performed_after_mismatch": false,
+    "additional_retry_authorized": false
+  },
+  "evidence": [
+    {
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-retry-remote-source-mismatch.pdf",
+      "size_bytes": 3038,
+      "sha256": "74c042e2419054136cc512c58ae252b9803f2a6cd7bdfc9d8acff2b04bc4b618",
+      "observation": "Exact bytes read back from the retained SharePoint source file."
+    },
+    {
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-retry-source-mismatch-folder.png",
+      "size_bytes": 42964,
+      "sha256": "7912f073854c62637a7fdeb2e780900a59a9d31cde190211c072168bc8706171",
+      "observation": "The restricted folder contains the retained source file after the retry stopped."
+    }
+  ],
+  "next_action": "Stop Task 6. Do not enable the flow, alter or delete the retained remote file, upload another source, or expose a holdout without a new reviewed remediation plan and explicit authorization."
+}

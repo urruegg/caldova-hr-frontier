@@ -114,12 +114,13 @@
   "effective_current_authorization": {
     "task_4": "completed",
     "task_5": "completed",
-    "task_6": "authorized_once_then_blocked_before_capture",
+    "task_6": "two_authorized_attempts_blocked_before_capture",
     "superseding_gate": "Task 6 Step 1 separate attended approval",
     "pdf_capture_authorized": false,
     "authorization_consumed": true,
     "retry_authorized": false,
-    "operational_result_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-attempt.json"
+    "operational_result_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-attempt.json",
+    "corrected_retry_result_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-retry.json"
   },
   "explicit_approval_artifact": {
     "prompt": "All final names are now explicitly confirmed. Do you freshly approve this exact Tenant 2 DEV-only scope: publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 as evaluation-only; create unmanaged solution Caldova HR AI Evaluation DEV (calhr_ai_evaluation_dev); create manual flow Capture AI Builder Evaluation Evidence; create AI Builder reference Caldova HR AI Evaluation DEV AI Builder (calhr_ai_evaluation_dev_aibuilder); create SharePoint reference Caldova HR AI Evaluation DEV SharePoint (calhr_ai_evaluation_dev_sharepoint); and create folder https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence, owned/run only by admin@caldova25668747.onmicrosoft.com? This does not authorize business use, TEST/PROD, Tenant 1, Workday, holdouts, draft 2.0 changes, automatic deletion, or any other deletion.",
@@ -188,15 +189,24 @@
       "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-attempt.json",
       "diagnosis_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-permission-analysis.json",
       "observation": "The explicitly authorized training-proof attempt selected and hash-verified a01-CAND-2026-0411-brunner.pdf, but the upload request failed with HTTP 403 System.UnauthorizedAccessException before the flow was enabled. Later read-back proved the restricted folder already grants the attended administrator Full Control; the request had addressed the tenant-root REST API instead of the HRFrontierDEV site REST API. No permission change or retry was performed. The folder remains empty, the flow remains Off, and run count remains zero."
+    },
+    {
+      "attempt": 2,
+      "status": "blocked",
+      "blocker_id": "stored_source_hash_mismatch",
+      "observed_at_utc": "2026-09-30T09:21:25.7670113Z",
+      "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-retry.json",
+      "observation": "The separately authorized corrected retry used the HRFrontierDEV site endpoint and created the same training filename with overwrite disabled. Immediate read-back found 3,038 bytes and SHA-256 74c042e2419054136cc512c58ae252b9803f2a6cd7bdfc9d8acff2b04bc4b618 instead of the qualified 3,042 bytes and manifest hash. The flow was never enabled or invoked. The mismatched remote file is retained and no additional retry or deletion is authorized."
     }
   ],
-  "current_task_boundary": "Task 6 attempt 1 is blocked before capture because the upload request used the tenant-root REST endpoint instead of the HRFrontierDEV site endpoint. The folder already grants the attended administrator Full Control, so no permission change was applied. The one-attempt authorization is consumed. The flow remains Off with zero runs; no PDF was uploaded, submitted, or processed, and no holdout was exposed.",
+  "current_task_boundary": "Task 6 corrected retry is blocked before capture because the stored SharePoint source bytes did not match the qualified manifest bytes. The second one-attempt authorization is consumed. The retained mismatched source remains in the restricted folder. The flow remains Off with zero runs; no PDF was processed and no holdout was exposed.",
   "current_task_authorization": {
     "task_5": "complete",
     "task_6": "blocked",
-    "required_next_gate": "reviewed remediation plan and new explicit authorization before any retry",
-    "folder_state": "empty_restricted",
-    "pdf_count": 0,
+    "required_next_gate": "reviewed remediation plan and new explicit authorization before any additional upload, replacement, deletion, or retry",
+    "folder_state": "contains_retained_mismatched_source",
+    "pdf_count": 1,
+    "processed_pdf_count": 0,
     "run_count": 0,
     "retry_authorized": false
   }
