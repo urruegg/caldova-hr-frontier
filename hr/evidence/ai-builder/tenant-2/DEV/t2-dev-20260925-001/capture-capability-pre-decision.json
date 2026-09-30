@@ -1,0 +1,87 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "model": {
+    "name": "PersonalMasterDataFixed",
+    "id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+    "version": "1.0",
+    "stage": "blocked"
+  },
+  "run_manifest_pre_decision_sha256": "335ab1698488c7e9b9c04d70048c604a90fce164094c635715db4b5c7b873507",
+  "model_inventory_pre_decision_sha256": "1d0cc51dab64ae1a86d5c68cf60b8a04e666aacca5dd5617c32acfb0d16d46fb",
+  "task_6_blocker": {
+    "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\model-test-capability.json",
+    "sha256": "b745faa53c2847836b23325581ffe7992dcbad52c338b560b5ef5f613620e1cc",
+    "status": "blocked",
+    "mechanism": "AI Builder Quick Test",
+    "blocked_reason": "AI Builder Quick Test rendered field values and confidence scores but exposed no supported machine-readable export or download, retained raw bytes, or exact input document identity; only Start over and Close actions were available."
+  },
+  "manifest_lifecycle_history": [
+    {
+      "stage": "not_created",
+      "changed_at_utc": "2026-09-28T14:15:49.4691784Z"
+    },
+    {
+      "stage": "created",
+      "changed_at_utc": "2026-09-29T06:42:34.4504815Z"
+    },
+    {
+      "stage": "schema_defined",
+      "changed_at_utc": "2026-09-29T06:42:34.5916192Z"
+    },
+    {
+      "stage": "tagged",
+      "changed_at_utc": "2026-09-29T09:11:11.1735703Z"
+    },
+    {
+      "stage": "trained",
+      "changed_at_utc": "2026-09-29T09:11:11.2151672Z"
+    },
+    {
+      "stage": "blocked",
+      "changed_at_utc": "2026-09-29T09:13:38.1846955Z"
+    },
+    {
+      "stage": "evaluation_published",
+      "changed_at_utc": "2026-09-29T14:16:34.8902538Z"
+    },
+    {
+      "stage": "blocked",
+      "changed_at_utc": "2026-09-30T08:20:52.1561940Z"
+    }
+  ],
+  "inventory_lifecycle_history": [
+    {
+      "stage": "not_created",
+      "changed_at_utc": "2026-09-28T14:15:49.4691784Z"
+    },
+    {
+      "stage": "created",
+      "changed_at_utc": "2026-09-29T06:42:34.4542671Z"
+    },
+    {
+      "stage": "schema_defined",
+      "changed_at_utc": "2026-09-29T06:42:34.5916446Z"
+    },
+    {
+      "stage": "tagged",
+      "changed_at_utc": "2026-09-29T09:11:11.1829972Z"
+    },
+    {
+      "stage": "trained",
+      "changed_at_utc": "2026-09-29T09:11:11.2151895Z"
+    },
+    {
+      "stage": "blocked",
+      "changed_at_utc": "2026-09-29T09:13:38.1865217Z"
+    },
+    {
+      "stage": "evaluation_published",
+      "changed_at_utc": "2026-09-29T14:16:34.8922386Z"
+    },
+    {
+      "stage": "blocked",
+      "changed_at_utc": "2026-09-30T08:20:52.1598169Z"
+    }
+  ]
+}

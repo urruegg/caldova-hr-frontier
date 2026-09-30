@@ -77,6 +77,68 @@
     "historical_training_capture_retry_sha256": "94b097e594080aaed8ed40fb513b983a631b917650ee6a17a29c96b3ab3cf386",
     "training_capture_remediation_sha256": "97cc0242e13388f2b1ff8551cc20d733c4aef1a92e6453bc4f7bf5370269d324"
   },
+  "supporting_artifacts": [
+    {
+      "id": "source",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\cap-20260930094537354Z-34bf8987\\source\\a01-CAND-2026-0411-brunner.pdf",
+      "sha256": "9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd"
+    },
+    {
+      "id": "raw",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\cap-20260930094537354Z-34bf8987\\cap-20260930094537354Z-34bf8987.ai-builder.raw.json",
+      "sha256": "6ddf6d3ab1a79a25422fc7750d7eb1900c30957ca7bc5a6cd098a090706b39f3"
+    },
+    {
+      "id": "canonical",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\cap-20260930094537354Z-34bf8987\\cap-20260930094537354Z-34bf8987.canonical.json",
+      "sha256": "627dc0d4cc26b288ebbcd4109688972f14d7a23ed1f98eee7b2009e47a8fe3f7"
+    },
+    {
+      "id": "capture_pair",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\cap-20260930094537354Z-34bf8987\\capture-pair.json",
+      "sha256": "1f0119e420aec082d639abf69bde717e383e21a3ab984e1e49c5f1ad1ba2a6a4"
+    },
+    {
+      "id": "field_contract",
+      "path": "hr\\src\\ai-builder\\contracts\\field-contract.json",
+      "sha256": "13ce7a3985841790fe7b20b97537cd9344d9cc7ce134e86cbab0b0bc10a6a9e9"
+    },
+    {
+      "id": "model_schema",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\model-schema-fixed.json",
+      "sha256": "cd87cd499236b6dad229ef578c4906786962c56516d29c12cd9c4c167146fa29"
+    },
+    {
+      "id": "adapter_script",
+      "path": "hr\\src\\scripts\\adapters\\ConvertFrom-HrAiBuilderEvaluationCapture.ps1",
+      "sha256": "9d22ec25a745e0bf63b5f034f87a80457584c8f02dac9c5fe438eb190f98ff75"
+    },
+    {
+      "id": "pre_decision_record",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture-capability-pre-decision.json",
+      "sha256": "cb95cd603b643a4c44e3bf6c85ecba974df49923a954a4d0eba1e39a5d81e58a"
+    },
+    {
+      "id": "historical_model_test_capability",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\model-test-capability.json",
+      "sha256": "b745faa53c2847836b23325581ffe7992dcbad52c338b560b5ef5f613620e1cc"
+    },
+    {
+      "id": "historical_training_capture_attempt",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-attempt.json",
+      "sha256": "e13164d0df85424ed8d356079a450282bd053867c2fb9d6299f126d95fccbef8"
+    },
+    {
+      "id": "historical_training_capture_retry",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-retry.json",
+      "sha256": "94b097e594080aaed8ed40fb513b983a631b917650ee6a17a29c96b3ab3cf386"
+    },
+    {
+      "id": "training_capture_remediation",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-remediation.json",
+      "sha256": "97cc0242e13388f2b1ff8551cc20d733c4aef1a92e6453bc4f7bf5370269d324"
+    }
+  ],
   "replay": {
     "first_output": "fixed-capability-replay-1.json",
     "first_sha256": "923290087a0701ed700bd3f54e28d7cbe4f18048688ecab94b3b8fd0bedc8b76",

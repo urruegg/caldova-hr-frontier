@@ -879,14 +879,17 @@ Describe 'AI Builder field and corpus contracts' {
             $script:CapabilityInventoryPath = Join-Path $script:CapabilityEvidenceRoot 'model-inventory.json'
             $script:CapabilityPairPath = Join-Path $script:CapabilityCaptureDirectory 'capture-pair.json'
             $script:CapabilityAdapterPath = Join-Path $script:CapabilityRepositoryRoot 'hr\src\scripts\adapters\ConvertFrom-HrAiBuilderEvaluationCapture.ps1'
+            $script:CapabilityFieldContractPath = Join-Path $script:CapabilityRepositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
+            $script:CapabilityModelSchemaPath = Join-Path $script:CapabilityEvidenceRoot 'model-schema-fixed.json'
+            $script:CapabilityModulePath = Join-Path $script:CapabilityRepositoryRoot 'hr\src\scripts\modules\Caldova.HrFrontier.AiBuilder\Caldova.HrFrontier.AiBuilder.psd1'
             $script:CapabilityFieldBoMPath = Join-Path $script:CapabilityRepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\bom-0001-peopledoc-master-data-ai-builder-fields.md'
             $script:CapabilityTestBoMPath = Join-Path $script:CapabilityRepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\bom-0002-ai-builder-test-inputs-and-outcomes.md'
+            Import-Module $script:CapabilityModulePath -Force
         }
 
-        It 'records all seven calculated capture gates as passed' {
+        It 'freshly proves every retained artifact and all seven live-derived capture gates' {
             $script:CapabilityPath | Should -Exist
             $capability = Get-Content -LiteralPath $script:CapabilityPath -Raw | ConvertFrom-Json
-
             $capability.schema_version | Should -Be '1.0'
             $capability.run_id | Should -Be 't2-dev-20260925-001'
             $capability.status | Should -Be 'passed'
@@ -900,26 +903,93 @@ Describe 'AI Builder field and corpus contracts' {
             )
             @($capability.gates | Where-Object status -ne 'passed').Count | Should -Be 0
             @($capability.failed_gates).Count | Should -Be 0
-        }
-
-        It 'binds the decision to the retained bytes and two byte-identical adapter replays' {
-            $capability = Get-Content -LiteralPath $script:CapabilityPath -Raw | ConvertFrom-Json
-            $pair = Get-Content -LiteralPath $script:CapabilityPairPath -Raw | ConvertFrom-Json
 
             $capability.capture_pair.run_id | Should -Be 'cap-20260930094537354Z-34bf8987'
             $capability.capture_pair.path | Should -Be 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\capture\cap-20260930094537354Z-34bf8987\capture-pair.json'
-            $capability.supporting_hashes.source_sha256 | Should -Be $pair.source.sha256
-            $capability.supporting_hashes.raw_sha256 | Should -Be $pair.raw.sha256
-            $capability.supporting_hashes.canonical_sha256 | Should -Be $pair.canonical.sha256
-            $capability.supporting_hashes.capture_pair_sha256 | Should -Be (
-                Get-FileHash -LiteralPath $script:CapabilityPairPath -Algorithm SHA256
-            ).Hash.ToLowerInvariant()
-            $capability.supporting_hashes.adapter_script_sha256 | Should -Be (
-                Get-FileHash -LiteralPath $script:CapabilityAdapterPath -Algorithm SHA256
-            ).Hash.ToLowerInvariant()
-            $capability.replay.first_sha256 | Should -Match '^[0-9a-f]{64}$'
-            $capability.replay.second_sha256 | Should -Be $capability.replay.first_sha256
-            $capability.replay.byte_deterministic | Should -BeTrue
+
+            $expectedArtifactIds = @(
+                'source', 'raw', 'canonical', 'capture_pair', 'field_contract',
+                'model_schema', 'adapter_script', 'pre_decision_record',
+                'historical_model_test_capability', 'historical_training_capture_attempt',
+                'historical_training_capture_retry', 'training_capture_remediation'
+            )
+            @($capability.supporting_artifacts.id) | Should -Be $expectedArtifactIds
+            foreach ($artifact in @($capability.supporting_artifacts)) {
+                [IO.Path]::IsPathRooted([string]$artifact.path) | Should -BeFalse
+                $artifactPath = [IO.Path]::GetFullPath((Join-Path $script:CapabilityRepositoryRoot ([string]$artifact.path)))
+                $artifactPath.StartsWith(
+                    $script:CapabilityRepositoryRoot + [IO.Path]::DirectorySeparatorChar,
+                    [StringComparison]::OrdinalIgnoreCase
+                ) | Should -BeTrue
+                $artifactPath | Should -Exist
+                (Get-FileHash -LiteralPath $artifactPath -Algorithm SHA256).Hash.ToLowerInvariant() |
+                    Should -Be ([string]$artifact.sha256)
+            }
+
+            $pairResult = Test-HrAiBuilderCapturePair `
+                -CaptureDirectory $script:CapabilityCaptureDirectory `
+                -RunManifestPath $script:CapabilityManifestPath `
+                -FieldContractPath $script:CapabilityFieldContractPath `
+                -ModelSchemaRecordPath $script:CapabilityModelSchemaPath `
+                -ModelName 'PersonalMasterDataFixed' `
+                -ModelVersion '1.0' `
+                -Operator 'admin@caldova25668747.onmicrosoft.com' `
+                -AdapterScriptPath $script:CapabilityAdapterPath
+
+            $pairResult.status | Should -Be 'passed'
+            @($pairResult.failed_gates).Count | Should -Be 0
+
+            $firstReplayPath = Join-Path $TestDrive 'fixed-capability-replay-1.json'
+            $secondReplayPath = Join-Path $TestDrive 'fixed-capability-replay-2.json'
+            try {
+                $adapterArguments = @{
+                    CaptureDirectory = $script:CapabilityCaptureDirectory
+                    RunManifestPath = $script:CapabilityManifestPath
+                    FieldContractPath = $script:CapabilityFieldContractPath
+                    ModelSchemaRecordPath = $script:CapabilityModelSchemaPath
+                    ModelName = 'PersonalMasterDataFixed'
+                    ModelVersion = '1.0'
+                    Operator = 'admin@caldova25668747.onmicrosoft.com'
+                    AdapterScriptPath = $script:CapabilityAdapterPath
+                }
+                $firstResult = ConvertFrom-HrAiBuilderEvaluationCapture @adapterArguments -OutputPath $firstReplayPath
+                $secondResult = ConvertFrom-HrAiBuilderEvaluationCapture @adapterArguments -OutputPath $secondReplayPath
+                $firstResult.status | Should -Be 'passed'
+                $secondResult.status | Should -Be 'passed'
+
+                $firstHash = (Get-FileHash -LiteralPath $firstReplayPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                $secondHash = (Get-FileHash -LiteralPath $secondReplayPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                $firstHash | Should -Be $secondHash
+                $firstHash | Should -Be $capability.replay.first_sha256
+                $secondHash | Should -Be $capability.replay.second_sha256
+
+                $derivedGates = [ordered]@{
+                    'AEC-G001' = -not @($pairResult.failed_gates).Contains('exact_correlation')
+                    'AEC-G002' = -not @($pairResult.failed_gates).Contains('source_sha256')
+                    'AEC-G003' = -not @($pairResult.failed_gates).Contains('capture_pair_provenance')
+                    'AEC-G004' = -not @($pairResult.failed_gates).Contains('exact_field_contract')
+                    'AEC-G005' = -not @($pairResult.failed_gates).Contains('prediction_capture_schema')
+                    'AEC-G006' = (
+                        -not @($pairResult.failed_gates).Contains('canonical_serialization') -and
+                        $firstHash -ceq $secondHash
+                    )
+                    'AEC-G007' = (
+                        $pairResult.status -ceq 'passed' -and
+                        -not @($pairResult.failed_gates).Contains('adapter_replay') -and
+                        $pairResult.hashes.replay_sha256 -ceq $pairResult.hashes.canonical_sha256
+                    )
+                }
+                foreach ($gate in @($capability.gates)) {
+                    $derivedGates[[string]$gate.id] | Should -BeTrue
+                    $gate.status | Should -Be 'passed'
+                }
+            }
+            finally {
+                Remove-Item -LiteralPath $firstReplayPath -Force -ErrorAction SilentlyContinue
+                Remove-Item -LiteralPath $secondReplayPath -Force -ErrorAction SilentlyContinue
+            }
+            $firstReplayPath | Should -Not -Exist
+            $secondReplayPath | Should -Not -Exist
         }
 
         It 'keeps the flow off and proves no holdout or general model exposure' {
@@ -934,18 +1004,45 @@ Describe 'AI Builder field and corpus contracts' {
             $capability.exclusions.model_quality_claim | Should -BeTrue
         }
 
-        It 'appends capture_validated and updates both BoMs without erasing blockers' {
-            $manifest = Get-Content -LiteralPath $script:CapabilityManifestPath -Raw | ConvertFrom-Json
-            $inventory = Get-Content -LiteralPath $script:CapabilityInventoryPath -Raw | ConvertFrom-Json
+        It 'retains the complete pre-existing lifecycle histories exactly and only appends capture_validated' {
+            $manifestText = Get-Content -LiteralPath $script:CapabilityManifestPath -Raw
+            $inventoryText = Get-Content -LiteralPath $script:CapabilityInventoryPath -Raw
+            $convertFromJson = Get-Command ConvertFrom-Json -ErrorAction Stop
+            if ($convertFromJson.Parameters.ContainsKey('DateKind')) {
+                $manifest = $manifestText | ConvertFrom-Json -DateKind String
+                $inventory = $inventoryText | ConvertFrom-Json -DateKind String
+            }
+            else {
+                $manifest = $manifestText | ConvertFrom-Json
+                $inventory = $inventoryText | ConvertFrom-Json
+            }
             $manifestModel = @($manifest.models | Where-Object display_name -eq 'PersonalMasterDataFixed')[0]
             $inventoryModel = @($inventory.models | Where-Object display_name -eq 'PersonalMasterDataFixed')[0]
 
             $manifestModel.lifecycle_stage | Should -Be 'capture_validated'
             $inventoryModel.lifecycle_stage | Should -Be 'capture_validated'
-            @($manifestModel.lifecycle_history.stage) | Should -Contain 'blocked'
-            @($inventoryModel.lifecycle_history.stage) | Should -Contain 'blocked'
-            @($manifestModel.lifecycle_history.stage)[-1] | Should -Be 'capture_validated'
-            @($inventoryModel.lifecycle_history.stage)[-1] | Should -Be 'capture_validated'
+            @($manifestModel.lifecycle_history | ForEach-Object { "$($_.stage)|$($_.changed_at_utc)" }) | Should -Be @(
+                'not_created|2026-09-28T14:15:49.4691784Z'
+                'created|2026-09-29T06:42:34.4504815Z'
+                'schema_defined|2026-09-29T06:42:34.5916192Z'
+                'tagged|2026-09-29T09:11:11.1735703Z'
+                'trained|2026-09-29T09:11:11.2151672Z'
+                'blocked|2026-09-29T09:13:38.1846955Z'
+                'evaluation_published|2026-09-29T14:16:34.8902538Z'
+                'blocked|2026-09-30T08:20:52.1561940Z'
+                "capture_validated|$($manifestModel.lifecycle_history[-1].changed_at_utc)"
+            )
+            @($inventoryModel.lifecycle_history | ForEach-Object { "$($_.stage)|$($_.changed_at_utc)" }) | Should -Be @(
+                'not_created|2026-09-28T14:15:49.4691784Z'
+                'created|2026-09-29T06:42:34.4542671Z'
+                'schema_defined|2026-09-29T06:42:34.5916446Z'
+                'tagged|2026-09-29T09:11:11.1829972Z'
+                'trained|2026-09-29T09:11:11.2151895Z'
+                'blocked|2026-09-29T09:13:38.1865217Z'
+                'evaluation_published|2026-09-29T14:16:34.8922386Z'
+                'blocked|2026-09-30T08:20:52.1598169Z'
+                "capture_validated|$($inventoryModel.lifecycle_history[-1].changed_at_utc)"
+            )
 
             $fieldBoM = Get-Content -LiteralPath $script:CapabilityFieldBoMPath -Raw
             $testBoM = Get-Content -LiteralPath $script:CapabilityTestBoMPath -Raw
@@ -1617,6 +1714,48 @@ Describe 'AI Builder field and corpus contracts' {
 
                 return $paths
             }
+
+            function New-Task8CaptureDecisionFixture {
+                param([Parameter(Mandatory)][string]$Name)
+
+                $paths = New-RunEvidencePaths -Name $Name
+                $evidenceRoot = Join-Path $script:RepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
+                $utf8 = [Text.UTF8Encoding]::new($false, $true)
+                $manifestText = [IO.File]::ReadAllText(
+                    (Join-Path $evidenceRoot 'run-manifest.json'),
+                    $utf8
+                )
+                $inventoryText = [IO.File]::ReadAllText(
+                    (Join-Path $evidenceRoot 'model-inventory.json'),
+                    $utf8
+                )
+
+                $manifestText = $manifestText.Replace(
+                    '"lifecycle_stage": "capture_validated"',
+                    '"lifecycle_stage": "blocked"'
+                ).Replace(
+                    '"changed_at_utc": "2026-09-30T08:20:52.156194Z"',
+                    '"changed_at_utc": "2026-09-30T08:20:52.1561940Z"'
+                )
+                $manifestText = $manifestText -replace ',\r?\n        \{\r?\n          "stage": "capture_validated",\r?\n          "changed_at_utc": "2026-09-30T10:59:13\.7791393Z"\r?\n        \}', ''
+                $inventoryText = $inventoryText.Replace(
+                    '"lifecycle_stage": "capture_validated"',
+                    '"lifecycle_stage": "blocked"'
+                )
+                $inventoryText = $inventoryText -replace ',\r?\n        \{\r?\n          "stage": "capture_validated",\r?\n          "changed_at_utc": "2026-09-30T10:59:13\.7807783Z"\r?\n        \}', ''
+
+                [IO.File]::WriteAllText(
+                    $paths.ManifestPath,
+                    $manifestText,
+                    [Text.UTF8Encoding]::new($false)
+                )
+                [IO.File]::WriteAllText(
+                    $paths.InventoryPath,
+                    $inventoryText,
+                    [Text.UTF8Encoding]::new($false)
+                )
+                return $paths
+            }
         }
 
         It 'keeps deployment context in the manifest rather than field results' {
@@ -1755,7 +1894,7 @@ Describe 'AI Builder field and corpus contracts' {
                 )
             }
 
-            It 'advances a capture blocker after evaluation publication without erasing it' {
+            It 'does not make blocked capture states generally resumable' {
                 $paths = New-TestLifecycleFixture -Name 'lifecycle-capture-blocker'
                 $recordArguments = @{
                     RunManifestPath = $paths.ManifestPath
@@ -1769,7 +1908,50 @@ Describe 'AI Builder field and corpus contracts' {
                     Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage $stage | Out-Null
                 }
 
-                Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage 'capture_validated' | Out-Null
+                {
+                    Set-HrAiBuilderModelRecord @recordArguments -LifecycleStage 'capture_validated'
+                } | Should -Throw '*CaptureCapabilityEvidencePath*'
+            }
+
+            It 'rejects fabricated all-passed capability evidence with duplicate fake replay hashes' {
+                $evidenceRoot = Join-Path $script:RepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
+                $fabricatedPath = Join-Path $TestDrive 'capture-capability-fabricated.json'
+                $fabricated = Get-Content -LiteralPath (Join-Path $evidenceRoot 'capture-capability.json') -Raw | ConvertFrom-Json
+                $fabricated.replay.first_sha256 = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+                $fabricated.replay.second_sha256 = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+                $fabricated | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $fabricatedPath -Encoding UTF8
+
+                $paths = New-Task8CaptureDecisionFixture -Name 'lifecycle-fabricated-capability'
+                $recordArguments = @{
+                    RunManifestPath = $paths.ManifestPath
+                    ModelInventoryPath = $paths.InventoryPath
+                    ModelName = 'PersonalMasterDataFixed'
+                    ModelId = '74b09a72-d1f1-4598-bc4d-3746d5c97acc'
+                    ModelVersion = '1.0'
+                }
+                {
+                    Set-HrAiBuilderModelRecord @recordArguments `
+                        -LifecycleStage 'capture_validated' `
+                        -CaptureCapabilityEvidencePath $fabricatedPath
+                } | Should -Throw '*replay*'
+            }
+
+            It 'advances only the exact Task 8 blocker with verified portable capability evidence' {
+                $evidenceRoot = Join-Path $script:RepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
+                $capabilityPath = Join-Path $evidenceRoot 'capture-capability.json'
+                $capabilityHashBefore = (Get-FileHash -LiteralPath $capabilityPath -Algorithm SHA256).Hash
+                $paths = New-Task8CaptureDecisionFixture -Name 'lifecycle-verified-capability'
+                $recordArguments = @{
+                    RunManifestPath = $paths.ManifestPath
+                    ModelInventoryPath = $paths.InventoryPath
+                    ModelName = 'PersonalMasterDataFixed'
+                    ModelId = '74b09a72-d1f1-4598-bc4d-3746d5c97acc'
+                    ModelVersion = '1.0'
+                    LifecycleStage = 'capture_validated'
+                    CaptureCapabilityEvidencePath = $capabilityPath
+                }
+
+                Set-HrAiBuilderModelRecord @recordArguments | Out-Null
 
                 foreach ($path in @($paths.ManifestPath, $paths.InventoryPath)) {
                     $model = @(
@@ -1780,6 +1962,94 @@ Describe 'AI Builder field and corpus contracts' {
                     @($model.lifecycle_history.stage)[-3..-1] | Should -Be @(
                         'evaluation_published', 'blocked', 'capture_validated'
                     )
+                }
+                (Get-FileHash -LiteralPath $capabilityPath -Algorithm SHA256).Hash |
+                    Should -Be $capabilityHashBefore
+            }
+
+            It 'rejects every wrong Task 8 identity, blocker, evidence, and gate state' {
+                $evidenceRoot = Join-Path $script:RepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
+                $capabilityPath = Join-Path $evidenceRoot 'capture-capability.json'
+
+                $wrongRunPaths = New-TestLifecycleFixture -Name 'lifecycle-wrong-task8-run' -RunId 'other-run'
+                $wrongRunArguments = @{
+                    RunManifestPath = $wrongRunPaths.ManifestPath
+                    ModelInventoryPath = $wrongRunPaths.InventoryPath
+                    ModelName = 'PersonalMasterDataFixed'
+                    ModelId = '74b09a72-d1f1-4598-bc4d-3746d5c97acc'
+                    ModelVersion = '1.0'
+                }
+                foreach ($stage in 'created', 'schema_defined', 'tagged', 'trained', 'evaluation_published', 'blocked') {
+                    Set-HrAiBuilderModelRecord @wrongRunArguments -LifecycleStage $stage | Out-Null
+                }
+                {
+                    Set-HrAiBuilderModelRecord @wrongRunArguments `
+                        -LifecycleStage 'capture_validated' `
+                        -CaptureCapabilityEvidencePath $capabilityPath
+                } | Should -Throw '*exact blocked PersonalMasterDataFixed 1.0*'
+
+                foreach ($identityCase in @(
+                    @{ name = 'wrong-id'; id = 'wrong-model-id'; version = '1.0' },
+                    @{ name = 'wrong-version'; id = '74b09a72-d1f1-4598-bc4d-3746d5c97acc'; version = '2.0' }
+                )) {
+                    $paths = New-Task8CaptureDecisionFixture -Name $identityCase.name
+                    {
+                        Set-HrAiBuilderModelRecord `
+                            -RunManifestPath $paths.ManifestPath `
+                            -ModelInventoryPath $paths.InventoryPath `
+                            -ModelName 'PersonalMasterDataFixed' `
+                            -ModelId $identityCase.id `
+                            -ModelVersion $identityCase.version `
+                            -LifecycleStage 'capture_validated' `
+                            -CaptureCapabilityEvidencePath $capabilityPath
+                    } | Should -Throw '*exact blocked PersonalMasterDataFixed 1.0*'
+                }
+
+                $missingPaths = New-Task8CaptureDecisionFixture -Name 'missing-capability'
+                {
+                    Set-HrAiBuilderModelRecord `
+                        -RunManifestPath $missingPaths.ManifestPath `
+                        -ModelInventoryPath $missingPaths.InventoryPath `
+                        -ModelName 'PersonalMasterDataFixed' `
+                        -ModelId '74b09a72-d1f1-4598-bc4d-3746d5c97acc' `
+                        -ModelVersion '1.0' `
+                        -LifecycleStage 'capture_validated' `
+                        -CaptureCapabilityEvidencePath (Join-Path $TestDrive 'missing-capability.json')
+                } | Should -Throw '*not found*'
+
+                foreach ($capabilityCase in @(
+                    @{ name = 'wrong-blocker'; mutate = 'blocker'; expected = '*historical_model_test_capability*' },
+                    @{ name = 'failed-gate'; mutate = 'failed'; expected = '*failed, unknown*' },
+                    @{ name = 'unknown-gate'; mutate = 'unknown'; expected = '*failed, unknown*' },
+                    @{ name = 'containment-overclaim'; mutate = 'containment'; expected = '*containment*' }
+                )) {
+                    $casePath = Join-Path $TestDrive "$($capabilityCase.name)-capture-capability.json"
+                    $caseCapability = Get-Content -LiteralPath $capabilityPath -Raw | ConvertFrom-Json
+                    if ($capabilityCase.mutate -eq 'blocker') {
+                        @($caseCapability.supporting_artifacts |
+                            Where-Object id -eq 'historical_model_test_capability')[0].sha256 = (('0' * 64) -join '')
+                    }
+                    elseif ($capabilityCase.mutate -eq 'containment') {
+                        $caseCapability.exclusions.tenant_call = $false
+                        $caseCapability.holdout_exposed = $true
+                    }
+                    else {
+                        @($caseCapability.gates | Where-Object id -eq 'AEC-G003')[0].status = $capabilityCase.mutate
+                    }
+                    $caseCapability | ConvertTo-Json -Depth 20 |
+                        Set-Content -LiteralPath $casePath -Encoding UTF8
+                    $paths = New-Task8CaptureDecisionFixture -Name $capabilityCase.name
+
+                    {
+                        Set-HrAiBuilderModelRecord `
+                            -RunManifestPath $paths.ManifestPath `
+                            -ModelInventoryPath $paths.InventoryPath `
+                            -ModelName 'PersonalMasterDataFixed' `
+                            -ModelId '74b09a72-d1f1-4598-bc4d-3746d5c97acc' `
+                            -ModelVersion '1.0' `
+                            -LifecycleStage 'capture_validated' `
+                            -CaptureCapabilityEvidencePath $casePath
+                    } | Should -Throw $capabilityCase.expected
                 }
             }
 

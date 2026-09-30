@@ -22,7 +22,10 @@ function Set-HrAiBuilderModelRecord {
         [switch]$ResumeBlockedEvaluation,
 
         [Parameter()]
-        [string]$ResumeEvidencePath
+        [string]$ResumeEvidencePath,
+
+        [Parameter()]
+        [string]$CaptureCapabilityEvidencePath
     )
 
     $manifest = Read-HrAiBuilderJson -Path $RunManifestPath -Description 'Run manifest'
@@ -46,6 +49,10 @@ function Set-HrAiBuilderModelRecord {
 
     if (-not $ResumeBlockedEvaluation -and $PSBoundParameters.ContainsKey('ResumeEvidencePath')) {
         throw 'ResumeEvidencePath requires -ResumeBlockedEvaluation.'
+    }
+    if ($PSBoundParameters.ContainsKey('CaptureCapabilityEvidencePath') -and
+        -not ($currentStage -eq 'blocked' -and $LifecycleStage -eq 'capture_validated')) {
+        throw 'CaptureCapabilityEvidencePath only supports the exact blocked to capture_validated Task 8 transition.'
     }
 
     $allowed = $false
@@ -105,8 +112,23 @@ function Set-HrAiBuilderModelRecord {
         $allowed = $true
     }
     elseif ($currentStage -eq 'blocked' -and $LifecycleStage -eq 'capture_validated') {
-        $history = @($inventoryModel.lifecycle_history)
-        $allowed = ($history.Count -ge 2 -and [string]$history[-2].stage -eq 'evaluation_published')
+        if (-not $PSBoundParameters.ContainsKey('CaptureCapabilityEvidencePath') -or
+            [string]::IsNullOrWhiteSpace($CaptureCapabilityEvidencePath)) {
+            throw 'The blocked to capture_validated Task 8 transition requires CaptureCapabilityEvidencePath.'
+        }
+        if (-not $PSBoundParameters.ContainsKey('ModelId') -or
+            -not $PSBoundParameters.ContainsKey('ModelVersion')) {
+            throw 'The blocked to capture_validated Task 8 transition requires the exact model ID and version.'
+        }
+
+        Assert-HrAiBuilderCaptureCapabilityDecision `
+            -RunManifestPath $RunManifestPath `
+            -ModelInventoryPath $ModelInventoryPath `
+            -ModelName $ModelName `
+            -ModelId $ModelId `
+            -ModelVersion $ModelVersion `
+            -CaptureCapabilityEvidencePath $CaptureCapabilityEvidencePath
+        $allowed = $true
     }
     else {
         $targetIndex = $order.IndexOf($LifecycleStage)
