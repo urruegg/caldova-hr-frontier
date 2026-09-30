@@ -5,6 +5,27 @@ Describe 'Cloud foundation invocation' {
         $script:InvokeScript = Join-Path $PSScriptRoot '..\..\src\scripts\runbooks\Invoke-CloudFoundation.ps1'
     }
 
+    AfterEach {
+        Get-Module Caldova.HrFrontier.Bootstrap -All |
+            Remove-Module -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'does not contain removed public Tenant 1 identifiers' {
+        $content = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'CloudFoundationInvocation.Tests.ps1')
+        $forbidden = @(
+            ('caldova' + '25156897'),
+            ('urr' + 'uegg'),
+            ('caldova-' + 'hr-frontier'),
+            ('4686' + '5858'),
+            ('1371' + '297722'),
+            ('bootstrap-caldova' + '25156897')
+        )
+
+        foreach ($value in $forbidden) {
+            $content | Should -Not -Match ([regex]::Escape($value))
+        }
+    }
+
     It 'provides explicit Apply, exact digest, and ShouldProcess controls' {
         Test-Path -LiteralPath $script:InvokeScript | Should -BeTrue
         $command = Get-Command $script:InvokeScript
@@ -37,17 +58,44 @@ Describe 'Cloud foundation invocation' {
     }
 
     It 'stops on Azure DevOps permission drift before dispatching any approved mutation' {
-        $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+        $sourceRepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+        $repositoryRoot = Join-Path $TestDrive 'synthetic-repository'
+        $sourceModuleRoot = Join-Path $sourceRepositoryRoot 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap'
+        $targetModuleParent = Join-Path $repositoryRoot 'infra\src\scripts\modules'
+        $sourceRunbookPath = Join-Path $sourceRepositoryRoot 'infra\src\scripts\runbooks\Invoke-CloudFoundation.ps1'
+        $invokeScriptPath = Join-Path $repositoryRoot 'infra\src\scripts\runbooks\Invoke-CloudFoundation.ps1'
+        $sourceSchemaPath = Join-Path $sourceRepositoryRoot 'infra\src\config\schemas\tenant.schema.json'
+        $targetSchemaPath = Join-Path $repositoryRoot 'infra\src\config\schemas\tenant.schema.json'
+
+        [IO.Directory]::CreateDirectory($targetModuleParent) | Out-Null
+        [IO.Directory]::CreateDirectory((Split-Path -Parent $invokeScriptPath)) | Out-Null
+        [IO.Directory]::CreateDirectory((Split-Path -Parent $targetSchemaPath)) | Out-Null
+        Copy-Item -LiteralPath $sourceModuleRoot -Destination $targetModuleParent -Recurse
+        Copy-Item -LiteralPath $sourceRunbookPath -Destination $invokeScriptPath
+
+        $schema = Get-Content -Raw -LiteralPath $sourceSchemaPath | ConvertFrom-Json
+        $schema.properties.GitHub.properties.Owner.const = 'fixture-owner'
+        $schema.properties.GitHub.properties.OwnerId.const = '24681012'
+        $schema.properties.GitHub.properties.Repository.const = 'fixture-platform'
+        $schema.properties.GitHub.properties.RepositoryId.const = '8642097531'
+        [IO.File]::WriteAllText(
+            $targetSchemaPath,
+            ($schema | ConvertTo-Json -Depth 30),
+            [Text.UTF8Encoding]::new($false)
+        )
+
+        Get-Module Caldova.HrFrontier.Bootstrap -All |
+            Remove-Module -Force -ErrorAction SilentlyContinue
         $modulePath = Join-Path $repositoryRoot 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
         Import-Module $modulePath -Force
         $tenantPath = Join-Path $TestDrive 'tenant.psd1'
         $tenantText = @'
 @{
     SchemaVersion = '1.0'
-    TenantAlias = 'caldova25156897'
+    TenantAlias = 'fixturetenant42'
     DisplayName = 'Synthetic Tenant'
     TenantId = '22222222-2222-2222-2222-222222222222'
-    AdminUpn = 'admin@synthetic.example'
+    AdminUpn = 'operator@fixture.example'
     SubscriptionId = '11111111-1111-1111-1111-111111111111'
     PrimaryLocation = 'switzerlandnorth'
     CompanyTla = 'syn'
@@ -56,23 +104,23 @@ Describe 'Cloud foundation invocation' {
     NamingRoot = 'syn-hr-agentic-abc123'
     LifecycleState = 'IntentReviewed'
     GitHub = @{
-        Owner = 'urruegg'
-        OwnerId = '46865858'
-        Repository = 'caldova-hr-frontier'
-        RepositoryId = '1371297722'
-        EnvironmentName = 'bootstrap-caldova25156897'
+        Owner = 'fixture-owner'
+        OwnerId = '24681012'
+        Repository = 'fixture-platform'
+        RepositoryId = '8642097531'
+        EnvironmentName = 'bootstrap-fixturetenant42'
     }
     AzureDevOps = @{
         OrganizationUrl = 'https://dev.azure.com/synthetic/'
         ProjectName = 'Synthetic HR Frontier'
     }
     PowerPlatform = @{
-        DevUrl = 'https://syntheticdev.crm17.dynamics.com/'
-        TestUrl = 'https://synthetictest.crm17.dynamics.com/'
-        ProdUrl = 'https://synthetic.crm17.dynamics.com/'
+        DevUrl = 'https://fixture-dev.example.test/'
+        TestUrl = 'https://fixture-test.example.test/'
+        ProdUrl = 'https://fixture-prod.example.test/'
     }
     Components = @{
-        GitHubRepository = @{ Mode = 'Existing'; Id = '1371297722' }
+        GitHubRepository = @{ Mode = 'Existing'; Id = '8642097531' }
         GitHubEnvironment = @{ Mode = 'Create' }
         EntraApplication = @{ Mode = 'Create' }
         EntraServicePrincipal = @{ Mode = 'Create' }
@@ -171,7 +219,7 @@ Describe 'Cloud foundation invocation' {
             if($command -like 'devops project list *'){return [pscustomobject]@{exitCode=0;stdout='[]';stderr=''}}
             if($command -like 'devops security permission namespace list *'){return [pscustomobject]@{exitCode=0;stdout='[{"namespaceId":"52d39943-cb85-4d7f-8fa8-c6baac873819","actions":[{"bit":4,"displayName":"Create new projects"}]}]';stderr=''}}
             if($command -like 'devops security permission list *'){return [pscustomobject]@{exitCode=0;stdout='[{"token":"$PROJECT:vstfs:///Classification/TeamProject/","acesDictionary":{"aad.synthetic-descriptor":{"allow":0,"deny":4}}}]';stderr=''}}
-            if($command -eq 'auth list --json'){return [pscustomobject]@{exitCode=0;stdout='[{"name":"hr-caldova25156897-dev","selected":true}]';stderr=''}}
+            if($command -eq 'auth list --json'){return [pscustomobject]@{exitCode=0;stdout='[{"name":"hr-fixturetenant42-dev","selected":true}]';stderr=''}}
             if($command -like 'org who *'){return [pscustomobject]@{exitCode=0;stdout=("{`"environmentUrl`":`"$($tenant.PowerPlatform.DevUrl)`",`"environmentId`":`"$($tenant.Components.PowerPlatformEnvironmentDev.Id)`",`"user`":`"$($tenant.AdminUpn)`"}");stderr=''}}
             if($command -eq "-C $repositoryRoot rev-parse HEAD"){return [pscustomobject]@{exitCode=0;stdout=$sourceState.commit;stderr=''}}
             throw "Unexpected command: $command"
@@ -181,7 +229,7 @@ Describe 'Cloud foundation invocation' {
         [IO.Directory]::CreateDirectory($otherCwd) | Out-Null
         Push-Location $otherCwd
         try {
-            { & $script:InvokeScript -TenantAlias $tenant.TenantAlias -TenantConfigurationPath $tenantPath `
+            { & $invokeScriptPath -TenantAlias $tenant.TenantAlias -TenantConfigurationPath $tenantPath `
                 -ExecutionManifestPath $manifestPath -AssessmentPath $assessmentPath -ReportPath $runDirectory `
                 -ApprovedDigest $manifest.digest -Stages DEV -Apply -Confirm:$false `
                 -NativeToolResolver $resolver -NativeCommandRunner $runner `
@@ -194,7 +242,7 @@ Describe 'Cloud foundation invocation' {
 
         $assessment.repositoryRoot='C:\different-repository'
         Write-CanonicalJson $assessment $assessmentPath -Replace | Out-Null
-        { & $script:InvokeScript -TenantAlias $tenant.TenantAlias -TenantConfigurationPath $tenantPath `
+        { & $invokeScriptPath -TenantAlias $tenant.TenantAlias -TenantConfigurationPath $tenantPath `
             -ExecutionManifestPath $manifestPath -AssessmentPath $assessmentPath -ReportPath $runDirectory `
             -ApprovedDigest $manifest.digest -Stages DEV -Apply -Confirm:$false `
             -NativeToolResolver $resolver -NativeCommandRunner $runner `
@@ -204,7 +252,7 @@ Describe 'Cloud foundation invocation' {
         $assessment.repositoryRoot=$repositoryRoot
         Write-CanonicalJson $assessment $assessmentPath -Replace | Out-Null
         $sourceState.commit=('d'*40)
-        { & $script:InvokeScript -TenantAlias $tenant.TenantAlias -TenantConfigurationPath $tenantPath `
+        { & $invokeScriptPath -TenantAlias $tenant.TenantAlias -TenantConfigurationPath $tenantPath `
             -ExecutionManifestPath $manifestPath -AssessmentPath $assessmentPath -ReportPath $runDirectory `
             -ApprovedDigest $manifest.digest -Stages DEV -Apply -Confirm:$false `
             -NativeToolResolver $resolver -NativeCommandRunner $runner `
