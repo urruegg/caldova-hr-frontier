@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-09-29 |
+| **Version** | 1.4 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
@@ -15,7 +15,7 @@ This source-derived Proposed Baseline describes intended infrastructure architec
 
 The `infra/` domain owns public infrastructure source, subscription-scope Bicep, attended local validation scripts, infrastructure tests, and unpacked Infrastructure Power Platform solution source. Tenant-private configuration and raw operational evidence stay outside version control.
 
-Caldova HR Frontier uses one tenant-dedicated GitHub product-source repository and one Azure DevOps project per tenant. For the current Tenant 1 lean sprint, the active configuration is the ignored, validated `infra/src/config/tenants/tenant1.local.psd1` file. The two tracked Tenant 1 transition files remain temporarily because deletion approval was unavailable; they are not active inputs. Tenant 2's tracked files remain unchanged and are not selected by Tenant 1 validation.
+Caldova HR Frontier uses one tenant-dedicated GitHub product-source repository and one Azure DevOps project per tenant. For the current Tenant 1 lean sprint, the active configuration is the ignored, validated `infra/src/config/tenants/tenant1.local.psd1` file. The approved deletion of the tracked Tenant 1 transition files is committed; they are absent and must not be reconstructed. Tenant 2's tracked files remain unchanged and are not selected by Tenant 1 validation.
 
 There is no automatic intent mode. Discovery reports observed state; a reviewed pull request records desired state.
 
@@ -75,7 +75,7 @@ A path shown here is an ownership boundary, not evidence that its artifact alrea
 | [Tenant 1 Lean Platform Runbook](docs/24-tenant-1-lean-platform-runbook.md) | Active attended local Tenant 1 sequence, checkpoints, and acceptance contract. |
 | [Operational Runbooks](docs/runbooks/README.md) | Defines the shared preview, approval, evidence, manual-step, read-back, and recovery contract. |
 | [Developer Workstation](docs/runbooks/01-developer-workstation.md) | Assesses and explicitly initializes an approved Windows 11 administrator workstation. |
-| [Cloud Service Foundation Runbook](docs/runbooks/02-cloud-service-foundation.md) | Defines local attended delegated assessment, digest-bound approval, exact target read-back, manual boundaries, evidence, and recovery. |
+| [Cloud Service Foundation Runbook](docs/runbooks/02-cloud-service-foundation.md) | Superseded stop notice for dormant planner/apply entry points; no supported mutation path. |
 | [Customer Repository Handover](docs/runbooks/03-customer-handover.md) | Defines local attended synthetic customer export assessment, digest approval, apply, independent validation, and handover boundaries. |
 | [Infrastructure Solution Sources](src/solutions/README.md) | Defines ownership and exclusions for future unpacked solution source. |
 

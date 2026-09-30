@@ -10,9 +10,6 @@ param(
     [string]$PublicTenantKey,
 
     [Parameter(Mandatory)]
-    [guid]$ValidationPrincipalId,
-
-    [Parameter(Mandatory)]
     [string]$TenantConfigurationPath,
 
     [Parameter(Mandatory)]
@@ -75,12 +72,6 @@ function New-BicepParameterContent {
         [string]$LogAnalyticsWorkspaceName,
 
         [Parameter(Mandatory)]
-        [string]$ValidationRoleName,
-
-        [Parameter(Mandatory)]
-        [string]$ValidationPrincipalObjectId,
-
-        [Parameter(Mandatory)]
         [string]$BicepTemplateReference
     )
 
@@ -93,8 +84,6 @@ function New-BicepParameterContent {
         "  namingRoot: $(ConvertTo-BicepStringLiteral -Value ([string]$Configuration.NamingRoot))",
         "  platformResourceGroupName: $(ConvertTo-BicepStringLiteral -Value $PlatformResourceGroupName)",
         "  logAnalyticsWorkspaceName: $(ConvertTo-BicepStringLiteral -Value $LogAnalyticsWorkspaceName)",
-        "  validationRoleName: $(ConvertTo-BicepStringLiteral -Value $ValidationRoleName)",
-        "  validationPrincipalId: $(ConvertTo-BicepStringLiteral -Value $ValidationPrincipalObjectId)",
         '  policyAssignments: []',
         '}'
     ) -join [Environment]::NewLine
@@ -127,14 +116,10 @@ $bicepTemplateReference = Get-RelativeBicepPath `
     -ToPath (Join-Path $script:ScriptDirectory '..\bicep\main.bicep')
 $platformResourceGroupName = Get-TenantResourceName -NamingRoot $configuration.NamingRoot -ResourceType ResourceGroup
 $logAnalyticsWorkspaceName = Get-TenantResourceName -NamingRoot $configuration.NamingRoot -ResourceType LogAnalytics
-$validationRoleName = Get-TenantResourceName -NamingRoot $configuration.NamingRoot -ResourceType DeploymentValidationRole
-
 $content = New-BicepParameterContent `
     -Configuration $configuration `
     -PlatformResourceGroupName $platformResourceGroupName `
     -LogAnalyticsWorkspaceName $logAnalyticsWorkspaceName `
-    -ValidationRoleName $validationRoleName `
-    -ValidationPrincipalObjectId $ValidationPrincipalId `
     -BicepTemplateReference $bicepTemplateReference
 
 $targetPath = Get-TargetParameterPath -DirectoryPath $outputDirectory -TenantAliasValue $tenantAlias

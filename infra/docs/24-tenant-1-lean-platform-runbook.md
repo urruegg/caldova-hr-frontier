@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.4 |
+| **Version** | 1.5 |
 | **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -17,7 +17,7 @@ Every checkpoint below is `Not Run`. This document fixes the order and acceptanc
 
 **Outcome: Not Run.** Merge the reviewed Tasks 1-7 changes and the Task 8 source and safety-verification changes before activating governance. The implementation pull request uses the old governance state. It must not apply the desired ruleset, change repository settings, create a Boards item, delete an Azure Repo, or perform any other live action.
 
-The merge must preserve the clean branch history and the deferred tracked Tenant 1 transition-file deletion. Record only the reviewed merge commit and merge-base safety result in the Draft acceptance review; do not treat this runbook or a source commit as execution evidence.
+The merge must preserve the clean branch history and the approved committed deletion of the tracked Tenant 1 transition files. Record only the reviewed merge commit and merge-base safety result in the Draft acceptance review; do not treat this runbook or a source commit as live execution evidence.
 
 ## Current-Main Validator
 
@@ -31,7 +31,7 @@ Do not apply GitHub governance before the tool changes are merged to `main` and 
 
 ## Private Configuration and Backup
 
-The ignored and validated `tenant1.local.psd1` file is the active configuration. The two tracked Tenant 1 transition files remain temporarily because deletion approval was unavailable; they are not the active input and must not be deleted under this runbook.
+The ignored and validated `tenant1.local.psd1` file is the active configuration. The approved committed deletion of the two tracked Tenant 1 transition files is complete. Do not recreate either tracked file; recovery restores only the ignored local configuration.
 
 Open an attended PowerShell session and set the exact local paths:
 
@@ -41,23 +41,63 @@ $OperatorRoot = Join-Path $env:LOCALAPPDATA 'Caldova\HrFrontier\tenant1'
 $ConfigPath = Join-Path $RepositoryRoot 'infra\src\config\tenants\tenant1.local.psd1'
 $DiscoveryPath = Join-Path $OperatorRoot 'discovery.json'
 $ParameterRoot = Join-Path $OperatorRoot 'parameters'
+$BackupRoot = [System.IO.Path]::GetFullPath(
+    (Read-Host 'Enter the mounted encrypted external backup root in a separate failure domain').Trim()
+)
 [void](New-Item -ItemType Directory -Path $OperatorRoot -Force)
 [void](New-Item -ItemType Directory -Path $ParameterRoot -Force)
 Set-Location $RepositoryRoot
 ```
 
-Confirm that Git ignores the configuration, then create a local backup outside Git:
+`$BackupRoot` is operator supplied. It must already exist on encrypted external
+storage or a separately recoverable encrypted service outside the workstation's
+primary failure domain. `%LOCALAPPDATA%`, the repository, and another folder on
+the same unprotected workstation are not sufficient as the sole backup.
+
+Confirm the exact ignored local boundary, create a dated external backup, compare
+SHA-256, restore to a separate destination, and validate both the restored copy
+and the active ignored copy without displaying their values:
 
 ```powershell
 if (-not (Test-Path -LiteralPath $ConfigPath -PathType Leaf)) { throw 'Tenant 1 local configuration is missing.' }
 git check-ignore --quiet -- $ConfigPath
 if ($LASTEXITCODE -ne 0) { throw 'Tenant 1 local configuration is not ignored.' }
-$BackupRoot = Join-Path $OperatorRoot 'backup'
-[void](New-Item -ItemType Directory -Path $BackupRoot -Force)
-Copy-Item -LiteralPath $ConfigPath -Destination (Join-Path $BackupRoot 'tenant1.local.psd1') -Force
+if (-not (Test-Path -LiteralPath $BackupRoot -PathType Container)) { throw 'Encrypted external backup root does not exist.' }
+$LocalAppDataRoot = [System.IO.Path]::GetFullPath($env:LOCALAPPDATA).TrimEnd('\') + '\'
+if ($BackupRoot.StartsWith($LocalAppDataRoot, [StringComparison]::OrdinalIgnoreCase)) {
+    throw 'BackupRoot must not use LOCALAPPDATA as the sole backup.'
+}
+
+$BackupSet = Join-Path $BackupRoot ('tenant1-{0}' -f [datetime]::UtcNow.ToString('yyyyMMddTHHmmssZ'))
+$RestoreRoot = Join-Path $OperatorRoot ('restore-proof-{0}' -f [guid]::NewGuid().ToString('N'))
+[void](New-Item -ItemType Directory -Path $BackupSet, $RestoreRoot -Force)
+$BackupPath = Join-Path $BackupSet 'tenant1.local.psd1'
+$RestorePath = Join-Path $RestoreRoot 'tenant1.local.psd1'
+Copy-Item -LiteralPath $ConfigPath -Destination $BackupPath
+
+$SourceHash = (Get-FileHash -LiteralPath $ConfigPath -Algorithm SHA256).Hash
+$BackupHash = (Get-FileHash -LiteralPath $BackupPath -Algorithm SHA256).Hash
+if ($SourceHash -cne $BackupHash) { throw 'Encrypted external backup SHA-256 mismatch.' }
+[System.IO.File]::WriteAllText(
+    (Join-Path $BackupSet 'tenant1.local.sha256'),
+    $SourceHash,
+    [System.Text.UTF8Encoding]::new($false)
+)
+
+Copy-Item -LiteralPath $BackupPath -Destination $RestorePath
+$RestoreHash = (Get-FileHash -LiteralPath $RestorePath -Algorithm SHA256).Hash
+if ($RestoreHash -cne $SourceHash) { throw 'Separate restore SHA-256 mismatch.' }
+
+Import-Module '.\infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1' -Force
+Import-TenantConfiguration -Path $RestorePath -ValidationStage Discovery -ExpectedPublicTenantKey tenant1 | Out-Null
+Import-TenantConfiguration -Path $ConfigPath -ValidationStage Bootstrap -ExpectedPublicTenantKey tenant1 -RequireLocalUntracked | Out-Null
+Remove-Item -LiteralPath $RestoreRoot -Recurse -Force
 ```
 
-Protect the operator root with the workstation's existing user-only controls. Never commit the configuration, backup, raw discovery, generated parameters, access evidence, or raw `what-if` output.
+Keep the backup set and its hash record encrypted outside Git. Protect the
+operator working root with the workstation's existing user-only controls. Never
+commit the configuration, backup, hash, raw discovery, generated parameters,
+access evidence, or raw `what-if` output.
 
 ## Attended Context and Minimum Access
 
@@ -67,7 +107,7 @@ Access is provisioned and approved separately before this sprint. The operator m
 $Account = az account show --output json | ConvertFrom-Json
 if ([string]$Account.user.type -cne 'user') { throw 'An attended user context is required.' }
 $Caller = az ad signed-in-user show --output json | ConvertFrom-Json
-$ValidationPrincipalId = [guid]$Caller.id
+[void][guid]$Caller.id
 ```
 
 Compare `$Account.tenantId` and `$Account.id` with the locally reviewed configuration before continuing. Confirm the access approval through the separately governed record; do not copy that approval into Git.
@@ -107,24 +147,18 @@ A shareable summary may contain only status, timestamp, approved stable identifi
 
 ## Bicep Build
 
-After the sanitized review and separate access confirmation, derive the exact attended principal and generate one local parameter file:
+After the sanitized review and separate access confirmation, generate one local parameter file. The lean Bicep contract contains no role definition, role assignment, validation role, or principal parameter:
 
 ```powershell
-$Account = az account show --output json | ConvertFrom-Json
-if ([string]$Account.user.type -cne 'user') { throw 'An attended user context is required.' }
-$Caller = az ad signed-in-user show --output json | ConvertFrom-Json
-$ValidationPrincipalId = [guid]$Caller.id
-
 .\infra\src\scripts\New-TenantBicepParameters.ps1 `
     -PublicTenantKey tenant1 `
     -TenantConfigurationPath $ConfigPath `
-    -ValidationPrincipalId $ValidationPrincipalId `
     -OutputPath $ParameterRoot
 $ParameterFile = @(Get-ChildItem -LiteralPath $ParameterRoot -Filter '*.bicepparam' -File)
 if ($ParameterFile.Count -ne 1) { throw 'Expected exactly one generated parameter file.' }
 ```
 
-The bootstrap command compiles `infra/src/bicep/main.bicep` and the selected `.bicepparam` file before it contacts the deployment `what-if` API. A compiler error, parameter mismatch, or principal mismatch stops the run.
+The bootstrap command compiles `infra/src/bicep/main.bicep` and the selected `.bicepparam` file before it contacts the deployment `what-if` API. A compiler or parameter mismatch stops the run. Authorization role-definition or role-assignment Create, Modify, or Delete results are rejected.
 
 ## Subscription What-If
 
@@ -163,7 +197,7 @@ The solo-owner target requires pull requests, resolved conversations, the single
 
 ## Basic Boards Issue
 
-**Outcome: Not Run.** Start this checkpoint only after GitHub governance has been applied and read back exactly. Planning is non-mutating. Applying the reviewed unchanged plan requires separate attended approval and must preserve the built-in Basic process, existing team, project-root area, and selected current sprint. The sprint performs no role mutation.
+**Outcome: Not Run.** Start this checkpoint only after GitHub governance has been applied and read back exactly. Planning is non-mutating. Applying the reviewed unchanged plan requires separate attended approval and must preserve the built-in Basic process, existing team, project-root area, and selected current sprint. Before planning, require the selected team's settings to contain exactly the project-root area and its current-iterations endpoint to return exactly one item whose full path equals `CurrentSprintPath`. The sprint performs no role mutation.
 
 ## Basic Boards
 
@@ -186,7 +220,7 @@ $BoardsParameters = @{
 .\infra\src\scripts\Initialize-AzureBoardsLeanSprint.ps1 @BoardsParameters -WhatIf
 ```
 
-The plan must read back the Basic process, exact existing team, project-root area, exact current sprint, and either zero or one Issue with the stable tag `tenant1-lean-platform-traceability`. Zero matches plans `Create`; one exact match plans `Reuse`; more than one match stops as ambiguous. A missing, null, or non-array WIQL `workItems` property is indeterminate and stops; it never plans `Create`. `CurrentSprintPath` is the full observed project path. The script removes exactly the `<project>\` prefix before calling the classification-node REST route (`Caldova HR Frontier\Current` becomes `Current`, and nested suffixes remain nested); relative, foreign-project, `Iteration`-prefixed, empty-segment, and mixed-separator paths stop before any Azure DevOps call. `-WhatIf` and the default mode perform no Azure DevOps mutation.
+The plan must read back the Basic process, exact existing team, its exact project-root area setting, exactly one current team iteration whose full path equals `CurrentSprintPath`, the matching classification node, and either zero or one Issue with the stable tag `tenant1-lean-platform-traceability`. Zero matches plans `Create`; one exact match plans `Reuse`; more than one match stops as ambiguous. Missing, multiple, malformed, or mismatched team/current-iteration state stops before WIQL or mutation. A missing, null, or non-array WIQL `workItems` property is indeterminate and stops; it never plans `Create`. `CurrentSprintPath` is the full observed project path. The script removes exactly the `<project>\` prefix before calling the classification-node REST route (`Caldova HR Frontier\Current` becomes `Current`, and nested suffixes remain nested); relative, foreign-project, `Iteration`-prefixed, empty-segment, and mixed-separator paths stop before any Azure DevOps call. `-WhatIf` and the default mode perform no Azure DevOps mutation.
 
 Omit sprint dates unless the attended owner supplies and approves both exact current-sprint dates. When approved dates exist, add both `SprintStartDate` and `SprintFinishDate` to `$BoardsParameters`. The script changes only the selected current sprint and reads both dates back.
 
@@ -324,7 +358,7 @@ The proof above is not deletion approval. Stop after capturing it. Any future de
    }
    ```
 
-This runbook supplies no deletion approval and does not run the command. Without a separate explicit approval, leave the repository unchanged. The Tenant 1 tracked-file deletion gate also remains deferred.
+This runbook supplies no Azure Repo deletion approval and does not run the command. Without a separate explicit approval, leave the Azure Repo unchanged. The tracked Tenant 1 transition-file deletion is already committed and is not part of this optional checkpoint.
 
 ## Final Governed Transaction
 
@@ -346,11 +380,11 @@ The transaction does not prove an Azure deployment, Power Platform deployment, o
 
 **Outcome: Not Run.** Use the [Draft Acceptance Review](../../docs/reviews/2026-09-28-tenant-1-lean-engineering-platform-acceptance-review.md) as the control-by-control record. Keep every outcome `Not Run` until the applicable checkpoint has current, sanitized read-back. Task 8 may record source and safety-verification evidence, but post-merge, governance, Boards, optional deletion-decision, final-transaction, and merged-`main` outcomes remain `Not Run` until their own later attended execution.
 
-Do not promote the review from `Draft` or infer success from source, plans, `what-if`, historical evidence, or this ordered procedure. The tracked Tenant 1 transition-file deletion remains a separate open control at `Not Run`; the empty Azure Repo decision remains optional and destructive.
+Do not promote the review from `Draft` or infer live success from source, plans, `what-if`, historical evidence, the committed source deletion, or this ordered procedure. All 14 acceptance outcomes remain `Not Run`; the empty Azure Repo decision remains optional and destructive.
 
 ## Failure and Recovery
 
-Stop on every failed or incomplete check. Preserve only local, sanitized evidence and follow [Bootstrap Recovery](19-bootstrap-recovery.md). Do not broaden access, change roles, switch identities, change subscriptions, activate trust, create a deployment, delete the tracked transition files, or retry against Tenant 2.
+Stop on every failed or incomplete check. Preserve only local, sanitized evidence and follow [Bootstrap Recovery](19-bootstrap-recovery.md). Do not broaden access, change roles, switch identities, change subscriptions, activate trust, create a deployment, recreate the deleted tracked transition files, or retry against Tenant 2.
 
 After correction, restart at **Attended Context and Minimum Access**. Never splice preflight evidence from one attempt into another.
 
@@ -358,12 +392,13 @@ After correction, restart at **Attended Context and Minimum Access**. Never spli
 
 Accept this run only when:
 
-- the ignored local Tenant 1 configuration and its local backup exist outside version control;
+- the ignored local Tenant 1 configuration and its encrypted external backup in a separate failure domain exist outside version control;
+- source, backup, and separate-restore SHA-256 values match, the restored copy imports against the schema, and the exact ignored local file passes live-boundary validation;
 - attended context and separately approved pre-existing minimum access pass before and after `what-if`;
 - local discovery, sanitized review, Bicep build, subscription `what-if`, and boundary validation succeed;
 - no role assignment, trust, GitHub Environment, Azure Pipeline, deployment, or Power Platform release was created, changed, or deleted;
 - Tenant 2 was not selected or changed;
 - `what-if` is recorded only as planning evidence; and
 - later governance, Boards, repository, and final-transaction checkpoints are supported by their own current read-back;
-- the tracked Tenant 1 transition-file deletion control remains `Not Run` until separately approved and verified; and
+- the approved committed Tenant 1 transition-file deletion remains intact without being treated as live acceptance evidence; all 14 Draft outcomes remain `Not Run`; and
 - the optional empty Azure Repo decision is never treated as a prerequisite or implicit deletion approval.

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.0 |
-| **Date** | 2026-09-29 |
+| **Version** | 2.1 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
@@ -15,7 +15,7 @@ This Proposed Baseline defines the lean Tenant 1 repository target. It does not 
 
 `urruegg/caldova-hr-frontier` is Tenant 1's sole product-source repository. Tenant 2 and Tenant 3 use separate repository and Azure DevOps project boundaries when their onboarding is separately approved.
 
-Tenant 1 validation uses the explicit ignored local configuration path. There is no active private configuration repository dependency, bootstrap GitHub Environment, workload federation, or workflow-hosted tenant discovery. The two tracked Tenant 1 transition files remain temporarily because deletion approval was unavailable and are not active validation inputs.
+Tenant 1 validation uses the explicit ignored local configuration path. There is no active private configuration repository dependency, bootstrap GitHub Environment, workload federation, or workflow-hosted tenant discovery. The approved deletion of the tracked Tenant 1 transition files is committed; they are absent and must not become validation or recovery inputs.
 
 ## Repository Ownership
 

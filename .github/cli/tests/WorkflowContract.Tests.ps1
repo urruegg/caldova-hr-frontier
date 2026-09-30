@@ -53,7 +53,7 @@ Describe 'Lean repository validation workflow' {
 
             $node -is [System.Management.Automation.Language.StringConstantExpressionAst]
         }, $true) | ForEach-Object Value)
-        $requiredPaths | Should -Not -Contain 'infra/src/config/tenants/caldova25156897.psd1'
-        $requiredPaths | Should -Not -Contain 'infra/evidence/discovery/caldova25156897.json'
+        $requiredPaths | Should -Not -Contain 'infra/src/config/tenants/fixturetenant42.psd1'
+        $requiredPaths | Should -Not -Contain 'infra/evidence/discovery/fixturetenant42.json'
     }
 }

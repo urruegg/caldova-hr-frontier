@@ -292,8 +292,7 @@ function Get-CloudFoundationAssessment {
                         namingRoot=[string]$TenantConfiguration.NamingRoot
                         platformResourceGroupName=Get-TenantResourceName -NamingRoot $TenantConfiguration.NamingRoot -ResourceType ResourceGroup
                         logAnalyticsWorkspaceName=Get-TenantResourceName -NamingRoot $TenantConfiguration.NamingRoot -ResourceType LogAnalytics
-                        validationRoleName=Get-TenantResourceName -NamingRoot $TenantConfiguration.NamingRoot -ResourceType DeploymentValidationRole
-                        validationPrincipalId=$validationPrincipalId;policyAssignments=@()
+                        policyAssignments=@()
                     }}
                 }
             }

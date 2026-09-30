@@ -4,9 +4,9 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
     BeforeAll {
         $script:RepositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
         $script:ScriptPath = Join-Path $script:RepositoryRoot 'infra\src\scripts\Initialize-AzureBoardsLeanSprint.ps1'
-        $script:ProjectName = 'Caldova HR Frontier'
-        $script:TeamName = 'Caldova HR Frontier Team'
-        $script:IterationPath = 'Caldova HR Frontier\Current'
+        $script:ProjectName = 'Synthetic HR Frontier'
+        $script:TeamName = 'Synthetic HR Frontier Team'
+        $script:IterationPath = 'Synthetic HR Frontier\Current'
         $script:IssueTitle = 'Tenant 1 lean engineering platform acceptance'
         $script:TraceabilityTag = 'tenant1-lean-platform-traceability'
 
@@ -90,6 +90,62 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
                         id = '00000000-0000-0000-0000-000000000002'
                         name = $teamName
                         projectName = $projectName
+                    }
+                }
+                'GetTeamFieldValues' {
+                    if ($state.AdapterMode -ceq 'MalformedTeamArea') {
+                        return [pscustomobject]@{
+                            field = [pscustomobject]@{ referenceName = 'System.AreaPath' }
+                            defaultValue = $projectName
+                            values = $null
+                        }
+                    }
+                    $teamAreaPath = if ($state.AdapterMode -ceq 'WrongTeamArea') {
+                        "$projectName\Platform"
+                    }
+                    else {
+                        $projectName
+                    }
+                    return [pscustomobject]@{
+                        field = [pscustomobject]@{
+                            referenceName = 'System.AreaPath'
+                        }
+                        defaultValue = $teamAreaPath
+                        values = [object[]]@(
+                            [pscustomobject]@{
+                                value = $teamAreaPath
+                                includeChildren = $false
+                            }
+                        )
+                    }
+                }
+                'GetCurrentTeamIterations' {
+                    if ($state.AdapterMode -ceq 'MissingCurrentIterations') {
+                        return [pscustomobject]@{ count = 0; value = [object[]]@() }
+                    }
+                    if ($state.AdapterMode -ceq 'MalformedCurrentIterations') {
+                        return [pscustomobject]@{ count = 1; value = $null }
+                    }
+                    $currentIterations = if ($state.AdapterMode -ceq 'MultipleCurrentIterations') {
+                        [object[]]@(
+                            [pscustomobject]@{ id = '00000000-0000-0000-0000-000000000010'; path = $iterationPath }
+                            [pscustomobject]@{ id = '00000000-0000-0000-0000-000000000011'; path = "$projectName\Other" }
+                        )
+                    }
+                    elseif ($state.AdapterMode -ceq 'NonCurrentIteration') {
+                        [object[]]@(
+                            [pscustomobject]@{ id = '00000000-0000-0000-0000-000000000010'; path = "$projectName\Previous" }
+                        )
+                    }
+                    else {
+                        [object[]]@(
+                            [pscustomobject]@{ id = '00000000-0000-0000-0000-000000000010'; path = $iterationPath }
+                        )
+                    }
+                    $currentIterations = [object[]]@($currentIterations)
+                    return [pscustomobject]@{
+                        count = $currentIterations.Count
+                        value = $currentIterations
                     }
                 }
                 'GetProjectRootArea' {
@@ -235,6 +291,49 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
         $persisted.Status | Should -BeExactly 'Planned'
     }
 
+    It 'rejects a selected team configured for a non-root area before planning mutation' {
+        { Invoke-LeanBoardsScript -Mode 'WrongTeamArea' -WhatIf } |
+            Should -Throw '*team*area*exact project root*'
+        @($script:MutationCalls).Count | Should -Be 0
+    }
+
+    It 'rejects a supplied iteration that is not the selected team current iteration' {
+        { Invoke-LeanBoardsScript -Mode 'NonCurrentIteration' -WhatIf } |
+            Should -Throw '*current team iteration*CurrentSprintPath*'
+        @($script:MutationCalls).Count | Should -Be 0
+    }
+
+    It 'rejects multiple current team iterations as indeterminate' {
+        { Invoke-LeanBoardsScript -Mode 'MultipleCurrentIterations' -WhatIf } |
+            Should -Throw '*exactly one current team iteration*'
+        @($script:MutationCalls).Count | Should -Be 0
+    }
+
+    It 'fails closed on missing or malformed team sprint settings' -TestCases @(
+        @{ Mode = 'MalformedTeamArea'; Expected = '*team*area*malformed*' }
+        @{ Mode = 'MissingCurrentIterations'; Expected = '*exactly one current team iteration*' }
+        @{ Mode = 'MalformedCurrentIterations'; Expected = '*current team iterations*malformed*' }
+    ) {
+        param($Mode, $Expected)
+
+        { Invoke-LeanBoardsScript -Mode $Mode -WhatIf } | Should -Throw $Expected
+        @($script:MutationCalls).Count | Should -Be 0
+    }
+
+    It 'requires exact team area and one exact current team iteration before issue planning' {
+        $result = Invoke-LeanBoardsScript -Mode 'Create' -WhatIf
+
+        $result.AreaPath | Should -BeExactly $script:ProjectName
+        $result.CurrentSprintPath | Should -BeExactly $script:IterationPath
+        $script:OperationCalls | Should -Contain 'GetTeamFieldValues'
+        $script:OperationCalls | Should -Contain 'GetCurrentTeamIterations'
+        $script:OperationCalls.IndexOf('GetTeamFieldValues') |
+            Should -BeLessThan $script:OperationCalls.IndexOf('QueryTraceabilityIssue')
+        $script:OperationCalls.IndexOf('GetCurrentTeamIterations') |
+            Should -BeLessThan $script:OperationCalls.IndexOf('QueryTraceabilityIssue')
+        @($script:MutationCalls).Count | Should -Be 0
+    }
+
     It 'rejects unsafe state without mutation' -TestCases @(
         @{ Mode = 'Agile'; Expected = '*Basic*'; Start = $null; Finish = $null }
         @{ Mode = 'MissingTeam'; Expected = '*team*'; Start = $null; Finish = $null }
@@ -263,8 +362,8 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
     It 'rejects foreign or ambiguous current sprint paths before any Azure DevOps call' -TestCases @(
         @{ Path = 'Other Project\Current' }
         @{ Path = 'Current' }
-        @{ Path = 'Caldova HR Frontier\Iteration\Current' }
-        @{ Path = 'Caldova HR Frontier\\Current' }
+        @{ Path = 'Synthetic HR Frontier\Iteration\Current' }
+        @{ Path = 'Synthetic HR Frontier\\Current' }
     ) {
         param($Path)
 
@@ -442,16 +541,22 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
             $resource = if ($resourceIndex -ge 0) { $arguments[$resourceIndex + 1] } else { '' }
 
             if ($arguments -contains 'project' -and $arguments -contains 'show') {
-                return '{"id":"00000000-0000-0000-0000-000000000001","name":"Caldova HR Frontier","capabilities":{"processTemplate":{"templateName":"Basic"}}}'
+                return '{"id":"00000000-0000-0000-0000-000000000001","name":"Synthetic HR Frontier","capabilities":{"processTemplate":{"templateName":"Basic"}}}'
             }
             if ($resource -ceq 'teams') {
-                return '{"id":"00000000-0000-0000-0000-000000000002","name":"Caldova HR Frontier Team","projectName":"Caldova HR Frontier"}'
+                return '{"id":"00000000-0000-0000-0000-000000000002","name":"Synthetic HR Frontier Team","projectName":"Synthetic HR Frontier"}'
+            }
+            if ($resource -ceq 'teamfieldvalues') {
+                return '{"field":{"referenceName":"System.AreaPath"},"defaultValue":"Synthetic HR Frontier","values":[{"value":"Synthetic HR Frontier","includeChildren":false}]}'
+            }
+            if ($resource -ceq 'teamsettingsiterations') {
+                return '{"count":1,"value":[{"id":"00000000-0000-0000-0000-000000000010","path":"Synthetic HR Frontier\\Current"}]}'
             }
             if ($resource -ceq 'classificationnodes' -and $arguments -contains 'structureGroup=areas') {
-                return '{"id":1,"name":"Area","path":"\\Caldova HR Frontier\\Area","structureType":"area"}'
+                return '{"id":1,"name":"Area","path":"\\Synthetic HR Frontier\\Area","structureType":"area"}'
             }
             if ($resource -ceq 'classificationnodes' -and $arguments -contains 'structureGroup=iterations') {
-                return '{"id":2,"name":"Current","path":"\\Caldova HR Frontier\\Iteration\\Current","structureType":"iteration","attributes":{"startDate":"2026-09-28T00:00:00Z","finishDate":"2026-10-09T00:00:00Z"}}'
+                return '{"id":2,"name":"Current","path":"\\Synthetic HR Frontier\\Iteration\\Current","structureType":"iteration","attributes":{"startDate":"2026-09-28T00:00:00Z","finishDate":"2026-10-09T00:00:00Z"}}'
             }
             if ($resource -ceq 'wiql') {
                 $global:LeanBoardsFakeWiqlCalls++
@@ -464,7 +569,7 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
                 return '{"id":73}'
             }
             if ($resource -ceq 'workitems') {
-                return '{"id":73,"fields":{"System.WorkItemType":"Issue","System.Title":"Tenant 1 lean engineering platform acceptance","System.AreaPath":"Caldova HR Frontier","System.IterationPath":"Caldova HR Frontier\\Current","System.Tags":"tenant1-lean-platform-traceability"}}'
+                return '{"id":73,"fields":{"System.WorkItemType":"Issue","System.Title":"Tenant 1 lean engineering platform acceptance","System.AreaPath":"Synthetic HR Frontier","System.IterationPath":"Synthetic HR Frontier\\Current","System.Tags":"tenant1-lean-platform-traceability"}}'
             }
 
             $global:LASTEXITCODE = 1
@@ -487,9 +592,40 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
             $result.Status | Should -BeExactly 'Applied'
             (Test-Path -LiteralPath (Join-Path $TestDrive 'traceability-issue-query.json')) | Should -BeTrue
             (Test-Path -LiteralPath (Join-Path $TestDrive 'traceability-issue-create.json')) | Should -BeTrue
-            @($global:LeanBoardsFakeAzCalls).Count | Should -Be 8
+            @($global:LeanBoardsFakeAzCalls).Count | Should -Be 10
             @($global:LeanBoardsFakeAzCalls | Where-Object { $_ -contains '--api-version' -and $_ -contains '7.1' }).Count |
-                Should -Be 7
+                Should -Be 9
+
+            $teamAreaCall = @($global:LeanBoardsFakeAzCalls | Where-Object {
+                $_ -contains '--resource' -and $_ -contains 'teamfieldvalues'
+            })[0]
+            ($teamAreaCall -join '|') | Should -BeExactly (
+                @(
+                    'devops', 'invoke',
+                    '--organization', 'https://dev.azure.com/example/',
+                    '--area', 'work',
+                    '--resource', 'teamfieldvalues',
+                    '--route-parameters', 'project=Synthetic HR Frontier', 'team=Synthetic HR Frontier Team',
+                    '--api-version', '7.1',
+                    '--output', 'json'
+                ) -join '|'
+            )
+
+            $currentIterationCall = @($global:LeanBoardsFakeAzCalls | Where-Object {
+                $_ -contains '--resource' -and $_ -contains 'teamsettingsiterations'
+            })[0]
+            ($currentIterationCall -join '|') | Should -BeExactly (
+                @(
+                    'devops', 'invoke',
+                    '--organization', 'https://dev.azure.com/example/',
+                    '--area', 'work',
+                    '--resource', 'teamsettingsiterations',
+                    '--route-parameters', 'project=Synthetic HR Frontier', 'team=Synthetic HR Frontier Team',
+                    '--query-parameters', 'timeframe=current',
+                    '--api-version', '7.1',
+                    '--output', 'json'
+                ) -join '|'
+            )
 
             $iterationCall = @($global:LeanBoardsFakeAzCalls | Where-Object {
                 $_ -contains '--resource' -and $_ -contains 'classificationnodes' -and
@@ -501,7 +637,7 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
                     '--organization', 'https://dev.azure.com/example/',
                     '--area', 'wit',
                     '--resource', 'classificationnodes',
-                    '--route-parameters', 'project=Caldova HR Frontier', 'structureGroup=iterations', 'path=Current',
+                    '--route-parameters', 'project=Synthetic HR Frontier', 'structureGroup=iterations', 'path=Current',
                     '--api-version', '7.1',
                     '--output', 'json'
                 ) -join '|'
@@ -517,7 +653,7 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
                     '--organization', 'https://dev.azure.com/example/',
                     '--area', 'wit',
                     '--resource', 'workitems',
-                    '--route-parameters', 'project=Caldova HR Frontier', 'type=Issue',
+                    '--route-parameters', 'project=Synthetic HR Frontier', 'type=Issue',
                     '--http-method', 'POST',
                     '--in-file', $createBodyPath,
                     '--media-type', 'application/json-patch+json',
@@ -558,16 +694,22 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
             $resource = if ($resourceIndex -ge 0) { $arguments[$resourceIndex + 1] } else { '' }
 
             if ($arguments -contains 'project' -and $arguments -contains 'show') {
-                return '{"id":"00000000-0000-0000-0000-000000000001","name":"Caldova HR Frontier","capabilities":{"processTemplate":{"templateName":"Basic"}}}'
+                return '{"id":"00000000-0000-0000-0000-000000000001","name":"Synthetic HR Frontier","capabilities":{"processTemplate":{"templateName":"Basic"}}}'
             }
             if ($resource -ceq 'teams') {
-                return '{"id":"00000000-0000-0000-0000-000000000002","name":"Caldova HR Frontier Team","projectName":"Caldova HR Frontier"}'
+                return '{"id":"00000000-0000-0000-0000-000000000002","name":"Synthetic HR Frontier Team","projectName":"Synthetic HR Frontier"}'
+            }
+            if ($resource -ceq 'teamfieldvalues') {
+                return '{"field":{"referenceName":"System.AreaPath"},"defaultValue":"Synthetic HR Frontier","values":[{"value":"Synthetic HR Frontier","includeChildren":false}]}'
+            }
+            if ($resource -ceq 'teamsettingsiterations') {
+                return '{"count":1,"value":[{"id":"00000000-0000-0000-0000-000000000010","path":"Synthetic HR Frontier\\Release 1\\Current"}]}'
             }
             if ($resource -ceq 'classificationnodes' -and $arguments -contains 'structureGroup=areas') {
-                return '{"id":1,"name":"Area","path":"\\Caldova HR Frontier\\Area","structureType":"area"}'
+                return '{"id":1,"name":"Area","path":"\\Synthetic HR Frontier\\Area","structureType":"area"}'
             }
             if ($resource -ceq 'classificationnodes' -and $arguments -contains 'structureGroup=iterations') {
-                return '{"id":2,"name":"Current","path":"\\Caldova HR Frontier\\Iteration\\Release 1\\Current","structureType":"iteration","attributes":{"startDate":"2026-09-28T00:00:00Z","finishDate":"2026-10-09T00:00:00Z"}}'
+                return '{"id":2,"name":"Current","path":"\\Synthetic HR Frontier\\Iteration\\Release 1\\Current","structureType":"iteration","attributes":{"startDate":"2026-09-28T00:00:00Z","finishDate":"2026-10-09T00:00:00Z"}}'
             }
             if ($resource -ceq 'wiql') {
                 return '{"workItems":[]}'
@@ -582,7 +724,7 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
                 -OrganizationUrl 'https://dev.azure.com/example/' `
                 -ProjectName $script:ProjectName `
                 -TeamName $script:TeamName `
-                -CurrentSprintPath 'Caldova HR Frontier\Release 1\Current' `
+                -CurrentSprintPath 'Synthetic HR Frontier\Release 1\Current' `
                 -IssueTitle $script:IssueTitle `
                 -PlanOutputPath (Join-Path $TestDrive 'nested-production-adapter-plan.json') `
                 -WhatIf
@@ -598,7 +740,7 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
                     '--organization', 'https://dev.azure.com/example/',
                     '--area', 'wit',
                     '--resource', 'classificationnodes',
-                    '--route-parameters', 'project=Caldova HR Frontier', 'structureGroup=iterations', 'path=Release 1\Current',
+                    '--route-parameters', 'project=Synthetic HR Frontier', 'structureGroup=iterations', 'path=Release 1\Current',
                     '--api-version', '7.1',
                     '--output', 'json'
                 ) -join '|'

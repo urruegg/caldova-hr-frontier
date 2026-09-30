@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.2 |
+| **Version** | 2.3 |
 | **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Superseded |
@@ -34,7 +34,7 @@ Get-Content -LiteralPath $BoardsPlanPath -Raw | ConvertFrom-Json |
     Format-List ProcessName, TeamName, AreaPath, CurrentSprintPath, SprintDateMode, IssueMode, IssueId, Status
 ```
 
-The expected plan reports `Basic`, the exact existing team, `Caldova HR Frontier` as the root area, the exact current sprint, and `Status = Planned`. `IssueMode` is `Create` only when an actual WIQL `workItems` array is present and empty; missing, null, or wrong-type `workItems` is indeterminate and stops. `Reuse` requires exactly one matching Issue, and more than one match is ambiguous and stops. The full observed sprint path is converted to the project-relative classification-node route (`Caldova HR Frontier\Current` becomes `Current`); foreign, relative-only, REST-prefixed, or ambiguous paths stop.
+The expected plan reports `Basic`, the exact existing team, `Caldova HR Frontier` as the root area, the exact current sprint, and `Status = Planned`. Before issue planning, the script reads the selected team's `System.AreaPath` settings and its current iterations with `timeframe=current`. It requires exactly the project-root area and exactly one current team iteration whose full path equals `CurrentSprintPath`; missing, multiple, malformed, or mismatched state stops. A matching classification node by itself is insufficient. `IssueMode` is `Create` only when an actual WIQL `workItems` array is present and empty; missing, null, or wrong-type `workItems` is indeterminate and stops. `Reuse` requires exactly one matching Issue, and more than one match is ambiguous and stops. The full observed sprint path is converted to the project-relative classification-node route (`Caldova HR Frontier\Current` becomes `Current`); foreign, relative-only, REST-prefixed, or ambiguous paths stop.
 
 Current-sprint dates are deliberately omitted. Add both `SprintStartDate` and `SprintFinishDate` only when the attended owner supplies and approves both exact dates. Supplying one date, a reversed range, or an unverified read-back stops without further mutation.
 

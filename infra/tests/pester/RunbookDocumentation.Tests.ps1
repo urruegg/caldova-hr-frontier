@@ -109,43 +109,18 @@ Describe 'Runbook documentation contracts' {
 
     }
 
-    It 'documents the attended cloud service foundation operating contract' {
+    It 'publishes only a superseded cloud foundation stop notice' {
         $path = Join-Path $script:repositoryRoot 'infra\docs\runbooks\02-cloud-service-foundation.md'
         $path | Should -Exist
         $content = Get-Content -Raw -LiteralPath $path
-        foreach ($heading in @(
-            'Purpose and Status','Operator, Scope, and Preconditions','Attended Authentication',
-            'Permission Matrix','Assessment and Plan','Approval and Apply',
-            'Manual and Blocking Actions','Evidence','Recovery','Cleanup and Sign-out',
-            'Definition of Done'
-        )) {
-            $content | Should -Match ("(?m)^## {0}\r?$" -f [regex]::Escape($heading))
-        }
-        foreach ($literal in @(
-            'Get-CloudFoundationPlan.ps1','Invoke-CloudFoundation.ps1',
-            'hr-<TenantAlias>-<stage>','-Apply','-WhatIf','ShouldProcess',
-            'az login --tenant <tenantId> --use-device-code',
-            'gh auth login --hostname github.com --web --clipboard',
-            'pac auth create --name <profile> --environment <url> --deviceCode',
-            "Status = 'Planned'","ShouldProcessDecision = 'NotApplicable'",
-            'PartialMutation','IncompleteManualActions','BlockedOperation','RunDirectory',
-            'az bicep format --file <absoluteSource> --stdout',
-            'service,targetId,condition,owner,diagnostic,recovery'
-        )) {
-            $content | Should -Match ([regex]::Escape($literal))
-        }
-        foreach ($url in @(
-            'https://docs.github.com/en/rest/repos/repos#update-a-repository',
-            'https://docs.github.com/en/rest/repos/rules#create-a-repository-ruleset',
-            'https://docs.github.com/en/rest/repos/rules#update-a-repository-ruleset',
-            'https://learn.microsoft.com/en-us/cli/azure/deployment/sub#az-deployment-sub-create',
-            'https://learn.microsoft.com/en-us/cli/azure/ad/app',
-            'https://learn.microsoft.com/en-us/cli/azure/ad/sp',
-            'https://learn.microsoft.com/en-us/cli/azure/devops/project'
-        )) {
-            $content | Should -Match ([regex]::Escape($url))
-        }
-        $content | Should -Match '\]\(\.\./19-bootstrap-recovery\.md\)'
+        $content | Should -Match '(?m)^\|\s+\*\*Status\*\*\s+\|\s+Superseded\s+\|\s*$'
+        $content | Should -Match 'STOP.+SUPERSEDED'
+        $content | Should -Match 'Get-CloudFoundationPlan\.ps1.+Invoke-CloudFoundation\.ps1.+dormant and unsupported'
+        $content | Should -Match 'new reviewed design and implementation plan'
+        $content | Should -Not -Match '(?m)^```powershell'
+
+        $index = Get-Content -Raw -LiteralPath (Join-Path $script:repositoryRoot 'infra\docs\runbooks\README.md')
+        $index | Should -Match 'Cloud Service Foundation Runbook.+Superseded stop notice.+\|\s+Superseded\s+\|'
     }
 
     It 'documents local attended authentication and rejects workload execution' {
@@ -192,6 +167,34 @@ Describe 'Runbook documentation contracts' {
         )) {
             $content | Should -Match ("(?m)^## {0}\r?$" -f [regex]::Escape($heading))
         }
+    }
+
+    It 'records committed Tenant 1 deletion and requires external restore proof' {
+        $currentBoundaryPaths = @(
+            'infra/README.md',
+            'infra/docs/10-tenant-setup-and-configuration.md',
+            'infra/docs/14-github-repository-blueprint.md',
+            'infra/docs/18-multi-tenant-provisioning.md',
+            'infra/docs/19-bootstrap-recovery.md',
+            'infra/docs/24-tenant-1-lean-platform-runbook.md'
+        )
+        foreach ($relativePath in $currentBoundaryPaths) {
+            $content = Get-Content -Raw -LiteralPath (Join-Path $script:repositoryRoot $relativePath)
+            $content | Should -Not -Match 'tracked Tenant 1 (?:transition )?files remain|deletion approval was unavailable|tracked Tenant 1 transition-file deletion remains'
+        }
+
+        $runbook = Get-Content -Raw -LiteralPath (
+            Join-Path $script:repositoryRoot 'infra\docs\24-tenant-1-lean-platform-runbook.md'
+        )
+        $runbook | Should -Match 'approved committed deletion'
+        $runbook | Should -Match 'Read-Host.+encrypted external backup'
+        $runbook | Should -Match 'separate failure domain'
+        $runbook | Should -Match 'Get-FileHash.+SHA256'
+        $runbook | Should -Match '\$RestoreRoot'
+        $runbook | Should -Match 'Import-TenantConfiguration'
+        $runbook | Should -Match 'RequireLocalUntracked'
+        $runbook | Should -Match 'git check-ignore'
+        $runbook | Should -Not -Match '\$BackupRoot\s*=\s*Join-Path\s+\$OperatorRoot\s+''backup'''
     }
 
     It 'documents the irreversible checkpoint order without claiming execution' {

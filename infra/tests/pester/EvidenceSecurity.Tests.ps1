@@ -8,31 +8,31 @@ Describe 'Discovery evidence security' {
         $script:CollectedUtc = [datetime]::SpecifyKind([datetime]'2026-09-19T10:15:30', [System.DateTimeKind]::Utc)
         $script:CompletedUtc = $script:CollectedUtc.AddMinutes(2)
         $script:TenantConfiguration = [pscustomobject]@{
-            TenantAlias = 'caldova25156897'
-            TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
-            AdminUpn = 'admin@Caldova25156897.onmicrosoft.com'
-            SubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
+            TenantAlias = 'fixturetenant42'
+            TenantId = '22222222-2222-2222-2222-222222222222'
+            AdminUpn = 'operator@fixture.example'
+            SubscriptionId = '11111111-1111-1111-1111-111111111111'
             GitHub = [pscustomobject]@{
                 Owner = 'urruegg'
                 OwnerId = '46865858'
                 Repository = 'caldova-hr-frontier'
                 RepositoryId = '1371297722'
-                EnvironmentName = 'bootstrap-caldova25156897'
+                EnvironmentName = 'bootstrap-fixturetenant42'
             }
             AzureDevOps = [pscustomobject]@{
-                OrganizationUrl = 'https://dev.azure.com/caldova25156897/'
-                ProjectName = 'Caldova HR Frontier'
+                OrganizationUrl = 'https://dev.azure.com/synthetic/'
+                ProjectName = 'Synthetic HR Frontier'
             }
             PowerPlatform = [pscustomobject]@{
-                DevUrl = 'https://hrfrontierdev.crm17.dynamics.com/'
-                TestUrl = 'https://hrfrontiertest.crm17.dynamics.com/'
-                ProdUrl = 'https://hrfrontier.crm17.dynamics.com/'
+                DevUrl = 'https://fixture-dev.example.test/'
+                TestUrl = 'https://fixture-test.example.test/'
+                ProdUrl = 'https://fixture-prod.example.test/'
             }
         }
         $script:Principal = [pscustomobject]@{
             Type = 'User'
             Id = 'user-synthetic-0001'
-            Upn = 'admin@Caldova25156897.onmicrosoft.com'
+            Upn = 'operator@fixture.example'
         }
         $script:ForbiddenPattern = '(?i)(access[_-]?token|refresh[_-]?token|client[_-]?secret|authorization:\s*bearer|AccountKey=|SharedAccessSignature=|-----BEGIN .*PRIVATE KEY-----|sig=)'
         function script:Get-DiscoveryFixture {
@@ -78,7 +78,7 @@ Describe 'Discovery evidence security' {
 
         $json | Should -Not -Match $script:ForbiddenPattern
         $json | Should -Not -Match 'outsider@example\.invalid'
-        $json | Should -Match 'admin@Caldova25156897\.onmicrosoft\.com'
+        $json | Should -Match 'operator@fixture\.example'
     }
 
     It 'permits the reviewed email only at the exact Principal.Upn path' {
@@ -88,12 +88,12 @@ Describe 'Discovery evidence security' {
             RunId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
             CollectionStartedUtc = '2026-09-19T10:15:30.0000000Z'
             CollectionCompletedUtc = '2026-09-19T10:17:30.0000000Z'
-            TenantAlias = 'caldova25156897'
-            TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
+            TenantAlias = 'fixturetenant42'
+            TenantId = '22222222-2222-2222-2222-222222222222'
             Principal = [pscustomobject]@{
                 Type = 'User'
                 Id = 'user-synthetic-0001'
-                Upn = 'admin@Caldova25156897.onmicrosoft.com'
+                Upn = 'operator@fixture.example'
             }
             Services = [pscustomobject]@{
                 GitHub = [pscustomobject]@{
@@ -107,7 +107,7 @@ Describe 'Discovery evidence security' {
                         [pscustomobject]@{
                             Type = 'GitHubRepository'
                             Id = 'repo-synthetic-1371297722'
-                            Name = 'admin@Caldova25156897.onmicrosoft.com'
+                            Name = 'operator@fixture.example'
                             Status = 'Found'
                             EvidenceReference = [pscustomobject]@{
                                 Service = 'GitHub'

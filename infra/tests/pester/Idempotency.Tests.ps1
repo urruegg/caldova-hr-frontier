@@ -5,13 +5,13 @@ Describe 'Tenant 1 attended what-if orchestration' {
         $script:RepositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
         $script:SourceBootstrapScriptPath = Join-Path $script:RepositoryRoot 'infra\src\scripts\Invoke-TenantBootstrap.ps1'
         $script:FixturePath = Join-Path $script:RepositoryRoot 'infra\tests\fixtures\what-if\allowed.json'
-        $script:TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
-        $script:SubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
+        $script:TenantId = '22222222-2222-2222-2222-222222222222'
+        $script:SubscriptionId = '11111111-1111-1111-1111-111111111111'
         $script:PrincipalObjectId = '55555555-5555-5555-5555-555555555555'
         $script:GroupObjectId = '77777777-7777-7777-7777-777777777777'
         $script:Scope = "/subscriptions/$($script:SubscriptionId)"
-        $script:RoleName = 'cal-hr-agentic-bc8rbt-deployment-validation'
-        $script:RoleDefinitionId = "$($script:Scope)/providers/Microsoft.Authorization/roleDefinitions/9535bca5-5fef-5443-acf9-c0e0486562fd"
+        $script:RoleName = 'syn-hr-agentic-abc123-deployment-validation'
+        $script:RoleDefinitionId = "$($script:Scope)/providers/Microsoft.Authorization/roleDefinitions/4d518f04-8692-59e4-b791-5fbfbb405e86"
         $script:RoleAssignmentId = "$($script:Scope)/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
         $script:RoleActions = @(
             '*/read'
@@ -57,32 +57,32 @@ Describe 'Tenant 1 attended what-if orchestration' {
 @{
     SchemaVersion = '1.0'
     PublicTenantKey = 'tenant1'
-    TenantAlias = 'caldova25156897'
-    DisplayName = 'Caldova25156897'
+    TenantAlias = 'fixturetenant42'
+    DisplayName = 'Fixture Tenant 42'
     TenantId = '$($script:TenantId)'
-    AdminUpn = 'admin@Caldova25156897.onmicrosoft.com'
+    AdminUpn = 'operator@fixture.example'
     SubscriptionId = '$($script:SubscriptionId)'
     PrimaryLocation = 'switzerlandnorth'
-    CompanyTla = 'cal'
+    CompanyTla = 'syn'
     WorkloadName = 'hr-agentic'
-    UniqueSuffix = 'bc8rbt'
-    NamingRoot = 'cal-hr-agentic-bc8rbt'
+    UniqueSuffix = 'abc123'
+    NamingRoot = 'syn-hr-agentic-abc123'
     LifecycleState = 'IntentReviewed'
     GitHub = @{
         Owner = 'urruegg'
         OwnerId = '46865858'
         Repository = 'caldova-hr-frontier'
         RepositoryId = '1371297722'
-        EnvironmentName = 'bootstrap-caldova25156897'
+        EnvironmentName = 'bootstrap-fixturetenant42'
     }
     AzureDevOps = @{
-        OrganizationUrl = 'https://dev.azure.com/caldova25156897/'
-        ProjectName = 'Caldova HR Frontier'
+        OrganizationUrl = 'https://dev.azure.com/synthetic/'
+        ProjectName = 'Synthetic HR Frontier'
     }
     PowerPlatform = @{
-        DevUrl = 'https://hrfrontierdev.crm17.dynamics.com/'
-        TestUrl = 'https://hrfrontiertest.crm17.dynamics.com/'
-        ProdUrl = 'https://hrfrontier.crm17.dynamics.com/'
+        DevUrl = 'https://fixture-dev.example.test/'
+        TestUrl = 'https://fixture-test.example.test/'
+        ProdUrl = 'https://fixture-prod.example.test/'
     }
     Components = @{
         EntraServicePrincipal = @{
@@ -185,6 +185,21 @@ Describe 'Tenant 1 attended what-if orchestration' {
             if (-not $WhatIfBoundaryValidator) {
                 $WhatIfBoundaryValidator = { }
             }
+            $compiledParameters = [pscustomobject]@{
+                parameters = [pscustomobject]@{
+                    tenant = [pscustomobject]@{
+                        value = [pscustomobject]@{
+                            tenantAlias = 'fixturetenant42'
+                            location = 'switzerlandnorth'
+                            namingRoot = 'syn-hr-agentic-abc123'
+                            platformResourceGroupName = 'rg-syn-hr-agentic-abc123-platform'
+                            logAnalyticsWorkspaceName = 'log-syn-hr-agentic-abc123'
+                            policyAssignments = @()
+                        }
+                    }
+                }
+            }
+            $BicepValidator = { $compiledParameters }.GetNewClosure()
 
             @{
                 PublicTenantKey = 'tenant1'
@@ -196,7 +211,7 @@ Describe 'Tenant 1 attended what-if orchestration' {
                 IntentValidator = { }
                 AttendedUserContextValidator = $AttendedUserContextValidator
                 AccessPreflightValidator = $AccessPreflightValidator
-                BicepValidator = { }
+                BicepValidator = $BicepValidator
                 NativeCommandRunner = $NativeCommandRunner
                 WhatIfBoundaryValidator = $WhatIfBoundaryValidator
             }
@@ -443,7 +458,7 @@ Describe 'Tenant 1 attended what-if orchestration' {
             'AccessEvidencePath',
             'WhatIfOutputPath'
         )
-        $result.TenantAlias | Should -BeExactly 'caldova25156897'
+        $result.TenantAlias | Should -BeExactly 'fixturetenant42'
         $result.PrincipalObjectId | Should -BeExactly $script:PrincipalObjectId
         $result.AccessEvidencePath | Should -Exist
         $result.WhatIfOutputPath | Should -Exist
@@ -468,10 +483,12 @@ Describe 'Tenant 1 attended what-if orchestration' {
                 parameters = [ordered]@{
                     tenant = [ordered]@{
                         value = [ordered]@{
-                            tenantAlias = 'caldova25156897'
+                            tenantAlias = 'fixturetenant42'
                             location = 'switzerlandnorth'
-                            namingRoot = 'cal-hr-agentic-bc8rbt'
-                            validationPrincipalId = $script:PrincipalObjectId
+                            namingRoot = 'syn-hr-agentic-abc123'
+                            platformResourceGroupName = 'rg-syn-hr-agentic-abc123-platform'
+                            logAnalyticsWorkspaceName = 'log-syn-hr-agentic-abc123'
+                            policyAssignments = @()
                         }
                     }
                 }

@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
+| **Version** | 1.6 |
 | **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -26,16 +26,21 @@
 - Never revert `6b9eaa6` in place. Never clean, reset, stash, checkout, modify, or delete `C:\Users\urruegg\source\urruegg\caldova-hr-frontier\.worktrees\tenant1-engineering-platform-review`.
 - Preserve that historical worktree on the lineage containing `e01ca1156bb973c5c90c2ebe5cbe7c7453219e6c` and the future plan commit, with its existing uncommitted change to `infra/tests/pester/CloudFoundationStaticSafety.Tests.ps1`.
 - Do not create or run an Azure Pipeline, service connection, artifact, Power Platform import, infrastructure deployment, or `az deployment sub create`.
+- Keep `Get-CloudFoundationPlan.ps1` and `Invoke-CloudFoundation.ps1` as fail-closed dormant stop entry points only. Generic cloud-foundation module internals may remain for compatibility, but no active catalogue, runbook, default, validator, or operator procedure may expose a planner or apply path.
 - Do not activate tenant trust, create a bootstrap Entra application or service principal, add a federated credential, create a `bootstrap-tenant1` GitHub Environment, or fetch private configuration in a workflow.
 - Keep `infra/src/config/tenants/_template.psd1` tracked and synthetic. Keep Tenant 1 configuration only at ignored path `infra/src/config/tenants/tenant1.local.psd1`.
+- Treat payload isolation as part of the private boundary: active source, workflows, tests, and fixtures must contain no protected Tenant 1 operational-payload fingerprint. The verifier reports only offending paths. Immutable point-in-time audit evidence and the exact protected Tenant 2 transition blobs remain unchanged and outside this scan.
+- Remove hard-coded Tenant 1 generation from `New-TenantManifest.ps1`. Active `what-if` validation derives expected tenant, subscription, naming, and resource values from the validated ignored local configuration and compiled Bicep parameters; active tests and fixtures use synthetic values.
 - Preserve these exact Tenant 2 blobs unchanged from the clean base: `f4b2dfed2f42d1d9d95d51dddaeaaedf4d8b6dce` at `infra/src/config/tenants/caldova25668747.psd1` and `c2d4d66f4f812fc449752c275845fac5a713915e` at `infra/evidence/discovery/caldova25668747.json`.
 - Do not create a tenant catalogue, legacy-transition manifest, private overlay, transition package, handoff package, or automation for Tenant 2.
 - Local configuration contains values only, never credentials or tokens. Raw discovery, access-preflight detail, generated parameters, `what-if` output, hashes, and backups remain outside Git.
 - All live scripts require explicit `-PublicTenantKey tenant1` and `-TenantConfigurationPath 'infra\src\config\tenants\tenant1.local.psd1'`; they fail before external access if the path is missing, tracked, the template, outside the exact ignored boundary, unreadable, schema-invalid, or identifies another public tenant.
 - `403`, `404`, an empty response, malformed JSON, ambiguity, timeout, unsupported capability, or failed read-back is a blocking error. Only an explicitly documented post-delete `404` proves a separately approved Azure Repo deletion.
 - Local validation uses the attended operator's pre-existing, separately approved least-privilege access. This sprint creates, changes, and deletes no role assignment; context and minimum-access preflight/read-back fail closed on mismatch or insufficient evidence.
+- Remove role-definition and role-assignment resources, parameters, and outputs from the lean Bicep composition. `Test-WhatIfBoundary.ps1` rejects authorization role-definition/assignment Create, Modify, and Delete results; exact pre-existing user/group access remains a PowerShell preflight/read-back concern outside deployment code.
 - GitHub governance mutation requires a successful completed run of `.github/workflows/validate-repository.yml` on the current `main` SHA and the exact job/check `Repository setup validation`.
 - Azure Boards remains on the built-in Basic process, existing team, and project-root area. Do not convert to Agile, create six iterations, create a second team or area, or alter the optional 19-Epic portfolio tooling.
+- Before Boards planning or mutation, read the selected team's exact area settings and `teamsettings/iterations?timeframe=current` equivalent. Require exactly the project-root area and exactly one current team iteration whose full path equals `CurrentSprintPath`; missing, multiple, malformed, or mismatched state fails closed.
 - Every implementation change follows red/green/refactor, a scoped review, and a scoped commit. Every new commit uses `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>`.
 - Install nothing proactively. If a focused test proves Pester 5.7.1 absent, install exactly that version for the current user, rerun the failed command, and record the prerequisite correction.
 
@@ -118,7 +123,7 @@ Invoke-TenantDiscovery.ps1
 
 New-TenantBicepParameters.ps1
   -PublicTenantKey [string] -TenantConfigurationPath [string]
-  -ValidationPrincipalId [guid] -OutputPath [string] [-Replace]
+  -OutputPath [string] [-Replace]
 
 Invoke-TenantBootstrap.ps1
   -PublicTenantKey [string] -TenantConfigurationPath [string]
@@ -963,18 +968,12 @@ Discovery:
     -OutputPath $DiscoveryPath
 ```
 
-After local sanitized review, confirm the separately approved pre-existing minimum access outside Git and derive the exact attended principal without changing roles:
+After local sanitized review, confirm the separately approved pre-existing minimum access outside Git. The Bicep parameter contract contains no access principal or role resource:
 
 ```powershell
-$Account = az account show --output json | ConvertFrom-Json
-if ([string]$Account.user.type -cne 'user') { throw 'An attended user context is required.' }
-$Caller = az ad signed-in-user show --output json | ConvertFrom-Json
-$ValidationPrincipalId = [guid]$Caller.id
-
 .\infra\src\scripts\New-TenantBicepParameters.ps1 `
     -PublicTenantKey tenant1 `
     -TenantConfigurationPath $ConfigPath `
-    -ValidationPrincipalId $ValidationPrincipalId `
     -OutputPath $ParameterRoot
 $ParameterFile = @(Get-ChildItem -LiteralPath $ParameterRoot -Filter '*.bicepparam' -File)
 if ($ParameterFile.Count -ne 1) { throw 'Expected exactly one generated parameter file.' }
@@ -1274,6 +1273,8 @@ Default and `-WhatIf` execution return the deterministic plan with zero mutation
 ```text
 GetProjectWithCapabilities
 GetTeam
+GetTeamFieldValues
+GetCurrentTeamIterations
 GetProjectRootArea
 GetIteration
 UpdateIterationDates
@@ -1295,6 +1296,14 @@ The query uses work item type `Issue` and exact tag `tenant1-lean-platform-trace
 ```
 
 Require project capability `processTemplate.templateName = 'Basic'`, exact existing team, exact root area, and exact iteration path. If dates are supplied, require `StartDate -le FinishDate`; update only that iteration and read both dates back. If dates are omitted, preserve observed dates. Never create a team, area, iteration, Epic, Task, or process.
+
+Before `GetProjectRootArea`, issue production-adapter reads for the selected
+team's `teamfieldvalues` and `teamsettingsiterations` resources. The field
+values contract must identify `System.AreaPath`, exactly one value, and the
+project root as both default and configured area. The current-iterations call
+uses `timeframe=current`, returns a consistent array/count envelope with
+exactly one GUID-identified iteration, and its full path must equal
+`CurrentSprintPath`. Complete these reads before WIQL or any mutation.
 
 The production adapter uses Azure DevOps REST API 7.1 through `az devops invoke` with these exact resources:
 
@@ -1823,12 +1832,17 @@ Do not change the acceptance review from `Draft` to repository-supported status 
 - Checkout remains pinned to `3d3c42e5aac5ba805825da76410c181273ba90b1`; permissions remain `contents: read`.
 - The encrypted external Tenant 1 backup, SHA-256 comparison, separate restore, schema parse, and ignored local file are proven before public Tenant 1 artifact deletion.
 - Tenant 1 committed manifest/evidence are absent; the exact Tenant 2 manifest/evidence blobs are unchanged and never selected by Tenant 1 operations.
+- The payload-fingerprint scan passes for active source, workflows, tests, and fixtures without disclosing protected values; immutable point-in-time audit evidence and exact protected Tenant 2 transition blobs remain excluded.
+- No tracked generator can reconstruct the removed Tenant 1 profile, and the active `what-if` boundary derives expectations from the validated ignored local configuration and compiled Bicep parameters.
 - Every active live script requires explicit local configuration, rejects tracked/template/wrong-tenant paths, writes private outputs outside Git, and uses an attended user.
 - Attended-context and minimum-access preflight/read-back, local discovery, sanitized review, every maintained Bicep build, subscription `what-if`, and boundary validation pass; no role mutation or deployment is created.
+- Lean Bicep composition, generated parameters, and outputs contain no role-definition, role-assignment, validation-role, or principal resource contract; `what-if` rejects authorization Create, Modify, and Delete results.
 - `Initialize-TenantTrust.ps1` is dormant, not run by validation, and not presented as supported.
+- `Get-CloudFoundationPlan.ps1` and `Invoke-CloudFoundation.ps1` fail closed before configuration, output, tool, authentication, or provider access; active documentation and defaults present only a superseded stop notice.
 - The minimal `main` ruleset enforces PRs, resolved conversations, the sole required check, force-push block, deletion block, and squash only. It requires zero approvals and no CODEOWNERS review under the recorded solo-owner profile.
 - Repository settings delete merged branches, disable Projects, disable merge/rebase, enable squash, and enable Dependabot security updates; exact read-back passes.
 - Azure Boards remains Basic with the existing team and root area; only approved current-sprint dates change; one durable Issue exists; the optional 19-Epic tool remains independent.
+- The selected team settings prove exactly the project-root area and the current-team endpoint proves exactly one iteration whose full path equals `CurrentSprintPath` before Boards planning or mutation.
 - Any Azure Repo deletion occurs only after the separate attended empty/no-default/no-ref/no-item proof and approval.
 - A real PR uses `Fixes AB#` with the durable Issue, passes governance, squash-merges, deletes its source branch, links/transitions in Boards, and leaves the merged `main` commit green.
 - The full maintained test suite, safety verifier, Bicep builds, documentation tests, topology checks, private-boundary scan, task reviews, and final review pass.

@@ -70,7 +70,7 @@ $Summary
         It 'parses UseCaseId, Title, Status, JourneyStage, SourcePath, and Summary from each fixture idea file' {
             $ideasRoot = New-FixtureIdeasRoot
 
-            $items = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -ReturnPortfolioOnly
+            $items = & $script:ScriptPath -TenantAlias 'fixturetenant42' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -ReturnPortfolioOnly
 
             $items.Count | Should -Be 4
 
@@ -97,7 +97,7 @@ $Summary
             New-Item -ItemType Directory -Path $root -Force | Out-Null
             [System.IO.File]::WriteAllText((Join-Path $root 'uc-0001-broken.md'), "No heading here`n> **Status:** Idea`n", [System.Text.UTF8Encoding]::new($false))
 
-            { & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $root -RepositoryRootOverride $root -ReturnPortfolioOnly } | Should -Throw '*H1*'
+            { & $script:ScriptPath -TenantAlias 'fixturetenant42' -IdeasRoot $root -RepositoryRootOverride $root -ReturnPortfolioOnly } | Should -Throw '*H1*'
         }
 
         It 'throws a clear error when an idea file has no Status blockquote line' {
@@ -105,7 +105,7 @@ $Summary
             New-Item -ItemType Directory -Path $root -Force | Out-Null
             [System.IO.File]::WriteAllText((Join-Path $root 'uc-0001-broken.md'), "# UC-0001 - Broken`n`nNo status blockquote.`n", [System.Text.UTF8Encoding]::new($false))
 
-            { & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $root -RepositoryRootOverride $root -ReturnPortfolioOnly } | Should -Throw '*Status*'
+            { & $script:ScriptPath -TenantAlias 'fixturetenant42' -IdeasRoot $root -RepositoryRootOverride $root -ReturnPortfolioOnly } | Should -Throw '*Status*'
         }
 
         It 'throws a clear error when an idea file has no Journey stage blockquote line' {
@@ -113,7 +113,7 @@ $Summary
             New-Item -ItemType Directory -Path $root -Force | Out-Null
             [System.IO.File]::WriteAllText((Join-Path $root 'uc-0001-broken.md'), "# UC-0001 - Broken`n`n> **Status:** Idea`n", [System.Text.UTF8Encoding]::new($false))
 
-            { & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $root -ReturnPortfolioOnly } | Should -Throw '*Journey stage*'
+            { & $script:ScriptPath -TenantAlias 'fixturetenant42' -IdeasRoot $root -ReturnPortfolioOnly } | Should -Throw '*Journey stage*'
         }
 
         It 'throws a clear error when an idea file has no summary paragraph after the Idea heading' {
@@ -121,7 +121,7 @@ $Summary
             New-Item -ItemType Directory -Path $root -Force | Out-Null
             [System.IO.File]::WriteAllText((Join-Path $root 'uc-0001-broken.md'), "# UC-0001 - Broken`n`n> **Status:** Idea`n> **Journey stage:** Hire`n`n## 1. The Idea`n", [System.Text.UTF8Encoding]::new($false))
 
-            { & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $root -ReturnPortfolioOnly } | Should -Throw '*summary*'
+            { & $script:ScriptPath -TenantAlias 'fixturetenant42' -IdeasRoot $root -ReturnPortfolioOnly } | Should -Throw '*summary*'
         }
 
         It 'retains a parent-directory prefix in SourcePath when RepositoryRootOverride is one level above IdeasRoot' {
@@ -129,7 +129,7 @@ $Summary
             $parentRoot = Split-Path -Parent $ideasRoot
             $ideasFolderName = Split-Path -Leaf $ideasRoot
 
-            $items = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $parentRoot -ReturnPortfolioOnly
+            $items = & $script:ScriptPath -TenantAlias 'fixturetenant42' -IdeasRoot $ideasRoot -RepositoryRootOverride $parentRoot -ReturnPortfolioOnly
 
             $uc0001 = $items | Where-Object UseCaseId -eq 'UC-0001'
             $uc0001.SourcePath | Should -Be "$ideasFolderName/uc-0001-fixture-folder/uc-0001-fixture-folder.md"
@@ -151,7 +151,7 @@ $Summary
                 }
             }
 
-            $result = & $script:ScriptPath -TenantAlias 'caldova25156897' -ReturnProcessCapabilitiesOnly `
+            $result = & $script:ScriptPath -TenantAlias 'fixturetenant42' -ReturnProcessCapabilitiesOnly `
                 -AzureDevOpsRequest {
                     param($Operation, $Arguments)
                     $fixture
@@ -174,7 +174,7 @@ $Summary
             }
 
             {
-                & $script:ScriptPath -TenantAlias 'caldova25156897' -ReturnProcessCapabilitiesOnly `
+                & $script:ScriptPath -TenantAlias 'fixturetenant42' -ReturnProcessCapabilitiesOnly `
                     -AzureDevOpsRequest {
                         param($Operation, $Arguments)
                         $fixture
@@ -193,7 +193,7 @@ $Summary
             # "Invoke-NativeJsonCommand" function by name previously failed there with
             # CommandNotFoundException. This test exercises that real path by faking only the
             # native process boundary (-NativeCommandRunner), not the request dispatcher.
-            $result = & $script:ScriptPath -TenantAlias 'caldova25156897' -ReturnProcessCapabilitiesOnly `
+            $result = & $script:ScriptPath -TenantAlias 'fixturetenant42' -ReturnProcessCapabilitiesOnly `
                 -NativeCommandRunner {
                     param($FilePath, $ArgumentList)
                     [pscustomobject]@{
@@ -237,7 +237,7 @@ $Summary
             $relationUrlById = @{}
             $nextId = 9001
 
-            & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -Confirm:$false `
+            & $script:ScriptPath -TenantAlias 'fixturetenant42' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -Confirm:$false `
                 -NativeCommandRunner {
                     param($FilePath, $ArgumentList)
                     if ($ArgumentList -contains 'workitemtypes') {
@@ -340,7 +340,7 @@ $Summary
 }
 '@
 
-            $result = & $script:ScriptPath -TenantAlias 'caldova25156897' -ReturnProcessCapabilitiesOnly `
+            $result = & $script:ScriptPath -TenantAlias 'fixturetenant42' -ReturnProcessCapabilitiesOnly `
                 -NativeCommandRunner {
                     param($FilePath, $ArgumentList)
                     [pscustomobject]@{
@@ -359,9 +359,9 @@ $Summary
             $wiqlEmptyFixture = [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ workItems = @() } }
 
             $ideasRoot = New-FixtureIdeasRoot
-            $items = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -ReturnPortfolioOnly
+            $items = & $script:ScriptPath -TenantAlias 'fixturetenant42' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -ReturnPortfolioOnly
 
-            $plan = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -ReturnWorkItemPlanOnly `
+            $plan = & $script:ScriptPath -TenantAlias 'fixturetenant42' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -ReturnWorkItemPlanOnly `
                 -AzureDevOpsRequest {
                     param($Operation, $Arguments)
                     switch ($Operation) {
@@ -380,7 +380,7 @@ $Summary
         It 'marks an idea Existing when the WIQL query returns exactly one matching work item' {
             $ideasRoot = New-FixtureIdeasRoot
 
-            $plan = & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -ReturnWorkItemPlanOnly `
+            $plan = & $script:ScriptPath -TenantAlias 'fixturetenant42' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -ReturnWorkItemPlanOnly `
                 -AzureDevOpsRequest {
                     param($Operation, $Arguments)
                     switch ($Operation) {
@@ -404,7 +404,7 @@ $Summary
             $ideasRoot = New-FixtureIdeasRoot
 
             {
-                & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -ReturnWorkItemPlanOnly `
+                & $script:ScriptPath -TenantAlias 'fixturetenant42' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -ReturnWorkItemPlanOnly `
                     -AzureDevOpsRequest {
                         param($Operation, $Arguments)
                         switch ($Operation) {
@@ -422,7 +422,7 @@ $Summary
             $planPath = Join-Path $TestDrive 'plan.json'
             $script:MutationCallCount = 0
 
-            & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -PlanOutputPath $planPath -WhatIf `
+            & $script:ScriptPath -TenantAlias 'fixturetenant42' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -PlanOutputPath $planPath -WhatIf `
                 -AzureDevOpsRequest {
                     param($Operation, $Arguments)
                     switch ($Operation) {
@@ -442,7 +442,7 @@ $Summary
             $ideasRoot = New-FixtureIdeasRoot
             $captured = @{ CreatedFieldsById = @{}; RelationAddedById = @{}; NextId = 9001 }
 
-            & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -Confirm:$false `
+            & $script:ScriptPath -TenantAlias 'fixturetenant42' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -Confirm:$false `
                 -AzureDevOpsRequest {
                     param($Operation, $Arguments)
                     switch ($Operation) {
@@ -491,7 +491,7 @@ $Summary
             $ideasRoot = New-FixtureIdeasRoot
 
             {
-                & $script:ScriptPath -TenantAlias 'caldova25156897' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -Confirm:$false `
+                & $script:ScriptPath -TenantAlias 'fixturetenant42' -IdeasRoot $ideasRoot -RepositoryRootOverride $ideasRoot -Confirm:$false `
                     -AzureDevOpsRequest {
                         param($Operation, $Arguments)
                         switch ($Operation) {

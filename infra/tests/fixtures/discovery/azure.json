@@ -4,10 +4,10 @@
   "Body": {
     "subscription": {
       "type": "AzureSubscription",
-      "id": "subscription-synthetic-edb45a24-408d-47c4-bbc7-685b9b3fc017",
-      "name": "Caldova HR Frontier Platform",
-      "url": "https://management.azure.com/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017",
-      "scope": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017"
+      "id": "subscription-synthetic-11111111-1111-1111-1111-111111111111",
+      "name": "Synthetic HR Frontier Platform",
+      "url": "https://management.azure.com/subscriptions/11111111-1111-1111-1111-111111111111",
+      "scope": "/subscriptions/11111111-1111-1111-1111-111111111111"
     },
     "providerState": "Registered",
     "authorizationHeader": "Bearer synthetic.azure.token"

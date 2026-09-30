@@ -60,6 +60,9 @@ steps:
             throw 'Cannot initialize repository safety fixture.'
         }
         & $script:gitPath -C $root add -- `
+            '.github/workflows/validate.yml' `
+            'infra/src/config/github/action-pins.json' `
+            'infra/src/scripts/Example.ps1' `
             'infra/evidence/discovery/caldova25668747.json' `
             'infra/src/config/tenants/_template.psd1' `
             'infra/src/config/tenants/caldova25668747.psd1'
@@ -67,6 +70,39 @@ steps:
             throw 'Cannot stage reviewed tenant boundary in repository safety fixture.'
         }
         $root
+    }
+
+    function script:Get-ProtectedTenantFixtureValue {
+        $sourceCommit = '11367bc5bee739d868b1bb39b1bea97c3da41a2f'
+        $manifestPaths = @(
+            & $script:gitPath -C $script:repositoryRoot ls-tree -r --name-only $sourceCommit -- `
+                'infra/src/config/tenants' |
+                Where-Object {
+                    $_ -match '\.psd1$' -and
+                    $_ -notmatch '/(_template|caldova25668747)\.psd1$'
+                }
+        )
+        if ($LASTEXITCODE -ne 0 -or $manifestPaths.Count -ne 1) {
+            throw 'Cannot resolve the protected fixture source.'
+        }
+
+        $content = (& $script:gitPath -C $script:repositoryRoot show "${sourceCommit}:$($manifestPaths[0])") -join "`n"
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Cannot read the protected fixture source.'
+        }
+        $tokens = $null
+        $parseErrors = $null
+        $ast = [Management.Automation.Language.Parser]::ParseInput(
+            $content,
+            [ref]$tokens,
+            [ref]$parseErrors
+        )
+        if (@($parseErrors).Count -ne 0) {
+            throw 'Cannot parse the protected fixture source.'
+        }
+
+        $manifest = $ast.EndBlock.Statements[0].PipelineElements[0].Expression.SafeGetValue()
+        [string]$manifest.TenantId
     }
 }
 
@@ -103,6 +139,30 @@ Describe 'Core repository safety validation' {
         $output = @(& $script:validatorPath -RepositoryRoot $fixtureRoot)
 
         $output | Should -Be @('Repository safety validation passed.')
+    }
+
+    It 'ignores an active-source path that is tracked for deletion and absent from the worktree' {
+        $fixtureRoot = New-SafetyFixture
+        Remove-Item -LiteralPath (Join-Path $fixtureRoot 'infra\src\scripts\Example.ps1') -Force
+
+        $output = @(& $script:validatorPath -RepositoryRoot $fixtureRoot)
+
+        $output | Should -Be @('Repository safety validation passed.')
+    }
+
+    It 'rejects protected Tenant 1 payload in tracked active source without disclosing it' {
+        $protectedValue = Get-ProtectedTenantFixtureValue
+        $fixtureRoot = New-SafetyFixture -Content ("`$tenantId = '{0}'" -f $protectedValue)
+
+        $output = @(
+            & $script:validatorPath -RepositoryRoot $fixtureRoot 2>&1 |
+                ForEach-Object { $_.ToString() }
+        )
+
+        $LASTEXITCODE | Should -Be 1
+        $output -join "`n" |
+            Should -Match 'Protected Tenant 1 payload fingerprint found: infra/src/scripts/Example\.ps1'
+        $output -join "`n" | Should -Not -Match ([regex]::Escape($protectedValue))
     }
 
     It 'rejects prohibited bootstrap content' -TestCases @(

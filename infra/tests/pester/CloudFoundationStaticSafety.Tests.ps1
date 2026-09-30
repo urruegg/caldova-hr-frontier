@@ -108,18 +108,7 @@ Describe 'Cloud foundation static safety' {
         $resolver | Should -Match 'Get-FileHash -LiteralPath'
     }
 
-    It 'binds Apply to current manifest fields and revalidates tools before each mutation' {
-        $apply=Get-Content -Raw (Join-Path $script:RepositoryRoot 'infra\src\scripts\runbooks\Invoke-CloudFoundation.ps1')
-        $apply | Should -Match 'CurrentSourceCommit'
-        $apply | Should -Match 'CurrentAssessmentDigest'
-        $apply | Should -Match 'CurrentAuthenticationContext'
-        $apply | Should -Not -Match 'Expected(SourceCommit|AssessmentDigest|Authentication)'
-        ([regex]::Matches($apply,'Assert-ApprovedCloudToolResolutions')).Count | Should -BeGreaterOrEqual 3
-        ([regex]::Matches($apply,'Test-CloudDelegatedContext')).Count | Should -BeGreaterOrEqual 3
-        $apply | Should -Match '\$PSCmdlet\.ShouldProcess'
-    }
-
-    It 'limits mutations to local gh api, exact Azure deployment, Entra metadata, and project create' {
+    It 'keeps dormant provider modules bounded for compatibility' {
         $github=Get-Content -Raw (Join-Path $script:RepositoryRoot 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Private\Invoke-GitHubFoundationMutation.ps1')
         $github | Should -Match "'api','--method'"
         $github | Should -Match "'PATCH'"
@@ -144,8 +133,8 @@ Describe 'Cloud foundation static safety' {
         }
     }
 
-    It 'links the cloud service foundation runbook from the infrastructure map' {
+    It 'labels the cloud service foundation runbook as a superseded stop notice' {
         $content = Get-Content -Raw (Join-Path $script:RepositoryRoot 'infra\README.md')
-        $content | Should -Match '\[Cloud Service Foundation Runbook\]\(docs/runbooks/02-cloud-service-foundation\.md\)'
+        $content | Should -Match '\[Cloud Service Foundation Runbook\]\(docs/runbooks/02-cloud-service-foundation\.md\).+Superseded stop notice'
     }
 }

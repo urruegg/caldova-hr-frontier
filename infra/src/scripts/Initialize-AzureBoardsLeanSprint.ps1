@@ -63,6 +63,19 @@ function ConvertTo-UtcIsoString {
     ([datetime]$Value).ToUniversalTime().ToString('o')
 }
 
+function Test-IsIntegerValue {
+    param([AllowNull()][object]$Value)
+
+    $Value -is [byte] -or
+        $Value -is [sbyte] -or
+        $Value -is [int16] -or
+        $Value -is [uint16] -or
+        $Value -is [int32] -or
+        $Value -is [uint32] -or
+        $Value -is [int64] -or
+        $Value -is [uint64]
+}
+
 function ConvertTo-ProjectRelativeIterationPath {
     param(
         [Parameter(Mandatory)]
@@ -188,6 +201,29 @@ function New-DefaultAzureDevOpsRequest {
                     '--area', 'core',
                     '--resource', 'teams',
                     '--route-parameters', "projectId=$projectName", "teamId=$([string]$Arguments['TeamName'])",
+                    '--api-version', '7.1',
+                    '--output', 'json'
+                ))
+            }
+            'GetTeamFieldValues' {
+                return (& $invokeAzJsonCommandRef -ArgumentList @(
+                    'devops', 'invoke',
+                    '--organization', $organizationUrl,
+                    '--area', 'work',
+                    '--resource', 'teamfieldvalues',
+                    '--route-parameters', "project=$projectName", "team=$([string]$Arguments['TeamName'])",
+                    '--api-version', '7.1',
+                    '--output', 'json'
+                ))
+            }
+            'GetCurrentTeamIterations' {
+                return (& $invokeAzJsonCommandRef -ArgumentList @(
+                    'devops', 'invoke',
+                    '--organization', $organizationUrl,
+                    '--area', 'work',
+                    '--resource', 'teamsettingsiterations',
+                    '--route-parameters', "project=$projectName", "team=$([string]$Arguments['TeamName'])",
+                    '--query-parameters', 'timeframe=current',
                     '--api-version', '7.1',
                     '--output', 'json'
                 ))
@@ -470,6 +506,84 @@ if ([string]$teamTable['name'] -cne $TeamName) {
 }
 if ($teamTable.ContainsKey('projectName') -and [string]$teamTable['projectName'] -cne $ProjectName) {
     throw "Existing team '$TeamName' is not attached to project '$ProjectName'."
+}
+
+$teamSettingsArguments = $commonArguments.Clone()
+$teamSettingsArguments['TeamName'] = $TeamName
+$teamFieldValues = Invoke-AzureDevOpsRequest `
+    -Request $request `
+    -Operation 'GetTeamFieldValues' `
+    -Arguments $teamSettingsArguments
+if ($null -eq $teamFieldValues) {
+    throw "Selected team '$TeamName' area settings response is malformed."
+}
+$teamFieldValuesTable = ConvertTo-Hashtable -InputObject $teamFieldValues
+$teamField = if ($teamFieldValuesTable.ContainsKey('field')) {
+    ConvertTo-Hashtable -InputObject $teamFieldValuesTable['field']
+}
+else {
+    @{}
+}
+$teamAreaValues = $null
+if ($teamFieldValuesTable.ContainsKey('values')) {
+    $teamAreaValues = $teamFieldValuesTable['values']
+}
+if ([string]$teamField['referenceName'] -cne 'System.AreaPath') {
+    throw "Selected team '$TeamName' area settings response is malformed: field must be System.AreaPath."
+}
+if ($null -eq $teamAreaValues -or $teamAreaValues -isnot [System.Array]) {
+    throw "Selected team '$TeamName' area settings response is malformed: values must be an array."
+}
+if (@($teamAreaValues).Count -ne 1) {
+    throw "Selected team '$TeamName' area settings response is malformed: exactly one area value is required."
+}
+$teamAreaValue = ConvertTo-Hashtable -InputObject @($teamAreaValues)[0]
+if (-not $teamAreaValue.ContainsKey('includeChildren') -or
+    $teamAreaValue['includeChildren'] -isnot [bool]) {
+    throw "Selected team '$TeamName' area settings response is malformed."
+}
+$teamDefaultArea = [string]$teamFieldValuesTable['defaultValue']
+$teamConfiguredArea = [string]$teamAreaValue['value']
+if ($teamDefaultArea -cne $ProjectName -or $teamConfiguredArea -cne $ProjectName) {
+    throw "Selected team '$TeamName' area must equal the exact project root '$ProjectName'."
+}
+
+$currentTeamIterations = Invoke-AzureDevOpsRequest `
+    -Request $request `
+    -Operation 'GetCurrentTeamIterations' `
+    -Arguments $teamSettingsArguments
+if ($null -eq $currentTeamIterations) {
+    throw "Selected team '$TeamName' current team iterations response is malformed."
+}
+$currentTeamIterationsTable = ConvertTo-Hashtable -InputObject $currentTeamIterations
+$currentIterationValues = $null
+if ($currentTeamIterationsTable.ContainsKey('value')) {
+    $currentIterationValues = $currentTeamIterationsTable['value']
+}
+if (-not $currentTeamIterationsTable.ContainsKey('count') -or
+    -not (Test-IsIntegerValue -Value $currentTeamIterationsTable['count']) -or
+    $null -eq $currentIterationValues -or
+    $currentIterationValues -isnot [System.Array]) {
+    throw "Selected team '$TeamName' current team iterations response is malformed."
+}
+$currentIterationCount = [int]$currentTeamIterationsTable['count']
+$currentIterationValues = @($currentIterationValues)
+if ($currentIterationCount -ne $currentIterationValues.Count) {
+    throw "Selected team '$TeamName' current team iterations response is malformed."
+}
+if ($currentIterationCount -ne 1) {
+    throw "Selected team '$TeamName' must have exactly one current team iteration."
+}
+$currentTeamIteration = ConvertTo-Hashtable -InputObject $currentIterationValues[0]
+$currentTeamIterationId = [guid]::Empty
+if (-not $currentTeamIteration.ContainsKey('id') -or
+    -not [guid]::TryParse([string]$currentTeamIteration['id'], [ref]$currentTeamIterationId) -or
+    -not $currentTeamIteration.ContainsKey('path')) {
+    throw "Selected team '$TeamName' current team iterations response is malformed."
+}
+$currentTeamIterationPath = [string]$currentTeamIteration['path']
+if ($currentTeamIterationPath -cne $CurrentSprintPath) {
+    throw "Selected current team iteration '$currentTeamIterationPath' must equal CurrentSprintPath '$CurrentSprintPath'."
 }
 
 $area = Invoke-AzureDevOpsRequest -Request $request -Operation 'GetProjectRootArea' -Arguments $commonArguments

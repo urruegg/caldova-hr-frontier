@@ -10,7 +10,6 @@ Describe 'Task 5 Bicep composition' {
             ResourceGroup = Join-Path $script:BicepRoot 'modules\resource-group.bicep'
             LogAnalyticsWorkspace = Join-Path $script:BicepRoot 'modules\log-analytics-workspace.bicep'
             ActivityLogDiagnostics = Join-Path $script:BicepRoot 'modules\activity-log-diagnostics.bicep'
-            ValidationRole = Join-Path $script:BicepRoot 'modules\validation-role.bicep'
             SubscriptionPolicyAssignments = Join-Path $script:BicepRoot 'modules\subscription-policy-assignments.bicep'
         }
         $script:GeneratorScriptPath = Join-Path $script:RepositoryRoot 'infra\src\scripts\New-TenantBicepParameters.ps1'
@@ -18,8 +17,6 @@ Describe 'Task 5 Bicep composition' {
             'Microsoft.Resources/resourceGroups',
             'Microsoft.OperationalInsights/workspaces',
             'Microsoft.Insights/diagnosticSettings',
-            'Microsoft.Authorization/roleDefinitions',
-            'Microsoft.Authorization/roleAssignments',
             'Microsoft.Authorization/policyAssignments'
         )
         $script:ForbiddenResourceTypePatterns = @(
@@ -33,14 +30,7 @@ Describe 'Task 5 Bicep composition' {
             'modules/resource-group.bicep',
             'modules/log-analytics-workspace.bicep',
             'modules/activity-log-diagnostics.bicep',
-            'modules/validation-role.bicep',
             'modules/subscription-policy-assignments.bicep'
-        )
-        $script:ExpectedRoleActions = @(
-            '*/read',
-            'Microsoft.Resources/deployments/read',
-            'Microsoft.Resources/deployments/validate/action',
-            'Microsoft.Resources/deployments/whatIf/action'
         )
 
         function script:Invoke-AzCli {
@@ -155,35 +145,35 @@ Describe 'Task 5 Bicep composition' {
 @{
     SchemaVersion = '1.0'
     PublicTenantKey = 'tenant1'
-    TenantAlias = 'caldova25156897'
-    DisplayName = 'Caldova25156897'
-    TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
-    AdminUpn = 'admin@Caldova25156897.onmicrosoft.com'
-    SubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
+    TenantAlias = 'fixturetenant42'
+    DisplayName = 'Fixture Tenant 42'
+    TenantId = '22222222-2222-2222-2222-222222222222'
+    AdminUpn = 'operator@fixture.example'
+    SubscriptionId = '11111111-1111-1111-1111-111111111111'
     PrimaryLocation = 'switzerlandnorth'
-    CompanyTla = 'cal'
+    CompanyTla = 'syn'
     WorkloadName = 'hr-agentic'
-    UniqueSuffix = 'bc8rbt'
-    NamingRoot = 'cal-hr-agentic-bc8rbt'
+    UniqueSuffix = 'abc123'
+    NamingRoot = 'syn-hr-agentic-abc123'
     LifecycleState = 'IntentReviewed'
     GitHub = @{
         Owner = 'urruegg'
         OwnerId = '46865858'
         Repository = 'caldova-hr-frontier'
         RepositoryId = '1371297722'
-        EnvironmentName = 'bootstrap-caldova25156897'
+        EnvironmentName = 'bootstrap-fixturetenant42'
     }
     AzureDevOps = @{
-        OrganizationUrl = 'https://dev.azure.com/caldova25156897/'
-        ProjectName = 'Caldova HR Frontier'
+        OrganizationUrl = 'https://dev.azure.com/synthetic/'
+        ProjectName = 'Synthetic HR Frontier'
     }
     PowerPlatform = @{
-        DevUrl = 'https://hrfrontierdev.crm17.dynamics.com/'
-        TestUrl = 'https://hrfrontiertest.crm17.dynamics.com/'
-        ProdUrl = 'https://hrfrontier.crm17.dynamics.com/'
+        DevUrl = 'https://fixture-dev.example.test/'
+        TestUrl = 'https://fixture-test.example.test/'
+        ProdUrl = 'https://fixture-prod.example.test/'
     }
     Components = @{
-        AzureSubscription = @{ Mode = 'Existing'; Id = 'edb45a24-408d-47c4-bbc7-685b9b3fc017' }
+        AzureSubscription = @{ Mode = 'Existing'; Id = '11111111-1111-1111-1111-111111111111' }
     }
 }
 '@
@@ -243,7 +233,6 @@ Describe 'Task 5 Bicep composition' {
             $script:ModulePaths.ResourceGroup,
             $script:ModulePaths.LogAnalyticsWorkspace,
             $script:ModulePaths.ActivityLogDiagnostics,
-            $script:ModulePaths.ValidationRole,
             $script:ModulePaths.SubscriptionPolicyAssignments,
             $script:GeneratorScriptPath
         )
@@ -253,7 +242,7 @@ Describe 'Task 5 Bicep composition' {
         }
     }
 
-    It 'uses a closed typed subscription entry point and the five approved modules without explicit names' {
+    It 'uses a closed typed subscription entry point and the four approved modules without explicit names' {
         $content = Get-Content -Raw -LiteralPath $script:MainBicepPath
 
         $content | Should -Match "targetScope = 'subscription'"
@@ -271,7 +260,7 @@ Describe 'Task 5 Bicep composition' {
             "module\s+\w+\s+'[^']+'\s*=\s*\{(?<body>.*?)\r?\n\}",
             [System.Text.RegularExpressions.RegexOptions]::Singleline
         )
-        $moduleBlocks.Count | Should -Be 5
+        $moduleBlocks.Count | Should -Be 4
         foreach ($moduleBlock in $moduleBlocks) {
             $moduleBlock.Groups['body'].Value | Should -Not -Match '(^|\r?\n)\s*name\s*:'
         }
@@ -286,7 +275,7 @@ Describe 'Task 5 Bicep composition' {
         $mainTemplate = Build-BicepJson -Path $script:MainBicepPath
         $mainTemplate.Json.'$schema' | Should -Match 'subscriptionDeploymentTemplate'
         $mainResources = @(Get-CompiledTemplateResources -TemplateJson $mainTemplate.Json)
-        $mainResources.Count | Should -Be 5
+        $mainResources.Count | Should -Be 4
         foreach ($resource in $mainResources) {
             $resource.type | Should -Be 'Microsoft.Resources/deployments'
         }
@@ -297,6 +286,20 @@ Describe 'Task 5 Bicep composition' {
                 $resource.type | Should -BeIn $script:AllowedResourceTypes
             }
         }
+
+    }
+
+    It 'excludes role definition and assignment management from the lean composition' {
+        $mainTemplate = Build-BicepJson -Path $script:MainBicepPath
+        $mainTemplate.Raw | Should -Not -Match 'Microsoft\.Authorization/role(?:Definitions|Assignments)'
+        $mainTemplate.Json.parameters.tenant.metadata.description | Should -Not -BeNullOrEmpty
+
+        $mainContent = Get-Content -Raw -LiteralPath $script:MainBicepPath
+        $mainContent | Should -Not -Match 'validationRoleName|validationPrincipalId|validationRole'
+        $mainContent | Should -Not -Match 'validationRoleDefinitionId|validationRoleAssignmentId'
+
+        Test-Path -LiteralPath (Join-Path $script:BicepRoot 'modules\validation-role.bicep') |
+            Should -BeFalse
     }
 
     It 'orders the workspace deployment after the platform resource group' {
@@ -348,26 +351,6 @@ Describe 'Task 5 Bicep composition' {
         $diagnosticResource.properties.PSObject.Properties.Name | Should -Not -Contain 'eventHubName'
     }
 
-    It 'pins the reviewed validation role actions without write or delete access' {
-        $validationTemplate = Build-BicepJson -Path $script:ModulePaths.ValidationRole
-        $roleDefinition = @($validationTemplate.Json.resources | Where-Object { $_.type -eq 'Microsoft.Authorization/roleDefinitions' })[0]
-        $roleAssignment = @($validationTemplate.Json.resources | Where-Object { $_.type -eq 'Microsoft.Authorization/roleAssignments' })[0]
-
-        $roleDefinition.apiVersion | Should -Be '2022-04-01'
-        $roleAssignment.apiVersion | Should -Be '2022-04-01'
-        $roleAssignment.properties.principalType | Should -Be 'ServicePrincipal'
-
-        $permissions = @($roleDefinition.properties.permissions)[0]
-        @($permissions.actions) | Should -Be $script:ExpectedRoleActions
-        @($permissions.notActions).Count | Should -Be 0
-        @($permissions.dataActions).Count | Should -Be 0
-        @($permissions.notDataActions).Count | Should -Be 0
-
-        foreach ($action in @($permissions.actions)) {
-            $action.ToLowerInvariant() | Should -Not -Match 'write|delete'
-        }
-    }
-
     It 'generates a BOM-free parameter file in an isolated harness and builds it locally' {
         $harnessRoot = New-IsolatedTask5Harness
         $outputDirectory = New-IsolatedOutputDirectory -HarnessRoot $harnessRoot
@@ -376,14 +359,13 @@ Describe 'Task 5 Bicep composition' {
         try {
             $result = Invoke-Task5Generator -HarnessRoot $harnessRoot -Arguments @(
                 '-PublicTenantKey', 'tenant1',
-                '-ValidationPrincipalId', '11111111-1111-1111-1111-111111111111',
                 '-TenantConfigurationPath', (Get-IsolatedTenantConfigurationPath -HarnessRoot $harnessRoot),
                 '-OutputPath', $outputDirectory
             )
 
             $result.ExitCode | Should -Be 0
 
-            $parameterPath = Join-Path $outputDirectory 'caldova25156897.bicepparam'
+            $parameterPath = Join-Path $outputDirectory 'fixturetenant42.bicepparam'
             Test-Path -LiteralPath $parameterPath | Should -BeTrue
 
             $bytes = [System.IO.File]::ReadAllBytes($parameterPath)
@@ -391,24 +373,23 @@ Describe 'Task 5 Bicep composition' {
 
             $content = [System.Text.Encoding]::UTF8.GetString($bytes)
             $content | Should -Match "^using '.+main\.bicep'"
-            $content | Should -Match "tenantAlias: 'caldova25156897'"
-            $content | Should -Match "namingRoot: 'cal-hr-agentic-bc8rbt'"
-            $content | Should -Match "platformResourceGroupName: 'rg-cal-hr-agentic-bc8rbt-platform'"
-            $content | Should -Match "logAnalyticsWorkspaceName: 'log-cal-hr-agentic-bc8rbt'"
-            $content | Should -Match "validationRoleName: 'cal-hr-agentic-bc8rbt-deployment-validation'"
-            $content | Should -Match "validationPrincipalId: '11111111-1111-1111-1111-111111111111'"
+            $content | Should -Match "tenantAlias: 'fixturetenant42'"
+            $content | Should -Match "namingRoot: 'syn-hr-agentic-abc123'"
+            $content | Should -Match "platformResourceGroupName: 'rg-syn-hr-agentic-abc123-platform'"
+            $content | Should -Match "logAnalyticsWorkspaceName: 'log-syn-hr-agentic-abc123'"
+            $content | Should -Not -Match 'validationRoleName|validationPrincipalId'
             $content | Should -Match 'policyAssignments: \[\]'
 
             $builtParameters = Build-BicepParametersJson -Path $parameterPath
             $parameterJson = $builtParameters.Json.parametersJson | ConvertFrom-Json
-            $parameterJson.parameters.tenant.value.tenantAlias | Should -Be 'caldova25156897'
+            $parameterJson.parameters.tenant.value.tenantAlias | Should -Be 'fixturetenant42'
         }
         finally {
             Pop-Location
         }
     }
 
-    It 'rejects invalid generator inputs and overwrite mismatches while allowing identical output' {
+    It 'allows identical output and rejects a mismatched public tenant key' {
         $harnessRoot = New-IsolatedTask5Harness
         $outputDirectory = New-IsolatedOutputDirectory -HarnessRoot $harnessRoot
         $tenantConfigurationPath = Get-IsolatedTenantConfigurationPath -HarnessRoot $harnessRoot
@@ -417,7 +398,6 @@ Describe 'Task 5 Bicep composition' {
         try {
             $initial = Invoke-Task5Generator -HarnessRoot $harnessRoot -Arguments @(
                 '-PublicTenantKey', 'tenant1',
-                '-ValidationPrincipalId', '11111111-1111-1111-1111-111111111111',
                 '-TenantConfigurationPath', $tenantConfigurationPath,
                 '-OutputPath', $outputDirectory
             )
@@ -425,44 +405,17 @@ Describe 'Task 5 Bicep composition' {
 
             $sameAgain = Invoke-Task5Generator -HarnessRoot $harnessRoot -Arguments @(
                 '-PublicTenantKey', 'tenant1',
-                '-ValidationPrincipalId', '11111111-1111-1111-1111-111111111111',
                 '-TenantConfigurationPath', $tenantConfigurationPath,
                 '-OutputPath', $outputDirectory
             )
             $sameAgain.ExitCode | Should -Be 0
 
-            $invalidGuid = Invoke-Task5Generator -HarnessRoot $harnessRoot -Arguments @(
-                '-PublicTenantKey', 'tenant1',
-                '-ValidationPrincipalId', 'not-a-guid',
-                '-TenantConfigurationPath', $tenantConfigurationPath,
-                '-OutputPath', $outputDirectory
-            )
-            $invalidGuid.ExitCode | Should -Not -Be 0
-
             $unknownTenant = Invoke-Task5Generator -HarnessRoot $harnessRoot -Arguments @(
                 '-PublicTenantKey', 'tenant2',
-                '-ValidationPrincipalId', '11111111-1111-1111-1111-111111111111',
                 '-TenantConfigurationPath', $tenantConfigurationPath,
                 '-OutputPath', $outputDirectory
             )
             $unknownTenant.ExitCode | Should -Not -Be 0
-
-            $differentPrincipal = Invoke-Task5Generator -HarnessRoot $harnessRoot -Arguments @(
-                '-PublicTenantKey', 'tenant1',
-                '-ValidationPrincipalId', '22222222-2222-2222-2222-222222222222',
-                '-TenantConfigurationPath', $tenantConfigurationPath,
-                '-OutputPath', $outputDirectory
-            )
-            $differentPrincipal.ExitCode | Should -Not -Be 0
-
-            $replacedPrincipal = Invoke-Task5Generator -HarnessRoot $harnessRoot -Arguments @(
-                '-PublicTenantKey', 'tenant1',
-                '-ValidationPrincipalId', '22222222-2222-2222-2222-222222222222',
-                '-TenantConfigurationPath', $tenantConfigurationPath,
-                '-OutputPath', $outputDirectory,
-                '-Replace'
-            )
-            $replacedPrincipal.ExitCode | Should -Be 0
         }
         finally {
             Pop-Location
@@ -488,12 +441,12 @@ Describe 'Task 5 Bicep composition' {
             }).Count | Should -Be 1
         }
         $parameters.ContainsKey('TenantAlias') | Should -BeFalse
+        $parameters.ContainsKey('ValidationPrincipalId') | Should -BeFalse
 
         $harnessRoot = New-IsolatedTask5Harness
         $insideOutput = Join-Path $harnessRoot 'generated'
         $result = Invoke-Task5Generator -HarnessRoot $harnessRoot -Arguments @(
             '-PublicTenantKey', 'tenant1',
-            '-ValidationPrincipalId', '11111111-1111-1111-1111-111111111111',
             '-TenantConfigurationPath', (Get-IsolatedTenantConfigurationPath -HarnessRoot $harnessRoot),
             '-OutputPath', $insideOutput
         )

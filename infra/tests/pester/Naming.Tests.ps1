@@ -30,8 +30,8 @@ Describe 'Tenant naming' {
             -OwnerId '46865858' `
             -Repository caldova-hr-frontier `
             -RepositoryId '1371297722' `
-            -TenantAlias caldova25156897 |
-            Should -Be 'repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-caldova25156897'
+            -TenantAlias fixturetenant42 |
+            Should -Be 'repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-fixturetenant42'
     }
 
     It 'derives the immutable repository prefix separately from the Environment subject' {
@@ -40,7 +40,7 @@ Describe 'Tenant naming' {
             -OwnerId '46865858' `
             -Repository caldova-hr-frontier `
             -RepositoryId '1371297722' `
-            -TenantAlias caldova25156897 `
+            -TenantAlias fixturetenant42 `
             -PrefixOnly |
             Should -Be 'repo:urruegg@46865858/caldova-hr-frontier@1371297722'
     }
@@ -51,14 +51,14 @@ Describe 'Tenant naming' {
             -OwnerId '46865858' `
             -Repository Caldova-HR-Frontier `
             -RepositoryId '1371297722' `
-            -TenantAlias caldova25156897 |
-            Should -Be 'repo:UrrUegg@46865858/Caldova-HR-Frontier@1371297722:environment:bootstrap-caldova25156897'
+            -TenantAlias fixturetenant42 |
+            Should -Be 'repo:UrrUegg@46865858/Caldova-HR-Frontier@1371297722:environment:bootstrap-fixturetenant42'
     }
 
     It 'rejects invalid immutable OIDC subject inputs' {
-        { Get-GitHubOidcSubject -Owner 'urruegg ' -OwnerId '46865858' -Repository caldova-hr-frontier -RepositoryId '1371297722' -TenantAlias caldova25156897 } | Should -Throw
-        { Get-GitHubOidcSubject -Owner urruegg -OwnerId '046865858x' -Repository caldova-hr-frontier -RepositoryId '1371297722' -TenantAlias caldova25156897 } | Should -Throw
-        { Get-GitHubOidcSubject -Owner urruegg -OwnerId '46865858' -Repository 'caldova-hr-frontier ' -RepositoryId '1371297722' -TenantAlias caldova25156897 } | Should -Throw
+        { Get-GitHubOidcSubject -Owner 'urruegg ' -OwnerId '46865858' -Repository caldova-hr-frontier -RepositoryId '1371297722' -TenantAlias fixturetenant42 } | Should -Throw
+        { Get-GitHubOidcSubject -Owner urruegg -OwnerId '046865858x' -Repository caldova-hr-frontier -RepositoryId '1371297722' -TenantAlias fixturetenant42 } | Should -Throw
+        { Get-GitHubOidcSubject -Owner urruegg -OwnerId '46865858' -Repository 'caldova-hr-frontier ' -RepositoryId '1371297722' -TenantAlias fixturetenant42 } | Should -Throw
     }
 }
 
@@ -122,28 +122,28 @@ Describe 'Tenant manifest generation' {
 
         $root = New-IsolatedTask2Harness
         $scriptPath = Join-Path $root 'infra\src\scripts\New-TenantManifest.ps1'
-        $manifestPath = Join-Path $root 'infra\src\config\tenants\caldova25156897.psd1'
+        $manifestPath = Join-Path $root 'infra\src\config\tenants\fixturetenant42.psd1'
 
         Remove-Module Caldova.HrFrontier.Bootstrap -Force -ErrorAction SilentlyContinue
-        $output = & $scriptPath -TenantAlias caldova25156897 2>&1 | Out-String
+        $output = & $scriptPath -TenantAlias fixturetenant42 2>&1 | Out-String
 
         Test-Path -LiteralPath $manifestPath | Should -BeTrue
         $bytes = [System.IO.File]::ReadAllBytes($manifestPath)
         ($bytes.Length -ge 3 -and $bytes[0] -eq 239 -and $bytes[1] -eq 187 -and $bytes[2] -eq 191) | Should -BeFalse
         $output | Should -Match 'Assigned suffix:'
-        $output | Should -Match 'Naming root: cal-hr-agentic-[a-z0-9]{6}'
-        $output | Should -Not -Match 'admin@Caldova25156897.onmicrosoft.com'
+        $output | Should -Match 'Naming root: syn-hr-agentic-[a-z0-9]{6}'
+        $output | Should -Not -Match 'operator@fixture.example'
 
         $content = [System.Text.Encoding]::UTF8.GetString($bytes)
         $expectedOrder = @(
             "SchemaVersion = '1.0'",
-            "TenantAlias = 'caldova25156897'",
-            "DisplayName = 'Caldova25156897'",
-            "TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'",
-            "AdminUpn = 'admin@Caldova25156897.onmicrosoft.com'",
-            "SubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'",
+            "TenantAlias = 'fixturetenant42'",
+            "DisplayName = 'Fixture Tenant 42'",
+            "TenantId = '22222222-2222-2222-2222-222222222222'",
+            "AdminUpn = 'operator@fixture.example'",
+            "SubscriptionId = '11111111-1111-1111-1111-111111111111'",
             "PrimaryLocation = 'switzerlandnorth'",
-            "CompanyTla = 'cal'",
+            "CompanyTla = 'syn'",
             "WorkloadName = 'hr-agentic'",
             'UniqueSuffix = ',
             'NamingRoot = ',
@@ -173,23 +173,23 @@ Describe 'Tenant manifest generation' {
         $scriptPath = Join-Path $root 'infra\src\scripts\New-TenantManifest.ps1'
 
         Remove-Module Caldova.HrFrontier.Bootstrap -Force -ErrorAction SilentlyContinue
-        & $scriptPath -TenantAlias caldova25156897 | Out-Null
+        & $scriptPath -TenantAlias fixturetenant42 | Out-Null
 
-        { & $scriptPath -TenantAlias caldova25156897 | Out-Null } | Should -Throw
+        { & $scriptPath -TenantAlias fixturetenant42 | Out-Null } | Should -Throw
     }
 
     It 'removes invalid output when immediate validation fails' {
         $root = New-IsolatedTask2Harness
         $scriptPath = Join-Path $root 'infra\src\scripts\New-TenantManifest.ps1'
         $schemaPath = Join-Path $root 'infra\src\config\schemas\tenant.schema.json'
-        $manifestPath = Join-Path $root 'infra\src\config\tenants\caldova25156897.psd1'
+        $manifestPath = Join-Path $root 'infra\src\config\tenants\fixturetenant42.psd1'
 
         $schema = Get-Content -Raw -LiteralPath $schemaPath
         $schema = $schema.Replace('"hr-agentic"', '"hr-agentic-impossible"')
         [System.IO.File]::WriteAllText($schemaPath, $schema, [System.Text.UTF8Encoding]::new($false))
 
         Remove-Module Caldova.HrFrontier.Bootstrap -Force -ErrorAction SilentlyContinue
-        { & $scriptPath -TenantAlias caldova25156897 | Out-Null } | Should -Throw
+        { & $scriptPath -TenantAlias fixturetenant42 | Out-Null } | Should -Throw
         Test-Path -LiteralPath $manifestPath | Should -BeFalse
     }
 }

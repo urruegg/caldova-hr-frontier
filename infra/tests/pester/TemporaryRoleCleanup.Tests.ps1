@@ -11,34 +11,34 @@ Describe 'Task 6 temporary role cleanup' {
 
         function script:New-BootstrapResult {
             param(
-                [string]$ContributorId = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-                [string]$RbacId = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+                [string]$ContributorId = '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                [string]$RbacId = '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
             )
 
             [pscustomobject]@{
                 SchemaVersion = '1.0'
                 RunId = '44444444-4444-4444-4444-444444444444'
-                TenantAlias = 'caldova25156897'
-                TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
-                SubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
+                TenantAlias = 'fixturetenant42'
+                TenantId = '22222222-2222-2222-2222-222222222222'
+                SubscriptionId = '11111111-1111-1111-1111-111111111111'
                 PrincipalObjectId = '55555555-5555-5555-5555-555555555555'
-                Scope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
+                Scope = '/subscriptions/11111111-1111-1111-1111-111111111111'
                 CreatedUtc = '2026-09-19T10:00:00Z'
                 Assignments = @(
                     [pscustomobject]@{
                         Id = $ContributorId
                         RoleName = 'Contributor'
-                        RoleDefinitionId = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
+                        RoleDefinitionId = '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
                         PrincipalObjectId = '55555555-5555-5555-5555-555555555555'
-                        Scope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
+                        Scope = '/subscriptions/11111111-1111-1111-1111-111111111111'
                         CreatedUtc = '2026-09-19T10:00:00Z'
                     }
                     [pscustomobject]@{
                         Id = $RbacId
                         RoleName = 'Role Based Access Control Administrator'
-                        RoleDefinitionId = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168'
+                        RoleDefinitionId = '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168'
                         PrincipalObjectId = '55555555-5555-5555-5555-555555555555'
-                        Scope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
+                        Scope = '/subscriptions/11111111-1111-1111-1111-111111111111'
                         CreatedUtc = '2026-09-19T10:00:01Z'
                     }
                 )
@@ -50,32 +50,32 @@ Describe 'Task 6 temporary role cleanup' {
             $content = @"
 @{
     SchemaVersion = '1.0'
-    TenantAlias = 'caldova25156897'
-    DisplayName = 'Caldova25156897'
-    TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
-    AdminUpn = 'admin@Caldova25156897.onmicrosoft.com'
-    SubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
+    TenantAlias = 'fixturetenant42'
+    DisplayName = 'Fixture Tenant 42'
+    TenantId = '22222222-2222-2222-2222-222222222222'
+    AdminUpn = 'operator@fixture.example'
+    SubscriptionId = '11111111-1111-1111-1111-111111111111'
     PrimaryLocation = 'switzerlandnorth'
-    CompanyTla = 'cal'
+    CompanyTla = 'syn'
     WorkloadName = 'hr-agentic'
-    UniqueSuffix = 'bc8rbt'
-    NamingRoot = 'cal-hr-agentic-bc8rbt'
+    UniqueSuffix = 'abc123'
+    NamingRoot = 'syn-hr-agentic-abc123'
     LifecycleState = 'IntentReviewed'
     GitHub = @{
         Owner = 'urruegg'
         OwnerId = '46865858'
         Repository = 'caldova-hr-frontier'
         RepositoryId = '1371297722'
-        EnvironmentName = 'bootstrap-caldova25156897'
+        EnvironmentName = 'bootstrap-fixturetenant42'
     }
     AzureDevOps = @{
-        OrganizationUrl = 'https://dev.azure.com/caldova25156897/'
-        ProjectName = 'Caldova HR Frontier'
+        OrganizationUrl = 'https://dev.azure.com/synthetic/'
+        ProjectName = 'Synthetic HR Frontier'
     }
     PowerPlatform = @{
-        DevUrl = 'https://hrfrontierdev.crm17.dynamics.com/'
-        TestUrl = 'https://hrfrontiertest.crm17.dynamics.com/'
-        ProdUrl = 'https://hrfrontier.crm17.dynamics.com/'
+        DevUrl = 'https://fixture-dev.example.test/'
+        TestUrl = 'https://fixture-test.example.test/'
+        ProdUrl = 'https://fixture-prod.example.test/'
     }
     Components = @{
         EntraServicePrincipal = @{
@@ -101,15 +101,15 @@ Describe 'Task 6 temporary role cleanup' {
 
                 [string]$PrincipalObjectId = '55555555-5555-5555-5555-555555555555',
 
-                [string]$Scope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
+                [string]$Scope = '/subscriptions/11111111-1111-1111-1111-111111111111'
             )
 
             if ([string]::IsNullOrWhiteSpace($RoleDefinitionId)) {
                 $RoleDefinitionId = if ($RoleName -eq 'Contributor') {
-                    '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
+                    '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
                 }
                 else {
-                    '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168'
+                    '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168'
                 }
             }
 
@@ -149,20 +149,20 @@ Describe 'Task 6 temporary role cleanup' {
             switch ($Operation) {
                 'GetRoleDefinitionByName' {
                     $definitionId = if ([string]$Arguments['RoleName'] -eq 'Contributor') {
-                        '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
+                        '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
                     }
                     else {
-                        '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168'
+                        '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168'
                     }
 
                     return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ Id = $definitionId; Name = [string]$Arguments['RoleName'] } }
                 }
                 'CreateRoleAssignment' {
                     $assignmentId = if ([string]$Arguments['RoleName'] -eq 'Contributor') {
-                        '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+                        '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
                     }
                     else {
-                        '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+                        '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
                     }
 
                     return [pscustomobject]@{
@@ -184,13 +184,13 @@ Describe 'Task 6 temporary role cleanup' {
             }
         }
 
-        $result = & $script:GrantScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $outputPath -AzRequest $azRequest -Confirm:$false
+        $result = & $script:GrantScriptPath -TenantAlias 'fixturetenant42' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $outputPath -AzRequest $azRequest -Confirm:$false
 
         $result.Assignments.Count | Should -Be 2
         @($result.Assignments.RoleName) | Should -Be @('Contributor', 'Role Based Access Control Administrator')
         foreach ($assignment in @($result.Assignments)) {
-            $assignment.Scope | Should -Be '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
-            $assignment.Id | Should -Match '^/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/'
+            $assignment.Scope | Should -Be '/subscriptions/11111111-1111-1111-1111-111111111111'
+            $assignment.Id | Should -Match '^/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/'
         }
 
         $recordedOperations | Should -Be @('GetRoleDefinitionByName', 'CreateRoleAssignment', 'GetRoleDefinitionByName', 'CreateRoleAssignment')
@@ -200,7 +200,7 @@ Describe 'Task 6 temporary role cleanup' {
     It 'requires exactly one assignment for each temporary role' {
         $tenantConfigurationPath = New-TenantConfigurationFile
         $statePath = Join-Path $TestDrive 'role-state.json'
-        $duplicateContributor = New-AssignmentObject -Id '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/cccccccc-cccc-cccc-cccc-cccccccccccc' -RoleName 'Contributor'
+        $duplicateContributor = New-AssignmentObject -Id '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/cccccccc-cccc-cccc-cccc-cccccccccccc' -RoleName 'Contributor'
         $azRequest = {
             param(
                 [string]$Operation,
@@ -212,21 +212,21 @@ Describe 'Task 6 temporary role cleanup' {
                 StatusCode = 200
                 Headers = @{}
                 Body = @(
-                    (New-AssignmentObject -Id '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' -RoleName 'Contributor'),
+                    (New-AssignmentObject -Id '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' -RoleName 'Contributor'),
                     $duplicateContributor
                 )
             }
         }
 
         {
-            & $script:StateScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $statePath -AzRequest $azRequest
+            & $script:StateScriptPath -TenantAlias 'fixturetenant42' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $statePath -AzRequest $azRequest
         } | Should -Throw '*exactly one*Contributor*'
     }
 
     It 'rejects foreign scopes in temporary bootstrap state discovery' {
         $tenantConfigurationPath = New-TenantConfigurationFile
         $statePath = Join-Path $TestDrive 'role-state-foreign-scope.json'
-        $foreignScope = New-AssignmentObject -Id '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/dddddddd-dddd-dddd-dddd-dddddddddddd' -RoleName 'Role Based Access Control Administrator' -Scope '/subscriptions/00000000-0000-0000-0000-000000000000'
+        $foreignScope = New-AssignmentObject -Id '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/dddddddd-dddd-dddd-dddd-dddddddddddd' -RoleName 'Role Based Access Control Administrator' -Scope '/subscriptions/00000000-0000-0000-0000-000000000000'
         $azRequest = {
             param(
                 [string]$Operation,
@@ -238,14 +238,14 @@ Describe 'Task 6 temporary role cleanup' {
                 StatusCode = 200
                 Headers = @{}
                 Body = @(
-                    (New-AssignmentObject -Id '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' -RoleName 'Contributor'),
+                    (New-AssignmentObject -Id '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' -RoleName 'Contributor'),
                     $foreignScope
                 )
             }
         }
 
         {
-            & $script:StateScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $statePath -AzRequest $azRequest
+            & $script:StateScriptPath -TenantAlias 'fixturetenant42' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $statePath -AzRequest $azRequest
         } | Should -Throw '*Unexpected scope*00000000-0000-0000-0000-000000000000*'
     }
 
@@ -284,7 +284,7 @@ Describe 'Task 6 temporary role cleanup' {
                 param([object]$Result)
                 @(
                     [string]$Result.Assignments[0].Id,
-                    '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/cccccccc-cccc-cccc-cccc-cccccccccccc'
+                    '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/cccccccc-cccc-cccc-cccc-cccccccccccc'
                 )
             }
             ExpectedError = '*approved role-assignment ids must exactly match*'
@@ -329,7 +329,7 @@ Describe 'Task 6 temporary role cleanup' {
         },
         @{
             Case = 'a wrong pinned role definition'
-            Mutate = { param([object]$Result) $Result.Assignments[0].RoleDefinitionId = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/acdd72a7-3385-48ef-bd42-f606fba81ae7' }
+            Mutate = { param([object]$Result) $Result.Assignments[0].RoleDefinitionId = '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleDefinitions/acdd72a7-3385-48ef-bd42-f606fba81ae7' }
             ExpectedError = '*BootstrapResult assignment RoleDefinitionId is not the pinned built-in definition for Contributor*'
         },
         @{
@@ -338,8 +338,8 @@ Describe 'Task 6 temporary role cleanup' {
             ApprovedIds = {
                 param([object]$Result)
                 @(
-                    '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-                    '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+                    '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                    '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
                 )
             }
             ExpectedError = '*BootstrapResult assignments require well-formed exact Id values*'
@@ -358,7 +358,7 @@ Describe 'Task 6 temporary role cleanup' {
         $nativeCalls = [System.Collections.Generic.List[string]]::new()
 
         {
-            Remove-TemporaryRoleAssignments -BootstrapResult $result -ExpectedRunId $result.RunId -ApprovedRoleAssignmentIds $approved -ExpectedPrincipalObjectId '55555555-5555-5555-5555-555555555555' -ExpectedScope '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017' -NativeCommandRunner {
+            Remove-TemporaryRoleAssignments -BootstrapResult $result -ExpectedRunId $result.RunId -ApprovedRoleAssignmentIds $approved -ExpectedPrincipalObjectId '55555555-5555-5555-5555-555555555555' -ExpectedScope '/subscriptions/11111111-1111-1111-1111-111111111111' -NativeCommandRunner {
                 param([string]$FilePath, [string[]]$ArgumentList)
                 $nativeCalls.Add($FilePath) | Out-Null
                 throw 'native runner must not be reached'
@@ -398,8 +398,8 @@ Describe 'Task 6 temporary role cleanup' {
 
         $removed | Should -Be @('Contributor', 'Role Based Access Control Administrator')
         $cleanup.AbsentAssignmentIds | Should -Be @(
-            '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-            '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+            '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
         )
     }
 
@@ -486,10 +486,10 @@ Describe 'Task 6 temporary role cleanup' {
         $cleanup.RemovedAssignments.RoleName | Should -Be @('Contributor', 'Role Based Access Control Administrator')
         $calls.Count | Should -Be 6
         $calls[0].FilePath | Should -BeExactly 'az'
-        $calls[0].ArgumentList | Should -Be @('rest', '--method', 'get', '--url', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?api-version=2022-04-01', '--output', 'json')
-        $calls[1].ArgumentList | Should -Be @('role', 'assignment', 'delete', '--ids', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '--output', 'none')
-        $calls[2].ArgumentList | Should -Be @('rest', '--method', 'get', '--url', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?api-version=2022-04-01', '--output', 'json')
-        $calls[3].ArgumentList | Should -Be @('role', 'assignment', 'delete', '--ids', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '--output', 'none')
+        $calls[0].ArgumentList | Should -Be @('rest', '--method', 'get', '--url', '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?api-version=2022-04-01', '--output', 'json')
+        $calls[1].ArgumentList | Should -Be @('role', 'assignment', 'delete', '--ids', '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '--output', 'none')
+        $calls[2].ArgumentList | Should -Be @('rest', '--method', 'get', '--url', '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?api-version=2022-04-01', '--output', 'json')
+        $calls[3].ArgumentList | Should -Be @('role', 'assignment', 'delete', '--ids', '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '--output', 'none')
         $calls[4].ArgumentList | Should -Be $calls[0].ArgumentList
         $calls[5].ArgumentList | Should -Be $calls[2].ArgumentList
         @($calls | Where-Object { $_.ArgumentList -contains '--assignee' }).Count | Should -Be 0
@@ -520,7 +520,7 @@ Describe 'Task 6 temporary role cleanup' {
             $calls.Add([pscustomobject]@{ FilePath = $FilePath; ArgumentList = @($ArgumentList) }) | Out-Null
 
             if (@($ArgumentList).Count -eq 4 -and $ArgumentList[0] -ceq 'account' -and $ArgumentList[1] -ceq 'show') {
-                return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"e2312862-df63-440c-8bcf-007a2c52859d","id":"edb45a24-408d-47c4-bbc7-685b9b3fc017","user":{"type":"user","name":"admin@caldova25156897.onmicrosoft.com"}}'; StdErr = '' }
+                return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"22222222-2222-2222-2222-222222222222","id":"11111111-1111-1111-1111-111111111111","user":{"type":"user","name":"operator@fixture.example"}}'; StdErr = '' }
             }
 
             if (@($ArgumentList).Count -eq 5 -and $ArgumentList[0] -ceq 'ad' -and $ArgumentList[1] -ceq 'signed-in-user') {
@@ -530,9 +530,9 @@ Describe 'Task 6 temporary role cleanup' {
             if (@($ArgumentList).Count -eq 9 -and $ArgumentList[0] -ceq 'role' -and $ArgumentList[1] -ceq 'assignment' -and $ArgumentList[2] -ceq 'list') {
                 $payload = @(
                     [pscustomobject]@{
-                        id = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/cccccccc-cccc-cccc-cccc-cccccccccccc'
+                        id = '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/cccccccc-cccc-cccc-cccc-cccccccccccc'
                         roleDefinitionName = 'Owner'
-                        scope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
+                        scope = '/subscriptions/11111111-1111-1111-1111-111111111111'
                     }
                 ) | ConvertTo-Json -Compress
                 return [pscustomobject]@{ ExitCode = 0; StdOut = $payload; StdErr = '' }
@@ -541,10 +541,10 @@ Describe 'Task 6 temporary role cleanup' {
             if (@($ArgumentList).Count -eq 9 -and $ArgumentList[0] -ceq 'role' -and $ArgumentList[1] -ceq 'definition' -and $ArgumentList[2] -ceq 'list') {
                 $roleName = [string]$ArgumentList[4]
                 $roleDefinitionId = if ($roleName -eq 'Contributor') {
-                    '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
+                    '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
                 }
                 else {
-                    '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168'
+                    '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168'
                 }
 
                 $payload = @([pscustomobject]@{ id = $roleDefinitionId; roleName = $roleName }) | ConvertTo-Json -Compress
@@ -555,10 +555,10 @@ Describe 'Task 6 temporary role cleanup' {
                 $roleDefinitionId = [string]$ArgumentList[8]
                 $roleName = if ($roleDefinitionId -match 'b24988ac-6180-42a0-ab88-20f7382dd24c$') { 'Contributor' } else { 'Role Based Access Control Administrator' }
                 $assignmentId = if ($roleName -eq 'Contributor') {
-                    '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+                    '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
                 }
                 else {
-                    '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+                    '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
                 }
 
                 $createdAssignments[$assignmentId] = $roleName
@@ -570,10 +570,10 @@ Describe 'Task 6 temporary role cleanup' {
                 $assignmentId = [string]$ArgumentList[4] -replace '\?api-version=2022-04-01$', ''
                 $roleName = [string]$createdAssignments[$assignmentId]
                 $roleDefinitionId = if ($roleName -eq 'Contributor') {
-                    '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
+                    '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
                 }
                 else {
-                    '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168'
+                    '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168'
                 }
 
                 $payload = [pscustomobject]@{
@@ -582,7 +582,7 @@ Describe 'Task 6 temporary role cleanup' {
                         principalId = '55555555-5555-5555-5555-555555555555'
                         principalType = 'ServicePrincipal'
                         roleDefinitionId = $roleDefinitionId
-                        scope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
+                        scope = '/subscriptions/11111111-1111-1111-1111-111111111111'
                     }
                 } | ConvertTo-Json -Compress
                 return [pscustomobject]@{ ExitCode = 0; StdOut = $payload; StdErr = '' }
@@ -591,19 +591,19 @@ Describe 'Task 6 temporary role cleanup' {
             throw "Unexpected native command: $FilePath $($ArgumentList -join ' ')"
         }
 
-        $result = & $script:GrantScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $outputPath -NativeCommandRunner $nativeRunner -Confirm:$false
+        $result = & $script:GrantScriptPath -TenantAlias 'fixturetenant42' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $outputPath -NativeCommandRunner $nativeRunner -Confirm:$false
 
         $result.Assignments.Count | Should -Be 2
         $calls[0].FilePath | Should -BeExactly 'az'
         $calls[0].ArgumentList | Should -Be @('account', 'show', '--output', 'json')
         $calls[1].ArgumentList | Should -Be @('ad', 'signed-in-user', 'show', '--output', 'json')
-        $calls[2].ArgumentList | Should -Be @('role', 'assignment', 'list', '--assignee-object-id', '99999999-9999-9999-9999-999999999999', '--scope', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017', '--output', 'json')
-        $calls[3].ArgumentList | Should -Be @('role', 'definition', 'list', '--name', 'Contributor', '--scope', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017', '--output', 'json')
-        $calls[4].ArgumentList | Should -Be @('role', 'assignment', 'create', '--assignee-object-id', '55555555-5555-5555-5555-555555555555', '--assignee-principal-type', 'ServicePrincipal', '--role', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c', '--scope', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017', '--output', 'json')
-        $calls[5].ArgumentList | Should -Be @('rest', '--method', 'get', '--url', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?api-version=2022-04-01', '--output', 'json')
-        $calls[6].ArgumentList | Should -Be @('role', 'definition', 'list', '--name', 'Role Based Access Control Administrator', '--scope', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017', '--output', 'json')
-        $calls[7].ArgumentList | Should -Be @('role', 'assignment', 'create', '--assignee-object-id', '55555555-5555-5555-5555-555555555555', '--assignee-principal-type', 'ServicePrincipal', '--role', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168', '--scope', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017', '--output', 'json')
-        $calls[8].ArgumentList | Should -Be @('rest', '--method', 'get', '--url', '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?api-version=2022-04-01', '--output', 'json')
+        $calls[2].ArgumentList | Should -Be @('role', 'assignment', 'list', '--assignee-object-id', '99999999-9999-9999-9999-999999999999', '--scope', '/subscriptions/11111111-1111-1111-1111-111111111111', '--output', 'json')
+        $calls[3].ArgumentList | Should -Be @('role', 'definition', 'list', '--name', 'Contributor', '--scope', '/subscriptions/11111111-1111-1111-1111-111111111111', '--output', 'json')
+        $calls[4].ArgumentList | Should -Be @('role', 'assignment', 'create', '--assignee-object-id', '55555555-5555-5555-5555-555555555555', '--assignee-principal-type', 'ServicePrincipal', '--role', '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c', '--scope', '/subscriptions/11111111-1111-1111-1111-111111111111', '--output', 'json')
+        $calls[5].ArgumentList | Should -Be @('rest', '--method', 'get', '--url', '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?api-version=2022-04-01', '--output', 'json')
+        $calls[6].ArgumentList | Should -Be @('role', 'definition', 'list', '--name', 'Role Based Access Control Administrator', '--scope', '/subscriptions/11111111-1111-1111-1111-111111111111', '--output', 'json')
+        $calls[7].ArgumentList | Should -Be @('role', 'assignment', 'create', '--assignee-object-id', '55555555-5555-5555-5555-555555555555', '--assignee-principal-type', 'ServicePrincipal', '--role', '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168', '--scope', '/subscriptions/11111111-1111-1111-1111-111111111111', '--output', 'json')
+        $calls[8].ArgumentList | Should -Be @('rest', '--method', 'get', '--url', '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?api-version=2022-04-01', '--output', 'json')
         $calls[6].ArgumentList[4] | Should -BeExactly 'Role Based Access Control Administrator'
     }
 
@@ -613,20 +613,20 @@ Describe 'Task 6 temporary role cleanup' {
         $mutationCalls = [System.Collections.Generic.List[string]]::new()
 
         {
-            & $script:GrantScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $outputPath -NativeCommandRunner {
+            & $script:GrantScriptPath -TenantAlias 'fixturetenant42' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $outputPath -NativeCommandRunner {
                 param([string]$FilePath, [string[]]$ArgumentList)
 
                 if ($ArgumentList[0] -ceq 'account') {
-                    return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"e2312862-df63-440c-8bcf-007a2c52859d","id":"edb45a24-408d-47c4-bbc7-685b9b3fc017","user":{"type":"user","name":"admin@Caldova25156897.onmicrosoft.com"}}'; StdErr = '' }
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"22222222-2222-2222-2222-222222222222","id":"11111111-1111-1111-1111-111111111111","user":{"type":"user","name":"operator@fixture.example"}}'; StdErr = '' }
                 }
                 if ($ArgumentList[0] -ceq 'ad') {
                     return [pscustomobject]@{ ExitCode = 0; StdOut = '{"id":"99999999-9999-9999-9999-999999999999"}'; StdErr = '' }
                 }
                 if ($ArgumentList[0] -ceq 'role' -and $ArgumentList[1] -ceq 'assignment' -and $ArgumentList[2] -ceq 'list') {
-                    return [pscustomobject]@{ ExitCode = 0; StdOut = '[{"roleDefinitionName":"Owner","scope":"/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017"}]'; StdErr = '' }
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = '[{"roleDefinitionName":"Owner","scope":"/subscriptions/11111111-1111-1111-1111-111111111111"}]'; StdErr = '' }
                 }
                 if ($ArgumentList[0] -ceq 'role' -and $ArgumentList[1] -ceq 'definition') {
-                    return [pscustomobject]@{ ExitCode = 0; StdOut = '[{"id":"/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/acdd72a7-3385-48ef-bd42-f606fba81ae7","roleName":"Contributor"}]'; StdErr = '' }
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = '[{"id":"/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleDefinitions/acdd72a7-3385-48ef-bd42-f606fba81ae7","roleName":"Contributor"}]'; StdErr = '' }
                 }
 
                 $mutationCalls.Add(($ArgumentList -join ' ')) | Out-Null
@@ -648,24 +648,24 @@ Describe 'Task 6 temporary role cleanup' {
 
             $joined = $ArgumentList -join ' '
             if ($joined -eq 'account show --output json') {
-                return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"e2312862-df63-440c-8bcf-007a2c52859d","id":"edb45a24-408d-47c4-bbc7-685b9b3fc017","user":{"type":"servicePrincipal"}}'; StdErr = '' }
+                return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"22222222-2222-2222-2222-222222222222","id":"11111111-1111-1111-1111-111111111111","user":{"type":"servicePrincipal"}}'; StdErr = '' }
             }
 
-            if ($joined -match 'role assignment list --assignee-object-id 55555555-5555-5555-5555-555555555555 --scope /subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017 --output json$') {
+            if ($joined -match 'role assignment list --assignee-object-id 55555555-5555-5555-5555-555555555555 --scope /subscriptions/11111111-1111-1111-1111-111111111111 --output json$') {
                 $payload = @(
                     [pscustomobject]@{
-                        id = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+                        id = '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
                         principalId = '55555555-5555-5555-5555-555555555555'
-                        roleDefinitionId = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
+                        roleDefinitionId = '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c'
                         roleDefinitionName = 'Contributor'
-                        scope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
+                        scope = '/subscriptions/11111111-1111-1111-1111-111111111111'
                     },
                     [pscustomobject]@{
-                        id = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/dddddddd-dddd-dddd-dddd-dddddddddddd'
+                        id = '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleAssignments/dddddddd-dddd-dddd-dddd-dddddddddddd'
                         principalId = '55555555-5555-5555-5555-555555555555'
-                        roleDefinitionId = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/acdd72a7-3385-48ef-bd42-f606fba81ae7'
+                        roleDefinitionId = '/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/roleDefinitions/acdd72a7-3385-48ef-bd42-f606fba81ae7'
                         roleDefinitionName = 'Reader'
-                        scope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
+                        scope = '/subscriptions/11111111-1111-1111-1111-111111111111'
                     }
                 ) | ConvertTo-Json -Compress
                 return [pscustomobject]@{ ExitCode = 0; StdOut = $payload; StdErr = '' }
@@ -675,7 +675,7 @@ Describe 'Task 6 temporary role cleanup' {
         }
 
         {
-            & $script:StateScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $statePath -NativeCommandRunner $nativeRunner
+            & $script:StateScriptPath -TenantAlias 'fixturetenant42' -TenantConfigurationPath $tenantConfigurationPath -OutputPath $statePath -NativeCommandRunner $nativeRunner
         } | Should -Throw '*Unexpected role assignment Reader*'
     }
 }

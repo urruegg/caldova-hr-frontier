@@ -2,14 +2,14 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.0 |
-| **Date** | 2026-09-29 |
+| **Version** | 2.1 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
 | **References** | [Tenant 1 Lean Platform Runbook](24-tenant-1-lean-platform-runbook.md), [Bootstrap and Provisioning](17-bootstrap-and-provisioning.md), [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md) |
 
-This Proposed Baseline defines recovery for the attended Tenant 1 local validation path. Recovery resumes from a newly proven state. It never broadens permissions, mutates a role, activates trust, changes tenant, creates a deployment, or deletes a tracked transition file.
+This Proposed Baseline defines recovery for the attended Tenant 1 local validation path. Recovery resumes from a newly proven state. It never broadens permissions, mutates a role, activates trust, changes tenant, creates a deployment, or recreates a deleted tracked transition file.
 
 ## Universal Stop Rule
 
@@ -27,11 +27,11 @@ Never splice discovery, access evidence, parameters, or `what-if` output from di
 ## Private Configuration or Backup Failure
 
 - **Last trusted state:** no authenticated operation.
-- **Diagnostics:** confirm the explicit path exists, is a data-only `.psd1` file, is ignored and untracked, matches `tenant1`, and has a protected external backup.
-- **Recovery:** restore from the verified backup to `tenant1.local.psd1`, validate without logging values, and rerun discovery.
+- **Diagnostics:** confirm the explicit path exists, is a data-only `.psd1` file, is ignored and untracked, matches `tenant1`, and has an encrypted external backup in a separate failure domain.
+- **Recovery:** compare source and external-backup SHA-256, restore the backup to a separate destination, verify the restored SHA-256 and schema/import, then restore to the exact ignored `tenant1.local.psd1` path and validate with `RequireLocalUntracked` without logging values.
 - **Stop boundary:** do not fall back to the tracked transition files or `_template.psd1`.
 
-The two tracked Tenant 1 files remain because deletion approval was unavailable. Recovery does not delete or reactivate them.
+The tracked Tenant 1 transition files were removed by the approved committed deletion. Recovery never reconstructs or recommits them.
 
 ## Attended Context Failure
 
@@ -67,7 +67,7 @@ After correction, restart the whole sequence. Do not treat a `403`, `404`, empty
 
 - **Last trusted state:** reviewed local discovery and parameters.
 - **Diagnostics:** inspect compiler diagnostics, parameter derivation, target scope, and allowed resource types.
-- **Recovery:** correct source through a reviewed pull request and regenerate parameters for the same attended principal.
+- **Recovery:** correct source through a reviewed pull request and regenerate parameters from the same validated ignored configuration.
 - **Stop boundary:** do not suppress diagnostics, broaden the boundary, or replace build with deployment.
 
 ## What-If Failure

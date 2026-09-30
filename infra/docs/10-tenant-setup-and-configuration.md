@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.0 |
-| **Date** | 2026-09-29 |
+| **Version** | 2.1 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
@@ -15,9 +15,9 @@ This Proposed Baseline defines the current configuration boundary. It does not p
 
 Each run selects one explicit public tenant key and one explicit configuration path. There is no tenant matrix, automatic selection, or fallback to a tracked manifest.
 
-Tenant 1 is the only lean-platform validation target. The ignored and validated file `infra/src/config/tenants/tenant1.local.psd1` is its active configuration. It remains local to the attended workstation and is backed up outside Git.
+Tenant 1 is the only lean-platform validation target. The ignored and validated file `infra/src/config/tenants/tenant1.local.psd1` is its active configuration. It remains local to the attended workstation and has an encrypted backup in a separate failure domain outside Git.
 
-The two tracked Tenant 1 transition files remain temporarily because deletion approval was unavailable. They are not active inputs and this sprint does not delete them. Tenant 2's tracked files remain unchanged and are not selected, migrated, validated, or deleted by the Tenant 1 sequence.
+The approved deletion of the two tracked Tenant 1 transition files is committed. They are absent and are not recovery inputs. Tenant 2's tracked files remain unchanged and are not selected, migrated, validated, or deleted by the Tenant 1 sequence.
 
 ## Tenant 1 Reviewed Metadata
 
@@ -47,12 +47,12 @@ There is no `Auto` mode. Discovery never edits configuration or chooses intent. 
 
 ## Active Attended Sequence
 
-1. Verify the ignored local Tenant 1 configuration and its local backup.
+1. Verify the ignored local Tenant 1 configuration, encrypted external backup, SHA-256 match, separate restore, and restored schema/import proof.
 2. Identify the attended user and exact tenant and subscription.
 3. Validate pre-existing, separately approved minimum access without changing a role.
 4. Collect local read-only discovery.
 5. Review a sanitized local summary.
-6. Generate local Bicep parameters for the attended principal.
+6. Generate local Bicep parameters without an authorization-resource contract.
 7. Build Bicep and execute subscription `what-if` only.
 8. Validate the resource boundary.
 9. Read back the same principal, tenant, subscription, and effective access.

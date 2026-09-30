@@ -506,9 +506,7 @@ function Test-DefaultBicepInputs {
     if ((Get-TenantParameterValue -CompiledParameters $compiledParameters -Name 'namingRoot') -cne [string]$TenantConfiguration.NamingRoot) {
         throw 'Compiled bicep parameters namingRoot does not match the local Tenant 1 configuration.'
     }
-    if ((Get-TenantParameterValue -CompiledParameters $compiledParameters -Name 'validationPrincipalId') -cne $PrincipalObjectId) {
-        throw 'Compiled bicep parameters validationPrincipalId does not match the attended user.'
-    }
+    $compiledParameters
 }
 
 Import-Module (Get-ModuleManifestPath) -Force
@@ -570,10 +568,16 @@ $effectiveWhatIfBoundaryValidator = if ($WhatIfBoundaryValidator) {
 }
 else {
     {
-        param([string]$Path, [string]$PrincipalObjectId)
+        param(
+            [string]$Path,
+            [string]$ConfigurationPath,
+            [object]$Parameters
+        )
         & (Get-WhatIfValidatorPath) `
             -WhatIfPayloadPath $Path `
-            -ExpectedPrincipalObjectId $PrincipalObjectId | Out-Null
+            -PublicTenantKey $PublicTenantKey `
+            -TenantConfigurationPath $ConfigurationPath `
+            -CompiledParameters $Parameters | Out-Null
     }
 }
 
@@ -614,7 +618,7 @@ else {
     Test-TenantIntent -TenantConfiguration $tenantConfiguration -Evidence $discoveryEvidence | Out-Null
 }
 
-if ($BicepValidator) {
+$compiledParameters = if ($BicepValidator) {
     & $BicepValidator $resolvedParameterFile
 }
 else {
@@ -622,6 +626,9 @@ else {
         -TenantConfiguration $tenantConfiguration `
         -ParameterFilePath $resolvedParameterFile `
         -PrincipalObjectId $principalObjectId
+}
+if ($null -eq $compiledParameters) {
+    throw 'BicepValidator must return the compiled parameter document.'
 }
 
 $arguments = @(
@@ -645,7 +652,10 @@ if ($commandResult.ExitCode -ne 0) {
     [string]$commandResult.StdOut,
     [System.Text.UTF8Encoding]::new($false)
 )
-& $effectiveWhatIfBoundaryValidator $whatIfOutputPath $principalObjectId
+& $effectiveWhatIfBoundaryValidator `
+    $whatIfOutputPath `
+    $resolvedTenantConfigurationPath `
+    $compiledParameters
 
 $readBackPrincipalObjectId = & $effectiveAttendedUserContextValidator $tenantConfiguration
 $validatedReadBackPrincipalObjectId = [guid]::Empty

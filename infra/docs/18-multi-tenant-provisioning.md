@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.0 |
-| **Date** | 2026-09-29 |
+| **Version** | 2.1 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
@@ -24,7 +24,7 @@ Tenant 1 uses:
 - this GitHub repository as product source;
 - its existing Azure DevOps project and Basic Boards process;
 - the ignored local `tenant1.local.psd1` configuration;
-- an operator-owned protected backup outside Git;
+- an operator-owned encrypted external backup in a separate failure domain outside Git;
 - attended local discovery and sanitized review;
 - locally generated Bicep parameters;
 - the operator's pre-existing separately approved least-privilege access; and
@@ -50,13 +50,13 @@ Failure for Tenant 1 never authorizes an action in Tenant 2 or Tenant 3.
 
 | Tenant | Current repository status | Allowed activity in this sprint |
 |---|---|---|
-| Tenant 1 | Active product-source repository with ignored local configuration | Attended local discovery, build, subscription `what-if`, and read-back |
+| Tenant 1 | Active product-source repository with ignored local configuration; tracked transition files deleted in the approved commit | Attended local discovery, build, subscription `what-if`, and read-back |
 | Tenant 2 | Tracked transition manifest and evidence remain temporarily | No selection, change, validation, migration, or deletion |
 | Tenant 3 | No current onboarding artifact | No live action |
 
-## Tracked Transition Files
+## Transition Artifact Boundary
 
-The two tracked Tenant 1 files remain temporarily because deletion approval was unavailable. They are not the active configuration or evidence path. Do not delete or reactivate them under Task 4.
+The approved committed deletion removed both tracked Tenant 1 transition files. Do not reconstruct, recommit, or use them for recovery. Tenant 1 recovery uses only the encrypted external backup of the ignored local configuration with SHA-256, separate restore, and schema/import proof.
 
 Tenant 2's existing tracked files also remain unchanged under the prior decision. Future migration or deletion requires current hashes, destination proof, a reviewed plan, and explicit approval.
 
@@ -81,7 +81,7 @@ Tenant 1 validation proves only:
 
 - the selected local configuration matches the attended tenant and subscription;
 - current discovery agrees with reviewed intent;
-- Bicep compiles for the exact attended principal;
+- Bicep compiles without a role or principal resource contract;
 - subscription `what-if` stays within the allowed boundary; and
 - context and access remain unchanged.
 

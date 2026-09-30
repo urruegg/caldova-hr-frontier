@@ -13,7 +13,7 @@ Describe 'Exact empty Azure Repo proof' {
                 ProjectId = $script:ProjectId
                 Repository = [pscustomobject]@{
                     id = $script:RepositoryId
-                    name = 'Caldova HR Frontier'
+                    name = 'Synthetic HR Frontier'
                     project = [pscustomobject]@{
                         id = $script:ProjectId
                     }
@@ -38,7 +38,7 @@ Describe 'Exact empty Azure Repo proof' {
 
         $result.repositoryId | Should -BeExactly $script:RepositoryId
         $result.projectId | Should -BeExactly $script:ProjectId
-        $result.repositoryName | Should -BeExactly 'Caldova HR Frontier'
+        $result.repositoryName | Should -BeExactly 'Synthetic HR Frontier'
         $result.size | Should -Be 0
         $result.defaultBranch | Should -BeNullOrEmpty
         $result.refCount | Should -Be 0

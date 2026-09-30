@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest
 
-Describe 'Cloud foundation planning' {
+Describe 'Dormant cloud foundation module compatibility' {
     BeforeAll {
         $script:ModulePath = Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
         Import-Module $script:ModulePath -Force
@@ -24,17 +24,6 @@ Describe 'Cloud foundation planning' {
             }
 
         }
-    }
-
-    It 'provides the read-only digest-bound cloud plan entry point' {
-        $path = Join-Path $PSScriptRoot '..\..\src\scripts\runbooks\Get-CloudFoundationPlan.ps1'
-        Test-Path -LiteralPath $path | Should -BeTrue
-        $command = Get-Command $path
-        @($command.Parameters.Keys) | Should -Contain 'TenantAlias'
-        @($command.Parameters.Keys) | Should -Contain 'ReportPath'
-        @($command.Parameters.Keys) | Should -Contain 'Stages'
-        @($command.Parameters.Keys) | Should -Not -Contain 'Apply'
-        @($command.Parameters.Keys) | Should -Not -Contain 'RepositoryRoot'
     }
 
     It 'maps exact IDs, supported drift, manual surfaces, and exclusions to the closed classification set' {

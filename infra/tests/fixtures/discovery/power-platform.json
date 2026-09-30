@@ -6,7 +6,7 @@
       {
         "id": "pp-env-synthetic-dev-44444444-4444-4444-4444-444444444444",
         "displayName": "HR Frontier Dev",
-        "environmentUrl": "https://hrfrontierdev.crm17.dynamics.com/",
+        "environmentUrl": "https://fixture-dev.example.test/",
         "properties": {
           "environmentSku": "Sandbox",
           "state": "Ready",
@@ -16,7 +16,7 @@
       {
         "id": "pp-env-synthetic-test-55555555-5555-5555-5555-555555555555",
         "displayName": "HR Frontier Test",
-        "environmentUrl": "https://hrfrontiertest.crm17.dynamics.com/",
+        "environmentUrl": "https://fixture-test.example.test/",
         "properties": {
           "environmentSku": "Sandbox",
           "state": "Ready",
@@ -26,7 +26,7 @@
       {
         "id": "pp-env-synthetic-prod-66666666-6666-6666-6666-666666666666",
         "displayName": "HR Frontier Prod",
-        "environmentUrl": "https://hrfrontier.crm17.dynamics.com/",
+        "environmentUrl": "https://fixture-prod.example.test/",
         "properties": {
           "environmentSku": "Production",
           "state": "Ready",

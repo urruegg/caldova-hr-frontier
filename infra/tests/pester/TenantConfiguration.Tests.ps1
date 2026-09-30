@@ -8,7 +8,7 @@ Describe 'Tenant configuration' {
             param(
                 [string]$PublicTenantKey = 'tenant1',
                 [string]$UniqueSuffix = 'a7k29x',
-                [string]$NamingRoot = 'cal-hr-agentic-a7k29x',
+                [string]$NamingRoot = 'syn-hr-agentic-a7k29x',
                 [string]$LifecycleState = 'DiscoveryRequired',
                 [string]$Components = '@{}',
                 [string]$GitHubBody = @"
@@ -17,20 +17,20 @@ Describe 'Tenant configuration' {
             OwnerId = '46865858'
             Repository = 'caldova-hr-frontier'
             RepositoryId = '1371297722'
-            EnvironmentName = 'bootstrap-caldova25156897'
+            EnvironmentName = 'bootstrap-fixturetenant42'
         }
 "@,
                 [string]$AzureDevOpsBody = @"
         @{
-            OrganizationUrl = 'https://dev.azure.com/caldova25156897/'
-            ProjectName = 'Caldova HR Frontier'
+            OrganizationUrl = 'https://dev.azure.com/synthetic/'
+            ProjectName = 'Synthetic HR Frontier'
         }
 "@,
                 [string]$PowerPlatformBody = @"
         @{
-            DevUrl = 'https://hrfrontierdev.crm17.dynamics.com/'
-            TestUrl = 'https://hrfrontiertest.crm17.dynamics.com/'
-            ProdUrl = 'https://hrfrontier.crm17.dynamics.com/'
+            DevUrl = 'https://fixture-dev.example.test/'
+            TestUrl = 'https://fixture-test.example.test/'
+            ProdUrl = 'https://fixture-prod.example.test/'
         }
 "@
             )
@@ -39,13 +39,13 @@ Describe 'Tenant configuration' {
 @{
     SchemaVersion = '1.0'
     PublicTenantKey = '$PublicTenantKey'
-    TenantAlias = 'caldova25156897'
-    DisplayName = 'Caldova25156897'
-    TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
-    AdminUpn = 'admin@Caldova25156897.onmicrosoft.com'
-    SubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
+    TenantAlias = 'fixturetenant42'
+    DisplayName = 'Fixture Tenant 42'
+    TenantId = '22222222-2222-2222-2222-222222222222'
+    AdminUpn = 'operator@fixture.example'
+    SubscriptionId = '11111111-1111-1111-1111-111111111111'
     PrimaryLocation = 'switzerlandnorth'
-    CompanyTla = 'cal'
+    CompanyTla = 'syn'
     WorkloadName = 'hr-agentic'
     UniqueSuffix = '$UniqueSuffix'
     NamingRoot = '$NamingRoot'
@@ -75,13 +75,13 @@ Describe 'Tenant configuration' {
             EntraServicePrincipal = @{ Mode = 'Create' }
             EntraFederatedIdentityCredential = @{ Mode = 'Create' }
             GitHubEnvironment = @{ Mode = 'Create' }
-            AzureSubscription = @{ Mode = 'Existing'; Id = 'edb45a24-408d-47c4-bbc7-685b9b3fc017' }
-            AzureDevOpsProject = @{ Mode = 'Existing'; Id = 'f250378e-597d-487b-854a-fb8338962822' }
+            AzureSubscription = @{ Mode = 'Existing'; Id = '11111111-1111-1111-1111-111111111111' }
+            AzureDevOpsProject = @{ Mode = 'Existing'; Id = '33333333-3333-3333-3333-333333333333' }
             AzureDevOpsServicePrincipalEntitlement = @{ Mode = 'Create' }
             AzureDevOpsReadersMembership = @{ Mode = 'Create' }
-            PowerPlatformEnvironmentDev = @{ Mode = 'Existing'; Id = '346c2cb2-534d-e581-978f-4c293e25a146' }
-            PowerPlatformEnvironmentTest = @{ Mode = 'Existing'; Id = '86fb2f33-4145-e23a-b064-5e0850aba258' }
-            PowerPlatformEnvironmentProd = @{ Mode = 'Existing'; Id = 'c5d83095-c8bf-ec78-94dd-b4e62f34c85e' }
+            PowerPlatformEnvironmentDev = @{ Mode = 'Existing'; Id = '44444444-4444-4444-4444-444444444444' }
+            PowerPlatformEnvironmentTest = @{ Mode = 'Existing'; Id = '66666666-6666-6666-6666-666666666666' }
+            PowerPlatformEnvironmentProd = @{ Mode = 'Existing'; Id = '77777777-7777-7777-7777-777777777777' }
         }
 "@)
         Import-Module $script:ModuleManifestPath -Force
@@ -130,7 +130,7 @@ Describe 'Tenant configuration' {
         $path = New-TestTenantConfigurationFile -Content $withoutPublicKey
 
         $configuration = Import-TenantConfiguration -Path $path -ValidationStage Discovery
-        $configuration.TenantAlias | Should -BeExactly 'caldova25156897'
+        $configuration.TenantAlias | Should -BeExactly 'fixturetenant42'
         {
             Import-TenantConfiguration -Path $path -ValidationStage Discovery `
                 -ExpectedPublicTenantKey tenant1
@@ -163,24 +163,24 @@ Describe 'Tenant configuration' {
     It 'accepts the Tenant 1 contract and exact ALM URLs' {
         $config = Import-TenantConfiguration -Path $script:TenantManifestPath -ValidationStage Discovery -ExpectedPublicTenantKey tenant1
 
-        $config.TenantAlias | Should -Be 'caldova25156897'
-        $config.DisplayName | Should -Be 'Caldova25156897'
-        $config.TenantId | Should -Be 'e2312862-df63-440c-8bcf-007a2c52859d'
-        $config.AdminUpn | Should -Be 'admin@Caldova25156897.onmicrosoft.com'
-        $config.SubscriptionId | Should -Be 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
+        $config.TenantAlias | Should -Be 'fixturetenant42'
+        $config.DisplayName | Should -Be 'Fixture Tenant 42'
+        $config.TenantId | Should -Be '22222222-2222-2222-2222-222222222222'
+        $config.AdminUpn | Should -Be 'operator@fixture.example'
+        $config.SubscriptionId | Should -Be '11111111-1111-1111-1111-111111111111'
         $config.PrimaryLocation | Should -Be 'switzerlandnorth'
-        $config.AzureDevOps.OrganizationUrl | Should -Be 'https://dev.azure.com/caldova25156897/'
-        $config.AzureDevOps.ProjectName | Should -Be 'Caldova HR Frontier'
-        $config.PowerPlatform.DevUrl | Should -Be 'https://hrfrontierdev.crm17.dynamics.com/'
-        $config.PowerPlatform.TestUrl | Should -Be 'https://hrfrontiertest.crm17.dynamics.com/'
-        $config.PowerPlatform.ProdUrl | Should -Be 'https://hrfrontier.crm17.dynamics.com/'
+        $config.AzureDevOps.OrganizationUrl | Should -Be 'https://dev.azure.com/synthetic/'
+        $config.AzureDevOps.ProjectName | Should -Be 'Synthetic HR Frontier'
+        $config.PowerPlatform.DevUrl | Should -Be 'https://fixture-dev.example.test/'
+        $config.PowerPlatform.TestUrl | Should -Be 'https://fixture-test.example.test/'
+        $config.PowerPlatform.ProdUrl | Should -Be 'https://fixture-prod.example.test/'
         $config.GitHub.Owner | Should -Be 'urruegg'
         $config.GitHub.OwnerId | Should -Be '46865858'
         $config.GitHub.Repository | Should -Be 'caldova-hr-frontier'
         $config.GitHub.RepositoryId | Should -Be '1371297722'
-        $config.GitHub.EnvironmentName | Should -Be 'bootstrap-caldova25156897'
+        $config.GitHub.EnvironmentName | Should -Be 'bootstrap-fixturetenant42'
         $config.UniqueSuffix | Should -Match '^[a-z0-9]{6}$'
-        $config.NamingRoot | Should -Be "cal-hr-agentic-$($config.UniqueSuffix)"
+        $config.NamingRoot | Should -Be "syn-hr-agentic-$($config.UniqueSuffix)"
         $config.LifecycleState | Should -Be 'IntentReviewed'
         $config.Components.GitHubRepository.Mode | Should -Be 'Existing'
         $config.Components.GitHubRepository.Id | Should -Be '1371297722'
@@ -189,17 +189,17 @@ Describe 'Tenant configuration' {
         $config.Components.EntraFederatedIdentityCredential.Mode | Should -Be 'Create'
         $config.Components.GitHubEnvironment.Mode | Should -Be 'Create'
         $config.Components.AzureSubscription.Mode | Should -Be 'Existing'
-        $config.Components.AzureSubscription.Id | Should -Be 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
+        $config.Components.AzureSubscription.Id | Should -Be '11111111-1111-1111-1111-111111111111'
         $config.Components.AzureDevOpsProject.Mode | Should -Be 'Existing'
-        $config.Components.AzureDevOpsProject.Id | Should -Be 'f250378e-597d-487b-854a-fb8338962822'
+        $config.Components.AzureDevOpsProject.Id | Should -Be '33333333-3333-3333-3333-333333333333'
         $config.Components.AzureDevOpsServicePrincipalEntitlement.Mode | Should -Be 'Create'
         $config.Components.AzureDevOpsReadersMembership.Mode | Should -Be 'Create'
         $config.Components.PowerPlatformEnvironmentDev.Mode | Should -Be 'Existing'
-        $config.Components.PowerPlatformEnvironmentDev.Id | Should -Be '346c2cb2-534d-e581-978f-4c293e25a146'
+        $config.Components.PowerPlatformEnvironmentDev.Id | Should -Be '44444444-4444-4444-4444-444444444444'
         $config.Components.PowerPlatformEnvironmentTest.Mode | Should -Be 'Existing'
-        $config.Components.PowerPlatformEnvironmentTest.Id | Should -Be '86fb2f33-4145-e23a-b064-5e0850aba258'
+        $config.Components.PowerPlatformEnvironmentTest.Id | Should -Be '66666666-6666-6666-6666-666666666666'
         $config.Components.PowerPlatformEnvironmentProd.Mode | Should -Be 'Existing'
-        $config.Components.PowerPlatformEnvironmentProd.Id | Should -Be 'c5d83095-c8bf-ec78-94dd-b4e62f34c85e'
+        $config.Components.PowerPlatformEnvironmentProd.Id | Should -Be '77777777-7777-7777-7777-777777777777'
         @($config.Components | Get-Member -MemberType NoteProperty, Property, ScriptProperty).Count | Should -Be 12
     }
 
@@ -216,7 +216,7 @@ Describe 'Tenant configuration' {
             OwnerId = '46865858'
             Repository = 'caldova-hr-frontier'
             RepositoryId = '1371297722'
-            EnvironmentName = 'bootstrap-caldova25156897'
+            EnvironmentName = 'bootstrap-fixturetenant42'
             Extra = 'nope'
         }
 "@)
@@ -234,13 +234,13 @@ Describe 'Tenant configuration' {
     }
 
     It 'rejects invalid GUIDs URLs immutable ids and cross-field derivations' {
-        $badTenantId = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent).Replace("TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'", "TenantId = 'not-a-guid'")
+        $badTenantId = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent).Replace("TenantId = '22222222-2222-2222-2222-222222222222'", "TenantId = 'not-a-guid'")
         { Import-TenantConfiguration -Path $badTenantId -ExpectedPublicTenantKey tenant1 } | Should -Throw
 
         $badUrl = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent -AzureDevOpsBody @"
         @{
-            OrganizationUrl = 'http://dev.azure.com/caldova25156897/'
-            ProjectName = 'Caldova HR Frontier'
+            OrganizationUrl = 'http://dev.azure.com/fixturetenant42/'
+            ProjectName = 'Synthetic HR Frontier'
         }
 "@)
         { Import-TenantConfiguration -Path $badUrl -ExpectedPublicTenantKey tenant1 } | Should -Throw
@@ -251,7 +251,7 @@ Describe 'Tenant configuration' {
             OwnerId = '046865858x'
             Repository = 'caldova-hr-frontier'
             RepositoryId = '1371297722'
-            EnvironmentName = 'bootstrap-caldova25156897'
+            EnvironmentName = 'bootstrap-fixturetenant42'
         }
 "@)
         { Import-TenantConfiguration -Path $badOwnerId -ExpectedPublicTenantKey tenant1 } | Should -Throw
@@ -274,9 +274,9 @@ Describe 'Tenant configuration' {
     It 'rejects duplicate Power Platform URLs and Auto mode' {
         $duplicateUrl = New-TestTenantConfigurationFile -Content (New-TestTenantConfigurationContent -PowerPlatformBody @"
         @{
-            DevUrl = 'https://hrfrontierdev.crm17.dynamics.com/'
-            TestUrl = 'https://hrfrontierdev.crm17.dynamics.com/'
-            ProdUrl = 'https://hrfrontier.crm17.dynamics.com/'
+            DevUrl = 'https://fixture-dev.example.test/'
+            TestUrl = 'https://fixture-dev.example.test/'
+            ProdUrl = 'https://fixture-prod.example.test/'
         }
 "@)
         { Import-TenantConfiguration -Path $duplicateUrl -ExpectedPublicTenantKey tenant1 } | Should -Throw

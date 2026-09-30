@@ -836,7 +836,6 @@ $phase3RequiredPaths = @(
     'infra/src/bicep/modules/log-analytics-workspace.bicep',
     'infra/src/bicep/modules/resource-group.bicep',
     'infra/src/bicep/modules/subscription-policy-assignments.bicep',
-    'infra/src/bicep/modules/validation-role.bicep',
     'infra/src/config/github/action-pins.json',
     'infra/src/config/schemas/bootstrap-result.schema.json',
     'infra/src/config/schemas/discovery.schema.json',
@@ -919,8 +918,6 @@ Test-RequiredContent 'infra/tests/pester/BicepComposition.Tests.ps1' @(
     'Microsoft.Resources/resourceGroups',
     'Microsoft.OperationalInsights/workspaces',
     'Microsoft.Insights/diagnosticSettings',
-    'Microsoft.Authorization/roleDefinitions',
-    'Microsoft.Authorization/roleAssignments',
     'Microsoft.Authorization/policyAssignments'
 )
 $tenant2ManifestRelativePath = 'infra/src/config/tenants/caldova25668747.psd1'

@@ -2,8 +2,8 @@ Set-StrictMode -Version Latest
 
 Describe 'Tenant 1 blueprint verification' {
     BeforeAll {
-        $script:ManifestPath = Join-Path $PSScriptRoot '..\..\src\config\tenants\caldova25156897.psd1'
-        $script:EvidencePath = Join-Path $PSScriptRoot '..\..\evidence\discovery\caldova25156897.json'
+        $script:ManifestPath = Join-Path $PSScriptRoot '..\..\src\config\tenants\fixturetenant42.psd1'
+        $script:EvidencePath = Join-Path $PSScriptRoot '..\..\evidence\discovery\fixturetenant42.json'
 
         # A tenant-specific repository copy (Tenant 2, Tenant 3, ...) runs the
         # Repository Clean-Up Runbook, which removes Tenant 1's manifest and

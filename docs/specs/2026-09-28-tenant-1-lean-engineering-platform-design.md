@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.3 |
-| **Date** | 2026-09-29 |
+| **Version** | 1.7 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Tenant 1 lean engineering platform foundation |
@@ -13,7 +13,7 @@
 
 The user explicitly confirmed **Option A — Lean single-tenant platform** through attended approval on 2026-09-28. That approval selects the lean Tenant 1 target and the control dispositions in this document.
 
-Version 1.3 records the pragmatic solo-owner review profile and the attended-access ruling. Pull requests and successful validation remain mandatory, while required approvals and required CODEOWNERS review are deferred until a second eligible maintainer exists. Local validation uses the attended operator's pre-existing, separately approved least-privilege access and performs no role mutation. This prevents a governance deadlock without creating a current-sprint bootstrap privilege path.
+Version 1.7 records the pragmatic solo-owner review profile, the attended-access ruling, retirement of the cloud-foundation planner/apply path, payload-level private-boundary isolation, removal of authorization resources from the lean Bicep composition, and exact selected-team/current-iteration validation for Boards. Pull requests and successful validation remain mandatory, while required approvals and required CODEOWNERS review are deferred until a second eligible maintainer exists. Local validation uses the attended operator's pre-existing, separately approved least-privilege access and performs no role mutation. The retained generic cloud-foundation modules are dormant compatibility code, not a current-sprint dependency or supported mutation path.
 
 This design supersedes the broader [Tenant 1 Engineering Platform Remediation Design](2026-09-28-tenant-1-engineering-platform-remediation-design.md) and stops the associated [Engineering Control Plane Foundation Implementation Plan](../plans/2026-09-28-tenant-1-engineering-control-plane-foundation-implementation.md).
 
@@ -85,6 +85,8 @@ No separate traceability workflow is created. The pull-request template requires
 
 Existing tenant-trust code may remain dormant for future reconsideration. Dormant code is not an active dependency, is not invoked by validation, and must not be described as a current bootstrap path.
 
+The historical cloud-foundation planner and apply entry points are also retired. Their public scripts fail closed before configuration, tool, authentication, file-output, or provider access. Generic module internals may remain only as explicitly dormant compatibility code; active catalogues, runbooks, defaults, validation, and operator procedures do not expose them as supported. A new reviewed design and implementation plan are required before any such capability can return.
+
 ## Tenant 1 Private Configuration
 
 The safe synthetic `infra/src/config/tenants/_template.psd1` remains tracked. The real Tenant 1 configuration is an ignored local file:
@@ -114,6 +116,22 @@ Before the committed Tenant 1 manifest or discovery evidence is removed, the ope
 The backup and its hashes remain outside Git. Recovery restores `tenant1.local.psd1` from that backup, verifies its hash and schema, and reruns discovery before any `what-if`. Recovery never recommits the private configuration.
 
 The existing Tenant 2 manifest and discovery evidence remain temporarily untouched, outside Tenant 1 operations, under the prior user decision. This sprint does not create a transition package, tenant catalogue, private overlay, handoff workflow, or catalogue automation for Tenant 2.
+
+Path deletion alone does not establish the private boundary. Active source,
+workflows, tests, and fixtures must not reproduce protected Tenant 1
+operational payload such as tenant, subscription, administrator, Azure DevOps,
+Power Platform, or naming values. The repository safety verifier compares
+normalized candidate values with non-reversible SHA-256 fingerprints and
+reports only an offending path. It never prints the protected value.
+
+Immutable point-in-time audit evidence remains unchanged, and the exact
+protected Tenant 2 transition blobs remain outside the payload scan. Those
+exceptions are evidence and transition artifacts, not reusable fixtures or
+active inputs. Synthetic values are used throughout active tests and fixtures.
+`New-TenantManifest.ps1` has no hard-coded Tenant 1 profile, and active
+`what-if` expectations are derived from the validated ignored local
+configuration and its compiled Bicep parameters rather than repository
+constants.
 
 ## GitHub Governance
 
@@ -146,6 +164,13 @@ Epic
 
 The existing team and project-root area remain. Only the current sprint receives dates, and only after those dates are agreed and read back. The sprint does not convert Basic to Agile, generate six iterations, create a second team or area, or add a separate remediation-hierarchy script.
 
+Before planning any Boards mutation, the operation reads the selected team's
+area settings and the team current-iterations endpoint with
+`timeframe=current`. The team must have exactly the project-root area and
+exactly one current iteration whose full path equals `CurrentSprintPath`.
+Missing, multiple, malformed, or mismatched state stops before issue planning
+or mutation. A valid project classification node alone is not sufficient.
+
 One real, durable Basic **Issue** is used for the `Fixes AB#` proof. It is not deleted after validation. Existing tooling for the separate 19-idea Epic portfolio remains optional and is not a prerequisite for the lean foundation.
 
 ## Identity, Trust, and Private Azure Repo
@@ -171,6 +196,15 @@ Local scripts fail closed on missing explicit configuration, tenant or subscript
 
 This sprint creates, changes, and deletes no role assignment. The operator's access is provisioned and approved outside this sprint; the preflight and read-back validate context and minimum necessary capability without making authorization changes.
 
+The lean Bicep composition contains no role-definition or role-assignment
+resource, input, or output. Its generated parameter contract contains no
+principal or validation-role field. `what-if` validation rejects every
+`Microsoft.Authorization/roleDefinitions` or
+`Microsoft.Authorization/roleAssignments` Create, Modify, or Delete result.
+The exact pre-existing user-or-group assignment and custom-role contract are
+validated before and after `what-if` by the attended PowerShell preflight, not
+created by deployment code.
+
 No command in this sequence creates a deployment. `what-if` output is reviewed and sanitized; it is not proof that resources were deployed.
 
 ## Final End-to-End Proof
@@ -194,8 +228,8 @@ The proof fails if the work item is synthetic or deleted, the link or transition
 | Disposition | Controls |
 |---|---|
 | **Retained now** | No secrets or Tenant 1 private values in Git; pull requests; CODEOWNERS ownership mapping; resolved conversations; required repository validation; force-push and deletion protection; attended-context and minimum-access preflight/read-back; subscription `what-if`; post-action read-back; Azure Boards GitHub App; future independent PROD approval. Required repository approval is deferred until a second eligible maintainer exists. |
-| **Removed from the current sprint and deferred** | OIDC bootstrap and the `bootstrap-tenant1` Environment; workflow-hosted cloud discovery; cloud bootstrap; advisory audit workflow; separate traceability workflow; private configuration Azure Repo; Azure DevOps Required template delivery control; Basic-to-Agile conversion; multi-iteration automation; separate bootstrap, non-production, and production identities. |
-| **Retained but dormant** | Existing trust code that has a plausible future use and can remain without becoming an active dependency. |
+| **Removed from the current sprint and deferred** | OIDC bootstrap and the `bootstrap-tenant1` Environment; workflow-hosted cloud discovery; cloud bootstrap; cloud-foundation planner/apply entry points; advisory audit workflow; separate traceability workflow; private configuration Azure Repo; Azure DevOps Required template delivery control; Basic-to-Agile conversion; multi-iteration automation; separate bootstrap, non-production, and production identities. |
+| **Retained but dormant** | Existing trust code and generic cloud-foundation module internals that have plausible future compatibility value and can remain without becoming active dependencies or supported operator paths. |
 
 All deferred controls require measurable need and a new review. Their prior presence in code or documentation is not approval to execute them. The retained `_template.psd1` is a safe local configuration example and is unrelated to the deferred Azure DevOps Required template control.
 
@@ -259,6 +293,10 @@ Rollback is scoped by surface:
 - GitHub settings and ruleset changes use captured pre-state and exact read-back; restoration is attended and targets the same stable resource.
 - Basic Boards changes use captured current-sprint pre-state. No work item is deleted to simulate rollback.
 - The local private configuration is recovered from the encrypted external backup and verified by hash and schema; it is never restored to Git.
+- Cloud-foundation planner/apply entry points fail closed before any configuration, file, tool, authentication, or provider access; no active catalogue, runbook, default, validation path, or operator procedure presents them as supported.
+- Active source, workflows, tests, and fixtures contain no protected Tenant 1 operational-payload fingerprint; scans disclose only paths, preserve immutable point-in-time audit evidence and exact protected Tenant 2 blobs, and use synthetic active fixtures.
+- The Tenant 1 profile cannot be regenerated from tracked source, and `what-if` validation derives the expected tenant, subscription, naming, and resource contract from validated ignored local configuration plus compiled parameters.
+- Lean Bicep and generated-parameter contracts contain no role definition, role assignment, validation-role, or principal resource contract; authorization changes in `what-if` are rejected while exact pre-existing user/group access is proven outside deployment code.
 - The Azure Repo is not deleted unless its lack of content and branches makes content recovery unnecessary. A later need creates a newly approved repository design rather than assuming deleted configuration can be recovered.
 - No infrastructure or Power Platform deployment rollback exists in this sprint because deployment create is prohibited.
 
@@ -269,7 +307,9 @@ The lean foundation is accepted only when all of the following are true:
 - exactly one active GitHub Actions workflow exists: `.github/workflows/validate-repository.yml`;
 - the minimal `main` ruleset and repository settings are active and read back;
 - the Azure Boards GitHub App connection and one real `Fixes AB#` link and state transition are proven;
+- the selected Boards team has exactly the project-root area and exactly one current team iteration whose full path equals the approved sprint path before any mutation is planned;
 - attended-context and minimum-access preflight/read-back, local discovery, Bicep build, subscription `what-if`, and boundary validation pass without role mutation;
+- Bicep composition and generated parameters contain no authorization resource or principal contract, and authorization changes in `what-if` fail closed;
 - no Tenant 1 private value, local configuration, or raw discovery evidence is tracked;
 - no bootstrap identity, federated credential, `bootstrap-tenant1` Environment, or cloud configuration retrieval is required;
 - the final pull request is approved, squash-merged, its branch is deleted, and `main` is green; and
