@@ -2,80 +2,152 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-29 |
-| **Author** | GitHub Copilot |
-| **Status** | Blocked |
-| **Scope** | Task 5 Tenant 2 DEV evaluation capture |
+| **Version** | 1.2 |
+| **Date** | 2026-09-30 |
+| **Author** | docs-agent (Voice of Knowledge) |
+| **Status** | Active |
+| **Scope** | Completed Task 5 Tenant 2 DEV evaluation capture flow |
 | **References** | [Evaluation Capture Design](../../../../../../docs/superpowers/specs/2026-09-29-ai-builder-evaluation-capture-design.md), `evaluation-capture-intent.json`, `evaluation-capture-readiness.json`, `model-evaluation-publication.json`, `security-verification.json` |
 
 ## Current outcome
 
-Task 5 attempt 2 restarted from Step 1 after the separate publisher decision. Supported read-back exactly matched the approved publisher:
+Task 5 attempt 3 completed and passed. The unmanaged solution `Caldova HR AI Evaluation DEV` / `calhr_ai_evaluation_dev` has solution ID `df590fd2-13bc-f111-aaae-7ced8d44be51`. Its inventory contains exactly one cloud flow and two connection references.
 
-- friendly name `Caldova HR frontier`;
-- unique name `calhrfrontier`;
-- prefix `calhr`; and
-- publisher ID `6b6eabd8-57b6-40b7-9d12-7b2a045978e8`.
+The flow `Capture AI Builder Evaluation Evidence` has workflow ID `24e38f04-9ebc-f111-aaae-7ced8d44be51`. Its portal status is **Off**, it has zero run history, its primary owner is Microsoft Administrator (`admin@caldova25668747.onmicrosoft.com`), and it has no run-only sharing.
 
-The publication dependency still passed. Tenant 2 DEV and repository evidence identify `PersonalMasterDataFixed` model `74b09a72-d1f1-4598-bc4d-3746d5c97acc` version `1.0` as published for evaluation. Draft `2.0` remained untouched.
+No PDF has been uploaded, submitted, or processed. The approved SharePoint folder remains empty and restricted. Task 6 is not authorized without its separate attended approval.
 
-The resumed attempt created the approved unmanaged evaluation solution, the exact SharePoint connection reference, and the empty SharePoint folder. The folder has unique permissions and only `admin@caldova25668747.onmicrosoft.com` has Full Control.
+## Machine-readable definition evidence
 
-The attempt then stopped at Task 5 Step 3. The supported Power Apps connection-reference picker exposed no AI Builder connector, no `shared_aibuilder` entry, and no connector containing “Builder”. Supported `pac connectivity list-connectors` read-back also returned zero AI Builder or `shared_aibuilder` matches. The required exact AI Builder connection reference could not be created. No substitute connector was selected.
+The fresh post-import tenant export is preserved as `evaluation-flow-export.json` with SHA-256 `AE3C91F22CB6BA0DE8B1BF5226C3C02FA92302B1D32C705C2081EFE660DA91D9`. It is the authoritative machine-readable record of:
+
+- the trigger schema, required flags, and `capture_stage` enum;
+- the complete validation expression and fixed-model filename allow-lists;
+- both connection-reference logical names;
+- action types, connector operations, inputs, and `runAfter` rules;
+- secure trigger and AI Builder settings;
+- the ordered canonical object and 17 ordered field mappings;
+- raw and canonical filename/content expressions; and
+- explicit success, capture-failure, and invalid-request termination.
+
+The remaining sections summarize that exported definition for attended review; they do not replace it.
 
 ## Append-only attempt history
 
 ### Attempt 1 — publisher gate
 
-Attempt 1 stopped before tenant mutation because the intent did not record an approved publisher after read-back. Commit `dbcd3684a2e5a790382e58af8d8808a1471073a4` preserves that historical failure. It remains authoritative for attempt 1 and has not been rewritten away.
+Attempt 1 stopped before tenant mutation because the intent did not record an approved publisher after read-back. Commit `dbcd3684a2e5a790382e58af8d8808a1471073a4` preserves that historical failure. It remains authoritative and is not reclassified.
 
 ### Attempt 2 — AI Builder connection-reference gate
 
-Attempt 2 passed the publisher gate and performed only the already approved mutations listed below. It stopped when the exact AI Builder connection reference could not be created through the supported UI or observed connector inventory.
+Attempt 2 passed the publisher gate and created the approved unmanaged solution, SharePoint connection reference, and restricted empty folder. It stopped because the supported connection-reference picker did not expose `shared_aibuilder`. No substitute connector or flow was created. This blocker remains authoritative for the second attempt.
 
-## Exact resource read-back
+### Attempt 3 — successful action-first continuation
 
-| Resource | Exact approved value | Attempt 2 state |
-|---|---|---|
-| Evaluation solution | `Caldova HR AI Evaluation DEV` / `calhr_ai_evaluation_dev` | Created; ID `df590fd2-13bc-f111-aaae-7ced8d44be51`; unmanaged `1.0.0.0`; approved publisher |
-| Manual flow | `Capture AI Builder Evaluation Evidence` | Not created; exact workflow match count `0` |
-| AI Builder connection reference | `Caldova HR AI Evaluation DEV AI Builder` / `calhr_ai_evaluation_dev_aibuilder` | Not created; supported connector and picker match counts `0` |
-| SharePoint connection reference | `Caldova HR AI Evaluation DEV SharePoint` / `calhr_ai_evaluation_dev_sharepoint` | Created and active; ID `94b29de5-14bc-f111-aaae-70a8a505d538`; connector `/providers/Microsoft.PowerApps/apis/shared_sharepointonline` |
-| Synthetic-evidence folder | `https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence` | Created, empty, unique permissions, sole administrator principal |
-| Existing business solution | `caldovahrfrontier` | Present, unmanaged, unchanged |
+Action-first discovery established that solution-aware AI Builder `Process documents` uses a dedicated Dataverse connection reference. The user approved the narrower boundary and retaining the platform-generated unique name while changing only its display name:
 
-## Flow definition state
+| Property | Verified value |
+|---|---|
+| Display name | `Caldova HR AI Evaluation DEV Dataverse (AI Builder)` |
+| Generated unique name | `calhr_sharedcommondataserviceforapps_68a73` |
+| Connector | `shared_commondataserviceforapps` |
+| Sole use | AI Builder `Process documents` operation `aibuilderpredict_formsprocessing` |
+| Dataverse table actions | None |
 
-There is no saved flow definition. Therefore no action names, expressions, output mapping, model binding, owner/run-only assignment, secure inputs/outputs, or Off state can be claimed. The safe state is the verified absence of the exact flow, not an unverified or partially configured executable flow.
+This action-only dependency resolves attempt 2 without erasing it and does not authorize general Dataverse use.
 
-The required future flow contract remains unchanged:
+## Exact solution inventory
 
-- manual file-bearing trigger inputs `source_pdf`, `expected_filename`, `expected_sha256`, `execution_run_id`, `corpus_revision`, and `capture_stage`;
-- deterministic required-input, lower-case SHA-256, run-ID, corpus-revision, stage, and exact filename allow-list validation before AI Builder;
-- only AI Builder and SharePoint connector families;
-- source read from the dedicated synthetic-evidence folder;
-- explicit binding to published `PersonalMasterDataFixed` version `1.0`, never “latest” or draft `2.0`;
-- unmodified AI Builder action body written as `<execution_run_id>.ai-builder.raw.json`;
-- ordered 17-field canonical envelope written as `<execution_run_id>.canonical.json`;
-- compact UTF-8 JSON without BOM and with one terminal LF;
-- create-file collision failure with no overwrite;
-- explicit success and failure termination;
-- no auto-delete or cleanup; and
-- immediate Off state after the first complete save and before any test or run.
+| Component | Verified value |
+|---|---|
+| Cloud flow | `Capture AI Builder Evaluation Evidence`; workflow ID `24e38f04-9ebc-f111-aaae-7ced8d44be51` |
+| AI Builder dependency | `Caldova HR AI Evaluation DEV Dataverse (AI Builder)` / `calhr_sharedcommondataserviceforapps_68a73` / `shared_commondataserviceforapps` |
+| Storage dependency | `Caldova HR AI Evaluation DEV SharePoint` / `calhr_ai_evaluation_dev_sharepoint` / `shared_sharepointonline` |
 
-## Security disposition
+There are exactly three solution objects: the flow and these two connection references. Existing unmanaged solution `caldovahrfrontier` is unchanged.
 
-`security-verification.json` records attempt 2 as `blocked`. Controls observed on created resources are recorded as passed or failed. Flow-dependent controls remain `unknown`; they are not represented as passed.
+## Exported trigger and fail-closed validation
 
-No PDF was uploaded, submitted, or processed. No HTTP, custom connector, email, Teams, Workday, agent, Dataverse table, schedule, recurrence, event trigger, production source, child flow, delete action, or substitute connector was introduced. Nothing was added to `caldovahrfrontier`. Draft `2.0` was not touched. No tenant resource was deleted.
+The fresh exported definition proves six required trigger inputs:
+
+1. `source_pdf` — File;
+2. `expected_filename` — Text;
+3. `expected_sha256` — Text;
+4. `execution_run_id` — Text;
+5. `corpus_revision` — Text; and
+6. `capture_stage` — enum `training-proof`, `fixed-holdout`, or `general-holdout`.
+
+Validation occurs before AI Builder and fails closed for:
+
+- source-file name versus claimed filename identity;
+- lower-case 64-hex claimed SHA-256;
+- execution run ID pattern `^cap-[0-9]{17}Z-[a-f0-9]{8}$`;
+- exact corpus revision `c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db`;
+- one of the three declared capture-stage values; and
+- the exact training and fixed-holdout filename allow-lists from the qualified fixed-model corpus.
+
+Because this flow is bound to the fixed model, `general-holdout` is a reserved portability value and fails the filename-stage validation. Invalid or unsupported requests terminate before `Process documents`.
+
+## Exact action inventory
+
+| Scope or branch | Action |
+|---|---|
+| If yes / `Capture evidence` | `Get source PDF` |
+| If yes / `Capture evidence` | `Process documents` |
+| If yes / `Capture evidence` | `Create raw response` |
+| If yes / `Capture evidence` | `Build canonical envelope` |
+| If yes / `Capture evidence` | `Create canonical envelope` |
+| If yes | `Terminate capture success` |
+| If yes | `Terminate capture failure` |
+| If no | `Terminate invalid request` |
+
+## Trusted source retrieval and AI binding
+
+Within the `Capture evidence` scope, action `Get source PDF` uses the approved SharePoint connection reference and operation `GetFileContentByPath`. Its path is:
+
+```text
+/Shared Documents/AIBuilderEvaluationEvidence/<expected_filename>
+```
+
+`Process documents` runs only after `Get source PDF` succeeds and consumes the retrieved SharePoint bytes through the exact binding:
+
+```text
+@body('Get_source_PDF')
+```
+
+It does not consume trigger-uploaded bytes. The trigger file remains an attended input surface, but the approved restricted SharePoint folder is the trusted document source used for AI processing.
+
+## AI Builder action and outputs
+
+`Process documents` is explicitly bound to `PersonalMasterDataFixed` model ID `74b09a72-d1f1-4598-bc4d-3746d5c97acc`. The published fixed `1.0` lineage was proven before flow creation; draft `2.0` remains untouched. Secure inputs and outputs are enabled on both the manual trigger and AI Builder action.
+
+The flow writes, using Create file and without overwrite:
+
+- the unmodified action body as `<execution_run_id>.ai-builder.raw.json`; and
+- the ordered canonical envelope as `<execution_run_id>.canonical.json`.
+
+The canonical envelope contains the approved ordered 17-field contract with each field represented as `value` then `confidence`. Both writes target the approved restricted SharePoint folder. The definition has explicit success, capture-failure, and invalid-request termination.
+
+## Security and negative inventory
+
+The owner and primary owner are Microsoft Administrator (`admin@caldova25668747.onmicrosoft.com`). There is no run-only sharing. The only connector families are `shared_commondataserviceforapps` for the single AI Builder operation and `shared_sharepointonline` for approved file writes.
+
+The exported definition contains no Dataverse table action, HTTP, custom connector, email, Teams, Workday, agent, child flow, schedule, recurrence, event trigger, delete, cleanup, or retention action. Portal Flow checker reported **0 errors and 0 warnings**.
+
+The flow remains Off with zero runs. The folder remains empty and restricted. No training PDF, fixed holdout, or general holdout has been exposed.
 
 ## Attended evidence
 
-- `evaluation-flow-publication-dependency.png` — published fixed `1.0` and preserved open-draft warning; SHA-256 `5F46DE223FDA357072F88C52475F8FE46D651B905538CBC2CE897CBCAFB3287B`.
-- `evaluation-solution-resources.png` — exact solution inventory with one SharePoint connection reference and zero cloud flows; SHA-256 `DFFEBE8D5E3EA6BED0612A6652230E0385622E863E78D5A766E2AB85BDC9B1F9`.
-- `evaluation-folder-permissions.png` — unique folder permissions and sole Microsoft Administrator principal; SHA-256 `762030649DD6F706DD1A4607DADC077903A9366B0DAA2C33BE924D82090F2B17`.
+The Task 5 evidence set includes:
 
-## Required restart condition
+- `evaluation-flow-solution-inventory.png` — exact one-flow/two-reference inventory;
+- `evaluation-flow-off-zero-runs.png` — flow details showing the Off state;
+- `evaluation-flow-zero-run-history.png` — run-history view stating that the flow has not been run;
+- `evaluation-flow-definition-checker.png` — Flow checker with zero errors and zero warnings; and
+- `evaluation-flow-trigger-controls.png` — trigger editor showing `source_pdf`, `expected_filename`, `expected_sha256`, and `execution_run_id`.
 
-Before Task 5 can resume, an approved supported tenant mechanism must expose `/providers/Microsoft.PowerApps/apis/shared_aibuilder` as the exact explicit solution connection reference without introducing a forbidden connector. Then Task 5 must restart at Step 1 and re-verify tenant identity, publication lineage, approval, publisher, resource state, and draft preservation. The existing solution, SharePoint reference, and folder must be reused; no duplicate resource may be created.
+`security-verification.json` is the authoritative screenshot-hash inventory. The hash-bound `evaluation-flow-export.json`, not the partial trigger screenshot, is the authoritative evidence for all six trigger inputs, the three stage choices, and secure trigger settings.
+
+## Next authorization boundary
+
+Task 5 is complete. Task 6 remains unchecked and unauthorized. Before any enablement or invocation, obtain separate attended approval for exactly one allow-listed training-PDF observation. Task 5 completion is not permission to expose a PDF.

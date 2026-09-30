@@ -255,6 +255,8 @@ Describe 'AI Builder field and corpus contracts' {
             $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
             $script:EvaluationIntentPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\evaluation-capture-intent.json'
             $script:EvaluationReadinessPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\evaluation-capture-readiness.json'
+            $script:EvaluationFlowDefinitionPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\evaluation-flow-definition.md'
+            $script:EvaluationFlowExportPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\evaluation-flow-export.json'
             $script:TestBoM = Get-Content -LiteralPath (
                 Join-Path $root 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\bom-0002-ai-builder-test-inputs-and-outcomes.md'
             ) -Raw
@@ -280,11 +282,16 @@ Describe 'AI Builder field and corpus contracts' {
 
             $intent.selection.connection_references.ai_builder.display_name | Should -Be 'Caldova HR AI Evaluation DEV AI Builder'
             $intent.selection.connection_references.ai_builder.unique_name | Should -Be 'calhr_ai_evaluation_dev_aibuilder'
+            $intent.selection.connection_references.dataverse_ai_builder.display_name | Should -Be 'Caldova HR AI Evaluation DEV Dataverse (AI Builder)'
+            $intent.selection.connection_references.dataverse_ai_builder.unique_name | Should -Be 'calhr_sharedcommondataserviceforapps_68a73'
+            $intent.selection.connection_references.dataverse_ai_builder.connector_id | Should -Be '/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps'
+            $intent.selection.connection_references.dataverse_ai_builder.usage | Should -Match 'Process documents'
+            $intent.selection.connection_references.dataverse_ai_builder.unique_name_disposition | Should -Match 'generated'
             $intent.selection.connection_references.sharepoint.display_name | Should -Be 'Caldova HR AI Evaluation DEV SharePoint'
             $intent.selection.connection_references.sharepoint.unique_name | Should -Be 'calhr_ai_evaluation_dev_sharepoint'
-            $intent.selection.connection_references.confirmation.status | Should -Be 'explicit_user_confirmed'
-            ([datetime]$intent.selection.connection_references.confirmation.confirmed_at_utc).ToString('o') | Should -Be '2026-09-29T13:37:13.6480000Z'
-            $intent.selection.connection_references.confirmation.source | Should -Be 'user message'
+            $intent.selection.connection_references.confirmation.status | Should -Be 'explicit_user_confirmed_with_narrowed_ai_builder_boundary'
+            ([datetime]$intent.selection.connection_references.confirmation.confirmed_at_utc) -gt [datetime]'2026-09-29T13:37:13.6480000Z' | Should -BeTrue
+            $intent.selection.connection_references.confirmation.source | Should -Be 'user instruction'
 
             $intent.fixed_model.display_name | Should -Be 'PersonalMasterDataFixed'
             $intent.fixed_model.model_id | Should -Be '74b09a72-d1f1-4598-bc4d-3746d5c97acc'
@@ -308,6 +315,11 @@ Describe 'AI Builder field and corpus contracts' {
             $readiness.explicit_approval.scope_summary | Should -Match 'publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1\.0 for evaluation'
             $readiness.explicit_approval.scope_summary | Should -Match 'create the unmanaged solution, manual flow, AI Builder and SharePoint connection references, and the selected SharePoint folder'
             @($readiness.explicit_approval.authorized_later_tasks) | Should -Be @('Task 4', 'Task 5', 'Task 6')
+            $readiness.explicit_approval.authorization_status | Should -Be 'historical_scope_superseded_for_task_6_execution'
+            $readiness.effective_current_authorization.task_4 | Should -Be 'completed'
+            $readiness.effective_current_authorization.task_5 | Should -Be 'completed'
+            $readiness.effective_current_authorization.task_6 | Should -Be 'not_authorized'
+            $readiness.effective_current_authorization.pdf_capture_authorized | Should -BeFalse
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No TEST or PROD mutation'
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No Tenant 1 mutation'
             @($readiness.explicit_approval.exclusions) | Should -Contain 'No Workday integration'
@@ -352,38 +364,155 @@ Describe 'AI Builder field and corpus contracts' {
             $blockedAttempt[0].evidence_path | Should -Be 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\security-verification.json'
         }
 
-        It 'records the resumed Task 5 resources and the supported AI Builder connector blocker without erasing attempt 1' {
+        It 'records the completed Task 5 flow without erasing either historical blocker' {
             $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
             $securityPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\security-verification.json'
             $readiness = Get-Content -LiteralPath $script:EvaluationReadinessPath -Raw | ConvertFrom-Json
             $security = Get-Content -LiteralPath $securityPath -Raw | ConvertFrom-Json
 
-            $security.status | Should -Be 'blocked'
-            $security.current_attempt.attempt | Should -Be 2
-            $security.current_attempt.blocker.id | Should -Be 'ai_builder_connection_reference_unavailable'
+            $security.status | Should -Be 'passed'
+            $security.current_attempt.attempt | Should -Be 3
+            $security.current_attempt.status | Should -Be 'passed'
             $security.resource_read_back.evaluation_solution.solution_id | Should -Be 'df590fd2-13bc-f111-aaae-7ced8d44be51'
             $security.resource_read_back.evaluation_solution.state | Should -Be 'created_unmanaged'
             $security.resource_read_back.sharepoint_connection_reference.connection_reference_id | Should -Be '94b29de5-14bc-f111-aaae-70a8a505d538'
             $security.resource_read_back.sharepoint_connection_reference.connector_id | Should -Be '/providers/Microsoft.PowerApps/apis/shared_sharepointonline'
-            $security.resource_read_back.ai_builder_connection_reference.state | Should -Be 'not_created'
-            $security.resource_read_back.ai_builder_connection_reference.supported_connector_match_count | Should -Be 0
-            $security.resource_read_back.sharepoint_folder.state | Should -Be 'created_restricted'
+            $security.resource_read_back.dataverse_ai_builder_connection_reference.display_name | Should -Be 'Caldova HR AI Evaluation DEV Dataverse (AI Builder)'
+            $security.resource_read_back.dataverse_ai_builder_connection_reference.unique_name | Should -Be 'calhr_sharedcommondataserviceforapps_68a73'
+            $security.resource_read_back.dataverse_ai_builder_connection_reference.connector_id | Should -Be '/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps'
+            $security.resource_read_back.dataverse_ai_builder_connection_reference.state | Should -Be 'created_active'
+            $security.resource_read_back.dataverse_ai_builder_connection_reference.usage | Should -Match 'Process documents'
+            $security.resource_read_back.sharepoint_folder.state | Should -Be 'empty_restricted'
             @($security.resource_read_back.sharepoint_folder.principals) | Should -Be @('admin@caldova25668747.onmicrosoft.com')
-            $security.resource_read_back.flow.state | Should -Be 'not_created'
-            $security.resource_read_back.flow.exact_name_match_count | Should -Be 0
+            $security.resource_read_back.flow.workflow_id | Should -Be '24e38f04-9ebc-f111-aaae-7ced8d44be51'
+            $security.resource_read_back.flow.state | Should -Be 'saved_off'
+            $security.resource_read_back.flow.exact_name_match_count | Should -Be 1
+            $security.resource_read_back.flow.run_count | Should -Be 0
 
             $history = @($readiness.task_5_attempt_history)
-            $history.Count | Should -Be 2
+            $history.Count | Should -Be 3
             $history[0].attempt | Should -Be 1
             $history[0].blocker_id | Should -Be 'publisher_not_recorded_in_intent'
             $history[1].attempt | Should -Be 2
             $history[1].blocker_id | Should -Be 'ai_builder_connection_reference_unavailable'
+            $history[2].attempt | Should -Be 3
+            $history[2].status | Should -Be 'passed'
 
             foreach ($evidence in @($security.attended_evidence)) {
                 $evidencePath = Join-Path (Split-Path -Parent $securityPath) $evidence.screenshot
                 $evidencePath | Should -Exist
                 (Get-FileHash -LiteralPath $evidencePath -Algorithm SHA256).Hash | Should -Be $evidence.screenshot_sha256
             }
+
+            foreach ($checkId in @(
+                    'flow_state_off',
+                    'owner_and_run_only',
+                    'secure_inputs_outputs',
+                    'connector_inventory',
+                    'model_binding',
+                    'immutable_no_overwrite',
+                    'flow_checker',
+                    'no_pdf_submission'
+                )) {
+                $check = @($security.checks | Where-Object id -eq $checkId)
+                $check.Count | Should -Be 1
+                $check[0].status | Should -Be 'passed'
+            }
+        }
+
+        It 'records the complete Off flow definition, exact bindings, and zero-run evidence' {
+            $script:EvaluationFlowDefinitionPath | Should -Exist
+            $definition = Get-Content -LiteralPath $script:EvaluationFlowDefinitionPath -Raw
+
+            $definition | Should -Match 'Status.*Active'
+            $definition | Should -Match '24e38f04-9ebc-f111-aaae-7ced8d44be51'
+            $definition | Should -Match 'calhr_sharedcommondataserviceforapps_68a73'
+            $definition | Should -Match 'calhr_ai_evaluation_dev_sharepoint'
+            $definition | Should -Match 'Get source PDF'
+            $definition | Should -Match 'Process documents'
+            $definition | Should -Match 'Create raw response'
+            $definition | Should -Match 'Build canonical envelope'
+            $definition | Should -Match 'Create canonical envelope'
+            $definition | Should -Match 'Terminate capture success'
+            $definition | Should -Match 'Terminate capture failure'
+            $definition | Should -Match 'Terminate invalid request'
+            $definition | Should -Match '0 errors'
+            $definition | Should -Match '0 warnings'
+            $definition | Should -Match 'zero runs'
+            $definition | Should -Match 'Off'
+            $definition | Should -Match 'evaluation-flow-solution-inventory\.png'
+            $definition | Should -Match 'evaluation-flow-off-zero-runs\.png'
+            $definition | Should -Match 'evaluation-flow-definition-checker\.png'
+            $definition | Should -Match 'evaluation-flow-trigger-controls\.png'
+        }
+
+        It 'preserves and structurally verifies the exported flow definition' {
+            $script:EvaluationFlowExportPath | Should -Exist
+            $exportHash = (Get-FileHash -LiteralPath $script:EvaluationFlowExportPath -Algorithm SHA256).Hash
+            $exportHash | Should -Be 'AE3C91F22CB6BA0DE8B1BF5226C3C02FA92302B1D32C705C2081EFE660DA91D9'
+            $flow = Get-Content -LiteralPath $script:EvaluationFlowExportPath -Raw | ConvertFrom-Json
+            $definition = $flow.properties.definition
+            $trigger = $definition.triggers.manual
+            $condition = $definition.actions.Validate_capture_request
+            $scope = $condition.actions.Capture_evidence
+
+            @($flow.properties.connectionReferences.psobject.Properties.Name) |
+                Should -Be @('shared_commondataserviceforapps', 'shared_sharepointonline')
+            $flow.properties.connectionReferences.shared_commondataserviceforapps.connection.connectionReferenceLogicalName |
+                Should -Be 'calhr_sharedcommondataserviceforapps_68a73'
+            $flow.properties.connectionReferences.shared_sharepointonline.connection.connectionReferenceLogicalName |
+                Should -Be 'calhr_ai_evaluation_dev_sharepoint'
+
+            @($trigger.inputs.schema.required).Count | Should -Be 6
+            @($trigger.inputs.schema.properties.psobject.Properties.Value.title) |
+                Should -Be @('source_pdf', 'expected_filename', 'expected_sha256', 'execution_run_id', 'corpus_revision', 'capture_stage')
+            @($trigger.inputs.schema.properties.text_4.enum) |
+                Should -Be @('training-proof', 'fixed-holdout', 'general-holdout')
+            @($trigger.runtimeConfiguration.secureData.properties) | Should -Be @('inputs', 'outputs')
+
+            $condition.type | Should -Be 'If'
+            $conditionExpression = $condition.expression | ConvertTo-Json -Depth 30 -Compress
+            $conditionExpression | Should -Match 'c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db'
+            $conditionExpression | Should -Match 'training-proof'
+            $conditionExpression | Should -Match 'fixed-holdout'
+            $conditionExpression | Should -Match 'a01-CAND-2026-0411-brunner\.pdf'
+            $conditionExpression | Should -Match 'd06-CAND-2026-0434-ochsner\.pdf'
+            $conditionExpression | Should -Not -Match 'g01-arbeitsvertrag'
+
+            @($scope.actions.psobject.Properties.Name) |
+                Should -Be @('Get_source_PDF', 'Process_documents', 'Create_raw_response', 'Build_canonical_envelope', 'Create_canonical_envelope')
+            $scope.actions.Get_source_PDF.inputs.host.operationId | Should -Be 'GetFileContentByPath'
+            $scope.actions.Get_source_PDF.inputs.parameters.path |
+                Should -Be "@concat('/Shared Documents/AIBuilderEvaluationEvidence/', triggerBody()?['text'])"
+            @($scope.actions.Process_documents.runAfter.Get_source_PDF) | Should -Be @('Succeeded')
+            $scope.actions.Process_documents.inputs.host.operationId | Should -Be 'aibuilderpredict_formsprocessing'
+            $scope.actions.Process_documents.inputs.parameters.recordId | Should -Be '74b09a72-d1f1-4598-bc4d-3746d5c97acc'
+            $scope.actions.Process_documents.inputs.parameters.'item/requestv2/base64Encoded' | Should -Be "@body('Get_source_PDF')"
+            @($scope.actions.Process_documents.runtimeConfiguration.secureData.properties) | Should -Be @('inputs', 'outputs')
+
+            $canonical = $scope.actions.Build_canonical_envelope.inputs
+            @($canonical.psobject.Properties.Name) |
+                Should -Be @('schema_version', 'run_id', 'corpus_revision', 'filename', 'claimed_sha256', 'model_name', 'model_version', 'captured_at_utc', 'fields')
+            @($canonical.fields.psobject.Properties.Name) |
+                Should -Be @('candidate_id', 'last_name', 'first_name', 'dob', 'nationality', 'marital', 'heimatort', 'permit', 'street', 'plz', 'city', 'ahv', 'iban', 'phone', 'email', 'ec_name', 'ec_phone')
+            foreach ($field in @($canonical.fields.psobject.Properties.Value)) {
+                @($field.psobject.Properties.Name) | Should -Be @('value', 'confidence')
+            }
+
+            $scope.actions.Create_raw_response.inputs.parameters.name |
+                Should -Be "@concat(triggerBody()?['text_2'], '.ai-builder.raw.json')"
+            $scope.actions.Create_raw_response.inputs.parameters.body |
+                Should -Be "@string(body('Process_documents'))"
+            $scope.actions.Create_canonical_envelope.inputs.parameters.name |
+                Should -Be "@concat(triggerBody()?['text_2'], '.canonical.json')"
+            $scope.actions.Create_canonical_envelope.inputs.parameters.body |
+                Should -Be "@concat(string(outputs('Build_canonical_envelope')), decodeUriComponent('%0A'))"
+
+            @($condition.actions.Terminate_capture_success.runAfter.Capture_evidence) | Should -Be @('Succeeded')
+            $condition.actions.Terminate_capture_success.inputs.runStatus | Should -Be 'Succeeded'
+            @($condition.actions.Terminate_capture_failure.runAfter.Capture_evidence) | Should -Be @('Failed', 'TimedOut')
+            $condition.actions.Terminate_capture_failure.inputs.runStatus | Should -Be 'Failed'
+            $condition.else.actions.Terminate_invalid_request.inputs.runStatus | Should -Be 'Failed'
         }
 
         It 'updates the fixed-model test register to cite the approval evidence before tenant mutation' {

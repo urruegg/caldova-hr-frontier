@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
-| **Date** | 2026-09-29 |
+| **Version** | 0.2 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | HR Solution Architecture - Tenant 2 DEV AI Builder evaluation capture |
@@ -414,3 +414,21 @@ The design relies on the following Microsoft Learn behavior:
 - [Create a cloud flow in a solution](https://learn.microsoft.com/power-automate/create-flow-solution): solution-aware flows use solution components and connection references.
 - [Secure inputs and outputs for triggers](https://learn.microsoft.com/power-automate/guidance/coding-guidelines/use-secure-inputs-outputs-triggers): secure inputs and outputs prevent sensitive trigger and action data from being exposed in run history.
 - [Distribute an AI model](https://learn.microsoft.com/ai-builder/distribute-model): the model must be published for solution distribution, and the distributed model is executable without including its training data.
+
+## 16. Task 5 continuation ruling
+
+This ruling is append-only: it does not erase the publisher-gate failure in attempt 1 or the unavailable-picker failure in attempt 2.
+
+Task 5 attempt 3 established that the supported solution-aware `Process documents` action uses a dedicated Dataverse connection reference rather than a `shared_aibuilder` connection reference. Action-first discovery was therefore required: add the published model action first, inspect the generated dependency, and then rename only its display name. The platform-generated unique name is retained because changing it after action creation would break the observed dependency.
+
+The approved narrowed boundary is:
+
+- display name `Caldova HR AI Evaluation DEV Dataverse (AI Builder)`;
+- generated unique name `calhr_sharedcommondataserviceforapps_68a73`;
+- connector `shared_commondataserviceforapps`;
+- use only by `Process documents` operation `aibuilderpredict_formsprocessing`; and
+- no Dataverse table action.
+
+This is not a general Dataverse authorization. Together with the approved SharePoint connection reference, it is the complete two-family connector boundary for the evaluation flow. Attempt 3 passed because the exported definition and attended portal checks proved this narrow use, the complete fail-closed contract, secure trigger/action inputs and outputs, zero checker findings, Off state, zero runs, and no exposed PDF. Task 6 remains a separate attended operation and is not authorized by Task 5 completion.
+
+The final trusted-source refinement satisfies the requirement that AI Builder process bytes retrieved from the approved restricted store. In `Capture evidence`, action `Get source PDF` uses the approved SharePoint reference, operation `GetFileContentByPath`, and path `/Shared Documents/AIBuilderEvaluationEvidence/<expected_filename>`. `Process documents` runs after that action and consumes exactly `@body('Get_source_PDF')`; trigger-uploaded bytes are not its document input.

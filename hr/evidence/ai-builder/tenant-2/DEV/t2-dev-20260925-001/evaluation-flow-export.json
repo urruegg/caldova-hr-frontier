@@ -1,0 +1,523 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "calhr_sharedcommondataserviceforapps_68a73"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      },
+      "shared_sharepointonline": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "calhr_ai_evaluation_dev_sharepoint"
+        },
+        "api": {
+          "name": "shared_sharepointonline"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "metadata": {
+            "operationMetadataId": "19b921e7-36dd-4ddc-9674-b54c9abca2dd"
+          },
+          "type": "Request",
+          "kind": "Button",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "file": {
+                  "title": "source_pdf",
+                  "type": "object",
+                  "x-ms-dynamically-added": true,
+                  "description": "Please select file or image",
+                  "x-ms-content-hint": "FILE",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "contentBytes": {
+                      "type": "string",
+                      "format": "byte"
+                    }
+                  }
+                },
+                "text": {
+                  "title": "expected_filename",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "description": "Please enter your input",
+                  "x-ms-content-hint": "TEXT"
+                },
+                "text_1": {
+                  "title": "expected_sha256",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "description": "Please enter your input",
+                  "x-ms-content-hint": "TEXT"
+                },
+                "text_2": {
+                  "title": "execution_run_id",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "description": "Please enter your input",
+                  "x-ms-content-hint": "TEXT"
+                },
+                "text_3": {
+                  "title": "corpus_revision",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "description": "Please enter your input",
+                  "x-ms-content-hint": "TEXT"
+                },
+                "text_4": {
+                  "title": "capture_stage",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "description": "Select the controlled capture stage.",
+                  "x-ms-content-hint": "TEXT",
+                  "enum": [
+                    "training-proof",
+                    "fixed-holdout",
+                    "general-holdout"
+                  ]
+                }
+              },
+              "required": [
+                "file",
+                "text",
+                "text_1",
+                "text_2",
+                "text_3",
+                "text_4"
+              ]
+            }
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        }
+      },
+      "actions": {
+        "Validate_capture_request": {
+          "actions": {
+            "Capture_evidence": {
+              "actions": {
+                "Get_source_PDF": {
+                  "runAfter": {},
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "GetFileContentByPath",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                    },
+                    "parameters": {
+                      "dataset": "https://caldova25668747.sharepoint.com/sites/HRFrontierDEV",
+                      "path": "@concat('/Shared Documents/AIBuilderEvaluationEvidence/', triggerBody()?['text'])",
+                      "inferContentType": true
+                    },
+                    "authentication": {
+                      "type": "Raw",
+                      "value": "@json(decodeBase64(triggerOutputs().headers['X-MS-APIM-Tokens']))['$ConnectionKey']"
+                    }
+                  }
+                },
+                "Process_documents": {
+                  "runAfter": {
+                    "Get_source_PDF": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "794ce72f-2f8d-4b47-8f7b-4cdd3c8712c8",
+                    "flowSystemMetadata": {
+                      "portalOperationApiDisplayNameOverride": "AI Builder",
+                      "portalOperationIconOverride": "https://content.powerapps.com/resource/makerx/static/pauto/images/designeroperations/aibuilderIcon2026.8e878397.png",
+                      "portalOperationBrandColorOverride": "#0A76C4",
+                      "portalOperationApiTierOverride": "Standard"
+                    }
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "aibuilderpredict_formsprocessing",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "recordId": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+                      "item/requestv2/mimeType": "application/pdf",
+                      "item/requestv2/base64Encoded": "@body('Get_source_PDF')"
+                    },
+                    "authentication": {
+                      "type": "Raw",
+                      "value": "@json(decodeBase64(triggerOutputs().headers['X-MS-APIM-Tokens']))['$ConnectionKey']"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Create_raw_response": {
+                  "runAfter": {
+                    "Process_documents": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "df5aa645-30ab-4278-a798-8516fe7ffcf4"
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "CreateFile",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                    },
+                    "parameters": {
+                      "dataset": "https://caldova25668747.sharepoint.com/sites/HRFrontierDEV",
+                      "folderPath": "/Shared Documents/AIBuilderEvaluationEvidence",
+                      "name": "@concat(triggerBody()?['text_2'], '.ai-builder.raw.json')",
+                      "body": "@string(body('Process_documents'))"
+                    },
+                    "authentication": {
+                      "type": "Raw",
+                      "value": "@json(decodeBase64(triggerOutputs().headers['X-MS-APIM-Tokens']))['$ConnectionKey']"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "contentTransfer": {
+                      "transferMode": "Chunked"
+                    }
+                  }
+                },
+                "Build_canonical_envelope": {
+                  "runAfter": {
+                    "Create_raw_response": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "375e5c74-ee48-4125-b3f7-c487472ede04"
+                  },
+                  "type": "Compose",
+                  "inputs": {
+                    "schema_version": "1.0",
+                    "run_id": "@triggerBody()?['text_2']",
+                    "corpus_revision": "@triggerBody()?['text_3']",
+                    "filename": "@triggerBody()?['text']",
+                    "claimed_sha256": "@triggerBody()?['text_1']",
+                    "model_name": "PersonalMasterDataFixed",
+                    "model_version": "1.0",
+                    "captured_at_utc": "@utcNow()",
+                    "fields": {
+                      "candidate_id": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/candidate_id/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/candidate_id/confidence']"
+                      },
+                      "last_name": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/last_name/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/last_name/confidence']"
+                      },
+                      "first_name": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/first_name/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/first_name/confidence']"
+                      },
+                      "dob": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/dob/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/dob/confidence']"
+                      },
+                      "nationality": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/nationality/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/nationality/confidence']"
+                      },
+                      "marital": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/marital/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/marital/confidence']"
+                      },
+                      "heimatort": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/heimatort/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/heimatort/confidence']"
+                      },
+                      "permit": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/permit/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/permit/confidence']"
+                      },
+                      "street": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/street/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/street/confidence']"
+                      },
+                      "plz": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/plz/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/plz/confidence']"
+                      },
+                      "city": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/city/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/city/confidence']"
+                      },
+                      "ahv": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/ahv/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/ahv/confidence']"
+                      },
+                      "iban": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/iban/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/iban/confidence']"
+                      },
+                      "phone": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/phone/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/phone/confidence']"
+                      },
+                      "email": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/email/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/email/confidence']"
+                      },
+                      "ec_name": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/ec_name/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/ec_name/confidence']"
+                      },
+                      "ec_phone": {
+                        "value": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/ec_phone/value']",
+                        "confidence": "@outputs('Process_documents')?['body/responsev2/predictionOutput/labels/ec_phone/confidence']"
+                      }
+                    }
+                  }
+                },
+                "Create_canonical_envelope": {
+                  "runAfter": {
+                    "Build_canonical_envelope": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "06e630a1-2f07-462b-afd4-85a861ebdeed"
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "CreateFile",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                    },
+                    "parameters": {
+                      "dataset": "https://caldova25668747.sharepoint.com/sites/HRFrontierDEV",
+                      "folderPath": "/Shared Documents/AIBuilderEvaluationEvidence",
+                      "name": "@concat(triggerBody()?['text_2'], '.canonical.json')",
+                      "body": "@concat(string(outputs('Build_canonical_envelope')), decodeUriComponent('%0A'))"
+                    },
+                    "authentication": {
+                      "type": "Raw",
+                      "value": "@json(decodeBase64(triggerOutputs().headers['X-MS-APIM-Tokens']))['$ConnectionKey']"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "contentTransfer": {
+                      "transferMode": "Chunked"
+                    }
+                  }
+                }
+              },
+              "runAfter": {},
+              "metadata": {
+                "operationMetadataId": "89d25336-4a96-40d5-ad46-0d473b43e375"
+              },
+              "type": "Scope"
+            },
+            "Terminate_capture_success": {
+              "runAfter": {
+                "Capture_evidence": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "d97861cc-3d77-4ee9-abc4-512bb8e6731b"
+              },
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Succeeded"
+              }
+            },
+            "Terminate_capture_failure": {
+              "runAfter": {
+                "Capture_evidence": [
+                  "Failed",
+                  "TimedOut"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "5c6706c0-f996-4dfe-acb4-0c2f239843c2"
+              },
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "CaptureFailed",
+                  "message": "The controlled AI Builder capture failed. Preserve available evidence, ensure the flow is Off, and do not retry."
+                }
+              }
+            }
+          },
+          "runAfter": {},
+          "else": {
+            "actions": {
+              "Terminate_invalid_request": {
+                "runAfter": {},
+                "metadata": {
+                  "operationMetadataId": "1e9442f2-aa92-4e64-9029-1cdc81ea531e"
+                },
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "InvalidCaptureRequest",
+                    "message": "The request failed controlled input validation before AI Builder execution."
+                  }
+                }
+              }
+            }
+          },
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@triggerBody()?['file']?['name']",
+                  "@triggerBody()?['text']"
+                ]
+              },
+              {
+                "equals": [
+                  "@length(coalesce(triggerBody()?['text_1'], ''))",
+                  64
+                ]
+              },
+              {
+                "equals": [
+                  "@coalesce(triggerBody()?['text_1'], '')",
+                  "@toLower(coalesce(triggerBody()?['text_1'], ''))"
+                ]
+              },
+              {
+                "equals": [
+                  "@replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(coalesce(triggerBody()?['text_1'], ''), '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '')",
+                  ""
+                ]
+              },
+              {
+                "equals": [
+                  "@length(coalesce(triggerBody()?['text_2'], ''))",
+                  31
+                ]
+              },
+              {
+                "equals": [
+                  "@startsWith(coalesce(triggerBody()?['text_2'], ''), 'cap-')",
+                  true
+                ]
+              },
+              {
+                "equals": [
+                  "@substring(concat(coalesce(triggerBody()?['text_2'], ''), '0000000000000000000000000000000'), 21, 2)",
+                  "Z-"
+                ]
+              },
+              {
+                "equals": [
+                  "@replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(concat(coalesce(triggerBody()?['text_2'], ''), '0000000000000000000000000000000'), 4, 17), '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', '')",
+                  ""
+                ]
+              },
+              {
+                "equals": [
+                  "@replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(concat(coalesce(triggerBody()?['text_2'], ''), '0000000000000000000000000000000'), 23, 8), '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', ''), 'a', ''), 'b', ''), 'c', ''), 'd', ''), 'e', ''), 'f', '')",
+                  ""
+                ]
+              },
+              {
+                "equals": [
+                  "@coalesce(triggerBody()?['text_3'], '')",
+                  "c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db"
+                ]
+              },
+              {
+                "equals": [
+                  "@contains(createArray('training-proof', 'fixed-holdout', 'general-holdout'), coalesce(triggerBody()?['text_4'], ''))",
+                  true
+                ]
+              },
+              {
+                "or": [
+                  {
+                    "and": [
+                      {
+                        "equals": [
+                          "@coalesce(triggerBody()?['text_4'], '')",
+                          "training-proof"
+                        ]
+                      },
+                      {
+                        "equals": [
+                          "@contains(createArray('a01-CAND-2026-0411-brunner.pdf', 'a02-CAND-2026-0412-ochsner.pdf', 'a03-CAND-2026-0413-iten.pdf', 'a04-CAND-2026-0414-perren.pdf', 'a05-CAND-2026-0415-steiner.pdf', 'b01-CAND-2026-0417-bosshard.pdf', 'b02-CAND-2026-0418-keller.pdf', 'b03-CAND-2026-0419-widmer.pdf', 'b04-CAND-2026-0420-vogt.pdf', 'b05-CAND-2026-0421-ammann.pdf', 'c01-CAND-2026-0423-ferrari.pdf', 'c02-CAND-2026-0424-müller.pdf', 'c03-CAND-2026-0425-dubois.pdf', 'c04-CAND-2026-0426-nowak.pdf', 'c05-CAND-2026-0427-bühler.pdf', 'd01-CAND-2026-0429-pfister.pdf', 'd02-CAND-2026-0430-meier.pdf', 'd03-CAND-2026-0431-roth.pdf', 'd04-CAND-2026-0432-baumann.pdf', 'd05-CAND-2026-0433-hofer.pdf'), coalesce(triggerBody()?['text'], ''))",
+                          true
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "and": [
+                      {
+                        "equals": [
+                          "@coalesce(triggerBody()?['text_4'], '')",
+                          "fixed-holdout"
+                        ]
+                      },
+                      {
+                        "equals": [
+                          "@contains(createArray('a06-CAND-2026-0416-gerber.pdf', 'b06-CAND-2026-0422-schnyder.pdf', 'c06-CAND-2026-0428-frei.pdf', 'd06-CAND-2026-0434-ochsner.pdf'), coalesce(triggerBody()?['text'], ''))",
+                          true
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "1b91b44b-e4f4-422d-8739-bbab2f6d7e8e"
+          },
+          "type": "If"
+        }
+      }
+    },
+    "templateName": ""
+  },
+  "schemaVersion": "1.0.0.0"
+}

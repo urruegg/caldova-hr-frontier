@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-29 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | HR Solution Architecture - Tenant 2 DEV AI Builder evaluation capture and issue 13 completion |
@@ -497,7 +497,7 @@ Validate the manifest and inventory, preserve the publication screenshot and obs
 
 ---
 
-### Task 5: Create and secure the complete DEV-only evaluation flow
+### Task 5: Create and secure the complete DEV-only evaluation flow — complete
 
 **Files:**
 - Create: `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/security-verification.json`
@@ -510,15 +510,15 @@ Validate the manifest and inventory, preserve the publication screenshot and obs
 - Produces the approved unmanaged solution, connection references, synthetic-evidence folder, and complete manual flow bound explicitly to published fixed `1.0`; the saved flow is immediately Off and security is applied and verified.
 - Tenant actions are attended and are not automated tests.
 
-- [ ] **Step 1: Stop and prove the publication dependency**
+- [x] **Step 1: Stop and prove the publication dependency**
 
 **ATTENDED TENANT OPERATION — STOP FOR APPROVAL.** Reload intent, run `pac org who`, compare environment ID and administrator, and show the exact mutations. Require the manifest and portal to agree that model ID `74b09a72-d1f1-4598-bc4d-3746d5c97acc` version `1.0` is published and recorded as `evaluation_published`, with `2.0` untouched. Continue only after the operator confirms the recorded creation approval still applies. Any missing, failed, unknown, or mismatched publication evidence stops creation.
 
-- [ ] **Step 2: Create the unmanaged evaluation solution**
+- [x] **Step 2: Create the unmanaged evaluation solution**
 
 In Power Apps Tenant 2 DEV, create the selected display/unique names from intent. Use the existing approved publisher only if intent records it after read-back; otherwise stop for a separate publisher decision. Verify `Managed = No`. Do not add anything to `caldovahrfrontier`.
 
-- [ ] **Step 3: Create approved connection references and folder**
+- [x] **Step 3: Create approved connection references and folder**
 
 Inside the evaluation solution, create only:
 
@@ -527,7 +527,7 @@ Inside the evaluation solution, create only:
 
 Create the selected dedicated synthetic-evidence folder. Restrict it to the named administrator. Do not upload a training PDF or holdout.
 
-- [ ] **Step 4: Create and complete the manual file-bearing flow**
+- [x] **Step 4: Create and complete the manual file-bearing flow**
 
 Use the selected flow name. Configure manual inputs:
 
@@ -542,7 +542,7 @@ capture_stage       Choice: training-proof | fixed-holdout | general-holdout
 
 Only now, after Task 4 publication, add `Process documents` and select exact published `PersonalMasterDataFixed` version `1.0`. Never bind to “latest” or any selector that can resolve to `2.0`. Add deterministic steps to validate required inputs; reject a non-allow-listed filename before AI Builder; read the source through the dedicated connector; execute `Process documents`; write the unmodified action body; create the ordered 17-field envelope; write the canonical envelope; and terminate success/failure. Filenames are exactly `<execution_run_id>.ai-builder.raw.json` and `<execution_run_id>.canonical.json`; a create-file collision fails and never overwrites.
 
-- [ ] **Step 5: Configure canonical JSON output**
+- [x] **Step 5: Configure canonical JSON output**
 
 The canonical object property order is:
 
@@ -553,11 +553,11 @@ model_name, model_version, captured_at_utc, fields
 
 The `fields` order is the existing contract order. Each field has `value` then `confidence`. Use explicit nulls. The flow must emit compact JSON as UTF-8 without BOM and one terminal LF. Do not normalize or edit AI Builder values.
 
-- [ ] **Step 6: Save and immediately ensure the flow is Off**
+- [x] **Step 6: Save and immediately ensure the flow is Off**
 
 Save the complete flow, then immediately switch it Off and visibly verify the Off state before any test or capture. Do not invoke it during creation. If save, exact fixed `1.0` binding, or Off-state verification fails or is unknown, keep or force the flow Off where possible, record `blocked`, preserve available evidence, and stop.
 
-- [ ] **Step 7: Apply and verify security controls**
+- [x] **Step 7: Apply and verify security controls**
 
 Apply, then verify and record:
 
@@ -571,11 +571,11 @@ Apply, then verify and record:
 - no auto-delete, cleanup, or retention action exists; and
 - failure branches terminate the attended attempt, preserve available evidence, and require the operator to ensure the flow is Off.
 
-- [ ] **Step 8: Record exact flow definition and security evidence**
+- [x] **Step 8: Record exact flow definition and security evidence**
 
 `evaluation-flow-definition.md` records action names, expressions, the attended binding to published fixed `1.0`, connection references, output naming, field mapping, saved state, and screenshots. `security-verification.json` records observed values and `passed|failed|unknown`. Any failed or unknown value keeps the flow Off, appends or records `blocked` as applicable, preserves evidence, and stops before a training PDF.
 
-- [ ] **Step 9: Commit setup evidence**
+- [x] **Step 9: Record setup evidence**
 
 ```powershell
 git add -- hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/security-verification.json `
@@ -584,6 +584,12 @@ git add -- hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/security-veri
 git commit -m "test: record DEV evaluation flow controls" `
     -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ```
+
+**Completed Task 5 ruling (attempt 3, 2026-09-30):** Preserve attempts 1 and 2 as blocked history. Action-first discovery proved that `Process documents` operation `aibuilderpredict_formsprocessing` creates and uses a dedicated `shared_commondataserviceforapps` dependency. The user approved narrowing the AI Builder boundary to that action-only Dataverse reference, changing only its display name to `Caldova HR AI Evaluation DEV Dataverse (AI Builder)` and retaining generated unique name `calhr_sharedcommondataserviceforapps_68a73`. This does not authorize Dataverse table actions. The only other connection reference is the approved SharePoint reference. The exported definition and portal checks passed; the flow is Off with zero runs and Task 5 is complete. The historical blockers are not reclassified.
+
+**Trusted-source refinement:** Within `Capture evidence`, `Get source PDF` uses the approved SharePoint reference, operation `GetFileContentByPath`, and path `/Shared Documents/AIBuilderEvaluationEvidence/<expected_filename>`. `Process documents` runs after that action and consumes exactly `@body('Get_source_PDF')`, not trigger-uploaded bytes. This refinement did not enable or run the flow and exposed no PDF.
+
+Task 6 is deliberately still unchecked. No Task 5 approval or completion authorizes its attended capture. A separate attended approval is required before enabling or invoking the flow, and no training PDF has yet been exposed.
 
 ---
 

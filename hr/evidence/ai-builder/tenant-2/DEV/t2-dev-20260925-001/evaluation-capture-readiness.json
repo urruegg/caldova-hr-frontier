@@ -93,8 +93,9 @@
   "explicit_approval": {
     "response": "proceed",
     "responded_at_utc": "2026-09-29T13:47:08.4090000Z",
-    "recorded_interpretation": "Fresh explicit approval after every final name had been explicitly confirmed. This is the effective approval for later Tasks 4-6.",
+    "recorded_interpretation": "Historical approval after every final name had been explicitly confirmed. Task 4 and Task 5 used this approval. The implementation plan's later Task 6 Step 1 gate supersedes it for execution of any PDF capture.",
     "scope_summary": "Approval covers later Tasks 4-6 only: publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 for evaluation, then create the unmanaged solution, manual flow, AI Builder and SharePoint connection references, and the selected SharePoint folder. It does not authorize business use, TEST/PROD, Tenant 1, Workday, holdout submission, draft 2.0 mutation, or deletion.",
+    "authorization_status": "historical_scope_superseded_for_task_6_execution",
     "authorized_later_tasks": [
       "Task 4",
       "Task 5",
@@ -109,6 +110,13 @@
       "No draft 2.0 mutation",
       "No deletion"
     ]
+  },
+  "effective_current_authorization": {
+    "task_4": "completed",
+    "task_5": "completed",
+    "task_6": "not_authorized",
+    "superseding_gate": "Task 6 Step 1 separate attended approval",
+    "pdf_capture_authorized": false
   },
   "explicit_approval_artifact": {
     "prompt": "All final names are now explicitly confirmed. Do you freshly approve this exact Tenant 2 DEV-only scope: publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 as evaluation-only; create unmanaged solution Caldova HR AI Evaluation DEV (calhr_ai_evaluation_dev); create manual flow Capture AI Builder Evaluation Evidence; create AI Builder reference Caldova HR AI Evaluation DEV AI Builder (calhr_ai_evaluation_dev_aibuilder); create SharePoint reference Caldova HR AI Evaluation DEV SharePoint (calhr_ai_evaluation_dev_sharepoint); and create folder https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence, owned/run only by admin@caldova25668747.onmicrosoft.com? This does not authorize business use, TEST/PROD, Tenant 1, Workday, holdouts, draft 2.0 changes, automatic deletion, or any other deletion.",
@@ -158,7 +166,23 @@
       "observed_at_utc": "2026-09-29T18:40:30.7891960Z",
       "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\security-verification.json",
       "observation": "After exact publisher read-back, Task 5 created the approved unmanaged evaluation solution, SharePoint connection reference, and restricted empty folder. The supported Power Apps connection-reference picker and supported PAC connector inventory exposed no AI Builder/shared_aibuilder connector, so the exact AI Builder reference could not be created. No substitute connector or flow was created."
+    },
+    {
+      "attempt": 3,
+      "status": "passed",
+      "blocker_id": null,
+      "observed_at_utc": "2026-09-30T07:38:35.3050000Z",
+      "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\security-verification.json",
+      "observation": "A third continuation reused the existing solution, SharePoint reference, and restricted empty folder. Action-first discovery created the supported Process documents dependency as shared_commondataserviceforapps. The user approved its action-only boundary and retaining generated unique name calhr_sharedcommondataserviceforapps_68a73 while changing display name only. The final trusted-source refinement uses SharePoint Get source PDF / GetFileContentByPath at /Shared Documents/AIBuilderEvaluationEvidence/<expected_filename>; Process documents runs after it and consumes @body('Get_source_PDF'), not trigger-uploaded bytes. The completed flow passed definition and security checks, was left Off, and has zero runs."
     }
   ],
-  "current_task_boundary": "Task 5 attempt 2 is blocked. The approved unmanaged evaluation solution, SharePoint connection reference, and restricted empty folder exist in Tenant 2 DEV. The AI Builder connection reference and evaluation flow do not exist; no PDF was uploaded or submitted."
+  "current_task_boundary": "Task 5 attempt 3 is complete and passed. Task 6 is not authorized without separate attended approval. The flow remains Off with zero runs; no training PDF or holdout was uploaded, submitted, or processed.",
+  "current_task_authorization": {
+    "task_5": "complete",
+    "task_6": "not_authorized",
+    "required_next_gate": "separate attended approval for exactly one training-PDF capture",
+    "folder_state": "empty_restricted",
+    "pdf_count": 0,
+    "run_count": 0
+  }
 }

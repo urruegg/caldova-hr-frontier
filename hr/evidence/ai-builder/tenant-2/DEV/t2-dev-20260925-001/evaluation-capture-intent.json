@@ -38,7 +38,25 @@
       "ai_builder": {
         "display_name": "Caldova HR AI Evaluation DEV AI Builder",
         "unique_name": "calhr_ai_evaluation_dev_aibuilder",
-        "connector_id": "/providers/Microsoft.PowerApps/apis/shared_aibuilder"
+        "connector_id": "/providers/Microsoft.PowerApps/apis/shared_aibuilder",
+        "status": "approved_original_naming_preserved_as_history",
+        "confirmed_at_utc": "2026-09-29T13:37:13.6480000Z",
+        "implementation_disposition": "Not created. Attempt 2 proved that shared_aibuilder was unavailable through the supported connection-reference picker."
+      },
+      "dataverse_ai_builder": {
+        "record_type": "implementation_ruling",
+        "display_name": "Caldova HR AI Evaluation DEV Dataverse (AI Builder)",
+        "unique_name": "calhr_sharedcommondataserviceforapps_68a73",
+        "connector_id": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+        "connector_name": "shared_commondataserviceforapps",
+        "state": "created_active",
+        "usage": "Process documents only",
+        "operation": "aibuilderpredict_formsprocessing",
+        "dataverse_table_actions_authorized": false,
+        "discovery": "action_first",
+        "unique_name_disposition": "Retain the platform-generated unique name; change display name only.",
+        "boundary_approved_at_utc": "2026-09-30T07:38:35.3050000Z",
+        "boundary_approval_source": "User instruction"
       },
       "sharepoint": {
         "display_name": "Caldova HR AI Evaluation DEV SharePoint",
@@ -46,9 +64,9 @@
         "connector_id": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
       },
       "confirmation": {
-        "status": "explicit_user_confirmed",
-        "confirmed_at_utc": "2026-09-29T13:37:13.6480000Z",
-        "source": "user message"
+        "status": "explicit_user_confirmed_with_narrowed_ai_builder_boundary",
+        "confirmed_at_utc": "2026-09-30T07:38:35.3050000Z",
+        "source": "user instruction"
       }
     }
   },
@@ -58,12 +76,29 @@
     "version": "1.0"
   },
   "approval_recorded_at_utc": "2026-09-29T13:47:08.4090000Z",
+  "current_authorization": {
+    "task_5": "completed",
+    "task_6": "not_authorized_without_separate_attended_approval",
+    "pdfs_exposed": 0,
+    "runs": 0
+  },
+  "selection_history": [
+    {
+      "status": "approved_original_naming_preserved",
+      "display_name": "Caldova HR AI Evaluation DEV AI Builder",
+      "unique_name": "calhr_ai_evaluation_dev_aibuilder",
+      "connector_id": "/providers/Microsoft.PowerApps/apis/shared_aibuilder",
+      "observation": "Preserved original Task 3 selection. Attempt 2 proved this connector was unavailable in the supported picker; attempt 3 did not erase that blocker."
+    }
+  ],
   "notes": [
     "This record captures only the approved DEV-only evaluation naming, ownership, connector, and storage selections for later Tasks 4-6.",
     "The AI Builder and SharePoint connection-reference names were explicitly confirmed by the user after the initial Task 3 completion commit.",
     "Approved status now relies on the fresh post-confirmation proceed response rather than the earlier please proceed interaction.",
     "The existing publisher Caldova HR frontier (calhrfrontier, prefix calhr) was separately approved after exact supported FetchXML read-back.",
     "The first Task 5 attempt remains preserved as a blocked publisher-gate event in evaluation-capture-readiness.json and security-verification.json.",
-    "No tenant mutation was performed when this record was written."
+    "Attempt 2 remains preserved as the unavailable shared_aibuilder picker event.",
+    "The user approved the narrower action-only Dataverse dependency discovered by creating Process documents first, retaining its generated unique name while changing display name only.",
+    "Task 5 is complete. Task 6 requires separate attended approval; no training PDF or holdout has been exposed."
   ]
 }

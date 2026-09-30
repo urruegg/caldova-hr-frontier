@@ -2,14 +2,24 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.3 |
-| **Date** | 2026-09-29 |
+| **Version** | 0.4 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | UC-0001 attended AI Builder model build and evaluation in Tenant 2 DEV |
 | **References** | [AI Builder Evaluation Capture Design Addendum](../../../../docs/superpowers/specs/2026-09-29-ai-builder-evaluation-capture-design.md), [Tenant 2 AI Builder Model Implementation Design](../../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md), [AI Builder Field BoM](./bom-0001-peopledoc-master-data-ai-builder-fields.md), [AI Builder Test BoM](./bom-0002-ai-builder-test-inputs-and-outcomes.md), [AI Builder evidence contract](../../../evidence/ai-builder/README.md) |
 
 This attended procedure resumes run `t2-dev-20260925-001` after Tasks 1-5 completed corpus qualification, readiness, and fixed-model training. It preserves the historical blocked event at [`model-test-capability.json`](../../../evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-test-capability.json) while making the approved flow-based capture path unambiguous for the next attended mutation.
+
+Task 5 of the evaluation-capture implementation is now complete after a third continuation. Attempts 1 and 2 remain preserved as blocked history. The unmanaged solution `Caldova HR AI Evaluation DEV` (`calhr_ai_evaluation_dev`, ID `df590fd2-13bc-f111-aaae-7ced8d44be51`) contains exactly the flow and two connection references. The flow `Capture AI Builder Evaluation Evidence` (workflow ID `24e38f04-9ebc-f111-aaae-7ced8d44be51`) is Off, has zero runs, is owned only by `admin@caldova25668747.onmicrosoft.com`, and has no run-only sharing.
+
+Action-first discovery proved that AI Builder `Process documents` is represented by a dedicated Dataverse connection reference. Its approved display name is `Caldova HR AI Evaluation DEV Dataverse (AI Builder)`, generated unique name `calhr_sharedcommondataserviceforapps_68a73`, and connector `shared_commondataserviceforapps`. It is used only by operation `aibuilderpredict_formsprocessing`; no Dataverse table action is present. The second reference remains `Caldova HR AI Evaluation DEV SharePoint` / `calhr_ai_evaluation_dev_sharepoint` / `shared_sharepointonline`.
+
+The final trusted-source definition retrieves the document inside `Capture evidence` with SharePoint action `Get source PDF`, operation `GetFileContentByPath`, at `/Shared Documents/AIBuilderEvaluationEvidence/<expected_filename>`. `Process documents` runs after that action and its document input is exactly `@body('Get_source_PDF')`; it does not process trigger-uploaded bytes. The flow remains Off with zero runs and zero exposed PDFs.
+
+> **STOP — Task 6 is not authorized**
+>
+> Task 5 completion does not authorize a capture. Obtain separate attended approval before enabling or invoking the flow. No training PDF or holdout has been exposed, the restricted folder remains empty, and the flow must remain Off.
 
 ## 1. Authority, supersession, and preserved evidence
 
