@@ -25,7 +25,13 @@ function Read-EvaluationJson {
     }
 
     try {
-        return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+        $json = Get-Content -LiteralPath $Path -Raw
+        $convertFromJson = Get-Command ConvertFrom-Json -ErrorAction Stop
+        if ($convertFromJson.Parameters.ContainsKey('DateKind')) {
+            return $json | ConvertFrom-Json -DateKind String
+        }
+
+        return $json | ConvertFrom-Json
     }
     catch {
         throw "$Description file '$Path' is malformed JSON. $($_.Exception.Message)"

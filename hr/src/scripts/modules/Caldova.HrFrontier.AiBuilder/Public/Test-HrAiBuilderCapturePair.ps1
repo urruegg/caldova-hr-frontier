@@ -136,35 +136,37 @@ function Test-HrAiBuilderCapturePair {
             [AllowNull()][object]$Label
         )
 
+        if ($null -eq $Label) {
+            return $false
+        }
+
+        $propertyNames = @($Label.PSObject.Properties.Name)
+        $dateWithoutValueProperties = @(
+            '@odata.type', 'displayName', 'fieldType', 'confidence', 'text',
+            'spans@odata.type', 'spans', 'valueLocation'
+        )
+        $dateWithValueProperties = @(
+            '@odata.type', 'value@odata.type', 'value', 'displayName', 'fieldType',
+            'confidence', 'text', 'spans@odata.type', 'spans', 'valueLocation'
+        )
         $expectedProperties = if ($FieldName -ceq 'dob') {
-            @('@odata.type', 'displayName', 'fieldType', 'confidence', 'text',
-                'spans@odata.type', 'spans', 'valueLocation')
+            if (Compare-HrAiBuilderSequence -Left $dateWithoutValueProperties -Right $propertyNames) {
+                $dateWithoutValueProperties
+            }
+            elseif (Compare-HrAiBuilderSequence -Left $dateWithValueProperties -Right $propertyNames) {
+                $dateWithValueProperties
+            }
+            else {
+                @()
+            }
         }
         else {
             @('@odata.type', 'value', 'displayName', 'fieldType', 'confidence', 'text',
                 'spans@odata.type', 'spans', 'valueLocation')
         }
         $expectedFieldType = if ($FieldName -ceq 'dob') { 'date' } else { 'string' }
-        $expectedRegionCounts = @{
-            candidate_id = 1
-            last_name = 1
-            first_name = 1
-            dob = 1
-            nationality = 1
-            marital = 1
-            heimatort = 4
-            permit = 1
-            street = 2
-            plz = 1
-            city = 1
-            ahv = 1
-            iban = 5
-            phone = 5
-            email = 1
-            ec_name = 2
-            ec_phone = 5
-        }
-        if (-not (Test-CapturePairProperties -Node $Label -Expected $expectedProperties) -or
+        if ($expectedProperties.Count -eq 0 -or
+            -not (Test-CapturePairProperties -Node $Label -Expected $expectedProperties) -or
             -not (Test-CapturePairOrdinal $Label.'@odata.type' '#Microsoft.Dynamics.CRM.expando') -or
             -not (Test-CapturePairOrdinal $Label.displayName $FieldName) -or
             -not (Test-CapturePairOrdinal $Label.fieldType $expectedFieldType) -or
@@ -175,6 +177,11 @@ function Test-HrAiBuilderCapturePair {
             return $false
         }
         if ($FieldName -cne 'dob' -and -not ($Label.value -is [string])) {
+            return $false
+        }
+        if ($FieldName -ceq 'dob' -and $expectedProperties.Count -eq $dateWithValueProperties.Count -and
+            (-not (Test-CapturePairOrdinal $Label.'value@odata.type' '#DateTimeOffset') -or
+                -not ($Label.value -is [string]))) {
             return $false
         }
 
@@ -200,7 +207,7 @@ function Test-HrAiBuilderCapturePair {
             -not (Test-CapturePairNumber $location.pageNumber) -or
             -not (Test-CapturePairOrdinal $location.'regions@odata.type' '#Collection(Microsoft.Dynamics.CRM.crmbaseentity)') -or
             -not ($location.regions -is [array]) -or
-            @($location.regions).Count -ne $expectedRegionCounts[$FieldName]) {
+            @($location.regions).Count -lt 1) {
             return $false
         }
 
@@ -291,10 +298,27 @@ function Test-HrAiBuilderCapturePair {
         return Complete-CapturePairResult
     }
 
-    $captureRoot = Split-Path -Parent $capturePath
+    $captureRoot = $null
+    $ancestor = [IO.DirectoryInfo]::new($capturePath).Parent
+    while ($null -ne $ancestor) {
+        if ([string]::Equals($ancestor.Name, 'capture', [StringComparison]::Ordinal)) {
+            $captureRoot = $ancestor.FullName
+            break
+        }
+        $ancestor = $ancestor.Parent
+    }
+    if (-not $captureRoot -or
+        -not (Test-HrAiBuilderPathWithinRoot -Path $capturePath -RootPath $captureRoot) -or
+        (Test-CapturePairOrdinal $capturePath $captureRoot)) {
+        Add-CapturePairFailure 'evidence_boundary'
+        return Complete-CapturePairResult -Envelope $canonical -RawPath $rawFiles[0].FullName
+    }
     $evidenceRoot = Split-Path -Parent $captureRoot
     try {
         $sourcePath = [IO.Path]::GetFullPath((Join-Path $evidenceRoot ([string]$pair.source.local_path)))
+        $expectedSourcePath = [IO.Path]::GetFullPath(
+            (Join-Path $capturePath ('source\' + [string]$pair.source.filename))
+        )
         $pairRawPath = [IO.Path]::GetFullPath((Join-Path $evidenceRoot ([string]$pair.raw.local_path)))
         $pairCanonicalPath = [IO.Path]::GetFullPath((Join-Path $evidenceRoot ([string]$pair.canonical.local_path)))
         foreach ($path in @($sourcePath, $pairRawPath, $pairCanonicalPath)) {
@@ -308,7 +332,8 @@ function Test-HrAiBuilderCapturePair {
         return Complete-CapturePairResult -Envelope $canonical -RawPath $rawFiles[0].FullName
     }
 
-    if (-not (Test-CapturePairOrdinal $pairRawPath $rawFiles[0].FullName) -or
+    if (-not (Test-CapturePairOrdinal $sourcePath $expectedSourcePath) -or
+        -not (Test-CapturePairOrdinal $pairRawPath $rawFiles[0].FullName) -or
         -not (Test-CapturePairOrdinal $pairCanonicalPath $canonicalFiles[0].FullName) -or
         -not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
         Add-CapturePairFailure 'evidence_boundary'
@@ -431,7 +456,6 @@ function Test-HrAiBuilderCapturePair {
         -not (Compare-HrAiBuilderSequence -Left $requiredContractNames -Right $contractNames) -or
         -not (Compare-HrAiBuilderSequence -Left $contractNames -Right $schemaNames) -or
         -not (Compare-HrAiBuilderSequence -Left $contractNames -Right $canonicalNames) -or
-        $labelNames.Count -ne $contractNames.Count -or
         @($labelNames | Where-Object { -not $contractNames.Contains($_) }).Count -gt 0) {
         Add-CapturePairFailure 'exact_field_contract'
     }
@@ -442,13 +466,17 @@ function Test-HrAiBuilderCapturePair {
     $projectedFields = [ordered]@{}
     foreach ($fieldName in $contractNames) {
         $labelProperty = $labels.PSObject.Properties[$fieldName]
-        $label = if ($labelProperty) { $labelProperty.Value } else { $null }
-        if (-not $label) {
-            Add-CapturePairFailure 'exact_field_contract'
+        if ($null -eq $labelProperty) {
+            $projectedFields[$fieldName] = [ordered]@{ value = $null; confidence = $null }
             continue
         }
+        $label = $labelProperty.Value
         if (-not (Test-CapturePairLabelShape -FieldName $fieldName -Label $label)) {
             Add-CapturePairFailure 'capture_pair_provenance'
+            if ($null -eq $label -or $label -is [ValueType] -or $label -is [string]) {
+                $projectedFields[$fieldName] = [ordered]@{ value = $null; confidence = $null }
+                continue
+            }
         }
 
         $value = if ($label.PSObject.Properties.Name.Contains('value')) { $label.value } else { $null }

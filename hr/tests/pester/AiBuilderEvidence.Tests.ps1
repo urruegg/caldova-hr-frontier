@@ -13,6 +13,553 @@ function script:Set-TestUtf8BomContent {
     [System.IO.File]::WriteAllText($Path, $Content, $utf8Bom)
 }
 
+Describe 'AI Builder fixed holdout consumption initialization' {
+    BeforeAll {
+        $script:HoldoutRepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+        $script:HoldoutModulePath = Join-Path $script:HoldoutRepositoryRoot 'hr\src\scripts\modules\Caldova.HrFrontier.AiBuilder\Caldova.HrFrontier.AiBuilder.psd1'
+        $script:HoldoutEvidenceRoot = Join-Path $script:HoldoutRepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
+        $script:ExpectedFixedHoldouts = @(
+            [pscustomobject]@{ document = 'a06-CAND-2026-0416-gerber.pdf'; sha256 = '4b1110d9c394a709fbcf6dc39c3ebf20846114e4bb2f818e7dad0118e52ac5db' }
+            [pscustomobject]@{ document = 'b06-CAND-2026-0422-schnyder.pdf'; sha256 = '2dd65e48932173a72cbfc0cad0f1bbe01b997e6a28eea60f5a2e8c5d2737a8b6' }
+            [pscustomobject]@{ document = 'c06-CAND-2026-0428-frei.pdf'; sha256 = 'dc512e6545293d6532effc196f56322f12cc1b2a89ef3eb31c46c90b1ddcece4' }
+            [pscustomobject]@{ document = 'd06-CAND-2026-0434-ochsner.pdf'; sha256 = '5ccc73225f0b12c937ea46d1f0566c5869e38f2756c73dc0b648044203fa74fa' }
+        )
+        Import-Module $script:HoldoutModulePath -Force
+
+        function New-TestHoldoutInitializationFixture {
+            $root = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+            $captureRoot = Join-Path $root 'capture'
+            New-Item -ItemType Directory -Path $captureRoot -Force | Out-Null
+
+            $manifestPath = Join-Path $root 'run-manifest.json'
+            $inventoryPath = Join-Path $root 'model-inventory.json'
+            $capabilityPath = Join-Path $root 'capture-capability.json'
+            $outputPath = Join-Path $root 'holdout-consumption.json'
+
+            Copy-Item -LiteralPath (Join-Path $script:HoldoutEvidenceRoot 'run-manifest.json') -Destination $manifestPath
+            Copy-Item -LiteralPath (Join-Path $script:HoldoutEvidenceRoot 'model-inventory.json') -Destination $inventoryPath
+            Copy-Item -LiteralPath (Join-Path $script:HoldoutEvidenceRoot 'capture-capability.json') -Destination $capabilityPath
+            foreach ($path in @($manifestPath, $inventoryPath)) {
+                $text = Get-Content -LiteralPath $path -Raw
+                $convertFromJson = Get-Command ConvertFrom-Json -ErrorAction Stop
+                $document = if ($convertFromJson.Parameters.ContainsKey('DateKind')) {
+                    $text | ConvertFrom-Json -DateKind String
+                }
+                else {
+                    $text | ConvertFrom-Json
+                }
+                $model = @($document.models | Where-Object display_name -ceq 'PersonalMasterDataFixed')[0]
+                $model.lifecycle_stage = 'capture_validated'
+                $captureValidatedIndex = [Array]::IndexOf(
+                    [string[]]@($model.lifecycle_history.stage),
+                    [string]'capture_validated'
+                )
+                $model.lifecycle_history = @($model.lifecycle_history)[0..$captureValidatedIndex]
+                $document | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath $path -Encoding UTF8
+            }
+
+            [pscustomobject]@{
+                Root = $root
+                CaptureRoot = $captureRoot
+                ManifestPath = $manifestPath
+                InventoryPath = $inventoryPath
+                CapabilityPath = $capabilityPath
+                OutputPath = $outputPath
+            }
+        }
+
+        function Invoke-TestHoldoutInitialization {
+            param(
+                [Parameter(Mandatory)][object]$Fixture,
+                [string]$CapabilitySha256 = ''
+            )
+
+            if (-not $CapabilitySha256) {
+                $CapabilitySha256 = (Get-FileHash -LiteralPath $Fixture.CapabilityPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            }
+
+            New-HrAiBuilderHoldoutConsumptionLedger `
+                -RunManifestPath $Fixture.ManifestPath `
+                -ModelInventoryPath $Fixture.InventoryPath `
+                -CaptureCapabilityPath $Fixture.CapabilityPath `
+                -CaptureCapabilitySha256 $CapabilitySha256 `
+                -CaptureRootPath $Fixture.CaptureRoot `
+                -AuthorizationSource 'User instruction dated 2026-09-30' `
+                -AuthorizedAtUtc ([datetime]'2026-09-30T11:38:13.945Z') `
+                -OutputPath $Fixture.OutputPath
+        }
+
+        function Get-TestBooleanValues {
+            param([object]$Value)
+
+            if ($Value -is [bool]) {
+                return ,$Value
+            }
+
+            if ($null -eq $Value -or $Value -is [string] -or $Value -is [ValueType]) {
+                return @()
+            }
+
+            if ($Value -is [System.Collections.IEnumerable]) {
+                return @($Value | ForEach-Object { Get-TestBooleanValues -Value $_ })
+            }
+
+            return @(
+                $Value.PSObject.Properties |
+                    ForEach-Object { Get-TestBooleanValues -Value $_.Value }
+            )
+        }
+    }
+
+    It 'creates a hash-bound unseen ledger for exactly the four authorized fixed holdouts' {
+        $fixture = New-TestHoldoutInitializationFixture
+        Invoke-TestHoldoutInitialization -Fixture $fixture | Out-Null
+
+        $ledger = Get-Content -LiteralPath $fixture.OutputPath -Raw | ConvertFrom-Json
+        $actual = @($ledger.holdouts | ForEach-Object { '{0}|{1}' -f $_.document, $_.sha256 })
+        $expected = @($script:ExpectedFixedHoldouts | ForEach-Object { '{0}|{1}' -f $_.document, $_.sha256 })
+
+        $actual | Should -Be $expected
+        @($ledger.holdouts).Count | Should -Be 4
+        @($ledger.holdouts.state | Select-Object -Unique) | Should -Be @('unseen')
+        $ledger.model.name | Should -Be 'PersonalMasterDataFixed'
+        $ledger.model.id | Should -Be '74b09a72-d1f1-4598-bc4d-3746d5c97acc'
+        $ledger.model.version | Should -Be '1.0'
+        $ledger.corpus_revision | Should -Be 'c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db'
+        $ledger.capture_capability.status | Should -Be 'passed'
+        $ledger.capture_capability.decision | Should -Be 'capture_validated'
+        $ledger.capture_capability.sha256 | Should -Be (
+            (Get-FileHash -LiteralPath $fixture.CapabilityPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        )
+        $ledger.authorization_scope.scope | Should -Be 'exactly_once_submission_of_the_listed_fixed_holdouts_only'
+        @($ledger.authorization_scope.authorized_documents) | Should -Be @($script:ExpectedFixedHoldouts.document)
+        @(Get-TestBooleanValues -Value $ledger).Count | Should -Be 0
+    }
+
+    It 'rejects a capability decision that is not passed' {
+        $fixture = New-TestHoldoutInitializationFixture
+        $capability = Get-Content -LiteralPath $fixture.CapabilityPath -Raw | ConvertFrom-Json
+        $capability.status = 'blocked'
+        $capability | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath $fixture.CapabilityPath -Encoding UTF8
+
+        { Invoke-TestHoldoutInitialization -Fixture $fixture } |
+            Should -Throw '*capture capability status must be passed*'
+        $fixture.OutputPath | Should -Not -Exist
+    }
+
+    It 'rejects a capture capability whose bytes do not match the authorized hash' {
+        $fixture = New-TestHoldoutInitializationFixture
+
+        { Invoke-TestHoldoutInitialization -Fixture $fixture -CapabilitySha256 ('0' * 64) } |
+            Should -Throw '*capture capability SHA-256 does not match*'
+        $fixture.OutputPath | Should -Not -Exist
+    }
+
+    It 'rejects initialization unless the fixed model lifecycle is capture_validated' {
+        $fixture = New-TestHoldoutInitializationFixture
+        $inventory = Get-Content -LiteralPath $fixture.InventoryPath -Raw | ConvertFrom-Json
+        ($inventory.models | Where-Object display_name -eq 'PersonalMasterDataFixed').lifecycle_stage = 'blocked'
+        $inventory | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath $fixture.InventoryPath -Encoding UTF8
+
+        { Invoke-TestHoldoutInitialization -Fixture $fixture } |
+            Should -Throw '*lifecycle stage must be capture_validated*'
+        $fixture.OutputPath | Should -Not -Exist
+    }
+
+    It 'rejects initialization when an existing capture pair references a fixed holdout' {
+        $fixture = New-TestHoldoutInitializationFixture
+        $pairDirectory = Join-Path $fixture.CaptureRoot 'existing'
+        New-Item -ItemType Directory -Path $pairDirectory -Force | Out-Null
+        $pair = Get-Content -LiteralPath (
+            Join-Path $script:HoldoutEvidenceRoot 'capture\cap-20260930094537354Z-34bf8987\capture-pair.json'
+        ) -Raw | ConvertFrom-Json
+        $pair.source.filename = $script:ExpectedFixedHoldouts[0].document
+        $pair.source.sha256 = $script:ExpectedFixedHoldouts[0].sha256
+        $pair | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath (Join-Path $pairDirectory 'capture-pair.json') -Encoding UTF8
+
+        { Invoke-TestHoldoutInitialization -Fixture $fixture } |
+            Should -Throw '*already references fixed holdout*'
+        $fixture.OutputPath | Should -Not -Exist
+    }
+
+    It 'rejects duplicate, extra, and missing fixed holdout manifest rows' -ForEach @(
+        @{ Mutation = 'duplicate' }
+        @{ Mutation = 'extra' }
+        @{ Mutation = 'missing' }
+    ) {
+        $fixture = New-TestHoldoutInitializationFixture
+        $manifest = Get-Content -LiteralPath $fixture.ManifestPath -Raw | ConvertFrom-Json
+        $model = $manifest.models | Where-Object display_name -eq 'PersonalMasterDataFixed'
+        $heldOut = @($model.documents | Where-Object assignment -eq 'held-out')
+
+        if ($Mutation -eq 'duplicate') {
+            $model.documents = @($model.documents) + @($heldOut[0])
+        }
+        elseif ($Mutation -eq 'extra') {
+            $extra = $heldOut[0].PSObject.Copy()
+            $extra.document = 'x99-not-authorized.pdf'
+            $extra.sha256 = ('f' * 64)
+            $model.documents = @($model.documents) + @($extra)
+        }
+        else {
+            $model.documents = @($model.documents | Where-Object document -ne $heldOut[0].document)
+        }
+        $manifest | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath $fixture.ManifestPath -Encoding UTF8
+
+        { Invoke-TestHoldoutInitialization -Fixture $fixture } |
+            Should -Throw '*exactly the four authorized fixed holdouts*'
+        $fixture.OutputPath | Should -Not -Exist
+    }
+
+    It 'does not overwrite an existing holdout ledger' {
+        $fixture = New-TestHoldoutInitializationFixture
+        $original = '{"sentinel":"preserve"}'
+        Set-Content -LiteralPath $fixture.OutputPath -Value $original -Encoding UTF8
+
+        { Invoke-TestHoldoutInitialization -Fixture $fixture } |
+            Should -Throw '*already exists*'
+        (Get-Content -LiteralPath $fixture.OutputPath -Raw).Trim() | Should -Be $original
+    }
+}
+
+Describe 'AI Builder fixed holdout captured transition' -Tag 'HoldoutCaptureTransition' {
+    BeforeAll {
+        $script:TransitionRepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+        $script:TransitionModulePath = Join-Path $script:TransitionRepositoryRoot 'hr\src\scripts\modules\Caldova.HrFrontier.AiBuilder\Caldova.HrFrontier.AiBuilder.psd1'
+        $script:TransitionEvidenceRoot = Join-Path $script:TransitionRepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
+        $script:TransitionCaptureRunId = 'cap-20260930114811428Z-ed0cd329'
+        $script:TransitionDocument = 'a06-CAND-2026-0416-gerber.pdf'
+        $script:TransitionSourceSha256 = '4b1110d9c394a709fbcf6dc39c3ebf20846114e4bb2f818e7dad0118e52ac5db'
+        $script:TransitionPlatformRunId = '08584108379654495821756934301CU29'
+        $script:TransitionCapturePairLocator = 'capture\fixed-holdout\cap-20260930114811428Z-ed0cd329\capture-pair.json'
+        Import-Module $script:TransitionModulePath -Force
+
+        function New-TestHoldoutCaptureTransitionFixture {
+            $root = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+            $captureDirectory = Join-Path $root 'capture\fixed-holdout\cap-20260930114811428Z-ed0cd329'
+            New-Item -ItemType Directory -Path (Split-Path -Parent $captureDirectory) -Force | Out-Null
+            Copy-Item -LiteralPath (
+                Join-Path $script:TransitionEvidenceRoot 'capture\fixed-holdout\cap-20260930114811428Z-ed0cd329'
+            ) -Destination $captureDirectory -Recurse
+
+            $ledgerPath = Join-Path $root 'holdout-consumption.json'
+            Copy-Item -LiteralPath (Join-Path $script:TransitionEvidenceRoot 'holdout-consumption.json') -Destination $ledgerPath
+            $fixtureLedger = Get-Content -LiteralPath $ledgerPath -Raw | ConvertFrom-Json
+            foreach ($holdout in $fixtureLedger.holdouts) {
+                $holdout.state = 'unseen'
+                foreach ($propertyName in @(
+                    'execution_run_id',
+                    'platform_run_id',
+                    'capture_pair_path',
+                    'capture_pair_sha256',
+                    'raw_sha256',
+                    'canonical_sha256',
+                    'captured_at_utc'
+                )) {
+                    $holdout.PSObject.Properties.Remove($propertyName)
+                }
+            }
+            $fixtureLedger | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $ledgerPath -Encoding UTF8
+
+            [pscustomobject]@{
+                Root = $root
+                LedgerPath = $ledgerPath
+                CaptureDirectory = $captureDirectory
+                CapturePairPath = Join-Path $captureDirectory 'capture-pair.json'
+                RunManifestPath = Join-Path $script:TransitionEvidenceRoot 'run-manifest.json'
+                FieldContractPath = Join-Path $script:TransitionRepositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
+                ModelSchemaRecordPath = Join-Path $script:TransitionEvidenceRoot 'model-schema-fixed.json'
+                AdapterScriptPath = Join-Path $script:TransitionRepositoryRoot 'hr\src\scripts\adapters\ConvertFrom-HrAiBuilderEvaluationCapture.ps1'
+            }
+        }
+
+        function Invoke-TestHoldoutCaptureTransition {
+            param(
+                [Parameter(Mandatory)][object]$Fixture,
+                [string]$Document = $script:TransitionDocument,
+                [string]$SourceSha256 = $script:TransitionSourceSha256,
+                [string]$ExecutionRunId = $script:TransitionCaptureRunId,
+                [string]$PlatformRunId = $script:TransitionPlatformRunId,
+                [string]$CapturePairLocator = $script:TransitionCapturePairLocator,
+                [string]$CapturePairSha256 = '',
+                [AllowNull()][string]$CurrentFlowState = 'Off'
+            )
+
+            if (-not $CapturePairSha256) {
+                $CapturePairSha256 = (Get-FileHash -LiteralPath $Fixture.CapturePairPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            }
+
+            Set-HrAiBuilderHoldoutCaptured `
+                -LedgerPath $Fixture.LedgerPath `
+                -Document $Document `
+                -SourceSha256 $SourceSha256 `
+                -ExecutionRunId $ExecutionRunId `
+                -PlatformRunId $PlatformRunId `
+                -CaptureDirectory $Fixture.CaptureDirectory `
+                -CapturePairPath $Fixture.CapturePairPath `
+                -CapturePairLocator $CapturePairLocator `
+                -CapturePairSha256 $CapturePairSha256 `
+                -RunManifestPath $Fixture.RunManifestPath `
+                -FieldContractPath $Fixture.FieldContractPath `
+                -ModelSchemaRecordPath $Fixture.ModelSchemaRecordPath `
+                -ModelName 'PersonalMasterDataFixed' `
+                -ModelVersion '1.0' `
+                -Operator 'admin@caldova25668747.onmicrosoft.com' `
+                -AdapterScriptPath $Fixture.AdapterScriptPath `
+                -CurrentFlowState $CurrentFlowState
+        }
+
+        function Get-TestFileBase64 {
+            param([Parameter(Mandatory)][string]$Path)
+            return [Convert]::ToBase64String([IO.File]::ReadAllBytes($Path))
+        }
+
+        function Read-TestJsonPreservingDates {
+            param([Parameter(Mandatory)][string]$Path)
+
+            $content = Get-Content -LiteralPath $Path -Raw
+            $command = Get-Command ConvertFrom-Json -ErrorAction Stop
+            if ($command.Parameters.ContainsKey('DateKind')) {
+                return $content | ConvertFrom-Json -DateKind String
+            }
+            return $content | ConvertFrom-Json
+        }
+    }
+
+    It 'captures exactly one independently validated unseen row and preserves all other ledger evidence' {
+        $fixture = New-TestHoldoutCaptureTransitionFixture
+        $before = Read-TestJsonPreservingDates -Path $fixture.LedgerPath
+        $beforeAuthorization = $before.authorization_scope | ConvertTo-Json -Depth 20 -Compress
+        $beforeInitialization = [string]$before.initialized_at_utc
+        $beforeUntouched = @($before.holdouts | Select-Object -Skip 1 | ForEach-Object {
+            $_ | ConvertTo-Json -Depth 10 -Compress
+        })
+        $pairSha256 = (Get-FileHash -LiteralPath $fixture.CapturePairPath -Algorithm SHA256).Hash.ToLowerInvariant()
+
+        Invoke-TestHoldoutCaptureTransition -Fixture $fixture | Out-Null
+
+        $after = Read-TestJsonPreservingDates -Path $fixture.LedgerPath
+        $captured = @($after.holdouts | Where-Object state -eq 'captured')
+        $captured.Count | Should -Be 1
+        $captured[0].document | Should -Be $script:TransitionDocument
+        $captured[0].sha256 | Should -Be $script:TransitionSourceSha256
+        $captured[0].execution_run_id | Should -Be $script:TransitionCaptureRunId
+        $captured[0].platform_run_id | Should -Be $script:TransitionPlatformRunId
+        $captured[0].capture_pair_path | Should -Be $script:TransitionCapturePairLocator
+        $captured[0].capture_pair_sha256 | Should -Be $pairSha256
+        $captured[0].raw_sha256 | Should -Be '5853d642de33cd4beb46fb008be25c3e0e7e547c5211ea1a7aefca3424232e23'
+        $captured[0].canonical_sha256 | Should -Be '531e7522b8896cc44c8b4179eb49eba6394e2cd96ffa008575b51adc6be78f48'
+        $captured[0].captured_at_utc | Should -Be '2026-09-30T11:48:59.5749931Z'
+        @($after.holdouts | Where-Object state -eq 'unseen').Count | Should -Be 3
+        @($after.holdouts | Select-Object -Skip 1 | ForEach-Object {
+            $_ | ConvertTo-Json -Depth 10 -Compress
+        }) | Should -Be $beforeUntouched
+        ($after.authorization_scope | ConvertTo-Json -Depth 20 -Compress) | Should -Be $beforeAuthorization
+        $after.initialized_at_utc | Should -Be $beforeInitialization
+    }
+
+    It 'rejects a row that is no longer unseen without changing the ledger' -ForEach @(
+        @{ State = 'captured' }
+        @{ State = 'evaluated' }
+        @{ State = 'consumed_by_model_change' }
+    ) {
+        $fixture = New-TestHoldoutCaptureTransitionFixture
+        $ledger = Get-Content -LiteralPath $fixture.LedgerPath -Raw | ConvertFrom-Json
+        $ledger.holdouts[0].state = $State
+        $ledger | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $fixture.LedgerPath -Encoding UTF8
+        $before = Get-TestFileBase64 -Path $fixture.LedgerPath
+
+        { Invoke-TestHoldoutCaptureTransition -Fixture $fixture } |
+            Should -Throw '*must be unseen*'
+        (Get-TestFileBase64 -Path $fixture.LedgerPath) | Should -Be $before
+    }
+
+    It 'rejects wrong target identity or capture correlation without changing the ledger' -ForEach @(
+        @{ Mutation = 'filename'; ExpectedMessage = '*document and source SHA-256 must identify exactly one ledger row*' }
+        @{ Mutation = 'source_hash'; ExpectedMessage = '*document and source SHA-256 must identify exactly one ledger row*' }
+        @{ Mutation = 'execution_run'; ExpectedMessage = '*execution run ID does not match*' }
+        @{ Mutation = 'pair_locator'; ExpectedMessage = '*capture-pair locator does not match*' }
+        @{ Mutation = 'pair_hash'; ExpectedMessage = '*capture-pair SHA-256 does not match*' }
+    ) {
+        $fixture = New-TestHoldoutCaptureTransitionFixture
+        $arguments = @{
+            Fixture = $fixture
+            Document = $script:TransitionDocument
+            SourceSha256 = $script:TransitionSourceSha256
+            ExecutionRunId = $script:TransitionCaptureRunId
+            CapturePairLocator = $script:TransitionCapturePairLocator
+            CapturePairSha256 = (Get-FileHash -LiteralPath $fixture.CapturePairPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        }
+        switch ($Mutation) {
+            'filename' { $arguments.Document = 'b06-CAND-2026-0422-schnyder.pdf' }
+            'source_hash' { $arguments.SourceSha256 = ('0' * 64) }
+            'execution_run' { $arguments.ExecutionRunId = 'cap-20260930114811428Z-wrong000' }
+            'pair_locator' { $arguments.CapturePairLocator = 'capture\fixed-holdout\wrong\capture-pair.json' }
+            'pair_hash' { $arguments.CapturePairSha256 = ('f' * 64) }
+        }
+        $before = Get-TestFileBase64 -Path $fixture.LedgerPath
+
+        { Invoke-TestHoldoutCaptureTransition @arguments } | Should -Throw $ExpectedMessage
+        (Get-TestFileBase64 -Path $fixture.LedgerPath) | Should -Be $before
+    }
+
+    It 'rejects a failed independent pair validation without changing the ledger' {
+        $fixture = New-TestHoldoutCaptureTransitionFixture
+        Add-Content -LiteralPath (
+            Join-Path $fixture.CaptureDirectory "$($script:TransitionCaptureRunId).canonical.json"
+        ) -Value 'tampered'
+        $before = Get-TestFileBase64 -Path $fixture.LedgerPath
+
+        { Invoke-TestHoldoutCaptureTransition -Fixture $fixture } |
+            Should -Throw '*independent capture-pair validation must pass*'
+        (Get-TestFileBase64 -Path $fixture.LedgerPath) | Should -Be $before
+    }
+
+    It 'rejects missing capture evidence without changing the ledger' {
+        $fixture = New-TestHoldoutCaptureTransitionFixture
+        Remove-Item -LiteralPath $fixture.CapturePairPath -Force
+        $before = Get-TestFileBase64 -Path $fixture.LedgerPath
+
+        { Invoke-TestHoldoutCaptureTransition -Fixture $fixture -CapturePairSha256 ('0' * 64) } |
+            Should -Throw '*capture-pair evidence*'
+        (Get-TestFileBase64 -Path $fixture.LedgerPath) | Should -Be $before
+    }
+
+    It 'rejects a current flow state other than Off without changing the ledger' {
+        $fixture = New-TestHoldoutCaptureTransitionFixture
+        $before = Get-TestFileBase64 -Path $fixture.LedgerPath
+
+        { Invoke-TestHoldoutCaptureTransition -Fixture $fixture -CurrentFlowState 'On' } |
+            Should -Throw '*current flow state must be Off*'
+        (Get-TestFileBase64 -Path $fixture.LedgerPath) | Should -Be $before
+    }
+
+    It 'rejects an overwrite attempt after a successful transition' {
+        $fixture = New-TestHoldoutCaptureTransitionFixture
+        Invoke-TestHoldoutCaptureTransition -Fixture $fixture | Out-Null
+        $afterFirstWrite = Get-TestFileBase64 -Path $fixture.LedgerPath
+
+        { Invoke-TestHoldoutCaptureTransition -Fixture $fixture } |
+            Should -Throw '*must be unseen*'
+        (Get-TestFileBase64 -Path $fixture.LedgerPath) | Should -Be $afterFirstWrite
+    }
+}
+
+Describe 'AI Builder fixed holdout evaluated transition' -Tag 'HoldoutEvaluationTransition' {
+    BeforeAll {
+        $script:EvaluationTransitionRepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+        $script:EvaluationTransitionEvidenceRoot = Join-Path $script:EvaluationTransitionRepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
+        $script:EvaluationTransitionModulePath = Join-Path $script:EvaluationTransitionRepositoryRoot 'hr\src\scripts\modules\Caldova.HrFrontier.AiBuilder\Caldova.HrFrontier.AiBuilder.psd1'
+        Import-Module $script:EvaluationTransitionModulePath -Force
+
+        function New-TestHoldoutEvaluationTransitionFixture {
+            $root = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+            New-Item -ItemType Directory -Path $root -Force | Out-Null
+            $ledgerPath = Join-Path $root 'holdout-consumption.json'
+            $metricsPath = Join-Path $root 'evaluation-metrics.json'
+            Copy-Item -LiteralPath (Join-Path $script:EvaluationTransitionEvidenceRoot 'holdout-consumption.json') -Destination $ledgerPath
+            Copy-Item -LiteralPath (Join-Path $script:EvaluationTransitionEvidenceRoot 'evaluation-metrics.json') -Destination $metricsPath
+            $ledger = Get-Content -LiteralPath $ledgerPath -Raw | ConvertFrom-Json
+            foreach ($row in $ledger.holdouts) {
+                $row.state = 'captured'
+                foreach ($propertyName in @(
+                    'evaluation_metrics_path',
+                    'evaluation_metrics_sha256',
+                    'evaluated_at_utc'
+                )) {
+                    $row.PSObject.Properties.Remove($propertyName)
+                }
+            }
+            $ledger | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $ledgerPath -Encoding UTF8
+
+            return [pscustomobject]@{
+                LedgerPath = $ledgerPath
+                MetricsPath = $metricsPath
+            }
+        }
+
+        function Get-TestEvaluationTransitionBase64 {
+            param([Parameter(Mandatory)][string]$Path)
+            return [Convert]::ToBase64String([IO.File]::ReadAllBytes($Path))
+        }
+    }
+
+    It 'atomically marks all four captured holdouts evaluated from exact passing metrics' {
+        $fixture = New-TestHoldoutEvaluationTransitionFixture
+        $metricsSha256 = (Get-FileHash -LiteralPath $fixture.MetricsPath -Algorithm SHA256).Hash.ToLowerInvariant()
+
+        Set-HrAiBuilderHoldoutsEvaluated `
+            -LedgerPath $fixture.LedgerPath `
+            -EvaluationMetricsPath $fixture.MetricsPath `
+            -EvaluationMetricsSha256 $metricsSha256 `
+            -ModelName 'PersonalMasterDataFixed' `
+            -ModelVersion '1.0' | Out-Null
+
+        $ledger = Get-Content -LiteralPath $fixture.LedgerPath -Raw | ConvertFrom-Json
+        @($ledger.holdouts).Count | Should -Be 4
+        @($ledger.holdouts | Where-Object state -ceq 'evaluated').Count | Should -Be 4
+        foreach ($row in $ledger.holdouts) {
+            $row.execution_run_id | Should -Not -BeNullOrEmpty
+            $row.capture_pair_sha256 | Should -Match '^[a-f0-9]{64}$'
+            $row.evaluation_metrics_path | Should -Be 'evaluation-metrics.json'
+            $row.evaluation_metrics_sha256 | Should -Be $metricsSha256
+            $row.evaluated_at_utc | Should -Not -BeNullOrEmpty
+        }
+    }
+
+    It 'rejects blocked metrics without changing the ledger' {
+        $fixture = New-TestHoldoutEvaluationTransitionFixture
+        $metrics = Get-Content -LiteralPath $fixture.MetricsPath -Raw | ConvertFrom-Json
+        $metrics.models[0].strict_gate_disposition = 'blocked'
+        $metrics.models[0].failed_gates = @('prediction_capture_schema')
+        $metrics | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $fixture.MetricsPath -Encoding UTF8
+        $before = Get-TestEvaluationTransitionBase64 -Path $fixture.LedgerPath
+
+        {
+            Set-HrAiBuilderHoldoutsEvaluated `
+                -LedgerPath $fixture.LedgerPath `
+                -EvaluationMetricsPath $fixture.MetricsPath `
+                -EvaluationMetricsSha256 (Get-FileHash -LiteralPath $fixture.MetricsPath -Algorithm SHA256).Hash.ToLowerInvariant() `
+                -ModelName 'PersonalMasterDataFixed' `
+                -ModelVersion '1.0'
+        } | Should -Throw '*strict evaluation disposition must be evaluated*'
+        (Get-TestEvaluationTransitionBase64 -Path $fixture.LedgerPath) | Should -Be $before
+    }
+
+    It 'rejects a non-captured holdout without changing the ledger' {
+        $fixture = New-TestHoldoutEvaluationTransitionFixture
+        $ledger = Get-Content -LiteralPath $fixture.LedgerPath -Raw | ConvertFrom-Json
+        $ledger.holdouts[0].state = 'unseen'
+        $ledger | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $fixture.LedgerPath -Encoding UTF8
+        $before = Get-TestEvaluationTransitionBase64 -Path $fixture.LedgerPath
+
+        {
+            Set-HrAiBuilderHoldoutsEvaluated `
+                -LedgerPath $fixture.LedgerPath `
+                -EvaluationMetricsPath $fixture.MetricsPath `
+                -EvaluationMetricsSha256 (Get-FileHash -LiteralPath $fixture.MetricsPath -Algorithm SHA256).Hash.ToLowerInvariant() `
+                -ModelName 'PersonalMasterDataFixed' `
+                -ModelVersion '1.0'
+        } | Should -Throw '*all four holdouts must be captured*'
+        (Get-TestEvaluationTransitionBase64 -Path $fixture.LedgerPath) | Should -Be $before
+    }
+
+    It 'rejects a metrics hash mismatch without changing the ledger' {
+        $fixture = New-TestHoldoutEvaluationTransitionFixture
+        $before = Get-TestEvaluationTransitionBase64 -Path $fixture.LedgerPath
+
+        {
+            Set-HrAiBuilderHoldoutsEvaluated `
+                -LedgerPath $fixture.LedgerPath `
+                -EvaluationMetricsPath $fixture.MetricsPath `
+                -EvaluationMetricsSha256 ('0' * 64) `
+                -ModelName 'PersonalMasterDataFixed' `
+                -ModelVersion '1.0'
+        } | Should -Throw '*metrics SHA-256 does not match*'
+        (Get-TestEvaluationTransitionBase64 -Path $fixture.LedgerPath) | Should -Be $before
+    }
+}
+
 Describe 'AI Builder observed capture replay projection' {
     BeforeAll {
         $script:ReplayRepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
@@ -25,6 +572,10 @@ Describe 'AI Builder observed capture replay projection' {
         $script:RetainedReplayRoot = Join-Path $script:ReplayRepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
         $script:RetainedCaptureDirectory = Join-Path $script:RetainedReplayRoot 'capture\cap-20260930094537354Z-34bf8987'
         $script:RetainedReplayHash = '627dc0d4cc26b288ebbcd4109688972f14d7a23ed1f98eee7b2009e47a8fe3f7'
+        $script:RetainedHoldout1Directory = Join-Path $script:RetainedReplayRoot 'capture\fixed-holdout\cap-20260930114811428Z-ed0cd329'
+        $script:RetainedHoldout1Hash = '531e7522b8896cc44c8b4179eb49eba6394e2cd96ffa008575b51adc6be78f48'
+        $script:RetainedHoldout2Directory = Join-Path $script:RetainedReplayRoot 'capture\fixed-holdout\cap-20260930123933155Z-211c905d'
+        $script:RetainedHoldout2Hash = '4592ef6706799053fd604917d4fdbffa37ef6f53569eb0bd6663ef15bedc15a9'
         $script:ReplayFieldNames = @(
             (Get-Content -LiteralPath $script:ReplayContractPath -Raw | ConvertFrom-Json).fields.name
         )
@@ -161,10 +712,19 @@ Describe 'AI Builder observed capture replay projection' {
         function Copy-TestObservedCaptureFixture {
             param(
                 [Parameter(Mandatory)][object]$Fixture,
-                [Parameter(Mandatory)][string]$RunId
+                [Parameter(Mandatory)][string]$RunId,
+                [string]$RelativeParent = ''
             )
 
-            $destination = Join-Path (Split-Path -Parent $Fixture.CaptureDirectory) $RunId
+            $captureRoot = Split-Path -Parent $Fixture.CaptureDirectory
+            $destinationParent = if ($RelativeParent) {
+                Join-Path $captureRoot $RelativeParent
+            }
+            else {
+                $captureRoot
+            }
+            New-Item -ItemType Directory -Path $destinationParent -Force | Out-Null
+            $destination = Join-Path $destinationParent $RunId
             Copy-Item -LiteralPath $Fixture.CaptureDirectory -Destination $destination -Recurse
             $oldRunId = Split-Path -Leaf $Fixture.CaptureDirectory
             $oldRawPath = Join-Path $destination ($oldRunId + '.ai-builder.raw.json')
@@ -190,13 +750,15 @@ Describe 'AI Builder observed capture replay projection' {
             $pairPath = Join-Path $destination 'capture-pair.json'
             $pair = Get-Content -LiteralPath $pairPath -Raw | ConvertFrom-Json
             $pair.run_id = $RunId
-            $pair.raw.local_path = "capture\$RunId\$RunId.ai-builder.raw.json"
+            $portableCapturePath = (@('capture', $RelativeParent, $RunId) |
+                Where-Object { $_ }) -join '\'
+            $pair.raw.local_path = "$portableCapturePath\$RunId.ai-builder.raw.json"
             $pair.raw.sha256 = (Get-FileHash -LiteralPath $newRawPath -Algorithm SHA256).Hash.ToLowerInvariant()
             $pair.raw.size_bytes = (Get-Item -LiteralPath $newRawPath).Length
-            $pair.canonical.local_path = "capture\$RunId\$RunId.canonical.json"
+            $pair.canonical.local_path = "$portableCapturePath\$RunId.canonical.json"
             $pair.canonical.sha256 = (Get-FileHash -LiteralPath $newCanonicalPath -Algorithm SHA256).Hash.ToLowerInvariant()
             $pair.canonical.size_bytes = (Get-Item -LiteralPath $newCanonicalPath).Length
-            $pair.source.local_path = "capture\$RunId\source\a01-CAND-2026-0411-brunner.pdf"
+            $pair.source.local_path = "$portableCapturePath\source\a01-CAND-2026-0411-brunner.pdf"
             Set-TestUtf8NoBomContent -Path $pairPath -Content ($pair | ConvertTo-Json -Depth 12)
 
             return $destination
@@ -253,6 +815,114 @@ Describe 'AI Builder observed capture replay projection' {
         $result.status | Should -Be 'passed' -Because ($result.failed_gates -join ', ')
     }
 
+    It 'replays retained holdout 2 with omitted labels as null fields and reproduces its canonical hash' {
+        $result = Test-HrAiBuilderCapturePair `
+            -CaptureDirectory $script:RetainedHoldout2Directory `
+            -RunManifestPath (Join-Path $script:RetainedReplayRoot 'run-manifest.json') `
+            -FieldContractPath $script:ReplayContractPath `
+            -ModelSchemaRecordPath (Join-Path $script:RetainedReplayRoot 'model-schema-fixed.json') `
+            -ModelName 'PersonalMasterDataFixed' `
+            -ModelVersion '1.0' `
+            -Operator 'admin@caldova25668747.onmicrosoft.com'
+
+        $result.status | Should -Be 'passed' -Because ($result.failed_gates -join ', ')
+        @($result.canonical_envelope.fields.Keys) | Should -Be @($script:ReplayFieldNames)
+        foreach ($fieldName in @('candidate_id', 'iban', 'phone', 'email', 'ec_name', 'ec_phone')) {
+            $result.canonical_envelope.fields.$fieldName.value | Should -BeNullOrEmpty
+            $result.canonical_envelope.fields.$fieldName.confidence | Should -BeNullOrEmpty
+        }
+        $result.hashes.canonical_sha256 | Should -BeExactly $script:RetainedHoldout2Hash
+        $result.hashes.replay_sha256 | Should -BeExactly $script:RetainedHoldout2Hash
+    }
+
+    It 'replays a valid capture from a nested fixed-holdout directory' {
+        $fixture = New-TestObservedCaptureFixture
+        $runId = 'cap-20260930114811428Z-ed0cd329'
+        $fixture.CaptureDirectory = Copy-TestObservedCaptureFixture `
+            -Fixture $fixture `
+            -RunId $runId `
+            -RelativeParent 'fixed-holdout'
+        $fixture.RawPath = Join-Path $fixture.CaptureDirectory "$runId.ai-builder.raw.json"
+        $fixture.CanonicalPath = Join-Path $fixture.CaptureDirectory "$runId.canonical.json"
+        $fixture.PairPath = Join-Path $fixture.CaptureDirectory 'capture-pair.json'
+        $fixture.SourcePath = Join-Path $fixture.CaptureDirectory 'source\a01-CAND-2026-0411-brunner.pdf'
+
+        $result = Invoke-TestObservedCaptureReplay -Fixture $fixture
+
+        $result.status | Should -Be 'passed' -Because ($result.failed_gates -join ', ')
+        $result.hashes.canonical_sha256 | Should -BeExactly $result.hashes.replay_sha256
+    }
+
+    It 'fails closed when the capture directory has no capture ancestor' {
+        $fixture = New-TestObservedCaptureFixture
+        $runId = Split-Path -Leaf $fixture.CaptureDirectory
+        $outsideCapture = Join-Path $fixture.Root "not-capture\$runId"
+        New-Item -ItemType Directory -Path (Split-Path -Parent $outsideCapture) -Force | Out-Null
+        Copy-Item -LiteralPath $fixture.CaptureDirectory -Destination $outsideCapture -Recurse
+
+        $result = Test-HrAiBuilderCapturePair `
+            -CaptureDirectory $outsideCapture `
+            -RunManifestPath $fixture.ManifestPath `
+            -FieldContractPath $fixture.ContractPath `
+            -ModelSchemaRecordPath $fixture.SchemaPath `
+            -ModelName 'PersonalMasterDataFixed' `
+            -ModelVersion '1.0' `
+            -Operator 'operator@example.invalid'
+
+        $result.status | Should -Be 'blocked'
+        $result.failed_gates | Should -Contain 'evidence_boundary'
+    }
+
+    It 'fails closed when a nested pair source locator points to an existing sibling capture with identical bytes' {
+        $fixture = New-TestObservedCaptureFixture
+        $runId = 'cap-20260930114811428Z-ed0cd329'
+        $nestedCapture = Copy-TestObservedCaptureFixture `
+            -Fixture $fixture `
+            -RunId $runId `
+            -RelativeParent 'fixed-holdout'
+        $siblingRunId = 'cap-20260930114811428Z-sibling'
+        $siblingSourceDirectory = Join-Path (Split-Path -Parent $nestedCapture) "$siblingRunId\source"
+        New-Item -ItemType Directory -Path $siblingSourceDirectory -Force | Out-Null
+        Copy-Item `
+            -LiteralPath (Join-Path $nestedCapture 'source\a01-CAND-2026-0411-brunner.pdf') `
+            -Destination (Join-Path $siblingSourceDirectory 'a01-CAND-2026-0411-brunner.pdf')
+        $pairPath = Join-Path $nestedCapture 'capture-pair.json'
+        $pair = Get-Content -LiteralPath $pairPath -Raw | ConvertFrom-Json
+        $pair.source.local_path = "capture\fixed-holdout\$siblingRunId\source\a01-CAND-2026-0411-brunner.pdf"
+        Set-TestUtf8NoBomContent -Path $pairPath -Content ($pair | ConvertTo-Json -Depth 12)
+
+        $result = Test-HrAiBuilderCapturePair `
+            -CaptureDirectory $nestedCapture `
+            -RunManifestPath $fixture.ManifestPath `
+            -FieldContractPath $fixture.ContractPath `
+            -ModelSchemaRecordPath $fixture.SchemaPath `
+            -ModelName 'PersonalMasterDataFixed' `
+            -ModelVersion '1.0' `
+            -Operator 'operator@example.invalid'
+
+        $result.status | Should -Be 'blocked'
+        $result.failed_gates | Should -Contain 'evidence_boundary'
+    }
+
+    It 'fails closed when a pair locator does not match the capture artifact path' {
+        $fixture = New-TestObservedCaptureFixture
+        $pair = Get-Content -LiteralPath $fixture.PairPath -Raw | ConvertFrom-Json
+        $pair.raw.local_path = $pair.canonical.local_path
+        Set-TestUtf8NoBomContent -Path $fixture.PairPath -Content ($pair | ConvertTo-Json -Depth 12)
+
+        $result = Test-HrAiBuilderCapturePair `
+            -CaptureDirectory $fixture.CaptureDirectory `
+            -RunManifestPath $fixture.ManifestPath `
+            -FieldContractPath $fixture.ContractPath `
+            -ModelSchemaRecordPath $fixture.SchemaPath `
+            -ModelName 'PersonalMasterDataFixed' `
+            -ModelVersion '1.0' `
+            -Operator 'operator@example.invalid'
+
+        $result.status | Should -Be 'blocked'
+        $result.failed_gates | Should -Contain 'evidence_boundary'
+    }
+
     It 'accepts numeric confidence boundaries and observed numeric representations' -TestCases @(
         @{ Confidence = 0 }
         @{ Confidence = 1 }
@@ -298,6 +968,21 @@ Describe 'AI Builder observed capture replay projection' {
         $result.status | Should -Be 'passed' -Because ($result.failed_gates -join ', ')
     }
 
+    It 'does not reject structurally valid document-dependent region cardinality' {
+        $fixture = New-TestObservedCaptureFixture
+        $raw = Get-Content -LiteralPath $fixture.RawPath -Raw | ConvertFrom-Json
+        $raw.responsev2.predictionOutput.labels.heimatort.valueLocation.regions = @(
+            $raw.responsev2.predictionOutput.labels.heimatort.valueLocation.regions |
+                Select-Object -First 2
+        )
+        Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
+        Update-TestReplayPairHashes -Fixture $fixture
+
+        $result = Invoke-TestObservedCaptureReplay -Fixture $fixture
+
+        $result.failed_gates | Should -Not -Contain 'capture_pair_provenance'
+    }
+
     It 'blocks invalid value and confidence pair <Case>' -TestCases @(
         @{ Case = 'string confidence'; Field = 'candidate_id'; Value = 'CAND-2026-0411'; Confidence = '0.9' }
         @{ Case = 'negative confidence'; Field = 'candidate_id'; Value = 'CAND-2026-0411'; Confidence = -0.01 }
@@ -327,8 +1012,160 @@ Describe 'AI Builder observed capture replay projection' {
             Should -Be 0.99
     }
 
+    It 'projects an absent known raw label to null without copying a canonical value' {
+        $fixture = New-TestObservedCaptureFixture
+        $raw = Get-Content -LiteralPath $fixture.RawPath -Raw | ConvertFrom-Json
+        $raw.responsev2.predictionOutput.labels.PSObject.Properties.Remove('ec_phone')
+        Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
+        $canonical = Get-Content -LiteralPath $fixture.CanonicalPath -Raw | ConvertFrom-Json
+        $canonical.fields.ec_phone.value = $null
+        $canonical.fields.ec_phone.confidence = $null
+        [IO.File]::WriteAllBytes(
+            $fixture.CanonicalPath,
+            (InModuleScope Caldova.HrFrontier.AiBuilder -Parameters @{ Canonical = $canonical } {
+                param($Canonical)
+                ConvertTo-HrAiBuilderCanonicalJson -InputObject $Canonical
+            })
+        )
+        Update-TestReplayPairHashes -Fixture $fixture
+
+        $result = Invoke-TestObservedCaptureReplay -Fixture $fixture
+
+        $result.status | Should -Be 'passed' -Because ($result.failed_gates -join ', ')
+        $capture = Get-Content -LiteralPath $fixture.OutputPath -Raw | ConvertFrom-Json
+        @($capture.documents[0].fields.PSObject.Properties.Name) | Should -Be @($script:ReplayFieldNames)
+        $capture.documents[0].fields.ec_phone.value | Should -BeNullOrEmpty
+        $capture.documents[0].fields.ec_phone.confidence | Should -BeNullOrEmpty
+    }
+
+    It 'blocks a present false-valued known raw label: <Case>' -TestCases @(
+        @{ Case = 'null'; LabelValue = $null }
+        @{ Case = 'false'; LabelValue = $false }
+    ) {
+        param($LabelValue)
+        $fixture = New-TestObservedCaptureFixture
+        $raw = Get-Content -LiteralPath $fixture.RawPath -Raw | ConvertFrom-Json
+        $raw.responsev2.predictionOutput.labels.ec_phone = $LabelValue
+        Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
+        $canonical = Get-Content -LiteralPath $fixture.CanonicalPath -Raw | ConvertFrom-Json
+        $canonical.fields.ec_phone.value = $null
+        $canonical.fields.ec_phone.confidence = $null
+        [IO.File]::WriteAllBytes(
+            $fixture.CanonicalPath,
+            (InModuleScope Caldova.HrFrontier.AiBuilder -Parameters @{ Canonical = $canonical } {
+                param($Canonical)
+                ConvertTo-HrAiBuilderCanonicalJson -InputObject $Canonical
+            })
+        )
+        Update-TestReplayPairHashes -Fixture $fixture
+
+        $result = Invoke-TestObservedCaptureReplay -Fixture $fixture
+
+        $result.status | Should -Be 'blocked'
+        $result.failed_gates | Should -Contain 'capture_pair_provenance'
+        $fixture.OutputPath | Should -Not -Exist
+    }
+
+    It 'blocks replay when an absent raw label has a non-null canonical value' {
+        $fixture = New-TestObservedCaptureFixture
+        $raw = Get-Content -LiteralPath $fixture.RawPath -Raw | ConvertFrom-Json
+        $raw.responsev2.predictionOutput.labels.PSObject.Properties.Remove('candidate_id')
+        Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
+        Update-TestReplayPairHashes -Fixture $fixture
+
+        $result = Invoke-TestObservedCaptureReplay -Fixture $fixture
+
+        $result.status | Should -Be 'blocked'
+        $result.failed_gates | Should -Contain 'adapter_replay'
+        $result.failed_gates | Should -Not -Contain 'exact_field_contract'
+        $fixture.OutputPath | Should -Not -Exist
+    }
+
+    It 'accepts the exact observed valued date label shape' {
+        $fixture = New-TestObservedCaptureFixture
+        $raw = Get-Content -LiteralPath $fixture.RawPath -Raw | ConvertFrom-Json
+        $label = $raw.responsev2.predictionOutput.labels.dob
+        $raw.responsev2.predictionOutput.labels.dob = [pscustomobject][ordered]@{
+            '@odata.type' = $label.'@odata.type'
+            'value@odata.type' = '#DateTimeOffset'
+            value = '1989-03-10T00:00:00Z'
+            displayName = $label.displayName
+            fieldType = $label.fieldType
+            confidence = $label.confidence
+            text = $label.text
+            'spans@odata.type' = $label.'spans@odata.type'
+            spans = $label.spans
+            valueLocation = $label.valueLocation
+        }
+        Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
+        $canonical = Get-Content -LiteralPath $fixture.CanonicalPath -Raw | ConvertFrom-Json
+        $canonical.fields.dob.value = '1989-03-10T00:00:00Z'
+        [IO.File]::WriteAllBytes(
+            $fixture.CanonicalPath,
+            (InModuleScope Caldova.HrFrontier.AiBuilder -Parameters @{ Canonical = $canonical } {
+                param($Canonical)
+                ConvertTo-HrAiBuilderCanonicalJson -InputObject $Canonical
+            })
+        )
+        Update-TestReplayPairHashes -Fixture $fixture
+
+        $result = Invoke-TestObservedCaptureReplay -Fixture $fixture
+
+        $result.status | Should -Be 'passed' -Because ($result.failed_gates -join ', ')
+        [IO.File]::ReadAllText($fixture.OutputPath) |
+            Should -Match '"dob":\{"value":"1989-03-10T00:00:00Z","confidence":'
+    }
+
+    It 'blocks malformed valued date label shape: <Case>' -TestCases @(
+        @{ Case = 'missing type marker'; ExpectedGate = 'capture_pair_provenance' }
+        @{ Case = 'additional property'; ExpectedGate = 'capture_pair_provenance' }
+        @{ Case = 'reordered properties'; ExpectedGate = 'capture_pair_provenance' }
+        @{ Case = 'invalid value type'; ExpectedGate = 'prediction_capture_schema' }
+    ) {
+        param($Case, $ExpectedGate)
+        $fixture = New-TestObservedCaptureFixture
+        $raw = Get-Content -LiteralPath $fixture.RawPath -Raw | ConvertFrom-Json
+        $label = $raw.responsev2.predictionOutput.labels.dob
+        $valued = [ordered]@{
+            '@odata.type' = $label.'@odata.type'
+            'value@odata.type' = '#DateTimeOffset'
+            value = '1989-03-10T00:00:00Z'
+            displayName = $label.displayName
+            fieldType = $label.fieldType
+            confidence = $label.confidence
+            text = $label.text
+            'spans@odata.type' = $label.'spans@odata.type'
+            spans = $label.spans
+            valueLocation = $label.valueLocation
+        }
+        switch ($Case) {
+            'missing type marker' {
+                $valued.Remove('value@odata.type')
+            }
+            'additional property' {
+                $valued['unexpected'] = 'shape drift'
+            }
+            'reordered properties' {
+                $value = $valued.value
+                $valued.Remove('value')
+                $valued['value'] = $value
+            }
+            'invalid value type' {
+                $valued.value = 19890310
+            }
+        }
+        $raw.responsev2.predictionOutput.labels.dob = [pscustomobject]$valued
+        Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
+        Update-TestReplayPairHashes -Fixture $fixture
+
+        $result = Invoke-TestObservedCaptureReplay -Fixture $fixture
+
+        $result.status | Should -Be 'blocked'
+        $result.failed_gates | Should -Contain $ExpectedGate
+        $fixture.OutputPath | Should -Not -Exist
+    }
+
     It 'blocks a <Case> observed field condition' -TestCases @(
-        @{ Case = 'missing'; Mutation = 'missing' }
         @{ Case = 'additional'; Mutation = 'additional' }
         @{ Case = 'duplicate source filename'; Mutation = 'duplicate' }
     ) {
@@ -366,8 +1203,8 @@ Describe 'AI Builder observed capture replay projection' {
         @{ Case = 'spans changed from an array to an object' }
         @{ Case = 'missing nested boundingBox polygon' }
         @{ Case = 'additional nested coordinate property' }
-        @{ Case = 'additional valid region' }
-        @{ Case = 'missing valid region' }
+        @{ Case = 'empty regions' }
+        @{ Case = 'invalid additional region' }
     ) {
         param($Case)
         $fixture = New-TestObservedCaptureFixture
@@ -401,15 +1238,14 @@ Describe 'AI Builder observed capture replay projection' {
                 $label.valueLocation.boundingBox.polygon.coordinates[0] |
                     Add-Member -NotePropertyName z -NotePropertyValue 0
             }
-            'additional valid region' {
+            'empty regions' {
+                $label.valueLocation.regions = @()
+            }
+            'invalid additional region' {
                 $label.valueLocation.regions = @(
                     $label.valueLocation.regions
-                    $label.valueLocation.regions[0]
+                    [pscustomobject]@{ unexpected = 'shape drift' }
                 )
-            }
-            'missing valid region' {
-                $phone = $raw.responsev2.predictionOutput.labels.phone
-                $phone.valueLocation.regions = @($phone.valueLocation.regions | Select-Object -First 4)
             }
         }
         Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
@@ -1004,7 +1840,7 @@ Describe 'AI Builder field and corpus contracts' {
             $capability.exclusions.model_quality_claim | Should -BeTrue
         }
 
-        It 'retains the complete pre-existing lifecycle histories exactly and only appends capture_validated' {
+        It 'retains the complete pre-existing lifecycle histories through evaluated' {
             $manifestText = Get-Content -LiteralPath $script:CapabilityManifestPath -Raw
             $inventoryText = Get-Content -LiteralPath $script:CapabilityInventoryPath -Raw
             $convertFromJson = Get-Command ConvertFrom-Json -ErrorAction Stop
@@ -1019,8 +1855,8 @@ Describe 'AI Builder field and corpus contracts' {
             $manifestModel = @($manifest.models | Where-Object display_name -eq 'PersonalMasterDataFixed')[0]
             $inventoryModel = @($inventory.models | Where-Object display_name -eq 'PersonalMasterDataFixed')[0]
 
-            $manifestModel.lifecycle_stage | Should -Be 'capture_validated'
-            $inventoryModel.lifecycle_stage | Should -Be 'capture_validated'
+            $manifestModel.lifecycle_stage | Should -Be 'evaluated'
+            $inventoryModel.lifecycle_stage | Should -Be 'evaluated'
             @($manifestModel.lifecycle_history | ForEach-Object { "$($_.stage)|$($_.changed_at_utc)" }) | Should -Be @(
                 'not_created|2026-09-28T14:15:49.4691784Z'
                 'created|2026-09-29T06:42:34.4504815Z'
@@ -1030,7 +1866,8 @@ Describe 'AI Builder field and corpus contracts' {
                 'blocked|2026-09-29T09:13:38.1846955Z'
                 'evaluation_published|2026-09-29T14:16:34.8902538Z'
                 'blocked|2026-09-30T08:20:52.1561940Z'
-                "capture_validated|$($manifestModel.lifecycle_history[-1].changed_at_utc)"
+                "capture_validated|$($manifestModel.lifecycle_history[-2].changed_at_utc)"
+                "evaluated|$($manifestModel.lifecycle_history[-1].changed_at_utc)"
             )
             @($inventoryModel.lifecycle_history | ForEach-Object { "$($_.stage)|$($_.changed_at_utc)" }) | Should -Be @(
                 'not_created|2026-09-28T14:15:49.4691784Z'
@@ -1041,15 +1878,16 @@ Describe 'AI Builder field and corpus contracts' {
                 'blocked|2026-09-29T09:13:38.1865217Z'
                 'evaluation_published|2026-09-29T14:16:34.8922386Z'
                 'blocked|2026-09-30T08:20:52.1598169Z'
-                "capture_validated|$($inventoryModel.lifecycle_history[-1].changed_at_utc)"
+                "capture_validated|$($inventoryModel.lifecycle_history[-2].changed_at_utc)"
+                "evaluated|$($inventoryModel.lifecycle_history[-1].changed_at_utc)"
             )
 
             $fieldBoM = Get-Content -LiteralPath $script:CapabilityFieldBoMPath -Raw
             $testBoM = Get-Content -LiteralPath $script:CapabilityTestBoMPath -Raw
             $fieldBoM | Should -Match 'capture-capability\.json'
-            $fieldBoM | Should -Match '`Capture validated`'
+            $fieldBoM | Should -Match '`Evaluated`'
             $testBoM | Should -Match 'capture-capability\.json'
-            $testBoM | Should -Match 'capture capability passed'
+            $testBoM | Should -Match 'strict held-out evaluation'
         }
     }
 
@@ -1720,40 +2558,38 @@ Describe 'AI Builder field and corpus contracts' {
 
                 $paths = New-RunEvidencePaths -Name $Name
                 $evidenceRoot = Join-Path $script:RepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
-                $utf8 = [Text.UTF8Encoding]::new($false, $true)
-                $manifestText = [IO.File]::ReadAllText(
-                    (Join-Path $evidenceRoot 'run-manifest.json'),
-                    $utf8
-                )
-                $inventoryText = [IO.File]::ReadAllText(
-                    (Join-Path $evidenceRoot 'model-inventory.json'),
-                    $utf8
-                )
+                foreach ($sourceAndDestination in @(
+                    @{ Source = Join-Path $evidenceRoot 'run-manifest.json'; Destination = $paths.ManifestPath },
+                    @{ Source = Join-Path $evidenceRoot 'model-inventory.json'; Destination = $paths.InventoryPath }
+                )) {
+                    Copy-Item -LiteralPath $sourceAndDestination.Source -Destination $sourceAndDestination.Destination
+                }
 
-                $manifestText = $manifestText.Replace(
-                    '"lifecycle_stage": "capture_validated"',
-                    '"lifecycle_stage": "blocked"'
-                ).Replace(
-                    '"changed_at_utc": "2026-09-30T08:20:52.156194Z"',
-                    '"changed_at_utc": "2026-09-30T08:20:52.1561940Z"'
-                )
-                $manifestText = $manifestText -replace ',\r?\n        \{\r?\n          "stage": "capture_validated",\r?\n          "changed_at_utc": "2026-09-30T10:59:13\.7791393Z"\r?\n        \}', ''
-                $inventoryText = $inventoryText.Replace(
-                    '"lifecycle_stage": "capture_validated"',
-                    '"lifecycle_stage": "blocked"'
-                )
-                $inventoryText = $inventoryText -replace ',\r?\n        \{\r?\n          "stage": "capture_validated",\r?\n          "changed_at_utc": "2026-09-30T10:59:13\.7807783Z"\r?\n        \}', ''
+                $recreatePreDecisionBytes = @'
+param([string] $Path)
 
-                [IO.File]::WriteAllText(
-                    $paths.ManifestPath,
-                    $manifestText,
-                    [Text.UTF8Encoding]::new($false)
-                )
-                [IO.File]::WriteAllText(
-                    $paths.InventoryPath,
-                    $inventoryText,
-                    [Text.UTF8Encoding]::new($false)
-                )
+$document = Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json -DateKind String
+$model = @($document.models)[0]
+$model.lifecycle_stage = 'blocked'
+$model.lifecycle_history = @(
+    $model.lifecycle_history | Where-Object stage -NotIn @('capture_validated', 'evaluated')
+)
+$json = ($document | ConvertTo-Json -Depth 100) -replace "(?<!`r)`n", "`r`n"
+[IO.File]::WriteAllText(
+    $Path,
+    "$json`r`n",
+    [Text.UTF8Encoding]::new($false)
+)
+'@
+                $recreateScriptPath = Join-Path (Split-Path -Parent $paths.ManifestPath) 'recreate-task8-predecision.ps1'
+                Set-TestUtf8NoBomContent -Path $recreateScriptPath -Content $recreatePreDecisionBytes
+                foreach ($fixturePath in @($paths.ManifestPath, $paths.InventoryPath)) {
+                    & pwsh -NoProfile -File $recreateScriptPath -Path $fixturePath
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "Failed to recreate the Task 8 pre-decision fixture: $fixturePath"
+                    }
+                }
+                Remove-Item -LiteralPath $recreateScriptPath -Force
                 return $paths
             }
         }
@@ -3478,6 +4314,124 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
             $fixture.PredictionCapturePath | Should -Exist
             @((Get-Content -LiteralPath $fixture.PredictionCapturePath -Raw | ConvertFrom-Json).documents).Count |
                 Should -Be $fixture.HeldOutCount
+        }
+
+        It 'preserves ISO date values as strings when PowerShell 7 imports a prediction capture' {
+            $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed'
+            $rawExportPath = @(
+                Get-ChildItem -LiteralPath $fixture.RawExportDirectory -Filter '*.json' |
+                    Sort-Object Name
+            )[0].FullName
+            $rawExport = Get-Content -LiteralPath $rawExportPath -Raw | ConvertFrom-Json
+            $rawExport.fields.dob.value = '1989-03-10T00:00:00Z'
+            $rawExport.fields.dob.confidence = 0.99
+            $rawExport | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $rawExportPath -Encoding UTF8
+
+            $output = & pwsh -NoProfile -File $script:ImportQuickTestResultsPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -RawExportDirectory $fixture.RawExportDirectory `
+                -AdapterScriptPath $fixture.AdapterPath `
+                -TargetModelName $fixture.ModelName `
+                -OutputPath $fixture.PredictionCapturePath 2>&1
+            $exitCode = $LASTEXITCODE
+
+            $exitCode | Should -Be 0 -Because ($output -join [Environment]::NewLine)
+            $captureText = Get-Content -LiteralPath $fixture.PredictionCapturePath -Raw
+            $captureText | Should -Match '"value":\s*"1989-03-10T00:00:00Z"'
+        }
+
+        It 'replays nested fixed-holdout captures from their supplied root' {
+            $evidenceRoot = Join-Path $script:RepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
+            $root = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+            New-Item -ItemType Directory -Path $root -Force | Out-Null
+            $outputPath = Join-Path $root 'prediction-capture-fixed.json'
+
+            $output = & pwsh -NoProfile -File $script:ImportQuickTestResultsPath `
+                -RunManifestPath (Join-Path $evidenceRoot 'run-manifest.json') `
+                -ModelSchemaRecordPath (Join-Path $evidenceRoot 'model-schema-fixed.json') `
+                -RawExportDirectory (Join-Path $evidenceRoot 'capture\fixed-holdout') `
+                -AdapterScriptPath (Join-Path $script:RepositoryRoot 'hr\src\scripts\adapters\ConvertFrom-HrAiBuilderEvaluationCapture.ps1') `
+                -TargetModelName 'PersonalMasterDataFixed' `
+                -OutputPath $outputPath 2>&1
+            $exitCode = $LASTEXITCODE
+
+            $exitCode | Should -Be 0 -Because ($output -join [Environment]::NewLine)
+            $capture = Get-Content -LiteralPath $outputPath -Raw | ConvertFrom-Json
+            @($capture.documents).Count | Should -Be 4
+            @(
+                $capture.documents |
+                    ForEach-Object { Split-Path -Parent ([string]$_.source_export_path) } |
+                    Sort-Object -Unique
+            ).Count | Should -Be 4
+        }
+
+        It 'evaluates replayed nested fixed-holdout captures from their common ancestor' {
+            $evidenceRoot = Join-Path $script:RepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
+            $root = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+            New-Item -ItemType Directory -Path $root -Force | Out-Null
+            $predictionCapturePath = Join-Path $root 'prediction-capture-fixed.json'
+            $evaluationDirectory = Join-Path $root 'evaluation'
+
+            & pwsh -NoProfile -File $script:ImportQuickTestResultsPath `
+                -RunManifestPath (Join-Path $evidenceRoot 'run-manifest.json') `
+                -ModelSchemaRecordPath (Join-Path $evidenceRoot 'model-schema-fixed.json') `
+                -RawExportDirectory (Join-Path $evidenceRoot 'capture\fixed-holdout') `
+                -AdapterScriptPath (Join-Path $script:RepositoryRoot 'hr\src\scripts\adapters\ConvertFrom-HrAiBuilderEvaluationCapture.ps1') `
+                -TargetModelName 'PersonalMasterDataFixed' `
+                -OutputPath $predictionCapturePath | Out-Null
+            $LASTEXITCODE | Should -Be 0
+
+            $output = & pwsh -NoProfile -File $script:MeasureEvaluationPath `
+                -RunManifestPath (Join-Path $evidenceRoot 'run-manifest.json') `
+                -CorpusQualityPath (Join-Path $evidenceRoot 'corpus-quality.json') `
+                -FieldContractPath $script:FieldContractPath `
+                -ModelSchemaRecordPath (Join-Path $evidenceRoot 'model-schema-fixed.json') `
+                -PredictionCapturePath $predictionCapturePath `
+                -GroundTruthPath (Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template\ground-truth.json') `
+                -EvidenceDirectory $evaluationDirectory 2>&1
+            $exitCode = $LASTEXITCODE
+
+            $exitCode | Should -Be 0 -Because ($output -join [Environment]::NewLine)
+            $metrics = Get-Content -LiteralPath (Join-Path $evaluationDirectory 'evaluation-metrics.json') -Raw |
+                ConvertFrom-Json
+            @($metrics.models[0].failed_gates) | Should -Not -Contain 'adapter_replay'
+        }
+
+        It 'preserves ISO date values as strings when PowerShell 7 evaluates a prediction capture' {
+            $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed'
+            $rawExportPath = @(
+                Get-ChildItem -LiteralPath $fixture.RawExportDirectory -Filter '*.json' |
+                    Sort-Object Name
+            )[0].FullName
+            $rawExport = Get-Content -LiteralPath $rawExportPath -Raw | ConvertFrom-Json
+            $rawExport.fields.dob.value = '1989-03-10T00:00:00Z'
+            $rawExport.fields.dob.confidence = 0.99
+            $rawExport | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $rawExportPath -Encoding UTF8
+
+            & pwsh -NoProfile -File $script:ImportQuickTestResultsPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -RawExportDirectory $fixture.RawExportDirectory `
+                -AdapterScriptPath $fixture.AdapterPath `
+                -TargetModelName $fixture.ModelName `
+                -OutputPath $fixture.PredictionCapturePath | Out-Null
+            $LASTEXITCODE | Should -Be 0
+
+            $output = & pwsh -NoProfile -File $script:MeasureEvaluationPath `
+                -RunManifestPath $fixture.RunManifestPath `
+                -CorpusQualityPath $fixture.CorpusQualityPath `
+                -FieldContractPath $script:FieldContractPath `
+                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                -PredictionCapturePath $fixture.PredictionCapturePath `
+                -GroundTruthPath $fixture.GroundTruthPath `
+                -EvidenceDirectory $fixture.EvidenceRoot 2>&1
+            $exitCode = $LASTEXITCODE
+
+            $exitCode | Should -Be 0 -Because ($output -join [Environment]::NewLine)
+            $metrics = Get-Content -LiteralPath (Join-Path $fixture.EvidenceRoot 'evaluation-metrics.json') -Raw |
+                ConvertFrom-Json
+            @($metrics.models[0].failed_gates) | Should -Not -Contain 'prediction_capture_schema'
         }
 
         It 'evaluates an imported capture when the adapter metadata is normalized by the importer' {

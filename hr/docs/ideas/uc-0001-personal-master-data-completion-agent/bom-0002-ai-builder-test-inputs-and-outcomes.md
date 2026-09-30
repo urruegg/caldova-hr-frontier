@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.3 |
-| **Date** | 2026-09-29 |
+| **Version** | 0.4 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | UC-0001 AI Builder test-run input and outcome traceability |
@@ -15,7 +15,7 @@ This repository-owned Build of Materials (BoM) summarizes the inputs and outcome
 
 The [PeopleDoc Master Data AI Builder Field BoM](bom-0001-peopledoc-master-data-ai-builder-fields.md) remains authoritative for the 17-field contract lifecycle. The run manifest and machine-readable result files remain authoritative for deployment context, document identity, field-level expected and actual values, confidence, and error classification. This BoM summarizes and links that evidence; it does not duplicate or replace it.
 
-`PersonalMasterDataFixed` version `1.0` is trained and published solely for evaluation capture. Its retained training-proof capture capability passed `AEC-G001` through `AEC-G007` by deterministic local calculation. It has not been evaluated or approved for solution use. The historical blockers remain preserved, no held-out PDF has been submitted, and `PersonalMasterDataGeneral` remains uncreated. A blank metric is not treated as zero, and an absent result is not treated as a pass.
+`PersonalMasterDataFixed` version `1.0` completed strict held-out evaluation and is not approved for solution use. Explicit pre-mutation approval is recorded before any evaluation publication or flow creation. Exactly four approved held-outs were processed once, producing 4 document results and 68 field records. The evaluation and its metrics are this package's calculated assessment, not a GF statement or approval. The historical blockers remain preserved, Task 10 approval is pending, the flow is Off, and `PersonalMasterDataGeneral` remains uncreated. A blank metric is not treated as zero, and an absent result is not treated as a pass.
 
 ## 2. Traceability Model
 
@@ -124,16 +124,16 @@ Planned field-result counts are the held-out document count multiplied by the 17
 
 | Test BoM ID | `run_id` | Model version | Deployment context | Solution version | Corpus and generator revisions | Input status | Outcome status | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| `BOM-0002-R01` | `t2-dev-20260925-001` | `1.0` | [Run manifest](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/run-manifest.json) | `0.0.0.1` | Corpus `c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db`; generator `a0829d218dbce15157e35ca7a4da36c0b8241084597818836871441314f175bd` | `Qualified` | `Evidence incomplete` | [Readiness](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/readiness.json); [evaluation capture intent](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-capture-intent.json); [evaluation capture readiness](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-capture-readiness.json); [evaluation publication](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-evaluation-publication.json); [fixed schema](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-schema-fixed.json); [blocked test capability](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-test-capability.json); [blocked training-capture attempt](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-attempt.json); [blocked corrected retry](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-retry.json); [training-proof capture](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-remediation.json); [capture pair](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20260930094537354Z-34bf8987/capture-pair.json); [capture capability](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture-capability.json) |
+| `BOM-0002-R01` | `t2-dev-20260925-001` | `1.0` | [Run manifest](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/run-manifest.json) | `0.0.0.1` | Corpus `c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db`; generator `a0829d218dbce15157e35ca7a4da36c0b8241084597818836871441314f175bd` | `Executed` | `Evaluated - quality findings` | [Validation results](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/validation-results.json); [evaluation metrics](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-metrics.json); [evaluation summary](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-summary.md); [prediction capture](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/prediction-capture-fixed.json); [evaluated ledger](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/holdout-consumption.json) |
 | `BOM-0002-R02` | `t2-dev-20260925-001` | Not created | [Run manifest](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/run-manifest.json) | `0.0.0.1` | Corpus `c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db`; generator `a0829d218dbce15157e35ca7a4da36c0b8241084597818836871441314f175bd` | `Qualified` | `Not run - no evidence` | [Readiness](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/readiness.json); [corpus quality](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/corpus-quality.json) |
 
-The readiness gate passed. Capacity is available through the enabled tenant unassigned-credit setting, and the attended System Administrator role supplies maker authorization. Explicit pre-mutation approval is recorded before any evaluation publication or flow creation. `PersonalMasterDataFixed` version `1.0` was published solely to support the `Process documents` capture path. The first source upload failed before flow enablement; a separately authorized corrected retry then failed exact stored-byte verification. A reviewed native-transfer remediation subsequently produced one immutable training-proof source/raw/canonical pair and returned the flow to Off. Deterministic local replay calculated all seven capture gates as passed, so the lifecycle advanced to `capture_validated` while retaining both blocked attempts. This is not held-out evaluation, model-quality evidence, business approval, or solution membership. The historical Quick Test blocker remains preserved, the open draft remains untouched, no fixed holdout was submitted, and `PersonalMasterDataGeneral` remains uncreated.
+The readiness and capture-capability gates passed before holdout exposure. `PersonalMasterDataFixed` version `1.0` then processed exactly the four approved fixed holdouts once each. The fourth holdout's first portal attempt was rejected before run creation because disablement raced trigger submission; no run or artifact was created. The same approved execution run ID was retried only after explicit start confirmation, succeeded, and the flow was disabled. Strict disposition then calculated an `evaluated` lifecycle transition bound atomically to the retained evidence. This is model-quality evidence, but it is not business approval or solution membership. Task 10 approval remains pending, the flow is Off, and `PersonalMasterDataGeneral` remains uncreated.
 
 ## 7. Outcome Summary
 
 | Test BoM ID | Model | Held-out documents evaluated | Field results recorded | Exact-match accuracy | Precision | Recall | Missing-field precision | False-value rate | Confidence distribution | Findings | Outcome status |
 |---|---|---:|---:|---|---|---|---|---|---|---|---|
-| `BOM-0002-R01` | `PersonalMasterDataFixed` | 0 of 4 | 0 of 68 | Not available - not run | Not available - not run | Not available - not run | Not available - not run | Not available - not run | Not available - not run | Training-proof capture capability passed `AEC-G001` through `AEC-G007`. No held-out evaluation or model-quality result exists. | `Evidence incomplete` |
+| `BOM-0002-R01` | `PersonalMasterDataFixed` | 4 of 4 | 68 of 68 | `0.9117647058823529` | `0.9333333333333333` | `0.875` | `1.0` | `0` (count `0`) | See calculated evaluation metrics | Six quality findings: four `dob` findings (`missing` or `invalid_format`) and two `last_name` findings (`incorrect`). All other fields were evaluated with no findings. | `Evaluated - quality findings` |
 | `BOM-0002-R02` | `PersonalMasterDataGeneral` | 0 of 8 | 0 of 136 | Not available - not run | Not available - not run | Not available - not run | Not available - not run | Not available - not run | Not available - not run | No result evidence exists | `Not run - no evidence` |
 
 The required metrics are:
@@ -146,6 +146,21 @@ The required metrics are:
 | Missing-field precision | Report by model, field, and collection or family |
 | False-value rate | Must be zero for expected-absent fields |
 | Confidence distribution | Group by exact match, missing, incorrect, and false value |
+
+### 7.1 Integrity and exactly-once evidence
+
+| Artifact | SHA-256 |
+|---|---|
+| Prediction capture | `21b4c03ffbb478c5f0480c8802a8e920954b35fd62e81b445bc99240cf232054` |
+| Evaluation metrics | `b39e0d4384fd2a7e918b9b5156a6774a27d1a809ea655202ea2178127ec1cad2` |
+| Evaluated holdout ledger | `2e6c2a7868fe2895e9ba62ebf2ebd532b0ba7298c88a27d0ef24b5062614bc23` |
+
+The four retained capture-pair SHA-256 values are:
+
+1. Holdout 1: `a25bd6371d539ae474e0bdf0a92367301e2113a7f2eb8d6f703b5b0e24998645`
+2. Holdout 2: `7be0f59312ba53464062c671a02ca7da1ab79c859f4b0101a996b2ea8fe82efb`
+3. Holdout 3: `f1306f371d324c89c2b2a6f26fb2c7a3c15684707ac3a09c038aaff121432f09`
+4. Holdout 4: `94f2ef6219e3c80fb6e67d073f9ea0fa4a48faef26b0b1392d618798c0ec4a4d`
 
 ## 8. Required Evidence
 

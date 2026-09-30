@@ -1,0 +1,1030 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "models": [
+    {
+      "run_id": "t2-dev-20260925-001",
+      "display_name": "PersonalMasterDataFixed",
+      "model_name": "PersonalMasterDataFixed",
+      "model_version": "1.0",
+      "strict_gate_disposition": "evaluated",
+      "failed_gates": [],
+      "expected_validation_record_count": 68,
+      "actual_validation_record_count": 68,
+      "exact_match_accuracy": 0.9117647058823529,
+      "precision": 0.9333333333333333,
+      "recall": 0.875,
+      "missing_field_precision": 1.0,
+      "false_value_rate": 0.0,
+      "false_value_count": 0,
+      "quality_finding_count": 6,
+      "confidence_distribution": [
+        {
+          "outcome": "exact_match",
+          "count": 42,
+          "minimum": 0.765,
+          "maximum": 0.995,
+          "mean": 0.9853571428571425
+        },
+        {
+          "outcome": "missing",
+          "count": 3,
+          "minimum": 0.99,
+          "maximum": 0.99,
+          "mean": 0.9899999999999999
+        },
+        {
+          "outcome": "incorrect",
+          "count": 2,
+          "minimum": 0.016,
+          "maximum": 0.995,
+          "mean": 0.5055
+        },
+        {
+          "outcome": "false_value",
+          "count": 0,
+          "minimum": null,
+          "maximum": null,
+          "mean": null
+        },
+        {
+          "outcome": "invalid_format",
+          "count": 1,
+          "minimum": 0.99,
+          "maximum": 0.99,
+          "mean": 0.99
+        }
+      ],
+      "by_field": [
+        {
+          "field_name": "ahv",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "missing_field_precision": null,
+          "false_value_rate": null,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 4,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.99
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "field_name": "candidate_id",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "missing_field_precision": 1.0,
+          "false_value_rate": 0.0,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 2,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.99
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "field_name": "city",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "missing_field_precision": null,
+          "false_value_rate": null,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 4,
+              "minimum": 0.765,
+              "maximum": 0.995,
+              "mean": 0.93625
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "field_name": "dob",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "missing_field_precision": null,
+          "false_value_rate": null,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "missing",
+              "count": 3,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.9899999999999999
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 1,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.99
+            }
+          ]
+        },
+        {
+          "field_name": "ec_name",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "missing_field_precision": 1.0,
+          "false_value_rate": 0.0,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 1,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.99
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "field_name": "ec_phone",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "missing_field_precision": 1.0,
+          "false_value_rate": 0.0,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 1,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.99
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "field_name": "email",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "missing_field_precision": 1.0,
+          "false_value_rate": 0.0,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 1,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.99
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "field_name": "first_name",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "missing_field_precision": null,
+          "false_value_rate": null,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 4,
+              "minimum": 0.99,
+              "maximum": 0.995,
+              "mean": 0.9924999999999999
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "field_name": "heimatort",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "missing_field_precision": 1.0,
+          "false_value_rate": 0.0,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 3,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.9899999999999999
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "field_name": "iban",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "missing_field_precision": 1.0,
+          "false_value_rate": 0.0,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 3,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.9899999999999999
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "field_name": "last_name",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 0.5,
+          "precision": 0.5,
+          "recall": 0.5,
+          "missing_field_precision": null,
+          "false_value_rate": null,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 2,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.99
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 2,
+              "minimum": 0.016,
+              "maximum": 0.995,
+              "mean": 0.5055
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "field_name": "marital",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "missing_field_precision": 1.0,
+          "false_value_rate": 0.0,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 3,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.9899999999999999
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "field_name": "nationality",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "missing_field_precision": 1.0,
+          "false_value_rate": 0.0,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 3,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.9899999999999999
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "field_name": "permit",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "missing_field_precision": 1.0,
+          "false_value_rate": 0.0,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 2,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.99
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "field_name": "phone",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "missing_field_precision": 1.0,
+          "false_value_rate": 0.0,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 1,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.99
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "field_name": "plz",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "missing_field_precision": null,
+          "false_value_rate": null,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 4,
+              "minimum": 0.99,
+              "maximum": 0.995,
+              "mean": 0.9925
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "field_name": "street",
+          "validation_record_count": 4,
+          "exact_match_accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "missing_field_precision": null,
+          "false_value_rate": null,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 4,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.99
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        }
+      ],
+      "by_collection_or_family": [
+        {
+          "collection_or_family": "a-personalblatt",
+          "validation_record_count": 17,
+          "exact_match_accuracy": 0.9411764705882353,
+          "precision": 1.0,
+          "recall": 0.9411764705882353,
+          "missing_field_precision": null,
+          "false_value_rate": null,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 16,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.9900000000000001
+            },
+            {
+              "outcome": "missing",
+              "count": 1,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.99
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "collection_or_family": "b-anmeldung-gemeinde",
+          "validation_record_count": 17,
+          "exact_match_accuracy": 0.8823529411764706,
+          "precision": 0.8181818181818182,
+          "recall": 0.8181818181818182,
+          "missing_field_precision": 1.0,
+          "false_value_rate": 0.0,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 9,
+              "minimum": 0.765,
+              "maximum": 0.995,
+              "mean": 0.9655555555555555
+            },
+            {
+              "outcome": "missing",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "incorrect",
+              "count": 1,
+              "minimum": 0.995,
+              "maximum": 0.995,
+              "mean": 0.995
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 1,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.99
+            }
+          ]
+        },
+        {
+          "collection_or_family": "c-sozialversicherung",
+          "validation_record_count": 17,
+          "exact_match_accuracy": 0.9411764705882353,
+          "precision": 1.0,
+          "recall": 0.9090909090909091,
+          "missing_field_precision": 1.0,
+          "false_value_rate": 0.0,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 10,
+              "minimum": 0.99,
+              "maximum": 0.995,
+              "mean": 0.991
+            },
+            {
+              "outcome": "missing",
+              "count": 1,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.99
+            },
+            {
+              "outcome": "incorrect",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        },
+        {
+          "collection_or_family": "d-bankverbindung",
+          "validation_record_count": 17,
+          "exact_match_accuracy": 0.8823529411764706,
+          "precision": 0.875,
+          "recall": 0.7777777777777778,
+          "missing_field_precision": 1.0,
+          "false_value_rate": 0.0,
+          "confidence_distribution": [
+            {
+              "outcome": "exact_match",
+              "count": 7,
+              "minimum": 0.99,
+              "maximum": 0.995,
+              "mean": 0.9921428571428572
+            },
+            {
+              "outcome": "missing",
+              "count": 1,
+              "minimum": 0.99,
+              "maximum": 0.99,
+              "mean": 0.99
+            },
+            {
+              "outcome": "incorrect",
+              "count": 1,
+              "minimum": 0.016,
+              "maximum": 0.016,
+              "mean": 0.016
+            },
+            {
+              "outcome": "false_value",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            },
+            {
+              "outcome": "invalid_format",
+              "count": 0,
+              "minimum": null,
+              "maximum": null,
+              "mean": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

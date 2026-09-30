@@ -22,7 +22,10 @@
         'Set-HrAiBuilderPredictionCaptureAdapterMetadata',
         'Test-HrAiBuilderStrictGates',
         'Test-HrAiBuilderCapturePair',
-        'ConvertFrom-HrAiBuilderEvaluationCapture'
+        'ConvertFrom-HrAiBuilderEvaluationCapture',
+        'New-HrAiBuilderHoldoutConsumptionLedger',
+        'Set-HrAiBuilderHoldoutCaptured',
+        'Set-HrAiBuilderHoldoutsEvaluated'
     )
     CmdletsToExport = @()
     VariablesToExport = @()

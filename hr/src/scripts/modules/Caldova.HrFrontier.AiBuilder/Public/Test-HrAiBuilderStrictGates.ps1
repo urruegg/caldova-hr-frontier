@@ -242,19 +242,46 @@ function Test-HrAiBuilderStrictGates {
                 ForEach-Object { Split-Path -Parent ([string]$_.source_export_path) } |
                 Sort-Object -Unique
         )
-        if ($rawExportDirectories.Count -ne 1) {
+        $rawExportDirectory = $null
+        if ([string]$PredictionCapture.adapter_contract -ceq 'replayable-v2') {
+            $captureStageDirectories = @(
+                $rawExportDirectories |
+                    ForEach-Object { Split-Path -Parent $_ } |
+                    Sort-Object -Unique
+            )
+            $expectedStageDirectoryName = if ([string]$PredictionCapture.model_name -ceq 'PersonalMasterDataFixed') {
+                'fixed-holdout'
+            }
+            else {
+                'general-holdout'
+            }
+            if ($captureStageDirectories.Count -ne 1 -or
+                (Split-Path -Leaf $captureStageDirectories[0]) -cne $expectedStageDirectoryName) {
+                return $false
+            }
+
+            $rawExportDirectory = $captureStageDirectories[0]
+        }
+        elseif ($rawExportDirectories.Count -eq 1) {
+            $rawExportDirectory = $rawExportDirectories[0]
+        }
+        else {
             return $false
         }
 
-        $temporaryReplayPath = Join-Path $rawExportDirectories[0] ([guid]::NewGuid().ToString() + '.replay.json')
+        $temporaryReplayPath = Join-Path $rawExportDirectory ([guid]::NewGuid().ToString() + '.replay.json')
         try {
-            & $adapterScriptPath `
-                -RawExportDirectory $rawExportDirectories[0] `
+            $powerShellExecutable = (Get-Process -Id $PID).Path
+            & $powerShellExecutable -NoProfile -NonInteractive -File $adapterScriptPath `
+                -RawExportDirectory $rawExportDirectory `
                 -ModelName ([string]$PredictionCapture.model_name) `
                 -ModelVersion ([string]$PredictionCapture.model_version) `
                 -RunId ([string]$PredictionCapture.run_id) `
                 -Operator ([string]$PredictionCapture.operator) `
-                -OutputPath $temporaryReplayPath
+                -OutputPath $temporaryReplayPath 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                return $false
+            }
         }
         catch {
             return $false
@@ -265,7 +292,17 @@ function Test-HrAiBuilderStrictGates {
         }
 
         try {
-            $replayedCapture = Read-HrAiBuilderJson -Path $temporaryReplayPath -Description 'Replayed prediction capture'
+            $replayedJson = [IO.File]::ReadAllText(
+                [IO.Path]::GetFullPath($temporaryReplayPath),
+                [Text.UTF8Encoding]::new($false, $true)
+            )
+            $convertFromJson = Get-Command ConvertFrom-Json -ErrorAction Stop
+            if ($convertFromJson.Parameters.ContainsKey('DateKind')) {
+                $replayedCapture = $replayedJson | ConvertFrom-Json -DateKind String
+            }
+            else {
+                $replayedCapture = $replayedJson | ConvertFrom-Json
+            }
             Set-HrAiBuilderPredictionCaptureAdapterMetadata -PredictionCapture $replayedCapture -AdapterScriptPath $adapterScriptPath | Out-Null
         }
         catch {

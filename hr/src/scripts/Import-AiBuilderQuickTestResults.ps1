@@ -26,7 +26,13 @@ function Read-ImportJson {
     }
 
     try {
-        return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+        $json = Get-Content -LiteralPath $Path -Raw
+        $convertFromJson = Get-Command ConvertFrom-Json -ErrorAction Stop
+        if ($convertFromJson.Parameters.ContainsKey('DateKind')) {
+            return $json | ConvertFrom-Json -DateKind String
+        }
+
+        return $json | ConvertFrom-Json
     }
     catch {
         throw "$Description file '$Path' is malformed JSON. $($_.Exception.Message)"
@@ -271,7 +277,8 @@ function Compare-ImportPredictionCapture {
 function Test-ImportAdapterReplay {
     param(
         [Parameter(Mandatory)][object]$PredictionCapture,
-        [Parameter(Mandatory)][string[]]$FieldNames
+        [Parameter(Mandatory)][string[]]$FieldNames,
+        [Parameter(Mandatory)][string]$RawExportDirectory
     )
 
     if (-not (Test-ImportSupportedAdapterContract -PredictionCapture $PredictionCapture)) {
@@ -287,19 +294,10 @@ function Test-ImportAdapterReplay {
         return $false
     }
 
-    $rawExportDirectories = @(
-        $PredictionCapture.documents |
-            ForEach-Object { Split-Path -Parent ([string]$_.source_export_path) } |
-            Sort-Object -Unique
-    )
-    if ($rawExportDirectories.Count -ne 1) {
-        return $false
-    }
-
-    $replayPath = Join-Path $rawExportDirectories[0] ([guid]::NewGuid().ToString() + '.replay.json')
+    $replayPath = Join-Path $RawExportDirectory ([guid]::NewGuid().ToString() + '.replay.json')
     try {
         & $adapterScriptPath `
-            -RawExportDirectory $rawExportDirectories[0] `
+            -RawExportDirectory $RawExportDirectory `
             -ModelName ([string]$PredictionCapture.model_name) `
             -ModelVersion ([string]$PredictionCapture.model_version) `
             -RunId ([string]$PredictionCapture.run_id) `
@@ -336,7 +334,8 @@ function Test-ImportPredictionCapture {
         [Parameter(Mandatory)][object]$RunManifest,
         [Parameter(Mandatory)][object]$ModelSchemaRecord,
         [Parameter(Mandatory)][string[]]$FieldNames,
-        [Parameter(Mandatory)][string]$TargetModelName
+        [Parameter(Mandatory)][string]$TargetModelName,
+        [Parameter(Mandatory)][string]$RawExportDirectory
     )
 
     $manifestModel = @($RunManifest.models | Where-Object { [string]$_.display_name -ceq $TargetModelName })
@@ -421,7 +420,8 @@ function Test-ImportPredictionCapture {
         throw 'Prediction capture documents must cover each held-out document exactly once.'
     }
 
-    if (-not (Test-ImportAdapterReplay -PredictionCapture $PredictionCapture -FieldNames $FieldNames)) {
+    if (-not (Test-ImportAdapterReplay -PredictionCapture $PredictionCapture -FieldNames $FieldNames `
+            -RawExportDirectory $RawExportDirectory)) {
         throw 'Prediction capture cannot be reproduced from the retained raw exports through the tested adapter.'
     }
 }
@@ -466,7 +466,8 @@ try {
         -RunManifest $runManifest `
         -ModelSchemaRecord $modelSchemaRecord `
         -FieldNames $fieldNames `
-        -TargetModelName $TargetModelName
+        -TargetModelName $TargetModelName `
+        -RawExportDirectory $RawExportDirectory
 
     $predictionCapture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $temporaryCapturePath -Encoding UTF8
 

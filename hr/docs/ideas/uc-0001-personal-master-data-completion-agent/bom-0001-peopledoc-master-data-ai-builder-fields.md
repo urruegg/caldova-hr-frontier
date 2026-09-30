@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.3 |
-| **Date** | 2026-09-25 |
+| **Version** | 0.4 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | UC-0001 AI Builder field design, implementation and verification traceability |
@@ -75,6 +75,8 @@ Not started
 
 `Capture validated` for the fixed model records only that the retained training-proof capture can be reproduced deterministically with the exact contract. It is not held-out evaluation, model-quality evidence, business-use approval or solution membership. Historical blocked evidence remains authoritative for the attempts it records.
 
+`Evaluated` records a completed strict evaluation against the approved held-out set. It does not mean `Approved for solution`, and Task 10 remains the separate approval gate.
+
 ### 2.3 Verification status
 
 | Status | Meaning |
@@ -87,9 +89,13 @@ Not started
 
 An evaluated field is not thereby approved for a future automated write path. That approval remains outside this implementation and depends on the decisions and safeguards identified in the model design.
 
-## 3. Field Lifecycle Matrix
+## 3. Field Lifecycle Evidence
 
-| BoM ID | Contract field | PeopleDoc source label | AI Builder type | Designed contract | Design reference | Design status | Tenant 2 fixed-model stage | Tenant 2 fixed verification | Tenant 2 general-model stage | Tenant 2 general verification | Evidence |
+### 3.1 Prior capture-gate matrix
+
+The fixed-model columns in this matrix retain the stage reached before held-out evaluation. Section 3.2 is the authoritative current fixed-model disposition.
+
+| BoM ID | Contract field | PeopleDoc source label | AI Builder type | Designed contract | Design reference | Design status | Prior fixed-model stage | Prior fixed verification | Tenant 2 general-model stage | Tenant 2 general verification | Evidence |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | `BOM-0001-F01` | `candidate_id` | Unverified - GF field workbook unavailable | Text | Preserve the identifier as text | [Design Section 5.3](../../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md#53-common-field-contract) | `Draft` | `Capture validated` | `Evidence incomplete` | `Not started` | `Not evaluated` | [Fixed schema](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-schema-fixed.json); [evaluation publication](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-evaluation-publication.json); [blocked test capability](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-test-capability.json); [blocked training-capture attempt](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-attempt.json); [capture capability](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture-capability.json) |
 | `BOM-0001-F02` | `last_name` | Unverified - GF field workbook unavailable | Text | Preserve Unicode characters | [Design Section 5.3](../../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md#53-common-field-contract) | `Draft` | `Capture validated` | `Evidence incomplete` | `Not started` | `Not evaluated` | [Fixed schema](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-schema-fixed.json); [evaluation publication](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-evaluation-publication.json); [blocked test capability](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-test-capability.json); [blocked training-capture attempt](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-attempt.json); [capture capability](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture-capability.json) |
@@ -109,7 +115,14 @@ An evaluated field is not thereby approved for a future automated write path. Th
 | `BOM-0001-F16` | `ec_name` | Unverified - GF field workbook unavailable | Text | Preserve Unicode characters | [Design Section 5.3](../../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md#53-common-field-contract) | `Draft` | `Capture validated` | `Evidence incomplete` | `Not started` | `Not evaluated` | [Fixed schema](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-schema-fixed.json); [evaluation publication](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-evaluation-publication.json); [blocked test capability](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-test-capability.json); [blocked training-capture attempt](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-attempt.json); [capture capability](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture-capability.json) |
 | `BOM-0001-F17` | `ec_phone` | Unverified - GF field workbook unavailable | Text | Preserve the extracted value and separators | [Design Section 5.3](../../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md#53-common-field-contract) | `Draft` | `Capture validated` | `Evidence incomplete` | `Not started` | `Not evaluated` | [Fixed schema](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-schema-fixed.json); [evaluation publication](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-evaluation-publication.json); [blocked test capability](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-test-capability.json); [blocked training-capture attempt](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-attempt.json); [capture capability](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture-capability.json) |
 
-`PersonalMasterDataFixed` version `1.0` is now published solely for evaluation capture. The historical no-flow blocker remains preserved because AI Builder Quick Test did not expose a supported machine-readable export, retained raw bytes, or exact document identity. [Publication evidence](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-evaluation-publication.json) proves the exact model and published lineage while the open draft remained untouched. No held-out fixed document was submitted.
+### 3.2 Current fixed-model disposition
+
+| Current stage and verification | Fields |
+|---|---|
+| `Evaluated` / `Evaluated - quality findings` | `last_name`, `dob` |
+| `Evaluated` / `Evaluated - no findings` | `candidate_id`, `first_name`, `nationality`, `marital`, `heimatort`, `permit`, `street`, `plz`, `city`, `ahv`, `iban`, `phone`, `email`, `ec_name`, `ec_phone` |
+
+`PersonalMasterDataFixed` version `1.0` completed strict held-out evaluation and is not approved for solution use. Exactly four approved held-outs were processed once, producing 68 field records. The calculated result contains six quality findings: four `dob` findings classified as `missing` or `invalid_format`, and two `last_name` findings classified as `incorrect`. All other fields were evaluated with no findings, and no false value was returned. The retained [validation results](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/validation-results.json), [evaluation metrics](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-metrics.json), and [evaluation summary](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-summary.md) are this package's calculated assessment, not a GF statement or approval. The flow is Off. Task 10 approval is pending, and `PersonalMasterDataGeneral` remains uncreated.
 
 ## 4. Evidence Rules
 
@@ -126,7 +139,7 @@ Field-level result records reference this deployment context through `run_id`; t
 
 The [AI Builder Test Inputs and Outcomes BoM](bom-0002-ai-builder-test-inputs-and-outcomes.md) summarizes the qualified inputs, metrics, findings, and evidence for each model execution.
 
-Task 6 now has one immutable [training-proof capture](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-remediation.json) and [capture pair](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20260930094537354Z-34bf8987/capture-pair.json). These bytes are input to Task 7 deterministic replay. They do not yet change any field from `Blocked` or `Evidence incomplete`, because no replay gate or held-out field result has been calculated.
+Task 6 has one immutable [training-proof capture](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-remediation.json) and [capture pair](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20260930094537354Z-34bf8987/capture-pair.json). Tasks 7-9 used retained bytes for deterministic replay and strict held-out evaluation. The Section 3.2 disposition advances the fixed-model field stage to `Evaluated` for all 17 fields. It does not grant approval for solution use.
 
 ## 5. Tenant 1 Adaptation
 
