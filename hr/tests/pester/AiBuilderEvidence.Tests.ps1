@@ -53,6 +53,8 @@ Describe 'AI Builder observed capture replay projection' {
             Copy-Item -LiteralPath $script:ReplaySourcePath -Destination $sourcePath
 
             $contract = Get-Content -LiteralPath $script:ReplayContractPath -Raw | ConvertFrom-Json
+            $contractPath = Join-Path $root 'field-contract.json'
+            Set-TestUtf8NoBomContent -Path $contractPath -Content ($contract | ConvertTo-Json -Depth 12)
             $manifestPath = Join-Path $root 'run-manifest.json'
             $manifest = [ordered]@{
                 schema_version = '1.0'
@@ -133,6 +135,7 @@ Describe 'AI Builder observed capture replay projection' {
                 CanonicalPath = $canonicalPath
                 PairPath = $pairPath
                 ManifestPath = $manifestPath
+                ContractPath = $contractPath
                 SchemaPath = $schemaPath
                 OutputPath = Join-Path $root 'prediction-capture.json'
             }
@@ -144,7 +147,7 @@ Describe 'AI Builder observed capture replay projection' {
             ConvertFrom-HrAiBuilderEvaluationCapture `
                 -CaptureDirectory $Fixture.CaptureDirectory `
                 -RunManifestPath $Fixture.ManifestPath `
-                -FieldContractPath $script:ReplayContractPath `
+                -FieldContractPath $Fixture.ContractPath `
                 -ModelSchemaRecordPath $Fixture.SchemaPath `
                 -ModelName 'PersonalMasterDataFixed' `
                 -ModelVersion '1.0' `
@@ -328,6 +331,92 @@ Describe 'AI Builder observed capture replay projection' {
             Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
             Update-TestReplayPairHashes -Fixture $fixture
         }
+
+        $result = Invoke-TestObservedCaptureReplay -Fixture $fixture
+
+        $result.status | Should -Be 'blocked'
+        $result.failed_gates | Should -Contain 'exact_field_contract'
+        $fixture.OutputPath | Should -Not -Exist
+    }
+
+    It 'blocks a structurally changed label node: <Case>' -TestCases @(
+        @{ Case = 'additional label property' }
+        @{ Case = 'missing displayName' }
+        @{ Case = 'reordered label properties' }
+        @{ Case = 'spans changed from an array to an object' }
+        @{ Case = 'missing nested boundingBox polygon' }
+        @{ Case = 'additional nested coordinate property' }
+    ) {
+        param($Case)
+        $fixture = New-TestObservedCaptureFixture
+        $raw = Get-Content -LiteralPath $fixture.RawPath -Raw | ConvertFrom-Json
+        $label = $raw.responsev2.predictionOutput.labels.candidate_id
+
+        switch ($Case) {
+            'additional label property' {
+                $label | Add-Member -NotePropertyName unexpected -NotePropertyValue 'shape drift'
+            }
+            'missing displayName' {
+                $label.PSObject.Properties.Remove('displayName')
+            }
+            'reordered label properties' {
+                $reordered = [ordered]@{}
+                foreach ($propertyName in @($label.PSObject.Properties.Name)) {
+                    if ($propertyName -ne 'displayName') {
+                        $reordered[$propertyName] = $label.$propertyName
+                    }
+                }
+                $reordered['displayName'] = $label.displayName
+                $raw.responsev2.predictionOutput.labels.candidate_id = [pscustomobject]$reordered
+            }
+            'spans changed from an array to an object' {
+                $label.spans = $label.spans[0]
+            }
+            'missing nested boundingBox polygon' {
+                $label.valueLocation.boundingBox.PSObject.Properties.Remove('polygon')
+            }
+            'additional nested coordinate property' {
+                $label.valueLocation.boundingBox.polygon.coordinates[0] |
+                    Add-Member -NotePropertyName z -NotePropertyValue 0
+            }
+        }
+        Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
+        Update-TestReplayPairHashes -Fixture $fixture
+
+        $result = Invoke-TestObservedCaptureReplay -Fixture $fixture
+
+        $result.status | Should -Be 'blocked'
+        $result.failed_gates | Should -Contain 'capture_pair_provenance'
+        $fixture.OutputPath | Should -Not -Exist
+    }
+
+    It 'blocks a mutually consistent 16-field contract and evidence set' {
+        $fixture = New-TestObservedCaptureFixture
+        $removedField = 'ec_phone'
+
+        $contract = Get-Content -LiteralPath $fixture.ContractPath -Raw | ConvertFrom-Json
+        $contract.fields = @($contract.fields | Where-Object name -cne $removedField)
+        $contract.field_count = 16
+        Set-TestUtf8NoBomContent -Path $fixture.ContractPath -Content ($contract | ConvertTo-Json -Depth 12)
+
+        $schema = Get-Content -LiteralPath $fixture.SchemaPath -Raw | ConvertFrom-Json
+        $schema.fields = @($schema.fields | Where-Object name -cne $removedField)
+        Set-TestUtf8NoBomContent -Path $fixture.SchemaPath -Content ($schema | ConvertTo-Json -Depth 12)
+
+        $raw = Get-Content -LiteralPath $fixture.RawPath -Raw | ConvertFrom-Json
+        $raw.responsev2.predictionOutput.labels.PSObject.Properties.Remove($removedField)
+        Set-TestUtf8NoBomContent -Path $fixture.RawPath -Content ($raw | ConvertTo-Json -Depth 30 -Compress)
+
+        $canonical = Get-Content -LiteralPath $fixture.CanonicalPath -Raw | ConvertFrom-Json
+        $canonical.fields.PSObject.Properties.Remove($removedField)
+        [IO.File]::WriteAllBytes(
+            $fixture.CanonicalPath,
+            (InModuleScope Caldova.HrFrontier.AiBuilder -Parameters @{ Canonical = $canonical } {
+                param($Canonical)
+                ConvertTo-HrAiBuilderCanonicalJson -InputObject $Canonical
+            })
+        )
+        Update-TestReplayPairHashes -Fixture $fixture
 
         $result = Invoke-TestObservedCaptureReplay -Fixture $fixture
 

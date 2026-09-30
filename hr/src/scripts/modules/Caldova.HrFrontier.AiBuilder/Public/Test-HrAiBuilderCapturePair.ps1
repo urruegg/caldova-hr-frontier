@@ -50,6 +50,132 @@ function Test-HrAiBuilderCapturePair {
         return [string]::Equals([string]$Left, [string]$Right, [StringComparison]::Ordinal)
     }
 
+    function Test-CapturePairNumber {
+        param([AllowNull()][object]$Value)
+        return $Value -is [byte] -or $Value -is [int16] -or
+            $Value -is [int32] -or $Value -is [int64] -or
+            $Value -is [single] -or $Value -is [double] -or
+            $Value -is [decimal]
+    }
+
+    function Test-CapturePairProperties {
+        param(
+            [AllowNull()][object]$Node,
+            [Parameter(Mandatory)][string[]]$Expected
+        )
+        return $null -ne $Node -and
+            (Compare-HrAiBuilderSequence -Left $Expected -Right @($Node.PSObject.Properties.Name))
+    }
+
+    function Test-CapturePairCoordinate {
+        param([AllowNull()][object]$Coordinate)
+        return (Test-CapturePairProperties -Node $Coordinate -Expected @('@odata.type', 'x', 'y')) -and
+            (Test-CapturePairOrdinal $Coordinate.'@odata.type' '#Microsoft.Dynamics.CRM.expando') -and
+            (Test-CapturePairNumber $Coordinate.x) -and
+            (Test-CapturePairNumber $Coordinate.y)
+    }
+
+    function Test-CapturePairPolygon {
+        param([AllowNull()][object]$Polygon)
+        if (-not (Test-CapturePairProperties -Node $Polygon -Expected @(
+            '@odata.type', 'coordinates@odata.type', 'coordinates'
+        )) -or
+            -not (Test-CapturePairOrdinal $Polygon.'@odata.type' '#Microsoft.Dynamics.CRM.expando') -or
+            -not (Test-CapturePairOrdinal $Polygon.'coordinates@odata.type' '#Collection(Microsoft.Dynamics.CRM.crmbaseentity)') -or
+            -not ($Polygon.coordinates -is [array]) -or
+            @($Polygon.coordinates).Count -ne 4) {
+            return $false
+        }
+        foreach ($coordinate in @($Polygon.coordinates)) {
+            if (-not (Test-CapturePairCoordinate -Coordinate $coordinate)) {
+                return $false
+            }
+        }
+        return $true
+    }
+
+    function Test-CapturePairLabelShape {
+        param(
+            [Parameter(Mandatory)][string]$FieldName,
+            [AllowNull()][object]$Label
+        )
+
+        $expectedProperties = if ($FieldName -ceq 'dob') {
+            @('@odata.type', 'displayName', 'fieldType', 'confidence', 'text',
+                'spans@odata.type', 'spans', 'valueLocation')
+        }
+        else {
+            @('@odata.type', 'value', 'displayName', 'fieldType', 'confidence', 'text',
+                'spans@odata.type', 'spans', 'valueLocation')
+        }
+        $expectedFieldType = if ($FieldName -ceq 'dob') { 'date' } else { 'string' }
+        if (-not (Test-CapturePairProperties -Node $Label -Expected $expectedProperties) -or
+            -not (Test-CapturePairOrdinal $Label.'@odata.type' '#Microsoft.Dynamics.CRM.expando') -or
+            -not (Test-CapturePairOrdinal $Label.displayName $FieldName) -or
+            -not (Test-CapturePairOrdinal $Label.fieldType $expectedFieldType) -or
+            -not ($Label.text -is [string]) -or
+            -not (Test-CapturePairOrdinal $Label.'spans@odata.type' '#Collection(Microsoft.Dynamics.CRM.crmbaseentity)') -or
+            -not ($Label.spans -is [array]) -or
+            @($Label.spans).Count -ne 1) {
+            return $false
+        }
+        if ($FieldName -cne 'dob' -and -not ($Label.value -is [string])) {
+            return $false
+        }
+
+        $span = @($Label.spans)[0]
+        if (-not (Test-CapturePairProperties -Node $span -Expected @(
+            '@odata.type', 'offset@odata.type', 'offset', 'length@odata.type', 'length'
+        )) -or
+            -not (Test-CapturePairOrdinal $span.'@odata.type' '#Microsoft.Dynamics.CRM.expando') -or
+            -not (Test-CapturePairOrdinal $span.'offset@odata.type' '#Int64') -or
+            -not (Test-CapturePairOrdinal $span.'length@odata.type' '#Int64') -or
+            -not (Test-CapturePairNumber $span.offset) -or
+            -not (Test-CapturePairNumber $span.length)) {
+            return $false
+        }
+
+        $location = $Label.valueLocation
+        if (-not (Test-CapturePairProperties -Node $location -Expected @(
+            '@odata.type', 'pageNumber@odata.type', 'pageNumber', 'boundingBox',
+            'regions@odata.type', 'regions'
+        )) -or
+            -not (Test-CapturePairOrdinal $location.'@odata.type' '#Microsoft.Dynamics.CRM.expando') -or
+            -not (Test-CapturePairOrdinal $location.'pageNumber@odata.type' '#Int64') -or
+            -not (Test-CapturePairNumber $location.pageNumber) -or
+            -not (Test-CapturePairOrdinal $location.'regions@odata.type' '#Collection(Microsoft.Dynamics.CRM.crmbaseentity)') -or
+            -not ($location.regions -is [array]) -or
+            @($location.regions).Count -lt 1) {
+            return $false
+        }
+
+        $box = $location.boundingBox
+        if (-not (Test-CapturePairProperties -Node $box -Expected @(
+            '@odata.type', 'left', 'top', 'width', 'height', 'polygon'
+        )) -or
+            -not (Test-CapturePairOrdinal $box.'@odata.type' '#Microsoft.Dynamics.CRM.expando') -or
+            -not (Test-CapturePairNumber $box.left) -or
+            -not (Test-CapturePairNumber $box.top) -or
+            -not (Test-CapturePairNumber $box.width) -or
+            -not (Test-CapturePairNumber $box.height) -or
+            -not (Test-CapturePairPolygon -Polygon $box.polygon)) {
+            return $false
+        }
+
+        foreach ($region in @($location.regions)) {
+            if (-not (Test-CapturePairProperties -Node $region -Expected @(
+                '@odata.type', 'pageNumber@odata.type', 'pageNumber', 'polygon'
+            )) -or
+                -not (Test-CapturePairOrdinal $region.'@odata.type' '#Microsoft.Dynamics.CRM.expando') -or
+                -not (Test-CapturePairOrdinal $region.'pageNumber@odata.type' '#Int64') -or
+                -not (Test-CapturePairNumber $region.pageNumber) -or
+                -not (Test-CapturePairPolygon -Polygon $region.polygon)) {
+                return $false
+            }
+        }
+        return $true
+    }
+
     function Complete-CapturePairResult {
         param(
             [AllowNull()][object]$Envelope,
@@ -232,6 +358,11 @@ function Test-HrAiBuilderCapturePair {
         Add-CapturePairFailure 'exact_correlation'
     }
 
+    $requiredContractNames = @(
+        'candidate_id', 'last_name', 'first_name', 'dob', 'nationality', 'marital',
+        'heimatort', 'permit', 'street', 'plz', 'city', 'ahv', 'iban', 'phone',
+        'email', 'ec_name', 'ec_phone'
+    )
     $contractNames = @($contract.fields | ForEach-Object { [string]$_.name })
     $schemaNames = @($schema.fields | ForEach-Object { [string]$_.name })
     $canonicalNames = @($canonical.fields.PSObject.Properties.Name)
@@ -241,11 +372,18 @@ function Test-HrAiBuilderCapturePair {
         return Complete-CapturePairResult -Envelope $canonical -RawPath $rawFiles[0].FullName
     }
     $labelNames = @($labels.PSObject.Properties.Name | Where-Object { $_ -ne '@odata.type' })
-    if (-not (Compare-HrAiBuilderSequence -Left $contractNames -Right $schemaNames) -or
+    if ($contract.field_count -ne 17 -or
+        $contractNames.Count -ne 17 -or
+        @($contractNames | Select-Object -Unique).Count -ne 17 -or
+        -not (Compare-HrAiBuilderSequence -Left $requiredContractNames -Right $contractNames) -or
+        -not (Compare-HrAiBuilderSequence -Left $contractNames -Right $schemaNames) -or
         -not (Compare-HrAiBuilderSequence -Left $contractNames -Right $canonicalNames) -or
         $labelNames.Count -ne $contractNames.Count -or
         @($labelNames | Where-Object { -not $contractNames.Contains($_) }).Count -gt 0) {
         Add-CapturePairFailure 'exact_field_contract'
+    }
+    if (-not (Test-CapturePairOrdinal $labels.'@odata.type' '#Microsoft.Dynamics.CRM.expando')) {
+        Add-CapturePairFailure 'capture_pair_provenance'
     }
 
     $projectedFields = [ordered]@{}
@@ -255,6 +393,9 @@ function Test-HrAiBuilderCapturePair {
         if (-not $label) {
             Add-CapturePairFailure 'exact_field_contract'
             continue
+        }
+        if (-not (Test-CapturePairLabelShape -FieldName $fieldName -Label $label)) {
+            Add-CapturePairFailure 'capture_pair_provenance'
         }
 
         $value = if ($label.PSObject.Properties.Name.Contains('value')) { $label.value } else { $null }
