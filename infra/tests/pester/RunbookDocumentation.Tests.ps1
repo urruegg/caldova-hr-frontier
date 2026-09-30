@@ -216,6 +216,38 @@ Describe 'Runbook documentation contracts' {
         $content | Should -Match 'Not Run'
     }
 
+    It 'keeps all 14 Draft acceptance controls at Not Run without current read-back' {
+        $reviewPath = Join-Path $script:repositoryRoot 'docs\reviews\2026-09-28-tenant-1-lean-engineering-platform-acceptance-review.md'
+        $review = Get-Content -Raw -LiteralPath $reviewPath
+        $review | Should -Match '(?m)^\|\s+\*\*Status\*\*\s+\|\s+Draft\s+\|\s*$'
+
+        $acceptanceSection = [regex]::Match(
+            $review,
+            '(?ms)^## Acceptance Controls\r?\n(?<Table>.*?)(?=^## )'
+        )
+        $acceptanceSection.Success | Should -BeTrue
+        $controlRows = @(
+            $acceptanceSection.Groups['Table'].Value -split '\r?\n' |
+                Where-Object {
+                    $_ -match '^\|' -and
+                    $_ -notmatch '^\|\s*Control\s*\|' -and
+                    $_ -notmatch '^\|\s*---'
+                }
+        )
+        $controlRows.Count | Should -Be 14
+        foreach ($row in $controlRows) {
+            $cells = @($row.Trim('|') -split '\|' | ForEach-Object { $_.Trim() })
+            $cells.Count | Should -Be 6 -Because $row
+            $cells[4] | Should -BeExactly 'Not Run' -Because $cells[0]
+        }
+
+        $reviewIndex = Get-Content -Raw -LiteralPath (Join-Path $script:repositoryRoot 'docs\reviews\README.md')
+        $documentationIndex = Get-Content -Raw -LiteralPath (Join-Path $script:repositoryRoot 'docs\README.md')
+        $reviewIndex | Should -Match 'Tenant 1 Lean Engineering Platform Acceptance Review.+\|\s+Draft\s+\|'
+        $documentationIndex |
+            Should -Match 'Tenant 1 Lean Engineering Platform Acceptance Review.+Draft.+every outcome remains `Not Run`'
+    }
+
     It 'labels dormant trust OIDC and role-cleanup paths as unsupported' {
         $repositoryReadme = Get-Content -Raw (Join-Path $script:repositoryRoot 'README.md')
         $documentationIndex = Get-Content -Raw (Join-Path $script:repositoryRoot 'docs\README.md')

@@ -26,6 +26,41 @@ $manifestPath = Join-Path $repositoryRootPath 'infra\src\config\github\action-pi
 $reviewedActions = [ordered]@{}
 $usedActions = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 
+try {
+    $gitPath = (Get-Command git.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+    $trackedTenantFiles = @(
+        & $gitPath -C $repositoryRootPath ls-files -- `
+            'infra/src/config/tenants/*.psd1' `
+            'infra/evidence/discovery/*.json'
+    )
+    if ($LASTEXITCODE -ne 0) {
+        throw 'git ls-files failed.'
+    }
+
+    $allowedTenantFiles = @(
+        'infra/evidence/discovery/caldova25668747.json'
+        'infra/src/config/tenants/_template.psd1'
+        'infra/src/config/tenants/caldova25668747.psd1'
+    )
+    if (($trackedTenantFiles -join "`n") -cne ($allowedTenantFiles -join "`n")) {
+        [void]$failures.Add('Tracked tenant configuration/evidence inventory is not the reviewed lean boundary.')
+    }
+
+    $expectedTenant2Blobs = @{
+        'infra/src/config/tenants/caldova25668747.psd1' = 'f4b2dfed2f42d1d9d95d51dddaeaaedf4d8b6dce'
+        'infra/evidence/discovery/caldova25668747.json' = 'c2d4d66f4f812fc449752c275845fac5a713915e'
+    }
+    foreach ($entry in $expectedTenant2Blobs.GetEnumerator()) {
+        $actualBlob = (& $gitPath -C $repositoryRootPath hash-object -- $entry.Key).Trim()
+        if ($LASTEXITCODE -ne 0 -or $actualBlob -cne $entry.Value) {
+            [void]$failures.Add("Protected Tenant 2 blob changed: $($entry.Key)")
+        }
+    }
+}
+catch {
+    [void]$failures.Add("Cannot validate tracked tenant boundary: $($_.Exception.Message)")
+}
+
 if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
     [void]$failures.Add('Missing action pin manifest: infra/src/config/github/action-pins.json')
 }

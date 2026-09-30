@@ -15,18 +15,6 @@ Describe 'Cloud foundation static safety' {
             @($segments | Where-Object { $_ -ceq 'PAT' -or $_ -ieq 'Pat' }).Count -gt 0
         }
 
-        function Resolve-StaticTestGitPath {
-            $candidates = @(
-                (Join-Path $env:ProgramFiles 'Git\cmd\git.exe'),
-                (Join-Path $env:LOCALAPPDATA 'Programs\Git\cmd\git.exe')
-            )
-            $resolved = @($candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf })
-            if ($resolved.Count -eq 0) {
-                throw 'Git application was not found at an approved absolute installation path.'
-            }
-            [IO.Path]::GetFullPath($resolved[0])
-        }
-
         $script:RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
         $script:CloudFiles = @(
             'infra\src\scripts\runbooks\Get-CloudFoundationPlan.ps1',
@@ -79,10 +67,21 @@ Describe 'Cloud foundation static safety' {
             $relative = $relativeBase.MakeRelativeUri($relativePath).ToString()
             $relative | Should -Not -Match '^(?i)\.github/workflows/'
         }
-        $git=Resolve-StaticTestGitPath
-        [IO.Path]::IsPathRooted($git) | Should -BeTrue
-        $changed=@(& $git -C $script:RepositoryRoot diff --name-only --diff-filter=ACDMRTUXB HEAD~5..HEAD)
-        @($changed | Where-Object { $_ -match '^(?i)\.github/workflows/' }).Count | Should -Be 0
+        $git = (Get-Command git.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+        $baseRef = if ([string]::IsNullOrWhiteSpace($env:GITHUB_BASE_REF)) { 'origin/main' } else { "origin/$env:GITHUB_BASE_REF" }
+        $mergeBase = (& $git -C $script:RepositoryRoot merge-base $baseRef HEAD).Trim()
+        if ($LASTEXITCODE -ne 0 -or $mergeBase -cnotmatch '^[0-9a-f]{40}$') {
+            throw 'Cannot resolve cloud-safety merge base.'
+        }
+        $changed = @(& $git -C $script:RepositoryRoot diff --name-only --diff-filter=ACDMRTUXB "$mergeBase...HEAD")
+        foreach ($workflowPath in @($changed | Where-Object { $_ -match '^(?i)\.github/workflows/.+\.ya?ml$' })) {
+            $absoluteWorkflowPath = Join-Path $script:RepositoryRoot $workflowPath
+            if (-not (Test-Path -LiteralPath $absoluteWorkflowPath -PathType Leaf)) {
+                continue
+            }
+            $content = Get-Content -Raw -LiteralPath $absoluteWorkflowPath
+            $content | Should -Not -Match 'Get-CloudFoundationPlan|Invoke-CloudFoundation' -Because $workflowPath
+        }
     }
 
     It 'contains no prohibited executable cloud operation' {

@@ -542,7 +542,7 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
             $createPatch[3].value | Should -BeExactly $script:TraceabilityTag
         }
         finally {
-            Remove-Item -Path Function:\global:az -ErrorAction SilentlyContinue
+            Remove-Item -Path Function:\az -Force -ErrorAction SilentlyContinue
             Remove-Variable -Name LeanBoardsFakeAzCalls -Scope Global -ErrorAction SilentlyContinue
             Remove-Variable -Name LeanBoardsFakeWiqlCalls -Scope Global -ErrorAction SilentlyContinue
         }
@@ -605,7 +605,7 @@ Describe 'Tenant 1 lean Azure Boards sprint operation' {
             )
         }
         finally {
-            Remove-Item -Path Function:\global:az -ErrorAction SilentlyContinue
+            Remove-Item -Path Function:\az -Force -ErrorAction SilentlyContinue
             Remove-Variable -Name LeanBoardsNestedFakeAzCalls -Scope Global -ErrorAction SilentlyContinue
         }
     }
