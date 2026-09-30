@@ -21,6 +21,8 @@ The final trusted-source definition retrieves the document inside `Capture evide
 >
 > The user separately authorized exactly one attended training-proof attempt. The selected qualified training file `a01-CAND-2026-0411-brunner.pdf` matched its manifest SHA-256, but SharePoint rejected the required upload with HTTP 403 `System.UnauthorizedAccessException`. The flow was never enabled or invoked. The restricted folder remains empty, the flow remains Off with zero runs, and no holdout was exposed. The one-attempt authorization is consumed; do not retry without a reviewed remediation plan and new explicit authorization.
 
+Permission read-back after the failure proved that the folder has unique assignments and already grants only the attended administrator Full Control. No permission change was required or applied. The failed request used the tenant-root `/_api/web` scope rather than the `HRFrontierDEV` site scope at `/sites/HRFrontierDEV/_api/web`. A corrected upload remains a retry and therefore still requires new explicit authorization.
+
 ## 1. Authority, supersession, and preserved evidence
 
 This guide follows the approved addendum and the original design together. It supersedes only the no-flow capture requirement for attended evaluation capture. All other constraints, field definitions, corpus rules, strict gates, evidence rules, and stop conditions remain in force unless the addendum states a narrower rule.

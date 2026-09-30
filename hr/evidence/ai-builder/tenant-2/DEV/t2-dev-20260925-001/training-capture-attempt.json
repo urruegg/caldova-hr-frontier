@@ -68,6 +68,14 @@
       "pac power-automate list-flow-runs"
     ]
   },
+  "root_cause_analysis": {
+    "status": "completed",
+    "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-permission-analysis.json",
+    "failed_request_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-failed-upload-request.json",
+    "folder_permission_defect": false,
+    "permission_change_applied": false,
+    "root_cause": "The failed upload used the tenant-root /_api/web endpoint instead of the /sites/HRFrontierDEV/_api/web endpoint. The restricted folder already grants the attended administrator Full Control."
+  },
   "evidence": [
     {
       "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-upload-failure-folder-empty.png",
@@ -76,5 +84,5 @@
       "observation": "The restricted AIBuilderEvaluationEvidence folder remained empty after the rejected upload."
     }
   ],
-  "next_action": "Stop Task 6. Do not retry or expose any holdout without a new reviewed remediation plan and explicit authorization."
+  "next_action": "Stop Task 6. Do not retry or expose any holdout without new explicit authorization for one retry using the corrected HRFrontierDEV site-scoped endpoint or supported folder UI."
 }

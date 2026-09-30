@@ -186,10 +186,11 @@
       "blocker_id": "sharepoint_source_upload_access_denied",
       "observed_at_utc": "2026-09-30T08:15:45.5000000Z",
       "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-attempt.json",
-      "observation": "The explicitly authorized training-proof attempt selected and hash-verified a01-CAND-2026-0411-brunner.pdf, but SharePoint rejected the upload with HTTP 403 System.UnauthorizedAccessException. The flow was never enabled or invoked. The folder remains empty, the flow remains Off, and run count remains zero."
+      "diagnosis_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-permission-analysis.json",
+      "observation": "The explicitly authorized training-proof attempt selected and hash-verified a01-CAND-2026-0411-brunner.pdf, but the upload request failed with HTTP 403 System.UnauthorizedAccessException before the flow was enabled. Later read-back proved the restricted folder already grants the attended administrator Full Control; the request had addressed the tenant-root REST API instead of the HRFrontierDEV site REST API. No permission change or retry was performed. The folder remains empty, the flow remains Off, and run count remains zero."
     }
   ],
-  "current_task_boundary": "Task 6 attempt 1 is blocked before capture because SharePoint denied adding the selected qualified training PDF. The one-attempt authorization is consumed. The flow remains Off with zero runs; no PDF was uploaded, submitted, or processed, and no holdout was exposed.",
+  "current_task_boundary": "Task 6 attempt 1 is blocked before capture because the upload request used the tenant-root REST endpoint instead of the HRFrontierDEV site endpoint. The folder already grants the attended administrator Full Control, so no permission change was applied. The one-attempt authorization is consumed. The flow remains Off with zero runs; no PDF was uploaded, submitted, or processed, and no holdout was exposed.",
   "current_task_authorization": {
     "task_5": "complete",
     "task_6": "blocked",

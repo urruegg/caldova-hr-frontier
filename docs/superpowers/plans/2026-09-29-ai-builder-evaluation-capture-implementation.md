@@ -630,6 +630,8 @@ Wait for terminal status and disable the flow immediately. This is exactly one t
 
 Attempt 1 stopped before the flow was enabled. `training-capture-attempt.json` records the rejected upload, empty folder, Off flow, zero runs, zero processed PDFs, zero exposed holdouts, consumed one-attempt authorization, and no authorized retry.
 
+Follow-up permission read-back proved that the folder has unique assignments and already grants only the attended administrator Full Control. The failed request used the tenant-root `/_api/web` scope instead of `/sites/HRFrontierDEV/_api/web`. No permission change or retry was performed. `task6-permission-analysis.json` records the diagnosis.
+
 If trigger validation, source read, AI Builder, either write, download, or immediate disablement fails: ensure the flow is Off where possible; retain all available bytes; record the exact operational failure without asserting capability status; append lifecycle `blocked`; update BoMs and issue 13; commit evidence; and stop. Do not retry the training PDF and do not use a holdout.
 
 - [ ] **Step 5: Preserve the exact observation and pair metadata**

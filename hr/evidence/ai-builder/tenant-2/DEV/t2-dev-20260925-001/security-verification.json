@@ -281,6 +281,9 @@
     "flow_state_after_attempt": "Draft",
     "folder_file_count_after_attempt": 0,
     "retry_authorized": false,
-    "operational_result_path": "training-capture-attempt.json"
+    "operational_result_path": "training-capture-attempt.json",
+    "permission_analysis_path": "task6-permission-analysis.json",
+    "folder_permission_change_applied": false,
+    "folder_permission_observation": "The folder has unique assignments and grants only the attended administrator Full Control. The HTTP 403 root cause was the tenant-root REST endpoint scope, not missing folder permission."
   }
 }

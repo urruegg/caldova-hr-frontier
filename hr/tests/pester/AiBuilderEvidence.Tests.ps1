@@ -258,6 +258,8 @@ Describe 'AI Builder field and corpus contracts' {
             $script:EvaluationFlowDefinitionPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\evaluation-flow-definition.md'
             $script:EvaluationFlowExportPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\evaluation-flow-export.json'
             $script:TrainingCaptureAttemptPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\training-capture-attempt.json'
+            $script:Task6PermissionAnalysisPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-permission-analysis.json'
+            $script:Task6FailedUploadRequestPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-failed-upload-request.json'
             $script:TrainingCaptureFolderScreenshotPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-upload-failure-folder-empty.png'
             $script:TestBoM = Get-Content -LiteralPath (
                 Join-Path $root 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\bom-0002-ai-builder-test-inputs-and-outcomes.md'
@@ -373,8 +375,83 @@ Describe 'AI Builder field and corpus contracts' {
             $attempt.final_containment_verification.remote_file_count | Should -Be 0
             $attempt.final_containment_verification.flow_state | Should -Be 'Draft'
             $attempt.final_containment_verification.flow_run_count | Should -Be 0
+            $attempt.root_cause_analysis.folder_permission_defect | Should -BeFalse
+            $attempt.root_cause_analysis.permission_change_applied | Should -BeFalse
+            $attempt.root_cause_analysis.evidence_path | Should -Be 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-permission-analysis.json'
+            $attempt.root_cause_analysis.failed_request_path | Should -Be 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-failed-upload-request.json'
             (Get-FileHash -LiteralPath $script:TrainingCaptureFolderScreenshotPath -Algorithm SHA256).Hash.ToLowerInvariant() |
                 Should -Be $attempt.evidence[0].sha256
+        }
+
+        It 'records that the folder already had Full Control and the endpoint scope caused the 403' {
+            $script:Task6PermissionAnalysisPath | Should -Exist
+            $script:Task6FailedUploadRequestPath | Should -Exist
+            $analysis = Get-Content -LiteralPath $script:Task6PermissionAnalysisPath -Raw | ConvertFrom-Json
+            $failedRequest = Get-Content -LiteralPath $script:Task6FailedUploadRequestPath -Raw | ConvertFrom-Json
+            $evidenceRoot = Split-Path -Parent $script:Task6PermissionAnalysisPath
+
+            $analysis.status | Should -Be 'no_permission_change_required'
+            $analysis.folder.has_unique_role_assignments | Should -BeTrue
+            @($analysis.role_assignments).Count | Should -Be 1
+            $analysis.role_assignments[0].login_name | Should -Be 'i:0#.f|membership|admin@caldova25668747.onmicrosoft.com'
+            $analysis.role_assignments[0].role_definition_name | Should -Be 'Full Control'
+            $analysis.current_user.is_site_admin | Should -BeTrue
+            $analysis.diagnosis.failed_endpoint_scope | Should -Be '/_api/web'
+            $analysis.diagnosis.correct_endpoint_scope | Should -Be '/sites/HRFrontierDEV/_api/web'
+            $analysis.diagnosis.folder_permission_defect | Should -BeFalse
+            $analysis.diagnosis.permission_change_applied | Should -BeFalse
+            $analysis.containment.pdf_upload_attempted_during_diagnosis | Should -BeFalse
+            $analysis.containment.capture_retry_performed | Should -BeFalse
+            $analysis.containment.capture_retry_authorized | Should -BeFalse
+            $analysis.containment.flow_state | Should -Be 'Draft'
+            $analysis.containment.flow_run_count | Should -Be 0
+            $analysis.containment.holdouts_exposed | Should -Be 0
+
+            @($analysis.raw_read_back_evidence).Count | Should -Be 4
+            foreach ($record in @($analysis.raw_read_back_evidence)) {
+                $rawPath = Join-Path $evidenceRoot ([IO.Path]::GetFileName([string]$record.path))
+                $rawPath | Should -Exist
+                (Get-Item -LiteralPath $rawPath).Length | Should -Be $record.size_bytes
+                (Get-FileHash -LiteralPath $rawPath -Algorithm SHA256).Hash.ToLowerInvariant() | Should -Be $record.sha256
+            }
+
+            $folderItem = Get-Content -LiteralPath (Join-Path $evidenceRoot 'task6-folder-item.raw.json') -Raw | ConvertFrom-Json -AsHashtable
+            $roleAssignments = Get-Content -LiteralPath (Join-Path $evidenceRoot 'task6-folder-role-assignments.raw.json') -Raw | ConvertFrom-Json -AsHashtable
+            $currentUser = Get-Content -LiteralPath (Join-Path $evidenceRoot 'task6-current-user.raw.json') -Raw | ConvertFrom-Json -AsHashtable
+            $roleDefinitions = Get-Content -LiteralPath (Join-Path $evidenceRoot 'task6-role-definitions.raw.json') -Raw | ConvertFrom-Json -AsHashtable
+
+            $folderItem['HasUniqueRoleAssignments'] | Should -Be $analysis.folder.has_unique_role_assignments
+            $folderItem['Id'] | Should -Be $analysis.folder.list_item_id
+            @($roleAssignments['value']).Count | Should -Be 1
+            $roleAssignments['value'][0]['PrincipalId'] | Should -Be $analysis.role_assignments[0].principal_id
+            $roleAssignments['value'][0]['Member']['LoginName'] | Should -Be $analysis.role_assignments[0].login_name
+            $roleAssignments['value'][0]['RoleDefinitionBindings'][0]['Name'] | Should -Be $analysis.role_assignments[0].role_definition_name
+            $currentUser['Id'] | Should -Be $analysis.current_user.principal_id
+            $currentUser['IsSiteAdmin'] | Should -Be $analysis.current_user.is_site_admin
+            @($roleDefinitions['value'] | Where-Object { $_['Id'] -eq $analysis.role_assignments[0].role_definition_id } | ForEach-Object { $_['Name'] }) |
+                Should -Be @('Full Control')
+
+            $failedRequest.page_origin | Should -Be 'https://caldova25668747.sharepoint.com'
+            $failedRequest.request_relative_url | Should -Match '^/_api/web/'
+            ([uri]$failedRequest.request_resolved_url).AbsolutePath | Should -Match '^/_api/web/'
+            ([uri]$failedRequest.request_resolved_url).AbsolutePath | Should -Not -Match '^/sites/HRFrontierDEV/_api/web/'
+            $failedRequest.method | Should -Be 'POST'
+            $failedRequest.overwrite | Should -BeFalse
+            $failedRequest.request_body.sha256 | Should -Be '9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd'
+            $failedRequest.response.http_status | Should -Be 403
+            $failedRequest.response.ok | Should -BeFalse
+            $failedRequest.response.raw_path | Should -Be $analysis.failed_request_evidence.raw_error_path
+            $failedErrorPath = Join-Path $evidenceRoot ([IO.Path]::GetFileName([string]$failedRequest.response.raw_path))
+            (Get-Item -LiteralPath $failedErrorPath).Length | Should -Be $failedRequest.response.size_bytes
+            (Get-FileHash -LiteralPath $failedErrorPath -Algorithm SHA256).Hash.ToLowerInvariant() |
+                Should -Be $failedRequest.response.sha256
+            $failedError = Get-Content -LiteralPath $failedErrorPath -Raw | ConvertFrom-Json
+            $failedError.'odata.error'.code | Should -Match 'System\.UnauthorizedAccessException'
+            $failedError.'odata.error'.message.value | Should -Be 'Access denied.'
+            $analysis.diagnosis.failed_endpoint_scope | Should -Be ([uri]$failedRequest.request_resolved_url).AbsolutePath.Substring(
+                0,
+                ([uri]$failedRequest.request_resolved_url).AbsolutePath.IndexOf('/GetFolderByServerRelativeUrl')
+            )
         }
 
         It 'records the separately approved publisher after exact read-back and preserves the blocked publisher-gate attempt' {
