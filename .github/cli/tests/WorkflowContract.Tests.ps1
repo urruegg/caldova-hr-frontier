@@ -30,7 +30,7 @@ Describe 'Lean repository validation workflow' {
         $content | Should -Not -Match 'HEAD~\d+'
     }
 
-    It 'requires both tracked Tenant 1 artifacts until the attended removal commit' {
+    It 'does not require tracked Tenant 1 artifacts after the attended removal commit' {
         $tokens = $null
         $parseErrors = $null
         $validatorAst = [System.Management.Automation.Language.Parser]::ParseFile(
@@ -53,7 +53,7 @@ Describe 'Lean repository validation workflow' {
 
             $node -is [System.Management.Automation.Language.StringConstantExpressionAst]
         }, $true) | ForEach-Object Value)
-        $requiredPaths | Should -Contain 'infra/src/config/tenants/caldova25156897.psd1'
-        $requiredPaths | Should -Contain 'infra/evidence/discovery/caldova25156897.json'
+        $requiredPaths | Should -Not -Contain 'infra/src/config/tenants/caldova25156897.psd1'
+        $requiredPaths | Should -Not -Contain 'infra/evidence/discovery/caldova25156897.json'
     }
 }

@@ -40,10 +40,52 @@ Describe 'Cloud foundation invocation' {
         $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
         $modulePath = Join-Path $repositoryRoot 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
         Import-Module $modulePath -Force
-        $tenantSource = Join-Path $repositoryRoot 'infra\src\config\tenants\caldova25156897.psd1'
         $tenantPath = Join-Path $TestDrive 'tenant.psd1'
-        $tenantText = (Get-Content -Raw $tenantSource) `
-            -replace "Mode = 'Existing'\r?\n\s+Id = 'f250378e-597d-487b-854a-fb8338962822'","Mode = 'Create'"
+        $tenantText = @'
+@{
+    SchemaVersion = '1.0'
+    TenantAlias = 'caldova25156897'
+    DisplayName = 'Synthetic Tenant'
+    TenantId = '22222222-2222-2222-2222-222222222222'
+    AdminUpn = 'admin@synthetic.example'
+    SubscriptionId = '11111111-1111-1111-1111-111111111111'
+    PrimaryLocation = 'switzerlandnorth'
+    CompanyTla = 'syn'
+    WorkloadName = 'hr-agentic'
+    UniqueSuffix = 'abc123'
+    NamingRoot = 'syn-hr-agentic-abc123'
+    LifecycleState = 'IntentReviewed'
+    GitHub = @{
+        Owner = 'urruegg'
+        OwnerId = '46865858'
+        Repository = 'caldova-hr-frontier'
+        RepositoryId = '1371297722'
+        EnvironmentName = 'bootstrap-caldova25156897'
+    }
+    AzureDevOps = @{
+        OrganizationUrl = 'https://dev.azure.com/synthetic/'
+        ProjectName = 'Synthetic HR Frontier'
+    }
+    PowerPlatform = @{
+        DevUrl = 'https://syntheticdev.crm17.dynamics.com/'
+        TestUrl = 'https://synthetictest.crm17.dynamics.com/'
+        ProdUrl = 'https://synthetic.crm17.dynamics.com/'
+    }
+    Components = @{
+        GitHubRepository = @{ Mode = 'Existing'; Id = '1371297722' }
+        GitHubEnvironment = @{ Mode = 'Create' }
+        EntraApplication = @{ Mode = 'Create' }
+        EntraServicePrincipal = @{ Mode = 'Create' }
+        EntraFederatedIdentityCredential = @{ Mode = 'Create' }
+        AzureSubscription = @{ Mode = 'Existing'; Id = '11111111-1111-1111-1111-111111111111' }
+        AzureDevOpsProject = @{ Mode = 'Create' }
+        AzureDevOpsServicePrincipalEntitlement = @{ Mode = 'Create' }
+        PowerPlatformEnvironmentDev = @{ Mode = 'Existing'; Id = 'pp-env-dev-synthetic' }
+        PowerPlatformEnvironmentTest = @{ Mode = 'Existing'; Id = 'pp-env-test-synthetic' }
+        PowerPlatformEnvironmentProd = @{ Mode = 'Existing'; Id = 'pp-env-prod-synthetic' }
+    }
+}
+'@
         [IO.File]::WriteAllText($tenantPath,$tenantText,[Text.UTF8Encoding]::new($false))
         $tenant = Import-TenantConfiguration -Path $tenantPath -ValidationStage Bootstrap
         $runDirectory = Join-Path $TestDrive 'invoke'

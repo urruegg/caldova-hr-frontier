@@ -842,9 +842,7 @@ $phase3RequiredPaths = @(
     'infra/src/config/schemas/discovery.schema.json',
     'infra/src/config/schemas/tenant.schema.json',
     'infra/src/config/tenants/_template.psd1',
-    'infra/src/config/tenants/caldova25156897.psd1',
     'infra/src/config/tenants/caldova25668747.psd1',
-    'infra/evidence/discovery/caldova25156897.json',
     'infra/src/scripts/Get-TemporaryBootstrapRoleState.ps1',
     'infra/src/scripts/Grant-TemporaryBootstrapRoles.ps1',
     'infra/src/scripts/Initialize-TenantTrust.ps1',
@@ -981,7 +979,6 @@ if (Test-Path -LiteralPath $tenantManifestRoot -PathType Container) {
     $allowedTenantManifestNames = @(
         '_template.psd1',
         'tenant1.local.psd1',
-        'caldova25156897.psd1',
         'caldova25668747.psd1'
     )
     foreach ($tenantManifest in @(Get-ChildItem -LiteralPath $tenantManifestRoot -Filter '*.psd1' -File -Force)) {

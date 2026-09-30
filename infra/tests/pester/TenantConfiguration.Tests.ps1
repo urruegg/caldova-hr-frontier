@@ -116,18 +116,12 @@ Describe 'Tenant configuration' {
         }
     }
 
-    It 'imports both preserved tracked manifests without a public tenant key probe' {
-        $preservedManifests = [ordered]@{
-            'infra\src\config\tenants\caldova25156897.psd1' = 'caldova25156897'
-            'infra\src\config\tenants\caldova25668747.psd1' = 'caldova25668747'
-        }
+    It 'imports the protected Tenant 2 tracked manifest without a public tenant key probe' {
+        $configuration = Import-TenantConfiguration `
+            -Path (Join-Path $script:RepositoryRoot 'infra\src\config\tenants\caldova25668747.psd1') `
+            -ValidationStage Discovery
 
-        foreach ($entry in $preservedManifests.GetEnumerator()) {
-            $configuration = Import-TenantConfiguration `
-                -Path (Join-Path $script:RepositoryRoot $entry.Key) `
-                -ValidationStage Discovery
-            $configuration.TenantAlias | Should -BeExactly $entry.Value
-        }
+        $configuration.TenantAlias | Should -BeExactly 'caldova25668747'
     }
 
     It 'requires the public tenant key only when a live boundary is requested' {
