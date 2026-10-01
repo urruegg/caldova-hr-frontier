@@ -5,4 +5,3 @@ fullname                domainname                            systemuserid      
 Microsoft Administrator admin@caldova25668747.onmicrosoft.com a5a3186d-0ab5-f111-aaae-00224861a076 System Administrator
 Microsoft Administrator admin@caldova25668747.onmicrosoft.com a5a3186d-0ab5-f111-aaae-00224861a076 Basic User
 Microsoft Administrator admin@caldova25668747.onmicrosoft.com a5a3186d-0ab5-f111-aaae-00224861a076 Sales Enterprise app access
-

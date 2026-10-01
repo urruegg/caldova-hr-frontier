@@ -7,4 +7,3 @@ caldovahrfrontier         Caldova HR frontier                   0.0.0.1         
 Cr52572                   Common Data Services Default Solution 1.0.0.0         False
 Default                   Default Solution                      1.0             False
 Documentautomationbasekit Document automation base kit          202406.5.2801.0 True
-
