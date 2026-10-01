@@ -15,7 +15,13 @@ function Read-HrAiBuilderJson {
 
     try {
         $utf8 = [Text.UTF8Encoding]::new($false, $true)
-        return [IO.File]::ReadAllText([IO.Path]::GetFullPath($Path), $utf8) | ConvertFrom-Json
+        $json = [IO.File]::ReadAllText([IO.Path]::GetFullPath($Path), $utf8)
+        $convertFromJson = Get-Command ConvertFrom-Json -ErrorAction Stop
+        if ($convertFromJson.Parameters.ContainsKey('DateKind')) {
+            return $json | ConvertFrom-Json -DateKind String
+        }
+
+        return $json | ConvertFrom-Json
     }
     catch {
         throw "$Description file '$Path' is malformed JSON. $($_.Exception.Message)"

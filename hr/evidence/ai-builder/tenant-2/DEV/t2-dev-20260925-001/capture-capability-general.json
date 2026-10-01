@@ -1,0 +1,136 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "calculated_at_utc": "2026-10-01T11:10:12.9804880Z",
+  "status": "passed",
+  "decision": "capture_validated",
+  "failed_gates": [],
+  "model": {
+    "name": "PersonalMasterDataGeneral",
+    "id": "057bb758-4f5d-47d8-82ca-25eaf0a1cf07",
+    "version": "10/1/2026, 11:48:30 AM",
+    "version_identity_basis": "AI Builder displayed the training date and did not display a numeric trained-model version."
+  },
+  "capture_pair": {
+    "run_id": "cap-20261001110252111Z-ab4fa091",
+    "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\cap-20261001110252111Z-ab4fa091\\capture-pair.json",
+    "source_filename": "g01-arbeitsvertrag-CAND-2026-0411.pdf",
+    "source_assignment": "training"
+  },
+  "flow_state": "Off",
+  "holdout_exposed": false,
+  "gates": [
+    {
+      "id": "AEC-G001",
+      "status": "passed",
+      "required_proof": "Exact filename correlation from manifest through both retained outputs and local replay.",
+      "calculated_result": "g01-arbeitsvertrag-CAND-2026-0411.pdf matched ordinally in the run manifest, capture pair, canonical envelope, retained source filename, and adapter replay."
+    },
+    {
+      "id": "AEC-G002",
+      "status": "passed",
+      "required_proof": "Retained source PDF bytes and independently verified SHA-256.",
+      "calculated_result": "The retained 2886-byte training PDF independently hashed to b38d977460a8d3f865662bb33a1af0342fb54975c37d18f8c54cf29ec41c0488."
+    },
+    {
+      "id": "AEC-G003",
+      "status": "passed",
+      "required_proof": "Retained, unmodified AI Builder action-body bytes.",
+      "calculated_result": "The retained 156225-byte raw response independently hashed to e201ca7effc54c3234b6de8bb5a12244612f274fd5adf2ac81f367f92fb149fe and passed observed-shape provenance validation."
+    },
+    {
+      "id": "AEC-G004",
+      "status": "passed",
+      "required_proof": "Exactly all 17 canonical field keys.",
+      "calculated_result": "The field contract, general model schema, retained canonical envelope, and local replay contained the exact ordered 17-field contract."
+    },
+    {
+      "id": "AEC-G005",
+      "status": "passed",
+      "required_proof": "Every field has string/null value and numeric/null confidence in the allowed range.",
+      "calculated_result": "All 17 replayed fields satisfied the value and confidence contract; no prediction_capture_schema gate failed."
+    },
+    {
+      "id": "AEC-G006",
+      "status": "passed",
+      "required_proof": "Deterministic output naming and byte-stable canonical serialization.",
+      "calculated_result": "The retained names matched the capture run identity, canonical bytes passed UTF-8/no-BOM/one-LF validation, and two independent 2220-byte adapter outputs had identical SHA-256 values."
+    },
+    {
+      "id": "AEC-G007",
+      "status": "passed",
+      "required_proof": "The tested local adapter reproduces the canonical capture from retained raw bytes without transcription.",
+      "calculated_result": "Test-HrAiBuilderCapturePair returned passed with no failed gates, and its replay SHA-256 equalled the retained canonical SHA-256."
+    }
+  ],
+  "supporting_hashes": {
+    "source_sha256": "b38d977460a8d3f865662bb33a1af0342fb54975c37d18f8c54cf29ec41c0488",
+    "raw_sha256": "e201ca7effc54c3234b6de8bb5a12244612f274fd5adf2ac81f367f92fb149fe",
+    "canonical_sha256": "b54cb41f655e68451d68de707ea4d803da6f3a14dc5537d9d1518c810b842441",
+    "capture_pair_sha256": "0547decbb63bfebf5f78e22b314d79a0a6519846e16d2bf299e722635b972cc1",
+    "field_contract_sha256": "13ce7a3985841790fe7b20b97537cd9344d9cc7ce134e86cbab0b0bc10a6a9e9",
+    "model_schema_sha256": "2033fe4aff91296bba2544cac7a0395819fc06e3256c8d3ea18100478c0c4132",
+    "adapter_script_sha256": "9d22ec25a745e0bf63b5f034f87a80457584c8f02dac9c5fe438eb190f98ff75",
+    "canonical_replay_sha256": "b54cb41f655e68451d68de707ea4d803da6f3a14dc5537d9d1518c810b842441",
+    "prediction_replay_sha256": "6fb3953404b930133e87f863c4c88bb9d2957c80a6af9f383a03ce8c3e56c89e",
+    "run_manifest_pre_decision_sha256": "4acb75c5dc43cf7067bb052a8af624c3d63c4a78635bc5342ae6287211f4c347",
+    "evaluation_flow_export_sha256": "ffd993249ef523e93897e1ffb7d6d086c2395959b89cffbf0dee0418e753a4b7"
+  },
+  "supporting_artifacts": [
+    {
+      "id": "source",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\cap-20261001110252111Z-ab4fa091\\source\\g01-arbeitsvertrag-CAND-2026-0411.pdf",
+      "sha256": "b38d977460a8d3f865662bb33a1af0342fb54975c37d18f8c54cf29ec41c0488"
+    },
+    {
+      "id": "raw",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\cap-20261001110252111Z-ab4fa091\\cap-20261001110252111Z-ab4fa091.ai-builder.raw.json",
+      "sha256": "e201ca7effc54c3234b6de8bb5a12244612f274fd5adf2ac81f367f92fb149fe"
+    },
+    {
+      "id": "canonical",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\cap-20261001110252111Z-ab4fa091\\cap-20261001110252111Z-ab4fa091.canonical.json",
+      "sha256": "b54cb41f655e68451d68de707ea4d803da6f3a14dc5537d9d1518c810b842441"
+    },
+    {
+      "id": "capture_pair",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\cap-20261001110252111Z-ab4fa091\\capture-pair.json",
+      "sha256": "0547decbb63bfebf5f78e22b314d79a0a6519846e16d2bf299e722635b972cc1"
+    },
+    {
+      "id": "field_contract",
+      "path": "hr\\src\\ai-builder\\contracts\\field-contract.json",
+      "sha256": "13ce7a3985841790fe7b20b97537cd9344d9cc7ce134e86cbab0b0bc10a6a9e9"
+    },
+    {
+      "id": "model_schema",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\model-schema-general.json",
+      "sha256": "2033fe4aff91296bba2544cac7a0395819fc06e3256c8d3ea18100478c0c4132"
+    },
+    {
+      "id": "adapter_script",
+      "path": "hr\\src\\scripts\\adapters\\ConvertFrom-HrAiBuilderEvaluationCapture.ps1",
+      "sha256": "9d22ec25a745e0bf63b5f034f87a80457584c8f02dac9c5fe438eb190f98ff75"
+    },
+    {
+      "id": "evaluation_flow_export",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\evaluation-flow-export.json",
+      "sha256": "ffd993249ef523e93897e1ffb7d6d086c2395959b89cffbf0dee0418e753a4b7"
+    }
+  ],
+  "replay": {
+    "first_output": "general-capability-replay-1.json",
+    "first_sha256": "6fb3953404b930133e87f863c4c88bb9d2957c80a6af9f383a03ce8c3e56c89e",
+    "first_size_bytes": 2220,
+    "second_output": "general-capability-replay-2.json",
+    "second_sha256": "6fb3953404b930133e87f863c4c88bb9d2957c80a6af9f383a03ce8c3e56c89e",
+    "second_size_bytes": 2220,
+    "byte_deterministic": true,
+    "temporary_outputs_removed": true
+  },
+  "historical_blocked_attempt": {
+    "evidence_path": "general-capture-attempt.json",
+    "execution_run_id": "cap-20261001105836492Z-31735c5f",
+    "reason": "The first general-model run retained the fixed-model identity in its canonical envelope."
+  }
+}

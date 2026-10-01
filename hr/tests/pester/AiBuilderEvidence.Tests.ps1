@@ -1,5 +1,16 @@
 Set-StrictMode -Version Latest
 
+Describe 'AI Builder JSON runtime compatibility' {
+    It 'uses command capability detection before passing DateKind' {
+        $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+        $modulePath = Join-Path $repositoryRoot 'hr\src\scripts\modules\Caldova.HrFrontier.AiBuilder\Caldova.HrFrontier.AiBuilder.psm1'
+        $moduleText = Get-Content -LiteralPath $modulePath -Raw
+
+        $moduleText | Should -Match "Parameters\.ContainsKey\('DateKind'\)"
+        $moduleText | Should -Not -Match 'PSVersion\.Major -ge 7'
+    }
+}
+
 function script:Set-TestUtf8BomContent {
     param(
         [Parameter(Mandatory)]
@@ -1937,6 +1948,12 @@ Describe 'AI Builder field and corpus contracts' {
             $script:EvaluationReadinessPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\evaluation-capture-readiness.json'
             $script:EvaluationFlowDefinitionPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\evaluation-flow-definition.md'
             $script:EvaluationFlowExportPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\evaluation-flow-export.json'
+            $script:GeneralCaptureCapabilityPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\capture-capability-general.json'
+            $script:GeneralHoldoutLedgerPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\holdout-consumption-general.json'
+            $script:GeneralHoldoutBlockedPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\general-holdout-blocked.json'
+            $script:GeneralModelTaggingPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\general-model-tagging.json'
+            $script:RunManifestPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\run-manifest.json'
+            $script:ModelInventoryPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\model-inventory.json'
             $script:TrainingCaptureAttemptPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\training-capture-attempt.json'
             $script:Task6PermissionAnalysisPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-permission-analysis.json'
             $script:Task6FailedUploadRequestPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-failed-upload-request.json'
@@ -2382,14 +2399,14 @@ Describe 'AI Builder field and corpus contracts' {
         It 'preserves and structurally verifies the exported flow definition' {
             $script:EvaluationFlowExportPath | Should -Exist
             $exportHash = (Get-FileHash -LiteralPath $script:EvaluationFlowExportPath -Algorithm SHA256).Hash
-            $exportHash | Should -Be 'AE3C91F22CB6BA0DE8B1BF5226C3C02FA92302B1D32C705C2081EFE660DA91D9'
+            $exportHash | Should -Be 'FFD993249EF523E93897E1FFB7D6D086C2395959B89CFFBF0DEE0418E753A4B7'
             $flow = Get-Content -LiteralPath $script:EvaluationFlowExportPath -Raw | ConvertFrom-Json
             $definition = $flow.properties.definition
             $trigger = $definition.triggers.manual
             $condition = $definition.actions.Validate_capture_request
             $scope = $condition.actions.Capture_evidence
 
-            @($flow.properties.connectionReferences.psobject.Properties.Name) |
+            @($flow.properties.connectionReferences.psobject.Properties.Name | Sort-Object) |
                 Should -Be @('shared_commondataserviceforapps', 'shared_sharepointonline')
             $flow.properties.connectionReferences.shared_commondataserviceforapps.connection.connectionReferenceLogicalName |
                 Should -Be 'calhr_sharedcommondataserviceforapps_68a73'
@@ -2410,7 +2427,9 @@ Describe 'AI Builder field and corpus contracts' {
             $conditionExpression | Should -Match 'fixed-holdout'
             $conditionExpression | Should -Match 'a01-CAND-2026-0411-brunner\.pdf'
             $conditionExpression | Should -Match 'd06-CAND-2026-0434-ochsner\.pdf'
-            $conditionExpression | Should -Not -Match 'g01-arbeitsvertrag'
+            $conditionExpression | Should -Match 'g01-arbeitsvertrag-CAND-2026-0411\.pdf'
+            $conditionExpression | Should -Not -Match 'g03-arbeitsvertrag-CAND-2026-0413\.pdf'
+            @($condition.expression.and[-1].or).Count | Should -Be 2
 
             @($scope.actions.psobject.Properties.Name) |
                 Should -Be @('Get_source_PDF', 'Process_documents', 'Create_raw_response', 'Build_canonical_envelope', 'Create_canonical_envelope')
@@ -2419,7 +2438,7 @@ Describe 'AI Builder field and corpus contracts' {
                 Should -Be "@concat('/Shared Documents/AIBuilderEvaluationEvidence/', triggerBody()?['text'])"
             @($scope.actions.Process_documents.runAfter.Get_source_PDF) | Should -Be @('Succeeded')
             $scope.actions.Process_documents.inputs.host.operationId | Should -Be 'aibuilderpredict_formsprocessing'
-            $scope.actions.Process_documents.inputs.parameters.recordId | Should -Be '74b09a72-d1f1-4598-bc4d-3746d5c97acc'
+            $scope.actions.Process_documents.inputs.parameters.recordId | Should -Be '057bb758-4f5d-47d8-82ca-25eaf0a1cf07'
             $scope.actions.Process_documents.inputs.parameters.'item/requestv2/base64Encoded' | Should -Be "@body('Get_source_PDF')"
             @($scope.actions.Process_documents.runtimeConfiguration.secureData.properties) | Should -Be @('inputs', 'outputs')
 
@@ -2428,6 +2447,8 @@ Describe 'AI Builder field and corpus contracts' {
                 Should -Be @('schema_version', 'run_id', 'corpus_revision', 'filename', 'claimed_sha256', 'model_name', 'model_version', 'captured_at_utc', 'fields')
             @($canonical.fields.psobject.Properties.Name) |
                 Should -Be @('candidate_id', 'last_name', 'first_name', 'dob', 'nationality', 'marital', 'heimatort', 'permit', 'street', 'plz', 'city', 'ahv', 'iban', 'phone', 'email', 'ec_name', 'ec_phone')
+            $canonical.model_name | Should -Be 'PersonalMasterDataGeneral'
+            $canonical.model_version | Should -Be '10/1/2026, 11:48:30 AM'
             foreach ($field in @($canonical.fields.psobject.Properties.Value)) {
                 @($field.psobject.Properties.Name) | Should -Be @('value', 'confidence')
             }
@@ -2446,6 +2467,50 @@ Describe 'AI Builder field and corpus contracts' {
             @($condition.actions.Terminate_capture_failure.runAfter.Capture_evidence) | Should -Be @('Failed', 'TimedOut')
             $condition.actions.Terminate_capture_failure.inputs.runStatus | Should -Be 'Failed'
             $condition.else.actions.Terminate_invalid_request.inputs.runStatus | Should -Be 'Failed'
+        }
+
+        It 'records the passed general capability proof and stops after the first holdout fails validation' {
+            $capability = Get-Content -LiteralPath $script:GeneralCaptureCapabilityPath -Raw | ConvertFrom-Json
+            $ledger = Get-Content -LiteralPath $script:GeneralHoldoutLedgerPath -Raw | ConvertFrom-Json
+            $blocked = Get-Content -LiteralPath $script:GeneralHoldoutBlockedPath -Raw | ConvertFrom-Json
+            $tagging = Get-Content -LiteralPath $script:GeneralModelTaggingPath -Raw | ConvertFrom-Json
+            $manifest = Get-Content -LiteralPath $script:RunManifestPath -Raw | ConvertFrom-Json
+            $inventory = Get-Content -LiteralPath $script:ModelInventoryPath -Raw | ConvertFrom-Json
+
+            $capability.status | Should -Be 'passed'
+            $capability.decision | Should -Be 'capture_validated'
+            @($capability.failed_gates).Count | Should -Be 0
+            @($capability.gates.id) | Should -Be @(
+                'AEC-G001', 'AEC-G002', 'AEC-G003', 'AEC-G004', 'AEC-G005', 'AEC-G006', 'AEC-G007'
+            )
+            $capability.flow_state | Should -Be 'Off'
+            $capability.holdout_exposed | Should -BeFalse
+            @($tagging.model.psobject.Properties.Name) | Should -Not -Contain 'model_version'
+            $tagging.model.document_processing_release | Should -Be 'GA (v4.0)'
+            $tagging.model.document_processing_release_basis | Should -Match 'not a trained-model version'
+
+            @($ledger.holdouts).Count | Should -Be 8
+            @($ledger.holdouts | Where-Object state -eq 'consumed_failed').Count | Should -Be 1
+            @($ledger.holdouts | Where-Object state -eq 'unseen').Count | Should -Be 7
+            $ledger.holdouts[0].document | Should -Be 'g03-arbeitsvertrag-CAND-2026-0413.pdf'
+            $ledger.holdouts[0].retry_allowed | Should -BeFalse
+
+            $blocked.status | Should -Be 'blocked'
+            $blocked.calculated_failure.missing_case | Should -Be 'general-holdout'
+            $blocked.calculated_failure.process_documents_executed | Should -BeFalse
+            $blocked.calculated_failure.raw_output_created | Should -BeFalse
+            $blocked.calculated_failure.canonical_output_created | Should -BeFalse
+            $blocked.containment.flow_state | Should -Be 'Off'
+            $blocked.containment.additional_holdouts_submitted | Should -Be 0
+            $blocked.containment.remaining_holdouts_unseen | Should -Be 7
+            $blocked.containment.evaluation_set_terminal | Should -BeTrue
+            $blocked.containment.remaining_holdouts_authorized_for_future_submission | Should -BeFalse
+            $blocked.decision | Should -Match 'Do not retry the consumed holdout or submit any of the remaining seven holdouts'
+
+            @($manifest.models | Where-Object display_name -eq 'PersonalMasterDataGeneral')[0].lifecycle_stage |
+                Should -Be 'blocked'
+            @($inventory.models | Where-Object display_name -eq 'PersonalMasterDataGeneral')[0].lifecycle_stage |
+                Should -Be 'blocked'
         }
 
         It 'updates the fixed-model test register to cite the approval evidence before tenant mutation' {
@@ -2618,6 +2683,15 @@ $model.lifecycle_history = @(
             'approved_for_solution',
             'added_to_solution'
         )
+)
+$generalModel = @($document.models | Where-Object display_name -eq 'PersonalMasterDataGeneral')[0]
+$generalModel.model_id = ''
+$generalModel.version = ''
+$generalModel.lifecycle_stage = 'not_created'
+$generalModel.lifecycle_history = @(
+    $generalModel.lifecycle_history |
+        Where-Object stage -eq 'not_created' |
+        Select-Object -First 1
 )
 $json = ($document | ConvertTo-Json -Depth 100) -replace "(?<!`r)`n", "`r`n"
 [IO.File]::WriteAllText(

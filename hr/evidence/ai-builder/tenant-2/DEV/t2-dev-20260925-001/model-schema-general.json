@@ -1,0 +1,81 @@
+{
+  "schema_version": "1.0",
+  "model_name": "PersonalMasterDataGeneral",
+  "model_id": "057bb758-4f5d-47d8-82ca-25eaf0a1cf07",
+  "observed_model_version": "10/1/2026, 11:48:30 AM",
+  "version_identity_basis": "AI Builder displayed this training date and did not display a numeric trained-model version.",
+  "operator": "admin@caldova25668747.onmicrosoft.com",
+  "observed_at_utc": "2026-10-01T11:08:39.1259142Z",
+  "fields": [
+    {
+      "name": "candidate_id",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "last_name",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "first_name",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "dob",
+      "ai_builder_type": "Date"
+    },
+    {
+      "name": "nationality",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "marital",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "heimatort",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "permit",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "street",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "plz",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "city",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "ahv",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "iban",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "phone",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "email",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "ec_name",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "ec_phone",
+      "ai_builder_type": "Text"
+    }
+  ],
+  "source_evidence_path": "general-model-tagging.json",
+  "source_evidence_sha256": "079d04804793f7117732f1d5d16024337de88fc3bb362c7e23214d96608895fe"
+}

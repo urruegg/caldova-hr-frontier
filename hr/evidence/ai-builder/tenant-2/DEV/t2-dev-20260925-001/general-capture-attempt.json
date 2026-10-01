@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "execution_run_id": "cap-20261001105836492Z-31735c5f",
+  "platform_run_id": "08584107545116880415854682285CU24",
+  "status": "blocked",
+  "blocked_reason": "The platform run succeeded, but the canonical envelope retained the fixed-model identity PersonalMasterDataFixed version 1.0. The result cannot prove general-model capture capability.",
+  "source_filename": "g01-arbeitsvertrag-CAND-2026-0411.pdf",
+  "source_assignment": "training",
+  "holdout_exposed": false,
+  "flow_state_after_run": "Off",
+  "retained_remote_artifacts": [
+    {
+      "kind": "raw",
+      "remote_path": "/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence/cap-20261001105836492Z-31735c5f.ai-builder.raw.json",
+      "remote_unique_id": "38d97a1c-662e-4bad-a103-2e6db7e78a10",
+      "size_bytes": 156225,
+      "sha256": "7e079b077b0672a17514ea1953cf890780055cca97d9a7a79b85910acd871087"
+    },
+    {
+      "kind": "canonical",
+      "remote_path": "/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence/cap-20261001105836492Z-31735c5f.canonical.json",
+      "remote_unique_id": "37f8ce69-0e33-48c1-9029-9ed36090735f",
+      "size_bytes": 1324,
+      "sha256": "5c26f61c894a0e43a175eaa88f5ba560b22b618269da898a35278b9b76d21b85"
+    }
+  ],
+  "remediation": {
+    "flow_model_name": "PersonalMasterDataGeneral",
+    "flow_model_version_identity": "10/1/2026, 11:48:30 AM",
+    "corrected_execution_run_id": "cap-20261001110252111Z-ab4fa091"
+  }
+}

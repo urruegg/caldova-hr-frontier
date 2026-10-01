@@ -1,0 +1,108 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "tenant_key": "tenant-2",
+  "environment_stage": "DEV",
+  "power_platform_environment_id": "84ad4c54-41d9-e5df-ba07-188b4719594a",
+  "model": {
+    "display_name": "PersonalMasterDataGeneral",
+    "model_id": "057bb758-4f5d-47d8-82ca-25eaf0a1cf07",
+    "document_type": "General documents",
+    "document_processing_release": "GA (v4.0)",
+    "document_processing_release_basis": "AI Builder model-type UI label; not a trained-model version.",
+    "collection_name": "GeneralDocuments"
+  },
+  "recorded_at_utc": "2026-10-01T09:29:59.5179273Z",
+  "tagging": {
+    "status": "complete",
+    "collection_count": 1,
+    "training_document_count": 16,
+    "tagging_complete_count": 16,
+    "holdout_document_count_uploaded": 0,
+    "documents_in_ai_builder_order": [
+      "g02-arbeitsvertrag-CAND-2026-0412.pdf",
+      "g04-anschreiben-CAND-2026-0414.pdf",
+      "g08-bewilligung-CAND-2026-0418.pdf",
+      "g01-arbeitsvertrag-CAND-2026-0411.pdf",
+      "g07-bewilligung-CAND-2026-0417.pdf",
+      "g11-versicherung-CAND-2026-0421.pdf",
+      "g05-anschreiben-CAND-2026-0415.pdf",
+      "g10-versicherung-CAND-2026-0420.pdf",
+      "g16-selbstdeklaration-CAND-2026-0426.pdf",
+      "g14-zivilstand-CAND-2026-0424.pdf",
+      "g13-zivilstand-CAND-2026-0423.pdf",
+      "g20-scan-degraded-CAND-2026-0430.pdf",
+      "g17-selbstdeklaration-CAND-2026-0427.pdf",
+      "g23-new-joiner-sheet-CAND-2026-0433.pdf",
+      "g19-scan-degraded-CAND-2026-0429.pdf",
+      "g22-new-joiner-sheet-CAND-2026-0432.pdf"
+    ]
+  },
+  "model_summary": {
+    "field_count": 17,
+    "field_example_counts": {
+      "candidate_id": 8,
+      "last_name": 16,
+      "first_name": 16,
+      "nationality": 16,
+      "marital": 16,
+      "heimatort": 14,
+      "permit": 8,
+      "street": 16,
+      "plz": 16,
+      "city": 16,
+      "ahv": 16,
+      "iban": 12,
+      "phone": 12,
+      "email": 12,
+      "ec_name": 12,
+      "ec_phone": 12,
+      "dob": 16
+    }
+  },
+  "source_text_observations": [
+    {
+      "document": "g05-anschreiben-CAND-2026-0415.pdf",
+      "field": "ec_name",
+      "handling": "Tagged with continuation segments to avoid capturing unrelated wrapped paragraph text."
+    },
+    {
+      "document": "g05-anschreiben-CAND-2026-0415.pdf",
+      "field": "ec_phone",
+      "handling": "Tagged with continuation segments from the exact parenthesized source text."
+    },
+    {
+      "document": "g16-selbstdeklaration-CAND-2026-0426.pdf",
+      "field": "email",
+      "ground_truth": "k.nowak@example.pl",
+      "tagged_source_text": "nowak@example.pl",
+      "handling": "The exact document source text was tagged. The mismatch is retained for strict evaluation rather than normalized during training."
+    }
+  ],
+  "training": {
+    "state_observed": "trained",
+    "training_date_as_displayed": "10/1/2026, 11:48:30 AM",
+    "accuracy_score": null,
+    "accuracy_score_status": "Not available for models trained with general documents.",
+    "numeric_model_version_status": "Not displayed before publication.",
+    "published": true,
+    "trained_version_identity": {
+      "model_id": "057bb758-4f5d-47d8-82ca-25eaf0a1cf07",
+      "training_date_as_displayed": "10/1/2026, 11:48:30 AM"
+    }
+  },
+  "publication": {
+    "state_observed": "Published",
+    "observed_at_utc": "2026-10-01T11:08:39.1259142Z",
+    "published_version_identity": "10/1/2026, 11:48:30 AM",
+    "version_identity_basis": "AI Builder displayed the training date but did not display a numeric trained-model version.",
+    "field_count_observed": 17,
+    "holdout_documents_used": 0
+  },
+  "scope_controls": {
+    "holdouts_processed": false,
+    "evaluation_flow_rebound": true,
+    "model_published": true,
+    "added_to_business_solution": false
+  }
+}

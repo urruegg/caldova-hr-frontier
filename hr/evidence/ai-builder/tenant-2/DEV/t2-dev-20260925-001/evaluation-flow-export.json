@@ -1,15 +1,6 @@
 {
   "properties": {
     "connectionReferences": {
-      "shared_commondataserviceforapps": {
-        "runtimeSource": "embedded",
-        "connection": {
-          "connectionReferenceLogicalName": "calhr_sharedcommondataserviceforapps_68a73"
-        },
-        "api": {
-          "name": "shared_commondataserviceforapps"
-        }
-      },
       "shared_sharepointonline": {
         "runtimeSource": "embedded",
         "connection": {
@@ -17,6 +8,15 @@
         },
         "api": {
           "name": "shared_sharepointonline"
+        }
+      },
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "calhr_sharedcommondataserviceforapps_68a73"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
         }
       }
     },
@@ -128,6 +128,9 @@
               "actions": {
                 "Get_source_PDF": {
                   "runAfter": {},
+                  "metadata": {
+                    "operationMetadataId": "f4ab389e-1859-4256-a4df-e50431abb054"
+                  },
                   "type": "OpenApiConnection",
                   "inputs": {
                     "host": {
@@ -169,7 +172,7 @@
                       "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
                     },
                     "parameters": {
-                      "recordId": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+                      "recordId": "057bb758-4f5d-47d8-82ca-25eaf0a1cf07",
                       "item/requestv2/mimeType": "application/pdf",
                       "item/requestv2/base64Encoded": "@body('Get_source_PDF')"
                     },
@@ -236,8 +239,8 @@
                     "corpus_revision": "@triggerBody()?['text_3']",
                     "filename": "@triggerBody()?['text']",
                     "claimed_sha256": "@triggerBody()?['text_1']",
-                    "model_name": "PersonalMasterDataFixed",
-                    "model_version": "1.0",
+                    "model_name": "PersonalMasterDataGeneral",
+                    "model_version": "10/1/2026, 11:48:30 AM",
                     "captured_at_utc": "@utcNow()",
                     "fields": {
                       "candidate_id": {
@@ -484,7 +487,7 @@
                       },
                       {
                         "equals": [
-                          "@contains(createArray('a01-CAND-2026-0411-brunner.pdf', 'a02-CAND-2026-0412-ochsner.pdf', 'a03-CAND-2026-0413-iten.pdf', 'a04-CAND-2026-0414-perren.pdf', 'a05-CAND-2026-0415-steiner.pdf', 'b01-CAND-2026-0417-bosshard.pdf', 'b02-CAND-2026-0418-keller.pdf', 'b03-CAND-2026-0419-widmer.pdf', 'b04-CAND-2026-0420-vogt.pdf', 'b05-CAND-2026-0421-ammann.pdf', 'c01-CAND-2026-0423-ferrari.pdf', 'c02-CAND-2026-0424-müller.pdf', 'c03-CAND-2026-0425-dubois.pdf', 'c04-CAND-2026-0426-nowak.pdf', 'c05-CAND-2026-0427-bühler.pdf', 'd01-CAND-2026-0429-pfister.pdf', 'd02-CAND-2026-0430-meier.pdf', 'd03-CAND-2026-0431-roth.pdf', 'd04-CAND-2026-0432-baumann.pdf', 'd05-CAND-2026-0433-hofer.pdf'), coalesce(triggerBody()?['text'], ''))",
+                          "@contains(createArray('a01-CAND-2026-0411-brunner.pdf', 'a02-CAND-2026-0412-ochsner.pdf', 'a03-CAND-2026-0413-iten.pdf', 'a04-CAND-2026-0414-perren.pdf', 'a05-CAND-2026-0415-steiner.pdf', 'b01-CAND-2026-0417-bosshard.pdf', 'b02-CAND-2026-0418-keller.pdf', 'b03-CAND-2026-0419-widmer.pdf', 'b04-CAND-2026-0420-vogt.pdf', 'b05-CAND-2026-0421-ammann.pdf', 'c01-CAND-2026-0423-ferrari.pdf', 'c02-CAND-2026-0424-müller.pdf', 'c03-CAND-2026-0425-dubois.pdf', 'c04-CAND-2026-0426-nowak.pdf', 'c05-CAND-2026-0427-bühler.pdf', 'd01-CAND-2026-0429-pfister.pdf', 'd02-CAND-2026-0430-meier.pdf', 'd03-CAND-2026-0431-roth.pdf', 'd04-CAND-2026-0432-baumann.pdf', 'd05-CAND-2026-0433-hofer.pdf', 'g01-arbeitsvertrag-CAND-2026-0411.pdf', 'g02-arbeitsvertrag-CAND-2026-0412.pdf', 'g04-anschreiben-CAND-2026-0414.pdf', 'g05-anschreiben-CAND-2026-0415.pdf', 'g07-bewilligung-CAND-2026-0417.pdf', 'g08-bewilligung-CAND-2026-0418.pdf', 'g10-versicherung-CAND-2026-0420.pdf', 'g11-versicherung-CAND-2026-0421.pdf', 'g13-zivilstand-CAND-2026-0423.pdf', 'g14-zivilstand-CAND-2026-0424.pdf', 'g16-selbstdeklaration-CAND-2026-0426.pdf', 'g17-selbstdeklaration-CAND-2026-0427.pdf', 'g19-scan-degraded-CAND-2026-0429.pdf', 'g20-scan-degraded-CAND-2026-0430.pdf', 'g22-new-joiner-sheet-CAND-2026-0432.pdf', 'g23-new-joiner-sheet-CAND-2026-0433.pdf'), coalesce(triggerBody()?['text'], ''))",
                           true
                         ]
                       }
