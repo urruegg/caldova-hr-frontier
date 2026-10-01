@@ -186,11 +186,12 @@ function Assert-HrAiBuilderCaptureCapabilityDecision {
         -Operator ([string]$manifest.operator) `
         -AdapterScriptPath $artifactPaths.adapter_script
 
-    $firstReplayPath = Join-Path ([IO.Path]::GetTempPath()) 'fixed-capability-replay-1.json'
-    $secondReplayPath = Join-Path ([IO.Path]::GetTempPath()) 'fixed-capability-replay-2.json'
-    if ((Test-Path -LiteralPath $firstReplayPath) -or (Test-Path -LiteralPath $secondReplayPath)) {
-        throw 'Capture capability replay output paths must not already exist.'
-    }
+    $replayDirectory = Join-Path (Split-Path -Parent ([IO.Path]::GetFullPath($RunManifestPath))) (
+        '.capture-capability-replay-' + [guid]::NewGuid().ToString('N')
+    )
+    New-Item -ItemType Directory -Path $replayDirectory -ErrorAction Stop | Out-Null
+    $firstReplayPath = Join-Path $replayDirectory 'fixed-capability-replay-1.json'
+    $secondReplayPath = Join-Path $replayDirectory 'fixed-capability-replay-2.json'
 
     try {
         $adapterArguments = @{
@@ -210,10 +211,16 @@ function Assert-HrAiBuilderCaptureCapabilityDecision {
         }
         $firstReplayHash = Get-HrAiBuilderFileSha256 -Path $firstReplayPath
         $secondReplayHash = Get-HrAiBuilderFileSha256 -Path $secondReplayPath
+        if ($firstReplayHash -cne $secondReplayHash) {
+            throw 'Capture capability replay outputs are not byte-identical.'
+        }
+        $firstHistoricalHash = Get-HrAiBuilderTask8ReplayHash -Path $firstReplayPath `
+            -AdapterPath $artifactPaths.adapter_script -RawPath $artifactPaths.raw
+        $secondHistoricalHash = Get-HrAiBuilderTask8ReplayHash -Path $secondReplayPath `
+            -AdapterPath $artifactPaths.adapter_script -RawPath $artifactPaths.raw
     }
     finally {
-        Remove-Item -LiteralPath $firstReplayPath -Force -ErrorAction SilentlyContinue
-        Remove-Item -LiteralPath $secondReplayPath -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $replayDirectory -Recurse -Force -ErrorAction Stop
     }
 
     $failedPairGates = @($pairResult.failed_gates)
@@ -247,8 +254,8 @@ function Assert-HrAiBuilderCaptureCapabilityDecision {
         }
     }
 
-    if ($firstReplayHash -cne [string]$capability.replay.first_sha256 -or
-        $secondReplayHash -cne [string]$capability.replay.second_sha256 -or
+    if ($firstHistoricalHash -cne [string]$capability.replay.first_sha256 -or
+        $secondHistoricalHash -cne [string]$capability.replay.second_sha256 -or
         [bool]$capability.replay.byte_deterministic -ne $true) {
         throw 'Capture capability replay hashes do not match the live adapter outputs.'
     }

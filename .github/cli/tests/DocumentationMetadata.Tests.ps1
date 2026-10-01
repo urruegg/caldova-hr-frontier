@@ -128,6 +128,11 @@ Describe 'Test-DocumentationMetadataEligibility' {
 		@{ Path = '.github/skills/LICENSE.superpowers'; Expected = $false }
 		@{ Path = 'LICENSE'; Expected = $false }
 		@{ Path = 'infra/evidence/discovery/example.json'; Expected = $false }
+		@{ Path = 'hr/evidence/ai-builder/tenant-2/DEV/run-001/evaluation-summary.md'; Expected = $false }
+		@{ Path = 'hr\evidence\ai-builder\tenant-1\TEST\run-002\evaluation-summary.md'; Expected = $false }
+		@{ Path = 'hr/evidence/ai-builder/tenant-2/DEV/run-001/evaluation-flow-definition.md'; Expected = $true }
+		@{ Path = 'hr/evidence/ai-builder/README.md'; Expected = $true }
+		@{ Path = 'docs/evaluation-summary.md'; Expected = $true }
 		@{ Path = 'docs/architecture.txt'; Expected = $false }
 		@{ Path = '.github/skills-not-vendored/example.md'; Expected = $true }
 		@{ Path = '../README.md'; Expected = $false }

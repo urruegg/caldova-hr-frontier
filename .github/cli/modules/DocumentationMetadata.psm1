@@ -756,6 +756,10 @@ function Test-DocumentationMetadataEligibility {
 	)) {
 		return $false
 	}
+	# Measure-AiBuilderEvaluation emits this report; it is not maintained prose.
+	if ($normalizedPath -match '^hr/evidence/ai-builder/[^/]+/[^/]+/[^/]+/evaluation-summary\.md$') {
+		return $false
+	}
 	if ($normalizedPath.StartsWith(
 		'.github/skills/',
 		[StringComparison]::OrdinalIgnoreCase

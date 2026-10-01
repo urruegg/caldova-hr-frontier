@@ -1842,8 +1842,16 @@ Describe 'AI Builder field and corpus contracts' {
                 $firstHash = (Get-FileHash -LiteralPath $firstReplayPath -Algorithm SHA256).Hash.ToLowerInvariant()
                 $secondHash = (Get-FileHash -LiteralPath $secondReplayPath -Algorithm SHA256).Hash.ToLowerInvariant()
                 $firstHash | Should -Be $secondHash
-                $firstHash | Should -Be $capability.replay.first_sha256
-                $secondHash | Should -Be $capability.replay.second_sha256
+                foreach ($replayPath in @($firstReplayPath, $secondReplayPath)) {
+                    $historicalHash = & (Get-Module Caldova.HrFrontier.AiBuilder) {
+                        param($Path, $Adapter, $Raw)
+                        Get-HrAiBuilderTask8ReplayHash -Path $Path -AdapterPath $Adapter -RawPath $Raw
+                    } $replayPath $script:CapabilityAdapterPath (
+                        Join-Path $script:CapabilityCaptureDirectory 'cap-20260930094537354Z-34bf8987.ai-builder.raw.json'
+                    )
+                    $historicalHash | Should -Be $capability.replay.first_sha256
+                    $historicalHash | Should -Be $capability.replay.second_sha256
+                }
 
                 $derivedGates = [ordered]@{
                     'AEC-G001' = -not @($pairResult.failed_gates).Contains('exact_correlation')
@@ -1872,6 +1880,117 @@ Describe 'AI Builder field and corpus contracts' {
             }
             $firstReplayPath | Should -Not -Exist
             $secondReplayPath | Should -Not -Exist
+        }
+
+        It 'reproduces the historical digest after relocating only the live capture metadata' {
+            $relocatedCapture = Join-Path $TestDrive 'relocated-training\capture\cap-20260930094537354Z-34bf8987'
+            New-Item -ItemType Directory -Path (Split-Path -Parent $relocatedCapture) -Force | Out-Null
+            Copy-Item -LiteralPath $script:CapabilityCaptureDirectory -Destination $relocatedCapture -Recurse
+            $replayPath = Join-Path $TestDrive 'relocated-replay.json'
+            $rawPath = Join-Path $relocatedCapture 'cap-20260930094537354Z-34bf8987.ai-builder.raw.json'
+            $result = ConvertFrom-HrAiBuilderEvaluationCapture `
+                -CaptureDirectory $relocatedCapture -RunManifestPath $script:CapabilityManifestPath `
+                -FieldContractPath $script:CapabilityFieldContractPath -ModelSchemaRecordPath $script:CapabilityModelSchemaPath `
+                -ModelName PersonalMasterDataFixed -ModelVersion '1.0' `
+                -Operator 'admin@caldova25668747.onmicrosoft.com' `
+                -AdapterScriptPath $script:CapabilityAdapterPath -OutputPath $replayPath
+            $result.status | Should -Be 'passed'
+            $liveHash = (Get-FileHash -LiteralPath $replayPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            $historicalHash = & (Get-Module Caldova.HrFrontier.AiBuilder) {
+                param($Path, $Adapter, $Raw)
+                Get-HrAiBuilderTask8ReplayHash -Path $Path -AdapterPath $Adapter -RawPath $Raw
+            } $replayPath $script:CapabilityAdapterPath $rawPath
+            $historicalHash | Should -Be '923290087a0701ed700bd3f54e28d7cbe4f18048688ecab94b3b8fd0bedc8b76'
+            $liveHash | Should -Not -Be $historicalHash
+            (Get-FileHash -LiteralPath $replayPath -Algorithm SHA256).Hash.ToLowerInvariant() | Should -Be $liveHash
+        }
+
+        It 'rejects Task 8 replay metadata with <Mutation>' -TestCases @(
+            @{ Mutation = 'wrong adapter' }, @{ Mutation = 'wrong raw path' },
+            @{ Mutation = 'relative adapter' }, @{ Mutation = 'relative raw path' },
+            @{ Mutation = 'wrong run' }, @{ Mutation = 'wrong model' },
+            @{ Mutation = 'wrong version' }, @{ Mutation = 'duplicate document' }
+        ) {
+            param($Mutation)
+            $replayPath = Join-Path $TestDrive ("invalid-metadata-{0}.json" -f ($Mutation -replace ' ', '-'))
+            $rawPath = Join-Path $script:CapabilityCaptureDirectory 'cap-20260930094537354Z-34bf8987.ai-builder.raw.json'
+            $result = ConvertFrom-HrAiBuilderEvaluationCapture `
+                -CaptureDirectory $script:CapabilityCaptureDirectory -RunManifestPath $script:CapabilityManifestPath `
+                -FieldContractPath $script:CapabilityFieldContractPath -ModelSchemaRecordPath $script:CapabilityModelSchemaPath `
+                -ModelName PersonalMasterDataFixed -ModelVersion '1.0' `
+                -Operator 'admin@caldova25668747.onmicrosoft.com' `
+                -AdapterScriptPath $script:CapabilityAdapterPath -OutputPath $replayPath
+            $result.status | Should -Be 'passed'
+            & (Get-Module Caldova.HrFrontier.AiBuilder) {
+                param($Path, $Mutation)
+                $capture = Read-HrAiBuilderJson -Path $Path -Description 'Replay test'
+                switch ($Mutation) {
+                    'wrong adapter' { $capture.adapter_script_path += '.other' }
+                    'wrong raw path' { $capture.documents[0].source_export_path += '.other' }
+                    'relative adapter' { $capture.adapter_script_path = 'adapter.ps1' }
+                    'relative raw path' { $capture.documents[0].source_export_path = 'capture.json' }
+                    'wrong run' { $capture.run_id = 'other-run' }
+                    'wrong model' { $capture.model_name = 'PersonalMasterDataGeneral' }
+                    'wrong version' { $capture.model_version = '2.0' }
+                    'duplicate document' { $capture.documents = @($capture.documents[0], $capture.documents[0]) }
+                }
+                [IO.File]::WriteAllBytes($Path, (ConvertTo-HrAiBuilderCanonicalJson $capture))
+            } $replayPath $Mutation
+            {
+                & (Get-Module Caldova.HrFrontier.AiBuilder) {
+                    param($Path, $Adapter, $Raw)
+                    Get-HrAiBuilderTask8ReplayHash -Path $Path -AdapterPath $Adapter -RawPath $Raw
+                } $replayPath $script:CapabilityAdapterPath $rawPath
+            } | Should -Throw '*Task 8 replay*'
+        }
+
+        It 'keeps tampered replay values bound to the historical digest' {
+            $replayPath = Join-Path $TestDrive 'tampered-content-replay.json'
+            $rawPath = Join-Path $script:CapabilityCaptureDirectory 'cap-20260930094537354Z-34bf8987.ai-builder.raw.json'
+            ConvertFrom-HrAiBuilderEvaluationCapture `
+                -CaptureDirectory $script:CapabilityCaptureDirectory -RunManifestPath $script:CapabilityManifestPath `
+                -FieldContractPath $script:CapabilityFieldContractPath -ModelSchemaRecordPath $script:CapabilityModelSchemaPath `
+                -ModelName PersonalMasterDataFixed -ModelVersion '1.0' `
+                -Operator 'admin@caldova25668747.onmicrosoft.com' `
+                -AdapterScriptPath $script:CapabilityAdapterPath -OutputPath $replayPath | Out-Null
+            $tamperedHash = & (Get-Module Caldova.HrFrontier.AiBuilder) {
+                param($Path, $Adapter, $Raw)
+                $capture = Read-HrAiBuilderJson -Path $Path -Description 'Replay test'
+                $capture.documents[0].fields.first_name.value = 'Tampered'
+                [IO.File]::WriteAllBytes($Path, (ConvertTo-HrAiBuilderCanonicalJson $capture))
+                Get-HrAiBuilderTask8ReplayHash -Path $Path -AdapterPath $Adapter -RawPath $Raw
+            } $replayPath $script:CapabilityAdapterPath $rawPath
+            $tamperedHash | Should -Not -Be '923290087a0701ed700bd3f54e28d7cbe4f18048688ecab94b3b8fd0bedc8b76'
+        }
+
+        It 'rejects malformed Task 8 replay bytes' {
+            $replayPath = Join-Path $TestDrive 'malformed-replay.json'
+            [IO.File]::WriteAllText($replayPath, '{', [Text.UTF8Encoding]::new($false))
+            {
+                & (Get-Module Caldova.HrFrontier.AiBuilder) {
+                    param($Path)
+                    Get-HrAiBuilderTask8ReplayHash -Path $Path -AdapterPath 'C:\adapter.ps1' -RawPath 'C:\raw.json'
+                } $replayPath
+            } | Should -Throw '*Task 8 replay*'
+        }
+
+        It 'rejects noncanonical bytes rather than silently normalizing the historical replay' {
+            $replayPath = Join-Path $TestDrive 'noncanonical-replay.json'
+            $rawPath = Join-Path $script:CapabilityCaptureDirectory 'cap-20260930094537354Z-34bf8987.ai-builder.raw.json'
+            $result = ConvertFrom-HrAiBuilderEvaluationCapture `
+                -CaptureDirectory $script:CapabilityCaptureDirectory -RunManifestPath $script:CapabilityManifestPath `
+                -FieldContractPath $script:CapabilityFieldContractPath -ModelSchemaRecordPath $script:CapabilityModelSchemaPath `
+                -ModelName PersonalMasterDataFixed -ModelVersion '1.0' `
+                -Operator 'admin@caldova25668747.onmicrosoft.com' `
+                -AdapterScriptPath $script:CapabilityAdapterPath -OutputPath $replayPath
+            $result.status | Should -Be 'passed'
+            [IO.File]::AppendAllText($replayPath, ' ', [Text.UTF8Encoding]::new($false))
+            {
+                & (Get-Module Caldova.HrFrontier.AiBuilder) {
+                    param($Path, $Adapter, $Raw)
+                    Get-HrAiBuilderTask8ReplayHash -Path $Path -AdapterPath $Adapter -RawPath $Raw
+                } $replayPath $script:CapabilityAdapterPath $rawPath
+            } | Should -Throw '*not canonically serialized*'
         }
 
         It 'keeps the flow off and proves no holdout or general model exposure' {
@@ -2889,6 +3008,128 @@ $json = ($document | ConvertTo-Json -Depth 100) -replace "(?<!`r)`n", "`r`n"
                         -LifecycleStage 'capture_validated' `
                         -CaptureCapabilityEvidencePath $fabricatedPath
                 } | Should -Throw '*replay*'
+                @(Get-ChildItem -LiteralPath $paths.Root -Directory -Filter '.capture-capability-replay-*' -Force).Count |
+                    Should -Be 0
+            }
+
+            It 'verifies Task 8 from a relocated checkout without touching pre-existing replay files' {
+                $paths = New-Task8CaptureDecisionFixture -Name 'lifecycle-relocated-checkout'
+                $relocatedRoot = Join-Path $TestDrive 'relocated-repository'
+                $moduleRelativePath = 'hr\src\scripts\modules\Caldova.HrFrontier.AiBuilder'
+                $relocatedModuleDirectory = Join-Path $relocatedRoot $moduleRelativePath
+                New-Item -ItemType Directory -Path (Split-Path -Parent $relocatedModuleDirectory) -Force | Out-Null
+                Copy-Item -LiteralPath (Join-Path $script:RepositoryRoot $moduleRelativePath) `
+                    -Destination $relocatedModuleDirectory -Recurse
+                $evidenceRelativePath = 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
+                $capabilityRelativePath = Join-Path $evidenceRelativePath 'capture-capability.json'
+                $capability = Get-Content -LiteralPath (Join-Path $script:RepositoryRoot $capabilityRelativePath) -Raw | ConvertFrom-Json
+                foreach ($relativePath in @($capability.supporting_artifacts.path) + @($capabilityRelativePath)) {
+                    $destination = Join-Path $relocatedRoot $relativePath
+                    New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
+                    Copy-Item -LiteralPath (Join-Path $script:RepositoryRoot $relativePath) -Destination $destination
+                }
+                $contractsRelativePath = 'hr\src\ai-builder\contracts'
+                Copy-Item -LiteralPath (Join-Path $script:RepositoryRoot $contractsRelativePath) `
+                    -Destination (Split-Path -Parent (Join-Path $relocatedRoot $contractsRelativePath)) -Recurse -Force
+                $sentinelDirectory = Join-Path $paths.Root '.capture-capability-replay-existing'
+                New-Item -ItemType Directory -Path $sentinelDirectory | Out-Null
+                $sentinelPaths = @(
+                    (Join-Path $paths.Root 'fixed-capability-replay-1.json'),
+                    (Join-Path $paths.Root 'fixed-capability-replay-2.json'),
+                    (Join-Path $sentinelDirectory 'fixed-capability-replay-1.json')
+                )
+                foreach ($path in $sentinelPaths) { Set-TestUtf8NoBomContent -Path $path -Content 'untouched' }
+                $relocatedCapabilityPath = Join-Path $relocatedRoot $capabilityRelativePath
+                $capabilityHashBefore = (Get-FileHash -LiteralPath $relocatedCapabilityPath).Hash
+                try {
+                    Remove-Module Caldova.HrFrontier.AiBuilder -Force
+                    Import-Module (Join-Path $relocatedModuleDirectory 'Caldova.HrFrontier.AiBuilder.psd1') -Force
+                    Set-HrAiBuilderModelRecord -RunManifestPath $paths.ManifestPath -ModelInventoryPath $paths.InventoryPath `
+                        -ModelName PersonalMasterDataFixed -ModelId '74b09a72-d1f1-4598-bc4d-3746d5c97acc' `
+                        -ModelVersion '1.0' -LifecycleStage capture_validated -CaptureCapabilityEvidencePath $relocatedCapabilityPath |
+                        Out-Null
+                    (Get-Content -LiteralPath $paths.ManifestPath -Raw | ConvertFrom-Json).models[0].lifecycle_stage |
+                        Should -Be 'capture_validated'
+                    foreach ($path in $sentinelPaths) { (Get-Content -LiteralPath $path -Raw) | Should -Be 'untouched' }
+                    @(Get-ChildItem -LiteralPath $paths.Root -Directory -Filter '.capture-capability-replay-*' -Force).Name |
+                        Should -Be @('.capture-capability-replay-existing')
+                    (Get-FileHash -LiteralPath $relocatedCapabilityPath).Hash | Should -Be $capabilityHashBefore
+                }
+                finally {
+                    Remove-Module Caldova.HrFrontier.AiBuilder -Force
+                    Import-Module $script:ModulePath -Force
+                }
+            }
+
+            It 'isolates concurrent Task 8 replay invocations and cleans up each directory' {
+                $fixtures = @(
+                    (New-Task8CaptureDecisionFixture -Name 'concurrent-task8-first'),
+                    (New-Task8CaptureDecisionFixture -Name 'concurrent-task8-second')
+                )
+                $capabilityPath = Join-Path $script:RepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\capture-capability.json'
+                $startPath = Join-Path $TestDrive 'start-concurrent-task8'
+                $hostExecutable = if ($PSVersionTable.PSEdition -eq 'Desktop') {
+                    Join-Path $PSHOME 'powershell.exe'
+                } else {
+                    Join-Path $PSHOME 'pwsh.exe'
+                }
+                $processes = @()
+                try {
+                    foreach ($fixture in $fixtures) {
+                        $childScript = @'
+param($ModulePath, $ManifestPath, $InventoryPath, $CapabilityPath, $StartPath)
+$ErrorActionPreference = 'Stop'
+try {
+    Import-Module $ModulePath -Force
+    $deadline = [datetime]::UtcNow.AddSeconds(30)
+    while (-not (Test-Path -LiteralPath $StartPath)) {
+        if ([datetime]::UtcNow -gt $deadline) { throw 'Concurrent test start timed out.' }
+        Start-Sleep -Milliseconds 50
+    }
+    Set-HrAiBuilderModelRecord -RunManifestPath $ManifestPath -ModelInventoryPath $InventoryPath `
+        -ModelName PersonalMasterDataFixed -ModelId '74b09a72-d1f1-4598-bc4d-3746d5c97acc' `
+        -ModelVersion '1.0' -LifecycleStage capture_validated -CaptureCapabilityEvidencePath $CapabilityPath | Out-Null
+    exit 0
+}
+catch {
+    [IO.File]::WriteAllText(($ManifestPath + '.error'), $_.Exception.ToString())
+    exit 1
+}
+'@
+                        $childScriptPath = Join-Path $fixture.Root 'concurrent-task8.ps1'
+                        Set-TestUtf8NoBomContent -Path $childScriptPath -Content $childScript
+                        $arguments = @(
+                            $childScriptPath, ([IO.Path]::GetFullPath($script:ModulePath)),
+                            $fixture.ManifestPath, $fixture.InventoryPath, $capabilityPath, $startPath
+                        ) | ForEach-Object { "'" + $_.Replace("'", "''") + "'" }
+                        $command = '& ' + ($arguments -join ' ')
+                        $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
+                        $processes += Start-Process $hostExecutable -ArgumentList @(
+                            '-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', $encodedCommand
+                        ) -PassThru -WindowStyle Hidden
+                    }
+                    Set-TestUtf8NoBomContent -Path $startPath -Content 'start'
+                    foreach ($process in $processes) {
+                        $process.WaitForExit(60000) | Should -BeTrue
+                    }
+                    foreach ($fixture in $fixtures) {
+                        $errorPath = $fixture.ManifestPath + '.error'
+                        $failureMessage = if (Test-Path -LiteralPath $errorPath) {
+                            Get-Content -LiteralPath $errorPath -Raw
+                        } else { 'the replay must complete successfully' }
+                        $errorPath | Should -Not -Exist -Because $failureMessage
+                        (Get-Content -LiteralPath $fixture.ManifestPath -Raw | ConvertFrom-Json).models[0].lifecycle_stage |
+                            Should -Be 'capture_validated'
+                        @(Get-ChildItem -LiteralPath $fixture.Root -Directory -Filter '.capture-capability-replay-*' -Force).Count |
+                            Should -Be 0
+                    }
+                }
+                finally {
+                    foreach ($process in $processes) {
+                        if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }
+                        $process.Dispose()
+                    }
+                }
             }
 
             It 'advances only the exact Task 8 blocker with verified portable capability evidence' {
@@ -3525,16 +3766,24 @@ $json = ($document | ConvertTo-Json -Depth 100) -replace "(?<!`r)`n", "`r`n"
                 -ModelInventoryPath $inventoryPath -ModelName 'PersonalMasterDataFixed' `
                 -ModelId 'model-fixed-001' -ModelVersion '1' -LifecycleStage 'created' | Out-Null
 
-            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:InitializerPath `
-                -RunId 'test-run-001' `
-                -TenantKey 'tenant-2' `
-                -EnvironmentId ([guid]'84ad4c54-41d9-e5df-ba07-188b4719594a') `
-                -EnvironmentStage DEV `
-                -SolutionUniqueName 'caldovahrfrontier' `
-                -SolutionVersion '0.0.0.1' `
-                -OperatorUpn 'operator@example.invalid' `
-                -OutputDirectory $outputDirectory 2>&1
-            $exitCode = $LASTEXITCODE
+            $previousErrorActionPreference = $ErrorActionPreference
+            try {
+                # Windows PowerShell turns redirected native stderr into errors; capture the expected rejection.
+                $ErrorActionPreference = 'Continue'
+                $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:InitializerPath `
+                    -RunId 'test-run-001' `
+                    -TenantKey 'tenant-2' `
+                    -EnvironmentId ([guid]'84ad4c54-41d9-e5df-ba07-188b4719594a') `
+                    -EnvironmentStage DEV `
+                    -SolutionUniqueName 'caldovahrfrontier' `
+                    -SolutionVersion '0.0.0.1' `
+                    -OperatorUpn 'operator@example.invalid' `
+                    -OutputDirectory $outputDirectory 2>&1
+                $exitCode = $LASTEXITCODE
+            }
+            finally {
+                $ErrorActionPreference = $previousErrorActionPreference
+            }
 
             $exitCode | Should -Not -Be 0
             ($output -join [Environment]::NewLine) | Should -Match 'already exists'
@@ -4588,14 +4837,22 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
         It 'rejects a capture document not present in the held-out allocation' {
             $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed' -UseUnexpectedDocument
 
-            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:ImportQuickTestResultsPath `
-                -RunManifestPath $fixture.RunManifestPath `
-                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
-                -RawExportDirectory $fixture.RawExportDirectory `
-                -AdapterScriptPath $fixture.AdapterPath `
-                -TargetModelName $fixture.ModelName `
-                -OutputPath $fixture.PredictionCapturePath 2>&1
-            $exitCode = $LASTEXITCODE
+            $previousErrorActionPreference = $ErrorActionPreference
+            try {
+                # Capture expected native stderr without inheriting the caller's Stop preference.
+                $ErrorActionPreference = 'Continue'
+                $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:ImportQuickTestResultsPath `
+                    -RunManifestPath $fixture.RunManifestPath `
+                    -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                    -RawExportDirectory $fixture.RawExportDirectory `
+                    -AdapterScriptPath $fixture.AdapterPath `
+                    -TargetModelName $fixture.ModelName `
+                    -OutputPath $fixture.PredictionCapturePath 2>&1
+                $exitCode = $LASTEXITCODE
+            }
+            finally {
+                $ErrorActionPreference = $previousErrorActionPreference
+            }
 
             $exitCode | Should -Not -Be 0
             ($output -join [Environment]::NewLine) | Should -Match 'held-out allocation'
@@ -4608,15 +4865,22 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
             $capture.documents[-1] = $capture.documents[0]
             $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $fixture.PredictionCapturePath -Encoding UTF8
 
-            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:MeasureEvaluationPath `
-                -RunManifestPath $fixture.RunManifestPath `
-                -CorpusQualityPath $fixture.CorpusQualityPath `
-                -FieldContractPath $script:FieldContractPath `
-                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
-                -PredictionCapturePath $fixture.PredictionCapturePath `
-                -GroundTruthPath $fixture.GroundTruthPath `
-                -EvidenceDirectory $fixture.EvidenceRoot 2>&1
-            $exitCode = $LASTEXITCODE
+            $previousErrorActionPreference = $ErrorActionPreference
+            try {
+                $ErrorActionPreference = 'Continue'
+                $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:MeasureEvaluationPath `
+                    -RunManifestPath $fixture.RunManifestPath `
+                    -CorpusQualityPath $fixture.CorpusQualityPath `
+                    -FieldContractPath $script:FieldContractPath `
+                    -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                    -PredictionCapturePath $fixture.PredictionCapturePath `
+                    -GroundTruthPath $fixture.GroundTruthPath `
+                    -EvidenceDirectory $fixture.EvidenceRoot 2>&1
+                $exitCode = $LASTEXITCODE
+            }
+            finally {
+                $ErrorActionPreference = $previousErrorActionPreference
+            }
 
             $exitCode | Should -Not -Be 0
             ($output -join [Environment]::NewLine) | Should -Match 'held_out_document_coverage'
@@ -4627,14 +4891,21 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
             Remove-Item -LiteralPath $fixture.RawExportDirectory -Recurse -Force
             $summaryPath = Join-Path $fixture.InputRoot 'prediction-capture-summary.md'
 
-            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:ImportQuickTestResultsPath `
-                -RunManifestPath $fixture.RunManifestPath `
-                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
-                -RawExportDirectory $fixture.RawExportDirectory `
-                -AdapterScriptPath $fixture.AdapterPath `
-                -TargetModelName $fixture.ModelName `
-                -OutputPath $fixture.PredictionCapturePath 2>&1
-            $exitCode = $LASTEXITCODE
+            $previousErrorActionPreference = $ErrorActionPreference
+            try {
+                $ErrorActionPreference = 'Continue'
+                $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:ImportQuickTestResultsPath `
+                    -RunManifestPath $fixture.RunManifestPath `
+                    -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                    -RawExportDirectory $fixture.RawExportDirectory `
+                    -AdapterScriptPath $fixture.AdapterPath `
+                    -TargetModelName $fixture.ModelName `
+                    -OutputPath $fixture.PredictionCapturePath 2>&1
+                $exitCode = $LASTEXITCODE
+            }
+            finally {
+                $ErrorActionPreference = $previousErrorActionPreference
+            }
 
             $exitCode | Should -Not -Be 0
             $summaryPath | Should -Exist
@@ -4652,14 +4923,21 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
             Set-Content -LiteralPath $fixture.AdapterPath -Value $adapterScript -Encoding UTF8
             $summaryPath = Join-Path $fixture.InputRoot 'prediction-capture-summary.md'
 
-            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:ImportQuickTestResultsPath `
-                -RunManifestPath $fixture.RunManifestPath `
-                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
-                -RawExportDirectory $fixture.RawExportDirectory `
-                -AdapterScriptPath $fixture.AdapterPath `
-                -TargetModelName $fixture.ModelName `
-                -OutputPath $fixture.PredictionCapturePath 2>&1
-            $exitCode = $LASTEXITCODE
+            $previousErrorActionPreference = $ErrorActionPreference
+            try {
+                $ErrorActionPreference = 'Continue'
+                $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:ImportQuickTestResultsPath `
+                    -RunManifestPath $fixture.RunManifestPath `
+                    -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                    -RawExportDirectory $fixture.RawExportDirectory `
+                    -AdapterScriptPath $fixture.AdapterPath `
+                    -TargetModelName $fixture.ModelName `
+                    -OutputPath $fixture.PredictionCapturePath 2>&1
+                $exitCode = $LASTEXITCODE
+            }
+            finally {
+                $ErrorActionPreference = $previousErrorActionPreference
+            }
 
             $exitCode | Should -Not -Be 0
             $summaryPath | Should -Exist
@@ -4761,15 +5039,22 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
                 -GroundTruthPath $fixture.GroundTruthPath `
                 -EvidenceDirectory $evidenceDirectory 2>&1
 
-            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:MeasureEvaluationPath `
-                -RunManifestPath $fixture.RunManifestPath `
-                -CorpusQualityPath $fixture.CorpusQualityPath `
-                -FieldContractPath $script:FieldContractPath `
-                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
-                -PredictionCapturePath $fixture.PredictionCapturePath `
-                -GroundTruthPath $fixture.GroundTruthPath `
-                -EvidenceDirectory $evidenceDirectory 2>&1
-            $exitCode = $LASTEXITCODE
+            $previousErrorActionPreference = $ErrorActionPreference
+            try {
+                $ErrorActionPreference = 'Continue'
+                $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:MeasureEvaluationPath `
+                    -RunManifestPath $fixture.RunManifestPath `
+                    -CorpusQualityPath $fixture.CorpusQualityPath `
+                    -FieldContractPath $script:FieldContractPath `
+                    -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                    -PredictionCapturePath $fixture.PredictionCapturePath `
+                    -GroundTruthPath $fixture.GroundTruthPath `
+                    -EvidenceDirectory $evidenceDirectory 2>&1
+                $exitCode = $LASTEXITCODE
+            }
+            finally {
+                $ErrorActionPreference = $previousErrorActionPreference
+            }
 
             $exitCode | Should -Not -Be 0
             ($output -join [Environment]::NewLine) | Should -Match 'already exists'
@@ -4818,15 +5103,22 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
             $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed' -MissingConfidence
             Write-TestAiBuilderPredictionCapture -Fixture $fixture | Out-Null
 
-            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:MeasureEvaluationPath `
-                -RunManifestPath $fixture.RunManifestPath `
-                -CorpusQualityPath $fixture.CorpusQualityPath `
-                -FieldContractPath $script:FieldContractPath `
-                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
-                -PredictionCapturePath $fixture.PredictionCapturePath `
-                -GroundTruthPath $fixture.GroundTruthPath `
-                -EvidenceDirectory $fixture.EvidenceRoot 2>&1
-            $exitCode = $LASTEXITCODE
+            $previousErrorActionPreference = $ErrorActionPreference
+            try {
+                $ErrorActionPreference = 'Continue'
+                $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:MeasureEvaluationPath `
+                    -RunManifestPath $fixture.RunManifestPath `
+                    -CorpusQualityPath $fixture.CorpusQualityPath `
+                    -FieldContractPath $script:FieldContractPath `
+                    -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                    -PredictionCapturePath $fixture.PredictionCapturePath `
+                    -GroundTruthPath $fixture.GroundTruthPath `
+                    -EvidenceDirectory $fixture.EvidenceRoot 2>&1
+                $exitCode = $LASTEXITCODE
+            }
+            finally {
+                $ErrorActionPreference = $previousErrorActionPreference
+            }
 
             $exitCode | Should -Not -Be 0
             (Join-Path $fixture.EvidenceRoot 'evaluation-summary.md') | Should -Exist
@@ -4839,14 +5131,21 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
             $fixture = New-TestAiBuilderEvaluationFixture -ModelName 'PersonalMasterDataFixed' -MissingConfidence
             $summaryPath = Join-Path $fixture.InputRoot 'prediction-capture-summary.md'
 
-            $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:ImportQuickTestResultsPath `
-                -RunManifestPath $fixture.RunManifestPath `
-                -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
-                -RawExportDirectory $fixture.RawExportDirectory `
-                -AdapterScriptPath $fixture.AdapterPath `
-                -TargetModelName $fixture.ModelName `
-                -OutputPath $fixture.PredictionCapturePath 2>&1
-            $exitCode = $LASTEXITCODE
+            $previousErrorActionPreference = $ErrorActionPreference
+            try {
+                $ErrorActionPreference = 'Continue'
+                $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:ImportQuickTestResultsPath `
+                    -RunManifestPath $fixture.RunManifestPath `
+                    -ModelSchemaRecordPath $fixture.ModelSchemaRecordPath `
+                    -RawExportDirectory $fixture.RawExportDirectory `
+                    -AdapterScriptPath $fixture.AdapterPath `
+                    -TargetModelName $fixture.ModelName `
+                    -OutputPath $fixture.PredictionCapturePath 2>&1
+                $exitCode = $LASTEXITCODE
+            }
+            finally {
+                $ErrorActionPreference = $previousErrorActionPreference
+            }
 
             $blockedCapturePath = $fixture.PredictionCapturePath + '.blocked.json'
             $exitCode | Should -Not -Be 0

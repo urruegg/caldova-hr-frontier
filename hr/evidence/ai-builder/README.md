@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-29 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | UC-0001 AI Builder evidence contract |
@@ -48,6 +48,10 @@ hr/evidence/ai-builder/
 - **Synthetic data only.** No real PeopleDoc, candidate, pre-hire, worker, or employee documents belong here.
 - **Historical blockers stay visible.** The preserved `model-test-capability.json` blocked record remains evidence even after the resumed flow-based path succeeds.
 - **Raw and canonical files are immutable.** The source PDF, `.ai-builder.raw.json`, `.canonical.json`, and `capture-pair.json` are retained exactly as written for that execution. Do not overwrite or normalize them in place.
+- **Git must preserve evidence bytes.** JSON and CSV evidence, the canonical replay fixture, and the hash-bound field contract and adapter entry point are excluded from Git line-ending conversion. Retain each file's original LF, CRLF, or mixed endings: changing them invalidates recorded SHA-256 bindings. Fresh checkouts must reproduce the retained hashes without recalculating or replacing the recorded values.
+- **Historical Task 8 replay remains verifiable after relocation.** Its prediction output included absolute workstation paths. Verification first checks the current artifact paths and two byte-identical live replays, then reconstructs only the two historical path labels in memory to verify the original recorded digest. It does not access the old workstation paths or rewrite evidence. This compatibility check is restricted to the exact historical fixed-model run; it is not a general path override.
+- **Replay workspaces are invocation-local.** Historical capability verification creates a unique temporary directory beside the supplied run manifest and removes that directory when finished. The manifest directory must be writable; concurrent checks must not share replay output files.
+- **Generated summaries are evidence, not maintained prose.** The run-local `evaluation-summary.md` is produced by `Measure-AiBuilderEvaluation.ps1` and follows the documentation policy's generated-evidence exclusion. Maintained flow definitions and this README still require metadata.
 - **No cleanup is implied.** Successful proof, evaluation, approval, or synchronization does not authorize deletion. Cleanup is a separate explicit user decision.
 - **Local output is UTF-8 without BOM.** Repository-authored local JSON and Markdown outputs for this capture flow are written as UTF-8 without BOM unless an externally owned platform export dictates otherwise.
 - **No invented values.** Prediction values and confidence must come from retained source and raw bytes through a tested adapter. Screenshots supplement evidence only.
