@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.3 |
-| **Date** | 2026-09-28 |
+| **Version** | 1.4 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
 | **Scope** | docs/specs |
-| **References** | [Tenant 1 Lean Engineering Platform Design](2026-09-28-tenant-1-lean-engineering-platform-design.md), [Tenant 1 Engineering Platform Configuration Review Design](2026-09-28-tenant-1-engineering-platform-configuration-review-design.md), [Superseded Tenant 1 Engineering Platform Remediation Design](2026-09-28-tenant-1-engineering-platform-remediation-design.md) |
+| **References** | [Caldova Branding Migration Design](2026-10-01-caldova-branding-migration-design.md), [Tenant 1 Lean Engineering Platform Design](2026-09-28-tenant-1-lean-engineering-platform-design.md), [Tenant 1 Engineering Platform Configuration Review Design](2026-09-28-tenant-1-engineering-platform-configuration-review-design.md), [Superseded Tenant 1 Engineering Platform Remediation Design](2026-09-28-tenant-1-engineering-platform-remediation-design.md) |
 
 
 This folder contains approved designs and behavioral specifications, plus superseded records retained as historical context. A superseded specification is not implementation authority.
@@ -23,3 +23,4 @@ Name specifications `YYYY-MM-DD-topic-design.md`. Capture scope, architecture, c
 | [Tenant 1 Engineering Platform Configuration Review Design](2026-09-28-tenant-1-engineering-platform-configuration-review-design.md) | Approved | Defines the read-only GitHub, Azure DevOps, Azure, Entra, and Power Platform evidence review. |
 | [Tenant 1 Lean Engineering Platform Design](2026-09-28-tenant-1-lean-engineering-platform-design.md) | Approved | Defines the secure, usable Tenant 1 foundation and defers automated bootstrap and multi-tenant rebuildability. |
 | [Tenant 1 Engineering Platform Remediation Design](2026-09-28-tenant-1-engineering-platform-remediation-design.md) | Superseded | Preserves the historical broader remediation and delivery-control design replaced by the lean foundation. |
+| [Caldova Branding Migration Design](2026-10-01-caldova-branding-migration-design.md) | Approved | Defines the current-tree migration from legacy customer branding to Caldova without rewriting history or changing immutable review evidence. |
