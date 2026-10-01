@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
+| **Version** | 1.3 |
 | **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -883,7 +883,7 @@ if ($legacyPrefixFindings.Count -gt 0) {
 }
 ```
 
-Expected: no output (the negative lookahead excludes the already-corrected `gfhr_` occurrences).
+Expected: the selected paths produce zero L5 findings; confirmed `gfhr_` technical identifiers do not contain the prohibited L5 form.
 
 - [ ] **Step 5: Commit**
 

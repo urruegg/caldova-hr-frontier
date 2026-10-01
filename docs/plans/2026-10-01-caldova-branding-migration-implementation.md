@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -952,7 +952,7 @@ Expected: `checked=4; failures=0`. ReportLab and `pypdf` are not used in this ta
 - [ ] **Step 7: Run focused app, scanner-slice, lint, and build checks**
 
 ```powershell
-Import-Module '.github\cli\modules\BrandingContract.psm1' -Force
+Import-Module (Join-Path $RepoRoot '.github\cli\modules\BrandingContract.psm1') -Force
 Invoke-Pester -Path 'hr\tests\pester\HrControlPlaneBranding.Tests.ps1' `
     -Output Detailed
 
@@ -1250,7 +1250,7 @@ Invoke-Pester -Path @(
     '.github\cli\tests\RepositorySafety.Tests.ps1'
 ) -Output Detailed
 
-Import-Module '.github\cli\modules\BrandingContract.psm1' -Force
+Import-Module (Join-Path $RepoRoot '.github\cli\modules\BrandingContract.psm1') -Force
 $scan = Get-RepositoryBrandingScan -RepositoryRoot $RepoRoot
 $pathFindings = @($scan.Findings | Where-Object {
     $_.Path -like '*aib-fixed-template*' -or
@@ -1306,7 +1306,7 @@ Expected: one path/reference commit. Its 48 PDFs are rename-only and blob-identi
 - [ ] **Step 1: Run the existing contract as the failing test and print the exact slice**
 
 ```powershell
-Import-Module '.github\cli\modules\BrandingContract.psm1' -Force
+Import-Module (Join-Path $RepoRoot '.github\cli\modules\BrandingContract.psm1') -Force
 $scan = Get-RepositoryBrandingScan -RepositoryRoot $RepoRoot
 $slice = @($scan.Findings | Where-Object {
     $_.Path -in @('README.md', 'AGENTS.md') -or
@@ -1493,7 +1493,7 @@ Expected: one reviewed root/GitHub/data/infra commit, with vendored skills, lice
 - [ ] **Step 1: Run the existing contract as the failing test and print the exact documentation set**
 
 ```powershell
-Import-Module '.github\cli\modules\BrandingContract.psm1' -Force
+Import-Module (Join-Path $RepoRoot '.github\cli\modules\BrandingContract.psm1') -Force
 $scan = Get-RepositoryBrandingScan -RepositoryRoot $RepoRoot
 $immutableDocs = @($scan.Findings | Where-Object {
     $_.Path -like 'docs/reviews/evidence/*'
@@ -1615,7 +1615,7 @@ Expected: one documentation-record commit with immutable evidence absent and all
 - [ ] **Step 1: Run the existing contract as the failing test and identify the exact HR set**
 
 ```powershell
-Import-Module '.github\cli\modules\BrandingContract.psm1' -Force
+Import-Module (Join-Path $RepoRoot '.github\cli\modules\BrandingContract.psm1') -Force
 $fixedGeneratorRoot = (
     'hr/docs/ideas/uc-0001-personal-master-data-completion-agent/' +
     'caldova-aib-fixed-template/generators/'
@@ -2696,7 +2696,7 @@ if (@(git diff --name-only $ImplementationBase -- `
 - [ ] **Step 10: Run the exact no-match path/text scan**
 
 ```powershell
-Import-Module '.github\cli\modules\BrandingContract.psm1' -Force
+Import-Module (Join-Path $RepoRoot '.github\cli\modules\BrandingContract.psm1') -Force
 $scan = Get-RepositoryBrandingScan -RepositoryRoot $RepoRoot
 $accounted = $scan.TextCount + $scan.BinaryCount + $scan.LinkCount +
     @($scan.Files | Where-Object Classification -ceq 'unsupported-tracked-mode').Count
