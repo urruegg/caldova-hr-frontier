@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "tenant_key": "tenant-2",
+  "environment_stage": "DEV",
+  "power_platform_environment_id": "84ad4c54-41d9-e5df-ba07-188b4719594a",
+  "operator_upn": "admin@caldova25668747.onmicrosoft.com",
+  "task": "Task 6",
+  "capture_stage": "training-proof",
+  "status": "blocked",
+  "capability_claimed": false,
+  "authorization": {
+    "response": "Approve exactly one training-proof capture (Recommended)",
+    "recorded_at_utc": "2026-09-30T08:20:04.1673244Z",
+    "scope": "Exactly one attended synthetic training-PDF capture in Tenant 2 DEV; no retry, holdout, production use, Tenant 1 change, Workday access, draft 2.0 change, or capability claim."
+  },
+  "selected_document": {
+    "document": "a01-CAND-2026-0411-brunner.pdf",
+    "collection_or_family": "a-personalblatt",
+    "assignment": "training",
+    "source_path": "documents\\a-personalblatt\\a01-CAND-2026-0411-brunner.pdf",
+    "local_path": "hr\\docs\\ideas\\uc-0001-personal-master-data-completion-agent\\gf-aib-fixed-template\\documents\\a-personalblatt\\a01-CAND-2026-0411-brunner.pdf",
+    "size_bytes": 3042,
+    "manifest_sha256": "9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd",
+    "observed_sha256": "9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd",
+    "hash_match": true,
+    "corpus_revision": "c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db"
+  },
+  "attempt": {
+    "attempt_number": 1,
+    "attempted_at_utc": "2026-09-30T08:15:45.5000000Z",
+    "operation": "Upload the selected qualified training PDF to the restricted SharePoint evidence folder with overwrite disabled.",
+    "remote_folder": "https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence",
+    "result": "failed",
+    "http_status": 403,
+    "platform_error_code": "-2147024891, System.UnauthorizedAccessException",
+    "platform_error_message": "Access denied.",
+    "blocked_reason": "The attended administrator could read the restricted evidence folder but could not add the selected qualified synthetic training PDF. The flow was never enabled or invoked.",
+    "retry_performed": false,
+    "retry_authorized": false
+  },
+  "containment_verification": {
+    "observed_at_utc": "2026-09-30T08:20:04.1673244Z",
+    "remote_file_count": 0,
+    "folder_state": "empty",
+    "flow_workflow_id": "24e38f04-9ebc-f111-aaae-7ced8d44be51",
+    "flow_state": "Draft",
+    "flow_portal_state": "Off",
+    "flow_run_count": 0,
+    "flow_enabled_during_attempt": false,
+    "ai_builder_invoked": false,
+    "pdfs_processed": 0,
+    "training_pdfs_processed": 0,
+    "fixed_holdouts_exposed": 0,
+    "general_holdouts_exposed": 0,
+    "draft_2_0_mutated": false
+  },
+  "final_containment_verification": {
+    "observed_at_utc": "2026-09-30T09:03:52.4516411Z",
+    "sharepoint_read_status": 200,
+    "remote_file_count": 0,
+    "flow_state": "Draft",
+    "flow_status": "Draft",
+    "flow_run_count": 0,
+    "sources": [
+      "Authenticated SharePoint REST folder-file read",
+      "pac power-automate list-cloud-flows",
+      "pac power-automate list-flow-runs"
+    ]
+  },
+  "root_cause_analysis": {
+    "status": "completed",
+    "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-permission-analysis.json",
+    "failed_request_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-failed-upload-request.json",
+    "folder_permission_defect": false,
+    "permission_change_applied": false,
+    "root_cause": "The failed upload used the tenant-root /_api/web endpoint instead of the /sites/HRFrontierDEV/_api/web endpoint. The restricted folder already grants the attended administrator Full Control."
+  },
+  "evidence": [
+    {
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-upload-failure-folder-empty.png",
+      "size_bytes": 82580,
+      "sha256": "6af920ee6882315c6733a6d659cf812a2a74676b274caa266abc300af61a2177",
+      "observation": "The restricted AIBuilderEvaluationEvidence folder remained empty after the rejected upload."
+    }
+  ],
+  "next_action": "Stop Task 6. Do not retry or expose any holdout without new explicit authorization for one retry using the corrected HRFrontierDEV site-scoped endpoint or supported folder UI."
+}

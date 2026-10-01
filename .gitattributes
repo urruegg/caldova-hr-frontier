@@ -23,3 +23,10 @@
 
 # Preserve generated training documents byte-for-byte across platforms.
 *.pdf binary
+
+# AI Builder hashes bind exact serialized bytes, including original line endings.
+/hr/evidence/ai-builder/**/*.json -text whitespace=cr-at-eol
+/hr/evidence/ai-builder/**/*.csv -text whitespace=cr-at-eol
+/hr/tests/fixtures/ai-builder/evaluation-capture/canonical-envelope.json -text
+/hr/src/ai-builder/contracts/field-contract.json -text whitespace=cr-at-eol
+/hr/src/scripts/adapters/ConvertFrom-HrAiBuilderEvaluationCapture.ps1 -text whitespace=cr-at-eol

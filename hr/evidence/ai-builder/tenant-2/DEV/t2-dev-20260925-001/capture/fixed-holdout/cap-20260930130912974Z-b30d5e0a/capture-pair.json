@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "run_id": "cap-20260930130912974Z-b30d5e0a",
+  "capture_stage": "fixed-holdout",
+  "operator_upn": "admin@caldova25668747.onmicrosoft.com",
+  "captured_at_utc": "2026-09-30T13:10:19.1132881Z",
+  "corpus_revision": "c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db",
+  "model": {
+    "name": "PersonalMasterDataFixed",
+    "id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+    "version": "1.0"
+  },
+  "source": {
+    "filename": "c06-CAND-2026-0428-frei.pdf",
+    "assignment": "held-out",
+    "remote_path": "/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence/c06-CAND-2026-0428-frei.pdf",
+    "remote_unique_id": "27916e8e-161f-4302-a734-a1b8f25e3b6b",
+    "local_path": "capture\\fixed-holdout\\cap-20260930130912974Z-b30d5e0a\\source\\c06-CAND-2026-0428-frei.pdf",
+    "size_bytes": 2688,
+    "sha256": "dc512e6545293d6532effc196f56322f12cc1b2a89ef3eb31c46c90b1ddcece4"
+  },
+  "raw": {
+    "remote_path": "/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence/cap-20260930130912974Z-b30d5e0a.ai-builder.raw.json",
+    "remote_unique_id": "31c059ef-5b56-48ce-a050-535a8c01d292",
+    "local_path": "capture\\fixed-holdout\\cap-20260930130912974Z-b30d5e0a\\cap-20260930130912974Z-b30d5e0a.ai-builder.raw.json",
+    "size_bytes": 79732,
+    "sha256": "4f98cddaa62134a101913088ddf470f8ccfdf8552cf993bb8788125220db0b06"
+  },
+  "canonical": {
+    "remote_path": "/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence/cap-20260930130912974Z-b30d5e0a.canonical.json",
+    "remote_unique_id": "bd3a34f4-0097-4cfe-bca6-006ab1272461",
+    "local_path": "capture\\fixed-holdout\\cap-20260930130912974Z-b30d5e0a\\cap-20260930130912974Z-b30d5e0a.canonical.json",
+    "size_bytes": 1196,
+    "sha256": "2ddf59347aeba713c6e0bb0c21dfe91a9180ad39556990c2ecd1b7bb0e8336d7"
+  }
+}

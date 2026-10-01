@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "calculated_at_utc": "2026-10-01T07:41:51.6884540Z",
+  "run_id": "t2-dev-20260925-001",
+  "status": "eligible",
+  "failed_gates": [],
+  "model": {
+    "name": "PersonalMasterDataFixed",
+    "id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+    "version": "1.0"
+  },
+  "calculated": {
+    "records": 68,
+    "false_value_count": 0,
+    "quality_finding_count": 6,
+    "evaluated_holdout_count": 4,
+    "consumed_holdout_count": 0,
+    "flow_state": "Off",
+    "security_status": "passed"
+  },
+  "hashes": {
+    "evaluation_metrics_sha256": "b39e0d4384fd2a7e918b9b5156a6774a27d1a809ea655202ea2178127ec1cad2",
+    "prediction_capture_sha256": "21b4c03ffbb478c5f0480c8802a8e920954b35fd62e81b445bc99240cf232054",
+    "holdout_ledger_sha256": "2e6c2a7868fe2895e9ba62ebf2ebd532b0ba7298c88a27d0ef24b5062614bc23",
+    "security_verification_sha256": "de2fb1efb51638e51fc5a7cc71b4e7a97f7fa9d04a7515e69f7eeee6754edb7b",
+    "capture_capability_sha256": "5dc681bd82141be205a91ce61b7de93ab0aa8aa1b8b4f22f6dc8ce0daa0cbf64"
+  }
+}

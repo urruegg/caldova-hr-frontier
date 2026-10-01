@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "status": "passed",
+  "failed_gates": [],
+  "checks": [
+    {
+      "id": "environment",
+      "status": "passed",
+      "observation": "DEV URL https://calhrfrontierdev.crm17.dynamics.com/ and environment ID 84ad4c54-41d9-e5df-ba07-188b4719594a match the run manifest.",
+      "source": "pac org who; readiness-sources\\pac-org-who.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-28T14:42:05.5745087Z"
+    },
+    {
+      "id": "dataverse",
+      "status": "passed",
+      "observation": "Dataverse organization ID ab70c49e-7cb6-f111-aaa0-6045bd2b664a is present for Tenant 2 DEV.",
+      "source": "pac org who and discovery evidence; readiness-sources\\pac-org-who.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-28T14:42:05.5745087Z"
+    },
+    {
+      "id": "maker_authorization",
+      "status": "passed",
+      "observation": "Create-model access was observed and the attended account has the Dataverse System Administrator role, which Microsoft documents as authorized to create and access all AI Builder models in the environment.",
+      "source": "Power Apps AI hub controls, pac role query, and Microsoft AI Builder security guidance; readiness-sources\\power-apps-ai-builder.txt; readiness-sources\\pac-maker-roles.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-28T15:07:06.2557610Z"
+    },
+    {
+      "id": "ai_builder_available",
+      "status": "passed",
+      "observation": "Custom document processing is available and offers both Fixed template documents and General documents.",
+      "source": "Power Apps custom extraction choices; readiness-sources\\power-apps-ai-builder.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-28T14:42:05.5745087Z"
+    },
+    {
+      "id": "capacity",
+      "status": "passed",
+      "observation": "Tenant capacity is 20,740,000 and the enabled tenant setting allows environments without assigned capacity, including calhrfrontierdev, to consume unassigned AI Builder credits.",
+      "source": "Power Platform admin center capacity; readiness-sources\\power-platform-capacity.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-28T15:04:37.5228967Z"
+    },
+    {
+      "id": "data_policy",
+      "status": "passed",
+      "observation": "The tenant Data policies page reports no policies created, so no applicable policy blocks authoring or packaging.",
+      "source": "Power Platform admin center data policies; readiness-sources\\power-platform-data-policy.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-28T14:42:05.5745087Z"
+    },
+    {
+      "id": "solution",
+      "status": "passed",
+      "observation": "Unmanaged solution caldovahrfrontier version 0.0.0.1 is present.",
+      "source": "pac solution list; readiness-sources\\pac-solution-list.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-28T14:42:05.5745087Z"
+    },
+    {
+      "id": "publisher",
+      "status": "passed",
+      "observation": "Publisher unique name calhrfrontier and prefix calhr match the approved configuration.",
+      "source": "Read-only Dataverse FetchXML publisher query; readiness-sources\\publisher.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-28T14:42:05.5745087Z"
+    }
+  ]
+}

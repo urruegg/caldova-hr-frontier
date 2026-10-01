@@ -1,0 +1,10 @@
+Observed at UTC: 2026-09-28T14:42:05.5745087Z
+Operator: admin@caldova25668747.onmicrosoft.com
+Environment: calhrfrontierdev
+
+A read-only Dataverse FetchXML query confirmed the solution publisher:
+- Unique name: calhrfrontier
+- Prefix: calhr
+- Friendly name: Caldova HR frontier
+
+The observed publisher and prefix match the approved Tenant 2 configuration.

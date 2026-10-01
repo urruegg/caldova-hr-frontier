@@ -1,0 +1,223 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "status": "passed",
+  "failed_gates": [],
+  "owner_run_identity": "admin@caldova25668747.onmicrosoft.com",
+  "preserved_blocked_evidence": {
+    "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\model-test-capability.json",
+    "sha256": "B745FAA53C2847836B23325581FFE7992DCBAD52C338B560B5EF5F613620E1CC"
+  },
+  "checks": [
+    {
+      "id": "baseline_preserved",
+      "status": "passed",
+      "observation": "run-manifest.json still records PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 at lifecycle blocked, PersonalMasterDataGeneral remains not_created, and the preserved blocked evidence hash matched without modification.",
+      "source": "run-manifest.json; model-test-capability.json SHA-256",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "tenant_identity",
+      "status": "passed",
+      "observation": "Tenant 2 DEV resolved to https://calhrfrontierdev.crm17.dynamics.com/ with environment ID 84ad4c54-41d9-e5df-ba07-188b4719594a and connected user admin@caldova25668747.onmicrosoft.com.",
+      "source": "Connect-PowerPlatformEnvironment.ps1; pac org who",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "owner_identity_active",
+      "status": "passed",
+      "observation": "Microsoft Graph returned Microsoft Administrator / admin@caldova25668747.onmicrosoft.com as an enabled member account.",
+      "source": "Microsoft Graph user read",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "fixed_model_state",
+      "status": "passed",
+      "observation": "The fixed model detail and list pages showed PersonalMasterDataFixed as trained and not published.",
+      "source": "Power Apps AI Builder read-only browser inspection",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "draft_state",
+      "status": "passed",
+      "observation": "The AI Builder model list showed the preserved draft entry 048a9ae4-5a09-4db8-b2b2-b6de33b53893 in Draft state, unchanged and untrained, with no publish signal observed.",
+      "source": "Power Apps AI Builder model list read-only browser inspection; readiness-sources\\power-apps-ai-builder.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "solution_state",
+      "status": "passed",
+      "observation": "The unmanaged business solution caldovahrfrontier version 0.0.0.1 remains present, and no current solution collision was observed for Caldova HR AI Evaluation DEV or calhr_ai_evaluation_dev.",
+      "source": "pac solution list",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "flow_collision",
+      "status": "passed",
+      "observation": "No existing cloud flow matched the selected display name Capture AI Builder Evaluation Evidence.",
+      "source": "pac power-automate list-cloud-flows",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "connector_boundary",
+      "status": "passed",
+      "observation": "The selected Tenant 2 SharePoint connector is registered and the existing admin maker connection is connected. AI Builder availability is evidenced by the current trained model surfaces and preserved readiness evidence.",
+      "source": "pac connectivity list-connectors; pac connectivity list-connections; readiness.json; readiness-sources\\power-apps-ai-builder.txt",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "folder_collision",
+      "status": "passed",
+      "observation": "The selected SharePoint DEV Documents root did not contain AIBuilderEvaluationEvidence at the time of the read-only Graph check.",
+      "source": "Microsoft Graph SharePoint drive read",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    },
+    {
+      "id": "connection_reference_names_reserved",
+      "status": "passed",
+      "observation": "The approved connection-reference names were recorded for later Tasks 4-6 and no relevant evaluation/capture naming collision was observed in the existing connection-reference inventory.",
+      "source": "Dataverse connectionreferences read-only query",
+      "operator": "admin@caldova25668747.onmicrosoft.com",
+      "observed_at_utc": "2026-09-29T13:24:37.4080000Z"
+    }
+  ],
+  "explicit_approval": {
+    "response": "proceed",
+    "responded_at_utc": "2026-09-29T13:47:08.4090000Z",
+    "recorded_interpretation": "Historical approval after every final name had been explicitly confirmed. Task 4 and Task 5 used this approval. The implementation plan's later Task 6 Step 1 gate supersedes it for execution of any PDF capture.",
+    "scope_summary": "Approval covers later Tasks 4-6 only: publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 for evaluation, then create the unmanaged solution, manual flow, AI Builder and SharePoint connection references, and the selected SharePoint folder. It does not authorize business use, TEST/PROD, Tenant 1, Workday, holdout submission, draft 2.0 mutation, or deletion.",
+    "authorization_status": "historical_scope_superseded_for_task_6_execution",
+    "authorized_later_tasks": [
+      "Task 4",
+      "Task 5",
+      "Task 6"
+    ],
+    "exclusions": [
+      "No business use",
+      "No TEST or PROD mutation",
+      "No Tenant 1 mutation",
+      "No Workday integration",
+      "No holdout submission",
+      "No draft 2.0 mutation",
+      "No deletion"
+    ]
+  },
+  "effective_current_authorization": {
+    "task_4": "completed",
+    "task_5": "completed",
+    "task_6": "training_proof_capture_preserved_for_replay",
+    "superseding_gate": "Task 6 Step 1 separate attended approval",
+    "pdf_capture_authorized": false,
+    "authorization_consumed": true,
+    "retry_authorized": false,
+    "operational_result_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-attempt.json",
+    "corrected_retry_result_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-retry.json",
+    "remediation_result_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-remediation.json"
+  },
+  "explicit_approval_artifact": {
+    "prompt": "All final names are now explicitly confirmed. Do you freshly approve this exact Tenant 2 DEV-only scope: publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 as evaluation-only; create unmanaged solution Caldova HR AI Evaluation DEV (calhr_ai_evaluation_dev); create manual flow Capture AI Builder Evaluation Evidence; create AI Builder reference Caldova HR AI Evaluation DEV AI Builder (calhr_ai_evaluation_dev_aibuilder); create SharePoint reference Caldova HR AI Evaluation DEV SharePoint (calhr_ai_evaluation_dev_sharepoint); and create folder https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence, owned/run only by admin@caldova25668747.onmicrosoft.com? This does not authorize business use, TEST/PROD, Tenant 1, Workday, holdouts, draft 2.0 changes, automatic deletion, or any other deletion.",
+    "response": "proceed",
+    "responded_at_utc": "2026-09-29T13:47:08.4090000Z"
+  },
+  "approval_history": [
+    {
+      "response": "please proceed",
+      "responded_at_utc": "2026-09-29T13:24:26.7090000Z",
+      "status": "superseded_history_only",
+      "observation": "Recorded before the final explicit confirmation of the connection-reference names; retained as history only and not used as the effective approval."
+    }
+  ],
+  "selection_confirmation": {
+    "connection_reference_names": {
+      "status": "explicit_user_confirmed",
+      "confirmed_at_utc": "2026-09-29T13:37:13.6480000Z",
+      "observation": "The user explicitly confirmed the AI Builder and SharePoint connection-reference display and unique names in the current interaction, so they are no longer treated as inferred or derived."
+    },
+    "publisher": {
+      "status": "explicit_user_approved_after_read_back",
+      "friendly_name": "Caldova HR frontier",
+      "unique_name": "calhrfrontier",
+      "prefix": "calhr",
+      "publisher_id": "6b6eabd8-57b6-40b7-9d12-7b2a045978e8",
+      "approved_at_utc": "2026-09-29T14:32:33.6190000Z",
+      "read_back_at_utc": "2026-09-29T14:34:04.9180873Z",
+      "source": "user message; pac env fetch",
+      "observation": "Supported Dataverse FetchXML read-back exactly matched the separately approved existing publisher before the resumed Task 5 mutation."
+    }
+  },
+  "task_5_attempt_history": [
+    {
+      "attempt": 1,
+      "status": "blocked",
+      "blocker_id": "publisher_not_recorded_in_intent",
+      "observed_at_utc": "2026-09-29T14:29:09.9940581Z",
+      "evidence_commit": "dbcd3684a2e5a790382e58af8d8808a1471073a4",
+      "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\security-verification.json",
+      "observation": "The first Task 5 attempt stopped before mutation because intent did not yet record an approved publisher after read-back. This historical failure is append-only and remains authoritative for attempt 1."
+    },
+    {
+      "attempt": 2,
+      "status": "blocked",
+      "blocker_id": "ai_builder_connection_reference_unavailable",
+      "observed_at_utc": "2026-09-29T18:40:30.7891960Z",
+      "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\security-verification.json",
+      "observation": "After exact publisher read-back, Task 5 created the approved unmanaged evaluation solution, SharePoint connection reference, and restricted empty folder. The supported Power Apps connection-reference picker and supported PAC connector inventory exposed no AI Builder/shared_aibuilder connector, so the exact AI Builder reference could not be created. No substitute connector or flow was created."
+    },
+    {
+      "attempt": 3,
+      "status": "passed",
+      "blocker_id": null,
+      "observed_at_utc": "2026-09-30T07:38:35.3050000Z",
+      "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\security-verification.json",
+      "observation": "A third continuation reused the existing solution, SharePoint reference, and restricted empty folder. Action-first discovery created the supported Process documents dependency as shared_commondataserviceforapps. The user approved its action-only boundary and retaining generated unique name calhr_sharedcommondataserviceforapps_68a73 while changing display name only. The final trusted-source refinement uses SharePoint Get source PDF / GetFileContentByPath at /Shared Documents/AIBuilderEvaluationEvidence/<expected_filename>; Process documents runs after it and consumes @body('Get_source_PDF'), not trigger-uploaded bytes. The completed flow passed definition and security checks, was left Off, and has zero runs."
+    }
+  ],
+  "task_6_attempt_history": [
+    {
+      "attempt": 1,
+      "status": "blocked",
+      "blocker_id": "sharepoint_source_upload_access_denied",
+      "observed_at_utc": "2026-09-30T08:15:45.5000000Z",
+      "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-attempt.json",
+      "diagnosis_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-permission-analysis.json",
+      "observation": "The explicitly authorized training-proof attempt selected and hash-verified a01-CAND-2026-0411-brunner.pdf, but the upload request failed with HTTP 403 System.UnauthorizedAccessException before the flow was enabled. Later read-back proved the restricted folder already grants the attended administrator Full Control; the request had addressed the tenant-root REST API instead of the HRFrontierDEV site REST API. No permission change or retry was performed. The folder remains empty, the flow remains Off, and run count remains zero."
+    },
+    {
+      "attempt": 2,
+      "status": "blocked",
+      "blocker_id": "stored_source_hash_mismatch",
+      "observed_at_utc": "2026-09-30T09:21:25.7670113Z",
+      "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-retry.json",
+      "observation": "The separately authorized corrected retry used the HRFrontierDEV site endpoint and created the same training filename with overwrite disabled. Immediate read-back found 3,038 bytes and SHA-256 74c042e2419054136cc512c58ae252b9803f2a6cd7bdfc9d8acff2b04bc4b618 instead of the qualified 3,042 bytes and manifest hash. The flow was never enabled or invoked. The mismatched remote file is retained and no additional retry or deletion is authorized."
+    },
+    {
+      "attempt": 3,
+      "status": "captured_without_capability_claim",
+      "blocker_id": null,
+      "observed_at_utc": "2026-09-30T09:46:31.0000000Z",
+      "evidence_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-remediation.json",
+      "capture_pair_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\cap-20260930094537354Z-34bf8987\\capture-pair.json",
+      "observation": "After explicit design and filename-collision approval, the retained 3,038-byte mismatch was renamed without changing its bytes. Playwright native file selection transferred the qualified 3,042-byte training source under its original allow-listed filename. Exact remote read-back passed before enablement. The flow ran exactly once, succeeded, returned to Off, and produced retained raw and canonical bytes. No holdout was exposed and no capability claim was made."
+    }
+  ],
+  "current_task_boundary": "Task 6 produced one immutable training-proof source/raw/canonical capture pair for deterministic replay. The flow is Off after exactly one successful run. The retained mismatched source remains preserved under a failure-evidence filename. No holdout was exposed and no capability or model-quality claim has been made.",
+  "current_task_authorization": {
+    "task_5": "complete",
+    "task_6": "capture_observation_complete",
+    "required_next_gate": "Task 7 deterministic local replay before any capability claim or holdout exposure",
+    "folder_state": "contains_verified_training_source_retained_mismatch_raw_and_canonical",
+    "pdf_count": 2,
+    "processed_pdf_count": 1,
+    "run_count": 1,
+    "retry_authorized": false
+  }
+}

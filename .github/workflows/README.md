@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.0 |
-| **Date** | 2026-09-28 |
+| **Version** | 2.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
 | **Scope** | Repository |
@@ -18,7 +18,7 @@ Use descriptive YAML file names, grant least-privilege permissions, pin third-pa
 
 [validate-repository.yml](validate-repository.yml) runs for pull requests, pushes to `main`, and manual `workflow_dispatch` requests. Its `validate` job uses `windows-2025` with a 15-minute timeout.
 
-The workflow grants only global `contents: read`. It requests no write or identity-token permission, consumes no secrets, and pins its only third-party action to the reviewed SHA in [action-pins.json](../../infra/src/config/github/action-pins.json). Pester is installed at exact version 5.7.1.
+The workflow grants only global `contents: read`. It requests no write or identity-token permission, consumes no secrets, and pins its only third-party action to the reviewed SHA in [action-pins.json](../../infra/src/config/github/action-pins.json). Pester is installed at exact version 5.7.1. Before tests run, the hosted Python interpreter installs the pinned JSON Schema validator from [HR test requirements](../../hr/tests/requirements.txt); local schema tests need the same dependencies (`python -m pip install --requirement hr/tests/requirements.txt`).
 
 The job performs these checks in order:
 

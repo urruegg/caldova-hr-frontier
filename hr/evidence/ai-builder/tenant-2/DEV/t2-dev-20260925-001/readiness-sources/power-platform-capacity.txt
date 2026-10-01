@@ -1,0 +1,23 @@
+Observed at UTC: 2026-09-28T14:42:05.5745087Z
+Operator: admin@caldova25668747.onmicrosoft.com
+Source: https://admin.powerplatform.microsoft.com/resources/capacity
+Tenant setting observed at UTC: 2026-09-28T15:04:37.5228967Z
+Tenant setting source: https://admin.powerplatform.microsoft.com/manage/tenantsettings
+
+AI Builder capacity:
+- Total: 20,740,000
+- Assigned: 0 of 20,740,000
+- Consumed: 0 of 20,740,000
+
+The Manage capacity dialog listed calhrfrontierdev with status "-" and allocated
+capacity "-".
+
+The AI Builder credits tenant setting "Allow users to consume unassigned credits"
+is enabled. Its description confirms that environments without assigned capacity
+can use tenant unassigned credits for AI Builder actions. Microsoft documents the
+same allocation model at:
+https://learn.microsoft.com/en-us/ai-builder/credit-management
+
+Tenant 2 DEV can use the non-zero unassigned pool, so this check passed. The user
+approved proceeding without an environment allocation. No capacity was allocated
+and no tenant setting was changed.

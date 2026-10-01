@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "tenant_key": "tenant-2",
+  "models": [
+    {
+      "display_name": "PersonalMasterDataFixed",
+      "model_kind": "Fixed",
+      "model_id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+      "version": "1.0",
+      "lifecycle_stage": "added_to_solution",
+      "lifecycle_history": [
+        {
+          "stage": "not_created",
+          "changed_at_utc": "2026-09-28T14:15:49.4691784Z"
+        },
+        {
+          "stage": "created",
+          "changed_at_utc": "2026-09-29T06:42:34.4542671Z"
+        },
+        {
+          "stage": "schema_defined",
+          "changed_at_utc": "2026-09-29T06:42:34.5916446Z"
+        },
+        {
+          "stage": "tagged",
+          "changed_at_utc": "2026-09-29T09:11:11.1829972Z"
+        },
+        {
+          "stage": "trained",
+          "changed_at_utc": "2026-09-29T09:11:11.2151895Z"
+        },
+        {
+          "stage": "blocked",
+          "changed_at_utc": "2026-09-29T09:13:38.1865217Z"
+        },
+        {
+          "stage": "evaluation_published",
+          "changed_at_utc": "2026-09-29T14:16:34.8922386Z"
+        },
+        {
+          "stage": "blocked",
+          "changed_at_utc": "2026-09-30T08:20:52.1598169Z"
+        },
+        {
+          "stage": "capture_validated",
+          "changed_at_utc": "2026-09-30T10:59:13.7807783Z"
+        },
+        {
+          "stage": "evaluated",
+          "changed_at_utc": "2026-09-30T13:23:16.2488740Z"
+        },
+        {
+          "stage": "approved_for_solution",
+          "changed_at_utc": "2026-10-01T07:44:54.4491342Z"
+        },
+        {
+          "stage": "added_to_solution",
+          "changed_at_utc": "2026-10-01T07:48:51.0114932Z"
+        }
+      ]
+    },
+    {
+      "display_name": "PersonalMasterDataGeneral",
+      "model_kind": "General",
+      "model_id": "057bb758-4f5d-47d8-82ca-25eaf0a1cf07",
+      "version": "10/1/2026, 11:48:30 AM",
+      "lifecycle_stage": "blocked",
+      "lifecycle_history": [
+        {
+          "stage": "not_created",
+          "changed_at_utc": "2026-09-28T14:15:49.4707673Z"
+        },
+        {
+          "stage": "created",
+          "changed_at_utc": "2026-10-01T08:22:33.9098224Z"
+        },
+        {
+          "stage": "schema_defined",
+          "changed_at_utc": "2026-10-01T08:22:33.9475035Z"
+        },
+        {
+          "stage": "tagged",
+          "changed_at_utc": "2026-10-01T09:29:59.4501399Z"
+        },
+        {
+          "stage": "trained",
+          "changed_at_utc": "2026-10-01T10:02:05.7495779Z"
+        },
+        {
+          "stage": "evaluation_published",
+          "changed_at_utc": "2026-10-01T11:09:27.6819568Z"
+        },
+        {
+          "stage": "capture_validated",
+          "changed_at_utc": "2026-10-01T11:11:06.4659600Z"
+        },
+        {
+          "stage": "blocked",
+          "changed_at_utc": "2026-10-01T11:15:13.5485125Z"
+        }
+      ]
+    }
+  ]
+}

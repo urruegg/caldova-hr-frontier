@@ -9,9 +9,11 @@
 | **Scope** | UC-0001 synthetic general-document AI Builder test data |
 | **References** | [UC-0001](../README.md), [ADR-0011](../../../../../docs/adr/0011-workflow-first-process-architecture.md) |
 
-**24 synthetic PDFs across 8 deliberately different layout families**, for training and testing an AI Builder *General documents* model against the UC-0001 approved master-data field set.
+**24 synthetic PDFs across 8 deliberately different layout families**, for training and testing an AI Builder *General documents* model against the UC-0001 designed 17-field contract.
 
 > **Every person, address, AHV number, IBAN and phone number in this package is fictional.** No real employee data is present, and none may be added. AHV numbers and IBANs carry **valid check digits** so format validation can be tested — they identify nobody.
+
+The committed PDFs and ground truth in this package are the controlled sprint inputs for implementation and validation.
 
 ---
 
@@ -82,7 +84,7 @@ An empty cell in `ground-truth.csv` means **the field is absent from that docume
 
 ### A realistic expectation
 
-Do **not** expect fixed-template accuracy. This package is built to find the ceiling, not to flatter the model. A sensible reading:
+The first run establishes a measured baseline. Do **not** expect fixed-template accuracy, and do not infer an expected percentage before the committed corpus has been measured. Keep the zero-false-value rule strict: an invented value for an absent field is a failure, even if the aggregate numbers look encouraging. If you tune against a document that was meant to stay held out, that held-out document is consumed and must be replaced before you claim the next result. A sensible reading:
 
 | Family | If accuracy is low |
 |---|---|
@@ -106,4 +108,4 @@ Do **not** expect fixed-template accuracy. This package is built to find the cei
 
 ## Regenerating
 
-`gen_general.py` and `personas.py` produce this package deterministically. To add documents to a family, raise the loop count in `build()` and rerun — ground truth regenerates with it.
+`gen_general.py`, `gen_fixed.py`, `gen_truth.py`, and `personas.py` are the source provenance for the committed PDFs and ground truth in this package. To add documents to a family, raise the loop count in `build()` and rerun — but do not claim byte-for-byte deterministic PDF output unless a repeat-generation test proves it.

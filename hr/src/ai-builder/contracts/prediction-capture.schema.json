@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI Builder prediction capture",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "model_name",
+    "model_version",
+    "capture_mechanism",
+    "adapter_version",
+    "adapter_contract",
+    "adapter_script_path",
+    "adapter_script_sha256",
+    "raw_export_format",
+    "operator",
+    "documents"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_name": {
+      "enum": [
+        "PersonalMasterDataFixed",
+        "PersonalMasterDataGeneral"
+      ]
+    },
+    "model_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capture_mechanism": {
+      "const": "Power Automate Process documents"
+    },
+    "adapter_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "adapter_contract": {
+      "const": "replayable-v2"
+    },
+    "adapter_script_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "adapter_script_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "raw_export_format": {
+      "const": "ai-builder-process-documents-v1"
+    },
+    "operator": {
+      "type": "string",
+      "minLength": 1
+    },
+    "documents": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "document",
+          "document_sha256",
+          "collection_or_family",
+          "source_export_path",
+          "source_export_sha256",
+          "captured_at_utc",
+          "fields"
+        ],
+        "properties": {
+          "document": {
+            "type": "string",
+            "minLength": 1
+          },
+          "document_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "collection_or_family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_export_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_export_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "captured_at_utc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fields": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "candidate_id",
+              "last_name",
+              "first_name",
+              "dob",
+              "nationality",
+              "marital",
+              "heimatort",
+              "permit",
+              "street",
+              "plz",
+              "city",
+              "ahv",
+              "iban",
+              "phone",
+              "email",
+              "ec_name",
+              "ec_phone"
+            ],
+            "properties": {
+              "candidate_id": { "$ref": "#/$defs/field" },
+              "last_name": { "$ref": "#/$defs/field" },
+              "first_name": { "$ref": "#/$defs/field" },
+              "dob": { "$ref": "#/$defs/field" },
+              "nationality": { "$ref": "#/$defs/field" },
+              "marital": { "$ref": "#/$defs/field" },
+              "heimatort": { "$ref": "#/$defs/field" },
+              "permit": { "$ref": "#/$defs/field" },
+              "street": { "$ref": "#/$defs/field" },
+              "plz": { "$ref": "#/$defs/field" },
+              "city": { "$ref": "#/$defs/field" },
+              "ahv": { "$ref": "#/$defs/field" },
+              "iban": { "$ref": "#/$defs/field" },
+              "phone": { "$ref": "#/$defs/field" },
+              "email": { "$ref": "#/$defs/field" },
+              "ec_name": { "$ref": "#/$defs/field" },
+              "ec_phone": { "$ref": "#/$defs/field" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "confidence"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "value"
+            ]
+          },
+          "then": {
+            "properties": {
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

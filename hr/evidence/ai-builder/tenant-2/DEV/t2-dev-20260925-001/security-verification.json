@@ -1,0 +1,309 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "status": "passed",
+  "tenant_key": "tenant-2",
+  "environment_stage": "DEV",
+  "power_platform_environment_id": "84ad4c54-41d9-e5df-ba07-188b4719594a",
+  "environment_url": "https://calhrfrontierdev.crm17.dynamics.com/",
+  "operator_upn": "admin@caldova25668747.onmicrosoft.com",
+  "observed_at_utc": "2026-09-30T07:38:35.3050000Z",
+  "attempt_history": [
+    {
+      "attempt": 1,
+      "status": "blocked",
+      "blocker": {
+        "id": "publisher_not_recorded_in_intent",
+        "observation": "The first Task 5 attempt stopped before tenant mutation because evaluation-capture-intent.json did not yet record an approved publisher after read-back.",
+        "required_resolution": "Record a separately approved existing publisher after supported read-back and restart Task 5 from Step 1."
+      },
+      "observed_at_utc": "2026-09-29T14:29:09.9940581Z",
+      "evidence_commit": "dbcd3684a2e5a790382e58af8d8808a1471073a4"
+    },
+    {
+      "attempt": 2,
+      "status": "blocked",
+      "blocker": {
+        "id": "ai_builder_connection_reference_unavailable",
+        "observation": "The supported picker and PAC connector inventory exposed no shared_aibuilder connector. No substitute connector or flow was created.",
+        "required_resolution": "Use a supported, explicitly approved dependency mechanism and restart Task 5 from Step 1."
+      },
+      "observed_at_utc": "2026-09-29T18:40:30.7891960Z"
+    }
+  ],
+  "current_attempt": {
+    "attempt": 3,
+    "status": "passed",
+    "observation": "Action-first discovery proved that Process documents uses a dedicated shared_commondataserviceforapps reference. The user approved the narrowed action-only boundary and retaining the generated unique name while changing display name only."
+  },
+  "publication_dependency": {
+    "status": "passed",
+    "model_name": "PersonalMasterDataFixed",
+    "model_id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+    "model_version": "1.0",
+    "lifecycle_stage": "evaluation_published",
+    "portal_status": "Published",
+    "draft_2_0_state": "untouched"
+  },
+  "resource_read_back": {
+    "evaluation_solution": {
+      "display_name": "Caldova HR AI Evaluation DEV",
+      "unique_name": "calhr_ai_evaluation_dev",
+      "solution_id": "df590fd2-13bc-f111-aaae-7ced8d44be51",
+      "state": "created_unmanaged",
+      "managed": false,
+      "inventory_count": 3
+    },
+    "business_solution": {
+      "unique_name": "caldovahrfrontier",
+      "managed": false,
+      "state": "unchanged"
+    },
+    "flow": {
+      "display_name": "Capture AI Builder Evaluation Evidence",
+      "workflow_id": "24e38f04-9ebc-f111-aaae-7ced8d44be51",
+      "state": "saved_off",
+      "portal_status": "Off",
+      "run_count": 0,
+      "exact_name_match_count": 1,
+      "primary_owner_display_name": "Microsoft Administrator",
+      "primary_owner_upn": "admin@caldova25668747.onmicrosoft.com",
+      "run_only_sharing_count": 0
+    },
+    "ai_builder_connection_reference": {
+      "display_name": "Caldova HR AI Evaluation DEV AI Builder",
+      "unique_name": "calhr_ai_evaluation_dev_aibuilder",
+      "connector_id": "/providers/Microsoft.PowerApps/apis/shared_aibuilder",
+      "state": "not_created",
+      "status": "failed_history",
+      "attempt": 2,
+      "observation": "The supported picker did not expose shared_aibuilder. This historical failure is preserved and was not rewritten as the implemented dependency."
+    },
+    "dataverse_ai_builder_connection_reference": {
+      "display_name": "Caldova HR AI Evaluation DEV Dataverse (AI Builder)",
+      "unique_name": "calhr_sharedcommondataserviceforapps_68a73",
+      "connector_id": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+      "state": "created_active",
+      "usage": "Process documents only",
+      "operation": "aibuilderpredict_formsprocessing",
+      "dataverse_table_action_count": 0,
+      "discovery": "action_first",
+      "unique_name_disposition": "retained_generated_unique_name_display_name_changed_only"
+    },
+    "sharepoint_connection_reference": {
+      "display_name": "Caldova HR AI Evaluation DEV SharePoint",
+      "unique_name": "calhr_ai_evaluation_dev_sharepoint",
+      "connection_reference_id": "94b29de5-14bc-f111-aaae-70a8a505d538",
+      "connector_id": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+      "connector_name": "shared_sharepointonline",
+      "state": "created_active"
+    },
+    "sharepoint_folder": {
+      "url": "https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence",
+      "state": "empty_restricted",
+      "principals": [
+        "admin@caldova25668747.onmicrosoft.com"
+      ]
+    }
+  },
+  "definition_verification": {
+    "status": "passed",
+    "export_file": "evaluation-flow-export.json",
+    "export_sha256": "AE3C91F22CB6BA0DE8B1BF5226C3C02FA92302B1D32C705C2081EFE660DA91D9",
+    "trigger_input_count": 6,
+    "required_trigger_inputs": [
+      "source_pdf",
+      "expected_filename",
+      "expected_sha256",
+      "execution_run_id",
+      "corpus_revision",
+      "capture_stage"
+    ],
+    "capture_stage_enum": [
+      "training-proof",
+      "fixed-holdout",
+      "general-holdout"
+    ],
+    "validation_before_ai_builder": {
+      "status": "passed",
+      "filename_identity": true,
+      "claimed_sha256_pattern": "^[a-f0-9]{64}$",
+      "execution_run_id_pattern": "^cap-[0-9]{17}Z-[a-f0-9]{8}$",
+      "exact_corpus_revision": "c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db",
+      "capture_stage": true,
+      "exact_training_allowlist": true,
+      "exact_fixed_holdout_allowlist": true,
+      "general_holdout_rejected_for_fixed_model": true
+    },
+    "process_documents": {
+      "operation": "aibuilderpredict_formsprocessing",
+      "model_id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+      "model_version_lineage": "published fixed 1.0",
+      "run_after": "Get source PDF",
+      "document_input_binding": "@body('Get_source_PDF')",
+      "uses_trigger_uploaded_bytes": false,
+      "secure_inputs": true,
+      "secure_outputs": true
+    },
+    "trusted_source_retrieval": {
+      "status": "passed",
+      "scope": "Capture evidence",
+      "action_name": "Get source PDF",
+      "connection_reference": "Caldova HR AI Evaluation DEV SharePoint",
+      "connector_id": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+      "operation": "GetFileContentByPath",
+      "path": "/Shared Documents/AIBuilderEvaluationEvidence/<expected_filename>",
+      "process_documents_run_after": "Get source PDF",
+      "process_documents_input": "@body('Get_source_PDF')"
+    },
+    "manual_trigger": {
+      "secure_inputs": true,
+      "secure_outputs": true
+    },
+    "outputs": {
+      "raw_filename": "<execution_run_id>.ai-builder.raw.json",
+      "canonical_filename": "<execution_run_id>.canonical.json",
+      "canonical_field_count": 17,
+      "canonical_fields_ordered": true,
+      "destination": "approved restricted SharePoint folder",
+      "write_mode": "CreateFile"
+    },
+    "termination_paths": [
+      "success",
+      "capture-failure",
+      "invalid-request"
+    ],
+    "connector_families": [
+      "shared_commondataserviceforapps",
+      "shared_sharepointonline"
+    ],
+    "forbidden_action_count": 0,
+    "flow_checker": {
+      "errors": 0,
+      "warnings": 0
+    }
+  },
+  "checks": [
+    {
+      "id": "flow_state_off",
+      "status": "passed"
+    },
+    {
+      "id": "owner_and_run_only",
+      "status": "passed"
+    },
+    {
+      "id": "secure_inputs_outputs",
+      "status": "passed"
+    },
+    {
+      "id": "connector_inventory",
+      "status": "passed",
+      "observation": "Exactly two connector families; Dataverse is restricted to the AI Builder Process documents operation."
+    },
+    {
+      "id": "model_binding",
+      "status": "passed",
+      "observation": "Process documents runs after Get source PDF and consumes @body('Get_source_PDF'), not trigger-uploaded bytes."
+    },
+    {
+      "id": "trusted_source_retrieval",
+      "status": "passed",
+      "observation": "Get source PDF uses the approved SharePoint reference, GetFileContentByPath, and /Shared Documents/AIBuilderEvaluationEvidence/<expected_filename>."
+    },
+    {
+      "id": "fail_closed_validation",
+      "status": "passed"
+    },
+    {
+      "id": "immutable_no_overwrite",
+      "status": "passed",
+      "observation": "Raw and canonical artifacts use CreateFile with deterministic run-based names; collisions fail and do not overwrite."
+    },
+    {
+      "id": "flow_checker",
+      "status": "passed",
+      "observation": "Portal Flow checker reported 0 errors and 0 warnings."
+    },
+    {
+      "id": "no_forbidden_actions",
+      "status": "passed",
+      "observation": "No Dataverse table, HTTP, custom, email, Teams, Workday, agent, schedule, event, delete, cleanup, or other connector/action family is present."
+    },
+    {
+      "id": "no_pdf_submission",
+      "status": "passed",
+      "observation": "Zero PDFs and zero runs; the restricted folder remains empty."
+    },
+    {
+      "id": "draft_2_0_untouched",
+      "status": "passed"
+    }
+  ],
+  "attended_evidence": [
+    {
+      "screenshot": "evaluation-flow-solution-inventory.png",
+      "screenshot_sha256": "412AD3B82825F88B23D9FCC917414AC3B936CC059D898B5E398179EABC209362",
+      "hash_status": "verified",
+      "observation": "Exact solution inventory: one flow and two connection references."
+    },
+    {
+      "screenshot": "evaluation-flow-off-zero-runs.png",
+      "screenshot_sha256": "E4457B619D6A2DC8A7F3A846C5CA77BCB979B8BCABC81D131FA5652E3E4AE2B3",
+      "hash_status": "verified",
+      "observation": "Flow details show the flow in the Off state."
+    },
+    {
+      "screenshot": "evaluation-flow-zero-run-history.png",
+      "screenshot_sha256": "A73FAEE48F1C33DBDE4CF1CE0478EA2E5FA7798F6C05F6C45442E14EB92122BD",
+      "hash_status": "verified",
+      "observation": "The run-history view states that the flow has not been run yet."
+    },
+    {
+      "screenshot": "evaluation-flow-definition-checker.png",
+      "screenshot_sha256": "C44F57EABB64F5C17FC266616751C805654F11E64219F5470BBB4D9726B10FF1",
+      "hash_status": "verified",
+      "observation": "Portal Flow checker shows zero errors and zero warnings."
+    },
+    {
+      "screenshot": "evaluation-flow-trigger-controls.png",
+      "screenshot_sha256": "A37AE5866213CBE4E08975F6B4C1708E99A76C85D08C1FF0A3C7EACA3DAD290F",
+      "hash_status": "verified",
+      "observation": "The trigger editor visibly shows source_pdf, expected_filename, expected_sha256, and execution_run_id. The authoritative exported definition proves the complete six-input schema, capture-stage choices, and secure settings."
+    },
+    {
+      "screenshot": "task6-remediation-folder.png",
+      "screenshot_sha256": "98B1AEC1A710D4088A379C9DB9F1899BD6D70645ED9F7639B16D931681FAA73B",
+      "hash_status": "verified",
+      "observation": "The restricted folder contains the verified training source, retained mismatch, raw response, and canonical envelope."
+    },
+    {
+      "screenshot": "task6-remediation-run-succeeded-flow-off.png",
+      "screenshot_sha256": "C0E21C3BFC1F65CE3378AE1C985B8FB9B3E85398F4F67BB980E5E2AB3942AB68",
+      "hash_status": "verified",
+      "observation": "The sole attended run succeeded and the flow is Off."
+    }
+  ],
+  "authorization_boundary": {
+    "task_5": "complete",
+    "task_6": "capture_observation_complete",
+    "required_next_gate": "Task 7 deterministic local replay before any capability claim or holdout exposure",
+    "pdf_count": 2,
+    "processed_pdf_count": 1,
+    "run_count": 1,
+    "flow_state_after_attempt": "Draft",
+    "folder_file_count_after_attempt": 0,
+    "folder_file_count_after_corrected_retry": 1,
+    "processed_pdf_count_after_corrected_retry": 0,
+    "folder_file_count_after_remediation": 4,
+    "processed_pdf_count_after_remediation": 1,
+    "retry_authorized": false,
+    "operational_result_path": "training-capture-attempt.json",
+    "permission_analysis_path": "task6-permission-analysis.json",
+    "folder_permission_change_applied": false,
+    "folder_permission_observation": "The folder has unique assignments and grants only the attended administrator Full Control. The HTTP 403 root cause was the tenant-root REST endpoint scope, not missing folder permission.",
+    "corrected_retry_observation": "The corrected endpoint created one source file, but immediate read-back failed exact size and SHA-256 verification. The flow remained Off with zero runs. The mismatched file was retained.",
+    "remediation_result_path": "training-capture-remediation.json",
+    "remediation_observation": "After explicit approval, the mismatch was renamed without changing its bytes. A native file-selection upload passed exact remote size and SHA-256 verification. One training-proof run succeeded, raw and canonical bytes were retained, the flow returned to Off, and no holdout was exposed."
+  }
+}

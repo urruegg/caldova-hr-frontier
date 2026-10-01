@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "run_id": "cap-20261001110252111Z-ab4fa091",
+  "capture_stage": "training-proof",
+  "operator_upn": "admin@caldova25668747.onmicrosoft.com",
+  "captured_at_utc": "2026-10-01T11:03:40.1337453Z",
+  "corpus_revision": "c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db",
+  "model": {
+    "name": "PersonalMasterDataGeneral",
+    "id": "057bb758-4f5d-47d8-82ca-25eaf0a1cf07",
+    "version": "10/1/2026, 11:48:30 AM"
+  },
+  "source": {
+    "filename": "g01-arbeitsvertrag-CAND-2026-0411.pdf",
+    "assignment": "training",
+    "remote_path": "/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence/g01-arbeitsvertrag-CAND-2026-0411.pdf",
+    "remote_unique_id": "d86777d0-8ee5-4152-89f4-8789adb39ac3",
+    "local_path": "capture\\cap-20261001110252111Z-ab4fa091\\source\\g01-arbeitsvertrag-CAND-2026-0411.pdf",
+    "size_bytes": 2886,
+    "sha256": "b38d977460a8d3f865662bb33a1af0342fb54975c37d18f8c54cf29ec41c0488"
+  },
+  "raw": {
+    "remote_path": "/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence/cap-20261001110252111Z-ab4fa091.ai-builder.raw.json",
+    "remote_unique_id": "5e8101d0-07e1-490e-97e0-c9b6f40f9056",
+    "local_path": "capture\\cap-20261001110252111Z-ab4fa091\\cap-20261001110252111Z-ab4fa091.ai-builder.raw.json",
+    "size_bytes": 156225,
+    "sha256": "e201ca7effc54c3234b6de8bb5a12244612f274fd5adf2ac81f367f92fb149fe"
+  },
+  "canonical": {
+    "remote_path": "/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence/cap-20261001110252111Z-ab4fa091.canonical.json",
+    "remote_unique_id": "88a30375-4e1d-4841-b319-cdd94500213f",
+    "local_path": "capture\\cap-20261001110252111Z-ab4fa091\\cap-20261001110252111Z-ab4fa091.canonical.json",
+    "size_bytes": 1345,
+    "sha256": "b54cb41f655e68451d68de707ea4d803da6f3a14dc5537d9d1518c810b842441"
+  }
+}

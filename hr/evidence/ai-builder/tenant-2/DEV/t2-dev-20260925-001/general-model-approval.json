@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "recorded_at_utc": "2026-10-01T08:13:14.8489169Z",
+  "run_id": "t2-dev-20260925-001",
+  "decision": "approved_for_general_model_execution",
+  "attended_acknowledgement": {
+    "response": "Approve Task 11 (Recommended)",
+    "source": "GitHub Copilot attended conversation",
+    "interpretation": "Approval to create, define, tag, train, publish for evaluation, and evaluate PersonalMasterDataGeneral in Tenant 2 DEV under the proven controlled-evaluation pattern."
+  },
+  "scope": {
+    "model_name": "PersonalMasterDataGeneral",
+    "model_kind": "General",
+    "field_contract_count": 17,
+    "training_document_count": 16,
+    "holdout_document_count": 8,
+    "expected_field_result_count": 136,
+    "holdout_processing": "exactly_once_after_capture_capability_passes"
+  },
+  "preconditions": {
+    "fixed_model_stage": "added_to_solution",
+    "general_model_stage": "not_created",
+    "evaluation_flow_state": "Off",
+    "general_holdout_capture_reference_count": 0
+  },
+  "excluded_scope": [
+    "Tenant 1",
+    "TEST",
+    "PROD",
+    "Workday",
+    "operational HR intake",
+    "automated writes",
+    "fixed model draft edit",
+    "fixed model draft publication",
+    "fixed model draft discard"
+  ]
+}

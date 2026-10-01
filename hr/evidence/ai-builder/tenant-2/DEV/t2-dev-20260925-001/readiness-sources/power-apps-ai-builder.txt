@@ -1,0 +1,23 @@
+Observed at UTC: 2026-09-28T14:42:05.5745087Z
+Operator: admin@caldova25668747.onmicrosoft.com
+Environment: calhrfrontierdev
+
+The Power Apps AI hub exposed the custom document-processing model creation entry.
+Both Fixed template documents and General documents were available.
+
+Opening the creation wizard automatically persisted an empty draft. The accidental
+draft c7a99e57-7956-481e-867f-6ad852cff862 was removed only after explicit user
+authorization. The older pre-existing draft 048a9ae4-5a09-4db8-b2b2-b6de33b53893
+was not changed.
+
+Create access was observed. Train, publish, and add-to-solution controls were not
+all directly visible before a model reaches the applicable lifecycle state.
+
+A read-only Dataverse role query confirmed that the attended account has the
+System Administrator role. Microsoft AI Builder security guidance states that
+System Administrators can create models and access all AI models in the
+environment:
+https://learn.microsoft.com/en-us/ai-builder/security
+
+The observed create access and documented System Administrator authorization
+provide the pre-creation authorization evidence. No role was granted or changed.

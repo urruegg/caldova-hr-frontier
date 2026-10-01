@@ -1,0 +1,166 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "calculated_at_utc": "2026-09-30T10:58:31.3101905Z",
+  "status": "passed",
+  "decision": "capture_validated",
+  "failed_gates": [],
+  "model": {
+    "name": "PersonalMasterDataFixed",
+    "id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+    "version": "1.0"
+  },
+  "capture_pair": {
+    "run_id": "cap-20260930094537354Z-34bf8987",
+    "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\cap-20260930094537354Z-34bf8987\\capture-pair.json",
+    "source_filename": "a01-CAND-2026-0411-brunner.pdf",
+    "source_assignment": "training"
+  },
+  "flow_state": "Off",
+  "holdout_exposed": false,
+  "gates": [
+    {
+      "id": "AEC-G001",
+      "status": "passed",
+      "required_proof": "Exact filename correlation from manifest through both retained outputs and local replay.",
+      "calculated_result": "a01-CAND-2026-0411-brunner.pdf matched ordinally in the run manifest, capture pair, retained canonical envelope, retained source filename, and adapter replay."
+    },
+    {
+      "id": "AEC-G002",
+      "status": "passed",
+      "required_proof": "Retained source PDF bytes and independently verified SHA-256.",
+      "calculated_result": "The retained 3042-byte training PDF independently hashed to the capture-pair and canonical claimed SHA-256."
+    },
+    {
+      "id": "AEC-G003",
+      "status": "passed",
+      "required_proof": "Retained, unmodified AI Builder action-body bytes.",
+      "calculated_result": "The retained 124461-byte raw response independently hashed to the capture-pair SHA-256 and passed observed-shape provenance validation."
+    },
+    {
+      "id": "AEC-G004",
+      "status": "passed",
+      "required_proof": "Exactly all 17 canonical field keys.",
+      "calculated_result": "The field contract, model schema, retained raw labels, retained canonical envelope, and local replay contained the exact ordered 17-field contract."
+    },
+    {
+      "id": "AEC-G005",
+      "status": "passed",
+      "required_proof": "Every field has string/null value and numeric/null confidence in the allowed range.",
+      "calculated_result": "All 17 replayed fields satisfied the value and confidence contract; no prediction_capture_schema gate failed."
+    },
+    {
+      "id": "AEC-G006",
+      "status": "passed",
+      "required_proof": "Deterministic output naming and byte-stable canonical serialization.",
+      "calculated_result": "The retained names matched the capture run identity, canonical bytes passed UTF-8/no-BOM/one-LF validation, and two independent 2132-byte adapter outputs had identical SHA-256 values."
+    },
+    {
+      "id": "AEC-G007",
+      "status": "passed",
+      "required_proof": "The tested local adapter reproduces the canonical capture from retained raw bytes without transcription.",
+      "calculated_result": "Test-HrAiBuilderCapturePair returned passed with no failed gates, and its replay SHA-256 equalled the retained canonical SHA-256."
+    }
+  ],
+  "supporting_hashes": {
+    "source_sha256": "9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd",
+    "raw_sha256": "6ddf6d3ab1a79a25422fc7750d7eb1900c30957ca7bc5a6cd098a090706b39f3",
+    "canonical_sha256": "627dc0d4cc26b288ebbcd4109688972f14d7a23ed1f98eee7b2009e47a8fe3f7",
+    "capture_pair_sha256": "1f0119e420aec082d639abf69bde717e383e21a3ab984e1e49c5f1ad1ba2a6a4",
+    "field_contract_sha256": "13ce7a3985841790fe7b20b97537cd9344d9cc7ce134e86cbab0b0bc10a6a9e9",
+    "model_schema_sha256": "cd87cd499236b6dad229ef578c4906786962c56516d29c12cd9c4c167146fa29",
+    "adapter_script_sha256": "9d22ec25a745e0bf63b5f034f87a80457584c8f02dac9c5fe438eb190f98ff75",
+    "canonical_replay_sha256": "627dc0d4cc26b288ebbcd4109688972f14d7a23ed1f98eee7b2009e47a8fe3f7",
+    "run_manifest_pre_decision_sha256": "335ab1698488c7e9b9c04d70048c604a90fce164094c635715db4b5c7b873507",
+    "historical_model_test_capability_sha256": "b745faa53c2847836b23325581ffe7992dcbad52c338b560b5ef5f613620e1cc",
+    "historical_training_capture_attempt_sha256": "e13164d0df85424ed8d356079a450282bd053867c2fb9d6299f126d95fccbef8",
+    "historical_training_capture_retry_sha256": "94b097e594080aaed8ed40fb513b983a631b917650ee6a17a29c96b3ab3cf386",
+    "training_capture_remediation_sha256": "97cc0242e13388f2b1ff8551cc20d733c4aef1a92e6453bc4f7bf5370269d324"
+  },
+  "supporting_artifacts": [
+    {
+      "id": "source",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\cap-20260930094537354Z-34bf8987\\source\\a01-CAND-2026-0411-brunner.pdf",
+      "sha256": "9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd"
+    },
+    {
+      "id": "raw",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\cap-20260930094537354Z-34bf8987\\cap-20260930094537354Z-34bf8987.ai-builder.raw.json",
+      "sha256": "6ddf6d3ab1a79a25422fc7750d7eb1900c30957ca7bc5a6cd098a090706b39f3"
+    },
+    {
+      "id": "canonical",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\cap-20260930094537354Z-34bf8987\\cap-20260930094537354Z-34bf8987.canonical.json",
+      "sha256": "627dc0d4cc26b288ebbcd4109688972f14d7a23ed1f98eee7b2009e47a8fe3f7"
+    },
+    {
+      "id": "capture_pair",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\cap-20260930094537354Z-34bf8987\\capture-pair.json",
+      "sha256": "1f0119e420aec082d639abf69bde717e383e21a3ab984e1e49c5f1ad1ba2a6a4"
+    },
+    {
+      "id": "field_contract",
+      "path": "hr\\src\\ai-builder\\contracts\\field-contract.json",
+      "sha256": "13ce7a3985841790fe7b20b97537cd9344d9cc7ce134e86cbab0b0bc10a6a9e9"
+    },
+    {
+      "id": "model_schema",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\model-schema-fixed.json",
+      "sha256": "cd87cd499236b6dad229ef578c4906786962c56516d29c12cd9c4c167146fa29"
+    },
+    {
+      "id": "adapter_script",
+      "path": "hr\\src\\scripts\\adapters\\ConvertFrom-HrAiBuilderEvaluationCapture.ps1",
+      "sha256": "9d22ec25a745e0bf63b5f034f87a80457584c8f02dac9c5fe438eb190f98ff75"
+    },
+    {
+      "id": "pre_decision_record",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture-capability-pre-decision.json",
+      "sha256": "cb95cd603b643a4c44e3bf6c85ecba974df49923a954a4d0eba1e39a5d81e58a"
+    },
+    {
+      "id": "historical_model_test_capability",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\model-test-capability.json",
+      "sha256": "b745faa53c2847836b23325581ffe7992dcbad52c338b560b5ef5f613620e1cc"
+    },
+    {
+      "id": "historical_training_capture_attempt",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-attempt.json",
+      "sha256": "e13164d0df85424ed8d356079a450282bd053867c2fb9d6299f126d95fccbef8"
+    },
+    {
+      "id": "historical_training_capture_retry",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-retry.json",
+      "sha256": "94b097e594080aaed8ed40fb513b983a631b917650ee6a17a29c96b3ab3cf386"
+    },
+    {
+      "id": "training_capture_remediation",
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\training-capture-remediation.json",
+      "sha256": "97cc0242e13388f2b1ff8551cc20d733c4aef1a92e6453bc4f7bf5370269d324"
+    }
+  ],
+  "replay": {
+    "first_output": "fixed-capability-replay-1.json",
+    "first_sha256": "923290087a0701ed700bd3f54e28d7cbe4f18048688ecab94b3b8fd0bedc8b76",
+    "first_size_bytes": 2132,
+    "second_output": "fixed-capability-replay-2.json",
+    "second_sha256": "923290087a0701ed700bd3f54e28d7cbe4f18048688ecab94b3b8fd0bedc8b76",
+    "second_size_bytes": 2132,
+    "byte_deterministic": true,
+    "temporary_outputs_removed": true
+  },
+  "lifecycle_decision": {
+    "previous_stage": "blocked",
+    "preserved_preceding_stage": "evaluation_published",
+    "appended_stage": "capture_validated",
+    "historical_blockers_preserved": true
+  },
+  "exclusions": {
+    "tenant_call": true,
+    "github_issue_update": true,
+    "holdout_exposure": true,
+    "model_2_0_mutation": true,
+    "business_use_claim": true,
+    "model_quality_claim": true
+  }
+}
