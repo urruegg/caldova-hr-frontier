@@ -2,14 +2,14 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR |
 | **References** | [HR Control Plane Code App Wireframe Design](../../../../docs/specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md), [ADR-0006 Agentic Toolset and HR Control Plane Split](../../../../docs/adr/0006-agentic-toolset-and-hr-control-plane.md), [HR Solution Sources](../../solutions/README.md) |
 
-Power Apps Code App project for the HR Employee Control Plane described in [ADR-0006](../../../../docs/adr/0006-agentic-toolset-and-hr-control-plane.md). Built with Vite, React, and TypeScript on Microsoft's official Power Apps Code Apps template, themed with the GF BrandKit (`docs/brand/gf-fluent-theme.ts`).
+Power Apps Code App project for the HR Employee Control Plane described in [ADR-0006](../../../../docs/adr/0006-agentic-toolset-and-hr-control-plane.md). Built with Vite, React, and TypeScript on Microsoft's official Power Apps Code Apps template, themed from `docs/brand/caldova-fluent-theme.ts`. The inherited values are an interim product palette pending an approved Caldova design standard; palette values, contrast targets, semantic-state colours, and dark-mode behavior remain unchanged.
 
 ## Current state
 

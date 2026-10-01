@@ -75,7 +75,7 @@ export function AppHeader() {
   return (
     <header className={styles.header}>
       <div className={styles.brandBlock}>
-        <Text className={styles.wordmark}>GF</Text>
+        <Text className={styles.wordmark}>Caldova</Text>
         <span className={styles.divider} aria-hidden="true" />
         <Text weight="semibold">HR Control Plane</Text>
       </div>

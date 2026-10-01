@@ -1,5 +1,5 @@
 import { makeStyles, shorthands, tokens, Text } from "@fluentui/react-components";
-import { navItems } from "./NavRail";
+import { navItems } from "./navigation";
 
 const useStyles = makeStyles({
   main: {

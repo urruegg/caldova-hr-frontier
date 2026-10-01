@@ -54,7 +54,7 @@ export function AppFooter() {
       <div className={styles.cols}>
         <div className={styles.col}>
           <Text className={styles.colTitle}>Platform</Text>
-          <Text weight="semibold">GF HR Agentic Platform</Text>
+          <Text weight="semibold">Caldova HR Agentic Platform</Text>
           <Text size={200}>Level 3 — agentic. Workday is the system of record. Humans decide.</Text>
           <Text size={200}>Control Plane · wireframe</Text>
         </div>
@@ -76,7 +76,7 @@ export function AppFooter() {
       <div className={styles.bar}>
         <Text size={200}>Wireframe — no functional code. Not connected to Workday or Dataverse.</Text>
         <div className={styles.barRight}>
-          <Text size={200}>Georg Fischer Ltd · Schaffhausen · © 2026</Text>
+          <Text size={200}>Caldova · HR Control Plane wireframe · © 2026</Text>
           <Link>Privacy</Link>
           <Link>Accessibility</Link>
         </div>
