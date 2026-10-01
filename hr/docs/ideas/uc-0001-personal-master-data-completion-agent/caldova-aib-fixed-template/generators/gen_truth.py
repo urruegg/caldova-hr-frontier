@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """Ground truth: expected extraction per document per field."""
 import os, sys, csv, json
+
+PACKAGE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from personas import people
 import gen_fixed, gen_general
@@ -51,21 +54,27 @@ def write(base, rows, label):
     return len(rows), present, total
 
 if __name__ == "__main__":
-    here = os.path.dirname(os.path.abspath(__file__))
-    ps = people()
-
-    fx = []
-    for ci,(folder,_fn,_nice) in enumerate(gen_fixed.COLLECTIONS):
-        for i in range(6):
-            p = ps[(ci*6+i)%24]
-            fx.append((f"{folder[0]}{i+1:02d}-{p['candidate_id']}-{p['last_name'].lower()}.pdf", folder, p))
-    n,pr,to = write(os.path.join(here,"pkg-fixed"), rows_for(fx, FIXED_COVER, lambda g: g), "fixed-template")
-    print(f"fixed  : {n} docs, {pr}/{to} field values present ({to-pr} deliberate gaps)")
-
-    gn = []; k=0
-    for li,(nm,_fn) in enumerate(gen_general.LAYOUTS):
-        for j in range(3):
-            p = ps[(li*3+j)%24]; k+=1
-            gn.append((f"g{k:02d}-{nm}-{p['candidate_id']}.pdf", nm, p))
-    n,pr,to = write(os.path.join(here,"pkg-general"), rows_for(gn, GEN_COVER, lambda g: g), "general-documents")
-    print(f"general: {n} docs, {pr}/{to} field values present ({to-pr} deliberate gaps)")
+    personas = people()
+    fixed_documents = []
+    for collection_index, (folder, _function, _name) in enumerate(
+        gen_fixed.COLLECTIONS
+    ):
+        for document_index in range(6):
+            person = personas[(collection_index * 6 + document_index) % 24]
+            fixed_documents.append(
+                (
+                    f"{folder[0]}{document_index + 1:02d}-"
+                    f"{person['candidate_id']}-{person['last_name'].lower()}.pdf",
+                    folder,
+                    person,
+                )
+            )
+    count, present, total = write(
+        PACKAGE_ROOT,
+        rows_for(fixed_documents, FIXED_COVER, lambda group: group),
+        "fixed-template",
+    )
+    print(
+        f"fixed  : {count} docs, {present}/{total} field values present "
+        f"({total - present} deliberate gaps)"
+    )

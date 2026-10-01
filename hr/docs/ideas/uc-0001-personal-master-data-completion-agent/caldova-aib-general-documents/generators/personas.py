@@ -23,7 +23,7 @@ def iban(bank5, acct12):
 def fmt_iban(s):
     return " ".join(s[i:i+4] for i in range(0, len(s), 4))
 
-# 24 fictional people. Swiss + cross-border mix, matching GF's real footprint.
+# 24 fictional people. Swiss + cross-border mix for the fictional Caldova scenario.
 P = [
  # id, first, last, dob, nat, marital, street, plz, city, heimatort, permit, phone, email, ec_name, ec_phone, ahv12, bank5, acct12, candidate
  ("CAND-2026-0411","Livia","Brunner","14.03.1994","Schweiz","ledig","Sonnenbergstrasse 14","8203","Schaffhausen","Stein am Rhein SH","—","+41 79 412 88 03","l.brunner@example.ch","Marco Brunner","+41 79 655 21 40","756194302118","00700","0011 4552 331","CAND-2026-0411"),

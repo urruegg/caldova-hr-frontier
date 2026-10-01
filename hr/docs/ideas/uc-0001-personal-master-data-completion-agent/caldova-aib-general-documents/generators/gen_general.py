@@ -5,6 +5,11 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib.utils import simpleSplit
+
+PACKAGE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FICTIONAL_ENTITY = "Caldova Fictional HR Lab"
+FICTIONAL_ADDRESS = "Fictionalstrasse 1, 9999 Musterstadt"
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from personas import people
 
@@ -27,7 +32,11 @@ def contract(path, p, n):
     c = canvas.Canvas(path, pagesize=A4)
     c.setFont("Helvetica-Bold", 14); c.drawString(22*mm, H-28*mm, "ARBEITSVERTRAG")
     c.setFont("Helvetica", 9); c.setFillColorRGB(0.4,0.4,0.4)
-    c.drawString(22*mm, H-34*mm, "zwischen Georg Fischer AG, 8201 Schaffhausen (Arbeitgeberin)")
+    c.drawString(
+        22*mm,
+        H-34*mm,
+        f"zwischen {FICTIONAL_ENTITY}, {FICTIONAL_ADDRESS} (Arbeitgeberin)",
+    )
     c.drawString(22*mm, H-39*mm, "und der nachstehend bezeichneten Person (Arbeitnehmer/in)")
     c.setStrokeColorRGB(0.7,0.7,0.7); c.line(22*mm, H-43*mm, W-22*mm, H-43*mm)
     y = H-54*mm
@@ -65,7 +74,12 @@ def letter(path, p, n):
         c.drawRightString(W-22*mm, y, ln); y -= 4.8*mm
     y -= 10*mm
     c.setFont("Helvetica", 9.5)
-    for ln in ["Georg Fischer AG", "HR Operations", "Amsler-Laffon-Strasse 9", "8201 Schaffhausen"]:
+    for ln in [
+        FICTIONAL_ENTITY,
+        "HR Operations",
+        "Fictionalstrasse 1",
+        "9999 Musterstadt",
+    ]:
         c.drawString(22*mm, y, ln); y -= 4.8*mm
     y -= 8*mm
     c.drawRightString(W-22*mm, y, f"{p['city']}, 12. Oktober 2026"); y -= 14*mm
@@ -285,5 +299,5 @@ def build(base):
     return made
 
 if __name__ == "__main__":
-    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pkg-general", "documents")
-    m = build(out); print("generated", len(m), "PDFs across", len(LAYOUTS), "layout families")
+    made = build(os.path.join(PACKAGE_ROOT, "documents"))
+    print("generated", len(made), "PDFs across", len(LAYOUTS), "layout families")

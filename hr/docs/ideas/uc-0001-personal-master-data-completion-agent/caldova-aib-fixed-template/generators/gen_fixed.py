@@ -4,6 +4,11 @@ import os, sys
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
+
+PACKAGE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FICTIONAL_ENTITY = "Caldova Fictional HR Lab"
+FICTIONAL_ADDRESS = "Fictionalstrasse 1, 9999 Musterstadt"
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from personas import people
 
@@ -41,10 +46,10 @@ def section(c, y, t):
     c.setFillColorRGB(*NAVY); c.setFont("Helvetica-Bold", 9.5); c.drawString(20*mm, y, t)
     rule(c, y-2.5*mm)
 
-# ---------------- Collection A : GF Personalblatt ----------------
+# ---------------- Collection A : Caldova Personalblatt ----------------
 def personalblatt(path, p, seq):
     c = canvas.Canvas(path, pagesize=A4)
-    hdr(c, "GF  Georg Fischer", "Personalblatt - Eintritt", f"PB-{seq:04d}")
+    hdr(c, FICTIONAL_ENTITY, "Personalblatt - Eintritt", f"PB-{seq:04d}")
     y = H-38*mm
     c.setFillColorRGB(0.1,0.1,0.1); c.setFont("Helvetica-Bold", 13)
     c.drawString(20*mm, y, "Personalstammdaten Erfassung"); y -= 6*mm
@@ -142,14 +147,14 @@ def sozial(path, p, seq):
     label(c, 20*mm, y, "IBAN"); value(c, 20*mm, y-5.5*mm, p["iban"], bold=True)
     y -= 18*mm
     section(c, y, "ARBEITGEBER"); y -= 10*mm
-    value(c, 20*mm, y, "Georg Fischer AG, Amsler-Laffon-Strasse 9, 8201 Schaffhausen")
+    value(c, 20*mm, y, f"{FICTIONAL_ENTITY}, {FICTIONAL_ADDRESS}")
     foot(c, "Collection C - Sozialversicherung | Fixed template")
     c.showPage(); c.save()
 
 # ---------------- Collection D : Bankverbindung ----------------
 def bank(path, p, seq):
     c = canvas.Canvas(path, pagesize=A4)
-    hdr(c, "GF  Georg Fischer", "Zahlungsverbindung Lohn", f"BV-{seq:04d}")
+    hdr(c, FICTIONAL_ENTITY, "Zahlungsverbindung Lohn", f"BV-{seq:04d}")
     y = H-40*mm
     c.setFillColorRGB(0.1,0.1,0.1); c.setFont("Helvetica-Bold", 12.5)
     c.drawString(20*mm, y, "Meldung Bankverbindung"); y -= 7*mm
@@ -195,6 +200,5 @@ def build(base):
     return made
 
 if __name__ == "__main__":
-    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pkg-fixed", "documents")
-    m = build(out)
-    print("generated", len(m), "PDFs across", len(COLLECTIONS), "collections")
+    made = build(os.path.join(PACKAGE_ROOT, "documents"))
+    print("generated", len(made), "PDFs across", len(COLLECTIONS), "collections")

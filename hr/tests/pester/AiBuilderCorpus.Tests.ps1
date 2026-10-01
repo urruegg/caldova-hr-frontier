@@ -94,3 +94,51 @@ Describe 'AI Builder corpus target paths and truth' {
         }
     }
 }
+
+Describe 'AI Builder maintained generator contract' {
+    It 'uses a clearly fictional Caldova entity and address in both copies' {
+        foreach ($packagePath in $script:packages.Values) {
+            foreach ($name in @('gen_fixed.py', 'gen_general.py')) {
+                $content = [IO.File]::ReadAllText(
+                    (Join-Path $packagePath "generators\$name")
+                )
+                $content | Should -Match (
+                    'FICTIONAL_ENTITY\s*=\s*"Caldova Fictional HR Lab"'
+                )
+                $content | Should -Match (
+                    'FICTIONAL_ADDRESS\s*=\s*"Fictionalstrasse 1, 9999 Musterstadt"'
+                )
+                $content | Should -Match 'SYNTHETIC TEST DOCUMENT'
+                $content | Should -Match 'Not a real person'
+            }
+        }
+    }
+
+    It 'keeps package-local maintained entry points' {
+        $fixedGenerator = [IO.File]::ReadAllText(
+            (Join-Path $script:packages.Fixed 'generators\gen_fixed.py')
+        )
+        $generalGenerator = [IO.File]::ReadAllText(
+            (Join-Path $script:packages.General 'generators\gen_general.py')
+        )
+        $fixedTruth = [IO.File]::ReadAllText(
+            (Join-Path $script:packages.Fixed 'generators\gen_truth.py')
+        )
+        $generalTruth = [IO.File]::ReadAllText(
+            (Join-Path $script:packages.General 'generators\gen_truth.py')
+        )
+
+        $fixedGenerator | Should -Match (
+            'build\(os\.path\.join\(PACKAGE_ROOT,\s*"documents"\)\)'
+        )
+        $generalGenerator | Should -Match (
+            'build\(os\.path\.join\(PACKAGE_ROOT,\s*"documents"\)\)'
+        )
+        $fixedTruth | Should -Match (
+            '(?s)write\(\s*PACKAGE_ROOT,.*?"fixed-template"\s*,?\s*\)'
+        )
+        $generalTruth | Should -Match (
+            '(?s)write\(\s*PACKAGE_ROOT,.*?"general-documents"\s*,?\s*\)'
+        )
+    }
+}
