@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
-| **Date** | 2026-09-25 |
+| **Version** | 0.2 |
+| **Date** | 2026-10-01 |
 | **Author** | DAAI |
 | **Status** | Draft |
 | **Scope** | UC-0001 Tier 1 extraction model build and evaluation |
@@ -32,8 +32,8 @@ You will build **two** models and compare them. That comparison is the evidence 
 
 | Model | Type | Good at | Training time |
 |---|---|---|---|
-| `gf_PersonalstammdatenFixed` | **Fixed template documents** | GF's own forms, municipality confirmations — known layouts | Short |
-| `gf_PersonalstammdatenGeneral` | **General documents** | Contracts, letters, certificates, scans — unfamiliar structures | **Long** |
+| `caldova_PersonalstammdatenFixed` | **Fixed template documents** | Caldova's own forms, municipality confirmations — known layouts | Short |
+| `caldova_PersonalstammdatenGeneral` | **General documents** | Contracts, letters, certificates, scans — unfamiliar structures | **Long** |
 
 ---
 
@@ -67,7 +67,7 @@ Two further constraints that shape the procedure:
 | 1 | **DEV environment with Dataverse** | IT | Per [Power Platform Environments and ALM](../../../../infra/docs/12-power-platform-environments-and-alm.md) |
 | 2 | **AI Builder credits allocated to DEV** | IT | AI Builder is **Premium** — it is on the conditional list in [Solution Design §4.5](../../../../docs/solution-design.md) and becomes required the moment you take this path |
 | 3 | **DLP policy applied**, AI Builder in the same data group as Dataverse, SharePoint and Workday | IT / Security | Stage 1.2. Doing this after the flow is built makes the flow un-runnable with no warning |
-| 4 | **Publisher `gf_` exists** | IT | Stage 1.3. Cannot be changed later |
+| 4 | **Publisher `caldova_` exists** | IT | Stage 1.3. Cannot be changed later |
 | 5 | **`GFHRPlatformCore` unmanaged solution in DEV** | DAAI | The models go here, not in the agent solution — see §4 |
 | 6 | **Synthetic test packages available locally** | DAAI | [`caldova-aib-fixed-template/`](./caldova-aib-fixed-template/) and [`caldova-aib-general-documents/`](./caldova-aib-general-documents/) |
 
@@ -91,7 +91,7 @@ Put both models in **`GFHRPlatformCore`**, not in `GFHRMasterDataAgent`.
 
 1. **Power Apps → AI hub → AI models → Extract custom information from documents → Create custom model**
 2. Document type: **Fixed template documents**
-3. Name: `gf_PersonalstammdatenFixed`
+3. Name: `caldova_PersonalstammdatenFixed`
 
 ### 5.2 Define the 17 fields
 
@@ -220,7 +220,7 @@ Collection B is the *Anmeldung Gemeinde*. The control-plane mockup reports *"12 
 This follows directly from §2. Because the model can only ever be trained in DEV and the training data does not travel:
 
 1. **The training documents are version-controlled** in [`caldova-aib-fixed-template/`](./caldova-aib-fixed-template/) and [`caldova-aib-general-documents/`](./caldova-aib-general-documents/). They are not a scratch upload.
-2. **Real PeopleDoc documents never join them.** These packages are synthetic for exactly that reason — a training set in version control must contain no personal data. When GF eventually tags real documents, those stay in the DEV environment and are governed as personal data, **never committed**.
+2. **Real PeopleDoc documents never join them.** These packages are synthetic for exactly that reason — a training set in version control must contain no personal data. When Caldova eventually tags real documents, those stay in the DEV environment and are governed as personal data, **never committed**.
 3. **Record which documents trained which model version**, so a rebuild is reproducible.
 4. **A DEV reset is a model loss event.** Plan for it before it happens.
 

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Use Case Portfolio |
@@ -15,7 +15,7 @@
 > **HR owner:** HR Ops
 > **Position:** **MVP use case 3 of 3**
 >
-> **Source:** GF HR AI use case list. This document expands the list entry into a reviewable idea. It is **in MVP scope but has no PRD yet** — the requirements are written next, not assumed from here.
+> **Source:** The customer-supplied HR AI use-case workbook. This document expands the workbook entry into a reviewable idea. It is **in MVP scope but has no PRD yet** — the requirements are written next, not assumed from here.
 
 ---
 
@@ -87,7 +87,7 @@ The listed risk *inconsistent local processes* is the design problem. Switzerlan
 
 *Over-reliance on AI* is a real concern for a new joiner who does not yet know what normal looks like. The assistant should route to a human buddy or manager readily, not exhaustively answer.
 
-This overlaps the GF HR Ops CH finding that *the Workday onboarding checklist is not helpful* — see [UC-18](uc-0018-onboarding-checklist-rebuild.md). Consider sequencing them together.
+This overlaps the customer-stated HR Ops CH finding that *the Workday onboarding checklist is not helpful* — see [UC-18](uc-0018-onboarding-checklist-rebuild.md). Consider sequencing them together.
 
 ---
 

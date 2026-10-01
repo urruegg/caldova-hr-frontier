@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Use Case Portfolio |
@@ -15,7 +15,7 @@
 > **HR owner:** Comp & Ben
 > **Suggested wave:** Deferred — Phase 2
 >
-> **Source:** GF HR AI use case list. This document expands the list entry into a reviewable idea; it is **not** an approved requirement.
+> **Source:** The customer-supplied HR AI use-case workbook. This document expands the workbook entry into a reviewable idea; it is **not** an approved requirement.
 
 ---
 
@@ -72,7 +72,7 @@ See [`hr-journey-and-raci.md`](../../../docs/hr-journey-and-raci.md) for the ful
 
 ## 4. Assessment
 
-**GF has already marked this Phase 2, and that judgement is sound.** It is the highest-risk, highest-complexity item with only medium business value.
+**The customer-supplied workbook already marks this Phase 2, and that judgement is sound.** It is the highest-risk, highest-complexity item with only medium business value.
 
 The minimum-group-size rule is the control that makes aggregate compensation analysis safe. Define it with Privacy before any prototype.
 

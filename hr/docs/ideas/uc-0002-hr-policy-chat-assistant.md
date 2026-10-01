@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Use Case Portfolio |
@@ -15,7 +15,7 @@
 > **HR owner:** HR Ops
 > **Suggested wave:** 1
 >
-> **Source:** GF HR AI use case list. This document expands the list entry into a reviewable idea; it is **not** an approved requirement.
+> **Source:** The customer-supplied HR AI use-case workbook. This document expands the workbook entry into a reviewable idea; it is **not** an approved requirement.
 
 ---
 
@@ -23,7 +23,7 @@
 >
 > **Recommended in parallel, deliberately excluded from the MVP set.** On the Copilot chat harness it carries **no charge for Microsoft 365 Copilot-licensed users** in employee-facing scenarios, so it buys organisational familiarity with agents at close to zero marginal cost.
 >
-> **It is not an agentic exemplar.** It answers questions; it does not take action, hold a write envelope, or touch the system of record. Presenting it as evidence for GF's Level 3 position would weaken that position rather than support it — so it is an adoption vehicle, and labelled as one.
+> **It is not an agentic exemplar.** It answers questions; it does not take action, hold a write envelope, or touch the system of record. Presenting it as evidence for Caldova's Level 3 position would weaken that position rather than support it — so it is an adoption vehicle, and labelled as one.
 
 
 ## 1. The Idea

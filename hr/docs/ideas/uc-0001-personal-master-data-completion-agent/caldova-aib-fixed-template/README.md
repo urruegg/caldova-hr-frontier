@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
-| **Date** | 2026-09-25 |
+| **Version** | 0.2 |
+| **Date** | 2026-10-01 |
 | **Author** | DAAI |
 | **Status** | Draft |
 | **Scope** | UC-0001 synthetic fixed-template AI Builder test data |
@@ -32,7 +32,7 @@ Raising Tier 1 coverage cuts credit consumption *and* narrows the prompt-injecti
 
 ```text
 documents/
-├── a-personalblatt/         6 PDFs  GF internal new-joiner data sheet
+├── a-personalblatt/         6 PDFs  Caldova internal new-joiner data sheet
 ├── b-anmeldung-gemeinde/    6 PDFs  Municipality registration confirmation
 ├── c-sozialversicherung/    6 PDFs  AHV / social-insurance notification
 └── d-bankverbindung/        6 PDFs  Salary payment instruction

@@ -2,14 +2,14 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Use Case Portfolio |
 | **References** | [HR Solution Functional Design Intake](../../../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 
-**Purpose.** Every candidate use case from the **GF HR AI use case list**, expanded into a reviewable idea document and placed in the HR journey. This folder is where a use case lives before anyone commits to it.
+**Purpose.** Every candidate use case from **the customer-supplied HR AI use-case workbook**, expanded into a reviewable idea document and placed in the HR journey. This folder is where a use case lives before anyone commits to it.
 
 > **Most of these are ideas, not requirements — and that distinction is the point of this folder.** Each document records what HR stated (objective, value, KPI, complexity, priority, risks, personas) and adds a platform-fit assessment: harness, write envelope, refusals, grounding, data classification and employment-decision surface.
 >
@@ -37,9 +37,9 @@ ideas/
 
 ## Evidence rules for agents
 
-**1. A flat `uc-*.md` file is not approved work** — with the two named MVP exceptions, UC-0010 and UC-0005, which are *in scope* but not yet specified. Do not describe any other use case as planned, scheduled or committed. The waves below are a **recommended** sequence, not a roadmap GF has agreed.
+**1. A flat `uc-*.md` file is not approved work** — with the two named MVP exceptions, UC-0010 and UC-0005, which are *in scope* but not yet specified. Do not describe any other use case as planned, scheduled or committed. The waves below are a **recommended** sequence, not a customer-approved roadmap.
 
-**2. Separate what HR stated from what this package assessed.** Section 1 of each document is GF's own material from the use case list. Sections 3 and 4 are analysis produced here. Do not attribute the assessment to GF.
+**2. Separate what HR stated from what this package assessed.** Section 1 of each document is customer-stated material from the use-case workbook. Sections 3 and 4 are analysis produced here. Do not attribute the assessment to the customer.
 
 **3. The assessment asks whether an agent is the right answer.** Several documents conclude it may not be — a scheduled report, a Workday capability, or a process fix may serve better. Preserve that; it is deliberate, not hedging.
 
@@ -51,7 +51,7 @@ ideas/
 
 ## The MVP — three use cases
 
-GF positions at **Level 3 — agentic**. These three carry that claim.
+Caldova positions at **Level 3 — agentic**. These three carry that claim.
 
 | # | Use case | What it proves | Complexity | HR owner |
 |---|---|---|---|---|
@@ -131,9 +131,9 @@ GF positions at **Level 3 — agentic**. These three carry that claim.
 
 ---
 
-## Design explorations (not part of the GF use case list)
+## Design explorations (not part of the customer-supplied HR AI use-case workbook)
 
-Internal ideas captured for later exploration, distinct from the 19 GF-stated use cases above — no `UC-nnnn` identifier, no MVP claim, no commitment.
+Internal ideas captured for later exploration, distinct from the 19 customer-stated use cases above — no `UC-nnnn` identifier, no MVP claim, no commitment.
 
 | Idea | What it is |
 |---|---|
@@ -143,7 +143,7 @@ Internal ideas captured for later exploration, distinct from the 19 GF-stated us
 
 ## Sources
 
-- `GF_HR AI Use case list.xlsx` — sheets *T-Shirt Size BizValue* (16 use cases) and *HR Ops CH* (2 pain points, captured as UC-0017 and UC-0018)
-- `GFAG_Workday Information for Microsoft.pptx` — system landscape and Workday functional areas in use
-- `PRD_Personal_Master_Data_Completion_Agent_Switzerland_Draft_0.1`
-- `BOM_Artefacts_Personal_Master_Data_Completion_Agent_Switzerland_Draft_0.1`
+- The customer-supplied HR AI use-case workbook — sheets *T-Shirt Size BizValue* (16 use cases) and *HR Ops CH* (2 pain points, captured as UC-0017 and UC-0018)
+- The source Workday presentation — system landscape and Workday functional areas in use
+- The customer-supplied UC-0001 draft PRD
+- The customer-supplied UC-0001 artefact inventory

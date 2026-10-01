@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Use Case Portfolio |
@@ -15,7 +15,7 @@
 > **HR owner:** Switzerland HR Operations
 > **Suggested wave:** **1 — in flight**
 >
-> **Source:** GF `PRD_Personal_Master_Data_Completion_Agent_Switzerland_Draft_0.1` and the accompanying Build of Materials. Unlike every other document in this folder, this one describes **approved, in-flight work** — its requirements live in [`prd-0001-personal-master-data-completion-agent.md`](prd-0001-personal-master-data-completion-agent.md).
+> **Source:** The customer-supplied UC-0001 draft PRD and UC-0001 artefact inventory. Unlike every other document in this folder, this one describes **approved, in-flight work** — its requirements live in [`prd-0001-personal-master-data-completion-agent.md`](prd-0001-personal-master-data-completion-agent.md).
 
 ---
 
@@ -58,7 +58,7 @@ See [`hr-journey-and-raci.md`](../../../../docs/hr-journey-and-raci.md) for the 
 
 **Write envelope:** **Narrow and additive.** Approved fields only, on a blank field only, on exactly one matched profile. Enforced in three independent places — agent rules, the Workday Access Layer, and the Workday Integration System User's permissions. See [ADR-0008](../../../../docs/adr/0008-human-in-the-loop-and-write-envelope.md) and [ADR-0009](../../../../docs/adr/0009-workday-access-via-connector-behind-governed-layer.md).
 
-**Grounding:** The approved field list (`Personalstammdaten_Felder_DE_EN.xlsx`, column C where column E = yes), versioned in Dataverse as `gf_approvedfield`. Workday read live through the Access Layer — never a cached copy.
+**Grounding:** The approved field list (the customer-supplied personal-master-data field workbook, column C where column E = yes), versioned in Dataverse as `caldova_approvedfield`. Workday read live through the Access Layer — never a cached copy.
 
 **Data classification:** **Personal.** Home address, date of birth, and comparable fields. Privacy sign-off is a gate, not a review.
 
@@ -78,7 +78,7 @@ See [`hr-journey-and-raci.md`](../../../../docs/hr-journey-and-raci.md) for the 
 
 **Why this one was selected first.** It sits where the manual effort is highest and the data-quality consequence is longest-lived, and — critically — its write is *reversible in effect*. An agent that only fills blanks cannot destroy information. That property is what makes writing to the system of record acceptable for a first use case, and it is the reason this was chosen over larger-value candidates.
 
-**The dominant risk is the matching key.** GF's Draft 0.1 proposes Last Name + First Name + Postal Code and marks it TBD. Names repeat and postal codes change, so a false match writes one person's data onto another's record — the single worst outcome this agent can produce. Carrying a Candidate or Pre-Hire ID through the PeopleDoc export would remove the risk rather than mitigate it. This is D-03 and it is the most valuable thing to settle before build.
+**The dominant risk is the matching key.** The customer-supplied UC-0001 draft PRD proposes Last Name + First Name + Postal Code and marks it TBD. Names repeat and postal codes change, so a false match writes one person's data onto another's record — the single worst outcome this agent can produce. Carrying a Candidate or Pre-Hire ID through the PeopleDoc export would remove the risk rather than mitigate it. This is D-03 and it is the most valuable thing to settle before build.
 
 **The documents are untrusted input.** They originate outside the platform, so a PDF containing instruction-shaped text must have no effect on agent behaviour. The design treats document content as data only, and the enforcement that matters sits below the agent where prompt text cannot reach it.
 
@@ -92,11 +92,11 @@ This use case has passed the gate the rest of this folder has not. Its artefacts
 
 | Artefact | Where |
 |---|---|
-| **Product requirements** | [`prd-0001-personal-master-data-completion-agent.md`](prd-0001-personal-master-data-completion-agent.md) — Draft 0.2, superseding GF Draft 0.1 |
+| **Product requirements** | [`prd-0001-personal-master-data-completion-agent.md`](prd-0001-personal-master-data-completion-agent.md) — Draft 0.2, superseding the customer-supplied UC-0001 draft PRD |
 | **Platform requirements it inherits** | [`prd.md`](../../../../docs/prd.md) — FR-0001…FR-0012, NFR-0001…NFR-0010 |
 | **Architecture** | [`solution-design.md`](../../../../docs/solution-design.md) |
 | **Decisions** | [ADR-0005](../../../../docs/adr/0005-workday-as-system-of-record.md) · [ADR-0007](../../../../docs/adr/0007-dataverse-process-state-boundary.md) · [ADR-0008](../../../../docs/adr/0008-human-in-the-loop-and-write-envelope.md) · [ADR-0009](../../../../docs/adr/0009-workday-access-via-connector-behind-governed-layer.md) |
-| **Artefact inventory** | GF *Build of Materials*, Draft 0.1 — 60+ items across business, data, system, security, build, test and operations |
+| **Artefact inventory** | The customer-supplied UC-0001 artefact inventory — 60+ items across business, data, system, security, build, test and operations |
 
 The seven platform declarations are answered in the PRD rather than left open here. The remaining gates are in [`prd-0001-personal-master-data-completion-agent.md`](prd-0001-personal-master-data-completion-agent.md) §13 as the Definition of Ready.
 

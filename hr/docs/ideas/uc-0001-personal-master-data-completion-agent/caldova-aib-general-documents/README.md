@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
-| **Date** | 2026-09-25 |
+| **Version** | 0.2 |
+| **Date** | 2026-10-01 |
 | **Author** | DAAI |
 | **Status** | Draft |
 | **Scope** | UC-0001 synthetic general-document AI Builder test data |
@@ -26,7 +26,7 @@ The [fixed-template package](../caldova-aib-fixed-template/README.md) tests the 
 | Good at | Known forms | Unfamiliar structures, prose, mixed languages |
 | Here | 4 collections × 6 | **8 families × 3** |
 
-PeopleDoc exports whatever the employee, the municipality, the insurer or the migration office produced. A model that only handles GF's own forms handles the minority of the problem.
+PeopleDoc exports whatever the employee, the municipality, the insurer or the migration office produced. A model that only handles Caldova's own forms handles the minority of the problem.
 
 ---
 
