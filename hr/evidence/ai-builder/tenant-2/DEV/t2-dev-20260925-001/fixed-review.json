@@ -1,0 +1,198 @@
+{
+  "schema_version": "1.0",
+  "package": "fixed-template",
+  "documents": [
+    {
+      "document": "a01-CAND-2026-0411-brunner.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "a02-CAND-2026-0412-ochsner.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "a03-CAND-2026-0413-iten.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "a04-CAND-2026-0414-perren.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "a05-CAND-2026-0415-steiner.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "a06-CAND-2026-0416-gerber.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "b01-CAND-2026-0417-bosshard.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "b02-CAND-2026-0418-keller.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "b03-CAND-2026-0419-widmer.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "b04-CAND-2026-0420-vogt.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "b05-CAND-2026-0421-ammann.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "b06-CAND-2026-0422-schnyder.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "c01-CAND-2026-0423-ferrari.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "c02-CAND-2026-0424-müller.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "c03-CAND-2026-0425-dubois.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "c04-CAND-2026-0426-nowak.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "c05-CAND-2026-0427-bühler.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "c06-CAND-2026-0428-frei.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "d01-CAND-2026-0429-pfister.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "d02-CAND-2026-0430-meier.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "d03-CAND-2026-0431-roth.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "d04-CAND-2026-0432-baumann.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "d05-CAND-2026-0433-hofer.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    },
+    {
+      "document": "d06-CAND-2026-0434-ochsner.pdf",
+      "status": "confirmed",
+      "values_visible": true,
+      "absences_confirmed": true,
+      "reviewer": "admin@caldova25668747.onmicrosoft.com",
+      "notes": "Visible content matched ground truth; no correction or exclusion required."
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "mechanism": "AI Builder Quick Test",
+  "status": "blocked",
+  "machine_readable_values": false,
+  "per_field_confidence": false,
+  "blocked_reason": "AI Builder Quick Test rendered field values and confidence scores but exposed no supported machine-readable export or download, retained raw bytes, or exact input document identity; only Start over and Close actions were available."
+}

@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
@@ -147,6 +147,14 @@ Implementation adds `.github/cli/tests/BrandingContract.Tests.ps1` as a maintain
 
 PDF embedded text remains a separate, explicit local acceptance check. The maintained generators plus the tracked source-and-path contract prevent ordinary reintroduction without adding an unpinned PDF dependency to CI.
 
+### Post-baseline main integration and immutable AI Builder evidence
+
+The implementation branch integrates `origin/main` commit `402f42ff01e662dcb6762d44e9a5fec09b3484cd` after the original migration baseline. That integration adds the governed AI Builder evaluation subsystem and its point-in-time Tenant 2 DEV evidence. Current guidance, scripts, tests, fixtures, BoMs, and plans remain mutable and follow the Caldova migration. Seven evidence files are different: three raw model responses contain one `L3` OCR occurrence each, and the evaluation summary plus three training-capture records contain one `L4` occurrence each.
+
+Those seven occurrences are source evidence produced by the live model and its governed capture process. Rewriting their bytes would make the retained model output, hashes, and replay record false; truthful remediation would require a separately authorized live rerun, which this repository-only migration neither performs nor authorizes. The files therefore remain byte-for-byte equal to `origin/main`.
+
+`.github/cli/config/branding-evidence-exceptions.json` is the only exception authority. Each record binds one normalized tracked path below `hr/evidence/ai-builder/` to its lowercase SHA-256, exact pattern class, exact count of one, and non-sensitive provenance and rationale. The scanner validates the manifest's exact schema, tracked regular-file status, root, uniqueness, hash, class, count, and absence of extra matches before suppressing an occurrence. Invalid or changed records fail closed, and unknown occurrences remain normal findings. There are no directory, extension, wildcard, or broad path exceptions.
+
 ### Migration sequence
 
 Implementation follows this order:
@@ -173,7 +181,7 @@ Renames precede reference repair so stale destinations can be detected. Generato
 
 The migration is accepted only when all of the following are true:
 
-1. The branding contract reports zero prohibited matches in tracked paths and zero prohibited matches in scannable tracked text, with no repository-document exception for this specification.
+1. The branding contract reports zero unapproved findings in tracked paths and scannable tracked text, exactly seven approved immutable-evidence occurrences, and complete tracked-file accounting. Only the seven exact hash-bound AI Builder evidence records may be approved; there is no broad exception.
 2. Local `pypdf` verification reports exactly 48 readable tracked PDFs, zero extraction errors, and zero embedded legacy matches.
 3. SHA-256 values for all six sanitized screenshots equal the values of the corresponding files at baseline commit `63e7900edd431cc810a8396a24b19c17ef4999d1`.
 4. `npm run lint` and `npm run build` pass from `hr/src/apps/hr-control-plane`.

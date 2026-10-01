@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "recorded_at_utc": "2026-10-01T11:14:53.8331580Z",
+  "status": "blocked",
+  "blocked_stage": "general-holdout",
+  "model": {
+    "name": "PersonalMasterDataGeneral",
+    "id": "057bb758-4f5d-47d8-82ca-25eaf0a1cf07",
+    "version": "10/1/2026, 11:48:30 AM"
+  },
+  "failed_holdout": {
+    "document": "g03-arbeitsvertrag-CAND-2026-0413.pdf",
+    "sha256": "3b93ddcbd5f781c6dbfeb29b6b99645f0e6ac4d01657e51a1a39c8d205fe4abc",
+    "execution_run_id": "cap-20261001111320495Z-9c3cd3e6",
+    "platform_run_id": "08584107536596264560856994470CU13",
+    "platform_status": "Failed",
+    "duration": "00:00:02",
+    "consumption_state": "consumed_failed",
+    "retry_allowed": false
+  },
+  "calculated_failure": {
+    "action": "Validate capture request",
+    "result": "Terminated",
+    "configured_allow_list_cases": [
+      "training-proof",
+      "fixed-holdout"
+    ],
+    "missing_case": "general-holdout",
+    "process_documents_executed": false,
+    "raw_output_created": false,
+    "canonical_output_created": false,
+    "raw_output_remote_status": 404,
+    "canonical_output_remote_status": 404
+  },
+  "containment": {
+    "flow_state": "Off",
+    "additional_holdouts_submitted": 0,
+    "remaining_holdouts_unseen": 7,
+    "remaining_holdouts_staged_in_evaluation_folder": 7,
+    "evaluation_metrics_calculated": false,
+    "business_solution_inclusion_requested": false,
+    "evaluation_set_terminal": true,
+    "remaining_holdouts_authorized_for_future_submission": false
+  },
+  "decision": "This run and evaluation set are terminal. Do not retry the consumed holdout or submit any of the remaining seven holdouts. Any future evaluation requires a new run, a newly approved model-version and corpus allocation, and the prescribed unseen-document process."
+}

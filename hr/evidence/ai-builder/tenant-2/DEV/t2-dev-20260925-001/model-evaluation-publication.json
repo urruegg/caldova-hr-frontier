@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "status": "evaluation_published",
+  "purpose": "evaluation_only",
+  "tenant_key": "tenant-2",
+  "environment_stage": "DEV",
+  "power_platform_environment_id": "84ad4c54-41d9-e5df-ba07-188b4719594a",
+  "environment_url": "https://calhrfrontierdev.crm17.dynamics.com/",
+  "operator_upn": "admin@caldova25668747.onmicrosoft.com",
+  "portal_location": "https://make.powerapps.com/environment/84ad4c54-41d9-e5df-ba07-188b4719594a/aibuilder/models/74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+  "observed_at_utc": "2026-09-29T14:16:13.5902244Z",
+  "execution_observation": "The first supported pre-click Power Apps inspection already showed the model as Published. This worker did not issue a publish click. Read-only Dataverse evidence attributes the published configuration to Microsoft Administrator at 2026-09-29T14:00:05Z, after the effective approval, but does not identify the attended interaction that initiated it.",
+  "model": {
+    "display_name": "PersonalMasterDataFixed",
+    "model_id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+    "version": "1.0",
+    "published_status": "Published",
+    "published_at_utc": "2026-09-29T14:00:05Z",
+    "published_configuration_id": "79138ea7-e3bb-f111-aaae-7ced8d44be51",
+    "published_configuration_parent_id": "4c08cbc9-cfbb-f111-aaae-70a8a505d538",
+    "trained_configuration_id": "4c08cbc9-cfbb-f111-aaae-70a8a505d538",
+    "trained_configuration_status": "Trained",
+    "trained_at_utc": "2026-09-29T08:58:08Z"
+  },
+  "draft_preservation": {
+    "state": "Draft",
+    "status": "Draft",
+    "configuration_id": "828548af-d14e-48ab-a352-bf61bdb8d551",
+    "last_modified_at_utc": "2026-09-29T12:14:08Z",
+    "observation": "The open draft remained in Draft state and its last-modified time preceded the effective approval. It was not opened, selected, edited, trained, discarded, deleted, or published during Task 4."
+  },
+  "approval": {
+    "evidence_path": "evaluation-capture-readiness.json",
+    "effective_approval_at_utc": "2026-09-29T13:47:08.4090000Z",
+    "scope": "Publish only PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 solely as evaluation_published."
+  },
+  "preserved_blocker": {
+    "evidence_path": "model-test-capability.json",
+    "sha256": "b745faa53c2847836b23325581ffe7992dcbad52c338b560b5ef5f613620e1cc",
+    "status": "blocked"
+  },
+  "attended_evidence": {
+    "screenshot": "model-evaluation-published-fixed.png",
+    "screenshot_sha256": "cdfb8a00f3be66a07ee389002ca13a5bd69f3adc8004b699cb551c67b6c59871",
+    "ui_observation": "The supported Power Apps AI Builder model detail page displayed PersonalMasterDataFixed as Published and displayed the open-draft warning without the draft being opened.",
+    "dataverse_observation": "The supported read-only Dataverse Web API showed one trained configuration and one published child configuration selected as the model's active run configuration. The only other current configuration remained Draft."
+  },
+  "lifecycle_appended_at_utc": "2026-09-29T14:16:34.8922386Z",
+  "exclusions_observed": [
+    "No evaluation solution was created.",
+    "No flow was created.",
+    "No connection reference was created.",
+    "No SharePoint folder was created.",
+    "No PDF was submitted.",
+    "No draft configuration was mutated.",
+    "No business-use approval was asserted."
+  ]
+}

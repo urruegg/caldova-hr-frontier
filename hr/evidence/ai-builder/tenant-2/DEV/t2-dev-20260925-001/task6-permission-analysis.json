@@ -1,0 +1,87 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "tenant_key": "tenant-2",
+  "environment_stage": "DEV",
+  "operator_upn": "admin@caldova25668747.onmicrosoft.com",
+  "observed_at_utc": "2026-09-30T09:11:45.9668303Z",
+  "status": "no_permission_change_required",
+  "authorization": {
+    "response": "Authorize changing SharePoint permissions now",
+    "scope_applied": "Inspect the exact folder assignment and apply a permission change only if the attended administrator lacks the minimum required write role."
+  },
+  "folder": {
+    "url": "https://caldova25668747.sharepoint.com/sites/HRFrontierDEV/Shared Documents/AIBuilderEvaluationEvidence",
+    "site_rest_root": "/sites/HRFrontierDEV/_api/web",
+    "list_item_id": 1,
+    "has_unique_role_assignments": true,
+    "file_system_object_type": 1
+  },
+  "current_user": {
+    "principal_id": 7,
+    "display_name": "Microsoft Administrator",
+    "login_name": "i:0#.f|membership|admin@caldova25668747.onmicrosoft.com",
+    "email": "admin@caldova25668747.onmicrosoft.com",
+    "is_site_admin": true
+  },
+  "role_assignments": [
+    {
+      "principal_id": 7,
+      "login_name": "i:0#.f|membership|admin@caldova25668747.onmicrosoft.com",
+      "display_name": "Microsoft Administrator",
+      "principal_type": 1,
+      "role_definition_id": 1073741829,
+      "role_definition_name": "Full Control"
+    }
+  ],
+  "raw_read_back_evidence": [
+    {
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-folder-item.raw.json",
+      "endpoint": "/sites/HRFrontierDEV/_api/web/GetFolderByServerRelativeUrl('/sites/HRFrontierDEV/Shared%20Documents/AIBuilderEvaluationEvidence')/ListItemAllFields?$select=Id,HasUniqueRoleAssignments,FileSystemObjectType",
+      "size_bytes": 72,
+      "sha256": "a89ad7a24b349ddeb241928337f8527ff58b7994e1ed9a2d3a2136ee5dae78c9"
+    },
+    {
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-folder-role-assignments.raw.json",
+      "endpoint": "/sites/HRFrontierDEV/_api/web/GetFolderByServerRelativeUrl('/sites/HRFrontierDEV/Shared%20Documents/AIBuilderEvaluationEvidence')/ListItemAllFields/RoleAssignments?$expand=Member,RoleDefinitionBindings&$select=PrincipalId,Member/Id,Member/Title,Member/LoginName,Member/PrincipalType,RoleDefinitionBindings/Id,RoleDefinitionBindings/Name",
+      "size_bytes": 236,
+      "sha256": "123861ebd8cc8abc40b417dc37cc7f59a161d434c4309341b1352073c087ab66"
+    },
+    {
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-current-user.raw.json",
+      "endpoint": "/sites/HRFrontierDEV/_api/web/currentuser?$select=Id,Title,LoginName,Email,IsSiteAdmin",
+      "size_bytes": 179,
+      "sha256": "649b2f0c201ee0740912b13c3b24be4c2bfd895a7041b4ae56a0dfaac1badac9"
+    },
+    {
+      "path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-role-definitions.raw.json",
+      "endpoint": "/sites/HRFrontierDEV/_api/web/roledefinitions?$select=Id,Name,Description,BasePermissions",
+      "size_bytes": 1466,
+      "sha256": "f357af6181feebe6de67132b43ed846ea66b5b9c60f4796687be1be9dccfab72"
+    }
+  ],
+  "failed_request_evidence": {
+    "request_record_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-failed-upload-request.json",
+    "raw_error_path": "hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\task6-upload-error.raw.json",
+    "raw_error_size_bytes": 126,
+    "raw_error_sha256": "2f0f91a36f15070a9321036081a8fa24fd26b6e96bbf378b2f94cd3975e89e83"
+  },
+  "diagnosis": {
+    "root_cause": "The failed upload request used /_api/web at the tenant root while the evidence folder belongs to the /sites/HRFrontierDEV web. The tenant-root request could read the folder by server-relative path but could not add a file to a folder outside that web's document library.",
+    "failed_endpoint_scope": "/_api/web",
+    "correct_endpoint_scope": "/sites/HRFrontierDEV/_api/web",
+    "folder_permission_defect": false,
+    "permission_change_applied": false,
+    "reason_no_change_applied": "The restricted folder already grants the attended administrator Full Control and has no additional folder role assignment. Changing permissions would not address the endpoint defect and could weaken the restriction."
+  },
+  "containment": {
+    "pdf_upload_attempted_during_diagnosis": false,
+    "capture_retry_performed": false,
+    "capture_retry_authorized": false,
+    "flow_state": "Draft",
+    "flow_portal_state": "Off",
+    "flow_run_count": 0,
+    "holdouts_exposed": 0
+  },
+  "next_action": "Keep Task 6 blocked. A new explicit authorization is required before one retry using the HRFrontierDEV site-scoped API or supported folder UI."
+}

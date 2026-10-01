@@ -1,0 +1,327 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "model_name": "PersonalMasterDataFixed",
+  "model_version": "1.0",
+  "capture_mechanism": "Power Automate Process documents",
+  "adapter_version": "1.0",
+  "adapter_contract": "replayable-v2",
+  "adapter_script_path": "C:\\Users\\anrizzi\\Repositories\\caldova-hr-frontier.worktrees\\issue-13-ai-builder-setup-worktree\\hr\\src\\scripts\\adapters\\ConvertFrom-HrAiBuilderEvaluationCapture.ps1",
+  "adapter_script_sha256": "9d22ec25a745e0bf63b5f034f87a80457584c8f02dac9c5fe438eb190f98ff75",
+  "raw_export_format": "ai-builder-process-documents-v1",
+  "operator": "admin@caldova25668747.onmicrosoft.com",
+  "documents": [
+    {
+      "document": "a06-CAND-2026-0416-gerber.pdf",
+      "document_sha256": "4b1110d9c394a709fbcf6dc39c3ebf20846114e4bb2f818e7dad0118e52ac5db",
+      "collection_or_family": "a-personalblatt",
+      "source_export_path": "C:\\Users\\anrizzi\\Repositories\\caldova-hr-frontier.worktrees\\issue-13-ai-builder-setup-worktree\\hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\fixed-holdout\\cap-20260930114811428Z-ed0cd329\\cap-20260930114811428Z-ed0cd329.ai-builder.raw.json",
+      "source_export_sha256": "5853d642de33cd4beb46fb008be25c3e0e7e547c5211ea1a7aefca3424232e23",
+      "captured_at_utc": "2026-09-30T11:48:59.5749931Z",
+      "fields": {
+        "candidate_id": {
+          "value": "CAND-2026-0416",
+          "confidence": 0.99
+        },
+        "last_name": {
+          "value": "Gerber",
+          "confidence": 0.99
+        },
+        "first_name": {
+          "value": "Noemi",
+          "confidence": 0.99
+        },
+        "dob": {
+          "value": null,
+          "confidence": 0.99
+        },
+        "nationality": {
+          "value": "Schweiz",
+          "confidence": 0.99
+        },
+        "marital": {
+          "value": "ledig",
+          "confidence": 0.99
+        },
+        "heimatort": {
+          "value": "Langnau BE",
+          "confidence": 0.99
+        },
+        "permit": {
+          "value": "—",
+          "confidence": 0.99
+        },
+        "street": {
+          "value": "Quellenstrasse 58",
+          "confidence": 0.99
+        },
+        "plz": {
+          "value": "3007",
+          "confidence": 0.99
+        },
+        "city": {
+          "value": "Bern",
+          "confidence": 0.99
+        },
+        "ahv": {
+          "value": "756.1999.4301.22",
+          "confidence": 0.99
+        },
+        "iban": {
+          "value": "CH81 0079 2006 6998 5773",
+          "confidence": 0.99
+        },
+        "phone": {
+          "value": "+41 31 992 14 63",
+          "confidence": 0.99
+        },
+        "email": {
+          "value": "n.gerber@example.ch",
+          "confidence": 0.99
+        },
+        "ec_name": {
+          "value": "Peter Gerber",
+          "confidence": 0.99
+        },
+        "ec_phone": {
+          "value": "+41 79 221 87 44",
+          "confidence": 0.99
+        }
+      }
+    },
+    {
+      "document": "b06-CAND-2026-0422-schnyder.pdf",
+      "document_sha256": "2dd65e48932173a72cbfc0cad0f1bbe01b997e6a28eea60f5a2e8c5d2737a8b6",
+      "collection_or_family": "b-anmeldung-gemeinde",
+      "source_export_path": "C:\\Users\\anrizzi\\Repositories\\caldova-hr-frontier.worktrees\\issue-13-ai-builder-setup-worktree\\hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\fixed-holdout\\cap-20260930123933155Z-211c905d\\cap-20260930123933155Z-211c905d.ai-builder.raw.json",
+      "source_export_sha256": "eecb4445b75398edefc87f7411a75e77b425ba3a469e680c70a89270bfc427e6",
+      "captured_at_utc": "2026-09-30T12:40:35.5876875Z",
+      "fields": {
+        "candidate_id": {
+          "value": null,
+          "confidence": null
+        },
+        "last_name": {
+          "value": "Schnyder,",
+          "confidence": 0.995
+        },
+        "first_name": {
+          "value": "Elena",
+          "confidence": 0.995
+        },
+        "dob": {
+          "value": "1989-03-10T00:00:00Z",
+          "confidence": 0.99
+        },
+        "nationality": {
+          "value": "Schweiz",
+          "confidence": 0.99
+        },
+        "marital": {
+          "value": "verheiratet",
+          "confidence": 0.99
+        },
+        "heimatort": {
+          "value": "Leukerbad VS",
+          "confidence": 0.99
+        },
+        "permit": {
+          "value": "—",
+          "confidence": 0.99
+        },
+        "street": {
+          "value": "Kirchgasse 18",
+          "confidence": 0.99
+        },
+        "plz": {
+          "value": "4051",
+          "confidence": 0.99
+        },
+        "city": {
+          "value": "Basel",
+          "confidence": 0.765
+        },
+        "ahv": {
+          "value": "756.1989.1030.67",
+          "confidence": 0.99
+        },
+        "iban": {
+          "value": null,
+          "confidence": null
+        },
+        "phone": {
+          "value": null,
+          "confidence": null
+        },
+        "email": {
+          "value": null,
+          "confidence": null
+        },
+        "ec_name": {
+          "value": null,
+          "confidence": null
+        },
+        "ec_phone": {
+          "value": null,
+          "confidence": null
+        }
+      }
+    },
+    {
+      "document": "c06-CAND-2026-0428-frei.pdf",
+      "document_sha256": "dc512e6545293d6532effc196f56322f12cc1b2a89ef3eb31c46c90b1ddcece4",
+      "collection_or_family": "c-sozialversicherung",
+      "source_export_path": "C:\\Users\\anrizzi\\Repositories\\caldova-hr-frontier.worktrees\\issue-13-ai-builder-setup-worktree\\hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\fixed-holdout\\cap-20260930130912974Z-b30d5e0a\\cap-20260930130912974Z-b30d5e0a.ai-builder.raw.json",
+      "source_export_sha256": "4f98cddaa62134a101913088ddf470f8ccfdf8552cf993bb8788125220db0b06",
+      "captured_at_utc": "2026-09-30T13:10:19.1132881Z",
+      "fields": {
+        "candidate_id": {
+          "value": null,
+          "confidence": null
+        },
+        "last_name": {
+          "value": "Frei",
+          "confidence": 0.99
+        },
+        "first_name": {
+          "value": "Sarah",
+          "confidence": 0.99
+        },
+        "dob": {
+          "value": null,
+          "confidence": 0.99
+        },
+        "nationality": {
+          "value": "Schweiz",
+          "confidence": 0.99
+        },
+        "marital": {
+          "value": "ledig",
+          "confidence": 0.99
+        },
+        "heimatort": {
+          "value": "Davos GR",
+          "confidence": 0.99
+        },
+        "permit": {
+          "value": null,
+          "confidence": null
+        },
+        "street": {
+          "value": "Talstrasse 102",
+          "confidence": 0.99
+        },
+        "plz": {
+          "value": "7000",
+          "confidence": 0.995
+        },
+        "city": {
+          "value": "Chur",
+          "confidence": 0.995
+        },
+        "ahv": {
+          "value": "756.1997.0419.79",
+          "confidence": 0.99
+        },
+        "iban": {
+          "value": "CH76 0700 0019 8553 1776",
+          "confidence": 0.99
+        },
+        "phone": {
+          "value": null,
+          "confidence": null
+        },
+        "email": {
+          "value": null,
+          "confidence": null
+        },
+        "ec_name": {
+          "value": null,
+          "confidence": null
+        },
+        "ec_phone": {
+          "value": null,
+          "confidence": null
+        }
+      }
+    },
+    {
+      "document": "d06-CAND-2026-0434-ochsner.pdf",
+      "document_sha256": "5ccc73225f0b12c937ea46d1f0566c5869e38f2756c73dc0b648044203fa74fa",
+      "collection_or_family": "d-bankverbindung",
+      "source_export_path": "C:\\Users\\anrizzi\\Repositories\\caldova-hr-frontier.worktrees\\issue-13-ai-builder-setup-worktree\\hr\\evidence\\ai-builder\\tenant-2\\DEV\\t2-dev-20260925-001\\capture\\fixed-holdout\\cap-20260930131319261Z-e8d57452\\cap-20260930131319261Z-e8d57452.ai-builder.raw.json",
+      "source_export_sha256": "e0b00426a4d0de7f611d55f4c33aad9a2ea40ce2fd2037c1aea06662b4429fac",
+      "captured_at_utc": "2026-09-30T13:14:29.1508088Z",
+      "fields": {
+        "candidate_id": {
+          "value": "CAND-2026-0434",
+          "confidence": 0.99
+        },
+        "last_name": {
+          "value": "Tobias",
+          "confidence": 0.016
+        },
+        "first_name": {
+          "value": "Tobias",
+          "confidence": 0.995
+        },
+        "dob": {
+          "value": null,
+          "confidence": 0.99
+        },
+        "nationality": {
+          "value": null,
+          "confidence": null
+        },
+        "marital": {
+          "value": null,
+          "confidence": null
+        },
+        "heimatort": {
+          "value": null,
+          "confidence": null
+        },
+        "permit": {
+          "value": null,
+          "confidence": null
+        },
+        "street": {
+          "value": "Rheinhaldenstrasse 7",
+          "confidence": 0.99
+        },
+        "plz": {
+          "value": "8200",
+          "confidence": 0.995
+        },
+        "city": {
+          "value": "Schaffhausen",
+          "confidence": 0.995
+        },
+        "ahv": {
+          "value": "756.1995.0519.63",
+          "confidence": 0.99
+        },
+        "iban": {
+          "value": "CH90 0078 4025 4220 6998",
+          "confidence": 0.99
+        },
+        "phone": {
+          "value": null,
+          "confidence": null
+        },
+        "email": {
+          "value": null,
+          "confidence": null
+        },
+        "ec_name": {
+          "value": null,
+          "confidence": null
+        },
+        "ec_phone": {
+          "value": null,
+          "confidence": null
+        }
+      }
+    }
+  ]
+}

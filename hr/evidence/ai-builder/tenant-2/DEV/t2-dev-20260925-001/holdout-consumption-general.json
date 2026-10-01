@@ -1,0 +1,144 @@
+{
+  "schema_version": "1.0",
+  "run_id": "t2-dev-20260925-001",
+  "initialized_at_utc": "2026-10-01T11:11:27.8684560Z",
+  "corpus_revision": "c0310c527f010cc9a24d7a78dae7db1e5ad136116b14306413162fb4223926db",
+  "model": {
+    "name": "PersonalMasterDataGeneral",
+    "id": "057bb758-4f5d-47d8-82ca-25eaf0a1cf07",
+    "version": "10/1/2026, 11:48:30 AM",
+    "version_identity_basis": "AI Builder displayed the training date and did not display a numeric trained-model version."
+  },
+  "capture_capability": {
+    "path": "capture-capability-general.json",
+    "sha256": "a11c216e66c4112cb06f87ab57f3727f0e688646fd28900b854c4a5ec03df5ad",
+    "status": "passed",
+    "decision": "capture_validated"
+  },
+  "authorization_scope": {
+    "source": "User approval of Task 11 in the attended GitHub Copilot conversation",
+    "scope": "exactly_once_submission_of_the_listed_general_holdouts_after_capture_capability_passes",
+    "authorized_documents": [
+      "g03-arbeitsvertrag-CAND-2026-0413.pdf",
+      "g06-anschreiben-CAND-2026-0416.pdf",
+      "g09-bewilligung-CAND-2026-0419.pdf",
+      "g12-versicherung-CAND-2026-0422.pdf",
+      "g15-zivilstand-CAND-2026-0425.pdf",
+      "g18-selbstdeklaration-CAND-2026-0428.pdf",
+      "g21-scan-degraded-CAND-2026-0431.pdf",
+      "g24-new-joiner-sheet-CAND-2026-0434.pdf"
+    ],
+    "exactly_once_consequence": "A submitted document can never return to unseen.",
+    "exclusions": [
+      "Tenant 1",
+      "TEST",
+      "PROD",
+      "Workday",
+      "operational HR intake",
+      "automated writes",
+      "business solution inclusion without a separate approval"
+    ]
+  },
+  "holdouts": [
+    {
+      "document": "g03-arbeitsvertrag-CAND-2026-0413.pdf",
+      "sha256": "3b93ddcbd5f781c6dbfeb29b6b99645f0e6ac4d01657e51a1a39c8d205fe4abc",
+      "state": "consumed_failed",
+      "execution_run_id": "cap-20261001111320495Z-9c3cd3e6",
+      "platform_run_id": "08584107536596264560856994470CU13",
+      "capture_pair_path": null,
+      "capture_pair_sha256": null,
+      "raw_sha256": null,
+      "canonical_sha256": null,
+      "captured_at_utc": null,
+      "failed_at_utc": "2026-10-01T11:14:53.8331580Z",
+      "failure_stage": "Validate capture request",
+      "failure_reason": "The flow validation condition did not contain a general-holdout allow-list branch. The request terminated before Process documents, and no raw or canonical output was created.",
+      "retry_allowed": false
+    },
+    {
+      "document": "g06-anschreiben-CAND-2026-0416.pdf",
+      "sha256": "b9f5fc789005cb751370227f14592e48b32459a09555bc0b542ef45b551547a3",
+      "state": "unseen",
+      "execution_run_id": null,
+      "platform_run_id": null,
+      "capture_pair_path": null,
+      "capture_pair_sha256": null,
+      "raw_sha256": null,
+      "canonical_sha256": null,
+      "captured_at_utc": null
+    },
+    {
+      "document": "g09-bewilligung-CAND-2026-0419.pdf",
+      "sha256": "e84a17210d784337eff21434bdb18a5e0095e19c072b892207e03adc817a3157",
+      "state": "unseen",
+      "execution_run_id": null,
+      "platform_run_id": null,
+      "capture_pair_path": null,
+      "capture_pair_sha256": null,
+      "raw_sha256": null,
+      "canonical_sha256": null,
+      "captured_at_utc": null
+    },
+    {
+      "document": "g12-versicherung-CAND-2026-0422.pdf",
+      "sha256": "41563ffc8537d3e21ba5db0e47f63649df20bffa9d65259013c706e2d71a3069",
+      "state": "unseen",
+      "execution_run_id": null,
+      "platform_run_id": null,
+      "capture_pair_path": null,
+      "capture_pair_sha256": null,
+      "raw_sha256": null,
+      "canonical_sha256": null,
+      "captured_at_utc": null
+    },
+    {
+      "document": "g15-zivilstand-CAND-2026-0425.pdf",
+      "sha256": "34798a1865bbc1d1dc448843830de431f9fd9c29edea9b1611b70c6a97ca5b86",
+      "state": "unseen",
+      "execution_run_id": null,
+      "platform_run_id": null,
+      "capture_pair_path": null,
+      "capture_pair_sha256": null,
+      "raw_sha256": null,
+      "canonical_sha256": null,
+      "captured_at_utc": null
+    },
+    {
+      "document": "g18-selbstdeklaration-CAND-2026-0428.pdf",
+      "sha256": "7f37d8da232cd98b5f74eca38f788035c24d16108579004a7f4a91709d2072ed",
+      "state": "unseen",
+      "execution_run_id": null,
+      "platform_run_id": null,
+      "capture_pair_path": null,
+      "capture_pair_sha256": null,
+      "raw_sha256": null,
+      "canonical_sha256": null,
+      "captured_at_utc": null
+    },
+    {
+      "document": "g21-scan-degraded-CAND-2026-0431.pdf",
+      "sha256": "b90f61dacaf46ed0c678b7cbd6e39b2aafc90b2dae68662a81edb0130587106b",
+      "state": "unseen",
+      "execution_run_id": null,
+      "platform_run_id": null,
+      "capture_pair_path": null,
+      "capture_pair_sha256": null,
+      "raw_sha256": null,
+      "canonical_sha256": null,
+      "captured_at_utc": null
+    },
+    {
+      "document": "g24-new-joiner-sheet-CAND-2026-0434.pdf",
+      "sha256": "8491edb64a98ae1a3d1d1ea4163fa23bf4578a9bf48c134a83ccbc8d79eaa939",
+      "state": "unseen",
+      "execution_run_id": null,
+      "platform_run_id": null,
+      "capture_pair_path": null,
+      "capture_pair_sha256": null,
+      "raw_sha256": null,
+      "canonical_sha256": null,
+      "captured_at_utc": null
+    }
+  ]
+}

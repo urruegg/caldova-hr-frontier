@@ -66,6 +66,59 @@ BeforeAll {
             '120000' $objectId $RelativePath.Replace('\', '/')
         if ($LASTEXITCODE -ne 0) { throw "Cannot stage fixture link: $RelativePath" }
     }
+
+    function script:Get-FixtureSha256 {
+        param(
+            [Parameter(Mandatory)][string]$Root,
+            [Parameter(Mandatory)][string]$RelativePath
+        )
+
+        (Get-FileHash -LiteralPath (Join-Path $Root $RelativePath) -Algorithm SHA256).
+            Hash.ToLowerInvariant()
+    }
+
+    function script:Add-FixtureEvidenceManifest {
+        param(
+            [Parameter(Mandatory)][string]$Root,
+            [Parameter(Mandatory)][object[]]$Exceptions,
+            [hashtable]$ExtraRootProperty
+        )
+
+        $manifest = [ordered]@{
+            schemaVersion = '1.0'
+            exceptions = @($Exceptions)
+        }
+        if ($ExtraRootProperty) {
+            foreach ($entry in $ExtraRootProperty.GetEnumerator()) {
+                $manifest[$entry.Key] = $entry.Value
+            }
+        }
+        Add-FixtureText -Root $Root `
+            -RelativePath '.github\cli\config\branding-evidence-exceptions.json' `
+            -Content ($manifest | ConvertTo-Json -Depth 6)
+    }
+
+    function script:New-FixtureEvidenceException {
+        param(
+            [Parameter(Mandatory)][string]$Root,
+            [Parameter(Mandatory)][string]$RelativePath,
+            [Parameter(Mandatory)][string]$PatternClass,
+            [int]$Count = 1,
+            [string]$Sha256
+        )
+
+        if (-not $Sha256) {
+            $Sha256 = Get-FixtureSha256 -Root $Root -RelativePath $RelativePath
+        }
+        [ordered]@{
+            path = $RelativePath.Replace('\', '/')
+            sha256 = $Sha256
+            patternClass = $PatternClass
+            count = $Count
+            provenance = 'Captured by the governed model evaluation workflow.'
+            rationale = 'Immutable source evidence is retained byte-for-byte.'
+        }
+    }
 }
 
 Describe 'Branding scanner behavior' -Tag 'BrandingContractUnit' {
@@ -271,6 +324,166 @@ Describe 'Branding scanner behavior' -Tag 'BrandingContractUnit' {
         @($result.Findings | Where-Object Path -ceq 'linked/safe.txt').PatternClass |
             Should -BeExactly 'tracked-link'
     }
+
+    It 'suppresses one exact hash-bound immutable evidence occurrence without disclosing matched content' {
+        $root = New-BrandingFixture
+        $evidencePath = 'hr\evidence\ai-builder\tenant-test\DEV\run-test\evidence.json'
+        Add-FixtureText -Root $root -RelativePath $evidencePath `
+            -Content ("captured {0} value" -f $script:forms.L4)
+        $exception = New-FixtureEvidenceException -Root $root `
+            -RelativePath $evidencePath -PatternClass 'L4'
+        Add-FixtureEvidenceManifest -Root $root -Exceptions @($exception)
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.Findings | Should -BeNullOrEmpty
+        $result.ApprovedEvidenceCount | Should -Be 1
+        $result.ApprovedEvidence[0].PSObject.Properties.Name |
+            Should -Be @('Path', 'PatternClass', 'Sha256')
+        $result.ApprovedEvidence.Path |
+            Should -BeExactly $evidencePath.Replace('\', '/')
+        $result.ApprovedEvidence.PatternClass | Should -BeExactly 'L4'
+        $result.ApprovedEvidence.Sha256 | Should -BeExactly $exception.sha256
+        ($result | ConvertTo-Json -Depth 5) | Should -Not -Match `
+            [regex]::Escape($script:forms.L4)
+    }
+
+    It 'fails closed when immutable evidence bytes drift from the declared hash' {
+        $root = New-BrandingFixture
+        $evidencePath = 'hr\evidence\ai-builder\tenant-test\DEV\run-test\evidence.json'
+        Add-FixtureText -Root $root -RelativePath $evidencePath `
+            -Content ("captured {0} value" -f $script:forms.L3)
+        $exception = New-FixtureEvidenceException -Root $root `
+            -RelativePath $evidencePath -PatternClass 'L3'
+        Add-FixtureEvidenceManifest -Root $root -Exceptions @($exception)
+        [IO.File]::AppendAllText(
+            (Join-Path $root $evidencePath),
+            "`nbyte drift",
+            [Text.UTF8Encoding]::new($false)
+        )
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.ApprovedEvidenceCount | Should -Be 0
+        $result.Findings.PatternClass | Should -Contain 'evidence-exception-error'
+        @($result.Findings | Where-Object PatternClass -ceq 'L3').Count |
+            Should -Be 1
+    }
+
+    It 'fails closed for a wrong declared class or count' -TestCases @(
+        @{ PatternClass = 'L4'; Count = 1 }
+        @{ PatternClass = 'L3'; Count = 2 }
+    ) {
+        param($PatternClass, $Count)
+
+        $root = New-BrandingFixture
+        $evidencePath = 'hr\evidence\ai-builder\tenant-test\DEV\run-test\evidence.json'
+        Add-FixtureText -Root $root -RelativePath $evidencePath `
+            -Content ("captured {0} value" -f $script:forms.L3)
+        $exception = New-FixtureEvidenceException -Root $root `
+            -RelativePath $evidencePath -PatternClass $PatternClass -Count $Count
+        Add-FixtureEvidenceManifest -Root $root -Exceptions @($exception)
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.ApprovedEvidenceCount | Should -Be 0
+        $result.Findings.PatternClass | Should -Contain 'evidence-exception-error'
+        @($result.Findings | Where-Object PatternClass -ceq 'L3').Count |
+            Should -Be 1
+    }
+
+    It 'rejects duplicate exception records as one invalid manifest' {
+        $root = New-BrandingFixture
+        $evidencePath = 'hr\evidence\ai-builder\tenant-test\DEV\run-test\evidence.json'
+        Add-FixtureText -Root $root -RelativePath $evidencePath `
+            -Content ("captured {0} value" -f $script:forms.L3)
+        $exception = New-FixtureEvidenceException -Root $root `
+            -RelativePath $evidencePath -PatternClass 'L3'
+        Add-FixtureEvidenceManifest -Root $root `
+            -Exceptions @($exception, $exception)
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.ApprovedEvidenceCount | Should -Be 0
+        $result.Findings.PatternClass | Should -Contain 'evidence-exception-error'
+        @($result.Findings | Where-Object PatternClass -ceq 'L3').Count |
+            Should -Be 1
+    }
+
+    It 'rejects an exception outside the governed evidence root' {
+        $root = New-BrandingFixture
+        $evidencePath = 'docs\evidence.json'
+        Add-FixtureText -Root $root -RelativePath $evidencePath `
+            -Content ("captured {0} value" -f $script:forms.L3)
+        $exception = New-FixtureEvidenceException -Root $root `
+            -RelativePath $evidencePath -PatternClass 'L3'
+        Add-FixtureEvidenceManifest -Root $root -Exceptions @($exception)
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.ApprovedEvidenceCount | Should -Be 0
+        $result.Findings.PatternClass | Should -Contain 'evidence-exception-error'
+        @($result.Findings | Where-Object PatternClass -ceq 'L3').Count |
+            Should -Be 1
+    }
+
+    It 'rejects an exception path that is not a regular tracked file' {
+        $root = New-BrandingFixture
+        $evidencePath = 'hr\evidence\ai-builder\tenant-test\DEV\run-test\evidence.json'
+        $absolutePath = Join-Path $root $evidencePath
+        [void](New-Item -ItemType Directory -Path (Split-Path -Parent $absolutePath) -Force)
+        [IO.File]::WriteAllText(
+            $absolutePath,
+            ("captured {0} value" -f $script:forms.L3),
+            [Text.UTF8Encoding]::new($false)
+        )
+        $exception = New-FixtureEvidenceException -Root $root `
+            -RelativePath $evidencePath -PatternClass 'L3'
+        Add-FixtureEvidenceManifest -Root $root -Exceptions @($exception)
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.ApprovedEvidenceCount | Should -Be 0
+        $result.Findings.PatternClass | Should -Contain 'evidence-exception-error'
+    }
+
+    It 'leaves an unknown immutable-evidence occurrence as a normal blocking finding' {
+        $root = New-BrandingFixture
+        $approvedPath = 'hr\evidence\ai-builder\tenant-test\DEV\run-test\approved.json'
+        $unknownPath = 'hr\evidence\ai-builder\tenant-test\DEV\run-test\unknown.json'
+        Add-FixtureText -Root $root -RelativePath $approvedPath `
+            -Content ("captured {0} value" -f $script:forms.L3)
+        Add-FixtureText -Root $root -RelativePath $unknownPath `
+            -Content ("captured {0} value" -f $script:forms.L3)
+        $exception = New-FixtureEvidenceException -Root $root `
+            -RelativePath $approvedPath -PatternClass 'L3'
+        Add-FixtureEvidenceManifest -Root $root -Exceptions @($exception)
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.ApprovedEvidenceCount | Should -Be 1
+        @($result.Findings | Where-Object {
+            $_.Path -ceq $unknownPath.Replace('\', '/') -and
+            $_.PatternClass -ceq 'L3'
+        }).Count | Should -Be 1
+    }
+
+    It 'rejects extra manifest properties without exposing their values' {
+        $root = New-BrandingFixture
+        $evidencePath = 'hr\evidence\ai-builder\tenant-test\DEV\run-test\evidence.json'
+        Add-FixtureText -Root $root -RelativePath $evidencePath `
+            -Content ("captured {0} value" -f $script:forms.L3)
+        $exception = New-FixtureEvidenceException -Root $root `
+            -RelativePath $evidencePath -PatternClass 'L3'
+        Add-FixtureEvidenceManifest -Root $root -Exceptions @($exception) `
+            -ExtraRootProperty @{ unexpected = 'must-not-be-returned' }
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.ApprovedEvidenceCount | Should -Be 0
+        $result.Findings.PatternClass | Should -Contain 'evidence-exception-error'
+        ($result | ConvertTo-Json -Depth 5) | Should -Not -Match 'must-not-be-returned'
+    }
 }
 
 Describe 'Current repository branding' {
@@ -279,5 +492,7 @@ Describe 'Current repository branding' {
 
         $result.Findings | Sort-Object Path, PatternClass |
             Should -BeNullOrEmpty
+        $result.ApprovedEvidenceCount | Should -Be 7
+        @($result.ApprovedEvidence).Count | Should -Be 7
     }
 }

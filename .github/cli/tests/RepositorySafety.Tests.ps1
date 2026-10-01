@@ -87,6 +87,61 @@ steps:
 }
 
 Describe 'Core repository safety validation' {
+    It 'preserves AI Builder evidence bytes through Git with autocrlf <AutoCrlf>' -TestCases @(
+        @{ AutoCrlf = 'true' }
+        @{ AutoCrlf = 'false' }
+    ) {
+        param($AutoCrlf)
+
+        $fixtureRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+        $checkoutRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+        [void](New-Item -ItemType Directory -Path $fixtureRoot, $checkoutRoot)
+        Copy-Item -LiteralPath (Join-Path $script:repositoryRoot '.gitattributes') -Destination $fixtureRoot
+        $evidenceRoot = 'hr\evidence\ai-builder\tenant-test\DEV\run-test'
+        $fixtures = @{
+            "$evidenceRoot\capture\execution-test\execution-test.canonical.json" = "{`"value`":null}`n"
+            "$evidenceRoot\capture\execution-test\execution-test.ai-builder.raw.json" = "{`r`n  `"value`":null`r`n}`r`n"
+            "$evidenceRoot\evaluation-metrics.json" = "{`r`n  `"status`":`"evaluated`"`r`n}`r`n"
+            "$evidenceRoot\holdout-consumption.json" = "{`r`n  `"status`":`"captured`"`n}`r`n"
+            "$evidenceRoot\validation-results-fixed.csv" = "field,value`r`nname,synthetic`r`n"
+            'hr\tests\fixtures\ai-builder\evaluation-capture\canonical-envelope.json' = "{`"value`":null}`n"
+            'hr\src\ai-builder\contracts\field-contract.json' = "{`r`n  `"fields`":[]`r`n}`r`n"
+            'hr\src\scripts\adapters\ConvertFrom-HrAiBuilderEvaluationCapture.ps1' = "param()`r`n'fixture'`r`n"
+        }
+        foreach ($relativePath in $fixtures.Keys) {
+            $fixturePath = Join-Path $fixtureRoot $relativePath
+            [void](New-Item -ItemType Directory -Path (Split-Path -Parent $fixturePath) -Force)
+            [IO.File]::WriteAllText(
+                $fixturePath, $fixtures[$relativePath], [Text.UTF8Encoding]::new($false)
+            )
+        }
+
+        & $script:gitPath -C $fixtureRoot init --quiet
+        $LASTEXITCODE | Should -Be 0
+        & $script:gitPath -C $fixtureRoot -c "core.autocrlf=$AutoCrlf" add -- .gitattributes hr
+        $LASTEXITCODE | Should -Be 0
+        & $script:gitPath -C $fixtureRoot diff --cached --check
+        $LASTEXITCODE | Should -Be 0
+        & $script:gitPath -C $fixtureRoot -c "core.autocrlf=$AutoCrlf" checkout-index --all "--prefix=$checkoutRoot\"
+        $LASTEXITCODE | Should -Be 0
+
+        foreach ($relativePath in $fixtures.Keys) {
+            $checkedOut = Join-Path $checkoutRoot $relativePath
+            (Get-FileHash -LiteralPath $checkedOut -Algorithm SHA256).Hash |
+                Should -BeExactly (Get-FileHash -LiteralPath (Join-Path $fixtureRoot $relativePath) -Algorithm SHA256).Hash `
+                    -Because "$relativePath must retain its exact evidence bytes"
+        }
+
+        [IO.File]::WriteAllText(
+            (Join-Path $fixtureRoot "$evidenceRoot\evaluation-metrics.json"), "{ } `r`n", [Text.UTF8Encoding]::new($false)
+        )
+        & $script:gitPath -C $fixtureRoot add -- hr/evidence/ai-builder
+        $LASTEXITCODE | Should -Be 0
+        $whitespaceErrors = & $script:gitPath -C $fixtureRoot diff --cached --check
+        $LASTEXITCODE | Should -Be 2
+        ($whitespaceErrors -join "`n") | Should -Match 'trailing whitespace'
+    }
+
     It 'treats PDF corpus files as binary on every Git installation' {
         $pdfPath = 'hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/a-personalblatt/a01-CAND-2026-0411-brunner.pdf'
 

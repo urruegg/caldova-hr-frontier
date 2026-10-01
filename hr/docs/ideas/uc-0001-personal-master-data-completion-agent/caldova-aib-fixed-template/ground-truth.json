@@ -1,4 +1,4 @@
-{
+﻿{
   "package": "fixed-template",
   "field_count": 17,
   "note": "Empty string = field is ABSENT from that document. Expected agent outcome is 'Missing', not an extraction error.",

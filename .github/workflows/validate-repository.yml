@@ -24,6 +24,12 @@ jobs:
         shell: powershell
         run: Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck
 
+      - name: Install Python schema test dependencies
+        shell: powershell
+        run: |
+          python -m pip install --disable-pip-version-check --requirement hr/tests/requirements.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Python schema test dependency installation failed.' }
+
       - name: Run all maintained tests
         shell: powershell
         run: |

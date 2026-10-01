@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -13,7 +13,7 @@
 
 **Goal:** Remove the legacy customer identity from the maintained repository and present Caldova consistently in tracked prose, identifiers, paths, generated documents, tests, and catalogues without changing technical meaning, synthetic truth, accessibility semantics, or immutable review evidence.
 
-**Architecture:** One fail-closed PowerShell module owns Git-index enumeration, path classification, strict text decoding, and L1-L7 matching; its Pester suite is the maintained current-tree contract, so operational checks and tests never duplicate scanner logic. The migration then renames brand and corpus assets before repairing consumers, scrubs current prose by owning domain, updates both generator copies, regenerates all 48 PDFs through their maintained entry points, and closes with the complete local acceptance set. Generated review evidence and the six already-sanitized screenshots remain immutable, while the screenshot bytes are compared directly with the approved baseline commit.
+**Architecture:** One fail-closed PowerShell module owns Git-index enumeration, path classification, strict text decoding, L1-L7 matching, and exact immutable-evidence manifest validation; its Pester suite is the maintained current-tree contract, so operational checks and tests never duplicate scanner logic. The migration then renames brand and corpus assets before repairing consumers, scrubs current prose by owning domain, updates both generator copies, regenerates all 48 PDFs through their maintained entry points, and closes with the complete local acceptance set. Generated review evidence, seven hash-bound AI Builder source-evidence files, and the six already-sanitized screenshots remain immutable, while their bytes are compared directly with the applicable baseline.
 
 **Tech Stack:** Windows PowerShell 5.1, Pester 5.7.1, Git, Python 3, ReportLab, local `pypdf`, React 19, TypeScript 5.9, Fluent UI React Components 9, Vite 7, ESLint 9, npm, Bicep CLI.
 
@@ -44,6 +44,22 @@
 - Live systems, tenant configuration, infrastructure mutation, application deployment, and remote repository changes.
 
 The last four bullets are prohibitions. Execute only in `C:\Users\urruegg\source\urruegg\caldova-hr-frontier\.worktrees\caldova-branding-migration` on branch `feat/caldova-branding-migration-implementation`, descended from approved base `ba35a098e058a51425c5e6052912bda4d04864be` through the controller's plan/catalogue commit. Do not create another branch or worktree. Every task uses red/green/refactor, receives a focused diff review, and creates one scoped commit with `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>`.
+
+---
+
+## Post-Baseline `origin/main` Integration Amendment
+
+After the eight migration tasks completed, `origin/main` advanced to `402f42ff01e662dcb6762d44e9a5fec09b3484cd` with the governed AI Builder evaluation subsystem. Integrate that commit with `git merge --no-ff --no-commit origin/main`; do not rebase, squash, rewrite history, push, or touch a live system. Preserve all current-main evidence contracts and behavior while applying the completed Caldova names and `caldova-aib-*` package paths to mutable additions.
+
+Seven new-main files remain byte-for-byte immutable:
+
+- three raw model-response JSON files recorded by the training-proof and fixed-holdout captures, each with one `L3` OCR occurrence;
+- `evaluation-summary.md`, with one `L4` occurrence; and
+- `training-capture-attempt.json`, `training-capture-remediation.json`, and `training-capture-retry.json`, each with one `L4` occurrence.
+
+Their live-model output cannot be rewritten truthfully without a separately authorized rerun. The tracked `.github/cli/config/branding-evidence-exceptions.json` therefore records exactly those seven normalized paths, lowercase SHA-256 values, declared classes, count `1`, provenance, and rationale. The one BrandingContract module loads that repository manifest by default and validates exact schema, no extra properties, unique normalized paths, exact evidence root, tracked regular-file mode, hash, class, count, and absence of extra matches. A malformed, missing, untracked, out-of-root, duplicate, drifted, or mismatched record fails closed without exposing matched content. Fixture scans use their own fixture manifest or the explicit manifest parameter; they never fall back to another repository.
+
+No broad scanner exception exists. Every mutable match in the integrated plans, HR guidance, BoMs, scripts, tests, fixtures, and evidence README is migrated. Acceptance is zero unapproved `Findings`, exactly seven `ApprovedEvidence` entries, `ApprovedEvidenceCount = 7`, complete tracked accounting, and byte equality between all seven evidence files and `origin/main`.
 
 ---
 

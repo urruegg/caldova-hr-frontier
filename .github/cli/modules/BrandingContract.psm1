@@ -213,9 +213,79 @@ function Test-BrandingReparsePointInPath {
     $false
 }
 
+function Get-BrandingCanonicalMatches {
+    param(
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Content,
+        [Parameter(Mandatory)][Collections.IDictionary]$Patterns
+    )
+
+    $matches = [Collections.Generic.List[object]]::new()
+    $specificInitialMatches = [Collections.Generic.HashSet[int]]::new()
+    foreach ($patternClass in @('L1', 'L2', 'L4', 'L5', 'L6', 'L7')) {
+        foreach ($match in $Patterns[$patternClass].Matches($Content)) {
+            [void]$matches.Add([pscustomobject]@{
+                PatternClass = $patternClass
+                Index = $match.Index
+                Length = $match.Length
+            })
+            if ($patternClass -in @('L4', 'L5')) {
+                [void]$specificInitialMatches.Add($match.Index)
+            }
+        }
+    }
+    foreach ($match in $Patterns['L3'].Matches($Content)) {
+        if ($specificInitialMatches.Contains($match.Index)) { continue }
+        [void]$matches.Add([pscustomobject]@{
+            PatternClass = 'L3'
+            Index = $match.Index
+            Length = $match.Length
+        })
+    }
+    @($matches | Sort-Object Index, PatternClass)
+}
+
+function Test-BrandingExactProperties {
+    param(
+        [Parameter(Mandatory)][object]$InputObject,
+        [Parameter(Mandatory)][string[]]$Expected
+    )
+
+    if ($null -eq $InputObject -or $InputObject -is [string] -or
+        $InputObject -is [ValueType]) {
+        return $false
+    }
+    $actual = @($InputObject.PSObject.Properties.Name)
+    if ($actual.Count -ne $Expected.Count) { return $false }
+    $expectedSet = [Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::Ordinal
+    )
+    foreach ($name in $Expected) { [void]$expectedSet.Add($name) }
+    foreach ($name in $actual) {
+        if (-not $expectedSet.Contains($name)) { return $false }
+    }
+    $true
+}
+
+function Get-BrandingSha256 {
+    param([Parameter(Mandatory)][byte[]]$Bytes)
+
+    $sha256 = [Security.Cryptography.SHA256]::Create()
+    try {
+        ([BitConverter]::ToString($sha256.ComputeHash($Bytes))).
+            Replace('-', '').
+            ToLowerInvariant()
+    }
+    finally {
+        $sha256.Dispose()
+    }
+}
+
 function Get-RepositoryBrandingScan {
     [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$RepositoryRoot)
+    param(
+        [Parameter(Mandatory)][string]$RepositoryRoot,
+        [AllowEmptyString()][string]$EvidenceExceptionManifestPath
+    )
 
     $root = [IO.Path]::GetFullPath($RepositoryRoot)
     if (-not (Test-Path -LiteralPath $root -PathType Container)) {
@@ -235,6 +305,13 @@ function Get-RepositoryBrandingScan {
     $seenPaths = [Collections.Generic.HashSet[string]]::new(
         [StringComparer]::Ordinal
     )
+    $entryByPath = [Collections.Generic.Dictionary[string, object]]::new(
+        [StringComparer]::Ordinal
+    )
+    $contentMatchesByPath =
+        [Collections.Generic.Dictionary[string, object[]]]::new(
+            [StringComparer]::Ordinal
+        )
 
     function Add-Finding {
         param([string]$Path, [string]$PatternClass)
@@ -249,6 +326,9 @@ function Get-RepositoryBrandingScan {
 
     foreach ($entry in $entries) {
         $relativePath = [string]$entry.Path
+        if ($entry.Stage -eq 0 -and -not $entryByPath.ContainsKey($relativePath)) {
+            $entryByPath.Add($relativePath, $entry)
+        }
         foreach ($pattern in $patterns.GetEnumerator()) {
             if ($pattern.Value.IsMatch($relativePath)) {
                 Add-Finding -Path $relativePath -PatternClass $pattern.Key
@@ -350,20 +430,207 @@ function Get-RepositoryBrandingScan {
             Path = ConvertTo-BrandingDisplayPath -Path $relativePath
             Classification = 'tracked-text'
         })
-        foreach ($pattern in $patterns.GetEnumerator()) {
-            if ($pattern.Value.IsMatch($content)) {
-                Add-Finding -Path $relativePath -PatternClass $pattern.Key
-            }
+        $contentMatches = @(
+            Get-BrandingCanonicalMatches -Content $content -Patterns $patterns
+        )
+        $contentMatchesByPath[$relativePath] = $contentMatches
+        foreach ($patternClass in @(
+            $contentMatches | Select-Object -ExpandProperty PatternClass -Unique
+        )) {
+            Add-Finding -Path $relativePath -PatternClass $patternClass
         }
     }
 
+    $approvedEvidence = [Collections.Generic.List[object]]::new()
+    $suppressionKeys = [Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::Ordinal
+    )
+    $manifestRelativePath =
+        '.github/cli/config/branding-evidence-exceptions.json'
+    $manifestWasExplicit = $PSBoundParameters.ContainsKey(
+        'EvidenceExceptionManifestPath'
+    )
+    $manifestDisabled = $manifestWasExplicit -and
+        [string]::IsNullOrEmpty($EvidenceExceptionManifestPath)
+    $manifestAbsolutePath = if ($manifestWasExplicit -and -not $manifestDisabled) {
+        try {
+            [IO.Path]::GetFullPath($EvidenceExceptionManifestPath)
+        }
+        catch {
+            $null
+        }
+    }
+    else {
+        Join-Path $root $manifestRelativePath.Replace('/', '\')
+    }
+
+    if (-not $manifestDisabled -and $null -ne $manifestAbsolutePath) {
+        $manifestExists = Test-Path -LiteralPath $manifestAbsolutePath -PathType Leaf
+        $defaultManifestAbsent = -not $manifestWasExplicit -and -not $manifestExists
+        if (-not $defaultManifestAbsent) {
+            $manifestValid = $true
+            try {
+                $manifestFullPath = [IO.Path]::GetFullPath($manifestAbsolutePath)
+                if (-not $manifestFullPath.StartsWith(
+                    $rootPrefix,
+                    [StringComparison]::OrdinalIgnoreCase
+                )) {
+                    throw 'Manifest is outside RepositoryRoot.'
+                }
+                $manifestRelativePath = $manifestFullPath.
+                    Substring($rootPrefix.Length).
+                    Replace('\', '/')
+                if (-not $entryByPath.ContainsKey($manifestRelativePath)) {
+                    throw 'Manifest is not tracked.'
+                }
+                $manifestEntry = $entryByPath[$manifestRelativePath]
+                if ($manifestEntry.Stage -ne 0 -or
+                    $manifestEntry.Mode -notin @('100644', '100755')) {
+                    throw 'Manifest is not a regular tracked file.'
+                }
+                $manifestBytes = [IO.File]::ReadAllBytes($manifestFullPath)
+                $manifestText = [Text.UTF8Encoding]::new(
+                    $false,
+                    $true
+                ).GetString($manifestBytes)
+                $manifest = $manifestText | ConvertFrom-Json -ErrorAction Stop
+                if (-not (Test-BrandingExactProperties -InputObject $manifest `
+                    -Expected @('schemaVersion', 'exceptions'))) {
+                    throw 'Manifest root schema is invalid.'
+                }
+                if ($manifest.schemaVersion -cne '1.0' -or
+                    $manifest.exceptions -isnot [Array]) {
+                    throw 'Manifest root values are invalid.'
+                }
+
+                $records = @($manifest.exceptions)
+                $recordPaths = [Collections.Generic.HashSet[string]]::new(
+                    [StringComparer]::Ordinal
+                )
+                $candidates = [Collections.Generic.List[object]]::new()
+                foreach ($record in $records) {
+                    if (-not (Test-BrandingExactProperties -InputObject $record `
+                        -Expected @(
+                            'path',
+                            'sha256',
+                            'patternClass',
+                            'count',
+                            'provenance',
+                            'rationale'
+                        ))) {
+                        throw 'Manifest record schema is invalid.'
+                    }
+                    if ($record.path -isnot [string] -or
+                        $record.sha256 -isnot [string] -or
+                        $record.patternClass -isnot [string] -or
+                        $record.provenance -isnot [string] -or
+                        $record.rationale -isnot [string]) {
+                        throw 'Manifest record types are invalid.'
+                    }
+                    $recordPath = [string]$record.path
+                    if ([string]::IsNullOrWhiteSpace($recordPath) -or
+                        $recordPath -cne $recordPath.Trim() -or
+                        $recordPath.Contains('\') -or
+                        $recordPath.StartsWith('/') -or
+                        $recordPath.Contains('//') -or
+                        @($recordPath.Split('/') | Where-Object {
+                            $_ -in @('', '.', '..')
+                        }).Count -gt 0) {
+                        throw 'Manifest record path is not normalized.'
+                    }
+                    if (-not $recordPath.StartsWith(
+                        'hr/evidence/ai-builder/',
+                        [StringComparison]::Ordinal
+                    )) {
+                        throw 'Manifest record path is outside the evidence root.'
+                    }
+                    if (-not $recordPaths.Add($recordPath)) {
+                        throw 'Manifest record path is duplicated.'
+                    }
+                    if (-not $entryByPath.ContainsKey($recordPath)) {
+                        throw 'Manifest record path is not tracked.'
+                    }
+                    $recordEntry = $entryByPath[$recordPath]
+                    if ($recordEntry.Stage -ne 0 -or
+                        $recordEntry.Mode -notin @('100644', '100755')) {
+                        throw 'Manifest record path is not a regular tracked file.'
+                    }
+                    if ($record.sha256 -cnotmatch '^[0-9a-f]{64}$') {
+                        throw 'Manifest record hash is invalid.'
+                    }
+                    if ($record.patternClass -cnotmatch '^L[1-7]$') {
+                        throw 'Manifest record pattern class is invalid.'
+                    }
+                    if ($record.count -isnot [int] -or $record.count -ne 1) {
+                        throw 'Manifest record count is invalid.'
+                    }
+                    if ([string]::IsNullOrWhiteSpace($record.provenance) -or
+                        [string]::IsNullOrWhiteSpace($record.rationale)) {
+                        throw 'Manifest record provenance is invalid.'
+                    }
+                    $recordAbsolutePath = Join-Path $root (
+                        $recordPath.Replace('/', '\')
+                    )
+                    $recordBytes = [IO.File]::ReadAllBytes($recordAbsolutePath)
+                    $actualSha256 = Get-BrandingSha256 -Bytes $recordBytes
+                    if ($actualSha256 -cne $record.sha256) {
+                        throw 'Manifest record hash does not match evidence.'
+                    }
+                    if (-not $contentMatchesByPath.ContainsKey($recordPath)) {
+                        throw 'Manifest record does not identify tracked text.'
+                    }
+                    $recordMatches = @($contentMatchesByPath[$recordPath])
+                    $declaredMatches = @($recordMatches | Where-Object {
+                        $_.PatternClass -ceq $record.patternClass
+                    })
+                    if ($declaredMatches.Count -ne $record.count -or
+                        $recordMatches.Count -ne $record.count) {
+                        throw 'Manifest record finding class or count does not match.'
+                    }
+                    [void]$candidates.Add([pscustomobject]@{
+                        Path = $recordPath
+                        PatternClass = [string]$record.patternClass
+                        Sha256 = $actualSha256
+                    })
+                }
+
+                foreach ($candidate in $candidates) {
+                    [void]$approvedEvidence.Add($candidate)
+                    [void]$suppressionKeys.Add(
+                        $candidate.Path + [char]0 + $candidate.PatternClass
+                    )
+                }
+            }
+            catch {
+                $manifestValid = $false
+            }
+            if (-not $manifestValid) {
+                Add-Finding -Path $manifestRelativePath `
+                    -PatternClass 'evidence-exception-error'
+                $approvedEvidence.Clear()
+                $suppressionKeys.Clear()
+            }
+        }
+    }
+    elseif (-not $manifestDisabled) {
+        Add-Finding -Path $manifestRelativePath `
+            -PatternClass 'evidence-exception-error'
+    }
+
+    $unapprovedFindings = @($findings | Where-Object {
+        -not $suppressionKeys.Contains(
+            $_.Path + [char]0 + $_.PatternClass
+        )
+    })
     [pscustomobject]@{
         TrackedCount = $seenPaths.Count
         TextCount = @($files | Where-Object Classification -ceq 'tracked-text').Count
         BinaryCount = @($files | Where-Object Classification -ceq 'tracked-binary').Count
         LinkCount = @($files | Where-Object Classification -ceq 'tracked-link').Count
         Files = @($files)
-        Findings = @($findings)
+        Findings = $unapprovedFindings
+        ApprovedEvidence = @($approvedEvidence)
+        ApprovedEvidenceCount = $approvedEvidence.Count
     }
 }
 

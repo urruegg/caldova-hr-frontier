@@ -1,0 +1,448 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI Builder evaluation capture pair",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/canonical_envelope_base"
+    }
+  ],
+  "required": [
+    "artifacts"
+  ],
+  "properties": {
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_pdf",
+        "raw_response",
+        "canonical_envelope"
+      ],
+      "properties": {
+        "source_pdf": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^source/.+\\.pdf$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "raw_response": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^cap-\\d{17}Z-[a-f0-9]{8}\\.ai-builder\\.raw\\.json$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "canonical_envelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^cap-\\d{17}Z-[a-f0-9]{8}\\.canonical\\.json$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        }
+      }
+    }
+  },
+  "unevaluatedProperties": false,
+  "$defs": {
+    "canonical_field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "confidence"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          ]
+        }
+      }
+    },
+    "canonical_fields": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "last_name",
+        "first_name",
+        "dob",
+        "nationality",
+        "marital",
+        "heimatort",
+        "permit",
+        "street",
+        "plz",
+        "city",
+        "ahv",
+        "iban",
+        "phone",
+        "email",
+        "ec_name",
+        "ec_phone"
+      ],
+      "properties": {
+        "candidate_id": {
+          "$ref": "#/$defs/canonical_field"
+        },
+        "last_name": {
+          "$ref": "#/$defs/canonical_field"
+        },
+        "first_name": {
+          "$ref": "#/$defs/canonical_field"
+        },
+        "dob": {
+          "$ref": "#/$defs/canonical_field"
+        },
+        "nationality": {
+          "$ref": "#/$defs/canonical_field"
+        },
+        "marital": {
+          "$ref": "#/$defs/canonical_field"
+        },
+        "heimatort": {
+          "$ref": "#/$defs/canonical_field"
+        },
+        "permit": {
+          "$ref": "#/$defs/canonical_field"
+        },
+        "street": {
+          "$ref": "#/$defs/canonical_field"
+        },
+        "plz": {
+          "$ref": "#/$defs/canonical_field"
+        },
+        "city": {
+          "$ref": "#/$defs/canonical_field"
+        },
+        "ahv": {
+          "$ref": "#/$defs/canonical_field"
+        },
+        "iban": {
+          "$ref": "#/$defs/canonical_field"
+        },
+        "phone": {
+          "$ref": "#/$defs/canonical_field"
+        },
+        "email": {
+          "$ref": "#/$defs/canonical_field"
+        },
+        "ec_name": {
+          "$ref": "#/$defs/canonical_field"
+        },
+        "ec_phone": {
+          "$ref": "#/$defs/canonical_field"
+        }
+      }
+    },
+    "canonical_envelope_base": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "run_id",
+        "corpus_revision",
+        "filename",
+        "claimed_sha256",
+        "model_name",
+        "model_version",
+        "captured_at_utc",
+        "fields"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "run_id": {
+          "type": "string",
+          "pattern": "^cap-\\d{17}Z-[a-f0-9]{8}$"
+        },
+        "corpus_revision": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\\\/:*?\"<>|]+\\.pdf$"
+        },
+        "claimed_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "model_name": {
+          "const": "PersonalMasterDataFixed"
+        },
+        "model_version": {
+          "const": "1.0"
+        },
+        "captured_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "candidate_id",
+            "last_name",
+            "first_name",
+            "dob",
+            "nationality",
+            "marital",
+            "heimatort",
+            "permit",
+            "street",
+            "plz",
+            "city",
+            "ahv",
+            "iban",
+            "phone",
+            "email",
+            "ec_name",
+            "ec_phone"
+          ],
+          "properties": {
+            "candidate_id": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "last_name": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "first_name": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "dob": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "nationality": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "marital": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "heimatort": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "permit": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "street": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "plz": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "city": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "ahv": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "iban": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "phone": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "email": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "ec_name": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "ec_phone": {
+              "$ref": "#/$defs/canonical_field"
+            }
+          }
+        }
+      },
+      "canonical_envelope": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/canonical_envelope_composable"
+          }
+        ],
+        "unevaluatedProperties": false
+      }
+    },
+    "canonical_envelope": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "run_id",
+        "corpus_revision",
+        "filename",
+        "claimed_sha256",
+        "model_name",
+        "model_version",
+        "captured_at_utc",
+        "fields"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "run_id": {
+          "type": "string",
+          "pattern": "^cap-\\d{17}Z-[a-f0-9]{8}$"
+        },
+        "corpus_revision": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\\\/:*?\"<>|]+\\.pdf$"
+        },
+        "claimed_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "model_name": {
+          "const": "PersonalMasterDataFixed"
+        },
+        "model_version": {
+          "const": "1.0"
+        },
+        "captured_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "candidate_id",
+            "last_name",
+            "first_name",
+            "dob",
+            "nationality",
+            "marital",
+            "heimatort",
+            "permit",
+            "street",
+            "plz",
+            "city",
+            "ahv",
+            "iban",
+            "phone",
+            "email",
+            "ec_name",
+            "ec_phone"
+          ],
+          "properties": {
+            "candidate_id": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "last_name": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "first_name": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "dob": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "nationality": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "marital": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "heimatort": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "permit": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "street": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "plz": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "city": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "ahv": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "iban": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "phone": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "email": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "ec_name": {
+              "$ref": "#/$defs/canonical_field"
+            },
+            "ec_phone": {
+              "$ref": "#/$defs/canonical_field"
+            }
+          }
+        }
+      },
+      "canonical_envelope": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/canonical_envelope_composable"
+          }
+        ],
+        "unevaluatedProperties": false
+      },
+      "additionalProperties": false
+    }
+  }
+}

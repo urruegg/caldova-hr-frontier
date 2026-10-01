@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0",
+  "model_name": "PersonalMasterDataFixed",
+  "model_id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+  "observed_model_version": "1.0",
+  "operator": "admin@caldova25668747.onmicrosoft.com",
+  "observed_at_utc": "2026-09-29T06:42:34.5110452Z",
+  "fields": [
+    {
+      "name": "candidate_id",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "last_name",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "first_name",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "dob",
+      "ai_builder_type": "Date"
+    },
+    {
+      "name": "nationality",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "marital",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "heimatort",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "permit",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "street",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "plz",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "city",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "ahv",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "iban",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "phone",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "email",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "ec_name",
+      "ai_builder_type": "Text"
+    },
+    {
+      "name": "ec_phone",
+      "ai_builder_type": "Text"
+    }
+  ],
+  "source_evidence_path": "model-schema-fixed.png",
+  "source_evidence_sha256": "05ec8588a5889bc16f58de58781c4951d528921651ca04d918eb4cfb17760632"
+}

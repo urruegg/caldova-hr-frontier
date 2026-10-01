@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "recorded_at_utc": "2026-10-01T07:44:30.6762113Z",
+  "run_id": "t2-dev-20260925-001",
+  "decision": "approved_for_solution",
+  "attended_acknowledgement": {
+    "response": "approve",
+    "source": "GitHub Copilot attended conversation",
+    "interpretation": "Approval to add exact PersonalMasterDataFixed model 74b09a72-d1f1-4598-bc4d-3746d5c97acc version 1.0 to the unmanaged Tenant 2 DEV caldovahrfrontier solution."
+  },
+  "eligibility": {
+    "status": "eligible",
+    "evidence_file": "fixed-approval-eligibility.json",
+    "sha256": "a094a8e56f7346b731588db1b6a1c783c29080c5346af5d9e1e53aa977b659c3",
+    "post_addition_reverification": {
+      "evidence_file": "fixed-approval-eligibility-reverification.json",
+      "sha256": "93fb56f78025415c44abc81b73209dcabb979745c3b89b7a0cdef071b6a7e775",
+      "status": "eligible",
+      "failed_gate_count": 0,
+      "flow_state_source": "security-verification.json resource_read_back.flow.portal_status"
+    }
+  },
+  "model": {
+    "name": "PersonalMasterDataFixed",
+    "id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+    "version": "1.0"
+  },
+  "scope": {
+    "environment_id": "84ad4c54-41d9-e5df-ba07-188b4719594a",
+    "solution_unique_name": "caldovahrfrontier",
+    "solution_managed": false,
+    "automated_write_approval": false
+  },
+  "excluded_components": [
+    "Capture AI Builder Evaluation Evidence",
+    "calhr_ai_evaluation_dev",
+    "connection references",
+    "AIBuilderEvaluationEvidence SharePoint folder"
+  ]
+}

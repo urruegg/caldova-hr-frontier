@@ -25,8 +25,9 @@
 | [`prd-0001-personal-master-data-completion-agent.md`](prd-0001-personal-master-data-completion-agent.md) | **The requirements.** Draft 0.2, superseding the customer-supplied UC-0001 draft PRD. Business rules, functional and non-functional requirements, acceptance criteria, open decisions, risks | **Authoritative for this use case** |
 | [`bom-0001-peopledoc-master-data-ai-builder-fields.md`](bom-0001-peopledoc-master-data-ai-builder-fields.md) | Repository-owned traceability for the 17 AI Builder fields from design through tenant-specific implementation evidence; not the customer-supplied UC-0001 artefact inventory of 60+ items | **Authoritative for AI Builder field lifecycle status** |
 | [`bom-0002-ai-builder-test-inputs-and-outcomes.md`](bom-0002-ai-builder-test-inputs-and-outcomes.md) | Repository-owned run-level traceability from qualified test inputs to model metrics, findings, and evidence | **Authoritative for AI Builder test-run input and outcome summaries** |
+| [`ai-builder-model-setup.md`](ai-builder-model-setup.md) | Attended Tenant 2 DEV procedure for readiness, corpus qualification, model training, no-flow evidence capture, strict-gate evaluation, publication, solution synchronization, and evidence closeout | Operator guide; subordinate to the approved design and BoMs |
 
-Read the use case document for *what and why*. Read the PRD for *exactly what must be true*. Read the field BoM for *what has been designed, implemented and verified*. Read the test BoM for *which inputs were evaluated and what the evidence proves*.
+Read the use case document for *what and why*. Read the PRD for *exactly what must be true*. Read the field BoM for *what has been designed, implemented and verified*. Read the test BoM for *which inputs were evaluated and what the evidence proves*. Use the setup guide only for the attended Tenant 2 DEV procedure.
 
 ---
 
