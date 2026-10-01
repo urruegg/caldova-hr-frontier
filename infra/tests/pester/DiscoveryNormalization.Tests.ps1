@@ -13,34 +13,34 @@ Describe 'Discovery normalization' {
         $script:Principal = [pscustomobject]@{
             Type = 'User'
             Id = 'user-synthetic-0001'
-            Upn = 'admin@Caldova25156897.onmicrosoft.com'
+            Upn = 'operator@fixture.example'
         }
         $script:TenantConfiguration = [pscustomobject]@{
-            TenantAlias = 'caldova25156897'
-            NamingRoot = 'cal-hr-agentic-bc8rbt'
-            TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
-            AdminUpn = 'admin@Caldova25156897.onmicrosoft.com'
-            SubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
+            TenantAlias = 'fixturetenant42'
+            NamingRoot = 'syn-hr-agentic-abc123'
+            TenantId = '22222222-2222-2222-2222-222222222222'
+            AdminUpn = 'operator@fixture.example'
+            SubscriptionId = '11111111-1111-1111-1111-111111111111'
             GitHub = [pscustomobject]@{
                 Owner = 'urruegg'
                 OwnerId = '46865858'
                 Repository = 'caldova-hr-frontier'
                 RepositoryId = '1371297722'
-                EnvironmentName = 'bootstrap-caldova25156897'
+                EnvironmentName = 'bootstrap-fixturetenant42'
             }
             AzureDevOps = [pscustomobject]@{
-                OrganizationUrl = 'https://dev.azure.com/caldova25156897/'
-                ProjectName = 'Caldova HR Frontier'
+                OrganizationUrl = 'https://dev.azure.com/synthetic/'
+                ProjectName = 'Synthetic HR Frontier'
             }
             PowerPlatform = [pscustomobject]@{
-                DevUrl = 'https://hrfrontierdev.crm17.dynamics.com/'
-                TestUrl = 'https://hrfrontiertest.crm17.dynamics.com/'
-                ProdUrl = 'https://hrfrontier.crm17.dynamics.com/'
+                DevUrl = 'https://fixture-dev.example.test/'
+                TestUrl = 'https://fixture-test.example.test/'
+                ProdUrl = 'https://fixture-prod.example.test/'
             }
             Components = [pscustomobject]@{
                 GitHubRepository = [pscustomobject]@{ Mode = 'Existing'; Id = '1371297722' }
                 EntraApplication = [pscustomobject]@{ Mode = 'Existing'; Id = 'app-synthetic-11111111-1111-1111-1111-111111111111' }
-                AzureSubscription = [pscustomobject]@{ Mode = 'Existing'; Id = 'subscription-synthetic-edb45a24-408d-47c4-bbc7-685b9b3fc017' }
+                AzureSubscription = [pscustomobject]@{ Mode = 'Existing'; Id = 'subscription-synthetic-11111111-1111-1111-1111-111111111111' }
                 AzureDevOpsProject = [pscustomobject]@{ Mode = 'Existing'; Id = 'ado-project-synthetic-33333333-3333-3333-3333-333333333333' }
                 PowerPlatformEnvironmentDev = [pscustomobject]@{ Mode = 'Existing'; Id = 'pp-env-synthetic-dev-44444444-4444-4444-4444-444444444444' }
             }
@@ -98,11 +98,11 @@ Describe 'Discovery normalization' {
                             [pscustomobject]@{
                                 Type = 'EntraApplication'
                                 Id = 'app-synthetic-11111111-1111-1111-1111-111111111111'
-                                Name = 'Caldova HR Frontier Bootstrap'
+                                Name = 'Synthetic HR Frontier Bootstrap'
                                 Url = 'https://graph.microsoft.com/v1.0/applications/app-synthetic-11111111-1111-1111-1111-111111111111'
-                                Scope = 'tenant:e2312862-df63-440c-8bcf-007a2c52859d'
+                                Scope = 'tenant:22222222-2222-2222-2222-222222222222'
                                 Status = 'Found'
-                                EvidenceReference = [pscustomobject]@{ Service = 'Entra'; SourceApi = 'Microsoft Graph v1.0'; Scope = 'tenant:e2312862-df63-440c-8bcf-007a2c52859d'; CollectedUtc = $collectedUtc; ResponseSha256 = $hash }
+                                EvidenceReference = [pscustomobject]@{ Service = 'Entra'; SourceApi = 'Microsoft Graph v1.0'; Scope = 'tenant:22222222-2222-2222-2222-222222222222'; CollectedUtc = $collectedUtc; ResponseSha256 = $hash }
                             }
                         )
                         $sourceApi = 'Microsoft Graph v1.0'
@@ -111,12 +111,12 @@ Describe 'Discovery normalization' {
                         $resources = @(
                             [pscustomobject]@{
                                 Type = 'AzureSubscription'
-                                Id = 'subscription-synthetic-edb45a24-408d-47c4-bbc7-685b9b3fc017'
-                                Name = 'Caldova HR Frontier Platform'
-                                Url = 'https://management.azure.com/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
-                                Scope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
+                                Id = 'subscription-synthetic-11111111-1111-1111-1111-111111111111'
+                                Name = 'Synthetic HR Frontier Platform'
+                                Url = 'https://management.azure.com/subscriptions/11111111-1111-1111-1111-111111111111'
+                                Scope = '/subscriptions/11111111-1111-1111-1111-111111111111'
                                 Status = 'Found'
-                                EvidenceReference = [pscustomobject]@{ Service = 'Azure'; SourceApi = 'Azure Resource Graph + ARM'; Scope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'; CollectedUtc = $collectedUtc; ResponseSha256 = $hash }
+                                EvidenceReference = [pscustomobject]@{ Service = 'Azure'; SourceApi = 'Azure Resource Graph + ARM'; Scope = '/subscriptions/11111111-1111-1111-1111-111111111111'; CollectedUtc = $collectedUtc; ResponseSha256 = $hash }
                             }
                         )
                         $sourceApi = 'Azure Resource Graph + ARM'
@@ -126,11 +126,11 @@ Describe 'Discovery normalization' {
                             [pscustomobject]@{
                                 Type = 'AzureDevOpsProject'
                                 Id = 'ado-project-synthetic-33333333-3333-3333-3333-333333333333'
-                                Name = 'Caldova HR Frontier'
-                                Url = 'https://dev.azure.com/caldova25156897/Caldova%20HR%20Frontier'
-                                Scope = 'organization:caldova25156897'
+                                Name = 'Synthetic HR Frontier'
+                                Url = 'https://dev.azure.com/synthetic/Synthetic%20HR%20Frontier'
+                                Scope = 'organization:fixturetenant42'
                                 Status = 'Found'
-                                EvidenceReference = [pscustomobject]@{ Service = 'AzureDevOps'; SourceApi = 'Azure DevOps REST 7.1'; Scope = 'organization:caldova25156897'; CollectedUtc = $collectedUtc; ResponseSha256 = $hash }
+                                EvidenceReference = [pscustomobject]@{ Service = 'AzureDevOps'; SourceApi = 'Azure DevOps REST 7.1'; Scope = 'organization:fixturetenant42'; CollectedUtc = $collectedUtc; ResponseSha256 = $hash }
                             }
                         )
                         $sourceApi = 'Azure DevOps REST 7.1'
@@ -216,14 +216,13 @@ Describe 'Discovery normalization' {
                 [string[]]$ExtraArguments = @()
             )
 
-            $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+            $tempRoot = Join-Path $TestDrive ([System.Guid]::NewGuid().ToString())
             $repoRoot = Join-Path $tempRoot 'repo'
             [System.IO.Directory]::CreateDirectory($repoRoot) | Out-Null
             foreach ($relativePath in @(
                 'infra\src\scripts\Invoke-TenantDiscovery.ps1',
                 'infra\src\config\schemas\tenant.schema.json',
                 'infra\src\config\schemas\discovery.schema.json',
-                'infra\src\config\tenants\caldova25156897.psd1',
                 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1',
                 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psm1',
                 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Private',
@@ -242,6 +241,56 @@ Describe 'Discovery normalization' {
                 }
                 Copy-Item -LiteralPath $sourcePath -Destination $targetPath -Force
             }
+
+            [System.IO.File]::WriteAllText(
+                (Join-Path $repoRoot '.gitignore'),
+                "infra/src/config/tenants/*.local.psd1$([Environment]::NewLine)",
+                [System.Text.UTF8Encoding]::new($false)
+            )
+            & git -C $repoRoot init --quiet
+            if ($LASTEXITCODE -ne 0) {
+                throw 'Could not initialize the isolated discovery repository.'
+            }
+
+            $tenantConfigurationPath = Join-Path $repoRoot 'infra\src\config\tenants\tenant1.local.psd1'
+            [void](New-Item -ItemType Directory -Path (Split-Path -Parent $tenantConfigurationPath) -Force)
+            $tenantConfigurationContent = @'
+@{
+    SchemaVersion = '1.0'
+    PublicTenantKey = 'tenant1'
+    TenantAlias = 'fixturetenant42'
+    DisplayName = 'Fixture Tenant 42'
+    TenantId = '22222222-2222-2222-2222-222222222222'
+    AdminUpn = 'operator@fixture.example'
+    SubscriptionId = '11111111-1111-1111-1111-111111111111'
+    PrimaryLocation = 'switzerlandnorth'
+    CompanyTla = 'syn'
+    WorkloadName = 'hr-agentic'
+    UniqueSuffix = 'abc123'
+    NamingRoot = 'syn-hr-agentic-abc123'
+    LifecycleState = 'IntentReviewed'
+    GitHub = @{
+        Owner = 'urruegg'
+        OwnerId = '46865858'
+        Repository = 'caldova-hr-frontier'
+        RepositoryId = '1371297722'
+        EnvironmentName = 'bootstrap-fixturetenant42'
+    }
+    AzureDevOps = @{
+        OrganizationUrl = 'https://dev.azure.com/synthetic/'
+        ProjectName = 'Synthetic HR Frontier'
+    }
+    PowerPlatform = @{
+        DevUrl = 'https://fixture-dev.example.test/'
+        TestUrl = 'https://fixture-test.example.test/'
+        ProdUrl = 'https://fixture-prod.example.test/'
+    }
+    Components = @{
+        GitHubRepository = @{ Mode = 'Existing'; Id = '1371297722' }
+    }
+}
+'@
+            [System.IO.File]::WriteAllText($tenantConfigurationPath, $tenantConfigurationContent, [System.Text.UTF8Encoding]::new($false))
 
             $evidenceDirectory = Join-Path $repoRoot 'infra\evidence\discovery'
             [System.IO.Directory]::CreateDirectory($evidenceDirectory) | Out-Null
@@ -310,7 +359,8 @@ function Get-AzureDevOpsDiscovery {
                 '-NoProfile',
                 '-ExecutionPolicy', 'Bypass',
                 '-File', (Join-Path $repoRoot 'infra\src\scripts\Invoke-TenantDiscovery.ps1'),
-                '-TenantAlias', 'caldova25156897',
+                '-PublicTenantKey', 'tenant1',
+                '-TenantConfigurationPath', $tenantConfigurationPath,
                 '-AuthenticationMode', 'ExistingContext',
                 '-PowerPlatformProbePath', $probePath,
                 '-ContextAccountPath', $contextAccountPath
@@ -318,7 +368,14 @@ function Get-AzureDevOpsDiscovery {
             if ($ExtraArguments -notcontains '-OutputPath') {
                 $argumentList += @('-OutputPath', $outputPath)
             }
-            $argumentList += $ExtraArguments
+            $argumentList += @($ExtraArguments | ForEach-Object {
+                if ($_ -ceq '__REPOSITORY_OUTPUT__') {
+                    Join-Path $repoRoot 'forbidden-output.json'
+                }
+                else {
+                    $_
+                }
+            })
 
             $envBackup = @{}
             foreach ($entry in $Environment.GetEnumerator()) {
@@ -336,9 +393,10 @@ function Get-AzureDevOpsDiscovery {
                     StdErr = if (Test-Path -LiteralPath $stderrFile) { [System.IO.File]::ReadAllText($stderrFile) } else { '' }
                     OutputPath = $outputPath
                     ProbePath = $probePath
-                    BaselinePath = Join-Path $repoRoot 'infra\evidence\discovery\caldova25156897.json'
+                    BaselinePath = Join-Path $repoRoot 'infra\evidence\discovery\fixturetenant42.json'
                     NativeLogPath = $nativeLogPath
                     ContextAccountPath = $contextAccountPath
+                    TenantConfigurationPath = $tenantConfigurationPath
                     RepositoryRoot = $repoRoot
                 }
             }
@@ -421,10 +479,10 @@ function Get-AzureDevOpsDiscovery {
         $evidence.RunId | Should -Be $script:RunId.Guid
         $evidence.CollectionStartedUtc | Should -Be $script:CollectedUtc.ToString('o')
         $evidence.CollectionCompletedUtc | Should -Be $script:CompletedUtc.ToString('o')
-        $evidence.TenantAlias | Should -Be 'caldova25156897'
-        $evidence.TenantId | Should -Be 'e2312862-df63-440c-8bcf-007a2c52859d'
+        $evidence.TenantAlias | Should -Be 'fixturetenant42'
+        $evidence.TenantId | Should -Be '22222222-2222-2222-2222-222222222222'
         $evidence.Principal.Type | Should -Be 'User'
-        $evidence.Principal.Upn | Should -Be 'admin@Caldova25156897.onmicrosoft.com'
+        $evidence.Principal.Upn | Should -Be 'operator@fixture.example'
 
         $serviceNames = @($evidence.Services.PSObject.Properties.Name)
         $serviceNames | Should -Be @('GitHub', 'Entra', 'Azure', 'AzureDevOps', 'PowerPlatform')
@@ -463,7 +521,7 @@ function Get-AzureDevOpsDiscovery {
 
         $evidence.Services.Azure.SourceApi | Should -Be 'Azure Resource Graph + ARM'
         $evidence.Services.Azure.ResponseSha256 | Should -Be (Get-ResponseHash -Body $azureFixture.Body)
-        $evidence.Services.Azure.Resources[0].Id | Should -Be 'subscription-synthetic-edb45a24-408d-47c4-bbc7-685b9b3fc017'
+        $evidence.Services.Azure.Resources[0].Id | Should -Be 'subscription-synthetic-11111111-1111-1111-1111-111111111111'
 
         $evidence.Services.AzureDevOps.SourceApi | Should -Be 'Azure DevOps REST 7.1'
         $evidence.Services.AzureDevOps.ResponseSha256 | Should -Be (Get-ResponseHash -Body $azureDevOpsFixture.Body)
@@ -524,7 +582,7 @@ function Get-AzureDevOpsDiscovery {
             }
 
             try {
-                $response = Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', 'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897')
+                $response = Invoke-DiscoveryNativeCommand -FilePath 'gh' -ArgumentList @('api', 'repos/urruegg/caldova-hr-frontier/environments/bootstrap-fixturetenant42')
                 [pscustomobject]@{
                     Response = $response
                     Arguments = @($script:CapturedGitHubArguments)
@@ -595,7 +653,7 @@ function Get-AzureDevOpsDiscovery {
                     'repos/urruegg/caldova-hr-frontier/rulesets' {
                         return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @() }
                     }
-                    'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897' {
+                    'repos/urruegg/caldova-hr-frontier/environments/bootstrap-fixturetenant42' {
                         return [pscustomobject]@{ StatusCode = 404; Headers = @{}; Body = [pscustomobject]@{ message = 'Not Found' } }
                     }
                     'repos/urruegg/caldova-hr-frontier/actions/permissions' {
@@ -617,7 +675,7 @@ function Get-AzureDevOpsDiscovery {
                 $bundle = Invoke-GitHubDiscoveryRequest -Operation 'DiscoveryBundle' -Arguments ([ordered]@{
                     Owner = 'urruegg'
                     Repository = 'caldova-hr-frontier'
-                    EnvironmentName = 'bootstrap-caldova25156897'
+                    EnvironmentName = 'bootstrap-fixturetenant42'
                 })
                 $service = Get-GitHubDiscovery -TenantConfiguration $TenantConfiguration -RunId $RunId -CollectedUtc $CollectedUtc -Request {
                     param($Operation, $Arguments)
@@ -643,7 +701,7 @@ function Get-AzureDevOpsDiscovery {
             'repos/urruegg/caldova-hr-frontier',
             'repos/urruegg/caldova-hr-frontier/actions/oidc/customization/sub',
             'repos/urruegg/caldova-hr-frontier/rulesets',
-            'repos/urruegg/caldova-hr-frontier/environments/bootstrap-caldova25156897',
+            'repos/urruegg/caldova-hr-frontier/environments/bootstrap-fixturetenant42',
             'repos/urruegg/caldova-hr-frontier/actions/permissions',
             'repos/urruegg/caldova-hr-frontier/actions/workflows',
             'repos/urruegg/caldova-hr-frontier/collaborators/urruegg/permission'
@@ -689,7 +747,7 @@ function Get-AzureDevOpsDiscovery {
                                     [pscustomobject]@{
                                         id = 'app-synthetic-11111111-1111-1111-1111-111111111111'
                                         appId = 'client-synthetic-11111111-1111-1111-1111-111111111111'
-                                        displayName = 'Caldova HR Frontier Bootstrap'
+                                        displayName = 'Synthetic HR Frontier Bootstrap'
                                     }
                                 )
                             }
@@ -704,7 +762,7 @@ function Get-AzureDevOpsDiscovery {
                                     [pscustomobject]@{
                                         id = 'spn-synthetic-22222222-2222-2222-2222-222222222222'
                                         appId = 'client-synthetic-11111111-1111-1111-1111-111111111111'
-                                        displayName = 'Caldova HR Frontier Bootstrap'
+                                        displayName = 'Synthetic HR Frontier Bootstrap'
                                     }
                                 )
                             }
@@ -718,7 +776,7 @@ function Get-AzureDevOpsDiscovery {
                                 value = @(
                                     [pscustomobject]@{
                                         id = 'fic-synthetic-77777777-7777-7777-7777-777777777777'
-                                        name = 'bootstrap-caldova25156897'
+                                        name = 'bootstrap-fixturetenant42'
                                     }
                                 )
                             }
@@ -825,13 +883,13 @@ function Get-AzureDevOpsDiscovery {
                 $url = [string]$ArgumentList[$urlIndex + 1]
                 switch ($url) {
                     'https://graph.microsoft.com/v1.0/applications/app-synthetic-11111111-1111-1111-1111-111111111111' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 'app-synthetic-11111111-1111-1111-1111-111111111111'; appId = 'client-synthetic-11111111-1111-1111-1111-111111111111'; displayName = 'Caldova HR Frontier Bootstrap' } }
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 'app-synthetic-11111111-1111-1111-1111-111111111111'; appId = 'client-synthetic-11111111-1111-1111-1111-111111111111'; displayName = 'Synthetic HR Frontier Bootstrap' } }
                     }
                     'https://graph.microsoft.com/v1.0/servicePrincipals/spn-synthetic-22222222-2222-2222-2222-222222222222' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 'spn-synthetic-22222222-2222-2222-2222-222222222222'; appId = 'client-synthetic-11111111-1111-1111-1111-111111111111'; displayName = 'Caldova HR Frontier Bootstrap' } }
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 'spn-synthetic-22222222-2222-2222-2222-222222222222'; appId = 'client-synthetic-11111111-1111-1111-1111-111111111111'; displayName = 'Synthetic HR Frontier Bootstrap' } }
                     }
                     'https://graph.microsoft.com/v1.0/applications/app-synthetic-11111111-1111-1111-1111-111111111111/federatedIdentityCredentials' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ value = @([pscustomobject]@{ id = 'fic-synthetic-77777777-7777-7777-7777-777777777777'; name = 'bootstrap-caldova25156897' }) } }
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ value = @([pscustomobject]@{ id = 'fic-synthetic-77777777-7777-7777-7777-777777777777'; name = 'bootstrap-fixturetenant42' }) } }
                     }
                     default {
                         throw "Unexpected Entra URL: $url"
@@ -852,7 +910,7 @@ function Get-AzureDevOpsDiscovery {
 
     It 'default Entra production request bundle uses the derived bootstrap display name during initial discovery' {
         $tenantConfiguration = $script:TenantConfiguration.PSObject.Copy()
-        $tenantConfiguration.NamingRoot = 'cal-hr-agentic-bc8rbt'
+        $tenantConfiguration.NamingRoot = 'syn-hr-agentic-abc123'
         $tenantConfiguration.Components = [pscustomobject]@{}
 
         $result = InModuleScope Caldova.HrFrontier.Bootstrap -Parameters @{
@@ -884,7 +942,7 @@ function Get-AzureDevOpsDiscovery {
 
         $result.Count | Should -Be 1
         foreach ($url in $result) {
-            $url | Should -Match "displayName%20eq%20'?cal-hr-agentic-bc8rbt-github-bootstrap'?$"
+            $url | Should -Match "displayName%20eq%20'?syn-hr-agentic-abc123-github-bootstrap'?$"
         }
     }
 
@@ -914,13 +972,13 @@ function Get-AzureDevOpsDiscovery {
                 $signature = ($ArgumentList -join ' ')
                 switch -Wildcard ($signature) {
                     'account show*' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 'subscription-synthetic-edb45a24-408d-47c4-bbc7-685b9b3fc017'; name = 'Caldova HR Frontier Platform'; tenantId = $TenantConfiguration.TenantId; user = [pscustomobject]@{ type = 'servicePrincipal'; name = 'bootstrap-client-id-0001' } } }
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 'subscription-synthetic-11111111-1111-1111-1111-111111111111'; name = 'Synthetic HR Frontier Platform'; tenantId = $TenantConfiguration.TenantId; user = [pscustomobject]@{ type = 'servicePrincipal'; name = 'bootstrap-client-id-0001' } } }
                     }
                     'graph query*' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @([pscustomobject]@{ id = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/resourceGroups/rg-bootstrap/providers/Microsoft.ManagedIdentity/userAssignedIdentities/bootstrap'; name = 'bootstrap'; type = 'Microsoft.ManagedIdentity/userAssignedIdentities' }) }
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @([pscustomobject]@{ id = '/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-bootstrap/providers/Microsoft.ManagedIdentity/userAssignedIdentities/bootstrap'; name = 'bootstrap'; type = 'Microsoft.ManagedIdentity/userAssignedIdentities' }) }
                     }
                     'role assignment list*' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @([pscustomobject]@{ id = 'role-assignment-synthetic-1'; scope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'; roleDefinitionId = 'role-definition-synthetic-owner' }) }
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @([pscustomobject]@{ id = 'role-assignment-synthetic-1'; scope = '/subscriptions/11111111-1111-1111-1111-111111111111'; roleDefinitionId = 'role-definition-synthetic-owner' }) }
                     }
                     'policy assignment list*' {
                         return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = @([pscustomobject]@{ id = 'policy-assignment-synthetic-1'; name = 'bootstrap-policy' }) }
@@ -965,7 +1023,7 @@ function Get-AzureDevOpsDiscovery {
             'assignment',
             'list',
             '--scope',
-            '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017',
+            '/subscriptions/11111111-1111-1111-1111-111111111111',
             '--output',
             'json'
         )
@@ -1006,16 +1064,16 @@ function Get-AzureDevOpsDiscovery {
                         return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 'ado-user-synthetic'; user = [pscustomobject]@{ descriptor = 'aad.synthetic-descriptor' } } }
                     }
                     'devops project show*' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 'ado-project-synthetic-33333333-3333-3333-3333-333333333333'; name = 'Caldova HR Frontier'; url = 'https://dev.azure.com/caldova25156897/Caldova%20HR%20Frontier' } }
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 'ado-project-synthetic-33333333-3333-3333-3333-333333333333'; name = 'Synthetic HR Frontier'; url = 'https://dev.azure.com/synthetic/Synthetic%20HR%20Frontier' } }
                     }
                     'devops invoke --organization* --area git --resource repositories*' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ count = 1; value = @([pscustomobject]@{ id = 'ado-repo-synthetic-1'; name = 'caldova-hr-frontier'; webUrl = 'https://dev.azure.com/caldova25156897/_git/caldova-hr-frontier' }) } }
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ count = 1; value = @([pscustomobject]@{ id = 'ado-repo-synthetic-1'; name = 'caldova-hr-frontier'; webUrl = 'https://dev.azure.com/synthetic/_git/caldova-hr-frontier' }) } }
                     }
                     'devops invoke --organization* --area serviceendpoint --resource endpoints*' {
                         return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ count = 1; value = @([pscustomobject]@{ id = 'service-endpoint-synthetic-1'; name = 'bootstrap-subscription' }) } }
                     }
                     'devops invoke --organization* --area distributedtask --resource environments*' {
-                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ count = 1; value = @([pscustomobject]@{ id = 'environment-synthetic-1'; name = 'bootstrap-caldova25156897' }) } }
+                        return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ count = 1; value = @([pscustomobject]@{ id = 'environment-synthetic-1'; name = 'bootstrap-fixturetenant42' }) } }
                     }
                     'devops invoke --organization* --area pipelines --resource pipelines*' {
                         return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ count = 1; value = @([pscustomobject]@{ id = 'pipeline-synthetic-1'; name = 'tenant-bootstrap' }) } }
@@ -1051,8 +1109,8 @@ function Get-AzureDevOpsDiscovery {
         $result.Bundle.StatusCode | Should -Be 200
         $signatures = @($result.Calls | ForEach-Object { $_.ArgumentList -join ' ' })
         $signatures.Count | Should -Be 9
-        $result.Calls[0].ArgumentList | Should -Be @('devops', 'user', 'show', '--user', 'admin@Caldova25156897.onmicrosoft.com', '--organization', 'https://dev.azure.com/caldova25156897/', '--output', 'json')
-        $result.Calls[1].ArgumentList | Should -Be @('devops', 'project', 'show', '--project', 'Caldova HR Frontier', '--organization', 'https://dev.azure.com/caldova25156897/', '--output', 'json')
+        $result.Calls[0].ArgumentList | Should -Be @('devops', 'user', 'show', '--user', 'operator@fixture.example', '--organization', 'https://dev.azure.com/synthetic/', '--output', 'json')
+        $result.Calls[1].ArgumentList | Should -Be @('devops', 'project', 'show', '--project', 'Synthetic HR Frontier', '--organization', 'https://dev.azure.com/synthetic/', '--output', 'json')
         ($signatures | Where-Object { $_ -like 'devops invoke --organization* --area git --resource repositories*' }).Count | Should -Be 1
         ($signatures | Where-Object { $_ -like 'devops invoke --organization* --area serviceendpoint --resource endpoints*' }).Count | Should -Be 1
         ($signatures | Where-Object { $_ -like 'devops invoke --organization* --area distributedtask --resource environments*' }).Count | Should -Be 1
@@ -1063,7 +1121,7 @@ function Get-AzureDevOpsDiscovery {
         $permissionCall = @($result.Calls | Where-Object { ($_.ArgumentList -join ' ') -like 'devops security permission list*' })[0]
         $permissionCall.ArgumentList | Should -Be @(
             'devops', 'security', 'permission', 'list',
-            '--organization', 'https://dev.azure.com/caldova25156897/',
+            '--organization', 'https://dev.azure.com/synthetic/',
             '--namespace-id', '52d39943-cb85-4d7f-8fa8-c6baac873819',
             '--subject', 'aad.synthetic-descriptor',
             '--token', '$PROJECT:vstfs:///Classification/TeamProject/ado-project-synthetic-33333333-3333-3333-3333-333333333333',
@@ -1097,7 +1155,7 @@ function Get-AzureDevOpsDiscovery {
                     return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 'ado-user-synthetic'; user = [pscustomobject]@{ descriptor = 'aad.synthetic-descriptor' } } }
                 }
                 if ($signature -like 'devops project show*') {
-                    return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 'ado-project-synthetic'; name = 'Caldova HR Frontier' } }
+                    return [pscustomobject]@{ StatusCode = 200; Headers = @{}; Body = [pscustomobject]@{ id = 'ado-project-synthetic'; name = 'Synthetic HR Frontier' } }
                 }
                 if ($signature -like '*--area git --resource repositories*' -or
                     $signature -like '*--area serviceendpoint --resource endpoints*' -or
@@ -1112,9 +1170,9 @@ function Get-AzureDevOpsDiscovery {
 
             try {
                 $bundle = Invoke-AzureDevOpsDiscoveryRequest -Operation 'DiscoveryBundle' -Arguments @{
-                    OrganizationUrl = 'https://dev.azure.com/caldova25156897/'
-                    ProjectName = 'Caldova HR Frontier'
-                    AdminUpn = 'admin@Caldova25156897.onmicrosoft.com'
+                    OrganizationUrl = 'https://dev.azure.com/synthetic/'
+                    ProjectName = 'Synthetic HR Frontier'
+                    AdminUpn = 'operator@fixture.example'
                 }
 
                 [pscustomobject]@{
@@ -1159,7 +1217,7 @@ function Get-AzureDevOpsDiscovery {
                     use_immutable_subject = $true
                     sub_claim_prefix = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722'
                 }
-                environment = [pscustomobject]@{ name = 'bootstrap-caldova25156897' }
+                environment = [pscustomobject]@{ name = 'bootstrap-fixturetenant42' }
             }
         }
 
@@ -1196,7 +1254,7 @@ function Get-AzureDevOpsDiscovery {
                     use_immutable_subject = $true
                     sub_claim_prefix = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722'
                 }
-                environment = [pscustomobject]@{ name = 'bootstrap-caldova25156897' }
+                environment = [pscustomobject]@{ name = 'bootstrap-fixturetenant42' }
             }
         }
 
@@ -1233,7 +1291,7 @@ function Get-AzureDevOpsDiscovery {
                     use_immutable_subject = $true
                     sub_claim_prefix = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722'
                 }
-                environment = [pscustomobject]@{ name = 'bootstrap-caldova25156897' }
+                environment = [pscustomobject]@{ name = 'bootstrap-fixturetenant42' }
             }
         }
 
@@ -1275,7 +1333,7 @@ function Get-AzureDevOpsDiscovery {
                     use_immutable_subject = $UseImmutable
                     sub_claim_prefix = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722'
                 }
-                environment = [pscustomobject]@{ name = 'bootstrap-caldova25156897' }
+                environment = [pscustomobject]@{ name = 'bootstrap-fixturetenant42' }
             }
         }
 
@@ -1305,21 +1363,21 @@ function Get-AzureDevOpsDiscovery {
                     [pscustomobject]@{
                         id = 'app-synthetic-11111111-1111-1111-1111-111111111111'
                         appId = 'client-synthetic-11111111-1111-1111-1111-111111111111'
-                        displayName = 'Caldova HR Frontier Bootstrap'
+                        displayName = 'Synthetic HR Frontier Bootstrap'
                     }
                 )
                 servicePrincipals = @(
                     [pscustomobject]@{
                         id = 'spn-synthetic-22222222-2222-2222-2222-222222222222'
                         appId = 'client-synthetic-11111111-1111-1111-1111-111111111111'
-                        displayName = 'Caldova HR Frontier Bootstrap'
+                        displayName = 'Synthetic HR Frontier Bootstrap'
                     }
                 )
                 federatedIdentityCredentials = @(
                     [pscustomobject]@{
                         id = 'fic-synthetic-77777777-7777-7777-7777-777777777777'
-                        name = 'bootstrap-caldova25156897'
-                        subject = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-caldova25156897'
+                        name = 'bootstrap-fixturetenant42'
+                        subject = 'repo:urruegg@46865858/caldova-hr-frontier@1371297722:environment:bootstrap-fixturetenant42'
                     }
                 )
             }
@@ -1358,12 +1416,12 @@ function Get-AzureDevOpsDiscovery {
             Headers = @{}
             Body = [ordered]@{
                 subscription = [pscustomobject]@{
-                    id = 'subscription-synthetic-edb45a24-408d-47c4-bbc7-685b9b3fc017'
-                    name = 'Caldova HR Frontier Platform'
+                    id = 'subscription-synthetic-11111111-1111-1111-1111-111111111111'
+                    name = 'Synthetic HR Frontier Platform'
                 }
                 resources = @(
                     [pscustomobject]@{
-                        id = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/resourceGroups/rg-bootstrap/providers/Microsoft.ManagedIdentity/userAssignedIdentities/bootstrap'
+                        id = '/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-bootstrap/providers/Microsoft.ManagedIdentity/userAssignedIdentities/bootstrap'
                         name = 'bootstrap'
                         type = 'Microsoft.ManagedIdentity/userAssignedIdentities'
                     }
@@ -1371,7 +1429,7 @@ function Get-AzureDevOpsDiscovery {
                 roleAssignments = @(
                     [pscustomobject]@{
                         id = 'role-assignment-synthetic-1'
-                        scope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
+                        scope = '/subscriptions/11111111-1111-1111-1111-111111111111'
                         roleDefinitionId = 'role-definition-synthetic-owner'
                     }
                 )
@@ -1423,14 +1481,14 @@ function Get-AzureDevOpsDiscovery {
             Headers = @{}
             Body = [ordered]@{
                 reviewedUser = [pscustomobject]@{ id = 'ado-user-synthetic'; user = [pscustomobject]@{ descriptor = 'aad.synthetic-descriptor' } }
-                project = [pscustomobject]@{ id = 'ado-project-synthetic-33333333-3333-3333-3333-333333333333'; name = 'Caldova HR Frontier'; url = 'https://dev.azure.com/caldova25156897/Caldova%20HR%20Frontier' }
-                repositories = @([pscustomobject]@{ id = 'ado-repo-synthetic-1'; name = 'caldova-hr-frontier'; webUrl = 'https://dev.azure.com/caldova25156897/_git/caldova-hr-frontier' })
+                project = [pscustomobject]@{ id = 'ado-project-synthetic-33333333-3333-3333-3333-333333333333'; name = 'Synthetic HR Frontier'; url = 'https://dev.azure.com/synthetic/Synthetic%20HR%20Frontier' }
+                repositories = @([pscustomobject]@{ id = 'ado-repo-synthetic-1'; name = 'caldova-hr-frontier'; webUrl = 'https://dev.azure.com/synthetic/_git/caldova-hr-frontier' })
                 serviceEndpoints = @([pscustomobject]@{ id = 'service-endpoint-synthetic-1'; name = 'bootstrap-subscription' })
-                environments = @([pscustomobject]@{ id = 'environment-synthetic-1'; name = 'bootstrap-caldova25156897' })
+                environments = @([pscustomobject]@{ id = 'environment-synthetic-1'; name = 'bootstrap-fixturetenant42' })
                 pipelines = @([pscustomobject]@{ id = 'pipeline-synthetic-1'; name = 'tenant-bootstrap' })
                 checks = @([pscustomobject]@{ id = 'check-synthetic-1'; name = 'required-approval' })
                 effectivePermissions = @([pscustomobject]@{ id = 'permission-synthetic-1'; name = 'Project Administrators' })
-                projectUrl = 'https://dev.azure.com/caldova25156897/Caldova%20HR%20Frontier'
+                projectUrl = 'https://dev.azure.com/synthetic/Synthetic%20HR%20Frontier'
             }
         }
 
@@ -1464,19 +1522,19 @@ function Get-AzureDevOpsDiscovery {
             Headers = @{}
             Body = [ordered]@{
                 reviewedUser = [pscustomobject]@{ id = 'ado-user-synthetic'; user = [pscustomobject]@{ descriptor = 'aad.synthetic-descriptor' } }
-                project = [pscustomobject]@{ id = 'ado-project-synthetic-33333333-3333-3333-3333-333333333333'; name = 'Caldova HR Frontier'; url = 'https://dev.azure.com/caldova25156897/Caldova%20HR%20Frontier' }
+                project = [pscustomobject]@{ id = 'ado-project-synthetic-33333333-3333-3333-3333-333333333333'; name = 'Synthetic HR Frontier'; url = 'https://dev.azure.com/synthetic/Synthetic%20HR%20Frontier' }
                 repositories = @(
-                    [pscustomobject]@{ id = 'ado-repo-populated'; name = 'caldova-hr-frontier-config'; webUrl = 'https://dev.azure.com/caldova25156897/_git/caldova-hr-frontier-config'; size = 4096; defaultBranch = 'refs/heads/main' },
-                    [pscustomobject]@{ id = 'ado-repo-empty'; name = 'Caldova HR Frontier'; webUrl = 'https://dev.azure.com/caldova25156897/_git/Caldova%20HR%20Frontier'; size = 0 },
-                    [pscustomobject]@{ id = 'ado-repo-omitted'; name = 'omitted-fields-repo'; webUrl = 'https://dev.azure.com/caldova25156897/_git/omitted-fields-repo' },
-                    [pscustomobject]@{ id = 'ado-repo-oversized'; name = 'oversized-repo'; webUrl = 'https://dev.azure.com/caldova25156897/_git/oversized-repo'; size = 5000000000; defaultBranch = 'refs/heads/main' }
+                    [pscustomobject]@{ id = 'ado-repo-populated'; name = 'caldova-hr-frontier-config'; webUrl = 'https://dev.azure.com/synthetic/_git/caldova-hr-frontier-config'; size = 4096; defaultBranch = 'refs/heads/main' },
+                    [pscustomobject]@{ id = 'ado-repo-empty'; name = 'Synthetic HR Frontier'; webUrl = 'https://dev.azure.com/synthetic/_git/Synthetic%20HR%20Frontier'; size = 0 },
+                    [pscustomobject]@{ id = 'ado-repo-omitted'; name = 'omitted-fields-repo'; webUrl = 'https://dev.azure.com/synthetic/_git/omitted-fields-repo' },
+                    [pscustomobject]@{ id = 'ado-repo-oversized'; name = 'oversized-repo'; webUrl = 'https://dev.azure.com/synthetic/_git/oversized-repo'; size = 5000000000; defaultBranch = 'refs/heads/main' }
                 )
                 serviceEndpoints = @()
                 environments = @()
                 pipelines = @()
                 checks = @()
                 effectivePermissions = @()
-                projectUrl = 'https://dev.azure.com/caldova25156897/Caldova%20HR%20Frontier'
+                projectUrl = 'https://dev.azure.com/synthetic/Synthetic%20HR%20Frontier'
             }
         }
 
@@ -1640,7 +1698,7 @@ function Get-AzureDevOpsDiscovery {
             param($RepoRoot, $ProbePath, $OutputPath, $NativeLogPath)
             [System.IO.File]::WriteAllText($ProbePath, ((New-ProbeRecords) | ConvertTo-Json -Depth 10), [System.Text.UTF8Encoding]::new($false))
             $baseline = New-BaselineEvidence
-            [System.IO.File]::WriteAllText((Join-Path $RepoRoot 'infra\evidence\discovery\caldova25156897.json'), ($baseline | ConvertTo-Json -Depth 20), [System.Text.UTF8Encoding]::new($false))
+            [System.IO.File]::WriteAllText((Join-Path $RepoRoot 'infra\evidence\discovery\fixturetenant42.json'), ($baseline | ConvertTo-Json -Depth 20), [System.Text.UTF8Encoding]::new($false))
             $account = [pscustomobject]@{
                 tenantId = $script:TenantConfiguration.TenantId
                 id = $script:TenantConfiguration.SubscriptionId
@@ -1684,11 +1742,11 @@ function Get-AzureDevOpsDiscovery {
             AZURE_CLIENT_ID = 'bootstrap-client-id-0001'
             AZURE_TENANT_ID = $script:TenantConfiguration.TenantId
             AZURE_SUBSCRIPTION_ID = $script:TenantConfiguration.SubscriptionId
-        } -ExtraArguments @('-OutputPath', (Join-Path $script:RepositoryRoot 'forbidden-output.json')) -BeforeRun {
+        } -ExtraArguments @('-OutputPath', '__REPOSITORY_OUTPUT__') -BeforeRun {
             param($RepoRoot, $ProbePath, $OutputPath, $NativeLogPath)
             [System.IO.File]::WriteAllText($ProbePath, ((New-ProbeRecords) | ConvertTo-Json -Depth 10), [System.Text.UTF8Encoding]::new($false))
             $baseline = New-BaselineEvidence
-            [System.IO.File]::WriteAllText((Join-Path $RepoRoot 'infra\evidence\discovery\caldova25156897.json'), ($baseline | ConvertTo-Json -Depth 20), [System.Text.UTF8Encoding]::new($false))
+            [System.IO.File]::WriteAllText((Join-Path $RepoRoot 'infra\evidence\discovery\fixturetenant42.json'), ($baseline | ConvertTo-Json -Depth 20), [System.Text.UTF8Encoding]::new($false))
             $account = [pscustomobject]@{
                 tenantId = $script:TenantConfiguration.TenantId
                 id = $script:TenantConfiguration.SubscriptionId
@@ -1701,7 +1759,7 @@ function Get-AzureDevOpsDiscovery {
         }
 
         $unsafeOutput.ExitCode | Should -Not -Be 0
-        $unsafeOutput.StdErr | Should -Match 'temporary directory'
+        $unsafeOutput.StdErr | Should -Match 'outside the repository'
 
         $overwriteRefused = Invoke-DiscoveryEntryPointIsolated -Environment @{
             AZURE_CLIENT_ID = 'bootstrap-client-id-0001'
@@ -1711,7 +1769,7 @@ function Get-AzureDevOpsDiscovery {
             param($RepoRoot, $ProbePath, $OutputPath, $NativeLogPath)
             [System.IO.File]::WriteAllText($ProbePath, ((New-ProbeRecords) | ConvertTo-Json -Depth 10), [System.Text.UTF8Encoding]::new($false))
             $baseline = New-BaselineEvidence
-            [System.IO.File]::WriteAllText((Join-Path $RepoRoot 'infra\evidence\discovery\caldova25156897.json'), ($baseline | ConvertTo-Json -Depth 20), [System.Text.UTF8Encoding]::new($false))
+            [System.IO.File]::WriteAllText((Join-Path $RepoRoot 'infra\evidence\discovery\fixturetenant42.json'), ($baseline | ConvertTo-Json -Depth 20), [System.Text.UTF8Encoding]::new($false))
             [System.IO.File]::WriteAllText($OutputPath, '{"existing":true}', [System.Text.UTF8Encoding]::new($false))
             $account = [pscustomobject]@{
                 tenantId = $script:TenantConfiguration.TenantId
@@ -1735,7 +1793,7 @@ function Get-AzureDevOpsDiscovery {
             param($RepoRoot, $ProbePath, $OutputPath, $NativeLogPath)
             [System.IO.File]::WriteAllText($ProbePath, ((New-ProbeRecords) | ConvertTo-Json -Depth 10), [System.Text.UTF8Encoding]::new($false))
             $baseline = New-BaselineEvidence
-            [System.IO.File]::WriteAllText((Join-Path $RepoRoot 'infra\evidence\discovery\caldova25156897.json'), ($baseline | ConvertTo-Json -Depth 20), [System.Text.UTF8Encoding]::new($false))
+            [System.IO.File]::WriteAllText((Join-Path $RepoRoot 'infra\evidence\discovery\fixturetenant42.json'), ($baseline | ConvertTo-Json -Depth 20), [System.Text.UTF8Encoding]::new($false))
             [System.IO.File]::WriteAllText($OutputPath, '{"existing":true}', [System.Text.UTF8Encoding]::new($false))
             $account = [pscustomobject]@{
                 tenantId = $script:TenantConfiguration.TenantId
@@ -1786,7 +1844,7 @@ function Get-AzureDevOpsDiscovery {
                         id = $script:TenantConfiguration.SubscriptionId
                         user = [pscustomobject]@{
                             type = 'user'
-                            name = 'admin@caldova25156897.onmicrosoft.com'
+                            name = 'operator@fixture.example'
                         }
                     }
                 }
@@ -1794,7 +1852,7 @@ function Get-AzureDevOpsDiscovery {
                 if (($ArgumentList -join ' ') -eq 'ad signed-in-user show --output json') {
                     return [pscustomobject]@{
                         id = '99999999-9999-9999-9999-999999999999'
-                        userPrincipalName = 'admin@caldova25156897.onmicrosoft.com'
+                        userPrincipalName = 'operator@fixture.example'
                     }
                 }
 
@@ -1805,12 +1863,34 @@ function Get-AzureDevOpsDiscovery {
 
             $principal.Type | Should -Be 'User'
             $principal.Id | Should -Be '99999999-9999-9999-9999-999999999999'
-            $principal.Upn | Should -Be 'admin@caldova25156897.onmicrosoft.com'
+            $principal.Upn | Should -Be 'operator@fixture.example'
             $script:InteractiveAzCalls | Should -HaveCount 2
             $script:InteractiveAzCalls[1] | Should -Be @('ad', 'signed-in-user', 'show', '--output', 'json')
         }
         finally {
             $global:LASTEXITCODE = $previousExitCode
         }
+    }
+
+    It 'requires the public tenant key local configuration and external discovery output' {
+        $tokens = $null
+        $parseErrors = $null
+        $entryPointAst = [System.Management.Automation.Language.Parser]::ParseFile($script:DiscoveryEntryPointPath, [ref]$tokens, [ref]$parseErrors)
+        $parseErrors.Count | Should -Be 0
+
+        $parameters = @{}
+        foreach ($parameter in $entryPointAst.ParamBlock.Parameters) {
+            $parameters[$parameter.Name.VariablePath.UserPath] = $parameter
+        }
+
+        foreach ($name in @('PublicTenantKey', 'TenantConfigurationPath', 'OutputPath')) {
+            $parameters.ContainsKey($name) | Should -BeTrue
+            @($parameters[$name].Attributes | Where-Object {
+                $_ -is [System.Management.Automation.Language.AttributeAst] -and
+                $_.TypeName.FullName -ceq 'Parameter' -and
+                $_.NamedArguments.ArgumentName -contains 'Mandatory'
+            }).Count | Should -Be 1
+        }
+        $parameters.ContainsKey('TenantAlias') | Should -BeFalse
     }
 }

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-27 |
+| **Version** | 1.2 |
+| **Date** | 2026-09-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure (all tenants) |
@@ -67,7 +67,7 @@ This runbook is the end-to-end procedure a new tenant owner follows to turn a co
    gh api orgs/<your-organization> --jq '.id'
    ```
 
-   Paste those values into the manifest's `GitHub.RepositoryId` and `GitHub.OwnerId` fields by hand. `GitHub.OwnerId` matters as much as the other three GitHub fields: it feeds the federated-credential subject computed by [`Get-GitHubOidcSubject.ps1`](../src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Get-GitHubOidcSubject.ps1), and `Initialize-TenantTrust.ps1` throws on a mismatch -- an unset or stale `OwnerId` will surface as a trust-activation failure, not a manifest-validation one. Correct all four GitHub fields (`Owner`, `OwnerId`, `Repository`, `RepositoryId`) together, then re-run the Tenant 1 Blueprint Verification suite's pattern against your own manifest and evidence once your own discovery evidence exists (produced by attended tenant discovery per [`infra/docs/17-bootstrap-and-provisioning.md`](./17-bootstrap-and-provisioning.md) -- not a step in this runbook).
+   Paste those values into the manifest's `GitHub.RepositoryId` and `GitHub.OwnerId` fields by hand. Correct all four GitHub fields (`Owner`, `OwnerId`, `Repository`, `RepositoryId`) together, then re-run the Tenant 1 Blueprint Verification suite's pattern against your own manifest and evidence once your own discovery evidence exists (produced by attended tenant discovery per [`infra/docs/17-bootstrap-and-provisioning.md`](./17-bootstrap-and-provisioning.md) -- not a step in this runbook). Trust activation is superseded and is not a handover prerequisite; any future delivery identity requires a new reviewed design.
 
    Commit this correction as its own commit, separate from the clean-up commit:
 
@@ -106,7 +106,7 @@ This runbook is the end-to-end procedure a new tenant owner follows to turn a co
 | Not covered here | Where it lives instead |
 |---|---|
 | Removing other tenants' configuration and evidence | [Repository Clean-Up Runbook](./22-repository-cleanup-runbook.md) -- referenced as Step 3 above, not duplicated |
-| Activating your tenant's trust (Entra Application, Service Principal, Federated Identity Credential) | [Tenant Trust Activation Runbook](./20-tenant-trust-activation-runbook.md) |
+| A delivery identity or trust activation | Deferred; requires a new reviewed design. The [Tenant Trust Activation Runbook](./20-tenant-trust-activation-runbook.md) is only a superseded stop notice. |
 | Populating your tenant's Azure Boards with HR use-case Epics | [Azure Boards Population Runbook](./21-azure-boards-population-runbook.md) |
 | Choosing your account type (personal vs. GitHub Organization) | [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md) -- must already be decided before Step 1 |
 

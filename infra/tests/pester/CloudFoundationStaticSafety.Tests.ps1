@@ -15,18 +15,6 @@ Describe 'Cloud foundation static safety' {
             @($segments | Where-Object { $_ -ceq 'PAT' -or $_ -ieq 'Pat' }).Count -gt 0
         }
 
-        function Resolve-StaticTestGitPath {
-            $candidates = @(
-                (Join-Path $env:ProgramFiles 'Git\cmd\git.exe'),
-                (Join-Path $env:LOCALAPPDATA 'Programs\Git\cmd\git.exe')
-            )
-            $resolved = @($candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf })
-            if ($resolved.Count -eq 0) {
-                throw 'Git application was not found at an approved absolute installation path.'
-            }
-            [IO.Path]::GetFullPath($resolved[0])
-        }
-
         $script:RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
         $script:CloudFiles = @(
             'infra\src\scripts\runbooks\Get-CloudFoundationPlan.ps1',
@@ -79,10 +67,21 @@ Describe 'Cloud foundation static safety' {
             $relative = $relativeBase.MakeRelativeUri($relativePath).ToString()
             $relative | Should -Not -Match '^(?i)\.github/workflows/'
         }
-        $git=Resolve-StaticTestGitPath
-        [IO.Path]::IsPathRooted($git) | Should -BeTrue
-        $changed=@(& $git -C $script:RepositoryRoot diff --name-only --diff-filter=ACDMRTUXB HEAD~5..HEAD)
-        @($changed | Where-Object { $_ -match '^(?i)\.github/workflows/' }).Count | Should -Be 0
+        $git = (Get-Command git.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+        $baseRef = if ([string]::IsNullOrWhiteSpace($env:GITHUB_BASE_REF)) { 'origin/main' } else { "origin/$env:GITHUB_BASE_REF" }
+        $mergeBase = (& $git -C $script:RepositoryRoot merge-base $baseRef HEAD).Trim()
+        if ($LASTEXITCODE -ne 0 -or $mergeBase -cnotmatch '^[0-9a-f]{40}$') {
+            throw 'Cannot resolve cloud-safety merge base.'
+        }
+        $changed = @(& $git -C $script:RepositoryRoot diff --name-only --diff-filter=ACDMRTUXB "$mergeBase...HEAD")
+        foreach ($workflowPath in @($changed | Where-Object { $_ -match '^(?i)\.github/workflows/.+\.ya?ml$' })) {
+            $absoluteWorkflowPath = Join-Path $script:RepositoryRoot $workflowPath
+            if (-not (Test-Path -LiteralPath $absoluteWorkflowPath -PathType Leaf)) {
+                continue
+            }
+            $content = Get-Content -Raw -LiteralPath $absoluteWorkflowPath
+            $content | Should -Not -Match 'Get-CloudFoundationPlan|Invoke-CloudFoundation' -Because $workflowPath
+        }
     }
 
     It 'contains no prohibited executable cloud operation' {
@@ -109,18 +108,7 @@ Describe 'Cloud foundation static safety' {
         $resolver | Should -Match 'Get-FileHash -LiteralPath'
     }
 
-    It 'binds Apply to current manifest fields and revalidates tools before each mutation' {
-        $apply=Get-Content -Raw (Join-Path $script:RepositoryRoot 'infra\src\scripts\runbooks\Invoke-CloudFoundation.ps1')
-        $apply | Should -Match 'CurrentSourceCommit'
-        $apply | Should -Match 'CurrentAssessmentDigest'
-        $apply | Should -Match 'CurrentAuthenticationContext'
-        $apply | Should -Not -Match 'Expected(SourceCommit|AssessmentDigest|Authentication)'
-        ([regex]::Matches($apply,'Assert-ApprovedCloudToolResolutions')).Count | Should -BeGreaterOrEqual 3
-        ([regex]::Matches($apply,'Test-CloudDelegatedContext')).Count | Should -BeGreaterOrEqual 3
-        $apply | Should -Match '\$PSCmdlet\.ShouldProcess'
-    }
-
-    It 'limits mutations to local gh api, exact Azure deployment, Entra metadata, and project create' {
+    It 'keeps dormant provider modules bounded for compatibility' {
         $github=Get-Content -Raw (Join-Path $script:RepositoryRoot 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Private\Invoke-GitHubFoundationMutation.ps1')
         $github | Should -Match "'api','--method'"
         $github | Should -Match "'PATCH'"
@@ -137,6 +125,17 @@ Describe 'Cloud foundation static safety' {
         $ado | Should -Not -Match "'devops','project','update'"
     }
 
+    It 'requires an injected validator without binding the retired active validator signature' {
+        foreach ($relativePath in @(
+            'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Public\Get-CloudFoundationAssessment.ps1',
+            'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Private\Invoke-AzureFoundationMutation.ps1'
+        )) {
+            $content = Get-Content -Raw -LiteralPath (Join-Path $script:RepositoryRoot $relativePath)
+            $content | Should -Not -Match 'Test-WhatIfBoundary|ExpectedPrincipalObjectId'
+            $content | Should -Match 'Dormant cloud compatibility requires an explicitly injected WhatIfValidator'
+        }
+    }
+
     It 'keeps planning manual records on the exact closed six-field contract' {
         $fixture=Get-Content -Raw (Join-Path $script:RepositoryRoot 'infra\tests\fixtures\runbooks\cloud-assessment.json') | ConvertFrom-Json
         foreach($item in $fixture.manualItems) {
@@ -145,8 +144,8 @@ Describe 'Cloud foundation static safety' {
         }
     }
 
-    It 'links the cloud service foundation runbook from the infrastructure map' {
+    It 'labels the cloud service foundation runbook as a superseded stop notice' {
         $content = Get-Content -Raw (Join-Path $script:RepositoryRoot 'infra\README.md')
-        $content | Should -Match '\[Cloud Service Foundation Runbook\]\(docs/runbooks/02-cloud-service-foundation\.md\)'
+        $content | Should -Match '\[Cloud Service Foundation Runbook\]\(docs/runbooks/02-cloud-service-foundation\.md\).+Superseded stop notice'
     }
 }

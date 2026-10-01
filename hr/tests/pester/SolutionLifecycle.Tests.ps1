@@ -1,9 +1,24 @@
 Set-StrictMode -Version Latest
 
+Describe 'Solution lifecycle fixture safety' {
+    It 'does not contain removed public Tenant 1 identifiers' {
+        $content = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'SolutionLifecycle.Tests.ps1')
+        $forbidden = @(
+            ('caldova' + '25156897'),
+            ('hrfrontier' + 'dev.crm17.dynamics.com'),
+            ('hrfrontier' + 'test.crm17.dynamics.com'),
+            ('hrfrontier' + '.crm17.dynamics.com')
+        )
+
+        foreach ($value in $forbidden) {
+            $content | Should -Not -Match ([regex]::Escape($value))
+        }
+    }
+}
+
 Describe 'Get-HrTenantPowerPlatformUrl' {
     BeforeAll {
         $script:ModuleManifestPath = Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Solutions\Caldova.HrFrontier.Solutions.psd1'
-        $script:RealTenantManifestPath = Join-Path $PSScriptRoot '..\..\..\infra\src\config\tenants\caldova25156897.psd1'
         Import-Module $script:ModuleManifestPath -Force
 
         function script:New-FixtureManifest {
@@ -13,20 +28,31 @@ Describe 'Get-HrTenantPowerPlatformUrl' {
             [System.IO.File]::WriteAllText($path, $Content, [System.Text.UTF8Encoding]::new($false))
             $path
         }
+
+        $script:TenantManifestPath = New-FixtureManifest -Content @'
+@{
+    TenantAlias = 'fixturetenant42'
+    PowerPlatform = @{
+        DevUrl = 'https://fixture-dev.example.test/'
+        TestUrl = 'https://fixture-test.example.test/'
+        ProdUrl = 'https://fixture-prod.example.test/'
+    }
+}
+'@
     }
 
-    It 'resolves the Dev, Test, and Prod URLs from the real Tenant 1 manifest' {
-        (Get-HrTenantPowerPlatformUrl -TenantAlias 'caldova25156897' -Stage 'Dev' -TenantConfigurationPath $script:RealTenantManifestPath) |
-            Should -Be 'https://hrfrontierdev.crm17.dynamics.com/'
-        (Get-HrTenantPowerPlatformUrl -TenantAlias 'caldova25156897' -Stage 'Test' -TenantConfigurationPath $script:RealTenantManifestPath) |
-            Should -Be 'https://hrfrontiertest.crm17.dynamics.com/'
-        (Get-HrTenantPowerPlatformUrl -TenantAlias 'caldova25156897' -Stage 'Prod' -TenantConfigurationPath $script:RealTenantManifestPath) |
-            Should -Be 'https://hrfrontier.crm17.dynamics.com/'
+    It 'resolves the Dev, Test, and Prod URLs from an explicit tenant manifest' {
+        (Get-HrTenantPowerPlatformUrl -TenantAlias 'fixturetenant42' -Stage 'Dev' -TenantConfigurationPath $script:TenantManifestPath) |
+            Should -Be 'https://fixture-dev.example.test/'
+        (Get-HrTenantPowerPlatformUrl -TenantAlias 'fixturetenant42' -Stage 'Test' -TenantConfigurationPath $script:TenantManifestPath) |
+            Should -Be 'https://fixture-test.example.test/'
+        (Get-HrTenantPowerPlatformUrl -TenantAlias 'fixturetenant42' -Stage 'Prod' -TenantConfigurationPath $script:TenantManifestPath) |
+            Should -Be 'https://fixture-prod.example.test/'
     }
 
-    It 'resolves the default manifest path from TenantAlias when no path is given' {
-        (Get-HrTenantPowerPlatformUrl -TenantAlias 'caldova25156897' -Stage 'Dev') |
-            Should -Be 'https://hrfrontierdev.crm17.dynamics.com/'
+    It 'requires an explicit path after the public Tenant 1 manifest is removed' {
+        { Get-HrTenantPowerPlatformUrl -TenantAlias 'fixturetenant42' -Stage 'Dev' } |
+            Should -Throw '*Tenant manifest not found*'
     }
 
     It 'throws a clear error when the tenant manifest does not exist' {
@@ -46,15 +72,25 @@ Describe 'Get-HrTenantPowerPlatformUrl' {
     }
 
     It 'rejects an invalid Stage' {
-        { Get-HrTenantPowerPlatformUrl -TenantAlias 'caldova25156897' -Stage 'Staging' } | Should -Throw
+        { Get-HrTenantPowerPlatformUrl -TenantAlias 'fixturetenant42' -Stage 'Staging' } | Should -Throw
     }
 }
 
 Describe 'Connect-HrPowerPlatformEnvironment' {
     BeforeAll {
         $script:ModuleManifestPath = Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Solutions\Caldova.HrFrontier.Solutions.psd1'
-        $script:RealTenantManifestPath = Join-Path $PSScriptRoot '..\..\..\infra\src\config\tenants\caldova25156897.psd1'
         Import-Module $script:ModuleManifestPath -Force
+        $script:TenantManifestPath = Join-Path $TestDrive 'tenant.psd1'
+        [System.IO.File]::WriteAllText($script:TenantManifestPath, @'
+@{
+    TenantAlias = 'fixturetenant42'
+    PowerPlatform = @{
+        DevUrl = 'https://fixture-dev.example.test/'
+        TestUrl = 'https://fixture-test.example.test/'
+        ProdUrl = 'https://fixture-prod.example.test/'
+    }
+}
+'@, [System.Text.UTF8Encoding]::new($false))
 
         function script:New-FakeNativeRunner {
             param(
@@ -91,7 +127,7 @@ Describe 'Connect-HrPowerPlatformEnvironment' {
 
         $script:ExistingProfileAuthList = @'
 Index Active Kind      Name                    User                                  Cloud  Type Environment Environment Url
-[1]          UNIVERSAL hr-caldova25156897-dev admin@caldova25156897.onmicrosoft.com Public User
+[1]          UNIVERSAL hr-fixturetenant42-dev operator@fixture.example Public User
 '@
 
         $script:EmptyAuthList = @'
@@ -104,36 +140,36 @@ Index Active Kind      Name         User                                  Cloud 
         $calls = [System.Collections.Generic.List[object]]::new()
         $runner = New-FakeNativeRunner -Calls $calls -Responses @{
             'auth list' = [pscustomobject]@{ ExitCode = 0; StdOut = $script:ExistingProfileAuthList; StdErr = '' }
-            'auth select --name hr-caldova25156897-dev' = [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' }
-            "org who --environment https://hrfrontierdev.crm17.dynamics.com/" = [pscustomobject]@{ ExitCode = 0; StdOut = 'Connected'; StdErr = '' }
+            'auth select --name hr-fixturetenant42-dev' = [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' }
+            "org who --environment https://fixture-dev.example.test/" = [pscustomobject]@{ ExitCode = 0; StdOut = 'Connected'; StdErr = '' }
         }
 
-        $result = Connect-HrPowerPlatformEnvironment -TenantAlias 'caldova25156897' -Stage 'Dev' -TenantConfigurationPath $script:RealTenantManifestPath -NativeCommandRunner $runner
+        $result = Connect-HrPowerPlatformEnvironment -TenantAlias 'fixturetenant42' -Stage 'Dev' -TenantConfigurationPath $script:TenantManifestPath -NativeCommandRunner $runner
 
-        $result.EnvironmentUrl | Should -Be 'https://hrfrontierdev.crm17.dynamics.com/'
-        $result.ProfileName | Should -Be 'hr-caldova25156897-dev'
+        $result.EnvironmentUrl | Should -Be 'https://fixture-dev.example.test/'
+        $result.ProfileName | Should -Be 'hr-fixturetenant42-dev'
         @($calls | Where-Object { $_.ArgumentList -join ' ' -like 'auth create*' }).Count | Should -Be 0
-        @($calls | Where-Object { $_.ArgumentList -join ' ' -eq 'auth select --name hr-caldova25156897-dev' }).Count | Should -Be 1
+        @($calls | Where-Object { $_.ArgumentList -join ' ' -eq 'auth select --name hr-fixturetenant42-dev' }).Count | Should -Be 1
     }
 
     It 'creates a new profile when none matches' {
         $calls = [System.Collections.Generic.List[object]]::new()
         $runner = New-FakeNativeRunner -Calls $calls -Responses @{
             'auth list' = [pscustomobject]@{ ExitCode = 0; StdOut = $script:EmptyAuthList; StdErr = '' }
-            'auth create --name hr-caldova25156897-dev --environment https://hrfrontierdev.crm17.dynamics.com/' = [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' }
-            "org who --environment https://hrfrontierdev.crm17.dynamics.com/" = [pscustomobject]@{ ExitCode = 0; StdOut = 'Connected'; StdErr = '' }
+            'auth create --name hr-fixturetenant42-dev --environment https://fixture-dev.example.test/' = [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' }
+            "org who --environment https://fixture-dev.example.test/" = [pscustomobject]@{ ExitCode = 0; StdOut = 'Connected'; StdErr = '' }
         }
 
-        $result = Connect-HrPowerPlatformEnvironment -TenantAlias 'caldova25156897' -Stage 'Dev' -TenantConfigurationPath $script:RealTenantManifestPath -NativeCommandRunner $runner
+        $result = Connect-HrPowerPlatformEnvironment -TenantAlias 'fixturetenant42' -Stage 'Dev' -TenantConfigurationPath $script:TenantManifestPath -NativeCommandRunner $runner
 
-        $result.ProfileName | Should -Be 'hr-caldova25156897-dev'
-        @($calls | Where-Object { $_.ArgumentList -join ' ' -eq 'auth create --name hr-caldova25156897-dev --environment https://hrfrontierdev.crm17.dynamics.com/' }).Count | Should -Be 1
+        $result.ProfileName | Should -Be 'hr-fixturetenant42-dev'
+        @($calls | Where-Object { $_.ArgumentList -join ' ' -eq 'auth create --name hr-fixturetenant42-dev --environment https://fixture-dev.example.test/' }).Count | Should -Be 1
     }
 
     It 'throws when the computed profile name would exceed 30 characters' {
         $runner = New-FakeNativeRunner -Calls ([System.Collections.Generic.List[object]]::new()) -Responses @{}
 
-        { Connect-HrPowerPlatformEnvironment -TenantAlias 'aterriblylongtenantaliasname' -Stage 'Dev' -TenantConfigurationPath $script:RealTenantManifestPath -NativeCommandRunner $runner } |
+        { Connect-HrPowerPlatformEnvironment -TenantAlias 'aterriblylongtenantaliasname' -Stage 'Dev' -TenantConfigurationPath $script:TenantManifestPath -NativeCommandRunner $runner } |
             Should -Throw '*exceeds the 30-character limit*'
     }
 
@@ -142,7 +178,7 @@ Index Active Kind      Name         User                                  Cloud 
             'auth list' = [pscustomobject]@{ ExitCode = 1; StdOut = ''; StdErr = 'boom' }
         }
 
-        { Connect-HrPowerPlatformEnvironment -TenantAlias 'caldova25156897' -Stage 'Dev' -TenantConfigurationPath $script:RealTenantManifestPath -NativeCommandRunner $runner } |
+        { Connect-HrPowerPlatformEnvironment -TenantAlias 'fixturetenant42' -Stage 'Dev' -TenantConfigurationPath $script:TenantManifestPath -NativeCommandRunner $runner } |
             Should -Throw '*pac auth list failed*'
     }
 
@@ -150,11 +186,11 @@ Index Active Kind      Name         User                                  Cloud 
         $calls = [System.Collections.Generic.List[object]]::new()
         $runner = New-FakeNativeRunner -Calls $calls -Responses @{
             'auth list' = [pscustomobject]@{ ExitCode = 0; StdOut = $script:ExistingProfileAuthList; StdErr = '' }
-            'auth select --name hr-caldova25156897-dev' = [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' }
-            "org who --environment https://hrfrontierdev.crm17.dynamics.com/" = [pscustomobject]@{ ExitCode = 1; StdOut = ''; StdErr = 'not connected' }
+            'auth select --name hr-fixturetenant42-dev' = [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' }
+            "org who --environment https://fixture-dev.example.test/" = [pscustomobject]@{ ExitCode = 1; StdOut = ''; StdErr = 'not connected' }
         }
 
-        { Connect-HrPowerPlatformEnvironment -TenantAlias 'caldova25156897' -Stage 'Dev' -TenantConfigurationPath $script:RealTenantManifestPath -NativeCommandRunner $runner } |
+        { Connect-HrPowerPlatformEnvironment -TenantAlias 'fixturetenant42' -Stage 'Dev' -TenantConfigurationPath $script:TenantManifestPath -NativeCommandRunner $runner } |
             Should -Throw '*pac org who failed*'
     }
 }
@@ -162,8 +198,18 @@ Index Active Kind      Name         User                                  Cloud 
 Describe 'Export-HrSolutionPackage' {
     BeforeAll {
         $script:ModuleManifestPath = Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Solutions\Caldova.HrFrontier.Solutions.psd1'
-        $script:RealTenantManifestPath = Join-Path $PSScriptRoot '..\..\..\infra\src\config\tenants\caldova25156897.psd1'
         Import-Module $script:ModuleManifestPath -Force
+        $script:TenantManifestPath = Join-Path $TestDrive 'tenant.psd1'
+        [System.IO.File]::WriteAllText($script:TenantManifestPath, @'
+@{
+    TenantAlias = 'fixturetenant42'
+    PowerPlatform = @{
+        DevUrl = 'https://fixture-dev.example.test/'
+        TestUrl = 'https://fixture-test.example.test/'
+        ProdUrl = 'https://fixture-prod.example.test/'
+    }
+}
+'@, [System.Text.UTF8Encoding]::new($false))
 
         function script:New-ExportFakeRunner {
             param([System.Collections.Generic.List[object]]$Calls)
@@ -180,12 +226,12 @@ Describe 'Export-HrSolutionPackage' {
                 $Calls.Add([pscustomobject]@{ FilePath = $FilePath; ArgumentList = @($ArgumentList) }) | Out-Null
                 $joined = $ArgumentList -join ' '
                 if ($joined -eq 'auth list') {
-                    return [pscustomobject]@{ ExitCode = 0; StdOut = "Index Active Kind Name User Cloud Type`n[1] * UNIVERSAL hr-caldova25156897-dev admin@x Public User"; StdErr = '' }
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = "Index Active Kind Name User Cloud Type`n[1] * UNIVERSAL hr-fixturetenant42-dev operator@fixture.example Public User"; StdErr = '' }
                 }
-                if ($joined -eq 'auth select --name hr-caldova25156897-dev') {
+                if ($joined -eq 'auth select --name hr-fixturetenant42-dev') {
                     return [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' }
                 }
-                if ($joined -eq 'org who --environment https://hrfrontierdev.crm17.dynamics.com/') {
+                if ($joined -eq 'org who --environment https://fixture-dev.example.test/') {
                     return [pscustomobject]@{ ExitCode = 0; StdOut = 'Connected'; StdErr = '' }
                 }
                 if ($FilePath -eq 'pac' -and $ArgumentList[0] -eq 'solution' -and $ArgumentList[1] -eq 'export') {
@@ -204,14 +250,14 @@ Describe 'Export-HrSolutionPackage' {
         $calls = [System.Collections.Generic.List[object]]::new()
         $runner = New-ExportFakeRunner -Calls $calls
 
-        $result = Export-HrSolutionPackage -TenantAlias 'caldova25156897' -SolutionUniqueName 'caldovahrfrontier' -DestinationPath $destination -TenantConfigurationPath $script:RealTenantManifestPath -NativeCommandRunner $runner
+        $result = Export-HrSolutionPackage -TenantAlias 'fixturetenant42' -SolutionUniqueName 'caldovahrfrontier' -DestinationPath $destination -TenantConfigurationPath $script:TenantManifestPath -NativeCommandRunner $runner
 
-        $result.EnvironmentUrl | Should -Be 'https://hrfrontierdev.crm17.dynamics.com/'
+        $result.EnvironmentUrl | Should -Be 'https://fixture-dev.example.test/'
         $result.SolutionUniqueName | Should -Be 'caldovahrfrontier'
         Test-Path -LiteralPath $result.Path | Should -BeTrue
 
         $exportCall = $calls | Where-Object { $_.ArgumentList[0] -eq 'solution' -and $_.ArgumentList[1] -eq 'export' }
-        $exportCall.ArgumentList -join ' ' | Should -Be "solution export --name caldovahrfrontier --path $destination --managed false --overwrite true --environment https://hrfrontierdev.crm17.dynamics.com/"
+        $exportCall.ArgumentList -join ' ' | Should -Be "solution export --name caldovahrfrontier --path $destination --managed false --overwrite true --environment https://fixture-dev.example.test/"
     }
 
     It 'does not expose a Stage parameter — export is always Dev-only' {
@@ -223,13 +269,13 @@ Describe 'Export-HrSolutionPackage' {
         $runner = {
             param([string]$FilePath, [string[]]$ArgumentList)
             $joined = $ArgumentList -join ' '
-            if ($joined -eq 'auth list') { return [pscustomobject]@{ ExitCode = 0; StdOut = "Index`n[1] * UNIVERSAL hr-caldova25156897-dev admin@x Public User"; StdErr = '' } }
-            if ($joined -eq 'auth select --name hr-caldova25156897-dev') { return [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' } }
-            if ($joined -eq 'org who --environment https://hrfrontierdev.crm17.dynamics.com/') { return [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' } }
+            if ($joined -eq 'auth list') { return [pscustomobject]@{ ExitCode = 0; StdOut = "Index`n[1] * UNIVERSAL hr-fixturetenant42-dev operator@fixture.example Public User"; StdErr = '' } }
+            if ($joined -eq 'auth select --name hr-fixturetenant42-dev') { return [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' } }
+            if ($joined -eq 'org who --environment https://fixture-dev.example.test/') { return [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' } }
             [pscustomobject]@{ ExitCode = 1; StdOut = ''; StdErr = 'export failed' }
         }
 
-        { Export-HrSolutionPackage -TenantAlias 'caldova25156897' -SolutionUniqueName 'caldovahrfrontier' -DestinationPath $destination -TenantConfigurationPath $script:RealTenantManifestPath -NativeCommandRunner $runner } |
+        { Export-HrSolutionPackage -TenantAlias 'fixturetenant42' -SolutionUniqueName 'caldovahrfrontier' -DestinationPath $destination -TenantConfigurationPath $script:TenantManifestPath -NativeCommandRunner $runner } |
             Should -Throw '*pac solution export failed*'
     }
 }

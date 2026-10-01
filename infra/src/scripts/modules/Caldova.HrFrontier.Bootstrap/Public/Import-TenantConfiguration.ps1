@@ -80,7 +80,7 @@ function Assert-SchemaString {
         throw "$Path must be one of: $(@($Schema.enum) -join ', ')."
     }
 
-    if ($schemaProperties -contains 'pattern' -and $Value -notmatch [string]$Schema.pattern) {
+    if ($schemaProperties -contains 'pattern' -and $Value -cnotmatch [string]$Schema.pattern) {
         throw "$Path does not match the required pattern."
     }
 
@@ -328,7 +328,17 @@ function Import-TenantConfiguration {
         [string]$Path,
 
         [ValidateSet('Discovery', 'Bootstrap')]
-        [string]$ValidationStage = 'Discovery'
+        [string]$ValidationStage = 'Discovery',
+
+        [ValidateScript({
+            if ($_ -cnotmatch '^tenant[1-9][0-9]*$') {
+                throw 'ExpectedPublicTenantKey must use the case-sensitive lowercase tenant key format.'
+            }
+            $true
+        })]
+        [string]$ExpectedPublicTenantKey,
+
+        [switch]$RequireLocalUntracked
     )
 
     $resolvedPath = [System.IO.Path]::GetFullPath($Path)
@@ -337,6 +347,60 @@ function Import-TenantConfiguration {
 
     Assert-SchemaValue -Value $configuration -Schema $schema -Path 'Configuration'
     Assert-TenantConfigurationContract -Configuration $configuration -ValidationStage $ValidationStage
+
+    $expectsPublicTenantKey = $PSBoundParameters.ContainsKey('ExpectedPublicTenantKey')
+    if ($RequireLocalUntracked -and -not $expectsPublicTenantKey) {
+        throw 'ExpectedPublicTenantKey is required when RequireLocalUntracked is used.'
+    }
+    if ($expectsPublicTenantKey -or $RequireLocalUntracked) {
+        $configurationEntries = Get-ObjectEntryTable $configuration
+        if (-not $configurationEntries.Contains('PublicTenantKey')) {
+            throw 'Configuration.PublicTenantKey is required for a live tenant boundary.'
+        }
+        if ([string]$configuration.PublicTenantKey -cne $ExpectedPublicTenantKey) {
+            throw "Configuration.PublicTenantKey must equal '$ExpectedPublicTenantKey'."
+        }
+    }
+
+    if ($RequireLocalUntracked) {
+        $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..\..\..\..'))
+        $expectedPath = [System.IO.Path]::GetFullPath(
+            (Join-Path $repositoryRoot "infra\src\config\tenants\$ExpectedPublicTenantKey.local.psd1")
+        )
+        if ([System.IO.Path]::GetFileName($resolvedPath) -ceq '_template.psd1') {
+            throw 'The tracked template cannot be used for a live operation.'
+        }
+        if ($resolvedPath -cne $expectedPath) {
+            throw "Live tenant configuration must use the exact ignored path '$expectedPath'."
+        }
+
+        $gitCommand = Get-Command git.exe -CommandType Application -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+        if (@($gitCommand).Count -ne 1 -or
+            $gitCommand.CommandType -ne [System.Management.Automation.CommandTypes]::Application -or
+            [string]::IsNullOrWhiteSpace([string]$gitCommand.Source)) {
+            throw 'Git could not be resolved unambiguously as an application command.'
+        }
+
+        $relativePath = $resolvedPath.Substring($repositoryRoot.TrimEnd('\').Length).TrimStart('\').Replace('\', '/')
+        $previousErrorActionPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'SilentlyContinue'
+            & $gitCommand.Source -C $repositoryRoot ls-files --error-unmatch -- $relativePath 2>$null | Out-Null
+            $trackedExitCode = $LASTEXITCODE
+            & $gitCommand.Source -C $repositoryRoot check-ignore --quiet -- $relativePath
+            $ignoredExitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
+        if ($trackedExitCode -eq 0) {
+            throw 'Live tenant configuration must not be tracked by Git.'
+        }
+        if ($ignoredExitCode -ne 0) {
+            throw 'Live tenant configuration must be covered by the reviewed ignore rule.'
+        }
+    }
 
     ConvertTo-ReadOnlyValue -Value $configuration
 }

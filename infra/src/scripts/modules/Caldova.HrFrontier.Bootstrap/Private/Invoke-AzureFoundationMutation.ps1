@@ -99,6 +99,9 @@ function Invoke-AzureFoundationMutation {
             }}
         }
         'DeployAzureFoundation' {
+            if ($null -eq $WhatIfValidator) {
+                throw 'Dormant cloud compatibility requires an explicitly injected WhatIfValidator.'
+            }
             $sourcePath = [IO.Path]::GetFullPath([string]$Action.providerInput.sourcePath)
             $templatePath = [IO.Path]::GetFullPath([string]$Action.providerInput.templatePath)
             $parameterPath = [IO.Path]::GetFullPath([string]$Action.providerInput.parameterPath)
@@ -116,14 +119,7 @@ function Invoke-AzureFoundationMutation {
                 (Get-FileHash $whatIfPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne [string]$Action.providerInput.whatIfDigest) {
                 throw 'Azure deployment bytes changed after approval.'
             }
-            $valid = if ($null -ne $WhatIfValidator) {
-                & $WhatIfValidator $whatIfPath
-            } else {
-                $validatorPath=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..\Test-WhatIfBoundary.ps1'))
-                & $validatorPath -WhatIfPayloadPath $whatIfPath `
-                    -ExpectedPrincipalObjectId ([string]$Action.providerInput.validationPrincipalId)
-                $true
-            }
+            $valid = & $WhatIfValidator $whatIfPath
             if (-not $valid) { throw 'Azure what-if boundary validation failed.' }
             $deployment = Invoke-CloudNativeCommand -ToolResolution $ToolResolution -ArgumentList @(
                 'deployment','sub','create','--name',[string]$Action.providerInput.deploymentName,

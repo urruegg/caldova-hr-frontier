@@ -9,6 +9,12 @@ BeforeAll {
         )
 
         $content = Get-Content -Raw -LiteralPath $Path
+        $content = [regex]::Replace(
+            $content,
+            '(?ms)^```.*?^```\s*',
+            '',
+            [Text.RegularExpressions.RegexOptions]::CultureInvariant
+        )
         $matches = [regex]::Matches(
             $content,
             '\[[^\]]+\]\((?<target>[^)]+)\)',
@@ -33,15 +39,68 @@ BeforeAll {
             }
         }
     }
+
+    function Get-ProhibitedActiveBootstrapClaims {
+        param(
+            [Parameter(Mandatory)]
+            [string]$Content
+        )
+
+        $statusMatch = [regex]::Match(
+            $Content,
+            '(?im)^\|\s+\*\*Status\*\*\s+\|\s+(?<Status>[^|]+?)\s+\|\s*$'
+        )
+        if (-not $statusMatch.Success) {
+            throw 'Maintained documentation must declare metadata Status before bootstrap-claim scanning.'
+        }
+        if ($statusMatch.Groups['Status'].Value.Trim().StartsWith(
+            'Superseded',
+            [StringComparison]::OrdinalIgnoreCase
+        )) {
+            return @()
+        }
+
+        $bootstrapAuthTarget = '(?:OIDC|GitHub (?:bootstrap[- ]?)?Environment|bootstrap[- ]Environment)'
+        $temporaryRoleTarget = 'temporary(?:-| )(?:subscription(?:-| ))?role(?:s|(?:-| )assignments?)?'
+        $patterns = @(
+            "\b${bootstrapAuthTarget}\b[^.;\r\n]{0,80}\b(?:is|remains|becomes)\s+(?:required|supported|current|a prerequisite|an? dependency)\b",
+            "(?<!not )(?<!never )(?<!do not )\b(?:requires?|uses?|depends? on)\b(?:(?!\b(?:no|not|without)\b)[^.;\r\n]){0,120}\b${bootstrapAuthTarget}\b",
+            "(?<!not )(?<!never )\bauthenticates?\s+(?:through|with|using)\b[^.;\r\n]{0,120}\b${bootstrapAuthTarget}\b",
+            "\b${temporaryRoleTarget}\b[^.;\r\n]{0,120}\b(?:is|are|remain|becomes?|must be)\s+(?:required|supported|current|grant(?:ed)?|time-bound|recorded|delet(?:e|ed)|remov(?:e|ed)|cleanup|cleaned|verified)\b",
+            "\b${temporaryRoleTarget}(?:-| )cleanup\b[^.;\r\n]{0,80}\b(?:is|remains|becomes)\s+(?:required|supported|current)\b",
+            "\b(?:grant(?:ed)?|creat(?:e|ed)|delet(?:e|ed)|remov(?:e|ed)|clean(?:\s+up|ed)|cleanup)\b[^.;\r\n]{0,120}\b${temporaryRoleTarget}\b"
+        )
+        $claims = [System.Collections.Generic.List[string]]::new()
+        foreach ($pattern in $patterns) {
+            foreach ($match in [regex]::Matches(
+                $Content,
+                $pattern,
+                [Text.RegularExpressions.RegexOptions]::IgnoreCase -bor
+                    [Text.RegularExpressions.RegexOptions]::Singleline -bor
+                    [Text.RegularExpressions.RegexOptions]::CultureInvariant
+            )) {
+                $claims.Add($match.Value) | Out-Null
+            }
+        }
+
+        @($claims)
+    }
 }
 
 Describe 'Runbook documentation contracts' {
     It 'includes metadata-compliant infrastructure runbooks in the documentation set' {
         foreach ($relative in @(
+            'README.md',
+            'docs/README.md',
+            'infra/docs/16-security-governance-and-compliance.md',
+            'infra/docs/20-tenant-trust-activation-runbook.md',
+            'infra/docs/21-azure-boards-population-runbook.md',
+            'infra/docs/23-customer-repository-export-and-handover-runbook.md',
             'infra/docs/runbooks/README.md',
             'infra/docs/runbooks/01-developer-workstation.md',
             'infra/docs/runbooks/02-cloud-service-foundation.md',
-            'infra/docs/runbooks/03-customer-handover.md'
+            'infra/docs/runbooks/03-customer-handover.md',
+            'infra/docs/24-tenant-1-lean-platform-runbook.md'
         )) {
             $path = Join-Path $script:repositoryRoot $relative
             $path | Should -Exist
@@ -50,43 +109,18 @@ Describe 'Runbook documentation contracts' {
 
     }
 
-    It 'documents the attended cloud service foundation operating contract' {
+    It 'publishes only a superseded cloud foundation stop notice' {
         $path = Join-Path $script:repositoryRoot 'infra\docs\runbooks\02-cloud-service-foundation.md'
         $path | Should -Exist
         $content = Get-Content -Raw -LiteralPath $path
-        foreach ($heading in @(
-            'Purpose and Status','Operator, Scope, and Preconditions','Attended Authentication',
-            'Permission Matrix','Assessment and Plan','Approval and Apply',
-            'Manual and Blocking Actions','Evidence','Recovery','Cleanup and Sign-out',
-            'Definition of Done'
-        )) {
-            $content | Should -Match ("(?m)^## {0}\r?$" -f [regex]::Escape($heading))
-        }
-        foreach ($literal in @(
-            'Get-CloudFoundationPlan.ps1','Invoke-CloudFoundation.ps1',
-            'hr-<TenantAlias>-<stage>','-Apply','-WhatIf','ShouldProcess',
-            'az login --tenant <tenantId> --use-device-code',
-            'gh auth login --hostname github.com --web --clipboard',
-            'pac auth create --name <profile> --environment <url> --deviceCode',
-            "Status = 'Planned'","ShouldProcessDecision = 'NotApplicable'",
-            'PartialMutation','IncompleteManualActions','BlockedOperation','RunDirectory',
-            'az bicep format --file <absoluteSource> --stdout',
-            'service,targetId,condition,owner,diagnostic,recovery'
-        )) {
-            $content | Should -Match ([regex]::Escape($literal))
-        }
-        foreach ($url in @(
-            'https://docs.github.com/en/rest/repos/repos#update-a-repository',
-            'https://docs.github.com/en/rest/repos/rules#create-a-repository-ruleset',
-            'https://docs.github.com/en/rest/repos/rules#update-a-repository-ruleset',
-            'https://learn.microsoft.com/en-us/cli/azure/deployment/sub#az-deployment-sub-create',
-            'https://learn.microsoft.com/en-us/cli/azure/ad/app',
-            'https://learn.microsoft.com/en-us/cli/azure/ad/sp',
-            'https://learn.microsoft.com/en-us/cli/azure/devops/project'
-        )) {
-            $content | Should -Match ([regex]::Escape($url))
-        }
-        $content | Should -Match '\]\(\.\./19-bootstrap-recovery\.md\)'
+        $content | Should -Match '(?m)^\|\s+\*\*Status\*\*\s+\|\s+Superseded\s+\|\s*$'
+        $content | Should -Match 'STOP.+SUPERSEDED'
+        $content | Should -Match 'Get-CloudFoundationPlan\.ps1.+Invoke-CloudFoundation\.ps1.+dormant and unsupported'
+        $content | Should -Match 'new reviewed design and implementation plan'
+        $content | Should -Not -Match '(?m)^```powershell'
+
+        $index = Get-Content -Raw -LiteralPath (Join-Path $script:repositoryRoot 'infra\docs\runbooks\README.md')
+        $index | Should -Match 'Cloud Service Foundation Runbook.+Superseded stop notice.+\|\s+Superseded\s+\|'
     }
 
     It 'documents local attended authentication and rejects workload execution' {
@@ -112,12 +146,227 @@ Describe 'Runbook documentation contracts' {
         $readme | Should -Match '\[Customer Repository Handover\]\(docs/runbooks/03-customer-handover\.md\)'
     }
 
-    It 'resolves every local markdown destination referenced by the runbook documents' {
+    It 'documents the complete Tenant 1 lean operator sequence' {
+        $path = Join-Path $script:repositoryRoot 'infra\docs\24-tenant-1-lean-platform-runbook.md'
+        $path | Should -Exist
+        $content = Get-Content -Raw -LiteralPath $path
+        foreach ($heading in @(
+            'Private Configuration and Backup',
+            'Attended Context and Minimum Access',
+            'Local Discovery',
+            'Sanitized Review',
+            'Bicep Build',
+            'Subscription What-If',
+            'Boundary and Access Read-Back',
+            'GitHub Governance',
+            'Basic Boards',
+            'Empty Azure Repo Checkpoint',
+            'Final Governed Transaction',
+            'Failure and Recovery',
+            'Acceptance'
+        )) {
+            $content | Should -Match ("(?m)^## {0}\r?$" -f [regex]::Escape($heading))
+        }
+    }
+
+    It 'records committed Tenant 1 deletion and requires external restore proof' {
+        $currentBoundaryPaths = @(
+            'infra/README.md',
+            'infra/docs/10-tenant-setup-and-configuration.md',
+            'infra/docs/14-github-repository-blueprint.md',
+            'infra/docs/18-multi-tenant-provisioning.md',
+            'infra/docs/19-bootstrap-recovery.md',
+            'infra/docs/24-tenant-1-lean-platform-runbook.md'
+        )
+        foreach ($relativePath in $currentBoundaryPaths) {
+            $content = Get-Content -Raw -LiteralPath (Join-Path $script:repositoryRoot $relativePath)
+            $content | Should -Not -Match 'tracked Tenant 1 (?:transition )?files remain|deletion approval was unavailable|tracked Tenant 1 transition-file deletion remains'
+        }
+
+        $runbook = Get-Content -Raw -LiteralPath (
+            Join-Path $script:repositoryRoot 'infra\docs\24-tenant-1-lean-platform-runbook.md'
+        )
+        $runbook | Should -Match 'approved committed deletion'
+        $runbook | Should -Match 'Read-Host.+encrypted external backup'
+        $runbook | Should -Match 'separate failure domain'
+        $runbook | Should -Match 'Get-FileHash.+SHA256'
+        $runbook | Should -Match '\$RestoreRoot'
+        $runbook | Should -Match 'Import-TenantConfiguration'
+        $runbook | Should -Match 'RequireLocalUntracked'
+        $runbook | Should -Match 'git check-ignore'
+        $runbook | Should -Not -Match '\$BackupRoot\s*=\s*Join-Path\s+\$OperatorRoot\s+''backup'''
+    }
+
+    It 'documents the irreversible checkpoint order without claiming execution' {
+        $path = Join-Path $script:repositoryRoot 'infra\docs\24-tenant-1-lean-platform-runbook.md'
+        $content = Get-Content -Raw -LiteralPath $path
+        $headings = @(
+            'Merge Tool Changes',
+            'Current-Main Validator',
+            'Local Validation and Access Read-Back',
+            'GitHub Governance',
+            'Basic Boards Issue',
+            'Empty Azure Repo Checkpoint',
+            'Final Governed Transaction',
+            'Acceptance Read-Back'
+        )
+        $positions = @($headings | ForEach-Object { $content.IndexOf("## $_", [StringComparison]::Ordinal) })
+        @($positions | Where-Object { $_ -lt 0 }).Count | Should -Be 0
+        for ($index = 1; $index -lt $positions.Count; $index++) {
+            $positions[$index] | Should -BeGreaterThan $positions[$index - 1]
+        }
+        $content | Should -Match 'Do not apply.+governance.+before.+tool.+main'
+        $content | Should -Match 'Not Run'
+    }
+
+    It 'keeps all 14 Draft acceptance controls at Not Run without current read-back' {
+        $reviewPath = Join-Path $script:repositoryRoot 'docs\reviews\2026-09-28-tenant-1-lean-engineering-platform-acceptance-review.md'
+        $review = Get-Content -Raw -LiteralPath $reviewPath
+        $review | Should -Match '(?m)^\|\s+\*\*Status\*\*\s+\|\s+Draft\s+\|\s*$'
+
+        $acceptanceSection = [regex]::Match(
+            $review,
+            '(?ms)^## Acceptance Controls\r?\n(?<Table>.*?)(?=^## )'
+        )
+        $acceptanceSection.Success | Should -BeTrue
+        $controlRows = @(
+            $acceptanceSection.Groups['Table'].Value -split '\r?\n' |
+                Where-Object {
+                    $_ -match '^\|' -and
+                    $_ -notmatch '^\|\s*Control\s*\|' -and
+                    $_ -notmatch '^\|\s*---'
+                }
+        )
+        $controlRows.Count | Should -Be 14
+        foreach ($row in $controlRows) {
+            $cells = @($row.Trim('|') -split '\|' | ForEach-Object { $_.Trim() })
+            $cells.Count | Should -Be 6 -Because $row
+            $cells[4] | Should -BeExactly 'Not Run' -Because $cells[0]
+        }
+
+        $reviewIndex = Get-Content -Raw -LiteralPath (Join-Path $script:repositoryRoot 'docs\reviews\README.md')
+        $documentationIndex = Get-Content -Raw -LiteralPath (Join-Path $script:repositoryRoot 'docs\README.md')
+        $reviewIndex | Should -Match 'Tenant 1 Lean Engineering Platform Acceptance Review.+\|\s+Draft\s+\|'
+        $documentationIndex |
+            Should -Match 'Tenant 1 Lean Engineering Platform Acceptance Review.+Draft.+every outcome remains `Not Run`'
+    }
+
+    It 'labels dormant trust OIDC and role-cleanup paths as unsupported' {
+        $repositoryReadme = Get-Content -Raw (Join-Path $script:repositoryRoot 'README.md')
+        $documentationIndex = Get-Content -Raw (Join-Path $script:repositoryRoot 'docs\README.md')
+        $security = Get-Content -Raw (Join-Path $script:repositoryRoot 'infra\docs\16-security-governance-and-compliance.md')
+        $boards = Get-Content -Raw (Join-Path $script:repositoryRoot 'infra\docs\21-azure-boards-population-runbook.md')
+        $handover = Get-Content -Raw (Join-Path $script:repositoryRoot 'infra\docs\23-customer-repository-export-and-handover-runbook.md')
+
+        $repositoryReadme | Should -Match 'Initialize-TenantTrust\.ps1` \| Dormant and unsupported'
+        $repositoryReadme | Should -Match 'Invoke-TenantBootstrap\.ps1` \| Attended local orchestration.+no role mutation'
+        $documentationIndex | Should -Match 'Tenant Trust Activation Runbook.+Superseded stop notice'
+        $documentationIndex | Should -Match 'Bootstrap and Provisioning.+attended local.+minimum-access'
+
+        $boards | Should -Match '\|\s+\*\*Status\*\*\s+\|\s+Superseded\s+\|'
+        $boards | Should -Match 'STOP.+dormant.+not a lean-platform prerequisite'
+        $boards | Should -Not -Match 'assumes Tenant 1''s trust is already active|already-active OIDC session|must already be complete before this runbook can authenticate'
+
+        $handover | Should -Match 'delivery identity or trust activation.+Deferred.+new reviewed design'
+        $handover | Should -Not -Match 'Activating your tenant''s trust.+Tenant Trust Activation Runbook'
+
+        $security | Should -Match 'attended local user context'
+        $security | Should -Match 'pre-existing, separately approved exact least-privilege custom validation role'
+        $security | Should -Match 'no role mutation'
+        $security | Should -Match 'no bootstrap OIDC or GitHub Environment dependency'
+        $security | Should -Match 'attended principal, tenant, subscription, and exact approved validation-role access read-back'
+
         foreach ($relative in @(
+            'README.md',
+            'docs/README.md',
+            'infra/docs/11-identity-and-access.md',
+            'infra/docs/16-security-governance-and-compliance.md',
+            'infra/docs/17-bootstrap-and-provisioning.md',
+            'infra/docs/19-bootstrap-recovery.md',
+            'infra/docs/20-tenant-trust-activation-runbook.md',
+            'infra/docs/21-azure-boards-population-runbook.md',
+            'infra/docs/23-customer-repository-export-and-handover-runbook.md',
+            'infra/docs/24-tenant-1-lean-platform-runbook.md',
             'infra/docs/runbooks/README.md',
             'infra/docs/runbooks/01-developer-workstation.md',
             'infra/docs/runbooks/02-cloud-service-foundation.md',
             'infra/docs/runbooks/03-customer-handover.md'
+        )) {
+            $content = Get-Content -Raw (Join-Path $script:repositoryRoot $relative)
+            @(Get-ProhibitedActiveBootstrapClaims -Content $content).Count |
+                Should -Be 0 -Because "$relative must not require bootstrap OIDC, Environments, or temporary roles"
+        }
+    }
+
+    It 'rejects active bootstrap claims despite a same-line <Marker> qualifier' -ForEach @(
+        @{
+            Marker = 'unsupported'
+            Claim = 'OIDC is required; the previous flow is unsupported.'
+        }
+        @{
+            Marker = 'historical'
+            Claim = 'The GitHub bootstrap Environment is required; this is historical wording.'
+        }
+        @{
+            Marker = 'previous'
+            Claim = 'Temporary subscription roles are granted and deleted; this was the previous flow.'
+        }
+        @{
+            Marker = 'deferred'
+            Claim = 'Temporary-role cleanup is required; later redesign is deferred.'
+        }
+    ) {
+        param($Marker, $Claim)
+
+        $fixture = @"
+# Active fixture
+
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-29 |
+| **Author** | test |
+| **Status** | Active |
+| **Scope** | Test |
+| **References** | None |
+
+$Claim
+"@
+        @(Get-ProhibitedActiveBootstrapClaims -Content $fixture).Count | Should -BeGreaterThan 0
+    }
+
+    It 'excludes prohibited historical claims only when document status is Superseded' {
+        $fixture = @'
+# Superseded fixture
+
+| Field | Value |
+|---|---|
+| **Version** | 1.0 |
+| **Date** | 2026-09-29 |
+| **Author** | test |
+| **Status** | Superseded |
+| **Scope** | Test |
+| **References** | None |
+
+OIDC is required.
+Temporary subscription roles are granted and deleted.
+'@
+        @(Get-ProhibitedActiveBootstrapClaims -Content $fixture).Count | Should -Be 0
+    }
+
+    It 'resolves every local markdown destination referenced by the runbook documents' {
+        foreach ($relative in @(
+            'README.md',
+            'docs/README.md',
+            'infra/docs/16-security-governance-and-compliance.md',
+            'infra/docs/20-tenant-trust-activation-runbook.md',
+            'infra/docs/21-azure-boards-population-runbook.md',
+            'infra/docs/23-customer-repository-export-and-handover-runbook.md',
+            'infra/docs/runbooks/README.md',
+            'infra/docs/runbooks/01-developer-workstation.md',
+            'infra/docs/runbooks/02-cloud-service-foundation.md',
+            'infra/docs/runbooks/03-customer-handover.md',
+            'infra/docs/24-tenant-1-lean-platform-runbook.md'
         )) {
             $path = Join-Path $script:repositoryRoot $relative
             foreach ($link in @(Get-MarkdownRelativeLinks -Path $path)) {

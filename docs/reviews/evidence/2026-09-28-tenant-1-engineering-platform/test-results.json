@@ -1,0 +1,1067 @@
+{
+    "schemaVersion":  "1.0",
+    "reviewId":  "tenant-1-engineering-platform-2026-09-28",
+    "generatedUtc":  "2026-09-28T11:04:06.5743311Z",
+    "summary":  {
+                    "total":  50,
+                    "pass":  12,
+                    "gap":  24,
+                    "notEvidenced":  14,
+                    "notApplicable":  0
+                },
+    "controls":  [
+                     {
+                         "id":  "GH-001",
+                         "domain":  "GitHub",
+                         "expected":  "GitHub is the public product-source authority and main is the default branch.",
+                         "observed":  "The repository is public, main is the default branch, and the separate Azure Repo is empty with no default branch.",
+                         "outcome":  "PASS",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "github-repository",
+                                          "azure-repo"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+
+                                          ],
+                         "owner":  "Repository owner",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  ""
+                     },
+                     {
+                         "id":  "GH-002",
+                         "domain":  "GitHub",
+                         "expected":  "Repository collaboration settings preserve Azure Boards as the single backlog and remove merged branches predictably.",
+                         "observed":  "GitHub Projects is enabled and merged branches are not deleted automatically; all three merge methods are allowed.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "github-repository"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "MEDIUM",
+                         "impact":  "A second project surface can drift from Azure Boards, and stale merged branches add avoidable repository ambiguity.",
+                         "dependencies":  [
+                                              "GOV-001"
+                                          ],
+                         "owner":  "Repository owner",
+                         "correctiveAction":  "Disable GitHub Projects for this repository, choose the approved merge strategy, and enable merged-branch cleanup.",
+                         "postRemediationTest":  "Read repository settings through the GitHub API and confirm Projects is disabled and merged-branch deletion matches the approved strategy."
+                     },
+                     {
+                         "id":  "GH-003",
+                         "domain":  "GitHub",
+                         "expected":  "The main branch has an active ruleset or equivalent branch protection.",
+                         "observed":  "No active repository ruleset exists and classic protection for main is absent.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "github-governance"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "HIGH",
+                         "impact":  "Direct or destructive changes can bypass the intended pull-request governance path.",
+                         "dependencies":  [
+                                              "GOV-001"
+                                          ],
+                         "owner":  "Repository administrator",
+                         "correctiveAction":  "Apply an active main ruleset with the approved pull-request, review, status-check, force-push, and deletion controls.",
+                         "postRemediationTest":  "Read back the main ruleset and verify active enforcement and exact target refs."
+                     },
+                     {
+                         "id":  "GH-004",
+                         "domain":  "GitHub",
+                         "expected":  "Changes to main require a pull request, one approval, stale-review dismissal, CODEOWNERS review, and resolved conversations.",
+                         "observed":  "No active branch rule enforces pull requests, reviews, CODEOWNERS approval, stale-review dismissal, or conversation resolution.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "github-governance"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "HIGH",
+                         "impact":  "Repository review policy is advisory rather than mechanically enforced.",
+                         "dependencies":  [
+                                              "GH-003"
+                                          ],
+                         "owner":  "Repository administrator",
+                         "correctiveAction":  "Configure the approved pull-request and review requirements in the active main ruleset.",
+                         "postRemediationTest":  "Read back every pull-request rule field and verify that a direct main push is rejected in the remediation validation phase."
+                     },
+                     {
+                         "id":  "GH-005",
+                         "domain":  "GitHub",
+                         "expected":  "Force pushes and deletion of main are blocked.",
+                         "observed":  "No active ruleset or classic protection blocks force pushes or deletion of main.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "github-governance"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "HIGH",
+                         "impact":  "History or the default branch can be rewritten or removed without a protective control.",
+                         "dependencies":  [
+                                              "GH-003"
+                                          ],
+                         "owner":  "Repository administrator",
+                         "correctiveAction":  "Add force-push and branch-deletion restrictions to the active main ruleset.",
+                         "postRemediationTest":  "Read back the rules and execute approved negative tests against a disposable branch pattern before testing main protection."
+                     },
+                     {
+                         "id":  "GH-006",
+                         "domain":  "GitHub",
+                         "expected":  "The repository validation workflow is a required status check for main.",
+                         "observed":  "The validation workflow exists and has successful main runs, but no branch rule requires its check.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "github-actions",
+                                          "github-run-history",
+                                          "github-governance"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "HIGH",
+                         "impact":  "A change can merge without repository validation succeeding.",
+                         "dependencies":  [
+                                              "GH-003"
+                                          ],
+                         "owner":  "Repository administrator",
+                         "correctiveAction":  "Require the exact repository validation check name in the active main ruleset.",
+                         "postRemediationTest":  "Read back required checks and prove an intentionally failing pull request cannot merge."
+                     },
+                     {
+                         "id":  "GH-007",
+                         "domain":  "GitHub",
+                         "expected":  "CODEOWNERS is present and parses without errors.",
+                         "observed":  "CODEOWNERS is present and the GitHub API reports no parsing errors.",
+                         "outcome":  "PASS",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "github-governance"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+
+                                          ],
+                         "owner":  "Repository owner",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  ""
+                     },
+                     {
+                         "id":  "GH-008",
+                         "domain":  "GitHub",
+                         "expected":  "GitHub Actions uses read-only default token permissions.",
+                         "observed":  "The default workflow token permission is read; workflows cannot approve pull requests through the default token.",
+                         "outcome":  "PASS",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "github-actions"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+
+                                          ],
+                         "owner":  "Repository administrator",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  ""
+                     },
+                     {
+                         "id":  "GH-009",
+                         "domain":  "GitHub",
+                         "expected":  "Tracked GitHub Actions are pinned to reviewed immutable revisions.",
+                         "observed":  "The action-pin manifest and tracked workflow contracts pass in the 248-test repository suite.",
+                         "outcome":  "PASS",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "repository-validation",
+                                          "github-actions"
+                                      ],
+                         "confidence":  9,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+
+                                          ],
+                         "owner":  "Repository maintainers",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  ""
+                     },
+                     {
+                         "id":  "GH-010",
+                         "domain":  "GitHub",
+                         "expected":  "A successful repository validation record exists on current main.",
+                         "observed":  "A completed successful validation run has a head SHA equal to current main; 19 of the last 20 recorded main runs succeeded.",
+                         "outcome":  "PASS",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "github-run-history"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+
+                                          ],
+                         "owner":  "Repository maintainers",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  ""
+                     },
+                     {
+                         "id":  "GH-011",
+                         "domain":  "GitHub",
+                         "expected":  "Dependency updates and available repository security analysis are enabled to the approved baseline.",
+                         "observed":  "Secret scanning and push protection are enabled, but Dependabot security updates and several optional secret-analysis capabilities are disabled.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "github-security"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "MEDIUM",
+                         "impact":  "Known vulnerable dependency updates may not be raised automatically even though weekly action updates are configured.",
+                         "dependencies":  [
+
+                                          ],
+                         "owner":  "Repository administrator",
+                         "correctiveAction":  "Enable Dependabot security updates and record an explicit decision for optional secret-analysis capabilities.",
+                         "postRemediationTest":  "Read back security-and-analysis state and confirm a successful Dependabot security-update configuration."
+                     },
+                     {
+                         "id":  "GH-012",
+                         "domain":  "GitHub",
+                         "expected":  "The Azure Boards GitHub App is valid and scoped to the approved repository.",
+                         "observed":  "Azure DevOps reports one valid installation-token connection bound to the expected GitHub repository.",
+                         "outcome":  "PASS",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-github-connection",
+                                          "screenshot-01-github-connection"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+
+                                          ],
+                         "owner":  "Azure Boards administrator",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  ""
+                     },
+                     {
+                         "id":  "GH-013",
+                         "domain":  "GitHub",
+                         "expected":  "Administrative access and ruleset bypass actors are explicitly bounded and reviewed.",
+                         "observed":  "One direct collaborator is visible, but no active ruleset exists and effective administrator or bypass scope was not published in the sanitized evidence.",
+                         "outcome":  "NOT EVIDENCED",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "github-repository",
+                                          "github-governance"
+                                      ],
+                         "confidence":  8,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+                                              "GH-003"
+                                          ],
+                         "owner":  "Repository administrator",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  "Export the sanitized administrator boundary, configure only approved pull-request bypass actors, and read back every ruleset bypass actor and mode."
+                     },
+                     {
+                         "id":  "GH-014",
+                         "domain":  "GitHub",
+                         "expected":  "GitHub environments referenced by bootstrap or governance workflows exist with the approved protection rules.",
+                         "observed":  "Only the Copilot environment exists and it has no protection rules; the reviewed Tenant 1 bootstrap environment is absent.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "github-environments",
+                                          "github-actions"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "HIGH",
+                         "impact":  "Bootstrap workflows cannot rely on a reviewed environment boundary or required approval before privileged tenant operations.",
+                         "dependencies":  [
+                                              "GOV-001"
+                                          ],
+                         "owner":  "Repository administrator",
+                         "correctiveAction":  "Create the reviewed Tenant 1 bootstrap environment, restrict branches, add the approved protection rules, and keep deployment gates in Azure DevOps.",
+                         "postRemediationTest":  "Read back the environment, branch policy, variables, protection rules, reviewer settings, and self-review behavior."
+                     },
+                     {
+                         "id":  "ADO-001",
+                         "domain":  "Azure DevOps Boards",
+                         "expected":  "The Tenant 1 Azure DevOps project is private and well formed.",
+                         "observed":  "The expected project is present, private, and reports a well-formed state.",
+                         "outcome":  "PASS",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-project"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+
+                                          ],
+                         "owner":  "Azure DevOps project administrator",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  ""
+                     },
+                     {
+                         "id":  "ADO-002",
+                         "domain":  "Azure DevOps Boards",
+                         "expected":  "The project process supports the intended Epic, Feature, User Story, Task, and Bug hierarchy.",
+                         "observed":  "The project uses the Basic process, but the required backlog hierarchy remains Proposed Baseline and has not been approved for comparison.",
+                         "outcome":  "NOT EVIDENCED",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-project"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+                                              "GOV-001"
+                                          ],
+                         "owner":  "Azure DevOps process owner",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  "Read back process metadata and create a synthetic work-item hierarchy in the remediation validation phase."
+                     },
+                     {
+                         "id":  "ADO-003",
+                         "domain":  "Azure DevOps Boards",
+                         "expected":  "Teams, area paths, and dated iterations represent the HR delivery model.",
+                         "observed":  "One default team uses the normal project-root area and Sprint 1 has no dates; no approved team or sprint-cadence target exists for comparison.",
+                         "outcome":  "NOT EVIDENCED",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-boards-config"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+                                              "ADO-002"
+                                          ],
+                         "owner":  "Azure DevOps project administrator",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  "Read back teams, team fields, areas, iterations, dates, and default backlog settings."
+                     },
+                     {
+                         "id":  "ADO-004",
+                         "domain":  "Azure DevOps Boards",
+                         "expected":  "The project has a valid GitHub App connection.",
+                         "observed":  "One valid GitHub connection uses an installation token, consistent with GitHub App authentication.",
+                         "outcome":  "PASS",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-github-connection"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+
+                                          ],
+                         "owner":  "Azure Boards administrator",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  ""
+                     },
+                     {
+                         "id":  "ADO-005",
+                         "domain":  "Azure DevOps Boards",
+                         "expected":  "The GitHub connection is bound to exactly the approved repository.",
+                         "observed":  "The connection contains exactly one repository and it is the approved GitHub source repository.",
+                         "outcome":  "PASS",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-github-connection"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+
+                                          ],
+                         "owner":  "Azure Boards administrator",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  ""
+                     },
+                     {
+                         "id":  "ADO-006",
+                         "domain":  "Azure DevOps Boards",
+                         "expected":  "Tenant 1 uses one GitHub repository connected to one Azure DevOps organization and project.",
+                         "observed":  "The live connection matches the approved Tenant 1 repository and project, consistent with the platform one-connection constraint.",
+                         "outcome":  "PASS",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-github-connection",
+                                          "microsoft-guidance"
+                                      ],
+                         "confidence":  9,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+
+                                          ],
+                         "owner":  "Engineering platform owner",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  ""
+                     },
+                     {
+                         "id":  "ADO-007",
+                         "domain":  "Azure DevOps Boards",
+                         "expected":  "An existing AB# transaction proves GitHub-to-Boards linkage and intended state transition behavior.",
+                         "observed":  "No work item currently has an external GitHub link, so the configured connection has no runtime traceability proof.",
+                         "outcome":  "NOT EVIDENCED",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-linkage"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+                                              "ADO-002",
+                                              "ADO-003"
+                                          ],
+                         "owner":  "Delivery lead",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  "Create an approved synthetic work item, reference it from a branch, commit, and pull request, merge to main, and verify links and the intended state transition."
+                     },
+                     {
+                         "id":  "ADO-008",
+                         "domain":  "Azure DevOps Boards",
+                         "expected":  "Every Azure Repo has an explicit narrow role and does not compete with GitHub product source.",
+                         "observed":  "The auto-created Azure Repo is empty with no default branch, but it retains the project name and has not been renamed or formally assigned the proposed configuration/template role.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "azure-repo",
+                                          "screenshot-02-azure-repo-settings",
+                                          "screenshot-05-migration-surface"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "MEDIUM",
+                         "impact":  "The empty repository does not duplicate source today, but its name and unresolved purpose create contributor and automation ambiguity.",
+                         "dependencies":  [
+                                              "GOV-001"
+                                          ],
+                         "owner":  "Azure DevOps project administrator",
+                         "correctiveAction":  "Approve whether to rename and repurpose the empty repository for tenant-private configuration or remove it; document the one-way content boundary.",
+                         "postRemediationTest":  "Read back repository name, size, default branch, permissions, and documented purpose, and confirm no product source exists there."
+                     },
+                     {
+                         "id":  "ADO-009",
+                         "domain":  "Azure DevOps Boards",
+                         "expected":  "Project groups and effective permissions implement least privilege and separation of duties.",
+                         "observed":  "Expected built-in groups and dedicated endpoint and release administrator groups exist, but unrestricted membership and effective permission expansion were intentionally not collected.",
+                         "outcome":  "NOT EVIDENCED",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-project-groups",
+                                          "screenshot-04-azure-repo-permissions"
+                                      ],
+                         "confidence":  7,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+
+                                          ],
+                         "owner":  "Azure DevOps organization administrator",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  "Export the Azure DevOps detailed permission report, sanitize identities, and verify effective permissions and group memberships against an approved role matrix."
+                     },
+                     {
+                         "id":  "PIPE-001",
+                         "domain":  "Azure Pipelines",
+                         "expected":  "HR solution CI/CD pipeline definitions exist.",
+                         "observed":  "The Azure DevOps project has no pipeline definitions.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-pipelines"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "BLOCKER",
+                         "impact":  "No Azure Pipelines delivery path exists for the HR solution.",
+                         "dependencies":  [
+                                              "GOV-001"
+                                          ],
+                         "owner":  "Platform engineering",
+                         "correctiveAction":  "Create reviewed YAML pipelines for HR solution CI and gated promotion from GitHub source.",
+                         "postRemediationTest":  "Read back pipeline definitions and verify their repository, YAML paths, triggers, permissions, and disabled-manual-bypass controls."
+                     },
+                     {
+                         "id":  "PIPE-002",
+                         "domain":  "Azure Pipelines",
+                         "expected":  "Every HR pipeline uses a separate Azure Pipelines GitHub App connection restricted to the approved repository and checks out that source directly.",
+                         "observed":  "No Azure Pipeline or separate Azure Pipelines GitHub connection exists; the working Azure Boards GitHub App does not provide pipeline repository authentication or triggers.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-pipelines"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "HIGH",
+                         "impact":  "Future pipeline authors could accidentally use the empty Azure Repo or another source unless the GitHub source contract is explicit.",
+                         "dependencies":  [
+                                              "PIPE-001",
+                                              "ADO-008"
+                                          ],
+                         "owner":  "Platform engineering",
+                         "correctiveAction":  "Configure the Azure Pipelines GitHub App for only the approved repository, bind pipeline and YAML paths to it, and declare immutable source-ref behavior.",
+                         "postRemediationTest":  "Read back the pipeline GitHub connection and repository authorization, then verify trigger delivery, GitHub Checks publication, and checked-out commit SHA."
+                     },
+                     {
+                         "id":  "PIPE-003",
+                         "domain":  "Azure Pipelines",
+                         "expected":  "CI and pull-request triggers are scoped to the approved branches and paths.",
+                         "observed":  "No pipeline trigger configuration exists.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-pipelines"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "HIGH",
+                         "impact":  "The HR solution has no repeatable validation trigger and future trigger behavior is undefined.",
+                         "dependencies":  [
+                                              "PIPE-001"
+                                          ],
+                         "owner":  "Platform engineering",
+                         "correctiveAction":  "Define pull-request and main CI triggers with solution and pipeline path filters.",
+                         "postRemediationTest":  "Open an approved synthetic pull request that changes an HR solution path and verify exactly the intended CI run starts."
+                     },
+                     {
+                         "id":  "PIPE-004",
+                         "domain":  "Azure Pipelines",
+                         "expected":  "CI validates, exports or synchronizes, unpacks, checks, and builds the HR solution.",
+                         "observed":  "No Azure Pipeline or run proves HR solution validation or build.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-pipelines",
+                                          "power-platform-solution"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "BLOCKER",
+                         "impact":  "The unmanaged DEV solution cannot be converted into a reviewable, reproducible release artifact.",
+                         "dependencies":  [
+                                              "PIPE-001",
+                                              "PIPE-009",
+                                              "TEN-001"
+                                          ],
+                         "owner":  "HR solution engineering",
+                         "correctiveAction":  "Implement the approved Power Platform Build Tools CI sequence and source-drift checks.",
+                         "postRemediationTest":  "Run CI on an approved commit and verify solution validation, unpack comparison, checker results, and managed build output."
+                     },
+                     {
+                         "id":  "PIPE-005",
+                         "domain":  "Azure Pipelines",
+                         "expected":  "One immutable managed artifact is produced once and promoted unchanged.",
+                         "observed":  "No pipeline run or artifact exists.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-pipelines"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "BLOCKER",
+                         "impact":  "TEST and PROD cannot be proven to receive the same reviewed solution artifact.",
+                         "dependencies":  [
+                                              "PIPE-004"
+                                          ],
+                         "owner":  "Platform engineering",
+                         "correctiveAction":  "Publish a versioned managed solution artifact with provenance and consume that exact artifact in deployment stages.",
+                         "postRemediationTest":  "Compare artifact identity and hash across CI, TEST deployment, and PROD deployment records."
+                     },
+                     {
+                         "id":  "PIPE-006",
+                         "domain":  "Azure Pipelines",
+                         "expected":  "The deployment path builds one managed artifact from the unmanaged DEV source and promotes that unchanged artifact to TEST and PROD.",
+                         "observed":  "No deployment stages or releases exist; the unmanaged HR solution is present only in DEV.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-pipelines",
+                                          "power-platform-solution"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "BLOCKER",
+                         "impact":  "The solution has no controlled path to TEST or PROD.",
+                         "dependencies":  [
+                                              "PIPE-004",
+                                              "PIPE-005",
+                                              "PIPE-007",
+                                              "PIPE-008",
+                                              "PIPE-009"
+                                          ],
+                         "owner":  "Platform engineering",
+                         "correctiveAction":  "Implement deployment stages that import the managed artifact into TEST and PROD with stage-specific settings.",
+                         "postRemediationTest":  "Run an approved release and verify the same managed version in TEST and PROD with recorded import results."
+                     },
+                     {
+                         "id":  "PIPE-007",
+                         "domain":  "Azure Pipelines",
+                         "expected":  "Azure DevOps deployment environments represent TEST and PROD release boundaries.",
+                         "observed":  "The Azure DevOps project has no deployment environments.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-pipeline-resources"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "HIGH",
+                         "impact":  "There is no resource boundary on which to enforce deployment permissions, history, approvals, or checks.",
+                         "dependencies":  [
+                                              "PIPE-001"
+                                          ],
+                         "owner":  "Azure DevOps project administrator",
+                         "correctiveAction":  "Create reviewed TEST and PROD Azure DevOps environments with restricted pipeline authorization.",
+                         "postRemediationTest":  "Read back environment metadata, permissions, authorized pipelines, and deployment history."
+                     },
+                     {
+                         "id":  "PIPE-008",
+                         "domain":  "Azure Pipelines",
+                         "expected":  "TEST and PROD use resource-administered approvals and checks outside YAML.",
+                         "observed":  "There are no environments or checks; the checks list cannot be meaningfully evaluated without a resource.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-pipeline-resources",
+                                          "microsoft-guidance"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "HIGH",
+                         "impact":  "A future YAML author could control deployment flow without an independently administered gate.",
+                         "dependencies":  [
+                                              "PIPE-007"
+                                          ],
+                         "owner":  "Release governance owner",
+                         "correctiveAction":  "Configure required approvals and checks on the protected environments or service connections, with PROD approvers separate from pipeline authors.",
+                         "postRemediationTest":  "Read check configurations and execute an approved release that pauses until the expected approver acts."
+                     },
+                     {
+                         "id":  "PIPE-009",
+                         "domain":  "Azure Pipelines",
+                         "expected":  "Ready, non-personal, least-privilege service connections exist for required targets.",
+                         "observed":  "The Azure DevOps project has no service connections.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-pipeline-resources"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "BLOCKER",
+                         "impact":  "Azure Pipelines cannot authenticate to Azure or Power Platform targets.",
+                         "dependencies":  [
+                                              "TEN-001"
+                                          ],
+                         "owner":  "Identity and platform engineering",
+                         "correctiveAction":  "Create stage-specific, non-personal service connections using the safest supported authentication scheme and minimum scope.",
+                         "postRemediationTest":  "Read endpoint type, readiness, authorization scheme, scope, project references, and pipeline authorization without retrieving secrets."
+                     },
+                     {
+                         "id":  "PIPE-010",
+                         "domain":  "Azure Pipelines",
+                         "expected":  "Workload identity is used where the supported task and service-connection type permit it.",
+                         "observed":  "No service connection exists, so authentication scheme compatibility cannot be evaluated.",
+                         "outcome":  "NOT EVIDENCED",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-pipeline-resources",
+                                          "microsoft-guidance"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+                                              "PIPE-009",
+                                              "TEN-001"
+                                          ],
+                         "owner":  "Identity engineering",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  "Read back each connection scheme and compare it with current Microsoft support for the exact Azure and Power Platform task types."
+                     },
+                     {
+                         "id":  "PIPE-011",
+                         "domain":  "Azure Pipelines",
+                         "expected":  "Tenant-specific values and sensitive material use governed variable groups or secure resources rather than public or inline values.",
+                         "observed":  "No variable group or secure file exists, while tenant-specific identifiers and endpoints are currently committed in the public repository.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-pipeline-resources",
+                                          "repository-tenant-config"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "HIGH",
+                         "impact":  "A future pipeline has no governed configuration source, and current public configuration conflicts with the documented tenant boundary.",
+                         "dependencies":  [
+                                              "TEN-007",
+                                              "ADO-008"
+                                          ],
+                         "owner":  "Platform engineering",
+                         "correctiveAction":  "Define the tenant-private configuration store, classify each value, and connect only reviewed non-secret and secret resources to authorized pipelines.",
+                         "postRemediationTest":  "Scan the public repository and read Azure DevOps resource metadata to confirm the approved public/private split."
+                     },
+                     {
+                         "id":  "PIPE-012",
+                         "domain":  "Azure Pipelines",
+                         "expected":  "Agent pool access and parallel-job entitlement can execute the HR pipeline.",
+                         "observed":  "The Microsoft-hosted pool is visible, but no pipeline run exists and parallel-job entitlement was not available through the collected API surface.",
+                         "outcome":  "NOT EVIDENCED",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-agents"
+                                      ],
+                         "confidence":  8,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+                                              "PIPE-001"
+                                          ],
+                         "owner":  "Azure DevOps organization administrator",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  "Queue an approved validation run after pipeline creation and confirm it acquires an agent without a parallelism error."
+                     },
+                     {
+                         "id":  "PIPE-013",
+                         "domain":  "Azure Pipelines",
+                         "expected":  "Build-service and protected-resource permissions implement least privilege.",
+                         "observed":  "Build and release groups exist, but no pipeline, service connection, environment, or resource authorization exists to evaluate effective delivery permissions.",
+                         "outcome":  "NOT EVIDENCED",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-project-groups",
+                                          "ado-pipeline-resources"
+                                      ],
+                         "confidence":  8,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+                                              "PIPE-001",
+                                              "PIPE-007",
+                                              "PIPE-009"
+                                          ],
+                         "owner":  "Azure DevOps project administrator",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  "Export sanitized effective permissions for build identities and protected resources after they exist, and compare them with the approved role matrix."
+                     },
+                     {
+                         "id":  "PIPE-014",
+                         "domain":  "Azure Pipelines",
+                         "expected":  "A required-template check enforces governed deployment structure from a tenant-private template source outside pipeline-author control.",
+                         "observed":  "No pipeline, governed template repository role, protected resource, or required-template check exists.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-pipeline-resources",
+                                          "azure-repo",
+                                          "repository-topology"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "HIGH",
+                         "impact":  "Future pipeline authors could remove required deployment structure or controls in YAML without an independently administered template gate.",
+                         "dependencies":  [
+                                              "GOV-001",
+                                              "ADO-008",
+                                              "PIPE-001",
+                                              "PIPE-007"
+                                          ],
+                         "owner":  "Release governance owner",
+                         "correctiveAction":  "Approve the tenant-private template location, create the governed template, and attach a required-template check to a protected resource outside pipeline-author control.",
+                         "postRemediationTest":  "Read back the required-template check and prove a pipeline that omits the governed template cannot consume the protected resource."
+                     },
+                     {
+                         "id":  "TEN-001",
+                         "domain":  "Tenant prerequisites",
+                         "expected":  "A dedicated non-personal Entra application and service principal back the delivery identity.",
+                         "observed":  "No application matched the reviewed delivery-identity name, and no Azure DevOps service connection identifies a delivery principal; no delivery identity is evidenced as configured for pipeline use.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "azure-entra",
+                                          "ado-pipeline-resources"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "BLOCKER",
+                         "impact":  "The delivery platform has no non-personal identity for Azure or Power Platform automation.",
+                         "dependencies":  [
+                                              "GOV-001"
+                                          ],
+                         "owner":  "Tenant identity administrator",
+                         "correctiveAction":  "Create and approve a dedicated delivery application and service principal with a documented lifecycle and owners.",
+                         "postRemediationTest":  "Read back application, service principal, ownership, credentials or federation, and exact service-connection references."
+                     },
+                     {
+                         "id":  "TEN-002",
+                         "domain":  "Tenant prerequisites",
+                         "expected":  "Federated credentials exactly match workload-identity service connections where supported.",
+                         "observed":  "No delivery application or service connection exists, so no federated subject can be validated.",
+                         "outcome":  "NOT EVIDENCED",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "azure-entra",
+                                          "ado-pipeline-resources"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+                                              "TEN-001",
+                                              "PIPE-009"
+                                          ],
+                         "owner":  "Tenant identity administrator",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  "Compare each federated credential issuer, subject, and audience with the exact service connection read-back."
+                     },
+                     {
+                         "id":  "TEN-003",
+                         "domain":  "Tenant prerequisites",
+                         "expected":  "Azure role assignments use least privilege and minimum scope.",
+                         "observed":  "No delivery service principal exists, so its Azure role assignments cannot be evaluated.",
+                         "outcome":  "NOT EVIDENCED",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "azure-entra"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+                                              "TEN-001"
+                                          ],
+                         "owner":  "Azure subscription owner",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  "List role assignments for the delivery principal and reject standing Owner, User Access Administrator, or unsupported broad Contributor scope."
+                     },
+                     {
+                         "id":  "TEN-004",
+                         "domain":  "Tenant prerequisites",
+                         "expected":  "Distinct DEV, TEST, and PROD Power Platform environments exist with the intended lifecycle roles.",
+                         "observed":  "DEV and TEST are reachable Sandbox environments and PROD is a reachable Production environment. This PASS is limited to existence, reachability, and lifecycle type; access boundaries and data-policy coverage were not assessed.",
+                         "outcome":  "PASS",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "power-platform-environments"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+
+                                          ],
+                         "owner":  "Power Platform administrator",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  ""
+                     },
+                     {
+                         "id":  "TEN-005",
+                         "domain":  "Tenant prerequisites",
+                         "expected":  "The delivery application user exists, is enabled, and has approved roles in each required environment.",
+                         "observed":  "Environment application-user inventories are readable, but no approved delivery application exists to identify the required application-user record or roles.",
+                         "outcome":  "NOT EVIDENCED",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "power-platform-application-users",
+                                          "azure-entra"
+                                      ],
+                         "confidence":  9,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+                                              "TEN-001"
+                                          ],
+                         "owner":  "Power Platform administrator",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  "Query each environment for the exact delivery application ID and verify enabled state, business unit, and least-privilege security roles."
+                     },
+                     {
+                         "id":  "TEN-006",
+                         "domain":  "Tenant prerequisites",
+                         "expected":  "The reviewed HR solution and custom publisher prerequisites exist in DEV.",
+                         "observed":  "DEV contains unmanaged HR solution version 0.0.0.1 with the reviewed custom publisher and prefix.",
+                         "outcome":  "PASS",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "power-platform-solution"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+
+                                          ],
+                         "owner":  "HR solution owner",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  ""
+                     },
+                     {
+                         "id":  "TEN-007",
+                         "domain":  "Tenant prerequisites",
+                         "expected":  "Tenant-specific identifiers, administrator identities, subscription IDs, and environment endpoints remain outside the public repository.",
+                         "observed":  "The public repository contains tenant, subscription, project, environment, and administrator identifiers in committed manifests and evidence.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "repository-tenant-config"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "HIGH",
+                         "impact":  "Tenant cloning can propagate the wrong identifiers, and the committed configuration contradicts the documented tenant-private boundary.",
+                         "dependencies":  [
+                                              "GOV-001",
+                                              "ADO-008"
+                                          ],
+                         "owner":  "Security and platform engineering",
+                         "correctiveAction":  "Approve an explicit public/private classification, move tenant-private values to the tenant-bound configuration repository or governed resources, and retain only safe aliases and schemas publicly.",
+                         "postRemediationTest":  "Run a repository-wide forbidden-data scan and compare public manifests with the approved allowlist."
+                     },
+                     {
+                         "id":  "TRACE-001",
+                         "domain":  "Traceability and reproducibility",
+                         "expected":  "An existing GitHub commit or pull request links to an Azure Boards work item.",
+                         "observed":  "No Azure Boards work item has an external GitHub link.",
+                         "outcome":  "NOT EVIDENCED",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-linkage"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+                                              "ADO-007"
+                                          ],
+                         "owner":  "Delivery lead",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  "Execute the approved AB# synthetic transaction defined for ADO-007."
+                     },
+                     {
+                         "id":  "TRACE-002",
+                         "domain":  "Traceability and reproducibility",
+                         "expected":  "An existing Azure Pipeline run links source and work items.",
+                         "observed":  "No Azure Pipeline or run exists.",
+                         "outcome":  "NOT EVIDENCED",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-pipelines"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+                                              "PIPE-001",
+                                              "ADO-007"
+                                          ],
+                         "owner":  "Platform engineering",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  "Run CI for a commit linked to an approved work item and verify source and Integrated in build links."
+                     },
+                     {
+                         "id":  "TRACE-003",
+                         "domain":  "Traceability and reproducibility",
+                         "expected":  "An existing runtime record proves artifact identity and gated environment deployment.",
+                         "observed":  "No pipeline run, artifact, Azure DevOps environment, approval, or deployment record exists.",
+                         "outcome":  "NOT EVIDENCED",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "ado-pipelines",
+                                          "ado-pipeline-resources"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "",
+                         "impact":  "",
+                         "dependencies":  [
+                                              "PIPE-005",
+                                              "PIPE-006",
+                                              "PIPE-007",
+                                              "PIPE-008"
+                                          ],
+                         "owner":  "Release governance owner",
+                         "correctiveAction":  "",
+                         "postRemediationTest":  "Execute an approved end-to-end release and correlate commit, work item, artifact hash, approvals, imports, and final solution version."
+                     },
+                     {
+                         "id":  "TRACE-004",
+                         "domain":  "Traceability and reproducibility",
+                         "expected":  "Tenant 1 setup is declarative, parameterized, and read-back validated.",
+                         "observed":  "Repository manifests, discovery scripts, workflows, and tests exist, but Boards configuration, delivery identities, service connections, pipelines, and deployment environments are not represented as completed desired state.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "repository-validation",
+                                          "repository-tenant-config",
+                                          "ado-boards-config",
+                                          "ado-pipelines"
+                                      ],
+                         "confidence":  9,
+                         "priority":  "MEDIUM",
+                         "impact":  "Tenant 1 cannot yet be rebuilt end to end from the repository, and manual configuration can drift.",
+                         "dependencies":  [
+                                              "GOV-001",
+                                              "ADO-002",
+                                              "ADO-003",
+                                              "PIPE-001",
+                                              "TEN-001"
+                                          ],
+                         "owner":  "Engineering platform owner",
+                         "correctiveAction":  "Extend the desired-state and conformance model to Boards, pipelines, identities, connections, environments, and post-deployment evidence.",
+                         "postRemediationTest":  "Rebuild or dry-run the Tenant 1 control plane from reviewed parameters and compare every supported read-back with desired state."
+                     },
+                     {
+                         "id":  "TRACE-005",
+                         "domain":  "Traceability and reproducibility",
+                         "expected":  "Tenant 2 and Tenant 3 can seed independent repositories without inheriting Tenant 1 identifiers or another tenant configuration.",
+                         "observed":  "The repository contains multiple tenant manifests and evidence, while the per-tenant topology and removal/backport runbook remain Proposed Baseline or work in progress.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "repository-tenant-config",
+                                          "repository-topology"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "HIGH",
+                         "impact":  "A repository clone can retain another tenant owner, identifiers, endpoints, or discovery evidence and can connect to only one Azure Boards organization.",
+                         "dependencies":  [
+                                              "GOV-001",
+                                              "TEN-007"
+                                          ],
+                         "owner":  "Cross-tenant platform owner",
+                         "correctiveAction":  "Approve the per-tenant topology, finish the seed-and-sanitize runbook, and add an automated tenant-isolation conformance test.",
+                         "postRemediationTest":  "Create a disposable clone from the runbook and prove it contains exactly one tenant manifest, no foreign identifiers, and one intended Boards connection target."
+                     },
+                     {
+                         "id":  "GOV-001",
+                         "domain":  "Governance",
+                         "expected":  "The one-repository-to-one-Azure-DevOps-project North Star and source/configuration boundaries are formally approved and internally consistent.",
+                         "observed":  "ADR-0001, ADR-0002, ADR-0012, and the Tenant 1 single-source design remain Proposed Baseline, with unresolved differences about Azure Repo purpose and tenant-private configuration.",
+                         "outcome":  "GAP",
+                         "observedUtc":  "2026-09-28T11:04:06.5743311Z",
+                         "evidence":  [
+                                          "repository-topology"
+                                      ],
+                         "confidence":  10,
+                         "priority":  "BLOCKER",
+                         "impact":  "Administrators cannot configure a durable target safely while the authoritative topology, private-configuration location, and Azure Repo role remain unapproved.",
+                         "dependencies":  [
+
+                                          ],
+                         "owner":  "Architecture decision owner",
+                         "correctiveAction":  "Run an attended decision review, reconcile the ADR set, approve one target topology, and supersede conflicting text.",
+                         "postRemediationTest":  "Verify the ADR catalogue has one approved, internally consistent decision and that runbooks, manifests, and remediation tasks reference it."
+                     }
+                 ]
+}

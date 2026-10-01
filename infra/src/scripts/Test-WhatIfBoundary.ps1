@@ -1,11 +1,22 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-        [string]$WhatIfPayloadPath,
+    [string]$WhatIfPayloadPath,
 
-        [Parameter(Mandatory)]
-        [ValidatePattern('^[0-9a-fA-F-]{36}$')]
-        [string]$ExpectedPrincipalObjectId
+    [Parameter(Mandatory)]
+    [ValidateScript({
+        if ($_ -cnotmatch '^tenant[1-9][0-9]*$') {
+            throw 'PublicTenantKey must use the case-sensitive lowercase tenant key format.'
+        }
+        $true
+    })]
+    [string]$PublicTenantKey,
+
+    [Parameter(Mandatory)]
+    [string]$TenantConfigurationPath,
+
+    [Parameter(Mandatory)]
+    [object]$CompiledParameters
 )
 
 Set-StrictMode -Version Latest
@@ -134,6 +145,21 @@ function Test-ExactStringMap {
     $true
 }
 
+function Get-RequiredCompiledTenantValue {
+    param(
+        [Parameter(Mandatory)][object]$CompiledTenant,
+        [Parameter(Mandatory)][string]$Name
+    )
+
+    $entries = Get-Entries -Value $CompiledTenant
+    if (-not $entries.Contains($Name) -or
+        [string]::IsNullOrWhiteSpace([string]$entries[$Name])) {
+        throw "Compiled tenant parameters must contain '$Name'."
+    }
+
+    [string]$entries[$Name]
+}
+
 function Get-ResourceScope {
     param(
         [AllowNull()][string]$ResourceId,
@@ -242,10 +268,6 @@ function Test-ExpectedResourceProperties {
         [Parameter(Mandatory)][object]$ResourceEntries,
         [Parameter(Mandatory)][object]$ExpectedResource,
         [Parameter(Mandatory)][System.Collections.IDictionary]$ExpectedTags,
-        [Parameter(Mandatory)][string[]]$ExpectedRoleActions,
-        [Parameter(Mandatory)][string]$ExpectedRoleDescription,
-        [Parameter(Mandatory)][string]$ExpectedRoleDefinitionId,
-        [Parameter(Mandatory)][string]$ExpectedPrincipalId,
         [Parameter(Mandatory)][string]$ExpectedWorkspaceId,
         [Parameter(Mandatory)][string]$PayloadName
     )
@@ -309,56 +331,45 @@ function Test-ExpectedResourceProperties {
                 & $offend ("{0}.properties.logs[0] must enable the allLogs category group." -f $PayloadName)
             }
         }
-        'Microsoft.Authorization/roleDefinitions' {
-            if (-not (Test-IsJsonObject -Value $ResourceEntries['properties'])) {
-                & $offend ("{0}.properties must be an object." -f $PayloadName)
-                break
-            }
-            $roleProperties = Get-Entries -Value $ResourceEntries['properties']
-            if ([string]$roleProperties['roleName'] -cne [string]$ExpectedResource.RoleName) {
-                & $offend ("{0}.properties.roleName must equal {1}." -f $PayloadName, [string]$ExpectedResource.RoleName)
-            }
-            if ([string]$roleProperties['description'] -cne $ExpectedRoleDescription) {
-                & $offend ("{0}.properties.description must equal the reviewed role description." -f $PayloadName)
-            }
-            if ([string]$roleProperties['type'] -cne 'CustomRole') {
-                & $offend ("{0}.properties.type must equal CustomRole." -f $PayloadName)
-            }
-            if (-not (Test-IsJsonArray -Value $roleProperties['permissions']) -or @($roleProperties['permissions']).Count -ne 1 -or -not (Test-IsJsonObject -Value $roleProperties['permissions'][0])) {
-                & $offend ("{0}.properties.permissions must be an array with exactly one object." -f $PayloadName)
-            }
-            else {
-                $permission = Get-Entries -Value $roleProperties['permissions'][0]
-                if (-not (Test-IsJsonArray -Value $permission['actions']) -or -not (Test-ExactStringSet -Actual $permission['actions'] -Expected $ExpectedRoleActions)) {
-                    & $offend ("{0}.properties.permissions[0].actions must exactly match the reviewed actions." -f $PayloadName)
-                }
-                foreach ($emptyProperty in @('notActions', 'dataActions', 'notDataActions')) {
-                    if (-not (Test-IsJsonArray -Value $permission[$emptyProperty]) -or @($permission[$emptyProperty]).Count -ne 0) {
-                        & $offend ("{0}.properties.permissions[0].{1} must be an empty array." -f $PayloadName, $emptyProperty)
-                    }
-                }
-            }
-            if (-not (Test-IsJsonArray -Value $roleProperties['assignableScopes']) -or -not (Test-ExactStringSet -Actual $roleProperties['assignableScopes'] -Expected @([string]$ExpectedResource.Scope))) {
-                & $offend ("{0}.properties.assignableScopes must contain only {1}." -f $PayloadName, [string]$ExpectedResource.Scope)
-            }
-        }
-        'Microsoft.Authorization/roleAssignments' {
-            if (-not (Test-IsJsonObject -Value $ResourceEntries['properties'])) {
-                & $offend ("{0}.properties must be an object." -f $PayloadName)
-                break
-            }
-            $assignmentProperties = Get-Entries -Value $ResourceEntries['properties']
-            if ([string]$assignmentProperties['principalId'] -cne $ExpectedPrincipalId) {
-                & $offend ("{0}.properties.principalId must equal the reviewed principal {1}." -f $PayloadName, $ExpectedPrincipalId)
-            }
-            if ([string]$assignmentProperties['principalType'] -cne 'ServicePrincipal') {
-                & $offend ("{0}.properties.principalType must equal ServicePrincipal." -f $PayloadName)
-            }
-            if ([string]$assignmentProperties['roleDefinitionId'] -cne $ExpectedRoleDefinitionId) {
-                & $offend ("{0}.properties.roleDefinitionId must equal {1}." -f $PayloadName, $ExpectedRoleDefinitionId)
-            }
-        }
     }
+}
+
+$repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+$modulePath = Join-Path $repositoryRoot 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
+Import-Module $modulePath -Force
+
+$tenantConfiguration = Import-TenantConfiguration `
+    -Path ([IO.Path]::GetFullPath($TenantConfigurationPath)) `
+    -ValidationStage Discovery `
+    -ExpectedPublicTenantKey $PublicTenantKey `
+    -RequireLocalUntracked
+$compiledDocument = if ($CompiledParameters.PSObject.Properties.Name -contains 'parametersJson') {
+    [string]$CompiledParameters.parametersJson | ConvertFrom-Json
+}
+else {
+    $CompiledParameters
+}
+$compiledEntries = Get-Entries -Value $compiledDocument
+if (-not $compiledEntries.Contains('parameters')) {
+    throw 'Compiled parameters must contain a parameters object.'
+}
+$parameterEntries = Get-Entries -Value $compiledEntries['parameters']
+if (-not $parameterEntries.Contains('tenant')) {
+    throw 'Compiled parameters must contain the tenant parameter.'
+}
+$tenantParameterEntries = Get-Entries -Value $parameterEntries['tenant']
+if (-not $tenantParameterEntries.Contains('value') -or
+    -not (Test-IsJsonObject -Value $tenantParameterEntries['value'])) {
+    throw 'Compiled tenant parameters must contain an object value.'
+}
+$compiledTenant = $tenantParameterEntries['value']
+$compiledTenantAlias = Get-RequiredCompiledTenantValue -CompiledTenant $compiledTenant -Name 'tenantAlias'
+$compiledLocation = Get-RequiredCompiledTenantValue -CompiledTenant $compiledTenant -Name 'location'
+$compiledNamingRoot = Get-RequiredCompiledTenantValue -CompiledTenant $compiledTenant -Name 'namingRoot'
+if ($compiledTenantAlias -cne [string]$tenantConfiguration.TenantAlias -or
+    $compiledLocation -cne [string]$tenantConfiguration.PrimaryLocation -or
+    $compiledNamingRoot -cne [string]$tenantConfiguration.NamingRoot) {
+    throw 'Compiled tenant parameters do not match the validated local configuration.'
 }
 
 $resolvedPayloadPath = [System.IO.Path]::GetFullPath($WhatIfPayloadPath)
@@ -412,33 +423,17 @@ if ($properties.Contains('diagnostics')) {
     }
 }
 
-$subscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
+$subscriptionId = [string]$tenantConfiguration.SubscriptionId
 $expectedSubscriptionScope = "/subscriptions/$subscriptionId"
-$expectedResourceGroupName = 'rg-cal-hr-agentic-bc8rbt-platform'
+$expectedResourceGroupName = Get-RequiredCompiledTenantValue -CompiledTenant $compiledTenant -Name 'platformResourceGroupName'
 $expectedResourceGroupId = "$expectedSubscriptionScope/resourceGroups/$expectedResourceGroupName"
-$expectedWorkspaceName = 'log-cal-hr-agentic-bc8rbt'
+$expectedWorkspaceName = Get-RequiredCompiledTenantValue -CompiledTenant $compiledTenant -Name 'logAnalyticsWorkspaceName'
 $expectedWorkspaceId = "$expectedResourceGroupId/providers/Microsoft.OperationalInsights/workspaces/$expectedWorkspaceName"
 $expectedDiagnosticName = 'activity-log-to-log-analytics'
 $expectedDiagnosticId = "$expectedSubscriptionScope/providers/Microsoft.Insights/diagnosticSettings/$expectedDiagnosticName"
-$expectedRoleName = 'cal-hr-agentic-bc8rbt-deployment-validation'
-$expectedRoleDescription = 'Read-only deployment validation role for reviewed tenant subscription baselines.'
-$expectedRoleActions = @(
-    '*/read',
-    'Microsoft.Resources/deployments/read',
-    'Microsoft.Resources/deployments/validate/action',
-    'Microsoft.Resources/deployments/whatIf/action'
-)
-$expectedRoleDefinitionGuid = New-ArmGuid -Values @($expectedSubscriptionScope, $expectedRoleName)
-$expectedRoleDefinitionId = "$expectedSubscriptionScope/providers/Microsoft.Authorization/roleDefinitions/$expectedRoleDefinitionGuid"
-$principalGuid = [guid]::Empty
-if (-not [guid]::TryParse($ExpectedPrincipalObjectId, [ref]$principalGuid)) {
-    throw 'ExpectedPrincipalObjectId must be a GUID.'
-}
-$expectedAssignmentGuid = New-ArmGuid -Values @($expectedSubscriptionScope, $expectedRoleDefinitionGuid, $ExpectedPrincipalObjectId)
-$expectedAssignmentId = "$expectedSubscriptionScope/providers/Microsoft.Authorization/roleAssignments/$expectedAssignmentGuid"
 $expectedTags = [ordered]@{
-    tenantAlias = 'caldova25156897'
-    namingRoot = 'cal-hr-agentic-bc8rbt'
+    tenantAlias = $compiledTenantAlias
+    namingRoot = $compiledNamingRoot
     baseline = 'subscription-platform'
 }
 $expectedResources = @(
@@ -447,7 +442,7 @@ $expectedResources = @(
         Type = 'Microsoft.Resources/resourceGroups'
         Name = $expectedResourceGroupName
         Scope = $expectedSubscriptionScope
-        Location = 'switzerlandnorth'
+        Location = $compiledLocation
         ApiVersion = '2024-11-01'
         RoleName = ''
     },
@@ -456,7 +451,7 @@ $expectedResources = @(
         Type = 'Microsoft.OperationalInsights/workspaces'
         Name = $expectedWorkspaceName
         Scope = $expectedResourceGroupId
-        Location = 'switzerlandnorth'
+        Location = $compiledLocation
         ApiVersion = '2023-09-01'
         RoleName = ''
     },
@@ -467,24 +462,6 @@ $expectedResources = @(
         Scope = $expectedSubscriptionScope
         Location = ''
         ApiVersion = '2021-05-01-preview'
-        RoleName = ''
-    },
-    [pscustomobject]@{
-        Id = $expectedRoleDefinitionId
-        Type = 'Microsoft.Authorization/roleDefinitions'
-        Name = $expectedRoleDefinitionGuid
-        Scope = $expectedSubscriptionScope
-        Location = ''
-        ApiVersion = '2022-04-01'
-        RoleName = $expectedRoleName
-    },
-    [pscustomobject]@{
-        Id = $expectedAssignmentId
-        Type = 'Microsoft.Authorization/roleAssignments'
-        Name = $expectedAssignmentGuid
-        Scope = $expectedSubscriptionScope
-        Location = ''
-        ApiVersion = '2022-04-01'
         RoleName = ''
     }
 )
@@ -517,6 +494,14 @@ for ($changeIndex = 0; $changeIndex -lt $changes.Count; $changeIndex++) {
     $resourceType = [string]$activeEntries['type']
     $resourceLocation = [string]$activeEntries['location']
     $resourceScope = Get-ResourceScope -ResourceId $resourceId -ResourceType $resourceType
+
+    if ($resourceType -in @(
+        'Microsoft.Authorization/roleDefinitions',
+        'Microsoft.Authorization/roleAssignments'
+    ) -or $resourceId -match '(?i)/providers/Microsoft\.Authorization/(?:roleDefinitions|roleAssignments)/') {
+        Add-ResourceOffense -Collection $offenses -ResourceId $resourceId -ResourceType $resourceType -ResourceScope $resourceScope -ResourceLocation $resourceLocation -Message 'Authorization role definition and assignment changes are prohibited.'
+        continue
+    }
 
     if ([string]::IsNullOrWhiteSpace($resourceId)) {
         Add-ResourceOffense -Collection $offenses -ResourceId $resourceId -ResourceType $resourceType -ResourceScope $resourceScope -ResourceLocation $resourceLocation -Message ("Change entry {0} must contain a non-empty resourceId." -f $changeIndex)
@@ -568,12 +553,12 @@ for ($changeIndex = 0; $changeIndex -lt $changes.Count; $changeIndex++) {
 
     if ($afterIsObject) {
         $afterEntries = Test-ResourceIdentity -Collection $offenses -Resource $after -ExpectedResource $expectedResource -ChangeResourceId $resourceId -PayloadName 'after'
-        Test-ExpectedResourceProperties -Collection $offenses -ResourceEntries $afterEntries -ExpectedResource $expectedResource -ExpectedTags $expectedTags -ExpectedRoleActions $expectedRoleActions -ExpectedRoleDescription $expectedRoleDescription -ExpectedRoleDefinitionId $expectedRoleDefinitionId -ExpectedPrincipalId $ExpectedPrincipalObjectId -ExpectedWorkspaceId $expectedWorkspaceId -PayloadName 'after'
+        Test-ExpectedResourceProperties -Collection $offenses -ResourceEntries $afterEntries -ExpectedResource $expectedResource -ExpectedTags $expectedTags -ExpectedWorkspaceId $expectedWorkspaceId -PayloadName 'after'
     }
     if ($beforeIsObject -and $changeType -in @('Modify', 'NoChange')) {
         $beforeEntries = Test-ResourceIdentity -Collection $offenses -Resource $before -ExpectedResource $expectedResource -ChangeResourceId $resourceId -PayloadName 'before'
         if ($changeType -eq 'NoChange') {
-            Test-ExpectedResourceProperties -Collection $offenses -ResourceEntries $beforeEntries -ExpectedResource $expectedResource -ExpectedTags $expectedTags -ExpectedRoleActions $expectedRoleActions -ExpectedRoleDescription $expectedRoleDescription -ExpectedRoleDefinitionId $expectedRoleDefinitionId -ExpectedPrincipalId $ExpectedPrincipalObjectId -ExpectedWorkspaceId $expectedWorkspaceId -PayloadName 'before'
+            Test-ExpectedResourceProperties -Collection $offenses -ResourceEntries $beforeEntries -ExpectedResource $expectedResource -ExpectedTags $expectedTags -ExpectedWorkspaceId $expectedWorkspaceId -PayloadName 'before'
         }
     }
 }

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.2 |
+| **Date** | 2026-09-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
 | **Scope** | Repository |
@@ -40,7 +40,7 @@ External reusable workflows use the same `owner/repository/subpath@sha` policy a
 
 Run it from the repository root with Git, Windows PowerShell, exact Pester 5.7.1, and Azure CLI with the Bicep command installed locally. The validator does not authenticate or call Azure services.
 
-Success exits `0` and writes exactly one line: `Repository setup validation passed.` Failure writes `ERROR:` lines plus a summary and exits nonzero. Use `-SkipIntegratedTests -SkipBicepBuild` only from the advisory [audit-repository.yml](../workflows/audit-repository.yml), where those checks are deliberately skipped to avoid re-running the Pester suites and Bicep build owned by the required [validate-repository.yml](../workflows/validate-repository.yml) gate.
+Success exits `0` and writes exactly one line: `Repository setup validation passed.` Failure writes `ERROR:` lines plus a summary and exits nonzero. The `-SkipIntegratedTests` and `-SkipBicepBuild` switches support focused local diagnostics; the required [validate-repository.yml](../workflows/validate-repository.yml) gate runs every maintained Pester test and builds every maintained Bicep file independently.
 
 ## Tests
 

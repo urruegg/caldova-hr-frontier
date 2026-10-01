@@ -1,14 +1,23 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidatePattern('^[a-z0-9]+$')]
-    [string]$TenantAlias,
+    [ValidateScript({
+        if ($_ -cnotmatch '^tenant[1-9][0-9]*$') {
+            throw 'PublicTenantKey must use the case-sensitive lowercase tenant key format.'
+        }
+        $true
+    })]
+    [string]$PublicTenantKey,
+
+    [Parameter(Mandatory)]
+    [string]$TenantConfigurationPath,
 
     [ValidateSet('Interactive', 'ExistingContext')]
     [string]$AuthenticationMode = 'Interactive',
 
     [string]$PowerPlatformProbePath,
 
+    [Parameter(Mandatory)]
     [string]$OutputPath,
 
     [switch]$Replace,
@@ -27,45 +36,24 @@ function Get-ModuleManifestPath {
     Join-Path $PSScriptRoot 'modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
 }
 
-function Get-TenantManifestPath {
-    param(
-        [Parameter(Mandatory)]
-        [string]$TenantAliasValue
-    )
-
-    Join-Path $PSScriptRoot "..\config\tenants\$TenantAliasValue.psd1"
-}
-
 function Resolve-AllowedOutputPath {
     param(
         [Parameter(Mandatory)]
         [string]$RepositoryRoot,
 
         [Parameter(Mandatory)]
-        [string]$TenantAliasValue,
-
-        [AllowEmptyString()]
         [string]$CandidatePath
     )
 
-    if ([string]::IsNullOrWhiteSpace($CandidatePath)) {
-        return [System.IO.Path]::GetFullPath((Join-Path $RepositoryRoot "infra\evidence\discovery\$TenantAliasValue.json"))
-    }
-
     $resolved = [System.IO.Path]::GetFullPath($CandidatePath)
-    $tempRoots = @([System.IO.Path]::GetTempPath())
-    if (-not [string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) {
-        $tempRoots += [System.IO.Path]::GetFullPath($env:RUNNER_TEMP)
+    $normalizedRepositoryRoot = [System.IO.Path]::GetFullPath($RepositoryRoot).TrimEnd('\')
+    $repositoryPrefix = $normalizedRepositoryRoot + '\'
+    if ($resolved.TrimEnd('\') -ieq $normalizedRepositoryRoot -or
+        $resolved.StartsWith($repositoryPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw 'OutputPath must resolve outside the repository.'
     }
 
-    foreach ($root in $tempRoots) {
-        $normalizedRoot = [System.IO.Path]::GetFullPath($root).TrimEnd('\') + '\'
-        if ($resolved.StartsWith($normalizedRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
-            return $resolved
-        }
-    }
-
-    throw 'Explicit OutputPath must resolve under the system temporary directory or RUNNER_TEMP.'
+    $resolved
 }
 
 function Write-BomlessJsonAtomically {
@@ -252,11 +240,14 @@ function Get-BaselineDiscoveryEvidence {
 
 $repositoryRoot = Get-RepositoryRoot
 $moduleManifestPath = Get-ModuleManifestPath
-$tenantManifestPath = Get-TenantManifestPath -TenantAliasValue $TenantAlias
-$resolvedOutputPath = Resolve-AllowedOutputPath -RepositoryRoot $repositoryRoot -TenantAliasValue $TenantAlias -CandidatePath $OutputPath
+$resolvedOutputPath = Resolve-AllowedOutputPath -RepositoryRoot $repositoryRoot -CandidatePath $OutputPath
 
 Import-Module $moduleManifestPath -Force
-$tenantConfiguration = Import-TenantConfiguration -Path $tenantManifestPath -ValidationStage Discovery
+$tenantConfiguration = Import-TenantConfiguration `
+    -Path ([System.IO.Path]::GetFullPath($TenantConfigurationPath)) `
+    -ValidationStage Discovery `
+    -ExpectedPublicTenantKey $PublicTenantKey `
+    -RequireLocalUntracked
 
 $principal = if ($AuthenticationMode -eq 'Interactive') {
     Get-InteractivePrincipal -TenantConfiguration $tenantConfiguration
@@ -266,7 +257,7 @@ else {
 }
 
 $baselineEvidence = if ($AuthenticationMode -eq 'ExistingContext') {
-    Get-BaselineDiscoveryEvidence -RepositoryRoot $repositoryRoot -TenantAliasValue $TenantAlias
+    Get-BaselineDiscoveryEvidence -RepositoryRoot $repositoryRoot -TenantAliasValue ([string]$tenantConfiguration.TenantAlias)
 }
 else {
     $null

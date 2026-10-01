@@ -5,12 +5,12 @@
     "project": {
       "type": "AzureDevOpsProject",
       "id": "ado-project-synthetic-33333333-3333-3333-3333-333333333333",
-      "name": "Caldova HR Frontier",
-      "url": "https://dev.azure.com/caldova25156897/Caldova%20HR%20Frontier",
+      "name": "Synthetic HR Frontier",
+      "url": "https://dev.azure.com/synthetic/Synthetic%20HR%20Frontier",
       "scope": "organization:c aldova25156897"
     },
     "organization": {
-      "url": "https://dev.azure.com/caldova25156897/"
+      "url": "https://dev.azure.com/synthetic/"
     },
     "connectionString": "Server=tcp:synthetic.database.windows.net;Database=ado;User Id=ado;Password=never-serialize"
   }

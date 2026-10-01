@@ -1,52 +1,93 @@
 Set-StrictMode -Version Latest
 
-Describe 'Task 6 bootstrap orchestration and idempotency' {
+Describe 'Tenant 1 attended what-if orchestration' {
     BeforeAll {
         $script:RepositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
-        $script:BootstrapScriptPath = Join-Path $script:RepositoryRoot 'infra\src\scripts\Invoke-TenantBootstrap.ps1'
+        $script:SourceBootstrapScriptPath = Join-Path $script:RepositoryRoot 'infra\src\scripts\Invoke-TenantBootstrap.ps1'
         $script:FixturePath = Join-Path $script:RepositoryRoot 'infra\tests\fixtures\what-if\allowed.json'
-        $script:BootstrapRunId = '44444444-4444-4444-4444-444444444444'
-        $script:ApprovedRoleAssignmentIds = @(
-            '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-            '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+        $script:TenantId = '22222222-2222-2222-2222-222222222222'
+        $script:SubscriptionId = '11111111-1111-1111-1111-111111111111'
+        $script:PrincipalObjectId = '55555555-5555-5555-5555-555555555555'
+        $script:GroupObjectId = '77777777-7777-7777-7777-777777777777'
+        $script:Scope = "/subscriptions/$($script:SubscriptionId)"
+        $script:RoleName = 'syn-hr-agentic-abc123-deployment-validation'
+        $script:RoleDefinitionId = "$($script:Scope)/providers/Microsoft.Authorization/roleDefinitions/4d518f04-8692-59e4-b791-5fbfbb405e86"
+        $script:RoleAssignmentId = "$($script:Scope)/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        $script:RoleActions = @(
+            '*/read'
+            'Microsoft.Resources/deployments/read'
+            'Microsoft.Resources/deployments/validate/action'
+            'Microsoft.Resources/deployments/whatIf/action'
         )
 
+        $script:HarnessRoot = Join-Path $TestDrive 'bootstrap-harness'
+        foreach ($relativePath in @(
+            'infra\src\scripts\Invoke-TenantBootstrap.ps1',
+            'infra\src\scripts\Test-WhatIfBoundary.ps1',
+            'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap',
+            'infra\src\config\schemas\tenant.schema.json',
+            'infra\src\bicep'
+        )) {
+            $sourcePath = Join-Path $script:RepositoryRoot $relativePath
+            $targetPath = Join-Path $script:HarnessRoot $relativePath
+            $targetParent = Split-Path -Parent $targetPath
+            [void](New-Item -ItemType Directory -Path $targetParent -Force)
+            if (Test-Path -LiteralPath $sourcePath -PathType Container) {
+                Copy-Item -LiteralPath $sourcePath -Destination $targetParent -Recurse -Force
+            }
+            else {
+                Copy-Item -LiteralPath $sourcePath -Destination $targetPath -Force
+            }
+        }
+        [System.IO.File]::WriteAllText(
+            (Join-Path $script:HarnessRoot '.gitignore'),
+            "infra/src/config/tenants/*.local.psd1$([Environment]::NewLine)",
+            [System.Text.UTF8Encoding]::new($false)
+        )
+        & git -C $script:HarnessRoot init --quiet
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Could not initialize the isolated bootstrap repository.'
+        }
+        $script:BootstrapScriptPath = Join-Path $script:HarnessRoot 'infra\src\scripts\Invoke-TenantBootstrap.ps1'
+
         function script:New-TenantConfigurationFile {
-            $path = Join-Path $TestDrive ([guid]::NewGuid().ToString() + '.psd1')
+            $path = Join-Path $script:HarnessRoot 'infra\src\config\tenants\tenant1.local.psd1'
+            [void](New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force)
             $content = @"
 @{
     SchemaVersion = '1.0'
-    TenantAlias = 'caldova25156897'
-    DisplayName = 'Caldova25156897'
-    TenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
-    AdminUpn = 'admin@Caldova25156897.onmicrosoft.com'
-    SubscriptionId = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
+    PublicTenantKey = 'tenant1'
+    TenantAlias = 'fixturetenant42'
+    DisplayName = 'Fixture Tenant 42'
+    TenantId = '$($script:TenantId)'
+    AdminUpn = 'operator@fixture.example'
+    SubscriptionId = '$($script:SubscriptionId)'
     PrimaryLocation = 'switzerlandnorth'
-    CompanyTla = 'cal'
+    CompanyTla = 'syn'
     WorkloadName = 'hr-agentic'
-    UniqueSuffix = 'bc8rbt'
-    NamingRoot = 'cal-hr-agentic-bc8rbt'
+    UniqueSuffix = 'abc123'
+    NamingRoot = 'syn-hr-agentic-abc123'
     LifecycleState = 'IntentReviewed'
     GitHub = @{
         Owner = 'urruegg'
         OwnerId = '46865858'
         Repository = 'caldova-hr-frontier'
         RepositoryId = '1371297722'
-        EnvironmentName = 'bootstrap-caldova25156897'
+        EnvironmentName = 'bootstrap-fixturetenant42'
     }
     AzureDevOps = @{
-        OrganizationUrl = 'https://dev.azure.com/caldova25156897/'
-        ProjectName = 'Caldova HR Frontier'
+        OrganizationUrl = 'https://dev.azure.com/synthetic/'
+        ProjectName = 'Synthetic HR Frontier'
     }
     PowerPlatform = @{
-        DevUrl = 'https://hrfrontierdev.crm17.dynamics.com/'
-        TestUrl = 'https://hrfrontiertest.crm17.dynamics.com/'
-        ProdUrl = 'https://hrfrontier.crm17.dynamics.com/'
+        DevUrl = 'https://fixture-dev.example.test/'
+        TestUrl = 'https://fixture-test.example.test/'
+        ProdUrl = 'https://fixture-prod.example.test/'
     }
     Components = @{
         EntraServicePrincipal = @{
             Mode = 'Existing'
-            Id = '55555555-5555-5555-5555-555555555555'
+            Id = '$($script:PrincipalObjectId)'
         }
     }
 }
@@ -55,7 +96,7 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
             $path
         }
 
-        function script:New-PlaceholderFile {
+        function script:New-PrivateFile {
             param(
                 [Parameter(Mandatory)]
                 [string]$Name,
@@ -69,695 +110,506 @@ Describe 'Task 6 bootstrap orchestration and idempotency' {
             $path
         }
 
-                function script:New-EvidenceFile {
-                    param(
-                        [string]$EntraServicePrincipalId = '55555555-5555-5555-5555-555555555555',
-                        [string]$CompletedUtc = ([datetime]::UtcNow.ToString('o'))
-                    )
+        function script:New-AccessEvidence {
+            param(
+                [string]$PrincipalObjectId = $script:PrincipalObjectId,
+                [string]$AssignmentId = $script:RoleAssignmentId,
+                [string]$AssignmentPrincipalObjectId = $PrincipalObjectId,
+                [ValidateSet('User', 'Group')]
+                [string]$PrincipalType = 'User',
+                [string]$Scope = $script:Scope,
+                [string]$AssigneeObjectId = $PrincipalObjectId,
+                [string]$RoleDefinitionId = $script:RoleDefinitionId,
+                [string]$RoleName = $script:RoleName,
+                [string[]]$Actions = $script:RoleActions
+            )
 
-                        $hash = ('a' * 64)
-                    $startedUtc = ([datetime]::Parse($CompletedUtc).ToUniversalTime().AddMinutes(-1).ToString('o'))
-                        $path = Join-Path $TestDrive ([guid]::NewGuid().ToString() + '-evidence.json')
-                        $content = @"
-{
-    "SchemaVersion": "1.0",
-    "ToolVersion": "1.0.0",
-    "RunId": "44444444-4444-4444-4444-444444444444",
-    "CollectionStartedUtc": "$startedUtc",
-    "CollectionCompletedUtc": "$CompletedUtc",
-    "TenantAlias": "caldova25156897",
-    "TenantId": "e2312862-df63-440c-8bcf-007a2c52859d",
-    "Principal": {
-        "Type": "ServicePrincipal",
-        "Id": "99999999-9999-9999-9999-999999999999",
-        "ClientId": "11111111-1111-1111-1111-111111111111"
-    },
-    "Services": {
-        "GitHub": {
-            "Name": "GitHub",
-            "RunId": "44444444-4444-4444-4444-444444444444",
-            "Status": "Missing",
-            "SourceApi": "github/rest",
-            "CollectedUtc": "$CompletedUtc",
-            "ResponseSha256": "$hash",
-            "Resources": []
-        },
-        "Entra": {
-            "Name": "Entra",
-            "RunId": "44444444-4444-4444-4444-444444444444",
-            "Status": "Found",
-            "SourceApi": "graph/rest",
-            "CollectedUtc": "$CompletedUtc",
-            "ResponseSha256": "$hash",
-            "Resources": [
-                {
-                    "Type": "EntraServicePrincipal",
-                    "Id": "$EntraServicePrincipalId",
-                    "Name": "cal-hr-agentic-bc8rbt-app",
-                    "Status": "Found",
-                    "EvidenceReference": {
-                        "Service": "Entra",
-                        "SourceApi": "graph/rest",
-                        "Scope": "/tenants/e2312862-df63-440c-8bcf-007a2c52859d",
-                        "CollectedUtc": "$CompletedUtc",
-                        "ResponseSha256": "$hash"
+            [pscustomobject][ordered]@{
+                SchemaVersion = '1.0'
+                TenantId = $script:TenantId
+                SubscriptionId = $script:SubscriptionId
+                PrincipalObjectId = $PrincipalObjectId
+                AssigneeObjectId = $AssigneeObjectId
+                IncludeGroups = $true
+                Scope = $Scope
+                Assignments = @(
+                    [pscustomobject][ordered]@{
+                        Id = $AssignmentId
+                        PrincipalObjectId = $AssignmentPrincipalObjectId
+                        PrincipalType = $PrincipalType
+                        Scope = $Scope
+                        RoleDefinitionId = $RoleDefinitionId
+                        RoleName = $RoleName
+                        RoleType = 'CustomRole'
+                        PermissionBlockCount = 1
+                        AssignableScopes = @($Scope)
+                        Actions = @($Actions)
+                        NotActions = @()
+                        DataActions = @()
+                        NotDataActions = @()
+                    }
+                )
+            }
+        }
+
+        function script:Get-ValidInvocation {
+            param(
+                [scriptblock]$AttendedUserContextValidator,
+                [scriptblock]$AccessPreflightValidator,
+                [scriptblock]$NativeCommandRunner,
+                [scriptblock]$WhatIfBoundaryValidator
+            )
+
+            if (-not $AttendedUserContextValidator) {
+                $principalObjectId = $script:PrincipalObjectId
+                $AttendedUserContextValidator = { $principalObjectId }.GetNewClosure()
+            }
+            if (-not $AccessPreflightValidator) {
+                $defaultAccessEvidence = New-AccessEvidence
+                $AccessPreflightValidator = { $defaultAccessEvidence }.GetNewClosure()
+            }
+            if (-not $NativeCommandRunner) {
+                $fixturePath = $script:FixturePath
+                $NativeCommandRunner = {
+                    param([string]$FilePath, [string[]]$ArgumentList)
+                    if (($ArgumentList -join ' ') -match '^deployment sub what-if ') {
+                        return [pscustomobject]@{
+                            ExitCode = 0
+                            StdOut = (Get-Content -Raw -LiteralPath $fixturePath)
+                            StdErr = ''
+                        }
+                    }
+                    throw "Unexpected native command: $FilePath $($ArgumentList -join ' ')"
+                }.GetNewClosure()
+            }
+            if (-not $WhatIfBoundaryValidator) {
+                $WhatIfBoundaryValidator = { }
+            }
+            $compiledParameters = [pscustomobject]@{
+                parameters = [pscustomobject]@{
+                    tenant = [pscustomobject]@{
+                        value = [pscustomobject]@{
+                            tenantAlias = 'fixturetenant42'
+                            location = 'switzerlandnorth'
+                            namingRoot = 'syn-hr-agentic-abc123'
+                            platformResourceGroupName = 'rg-syn-hr-agentic-abc123-platform'
+                            logAnalyticsWorkspaceName = 'log-syn-hr-agentic-abc123'
+                            policyAssignments = @()
+                        }
                     }
                 }
-            ]
-        },
-        "Azure": {
-            "Name": "Azure",
-            "RunId": "44444444-4444-4444-4444-444444444444",
-            "Status": "Missing",
-            "SourceApi": "arm/rest",
-            "CollectedUtc": "$CompletedUtc",
-            "ResponseSha256": "$hash",
-            "Resources": []
-        },
-        "AzureDevOps": {
-            "Name": "AzureDevOps",
-            "RunId": "44444444-4444-4444-4444-444444444444",
-            "Status": "Missing",
-            "SourceApi": "ado/rest",
-            "CollectedUtc": "$CompletedUtc",
-            "ResponseSha256": "$hash",
-            "Resources": []
-        },
-        "PowerPlatform": {
-            "Name": "PowerPlatform",
-            "RunId": "44444444-4444-4444-4444-444444444444",
-            "Status": "Missing",
-            "SourceApi": "pp/rest",
-            "CollectedUtc": "$CompletedUtc",
-            "ResponseSha256": "$hash",
-            "Resources": []
-        }
-    }
-}
-"@
-                        [System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))
-                        $path
-                }
+            }
+            $BicepValidator = { $compiledParameters }.GetNewClosure()
 
-        function script:New-RoleStateFile {
-            $path = Join-Path $TestDrive ([guid]::NewGuid().ToString() + '.json')
-                        $content = @'
-{
-  "SchemaVersion": "1.0",
-  "RunId": "44444444-4444-4444-4444-444444444444",
-  "TenantAlias": "caldova25156897",
-  "TenantId": "e2312862-df63-440c-8bcf-007a2c52859d",
-  "SubscriptionId": "edb45a24-408d-47c4-bbc7-685b9b3fc017",
-  "PrincipalObjectId": "55555555-5555-5555-5555-555555555555",
-  "Scope": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017",
-  "CreatedUtc": "2026-09-19T10:00:00Z",
-  "Assignments": [
-    {
-      "Id": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-      "RoleName": "Contributor",
-      "RoleDefinitionId": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c",
-      "PrincipalObjectId": "55555555-5555-5555-5555-555555555555",
-      "Scope": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017",
-      "CreatedUtc": "2026-09-19T10:00:00Z"
-    },
-    {
-      "Id": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
-      "RoleName": "Role Based Access Control Administrator",
-      "RoleDefinitionId": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168",
-      "PrincipalObjectId": "55555555-5555-5555-5555-555555555555",
-      "Scope": "/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017",
-      "CreatedUtc": "2026-09-19T10:00:01Z"
-    }
-  ]
-}
-'@
-                        [System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))
-            $path
+            @{
+                PublicTenantKey = 'tenant1'
+                TenantConfigurationPath = (New-TenantConfigurationFile)
+                EvidencePath = (New-PrivateFile -Name 'discovery.json' -Content '{}')
+                ParameterFile = (New-PrivateFile -Name 'main.bicepparam' -Content "using '../src/bicep/main.bicep'")
+                WhatIfOnly = $true
+                DiscoveryEvidenceValidator = { [pscustomobject]@{} }
+                IntentValidator = { }
+                AttendedUserContextValidator = $AttendedUserContextValidator
+                AccessPreflightValidator = $AccessPreflightValidator
+                BicepValidator = $BicepValidator
+                NativeCommandRunner = $NativeCommandRunner
+                WhatIfBoundaryValidator = $WhatIfBoundaryValidator
+            }
         }
     }
 
     It 'defines the bootstrap orchestration surface before implementation' {
-        Test-Path -LiteralPath $script:BootstrapScriptPath | Should -BeTrue
+        $script:SourceBootstrapScriptPath | Should -Exist
     }
 
-    It 'rejects <Case> reviewed cleanup approval before post-state work' -ForEach @(
-        @{
-            Case = 'false confirmation'
-            Confirmation = $false
-            RunId = '44444444-4444-4444-4444-444444444444'
-            ApprovedIds = @(
-                '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-                '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
-            )
-            ExpectedError = '*ConfirmRoleCleanup must be true*'
-        },
-        @{
-            Case = 'stale run id'
-            Confirmation = $true
-            RunId = '33333333-3333-3333-3333-333333333333'
-            ApprovedIds = @(
-                '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-                '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
-            )
-            ExpectedError = '*BootstrapRunId must match TemporaryRoleState.RunId*'
-        },
-        @{
-            Case = 'unapproved assignment id'
-            Confirmation = $true
-            RunId = '44444444-4444-4444-4444-444444444444'
-            ApprovedIds = @(
-                '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-                '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017/providers/Microsoft.Authorization/roleAssignments/cccccccc-cccc-cccc-cccc-cccccccccccc'
-            )
-            ExpectedError = '*ApprovedRoleAssignmentIds must exactly match TemporaryRoleState assignment ids*'
-        }
-    ) {
-        param($Case, $Confirmation, $RunId, $ApprovedIds, $ExpectedError)
-
-        $tenantConfigurationPath = New-TenantConfigurationFile
-        $evidencePath = New-PlaceholderFile -Name 'approval-evidence.json' -Content '{}'
-        $parameterFile = New-PlaceholderFile -Name 'approval-main.bicepparam' -Content 'using "../src/bicep/main.bicep"'
-        $roleStatePath = New-RoleStateFile
-        $nativeCalls = [System.Collections.Generic.List[string]]::new()
-        $cleanupCalls = [System.Collections.Generic.List[string]]::new()
-
-        {
-            & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -WhatIfOnly -ConfirmRoleCleanup $Confirmation -BootstrapRunId $RunId -ApprovedRoleAssignmentIds $ApprovedIds -DiscoveryEvidenceValidator { } -IntentValidator { } -OidcContextValidator { } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
-                param([string]$FilePath, [string[]]$ArgumentList)
-                $nativeCalls.Add($FilePath) | Out-Null
-                throw 'native runner must not be reached'
-            } -CleanupRunner {
-                param([object]$RoleState)
-                $cleanupCalls.Add([string]$RoleState.RunId) | Out-Null
-            }
-        } | Should -Throw $ExpectedError
-
-        $nativeCalls.Count | Should -Be 0
-        $cleanupCalls.Count | Should -Be 0
+    It 'requires attended minimum access and has no role-mutation OIDC or deployment-create path' {
+        $content = Get-Content -Raw -LiteralPath $script:BootstrapScriptPath
+        $content | Should -Match 'user\.type.+user'
+        $content | Should -Match 'AttendedUserContextValidator'
+        $content | Should -Match 'AccessPreflightValidator'
+        $content | Should -Match "'deployment',\s*'sub',\s*'what-if'"
+        $content | Should -Not -Match 'role.+assignment.+(create|delete)'
+        $content | Should -Not -Match 'OidcContextValidator|AZURE_CLIENT_ID|federated'
+        $content | Should -Not -Match "'deployment',\s*'sub',\s*'create'|New-AzSubscriptionDeployment"
     }
 
-    It 'runs cleanup after <FailureStage> failure' -ForEach @(
-        @{ FailureStage = 'Bicep build'; UseWhatIfOnly = $true; ExpectedError = '*simulated Bicep build failure*' },
-        @{ FailureStage = 'the WhatIfOnly guard'; UseWhatIfOnly = $false; ExpectedError = '*only supports -WhatIfOnly*' },
-        @{ FailureStage = 'Azure what-if'; UseWhatIfOnly = $true; ExpectedError = '*az what-if failed with exit code 17*' },
-        @{ FailureStage = 'what-if payload write'; UseWhatIfOnly = $true; ExpectedError = '*Could not find a part of the path*' }
-    ) {
-        param($FailureStage, $UseWhatIfOnly, $ExpectedError)
-
-        $tenantConfigurationPath = New-TenantConfigurationFile
-        $evidencePath = New-PlaceholderFile -Name ("{0}-evidence.json" -f ([guid]::NewGuid()).Guid) -Content '{}'
-        $parameterFile = New-PlaceholderFile -Name ("{0}-main.bicepparam" -f ([guid]::NewGuid()).Guid) -Content 'using "../src/bicep/main.bicep"'
-        $roleStatePath = New-RoleStateFile
-        $fixturePath = $script:FixturePath
-        $cleanupCalls = [System.Collections.Generic.List[string]]::new()
-        $previousRunnerTemp = $env:RUNNER_TEMP
-        $runnerTempWasPresent = Test-Path Env:RUNNER_TEMP
-
-        if ($FailureStage -eq 'what-if payload write') {
-            $env:RUNNER_TEMP = New-PlaceholderFile -Name ("{0}-blocked-temp-root" -f ([guid]::NewGuid()).Guid) -Content 'not a directory'
-        }
-
-        try {
-            $parameters = @{
-                TenantAlias = 'caldova25156897'
-                TenantConfigurationPath = $tenantConfigurationPath
-                EvidencePath = $evidencePath
-                ParameterFile = $parameterFile
-                TemporaryRoleStatePath = $roleStatePath
-                ConfirmRoleCleanup = $true
-                BootstrapRunId = $script:BootstrapRunId
-                ApprovedRoleAssignmentIds = $script:ApprovedRoleAssignmentIds
-                DiscoveryEvidenceValidator = { }
-                IntentValidator = { }
-                OidcContextValidator = { }
-                BicepValidator = {
-                    if ($FailureStage -eq 'Bicep build') {
-                        throw 'simulated Bicep build failure'
-                    }
-                }.GetNewClosure()
-                RoleStateLoader = { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json }
-                NativeCommandRunner = {
-                    param([string]$FilePath, [string[]]$ArgumentList)
-
-                    if ($FailureStage -eq 'Azure what-if') {
-                        return [pscustomobject]@{ ExitCode = 17; StdOut = ''; StdErr = 'simulated what-if failure' }
-                    }
-
-                    return [pscustomobject]@{ ExitCode = 0; StdOut = (Get-Content -Raw -LiteralPath $fixturePath); StdErr = '' }
-                }.GetNewClosure()
-                WhatIfBoundaryValidator = { throw 'boundary validator must not be reached' }
-                CleanupRunner = { param([object]$RoleState) $cleanupCalls.Add([string]$RoleState.RunId) | Out-Null }
-            }
-            if ($UseWhatIfOnly) {
-                $parameters.WhatIfOnly = $true
-            }
-
-            { & $script:BootstrapScriptPath @parameters } | Should -Throw $ExpectedError
-            $cleanupCalls | Should -Be @($script:BootstrapRunId)
-        }
-        finally {
-            if ($runnerTempWasPresent) {
-                $env:RUNNER_TEMP = $previousRunnerTemp
-            }
-            else {
-                Remove-Item Env:RUNNER_TEMP -ErrorAction SilentlyContinue
-            }
-        }
-    }
-
-    It 'runs cleanup from finally after a simulated boundary validation failure' {
-        $tenantConfigurationPath = New-TenantConfigurationFile
-        $evidencePath = New-PlaceholderFile -Name 'evidence.json' -Content '{}'
-        $parameterFile = New-PlaceholderFile -Name 'main.bicepparam' -Content 'using "../src/bicep/main.bicep"'
-        $roleStatePath = New-RoleStateFile
-        $fixturePath = $script:FixturePath
-        $events = [System.Collections.Generic.List[string]]::new()
-
-        {
-            & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { $events.Add('evidence') | Out-Null } -IntentValidator { $events.Add('intent') | Out-Null } -OidcContextValidator { $events.Add('oidc') | Out-Null } -BicepValidator { $events.Add('bicep') | Out-Null } -RoleStateLoader { param([string]$Path) $events.Add('state') | Out-Null; Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
-                param([string]$FilePath, [string[]]$ArgumentList)
-
-                $events.Add(($FilePath + ' ' + ($ArgumentList -join ' '))) | Out-Null
-                @{ ExitCode = 0; StdOut = (Get-Content -Raw -LiteralPath $fixturePath); StdErr = '' }
-            } -WhatIfBoundaryValidator { param([string]$Path) $events.Add('boundary') | Out-Null; throw 'boundary failed' } -CleanupRunner { param([object]$RoleState) $events.Add('cleanup') | Out-Null }
-        } | Should -Throw '*boundary failed*'
-
-        $events | Should -Contain 'cleanup'
-    }
-
-    It 'surfaces cleanup failure without hiding the original bootstrap failure' {
-        $tenantConfigurationPath = New-TenantConfigurationFile
-        $evidencePath = New-PlaceholderFile -Name 'evidence.json' -Content '{}'
-        $parameterFile = New-PlaceholderFile -Name 'main.bicepparam' -Content 'using "../src/bicep/main.bicep"'
-        $roleStatePath = New-RoleStateFile
-        $fixturePath = $script:FixturePath
-        {
-            & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { } -IntentValidator { } -OidcContextValidator { } -BicepValidator { } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
-                param([string]$FilePath, [string[]]$ArgumentList)
-
-                @{ ExitCode = 0; StdOut = (Get-Content -Raw -LiteralPath $fixturePath); StdErr = '' }
-            } -WhatIfBoundaryValidator { param([string]$Path) throw 'boundary failed' } -CleanupRunner { param([object]$RoleState) throw 'cleanup failed' }
-        } | Should -Throw '*boundary failed*cleanup failed*'
-    }
-
-    It 'constructs only the reviewed what-if command arguments in WhatIfOnly mode' {
-        $tenantConfigurationPath = New-TenantConfigurationFile
-        $evidencePath = New-PlaceholderFile -Name 'evidence.json' -Content '{}'
-        $parameterFile = New-PlaceholderFile -Name 'main.bicepparam' -Content 'using "../src/bicep/main.bicep"'
-        $roleStatePath = New-RoleStateFile
-        $fixturePath = $script:FixturePath
-        $expectedMainBicepPath = [System.IO.Path]::GetFullPath((Join-Path $script:RepositoryRoot 'infra\src\bicep\main.bicep'))
-        $global:Task6CapturedCommand = $null
-        $githubRunIdWasPresent = Test-Path Env:GITHUB_RUN_ID
-        $previousGithubRunId = $env:GITHUB_RUN_ID
-
-        try {
-            Remove-Item Env:GITHUB_RUN_ID -ErrorAction SilentlyContinue
-            & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -DiscoveryEvidenceValidator { } -IntentValidator { } -OidcContextValidator { } -BicepValidator { } -RoleStateLoader { param([string]$Path) Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json } -NativeCommandRunner {
-                param([string]$FilePath, [string[]]$ArgumentList)
-
-                $global:Task6CapturedCommand = [pscustomobject]@{
-                    FilePath = $FilePath
-                    ArgumentList = $ArgumentList
-                }
-
-                @{ ExitCode = 0; StdOut = (Get-Content -Raw -LiteralPath $fixturePath); StdErr = '' }
-            } -WhatIfBoundaryValidator { param([string]$Path) } -CleanupRunner { param([object]$RoleState) }
-        }
-        finally {
-            if ($githubRunIdWasPresent) { $env:GITHUB_RUN_ID = $previousGithubRunId } else { Remove-Item Env:GITHUB_RUN_ID -ErrorAction SilentlyContinue }
-        }
-
-        $global:Task6CapturedCommand.FilePath | Should -Be 'az'
-        $global:Task6CapturedCommand.ArgumentList | Should -Be @(
-            'deployment',
-            'sub',
-            'what-if',
-            '--location', 'switzerlandnorth',
-            '--name', 'whatif-caldova25156897-local',
-            '--template-file', $expectedMainBicepPath,
-            '--parameters', $parameterFile,
-            '--result-format', 'FullResourcePayloads',
-            '--no-pretty-print'
+    It 'removes every historical authorization-mutation parameter from the public interface' {
+        $tokens = $null
+        $parseErrors = $null
+        $entryPointAst = [System.Management.Automation.Language.Parser]::ParseFile(
+            $script:SourceBootstrapScriptPath,
+            [ref]$tokens,
+            [ref]$parseErrors
         )
-        $global:Task6CapturedCommand.ArgumentList[8] | Should -BeExactly $expectedMainBicepPath
-        $global:Task6CapturedCommand.ArgumentList | Should -Not -Contain 'create'
-        Remove-Variable -Name Task6CapturedCommand -Scope Global -ErrorAction SilentlyContinue
-    }
+        $parseErrors.Count | Should -Be 0
+        $parameterNames = @($entryPointAst.ParamBlock.Parameters.Name.VariablePath.UserPath)
 
-    It 'uses the default evidence validator and rejects malformed discovery evidence before native execution' {
-        $tenantConfigurationPath = New-TenantConfigurationFile
-        $evidencePath = New-EvidenceFile
-        $evidenceContent = Get-Content -Raw -LiteralPath $evidencePath
-        $evidenceContent = $evidenceContent -replace '(?ms)^\s*"SchemaVersion":\s*"1\.0",\r?\n', ''
-        [System.IO.File]::WriteAllText($evidencePath, $evidenceContent, [System.Text.UTF8Encoding]::new($false))
-        $parameterFile = New-PlaceholderFile -Name 'main.bicepparam' -Content 'using "../src/bicep/main.bicep"'
-        $roleStatePath = New-RoleStateFile
-
-        {
-            & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner {
-                throw 'native runner should not be reached'
-            } -CleanupRunner { throw 'cleanup should not be reached' }
-        } | Should -Throw '*Evidence is missing required property SchemaVersion*'
-    }
-
-    It 'uses the default intent validator and rejects mismatched existing component evidence before native execution' {
-        $tenantConfigurationPath = New-TenantConfigurationFile
-        $evidencePath = New-EvidenceFile -EntraServicePrincipalId 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
-        $parameterFile = New-PlaceholderFile -Name 'main.bicepparam' -Content 'using "../src/bicep/main.bicep"'
-        $roleStatePath = New-RoleStateFile
-
-        {
-            & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner {
-                throw 'native runner should not be reached'
-            } -CleanupRunner { throw 'cleanup should not be reached' }
-        } | Should -Throw '*exact stable Id match*'
-    }
-
-    It 'uses the default OIDC validator and rejects mismatched client id before what-if execution' {
-        $tenantConfigurationPath = New-TenantConfigurationFile
-        $evidencePath = New-EvidenceFile
-        $parameterFile = New-PlaceholderFile -Name 'main.bicepparam' -Content 'using "../src/bicep/main.bicep"'
-        $roleStatePath = New-RoleStateFile
-        $env:AZURE_TENANT_ID = 'e2312862-df63-440c-8bcf-007a2c52859d'
-        $env:AZURE_SUBSCRIPTION_ID = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
-        $env:AZURE_CLIENT_ID = '22222222-2222-2222-2222-222222222222'
-
-        try {
-            {
-                & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner {
-                    param([string]$FilePath, [string[]]$ArgumentList)
-
-                    $joined = $ArgumentList -join ' '
-                    if ($joined -eq 'account show --output json') {
-                        return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"e2312862-df63-440c-8bcf-007a2c52859d","id":"edb45a24-408d-47c4-bbc7-685b9b3fc017","user":{"type":"servicePrincipal","name":"11111111-1111-1111-1111-111111111111"}}'; StdErr = '' }
-                    }
-
-                    throw "Unexpected native command: $FilePath $joined"
-                } -CleanupRunner { throw 'cleanup should not be reached' }
-            } | Should -Throw '*AZURE_CLIENT_ID*'
+        foreach ($required in @(
+            'PublicTenantKey',
+            'TenantConfigurationPath',
+            'EvidencePath',
+            'ParameterFile',
+            'WhatIfOnly',
+            'AttendedUserContextValidator',
+            'AccessPreflightValidator'
+        )) {
+            $parameterNames | Should -Contain $required
         }
-        finally {
-            Remove-Item Env:AZURE_TENANT_ID, Env:AZURE_SUBSCRIPTION_ID, Env:AZURE_CLIENT_ID -ErrorAction SilentlyContinue
+        foreach ($retired in @(
+            'TemporaryRoleStatePath',
+            'ConfirmRoleCleanup',
+            'BootstrapRunId',
+            'ApprovedRoleAssignmentIds',
+            'RoleStateLoader',
+            'CleanupRunner'
+        )) {
+            $parameterNames | Should -Not -Contain $retired
         }
     }
 
-    It 'uses the default role-state loader and rejects duplicate assignment ids before what-if execution' {
-        $tenantConfigurationPath = New-TenantConfigurationFile
-        $evidencePath = New-EvidenceFile
-        $parameterFile = New-PlaceholderFile -Name 'main.bicepparam' -Content 'using "../src/bicep/main.bicep"'
-        $roleStatePath = New-RoleStateFile
-        $roleStateContent = Get-Content -Raw -LiteralPath $roleStatePath
-        $roleStateContent = $roleStateContent -replace 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
-        [System.IO.File]::WriteAllText($roleStatePath, $roleStateContent, [System.Text.UTF8Encoding]::new($false))
-        $env:AZURE_TENANT_ID = 'e2312862-df63-440c-8bcf-007a2c52859d'
-        $env:AZURE_SUBSCRIPTION_ID = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
-        $env:AZURE_CLIENT_ID = '11111111-1111-1111-1111-111111111111'
+    It 'rejects a malformed attended principal before access validation or native execution' {
+        $accessCalls = 0
+        $nativeCalls = 0
+        $invocation = Get-ValidInvocation `
+            -AttendedUserContextValidator { 'not-a-guid' } `
+            -AccessPreflightValidator { $accessCalls++; New-AccessEvidence } `
+            -NativeCommandRunner { $nativeCalls++; throw 'native execution must not be reached' }
 
-        try {
-            {
-                & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner {
-                    param([string]$FilePath, [string[]]$ArgumentList)
-
-                    $joined = $ArgumentList -join ' '
-                    if ($joined -eq 'account show --output json') {
-                        return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"e2312862-df63-440c-8bcf-007a2c52859d","id":"edb45a24-408d-47c4-bbc7-685b9b3fc017","user":{"type":"servicePrincipal","name":"11111111-1111-1111-1111-111111111111"}}'; StdErr = '' }
-                    }
-
-                    throw "Unexpected native command: $FilePath $joined"
-                } -CleanupRunner { throw 'cleanup should not be reached' }
-            } | Should -Throw '*assignment ids must be unique*'
-        }
-        finally {
-            Remove-Item Env:AZURE_TENANT_ID, Env:AZURE_SUBSCRIPTION_ID, Env:AZURE_CLIENT_ID -ErrorAction SilentlyContinue
-        }
+        { & $script:BootstrapScriptPath @invocation } | Should -Throw '*must return a GUID*'
+        $accessCalls | Should -Be 0
+        $nativeCalls | Should -Be 0
     }
 
-    It 'uses the default bicep validator and cleans up after a compiled principal mismatch' {
-        $tenantConfigurationPath = New-TenantConfigurationFile
-        $evidencePath = New-EvidenceFile
-        $parameterFile = New-PlaceholderFile -Name 'main.bicepparam' -Content 'using "../src/bicep/main.bicep"'
-        $roleStatePath = New-RoleStateFile
-        $cleanupCalls = [System.Collections.Generic.List[string]]::new()
-        $env:AZURE_TENANT_ID = 'e2312862-df63-440c-8bcf-007a2c52859d'
-        $env:AZURE_SUBSCRIPTION_ID = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
-        $env:AZURE_CLIENT_ID = '11111111-1111-1111-1111-111111111111'
+    It 'rejects access evidence with no separately approved effective assignment before what-if' {
+        $nativeCalls = 0
+        $evidence = New-AccessEvidence
+        $evidence.Assignments = @()
+        $invocation = Get-ValidInvocation `
+            -AccessPreflightValidator ({ $evidence }.GetNewClosure()) `
+            -NativeCommandRunner { $nativeCalls++; throw 'native execution must not be reached' }
 
-        try {
-            {
-                & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner {
-                    param([string]$FilePath, [string[]]$ArgumentList)
-
-                    $joined = $ArgumentList -join ' '
-                    if ($joined -eq 'account show --output json') {
-                        return [pscustomobject]@{ ExitCode = 0; StdOut = '{"tenantId":"e2312862-df63-440c-8bcf-007a2c52859d","id":"edb45a24-408d-47c4-bbc7-685b9b3fc017","user":{"type":"servicePrincipal","name":"11111111-1111-1111-1111-111111111111"}}'; StdErr = '' }
-                    }
-
-                    if ($joined -match '^bicep build --file .+main\.bicep --stdout$') {
-                        return [pscustomobject]@{ ExitCode = 0; StdOut = '{"template":"ok"}'; StdErr = '' }
-                    }
-
-                    if ($joined -match '^bicep build-params --file .+main\.bicepparam --stdout$') {
-                        $parameterDocument = [ordered]@{
-                            parameters = [ordered]@{
-                                tenant = [ordered]@{
-                                    value = [ordered]@{
-                                        tenantAlias = 'caldova25156897'
-                                        location = 'switzerlandnorth'
-                                        namingRoot = 'cal-hr-agentic-bc8rbt'
-                                        validationPrincipalId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
-                                    }
-                                }
-                            }
-                        }
-                        $payload = [ordered]@{ parametersJson = ($parameterDocument | ConvertTo-Json -Depth 10 -Compress) } | ConvertTo-Json -Depth 10 -Compress
-                        return [pscustomobject]@{ ExitCode = 0; StdOut = $payload; StdErr = '' }
-                    }
-
-                    throw "Unexpected native command: $FilePath $joined"
-                } -CleanupRunner { param([object]$RoleState) $cleanupCalls.Add([string]$RoleState.RunId) | Out-Null }
-            } | Should -Throw '*validationPrincipalId*accepted temporary role state*'
-
-            $cleanupCalls | Should -Be @($script:BootstrapRunId)
-        }
-        finally {
-            Remove-Item Env:AZURE_TENANT_ID, Env:AZURE_SUBSCRIPTION_ID, Env:AZURE_CLIENT_ID -ErrorAction SilentlyContinue
-        }
+        { & $script:BootstrapScriptPath @invocation } | Should -Throw '*effective assignment*what-if*'
+        $nativeCalls | Should -Be 0
     }
 
-    It 'runs the complete default orchestration path through only the low-level native runner' -Tag 'ReviewFixRound2Slice5' {
-        $tenantConfigurationPath = New-TenantConfigurationFile
-        $evidencePath = New-EvidenceFile -CompletedUtc ([datetime]::UtcNow.ToString('o'))
-        $parameterFile = New-PlaceholderFile -Name 'default-path-main.bicepparam' -Content 'using "../src/bicep/main.bicep"'
-        $roleStatePath = New-RoleStateFile
-        $expectedMainBicepPath = [System.IO.Path]::GetFullPath((Join-Path $script:RepositoryRoot 'infra\src\bicep\main.bicep'))
-        $expectedScope = '/subscriptions/edb45a24-408d-47c4-bbc7-685b9b3fc017'
-        $contributorId = [string]$script:ApprovedRoleAssignmentIds[0]
-        $rbacAdministratorId = [string]$script:ApprovedRoleAssignmentIds[1]
-        $contributorRoleDefinitionId = "$expectedScope/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
-        $rbacAdministratorRoleDefinitionId = "$expectedScope/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168"
-        $assignmentPresent = @{
-            $contributorId = $true
-            $rbacAdministratorId = $true
+    It 'accepts the exact approved validation role through an assignee group query' {
+        $evidence = New-AccessEvidence `
+            -AssignmentPrincipalObjectId $script:GroupObjectId `
+            -PrincipalType Group
+        $invocation = Get-ValidInvocation -AccessPreflightValidator ({ $evidence }.GetNewClosure())
+
+        $result = & $script:BootstrapScriptPath @invocation
+
+        $result.PrincipalObjectId | Should -BeExactly $script:PrincipalObjectId
+    }
+
+    It 'rejects <Case> access evidence' -ForEach @(
+        @{ Case = 'wildcard action'; Kind = 'Wildcard'; Expected = '*approved validation role*' }
+        @{ Case = 'Owner'; Kind = 'Owner'; Expected = '*approved validation role*' }
+        @{ Case = 'Contributor'; Kind = 'Contributor'; Expected = '*approved validation role*' }
+        @{ Case = 'User Access Administrator'; Kind = 'UserAccessAdministrator'; Expected = '*approved validation role*' }
+        @{ Case = 'Role Based Access Control Administrator'; Kind = 'RbacAdministrator'; Expected = '*approved validation role*' }
+        @{ Case = 'extra write action'; Kind = 'ExtraWrite'; Expected = '*approved validation role*' }
+        @{ Case = 'extra delete action'; Kind = 'ExtraDelete'; Expected = '*approved validation role*' }
+        @{ Case = 'foreign role definition'; Kind = 'ForeignRoleDefinition'; Expected = '*approved validation role*' }
+        @{ Case = 'ambiguous duplicate assignment'; Kind = 'Ambiguous'; Expected = '*exactly one*approved*assignment*' }
+        @{ Case = 'foreign assignee group query'; Kind = 'ForeignAssignee'; Expected = '*assignee query*attended principal*' }
+        @{ Case = 'foreign group scope'; Kind = 'ForeignGroupScope'; Expected = '*exact subscription scope*' }
+    ) {
+        param($Case, $Kind, $Expected)
+
+        $evidence = New-AccessEvidence
+        switch ($Kind) {
+            'Wildcard' {
+                $evidence.Assignments[0].Actions = @('*')
+            }
+            'Owner' {
+                $evidence.Assignments[0].RoleName = 'Owner'
+                $evidence.Assignments[0].RoleDefinitionId = "$($script:Scope)/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635"
+            }
+            'Contributor' {
+                $evidence.Assignments[0].RoleName = 'Contributor'
+                $evidence.Assignments[0].RoleDefinitionId = "$($script:Scope)/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+            }
+            'UserAccessAdministrator' {
+                $evidence.Assignments[0].RoleName = 'User Access Administrator'
+                $evidence.Assignments[0].RoleDefinitionId = "$($script:Scope)/providers/Microsoft.Authorization/roleDefinitions/18d7d88d-0ab5-4642-9ea2-65de77e3224f"
+            }
+            'RbacAdministrator' {
+                $evidence.Assignments[0].RoleName = 'Role Based Access Control Administrator'
+                $evidence.Assignments[0].RoleDefinitionId = "$($script:Scope)/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168"
+            }
+            'ExtraWrite' {
+                $evidence.Assignments[0].Actions = @($script:RoleActions) + 'Microsoft.Resources/deployments/write'
+            }
+            'ExtraDelete' {
+                $evidence.Assignments[0].Actions = @($script:RoleActions) + 'Microsoft.Resources/deployments/delete'
+            }
+            'ForeignRoleDefinition' {
+                $evidence.Assignments[0].RoleDefinitionId = "$($script:Scope)/providers/Microsoft.Authorization/roleDefinitions/22222222-2222-2222-2222-222222222222"
+            }
+            'Ambiguous' {
+                $duplicate = New-AccessEvidence `
+                    -AssignmentId "$($script:Scope)/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+                $evidence.Assignments = @($evidence.Assignments) + @($duplicate.Assignments)
+            }
+            'ForeignAssignee' {
+                $evidence.AssigneeObjectId = '66666666-6666-6666-6666-666666666666'
+                $evidence.Assignments[0].PrincipalObjectId = $script:GroupObjectId
+                $evidence.Assignments[0].PrincipalType = 'Group'
+            }
+            'ForeignGroupScope' {
+                $foreignScope = '/subscriptions/00000000-0000-0000-0000-000000000000'
+                $evidence.Assignments[0].PrincipalObjectId = $script:GroupObjectId
+                $evidence.Assignments[0].PrincipalType = 'Group'
+                $evidence.Assignments[0].Scope = $foreignScope
+                $evidence.Assignments[0].AssignableScopes = @($foreignScope)
+            }
         }
+        $invocation = Get-ValidInvocation -AccessPreflightValidator ({ $evidence }.GetNewClosure())
+
+        { & $script:BootstrapScriptPath @invocation } | Should -Throw $Expected
+    }
+
+    It 'keeps the WhatIfOnly guard as a hard failure before deployment API execution' {
+        $nativeCalls = 0
+        $invocation = Get-ValidInvocation -NativeCommandRunner {
+            $nativeCalls++
+            throw 'deployment API execution must not be reached'
+        }
+        $invocation.WhatIfOnly = $false
+
+        { & $script:BootstrapScriptPath @invocation } | Should -Throw '*only supports -WhatIfOnly*'
+        $nativeCalls | Should -Be 0
+    }
+
+    It 'rejects attended context drift after what-if' {
+        $state = [pscustomobject]@{ ContextCalls = 0 }
+        $principalObjectId = $script:PrincipalObjectId
+        $invocation = Get-ValidInvocation -AttendedUserContextValidator ({
+            $state.ContextCalls++
+            if ($state.ContextCalls -eq 1) {
+                return $principalObjectId
+            }
+            '66666666-6666-6666-6666-666666666666'
+        }.GetNewClosure())
+
+        { & $script:BootstrapScriptPath @invocation } | Should -Throw '*Attended context drift*'
+        $state.ContextCalls | Should -Be 2
+    }
+
+    It 'rejects access drift after what-if' {
+        $state = [pscustomobject]@{ AccessCalls = 0 }
+        $scope = $script:Scope
+        $preflightEvidence = New-AccessEvidence
+        $readBackEvidence = New-AccessEvidence -AssignmentId "$scope/providers/Microsoft.Authorization/roleAssignments/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+        $invocation = Get-ValidInvocation -AccessPreflightValidator ({
+            $state.AccessCalls++
+            if ($state.AccessCalls -eq 1) {
+                return $preflightEvidence
+            }
+            $readBackEvidence
+        }.GetNewClosure())
+
+        { & $script:BootstrapScriptPath @invocation } | Should -Throw '*Access drift*'
+        $state.AccessCalls | Should -Be 2
+    }
+
+    It 'runs what-if once and persists preflight and read-back evidence outside Git' {
+        $state = [pscustomobject]@{
+            ContextCalls = 0
+            AccessCalls = 0
+            WhatIfCalls = 0
+            BoundaryCalls = 0
+        }
+        $principalObjectId = $script:PrincipalObjectId
+        $fixturePath = $script:FixturePath
+        $accessEvidence = New-AccessEvidence
+        $invocation = Get-ValidInvocation `
+            -AttendedUserContextValidator ({ $state.ContextCalls++; $principalObjectId }.GetNewClosure()) `
+            -AccessPreflightValidator ({ $state.AccessCalls++; $accessEvidence }.GetNewClosure()) `
+            -NativeCommandRunner ({
+                param([string]$FilePath, [string[]]$ArgumentList)
+                $state.WhatIfCalls++
+                $ArgumentList[0..2] | Should -Be @('deployment', 'sub', 'what-if')
+                [pscustomobject]@{
+                    ExitCode = 0
+                    StdOut = (Get-Content -Raw -LiteralPath $fixturePath)
+                    StdErr = ''
+                }
+            }.GetNewClosure()) `
+            -WhatIfBoundaryValidator ({
+                param([string]$Path, [string]$PrincipalObjectId)
+                $state.BoundaryCalls++
+                $Path | Should -Exist
+                $PrincipalObjectId | Should -BeExactly $principalObjectId
+            }.GetNewClosure())
+
+        $result = & $script:BootstrapScriptPath @invocation
+
+        $state.ContextCalls | Should -Be 2
+        $state.AccessCalls | Should -Be 2
+        $state.WhatIfCalls | Should -Be 1
+        $state.BoundaryCalls | Should -Be 1
+        @($result.PSObject.Properties.Name) | Should -Be @(
+            'TenantAlias',
+            'WhatIfOnly',
+            'PrincipalObjectId',
+            'AccessEvidencePath',
+            'WhatIfOutputPath'
+        )
+        $result.TenantAlias | Should -BeExactly 'fixturetenant42'
+        $result.PrincipalObjectId | Should -BeExactly $script:PrincipalObjectId
+        $result.AccessEvidencePath | Should -Exist
+        $result.WhatIfOutputPath | Should -Exist
+        Split-Path -Parent $result.AccessEvidencePath | Should -BeExactly (Split-Path -Parent $invocation.EvidencePath)
+        Split-Path -Parent $result.WhatIfOutputPath | Should -BeExactly (Split-Path -Parent $invocation.EvidencePath)
+
+        $record = Get-Content -Raw -LiteralPath $result.AccessEvidencePath | ConvertFrom-Json
+        $record.Preflight.PrincipalObjectId | Should -BeExactly $script:PrincipalObjectId
+        $record.ReadBack.PrincipalObjectId | Should -BeExactly $script:PrincipalObjectId
+        @($record.Preflight.Assignments).Count | Should -Be 1
+        @($record.ReadBack.Assignments).Count | Should -Be 1
+    }
+
+    It 'accepts the exact approved direct-user role through the default group-aware Azure CLI query' {
+        $tenantConfigurationPath = New-TenantConfigurationFile
+        $evidencePath = New-PrivateFile -Name 'default-discovery.json' -Content '{}'
+        $parameterFile = New-PrivateFile -Name 'default-main.bicepparam' -Content "using '../src/bicep/main.bicep'"
         $nativeCalls = [System.Collections.Generic.List[object]]::new()
         $whatIfPayload = Get-Content -Raw -LiteralPath $script:FixturePath
-        $compiledTemplate = [ordered]@{
-            '$schema' = 'https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#'
-            contentVersion = '1.0.0.0'
-            parameters = [ordered]@{}
-            variables = [ordered]@{}
-            resources = @()
-            outputs = [ordered]@{}
-        } | ConvertTo-Json -Depth 10 -Compress
-        $compiledParameterDocument = [ordered]@{
-            '$schema' = 'https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#'
-            contentVersion = '1.0.0.0'
-            parameters = [ordered]@{
-                tenant = [ordered]@{
-                    value = [ordered]@{
-                        tenantAlias = 'caldova25156897'
-                        location = 'switzerlandnorth'
-                        namingRoot = 'cal-hr-agentic-bc8rbt'
-                        validationPrincipalId = '55555555-5555-5555-5555-555555555555'
+        $compiledParameters = [ordered]@{
+            parametersJson = ([ordered]@{
+                parameters = [ordered]@{
+                    tenant = [ordered]@{
+                        value = [ordered]@{
+                            tenantAlias = 'fixturetenant42'
+                            location = 'switzerlandnorth'
+                            namingRoot = 'syn-hr-agentic-abc123'
+                            platformResourceGroupName = 'rg-syn-hr-agentic-abc123-platform'
+                            logAnalyticsWorkspaceName = 'log-syn-hr-agentic-abc123'
+                            policyAssignments = @()
+                        }
                     }
                 }
-            }
-        }
-        $compiledParameters = [ordered]@{
-            parametersJson = ($compiledParameterDocument | ConvertTo-Json -Depth 10 -Compress)
-            templateJson = $compiledTemplate
-            templateSpecId = $null
+            } | ConvertTo-Json -Depth 10 -Compress)
         } | ConvertTo-Json -Depth 10 -Compress
         $accountPayload = [ordered]@{
-            environmentName = 'AzureCloud'
-            homeTenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
-            id = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
-            isDefault = $true
-            managedByTenants = @()
-            name = 'Caldova25156897'
-            state = 'Enabled'
-            tenantDefaultDomain = 'Caldova25156897.onmicrosoft.com'
-            tenantDisplayName = 'Caldova25156897'
-            tenantId = 'e2312862-df63-440c-8bcf-007a2c52859d'
+            id = $script:SubscriptionId
+            tenantId = $script:TenantId
             user = [ordered]@{
-                name = '11111111-1111-1111-1111-111111111111'
-                type = 'servicePrincipal'
+                name = 'operator@caldova.example'
+                type = 'user'
             }
         } | ConvertTo-Json -Depth 10 -Compress
+        $assignmentPayload = ConvertTo-Json -InputObject @(
+            [ordered]@{
+                id = $script:RoleAssignmentId
+                principalId = $script:PrincipalObjectId
+                principalType = 'User'
+                roleDefinitionId = $script:RoleDefinitionId
+                roleDefinitionName = $script:RoleName
+                scope = $script:Scope
+            }
+        ) -Depth 10 -Compress
+        $roleDefinitionPayload = ConvertTo-Json -InputObject @(
+            [ordered]@{
+                id = $script:RoleDefinitionId
+                roleName = $script:RoleName
+                roleType = 'CustomRole'
+                assignableScopes = @($script:Scope)
+                permissions = @(
+                    [ordered]@{
+                        actions = @($script:RoleActions)
+                        notActions = @()
+                        dataActions = @()
+                        notDataActions = @()
+                    }
+                )
+            }
+        ) -Depth 10 -Compress
+
         $nativeRunner = {
-            param(
-                [string]$FilePath,
-                [string[]]$ArgumentList
-            )
+            param([string]$FilePath, [string[]]$ArgumentList)
 
             $nativeCalls.Add([pscustomobject]@{
                 FilePath = $FilePath
                 ArgumentList = @($ArgumentList)
             }) | Out-Null
-
-            if ($FilePath -cne 'az') {
-                throw "Unexpected native executable: $FilePath"
-            }
-
-            if ($ArgumentList.Count -eq 4 -and $ArgumentList[0] -ceq 'account' -and $ArgumentList[1] -ceq 'show' -and $ArgumentList[2] -ceq '--output' -and $ArgumentList[3] -ceq 'json') {
-                return [pscustomobject]@{ ExitCode = 0; StdOut = $accountPayload; StdErr = '' }
-            }
-
-            if ($ArgumentList.Count -eq 5 -and $ArgumentList[0] -ceq 'bicep' -and $ArgumentList[1] -ceq 'build' -and $ArgumentList[2] -ceq '--file' -and $ArgumentList[3] -ceq $expectedMainBicepPath -and $ArgumentList[4] -ceq '--stdout') {
-                return [pscustomobject]@{ ExitCode = 0; StdOut = $compiledTemplate; StdErr = '' }
-            }
-
-            if ($ArgumentList.Count -eq 5 -and $ArgumentList[0] -ceq 'bicep' -and $ArgumentList[1] -ceq 'build-params' -and $ArgumentList[2] -ceq '--file' -and $ArgumentList[3] -ceq $parameterFile -and $ArgumentList[4] -ceq '--stdout') {
-                return [pscustomobject]@{ ExitCode = 0; StdOut = $compiledParameters; StdErr = '' }
-            }
-
-            if ($ArgumentList.Count -eq 14 -and $ArgumentList[0] -ceq 'deployment' -and $ArgumentList[1] -ceq 'sub' -and $ArgumentList[2] -ceq 'what-if') {
-                return [pscustomobject]@{ ExitCode = 0; StdOut = $whatIfPayload; StdErr = '' }
-            }
-
-            if ($ArgumentList.Count -eq 7 -and $ArgumentList[0] -ceq 'rest' -and $ArgumentList[1] -ceq '--method' -and $ArgumentList[2] -ceq 'get' -and $ArgumentList[3] -ceq '--url' -and $ArgumentList[5] -ceq '--output' -and $ArgumentList[6] -ceq 'json') {
-                $assignmentId = [string]$ArgumentList[4] -replace '\?api-version=2022-04-01$', ''
-                if ($assignmentId -notin @($contributorId, $rbacAdministratorId)) {
-                    throw "Unexpected role-assignment read: $assignmentId"
+            $joined = $ArgumentList -join ' '
+            switch -Regex ($joined) {
+                '^account show --output json$' {
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = $accountPayload; StdErr = '' }
                 }
-                if (-not $assignmentPresent[$assignmentId]) {
-                    $errorPayload = [ordered]@{
-                        error = [ordered]@{
-                            code = 'RoleAssignmentNotFound'
-                            message = "The role assignment '$assignmentId' was not found."
-                        }
-                    } | ConvertTo-Json -Depth 10 -Compress
-                    return [pscustomobject]@{
-                        ExitCode = 1
-                        StatusCode = 404
-                        ErrorCode = 'RoleAssignmentNotFound'
-                        StdOut = ''
-                        StdErr = $errorPayload
-                    }
+                '^ad signed-in-user show --output json$' {
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = '{"id":"55555555-5555-5555-5555-555555555555"}'; StdErr = '' }
                 }
-
-                $roleDefinitionId = if ($assignmentId -ceq $contributorId) {
-                    $contributorRoleDefinitionId
+                '^role assignment list --assignee-object-id .+ --include-groups --scope .+ --output json$' {
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = $assignmentPayload; StdErr = '' }
                 }
-                else {
-                    $rbacAdministratorRoleDefinitionId
+                '^role definition list --name .+ --output json$' {
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = $roleDefinitionPayload; StdErr = '' }
                 }
-                $assignmentPayload = [ordered]@{
-                    id = $assignmentId
-                    name = [string]($assignmentId -split '/')[-1]
-                    type = 'Microsoft.Authorization/roleAssignments'
-                    properties = [ordered]@{
-                        roleDefinitionId = $roleDefinitionId
-                        principalId = '55555555-5555-5555-5555-555555555555'
-                        principalType = 'ServicePrincipal'
-                        scope = $expectedScope
-                        condition = $null
-                        conditionVersion = $null
-                        createdOn = '2026-09-19T10:00:00Z'
-                        updatedOn = '2026-09-19T10:00:00Z'
-                        createdBy = '99999999-9999-9999-9999-999999999999'
-                        updatedBy = '99999999-9999-9999-9999-999999999999'
-                        delegatedManagedIdentityResourceId = $null
-                        description = $null
-                    }
-                } | ConvertTo-Json -Depth 10 -Compress
-                return [pscustomobject]@{ ExitCode = 0; StdOut = $assignmentPayload; StdErr = '' }
+                '^bicep build --file .+main\.bicep --stdout$' {
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = '{"template":"ok"}'; StdErr = '' }
+                }
+                '^bicep build-params --file .+default-main\.bicepparam --stdout$' {
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = $compiledParameters; StdErr = '' }
+                }
+                '^deployment sub what-if ' {
+                    return [pscustomobject]@{ ExitCode = 0; StdOut = $whatIfPayload; StdErr = '' }
+                }
+                default {
+                    throw "Unexpected native command: $FilePath $joined"
+                }
             }
-
-            if ($ArgumentList.Count -eq 7 -and $ArgumentList[0] -ceq 'role' -and $ArgumentList[1] -ceq 'assignment' -and $ArgumentList[2] -ceq 'delete' -and $ArgumentList[3] -ceq '--ids' -and $ArgumentList[5] -ceq '--output' -and $ArgumentList[6] -ceq 'none') {
-                $assignmentId = [string]$ArgumentList[4]
-                if ($assignmentId -notin @($contributorId, $rbacAdministratorId)) {
-                    throw "Unexpected role-assignment deletion: $assignmentId"
-                }
-
-                $assignmentPresent[$assignmentId] = $false
-                return [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' }
-            }
-
-            throw "Unexpected native command: $FilePath $($ArgumentList -join ' ')"
         }
 
-        $tenantIdWasPresent = Test-Path Env:AZURE_TENANT_ID
-        $subscriptionIdWasPresent = Test-Path Env:AZURE_SUBSCRIPTION_ID
-        $clientIdWasPresent = Test-Path Env:AZURE_CLIENT_ID
-        $githubRunIdWasPresent = Test-Path Env:GITHUB_RUN_ID
-        $runnerTempWasPresent = Test-Path Env:RUNNER_TEMP
-        $previousTenantId = $env:AZURE_TENANT_ID
-        $previousSubscriptionId = $env:AZURE_SUBSCRIPTION_ID
-        $previousClientId = $env:AZURE_CLIENT_ID
-        $previousGithubRunId = $env:GITHUB_RUN_ID
-        $previousRunnerTemp = $env:RUNNER_TEMP
+        $result = & $script:BootstrapScriptPath `
+            -PublicTenantKey tenant1 `
+            -TenantConfigurationPath $tenantConfigurationPath `
+            -EvidencePath $evidencePath `
+            -ParameterFile $parameterFile `
+            -WhatIfOnly `
+            -DiscoveryEvidenceValidator { [pscustomobject]@{} } `
+            -IntentValidator { } `
+            -NativeCommandRunner $nativeRunner `
+            -WhatIfBoundaryValidator { }
 
-        try {
-            $env:AZURE_TENANT_ID = 'e2312862-df63-440c-8bcf-007a2c52859d'
-            $env:AZURE_SUBSCRIPTION_ID = 'edb45a24-408d-47c4-bbc7-685b9b3fc017'
-            $env:AZURE_CLIENT_ID = '11111111-1111-1111-1111-111111111111'
-            $env:GITHUB_RUN_ID = '987654321'
-            $env:RUNNER_TEMP = $TestDrive
-
-            $result = & $script:BootstrapScriptPath -TenantAlias 'caldova25156897' -TenantConfigurationPath $tenantConfigurationPath -EvidencePath $evidencePath -ParameterFile $parameterFile -TemporaryRoleStatePath $roleStatePath -ConfirmRoleCleanup $true -BootstrapRunId $script:BootstrapRunId -ApprovedRoleAssignmentIds $script:ApprovedRoleAssignmentIds -WhatIfOnly -NativeCommandRunner $nativeRunner
-
-            @($result.PSObject.Properties.Name) | Should -Be @('TenantAlias', 'WhatIfOnly', 'TemporaryRoleStatePath')
-            $result.TenantAlias | Should -BeExactly 'caldova25156897'
-            $result.WhatIfOnly | Should -BeTrue
-            $result.TemporaryRoleStatePath | Should -BeExactly $roleStatePath
-
-            $nativeCalls.Count | Should -Be 10
-            $nativeCalls[0].FilePath | Should -BeExactly 'az'
-            $nativeCalls[0].ArgumentList | Should -Be @('account', 'show', '--output', 'json')
-            $nativeCalls[1].ArgumentList | Should -Be @('bicep', 'build', '--file', $expectedMainBicepPath, '--stdout')
-            $nativeCalls[2].ArgumentList | Should -Be @('bicep', 'build-params', '--file', $parameterFile, '--stdout')
-            $nativeCalls[3].ArgumentList | Should -Be @(
-                'deployment',
-                'sub',
-                'what-if',
-                '--location', 'switzerlandnorth',
-                '--name', 'whatif-caldova25156897-987654321',
-                '--template-file', $expectedMainBicepPath,
-                '--parameters', $parameterFile,
-                '--result-format', 'FullResourcePayloads',
-                '--no-pretty-print'
-            )
-            $nativeCalls[3].ArgumentList[8] | Should -BeExactly $expectedMainBicepPath
-            $nativeCalls[4].ArgumentList | Should -Be @('rest', '--method', 'get', '--url', "${contributorId}?api-version=2022-04-01", '--output', 'json')
-            $nativeCalls[5].ArgumentList | Should -Be @('role', 'assignment', 'delete', '--ids', $contributorId, '--output', 'none')
-            $nativeCalls[6].ArgumentList | Should -Be @('rest', '--method', 'get', '--url', "${rbacAdministratorId}?api-version=2022-04-01", '--output', 'json')
-            $nativeCalls[7].ArgumentList | Should -Be @('role', 'assignment', 'delete', '--ids', $rbacAdministratorId, '--output', 'none')
-            $nativeCalls[8].ArgumentList | Should -Be $nativeCalls[4].ArgumentList
-            $nativeCalls[9].ArgumentList | Should -Be $nativeCalls[6].ArgumentList
-
-            $deleteCalls = @($nativeCalls | Where-Object { $_.ArgumentList.Count -ge 3 -and $_.ArgumentList[0] -ceq 'role' -and $_.ArgumentList[1] -ceq 'assignment' -and $_.ArgumentList[2] -ceq 'delete' })
-            @($deleteCalls | ForEach-Object { [string]$_.ArgumentList[4] }) | Should -Be @($contributorId, $rbacAdministratorId)
-            @($deleteCalls | Where-Object { $_.ArgumentList -contains '--assignee' -or $_.ArgumentList -contains '--assignee-object-id' -or $_.ArgumentList -contains '--role' -or $_.ArgumentList -contains '--scope' }).Count | Should -Be 0
-            @($nativeCalls | Where-Object { $_.ArgumentList -contains 'create' }).Count | Should -Be 0
+        $result.PrincipalObjectId | Should -BeExactly $script:PrincipalObjectId
+        $nativeCalls.Count | Should -Be 11
+        @($nativeCalls | Where-Object {
+            $_.ArgumentList.Count -ge 3 -and
+            $_.ArgumentList[0] -ceq 'role' -and
+            $_.ArgumentList[1] -ceq 'assignment' -and
+            $_.ArgumentList[2] -cne 'list'
+        }).Count | Should -Be 0
+        @($nativeCalls | Where-Object {
+            $_.ArgumentList.Count -ge 3 -and
+            $_.ArgumentList[0] -ceq 'deployment' -and
+            $_.ArgumentList[1] -ceq 'sub' -and
+            $_.ArgumentList[2] -cne 'what-if'
+        }).Count | Should -Be 0
+        @($nativeCalls | Where-Object {
+            $_.ArgumentList[0..2] -join ' ' -ceq 'role assignment list'
+        }).Count | Should -Be 2
+        foreach ($accessCall in @($nativeCalls | Where-Object {
+            $_.ArgumentList[0..2] -join ' ' -ceq 'role assignment list'
+        })) {
+            $accessCall.ArgumentList | Should -Contain '--include-groups'
+            $accessCall.ArgumentList | Should -Contain '--assignee-object-id'
+            $accessCall.ArgumentList | Should -Contain $script:PrincipalObjectId
+            $accessCall.ArgumentList | Should -Contain $script:Scope
         }
-        finally {
-            if ($tenantIdWasPresent) { $env:AZURE_TENANT_ID = $previousTenantId } else { Remove-Item Env:AZURE_TENANT_ID -ErrorAction SilentlyContinue }
-            if ($subscriptionIdWasPresent) { $env:AZURE_SUBSCRIPTION_ID = $previousSubscriptionId } else { Remove-Item Env:AZURE_SUBSCRIPTION_ID -ErrorAction SilentlyContinue }
-            if ($clientIdWasPresent) { $env:AZURE_CLIENT_ID = $previousClientId } else { Remove-Item Env:AZURE_CLIENT_ID -ErrorAction SilentlyContinue }
-            if ($githubRunIdWasPresent) { $env:GITHUB_RUN_ID = $previousGithubRunId } else { Remove-Item Env:GITHUB_RUN_ID -ErrorAction SilentlyContinue }
-            if ($runnerTempWasPresent) { $env:RUNNER_TEMP = $previousRunnerTemp } else { Remove-Item Env:RUNNER_TEMP -ErrorAction SilentlyContinue }
-        }
+    }
+
+    It 'requires explicit local configuration and keeps every private path outside the repository' {
+        $tenantConfigurationPath = New-TenantConfigurationFile
+        $insideEvidencePath = Join-Path $script:HarnessRoot 'private-evidence.json'
+        $invocation = Get-ValidInvocation
+        $invocation.TenantConfigurationPath = $tenantConfigurationPath
+        $invocation.EvidencePath = $insideEvidencePath
+
+        { & $script:BootstrapScriptPath @invocation } | Should -Throw '*outside the repository*'
     }
 }

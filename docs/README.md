@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-25 |
+| **Version** | 1.6 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
-| **References** | [HR Solution Functional Design Intake](specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+| **References** | [Tenant 1 Lean Engineering Platform Design](specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [HR Solution Functional Design Intake](specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 
 **Purpose.** What applies to **every** use case: platform requirements, architecture, accountability, and the decisions that shape all of it. Use-case-specific material lives in [`hr/`](../hr/README.md); operational setup lives in [`infra/`](../infra/README.md).
 
@@ -46,7 +46,7 @@ docs/
 ├── prd.md                    Platform requirements — FR-0001…, NFR-0001…, roles, gates
 ├── solution-design.md        Architecture — layers, components, integration, security, ALM
 ├── hr-journey-and-raci.md    The HR journey, roles, RACI, use-case placement, sequencing
-├── adr/                      Decision records (11: 4 infra/governance, 7 HR solution) — why, what was rejected, what it costs
+├── adr/                      Decision records (12: 5 infra/governance, 7 HR solution) — why, what was rejected, what it costs
 └── brand/                    BrandKit — tokens, Fluent themes, logo guidance
 ```
 
@@ -73,7 +73,7 @@ The use case portfolio moved to **[`hr/docs/ideas/`](../hr/docs/ideas/README.md)
 **When two documents disagree, the more specific one wins — except on governance, where the platform wins.**
 
 - A use-case PRD may add requirements. It may **not** weaken `prd.md` FR-0001…FR-0012 or NFR-0001…NFR-0010.
-- An ADR overrides narrative text in any document. If `solution-design.md` and an Accepted ADR conflict, the ADR is correct and the design document has drifted.
+- An ADR overrides narrative text in any document. If `solution-design.md` and a repository-level Approved ADR conflict, the ADR is correct and the design document has drifted.
 - A **Proposed** ADR is a recommendation, not a commitment. Check the Status field before relying on one.
 
 ---
@@ -86,7 +86,7 @@ The use case portfolio moved to **[`hr/docs/ideas/`](../hr/docs/ideas/README.md)
 
 **3. Cite the identifier, not the prose.** Requirements, decisions and use cases all carry stable IDs — `FR-0006`, `NFR-0008`, `ADR-0009`, `UC-0001`, `D-0003`. Cite those. They survive rewording; a quoted sentence does not.
 
-**4. Status before content.** `Accepted`, `Proposed`, `Draft`, `Idea` and `Selected as MVP` mean materially different things. **Three use cases are in MVP scope; only UC-0001 is specified.** Fifteen are candidates with no commitment attached.
+**4. Status before content.** `Approved`, `Accepted`, `Proposed`, `Draft`, `Idea` and `Selected as MVP` mean materially different things. `Approved` marks a repository-level decision; the HR package's legacy `Accepted` records remain pending GF ratification. **Three use cases are in MVP scope; only UC-0001 is specified.** Fifteen are candidates with no commitment attached.
 
 ---
 
@@ -124,25 +124,27 @@ Numbers are **allocated once and never reused**, including after a document is s
 
 ## Infrastructure Domain
 
-The Infrastructure domain is imported as source-derived Proposed Baseline documentation. It describes intended architecture, discovery, trust, validation, ALM, security, and recovery boundaries; it does not prove that tenant configuration, Azure resources, Azure DevOps objects, Power Platform environments, GitHub controls, pipelines, identities, or services currently exist. Task 1 disposition and pending approval are recorded in [Phase 3 Infrastructure and Tenant Bootstrap Intake](reviews/2026-09-17-phase-3-infrastructure-tenant-bootstrap-intake.md).
+The Infrastructure domain contains the approved lean control-plane topology together with source-derived Proposed Baseline implementation guidance. It describes discovery, validation, ALM, security, and recovery boundaries; it does not prove that tenant configuration, Azure resources, Azure DevOps objects, Power Platform environments, GitHub controls, pipelines, identities, or services currently exist. The attended authority is [ADR-0001](adr/0001-azure-devops-as-engineering-control-plane.md), [ADR-0002](adr/0002-github-first-bootstrap-and-the-role-of-azure-repos.md), [ADR-0012](adr/0012-per-tenant-github-repository-and-account-topology.md), and the [Tenant 1 Lean Engineering Platform Design](specs/2026-09-28-tenant-1-lean-engineering-platform-design.md).
 
 | Document | Purpose |
 |---|---|
 | [Infrastructure Domain](../infra/README.md) | Defines domain ownership, current no-payload boundary, planned layout, tool boundaries, and document map. |
 | [Tenant Setup and Configuration](../infra/docs/10-tenant-setup-and-configuration.md) | Defines the reviewed tenant metadata, desired manifest, observed evidence, explicit intent, and terminology boundaries. |
-| [Identity and Access](../infra/docs/11-identity-and-access.md) | Defines attended administration, per-tenant bootstrap identity, exact OIDC binding, and temporary privilege lifecycle. |
+| [Identity and Access](../infra/docs/11-identity-and-access.md) | Proposed guidance retained for context; the lean sprint uses attended local operation and creates no bootstrap identity or OIDC federation. |
 | [Power Platform Environments and ALM](../infra/docs/12-power-platform-environments-and-alm.md) | Defines future DEV-to-TEST-to-PROD ALM, solution ordering, variables, connections, and evidence requirements. |
-| [Azure DevOps Engineering Control Plane](../infra/docs/13-azure-devops-engineering-control-plane.md) | Describes the proposed backlog and delivery split, discovery candidates, API constraints, and future pipeline boundary. |
-| [GitHub Repository Blueprint](../infra/docs/14-github-repository-blueprint.md) | Defines the shared-repository model, tenant Environments, proposed governance, public-repository safety, and read-back. |
+| [Azure DevOps Engineering Control Plane](../infra/docs/13-azure-devops-engineering-control-plane.md) | Describes the approved single-backlog and sole-product-source split, discovery candidates, API constraints, and future pipeline boundary. |
+| [GitHub Repository Blueprint](../infra/docs/14-github-repository-blueprint.md) | Proposed guidance retained for context; the approved solo-owner profile requires pull requests and validation, with zero mandatory approvals and no required CODEOWNERS review. |
 | [Agent and Workload Configuration](../infra/docs/15-agent-workload-configuration.md) | Defines future agent, flow, app, grounding, packaging, release, and data-prohibition contracts. |
 | [Security, Governance and Compliance](../infra/docs/16-security-governance-and-compliance.md) | Defines evidence-first security principles and proposed DLP, Dataverse, identity, audit, and compliance controls. |
-| [Bootstrap and Provisioning](../infra/docs/17-bootstrap-and-provisioning.md) | Defines the evidence-gated state machine, attended trust, subscription `what-if`, and no-deployment boundary. |
-| [Multi-Tenant Provisioning](../infra/docs/18-multi-tenant-provisioning.md) | Defines isolation for exactly three independent tenants using one repository and one-tenant execution. |
+| [Bootstrap and Provisioning](../infra/docs/17-bootstrap-and-provisioning.md) | Defines the attended local state machine, exact minimum-access preflight/read-back, subscription `what-if`, and no-deployment boundary. |
+| [Multi-Tenant Provisioning](../infra/docs/18-multi-tenant-provisioning.md) | Proposed guidance retained for context; the lean sprint is Tenant 1 only and does not alter or migrate existing Tenant 2 files. |
 | [Bootstrap Recovery](../infra/docs/19-bootstrap-recovery.md) | Defines attended recovery from nine failure states without bypassing validation, approvals, or least privilege. |
-| [Tenant Trust Activation Runbook](../infra/docs/20-tenant-trust-activation-runbook.md) | Operator runbook for activating a tenant's Entra/GitHub/Azure DevOps trust using the existing Initialize-TenantTrust.ps1. |
+| [Tenant Trust Activation Runbook](../infra/docs/20-tenant-trust-activation-runbook.md) | Superseded stop notice for the dormant and unsupported trust command; reuse requires a new reviewed design. |
+| [Tenant 1 Lean Engineering Platform Runbook](../infra/docs/24-tenant-1-lean-platform-runbook.md) | Orders tool merge, current-main validation, attended local read-back, governance, Basic Boards, optional empty-repository decision, final governed transaction, and acceptance read-back without claiming execution. |
+| [Tenant 1 Lean Engineering Platform Acceptance Review](reviews/2026-09-28-tenant-1-lean-engineering-platform-acceptance-review.md) | Draft control-by-control acceptance record; every outcome remains `Not Run` until supported by current sanitized read-back. |
 | [Infrastructure Solution Sources](../infra/src/solutions/README.md) | Defines ownership and exclusions for future unpacked Infrastructure Power Platform solution source. |
 
-**This map is unchanged by the Phase 4 HR solution intake.** `infra/` remains governed exclusively by the Phase 3 review; see [Bicep Composition](../infra/src/bicep/main.bicep) and [Tenant 1 Manifest](../infra/src/config/tenants/caldova25156897.psd1) for its current state.
+**This map is unchanged by the Phase 4 HR solution intake.** The approved Tenant 1 target keeps product source and [Bicep Composition](../infra/src/bicep/main.bicep) in GitHub. Tenant 1 private configuration uses the ignored local `tenant1.local.psd1` with an encrypted, restore-tested backup outside Git. Azure Boards remains on Basic, and a future Azure Pipeline consumes GitHub directly. No private Azure Repo, OIDC bootstrap, `bootstrap-tenant1` Environment, Basic-to-Agile conversion, Azure Pipeline, or live deployment is a current target.
 
 ---
 

@@ -1,88 +1,59 @@
 BeforeAll {
     $script:repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
     $script:workflowPath = Join-Path $script:repositoryRoot '.github\workflows\validate-repository.yml'
-    $script:auditWorkflowPath = Join-Path $script:repositoryRoot '.github\workflows\audit-repository.yml'
     $script:validatorPath = Join-Path $script:repositoryRoot '.github\cli\verify-repository-setup.ps1'
-    $script:safetyValidatorPath = Join-Path $script:repositoryRoot '.github\cli\verify-repository-safety.ps1'
-    $script:pullRequestTemplatePath = Join-Path $script:repositoryRoot '.github\pull_request_template.md'
-    $script:rulesetPath = Join-Path $script:repositoryRoot 'infra\src\config\github\main-ruleset.json'
-    $script:actionPins = Get-Content -Raw -LiteralPath (Join-Path $script:repositoryRoot 'infra\src\config\github\action-pins.json') | ConvertFrom-Json
-    $script:checkoutUse = 'actions/checkout@{0}' -f $script:actionPins.actions.'actions/checkout'.sha
 }
 
-Describe 'Repository validation workflow' {
-    It 'keeps the stable required status and runs only deterministic core checks' {
-        $script:workflowPath | Should -Exist
-        $content = Get-Content -LiteralPath $script:workflowPath -Raw
-
+Describe 'Lean repository validation workflow' {
+    It 'keeps exactly one least-privilege workflow and one stable job' {
+        $workflowRoot = Join-Path $script:repositoryRoot '.github\workflows'
+        $workflows = @(Get-ChildItem -LiteralPath $workflowRoot -Filter '*.yml' -File)
+        $workflows.Name | Should -Be @('validate-repository.yml')
+        $content = Get-Content -Raw -LiteralPath $workflows[0].FullName
         $content | Should -Match '(?m)^permissions:\r?\n  contents: read\r?$'
-        $content | Should -Match ([regex]::Escape($script:checkoutUse))
+        $content | Should -Match 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        $jobs = ($content -split '(?m)^jobs:\r?$', 2)[1]
+        @([regex]::Matches($jobs, '(?m)^\s{2}[a-z][a-z0-9_-]*:\r?$')).Count | Should -Be 1
         $content | Should -Match '(?m)^\s+name: Repository setup validation\r?$'
-        $content | Should -Match '\.github/cli/tests/WorkflowContract\.Tests\.ps1'
-        $content | Should -Match 'infra/tests/pester'
+        $content | Should -Not -Match '(?m)^\s*(?:id-token|actions|pull-requests):\s+write\r?$'
+    }
+
+    It 'runs every maintained test safety build and merge-base whitespace check' {
+        $content = Get-Content -Raw -LiteralPath $script:workflowPath
+        $content | Should -Match 'Get-ChildItem.+\.github[/\\]cli[/\\]tests.+\*\.Tests\.ps1'
+        $content | Should -Match "'infra[/\\]tests[/\\]pester'"
+        $content | Should -Match "'hr[/\\]tests[/\\]pester'"
         $content | Should -Match 'verify-repository-safety\.ps1'
-        $content | Should -Match 'az bicep build --file infra/src/bicep/main\.bicep --stdout'
-        $content | Should -Match 'git diff --check origin/main\.\.\.HEAD'
-        $content | Should -Not -Match 'verify-repository-setup\.ps1'
-        $content | Should -Not -Match '(?m)^\s*(?:pull-requests|contents|id-token):\s*write\r?$'
+        $content | Should -Match 'Get-ChildItem.+infra[/\\]src[/\\]bicep.+\*\.bicep.+-Recurse'
+        $content | Should -Match 'git merge-base'
+        $content | Should -Match 'git diff --check'
+        $content | Should -Not -Match 'HEAD~\d+'
     }
 
-    It 'runs the comprehensive baseline as a non-blocking advisory workflow' {
-        $script:auditWorkflowPath | Should -Exist
-        $content = Get-Content -LiteralPath $script:auditWorkflowPath -Raw
+    It 'does not require tracked Tenant 1 artifacts after the attended removal commit' {
+        $tokens = $null
+        $parseErrors = $null
+        $validatorAst = [System.Management.Automation.Language.Parser]::ParseFile(
+            $script:validatorPath,
+            [ref]$tokens,
+            [ref]$parseErrors
+        )
+        $parseErrors.Count | Should -Be 0
+        $requiredPathsAssignment = $validatorAst.Find({
+            param($node)
 
-        $content | Should -Match '(?m)^name: Audit repository baseline\r?$'
-        $content | Should -Match '(?m)^on:\r?\n  pull_request:\r?\n  push:\r?\n    branches: \[main\]\r?\n  workflow_dispatch:\r?$'
-        $content | Should -Match '(?m)^\s+name: Repository baseline audit \(advisory\)\r?$'
-        $content | Should -Not -Match '(?m)^\s+continue-on-error: true\r?$'
-        $content | Should -Match 'verify-repository-setup\.ps1 -SkipIntegratedTests -SkipBicepBuild'
-        $content | Should -Match "Where-Object Name -notin @\('WorkflowContract\.Tests\.ps1', 'RepositorySafety\.Tests\.ps1'\)"
-        $content | Should -Match 'Invoke-Pester -Path \$paths -Output Detailed -CI'
-        $content | Should -Not -Match '(?m)^\s*(?:pull-requests|contents|id-token):\s*write\r?$'
+            $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+            $node.Left -is [System.Management.Automation.Language.VariableExpressionAst] -and
+            $node.Left.VariablePath.UserPath -ceq 'phase3RequiredPaths'
+        }, $true)
+        $requiredPathsAssignment | Should -Not -BeNullOrEmpty
 
-        $ruleset = Get-Content -LiteralPath $script:rulesetPath -Raw
-        $ruleset | Should -Match '"context": "Repository setup validation"'
-        $ruleset | Should -Not -Match 'Repository baseline audit'
-    }
+        $requiredPaths = @($requiredPathsAssignment.Right.FindAll({
+            param($node)
 
-    It 'supports baseline-only execution without weakening the default validator' {
-        $script:validatorPath | Should -Exist
-        $content = Get-Content -LiteralPath $script:validatorPath -Raw
-
-        $content | Should -Match '\[switch\]\$SkipIntegratedTests'
-        $content | Should -Match '\[switch\]\$SkipBicepBuild'
-        $content | Should -Match '(?m)^if \(-not \$SkipIntegratedTests\) \{\r?$'
-        $content | Should -Match '(?m)^if \(-not \$SkipBicepBuild\) \{\r?$'
-    }
-
-    It 'selects one Git executable when the runner exposes duplicate command paths' {
-        $script:validatorPath | Should -Exist
-        $content = Get-Content -LiteralPath $script:validatorPath -Raw
-
-        $content | Should -Match '(?m)^\$gitCommand = Get-Command git -CommandType Application -ErrorAction SilentlyContinue \| Select-Object -First 1\r?$'
-    }
-
-    It 'emits failed Pester test details in the validator summary' {
-        $script:validatorPath | Should -Exist
-        $content = Get-Content -LiteralPath $script:validatorPath -Raw
-
-        $content | Should -Match '(?m)^\s+FailedTests = if \(`\$null -ne `\$result\) \{ @\(`\$result\.Failed \| ForEach-Object \{'
-        $content | Should -Match "failedTests=\{7\}"
-        $content | Should -Match '(?m)^\s+`\$failureMessage = `\$failureMessage -replace .+\[REDACTED\].+\r?$'
-        $content | Should -Match 'authorization'
-        $content | Should -Match 'PRIVATE KEY'
-        $content | Should -Match 'sharedaccesssignature'
-        $content | Should -Match 'accountkey'
-        $content | Should -Match 'api\[_\\s-\]\?key'
-        $content | Should -Match '\(\?:sig\|signature\)'
-        $content | Should -Match '(?m)^\s+if \(`\$failureMessage\.Length -gt 1000\) \{ `\$failureMessage = `\$failureMessage\.Substring\(0, 1000\) \+ .+\}\r?$'
-        $content | Should -Match '(?m)^\s+\}\s+\| Select-Object -First 10\) \} else \{ @\(\) \}\r?$'
-    }
-
-    It 'records reviewer acceptance when an advisory audit is not green' {
-        $script:pullRequestTemplatePath | Should -Exist
-        $content = Get-Content -LiteralPath $script:pullRequestTemplatePath -Raw
-
-        $content | Should -Match 'Advisory baseline audit is green, or reviewer acceptance and rationale are recorded'
+            $node -is [System.Management.Automation.Language.StringConstantExpressionAst]
+        }, $true) | ForEach-Object Value)
+        $requiredPaths | Should -Not -Contain 'infra/src/config/tenants/fixturetenant42.psd1'
+        $requiredPaths | Should -Not -Contain 'infra/evidence/discovery/fixturetenant42.json'
     }
 }

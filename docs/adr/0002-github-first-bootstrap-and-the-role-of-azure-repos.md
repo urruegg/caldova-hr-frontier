@@ -2,85 +2,73 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-27 |
+| **Version** | 3.0 |
+| **Date** | 2026-09-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed Baseline |
+| **Status** | Approved |
 | **Scope** | Cross-cutting (all solution domains) |
-| **References** | [Approved Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../reviews/2026-09-17-architecture-baseline-source-inventory.json), [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) |
+| **References** | [Approved Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md), [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Source Inventory](../reviews/2026-09-17-architecture-baseline-source-inventory.json), [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) |
 
-This candidate is not an accepted repository decision until attended review approves it.
+## Attended Decision
 
-## Revision Note (v1.1)
+Approved on 2026-09-28 for **Option A — Lean single-tenant platform**, as defined by
+the [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md).
+The lean design supersedes the broader remediation topology. This ADR approves a
+target and does not authorize a live service mutation.
 
-Proposed Decision §1 below names `dev.azure.com/caldova25156897` — Tenant 1's specific organization — inside what was meant to describe the general bootstrap pattern for any tenant. [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) makes explicit what was only implicit here: each tenant runs this bootstrap workflow from **its own** dedicated repository, provisioning **its own** Azure DevOps organization — not one shared workflow provisioning one shared organization from one shared repository. Read `caldova25156897` below as Tenant 1's worked example, not as evidence that one bootstrap workflow serves multiple tenants' organizations.
+## Revision Note (v3.0)
+
+Version 3.0 removes the private Azure Repo and automated bootstrap from the current
+target. Tenant 1 uses explicit, ignored local configuration with an encrypted,
+restore-tested backup outside Git. GitHub remains the only product-source repository.
 
 ## Context
 
-ADR-0001 established Azure DevOps as the Engineering Control Plane and GitHub as the Digital Factory, and assumed Azure Repos would stay empty to avoid ambiguity about where code lives.
+ADR-0001 establishes GitHub as the sole product-source authority and Azure Boards as
+the single backlog. The superseded remediation design proposed provisioning Azure
+DevOps from GitHub, a private Azure Repo for configuration, OIDC bootstrap, and a
+protected `bootstrap-tenant1` Environment.
 
-Two decisions since then change that:
-
-1. **The GitHub repository is proposed to be created first and to provision Azure DevOps**, rather than both being stood up by hand in parallel. The showcase should demonstrate that the engineering control plane is itself reproducible from source.
-2. **A dedicated tenant account, `admin@Caldova25156897.onmicrosoft.com`, is the proposed identity through which the tenant and the Power Platform would be configured.** That account's credentials, and the tenant-specific configuration it manages, must not live in a public repository.
-
-The second point creates a genuine problem that ADR-0001 only flagged and did not solve. The public repository cannot hold deployment settings files containing real environment URLs and connection identifiers, tenant and subscription identifiers, pipeline templates that gate production, or operational runbooks referencing the admin account. Something inside the tenant boundary has to hold them.
+The approved lean design rejects that complexity for the current need. Tenant-private
+values still must not enter a public repository, but a second repository and
+privileged cloud bootstrap are not justified. The current problem is therefore to
+keep private configuration explicit, recoverable, and outside Git while retaining a
+simple attended operating model.
 
 ---
 
-## Proposed Decision
+## Decision
 
-### 1. GitHub is the origin; Azure DevOps is provisioned from it
+GitHub is the sole product-source and pull-request authority. Azure Boards is the
+single delivery backlog and remains on the built-in Basic process. Repository
+validation runs in GitHub Actions. A future Azure Pipeline will consume this GitHub
+repository directly for HR solution CI/CD; no Azure Pipeline is created this sprint.
 
-The proposed baseline would create the public GitHub repository first. A future bootstrap workflow in that repository provisions, in the existing `dev.azure.com/caldova25156897` organisation:
+Tenant 1 private configuration is an ignored local file with an encrypted,
+restore-tested backup outside Git. A private Azure Repo, OIDC bootstrap,
+`bootstrap-tenant1` Environment, cloud workflow retrieval, and Basic-to-Agile
+conversion are not current targets.
+No initial or current mirror is approved.
 
-- the `Caldova HR Frontier` project,
-- the private Azure Repos repository `caldova-hr-frontier-config`,
-- area paths, iterations and team configuration,
-- service connections to the Azure subscription and to the three Power Platform environments,
-- pipeline environments with approvals and checks,
-- the Azure Boards ↔ GitHub connection.
+The tracked `_template.psd1` remains synthetic. Every attended live command receives
+the ignored `infra/src/config/tenants/tenant1.local.psd1` through an explicit
+`-TenantConfigurationPath`; there is no real-tenant default, repository scan, cloud
+retrieval, or template fallback.
 
-The organisation itself is treated as an existing tenant-boundary input, and organisation creation is a portal operation.
-
-Bootstrap must be **re-runnable and idempotent**. Re-running it against an already-provisioned project must not fail or duplicate.
-
-### 2. Azure Repos is proposed for a narrow and explicit purpose
-
-The proposed Azure Repos role is narrow. It holds exactly two things:
-
-| Content | Why it cannot live in GitHub |
-|---|---|
-| **Tenant-specific configuration** — deployment settings files with real environment URLs and connection identifiers, variable group definitions, tenant and subscription identifiers, environment inventory | The GitHub repository is public and permanent |
-| **Governed pipeline templates** — the YAML templates enforced by the proposed Azure DevOps *Required template* check | The check is only meaningful if the template is outside the reach of the person editing the pipeline |
-
-Plus, optionally, a **one-way mirror of GitHub `main`** for in-tenant traceability and disaster recovery. The mirror is read-only and is never a place anyone commits.
-
-### 3. The split is directional and stated
-
-```text
-GitHub (public)                    Azure Repos (private, in-tenant)
-─────────────────────              ────────────────────────────────
-Operating model docs               Deployment settings (real values)
-Platform documentation             Variable group definitions
-Power Platform solution source     Governed pipeline templates
-GitHub Actions workflows           Operational runbooks
-Agent definitions                  Break-glass procedures
-Copilot instructions               (optional) mirror of GitHub main
-Synthetic demo data
-```
-
-**Nothing should flow from Azure Repos back into GitHub.** If content needs to be public, it is authored in GitHub in the first place.
+Pull requests and successful repository validation remain mandatory. The current
+solo-owner profile has zero mandatory approvals and does not require CODEOWNERS
+review. Requiring one approval and CODEOWNERS review is deferred until a second
+eligible maintainer exists.
 
 ---
 
 ## Rationale
 
-1. **It resolves the public-repository tension honestly.** ADR-0001 said "move the tenant identifiers out before going public" without saying where to. Now there is a place.
-2. **Bootstrap-from-source is the more interesting demonstration.** A showcase that can rebuild its own control plane proves more than one that was clicked together.
-3. **The *Required template* check only has integrity if the template is elsewhere.** Azure DevOps checks cannot be modified by someone editing the pipeline YAML — but if the template itself sits in the repository the pipeline author controls, that property is lost.
-4. **It keeps the single-backlog rule intact.** Azure Repos holds configuration, not the product backlog and not the product source. Azure Boards remains the only backlog; GitHub remains the only place product code is written.
-5. **The admin account's operational material stays inside the tenant**, where it is covered by tenant access controls and audit rather than by a repository's visibility setting.
+1. **It preserves the private boundary without a second source location.** The real Tenant 1 file and raw evidence stay outside Git.
+2. **It is recoverable.** The external encrypted backup is restore-tested by hash before tracked Tenant 1 material is removed.
+3. **It fails closed.** Explicit path and tenant validation stop a live command before external access on absence, ambiguity, or mismatch.
+4. **It avoids premature privilege.** No bootstrap identity, federation, cloud retrieval, or service connection is needed for the lean foundation.
+5. **It fits the current ownership model.** Zero mandatory approvals avoids a solo-owner deadlock while pull requests, validation, and resolved conversations remain enforced.
 
 ---
 
@@ -88,39 +76,42 @@ Synthetic demo data
 
 ### Positive
 
-- The public repository can stay genuinely free of tenant-specific values without losing the information.
-- The engineering control plane becomes reproducible, and re-provisionable into a second tenant.
-- Production gating gains real integrity through an out-of-reach required template.
-- Disaster recovery improves: an in-tenant mirror survives the loss of the external GitHub account.
+- The public repository can remain free of Tenant 1 private values.
+- The active configuration path is explicit and can be validated mechanically.
+- Backup and restore proof provide a proportionate recovery control.
+- The current sprint creates no privileged cloud bootstrap surface.
 
 ### Negative
 
-- **Three repositories to explain** instead of one: public GitHub, private Azure Repos config, and the optional mirror. Contributor onboarding must be explicit about which is which.
-- **Risk of content drifting into the wrong place.** Someone will eventually put documentation in Azure Repos or a real environment URL in GitHub.
-- **The bootstrap workflow is itself privileged.** It creates projects, service connections and approval gates, so it becomes a high-value target and needs its own review discipline.
-- **Mirroring adds a moving part** that can silently stop.
+- **Operator dependency.** Unattended rebuild and cloud bootstrap are unavailable.
+- **Local loss risk.** Recovery depends on the encrypted backup being current and restorable.
+- **No centrally versioned private configuration.** Changes require attended local discipline and evidence outside Git.
 
 ### Mitigations
 
-- Repository guidance should state the directional rule in one sentence each: *public GitHub for anything reproducible, private Azure Repos for anything tenant-specific.*
-- The pull request redaction checklist should ask for confirmation that no tenant identifier is introduced.
-- The future bootstrap workflow should run only on `workflow_dispatch` from `main`, be gated by a GitHub environment with a required reviewer, and be owned in `CODEOWNERS`.
-- The bootstrap must be idempotent, so a failed or partial run is recoverable by re-running rather than by manual repair.
-- The mirror, if enabled, must be monitored and its failure treated as a work item — not silently ignored.
+- Validation rejects tracked `tenant1.local.psd1` and Tenant 1 private values.
+- The operator maintains the encrypted backup outside the repository and the workstation's primary failure domain.
+- Restore is proven by byte hash and schema validation before tracked Tenant 1 configuration is removed.
+- Any later private repository, OIDC bootstrap, required delivery template, or cloud retrieval requires a new reviewed design.
 
 ---
 
 ## Alternatives Considered
 
-**Keep Azure Repos empty and put tenant configuration in a private GitHub repository.** Rejected: a second GitHub repository under a personal account still sits outside the tenant boundary, and private repositories on a personal Free plan do not get the environment protection rules the public one does.
+**Create a private Azure Repo for tenant configuration and governed templates.**
+Deferred: it adds a second repository and current-sprint controls without evidence of
+need. Reconsider only through a new reviewed design.
 
-**Keep tenant configuration only in Azure DevOps variable groups and secure files, with no repository.** Rejected: variable groups are not versioned, not reviewable and not diffable. Configuration that gates production deserves the same review discipline as code.
+**Provision Azure DevOps through OIDC bootstrap.** Deferred: it creates privileged
+identity and workflow surfaces that the attended local sequence does not require.
 
-**Provision Azure DevOps by hand and document the steps.** Rejected: it contradicts the showcase objective that the whole system be rebuildable from source, and hand-built control planes drift.
+**Track real Tenant 1 configuration in GitHub.** Rejected: repository visibility,
+history, and replication are incompatible with the private-value boundary.
 
 ---
 
 ## References
 
 - [Approved Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md) — the governed intake and bootstrap design; Infrastructure detail enters in Phase 3.
-- [ADR-0001](0001-azure-devops-as-engineering-control-plane.md) — the proposed original control plane split
+- [ADR-0001](0001-azure-devops-as-engineering-control-plane.md) — the approved source, backlog, and future-delivery split
+- [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md)

@@ -23,6 +23,10 @@
 
 AB#
 
+For the final governed proof, use the literal `Fixes AB#` prefix followed by the
+selected Azure Boards Issue ID. Human review verifies the reference; no separate
+traceability workflow is required.
+
 ## Journey stage
 
 <!-- Attract | Hire | Pre-board | Onboard | Enable | Grow | Change | Offboard | Alumni | Cross-cutting -->
@@ -52,8 +56,6 @@ The DEV, TEST, and PROD checkboxes describe Power Platform ALM impact, not Azure
 - [ ] Any committed tenant identifier or service URL is approved non-secret metadata covered by the tenant manifest and evidence policy
 - [ ] Deployment order respected: infrastructure before HR
 - [ ] Build, lint, test, and Solution Checker run for affected areas; evidence pasted below rather than claimed
-- [ ] Advisory baseline audit is green, or reviewer acceptance and rationale are recorded
-
 ```text
 Paste command output here.
 ```

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Cross-cutting (docs, hr, data, repository governance) |
@@ -361,7 +361,7 @@ The Infrastructure domain is imported as source-derived Proposed Baseline docume
 | [Bootstrap Recovery](../infra/docs/19-bootstrap-recovery.md) | Defines attended recovery from nine failure states without bypassing validation, approvals, or least privilege. |
 | [Infrastructure Solution Sources](../infra/src/solutions/README.md) | Defines ownership and exclusions for future unpacked Infrastructure Power Platform solution source. |
 
-**This map is unchanged by the Phase 4 HR solution intake.** `infra/` remains governed exclusively by the Phase 3 review; see [Bicep Composition](../infra/src/bicep/main.bicep) and [Tenant 1 Manifest](../infra/src/config/tenants/caldova25156897.psd1) for its current state.
+**This map is unchanged by the Phase 4 HR solution intake.** `infra/` remains governed exclusively by the Phase 3 review; see [Bicep Composition](../../infra/src/bicep/main.bicep) and the [Tenant 1 Lean Engineering Platform Implementation Plan](2026-09-28-tenant-1-lean-engineering-platform-implementation.md) for its current local-configuration boundary.
 ```
 
 - [ ] **Step 3: Add a "Superseded (Phase 2)" pointer section**

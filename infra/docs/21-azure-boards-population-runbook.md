@@ -2,27 +2,64 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-25 |
+| **Version** | 2.4 |
+| **Date** | 2026-09-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed Baseline |
+| **Status** | Superseded |
 | **Scope** | Infrastructure (Tenant 1) |
-| **References** | [Azure Boards Population Design](../../docs/specs/2026-09-25-azure-boards-population-design.md), [Tenant Trust Activation Runbook](./20-tenant-trust-activation-runbook.md) |
+| **References** | [Azure Boards Population Design](../../docs/specs/2026-09-25-azure-boards-population-design.md), [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Tenant 1 Lean Platform Runbook](./24-tenant-1-lean-platform-runbook.md) |
 
-This runbook populates Azure DevOps Boards with one `Epic` per HR use-case idea (19 total), using `infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1`. It assumes Tenant 1's trust is already active — see the [Tenant Trust Activation Runbook](./20-tenant-trust-activation-runbook.md) — and that you have an authenticated Azure DevOps session (either the same OIDC trust that runbook establishes, or your own `az devops login`).
+> **STOP — OPTIONAL PORTFOLIO TOOLING.** The 19-Epic population procedure is dormant and not a lean-platform prerequisite. It remains unchanged and requires its own attended approval; do not substitute it for the locked lean Basic Boards operation below.
 
-## Who Can Run This
+This runbook separates the active lean Basic Boards operation from the optional portfolio population tool. Both use an already authenticated attended Azure DevOps user context. Neither requires or creates OIDC trust, a service principal, a GitHub Environment, a second team, a non-root area, an Agile process, or additional iterations.
 
-- **Azure DevOps role:** at least **Contributor** on the `Caldova HR Frontier` project — enough to create work items and add relations; no administrative role is required.
-- **Content judgment:** this script only ever copies text already reviewed and committed in `hr/docs/ideas/*.md` into Azure Boards — it never generates new characterizations of a use case. Even so, a human should trigger the first live write of this portfolio into a system other people at GF will read as authoritative — see the spec's Runbook section for why.
+## Lean Basic Boards Operation
 
-## Prerequisites Checklist
+Use only the existing Basic project, current team, project-root area, and exact current sprint. The operation creates or reuses one durable `Issue` identified by the stable tag `tenant1-lean-platform-traceability`. It never creates or deletes a team, area, iteration, Epic, Task, or process.
 
-- [ ] `az` CLI is installed with the `azure-devops` extension (`az extension add --name azure-devops` if `az boards -h` reports the command group is missing).
-- [ ] You are authenticated to Azure DevOps for organization `https://dev.azure.com/caldova25156897/` (`az devops login` or an already-active OIDC session).
-- [ ] `Invoke-Pester -Path infra/tests/pester/AzureBoardsPopulation.Tests.ps1 -Output Detailed -CI` passes on the current `main` before you begin.
+The team-iteration response contract follows [Azure DevOps REST 7.1 Iterations - List](https://learn.microsoft.com/rest/api/azure/devops/work/iterations/list?view=azure-devops-rest-7.1).
 
-## Steps
+Run the locked planning command first. Keep the plan outside Git:
+
+```powershell
+$BoardsPlanPath = Join-Path $OperatorRoot 'azure-boards-lean-plan.json'
+$BoardsParameters = @{
+    OrganizationUrl = 'https://dev.azure.com/<exact-organization>/'
+    ProjectName = 'Caldova HR Frontier'
+    TeamName = 'Caldova HR Frontier Team'
+    CurrentSprintPath = 'Caldova HR Frontier\Current'
+    IssueTitle = 'Tenant 1 lean engineering platform acceptance'
+    PlanOutputPath = $BoardsPlanPath
+}
+.\infra\src\scripts\Initialize-AzureBoardsLeanSprint.ps1 @BoardsParameters -WhatIf
+Get-Content -LiteralPath $BoardsPlanPath -Raw | ConvertFrom-Json |
+    Format-List ProcessName, TeamName, AreaPath, CurrentSprintPath, SprintDateMode, IssueMode, IssueId, Status
+```
+
+The expected plan reports `Basic`, the exact existing team, `Caldova HR Frontier` as the root area, the exact current sprint, and `Status = Planned`. Before issue planning, the script reads the selected team's `System.AreaPath` settings and its current iterations using the literal query key `$timeframe=current`. The REST 7.1 response must contain a `values` array. It requires exactly the project-root area and exactly one current team iteration whose full path equals `CurrentSprintPath`; missing, non-array, empty, multiple, or mismatched state stops. A matching classification node by itself is insufficient. `IssueMode` is `Create` only when an actual WIQL `workItems` array is present and empty; missing, null, or wrong-type `workItems` is indeterminate and stops. `Reuse` requires exactly one matching Issue, and more than one match is ambiguous and stops. The full observed sprint path is converted to the project-relative classification-node route (`Caldova HR Frontier\Current` becomes `Current`, and nested suffixes remain nested); foreign, relative-only, REST-prefixed, or ambiguous paths stop.
+
+Current-sprint dates are deliberately omitted. Add both `SprintStartDate` and `SprintFinishDate` only when the attended owner supplies and approves both exact dates. Supplying one date, a reversed range, or an unverified read-back stops without further mutation.
+
+After a separately recorded attended approval, use the same locked parameters:
+
+```powershell
+.\infra\src\scripts\Initialize-AzureBoardsLeanSprint.ps1 @BoardsParameters -Apply
+```
+
+Approve only the exact proposed mutation. Issue creation sends its four-field JSON Patch body with media type `application/json-patch+json`. After creation or a sprint-date update, the script reruns the stable-tag query and requires exactly one result with the expected Issue ID; a concurrent duplicate stops before success. The result must report `Status = Applied` and a positive `IssueId`. Preserve that durable Issue for the final `Fixes AB#<positive-integer>` transaction; never delete it.
+
+## Optional 19-Epic Portfolio Tooling
+
+The existing `infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1` can copy the reviewed `hr/docs/ideas/*.md` portfolio into one `Epic` per idea. It remains behaviorally unchanged and is not part of lean acceptance.
+
+### Optional Prerequisites
+
+- [ ] Use an authenticated attended Azure DevOps user with the separately approved project permissions.
+- [ ] Install the `az` CLI and the `azure-devops` extension (`az extension add --name azure-devops` if `az boards -h` reports the command group is missing).
+- [ ] `Invoke-Pester -Path infra/tests/pester/AzureBoardsPopulation.Tests.ps1 -Output Detailed -CI` passes on the current `main`.
+- [ ] Obtain separate approval for the optional 19-Epic population. Lean Basic Boards approval does not authorize it.
+
+### Optional Procedure
 
 1. **Review the plan with zero mutation.**
 
@@ -40,7 +77,7 @@ This runbook populates Azure DevOps Boards with one `Epic` per HR use-case idea 
    .\infra\src\scripts\Initialize-AzureDevOpsWorkItems.ps1 -TenantAlias caldova25156897 -PlanOutputPath $planPath
    ```
 
-   PowerShell's default confirmation preference (`High`, matching the script's declared `ConfirmImpact = 'High'`) prompts once per `Create`-mode Epic before creating it. Answer `Y` for each one you approve; never answer `A` ("Yes to All") — the same reasoning as the [Tenant Trust Activation Runbook](./20-tenant-trust-activation-runbook.md) Step 3 applies here too: a single blanket approval silently skips reviewing the remaining items.
+   The procedure requires one-at-a-time confirmation and prohibits `A` ("Yes to All").
 
 3. **Handle a partial failure.**
 
@@ -62,7 +99,7 @@ This runbook populates Azure DevOps Boards with one `Epic` per HR use-case idea 
 | Creating Features, User Stories, Tasks, or Bugs under any Epic | Deliberately out of scope — see the spec's Ruling 1; only `UC-0001` has a PRD, and even its Definition of Ready is not yet met |
 | Azure DevOps project configuration (area paths, iterations, delivery plans, Azure Repos repurposing) | Tracked as a separate, not-yet-started sub-project |
 | The Azure Boards↔GitHub App connection and the `AB#` commit convention | Attended-only (one-time browser OAuth); see `docs/specs/2026-09-24-azure-devops-github-single-source-of-truth-design.md` |
-| Activating Tenant 1's trust in the first place | [Tenant Trust Activation Runbook](./20-tenant-trust-activation-runbook.md) — must already be complete before this runbook can authenticate |
+| Tenant trust, OIDC, or a delivery identity | Not required by either Boards tool; neither tool creates or activates them |
 
 ## Troubleshooting
 

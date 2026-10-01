@@ -1,9 +1,15 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidatePattern('^[a-z0-9]+$')]
-    [string]$TenantAlias,
+    [ValidateScript({
+        if ($_ -cnotmatch '^tenant[1-9][0-9]*$') {
+            throw 'PublicTenantKey must use the case-sensitive lowercase tenant key format.'
+        }
+        $true
+    })]
+    [string]$PublicTenantKey,
 
+    [Parameter(Mandatory)]
     [string]$TenantConfigurationPath,
 
     [Parameter(Mandatory)]
@@ -11,20 +17,6 @@ param(
 
     [Parameter(Mandatory)]
     [string]$ParameterFile,
-
-    [Parameter(Mandatory)]
-    [string]$TemporaryRoleStatePath,
-
-    [Parameter(Mandatory)]
-    [bool]$ConfirmRoleCleanup,
-
-    [Parameter(Mandatory)]
-    [ValidatePattern('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')]
-    [string]$BootstrapRunId,
-
-    [Parameter(Mandatory)]
-    [ValidateCount(2, 2)]
-    [string[]]$ApprovedRoleAssignmentIds,
 
     [switch]$WhatIfOnly,
 
@@ -35,22 +27,19 @@ param(
     [scriptblock]$IntentValidator,
 
     [Parameter(DontShow)]
-    [scriptblock]$OidcContextValidator,
+    [scriptblock]$AttendedUserContextValidator,
+
+    [Parameter(DontShow)]
+    [scriptblock]$AccessPreflightValidator,
 
     [Parameter(DontShow)]
     [scriptblock]$BicepValidator,
 
     [Parameter(DontShow)]
-    [scriptblock]$RoleStateLoader,
-
-    [Parameter(DontShow)]
     [scriptblock]$NativeCommandRunner,
 
     [Parameter(DontShow)]
-    [scriptblock]$WhatIfBoundaryValidator,
-
-    [Parameter(DontShow)]
-    [scriptblock]$CleanupRunner
+    [scriptblock]$WhatIfBoundaryValidator
 )
 
 Set-StrictMode -Version Latest
@@ -60,14 +49,77 @@ function Get-ModuleManifestPath {
     Join-Path $PSScriptRoot 'modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
 }
 
-function Get-DefaultTenantConfigurationPath {
-    param([string]$TenantAliasValue)
-
-    Join-Path $PSScriptRoot "..\config\tenants\$TenantAliasValue.psd1"
+function Get-RepositoryRoot {
+    [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 }
 
 function Get-BicepEntryPath {
     Join-Path $PSScriptRoot '..\bicep\main.bicep'
+}
+
+function Get-WhatIfValidatorPath {
+    Join-Path $PSScriptRoot 'Test-WhatIfBoundary.ps1'
+}
+
+function Invoke-NativeCommand {
+    param(
+        [Parameter(Mandatory)]
+        [string]$FilePath,
+
+        [Parameter(Mandatory)]
+        [string[]]$ArgumentList
+    )
+
+    if ($NativeCommandRunner) {
+        $result = & $NativeCommandRunner -FilePath $FilePath -ArgumentList $ArgumentList
+        return [pscustomobject]@{
+            ExitCode = [int]$result.ExitCode
+            StdOut = [string]$result.StdOut
+            StdErr = [string]$result.StdErr
+        }
+    }
+
+    $commandId = [guid]::NewGuid().Guid
+    $stdoutPath = Join-Path $nativeOutputRoot ".native-$commandId.stdout"
+    $stderrPath = Join-Path $nativeOutputRoot ".native-$commandId.stderr"
+    try {
+        $process = Start-Process `
+            -FilePath $FilePath `
+            -ArgumentList $ArgumentList `
+            -WorkingDirectory (Split-Path -Parent $PSScriptRoot) `
+            -RedirectStandardOutput $stdoutPath `
+            -RedirectStandardError $stderrPath `
+            -PassThru `
+            -Wait
+        [pscustomobject]@{
+            ExitCode = $process.ExitCode
+            StdOut = [System.IO.File]::ReadAllText($stdoutPath)
+            StdErr = [System.IO.File]::ReadAllText($stderrPath)
+        }
+    }
+    finally {
+        Remove-Item -LiteralPath $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Invoke-NativeJsonCommand {
+    param(
+        [Parameter(Mandatory)]
+        [string]$FilePath,
+
+        [Parameter(Mandatory)]
+        [string[]]$ArgumentList
+    )
+
+    $result = Invoke-NativeCommand -FilePath $FilePath -ArgumentList $ArgumentList
+    if ($result.ExitCode -ne 0) {
+        throw ("{0} failed with exit code {1}. {2}" -f $FilePath, $result.ExitCode, $result.StdErr)
+    }
+    if ([string]::IsNullOrWhiteSpace($result.StdOut)) {
+        throw ("{0} returned empty output for arguments: {1}" -f $FilePath, ($ArgumentList -join ' '))
+    }
+
+    $result.StdOut | ConvertFrom-Json
 }
 
 function Get-TenantParameterValue {
@@ -100,63 +152,6 @@ function Get-TenantParameterValue {
     [string]$property.Value
 }
 
-function Invoke-NativeCommand {
-    param(
-        [Parameter(Mandatory)]
-        [string]$FilePath,
-
-        [Parameter(Mandatory)]
-        [string[]]$ArgumentList
-    )
-
-    if ($NativeCommandRunner) {
-        $result = & $NativeCommandRunner -FilePath $FilePath -ArgumentList $ArgumentList
-        return [pscustomobject]@{
-            ExitCode = [int]$result.ExitCode
-            StdOut = [string]$result.StdOut
-            StdErr = [string]$result.StdErr
-        }
-    }
-
-    $stdoutPath = [System.IO.Path]::GetTempFileName()
-    $stderrPath = [System.IO.Path]::GetTempFileName()
-    try {
-        $process = Start-Process -FilePath $FilePath -ArgumentList $ArgumentList -WorkingDirectory (Split-Path -Parent $PSScriptRoot) -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -PassThru -Wait
-        [pscustomobject]@{
-            ExitCode = $process.ExitCode
-            StdOut = [System.IO.File]::ReadAllText($stdoutPath)
-            StdErr = [System.IO.File]::ReadAllText($stderrPath)
-        }
-    }
-    finally {
-        Remove-Item -LiteralPath $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
-    }
-}
-
-function Invoke-NativeJsonCommand {
-    param(
-        [Parameter(Mandatory)]
-        [string]$FilePath,
-
-        [Parameter(Mandatory)]
-        [string[]]$ArgumentList
-    )
-
-    $result = Invoke-NativeCommand -FilePath $FilePath -ArgumentList $ArgumentList
-    if ($result.ExitCode -ne 0) {
-        throw ("{0} failed with exit code {1}. {2}" -f $FilePath, $result.ExitCode, $result.StdErr)
-    }
-    if ([string]::IsNullOrWhiteSpace($result.StdOut)) {
-        throw ("{0} returned empty output for arguments: {1}" -f $FilePath, ($ArgumentList -join ' '))
-    }
-
-    $result.StdOut | ConvertFrom-Json
-}
-
-function Get-WhatIfValidatorPath {
-    Join-Path $PSScriptRoot 'Test-WhatIfBoundary.ps1'
-}
-
 function Get-DefaultDiscoveryEvidence {
     param([string]$Path)
 
@@ -165,153 +160,308 @@ function Get-DefaultDiscoveryEvidence {
     $evidence
 }
 
-function Test-DefaultOidcContext {
+function Get-DefaultAttendedUserPrincipal {
     param([object]$TenantConfiguration)
 
     $account = Invoke-NativeJsonCommand -FilePath 'az' -ArgumentList @('account', 'show', '--output', 'json')
-    if ([string]$account.user.type -cne 'servicePrincipal') {
-        throw 'Bootstrap requires a service-principal OIDC context.'
+    if ([string]$account.user.type -cne 'user') {
+        throw 'Lean Tenant 1 validation requires an attended user context.'
     }
     if ([string]$account.tenantId -cne [string]$TenantConfiguration.TenantId) {
-        throw 'OIDC tenant does not match the reviewed tenant manifest.'
+        throw 'Signed-in tenant does not match the local Tenant 1 configuration.'
     }
     if ([string]$account.id -cne [string]$TenantConfiguration.SubscriptionId) {
-        throw 'OIDC subscription does not match the reviewed tenant manifest.'
-    }
-    if ([string]::IsNullOrWhiteSpace([string]$env:AZURE_TENANT_ID) -or [string]$env:AZURE_TENANT_ID -cne [string]$account.tenantId) {
-        throw 'AZURE_TENANT_ID must match the observed az account tenant.'
-    }
-    if ([string]::IsNullOrWhiteSpace([string]$env:AZURE_SUBSCRIPTION_ID) -or [string]$env:AZURE_SUBSCRIPTION_ID -cne [string]$account.id) {
-        throw 'AZURE_SUBSCRIPTION_ID must match the observed az account subscription.'
+        throw 'Signed-in subscription does not match the local Tenant 1 configuration.'
     }
 
-    $observedClientId = [string]$account.user.name
-    if ([string]::IsNullOrWhiteSpace([string]$env:AZURE_CLIENT_ID) -or [string]::IsNullOrWhiteSpace($observedClientId) -or [string]$env:AZURE_CLIENT_ID -cne $observedClientId) {
-        throw 'AZURE_CLIENT_ID must match the observed service-principal client id.'
+    $caller = Invoke-NativeJsonCommand -FilePath 'az' -ArgumentList @('ad', 'signed-in-user', 'show', '--output', 'json')
+    $principalObjectId = [guid]::Empty
+    if (-not [guid]::TryParse([string]$caller.id, [ref]$principalObjectId)) {
+        throw 'Signed-in user discovery did not return a GUID object id.'
+    }
+
+    $principalObjectId.Guid
+}
+
+function Convert-GuidByteOrder {
+    param([Parameter(Mandatory)][byte[]]$Bytes)
+
+    [Array]::Reverse($Bytes, 0, 4)
+    [Array]::Reverse($Bytes, 4, 2)
+    [Array]::Reverse($Bytes, 6, 2)
+    ,$Bytes
+}
+
+function New-ArmGuid {
+    param([Parameter(Mandatory)][string[]]$Values)
+
+    $namespace = [guid]'11fb06fb-712d-4ddd-98c7-e71bbd588830'
+    [byte[]]$namespaceBytes = Convert-GuidByteOrder -Bytes $namespace.ToByteArray()
+    [byte[]]$nameBytes = [System.Text.Encoding]::UTF8.GetBytes(($Values -join '-'))
+    [byte[]]$combined = New-Object byte[] ($namespaceBytes.Length + $nameBytes.Length)
+    [Array]::Copy($namespaceBytes, 0, $combined, 0, $namespaceBytes.Length)
+    [Array]::Copy($nameBytes, 0, $combined, $namespaceBytes.Length, $nameBytes.Length)
+
+    $sha1 = [System.Security.Cryptography.SHA1]::Create()
+    try {
+        [byte[]]$hash = $sha1.ComputeHash($combined)
+    }
+    finally {
+        $sha1.Dispose()
+    }
+
+    [byte[]]$guidBytes = New-Object byte[] 16
+    [Array]::Copy($hash, $guidBytes, 16)
+    $guidBytes[6] = ($guidBytes[6] -band 0x0f) -bor 0x50
+    $guidBytes[8] = ($guidBytes[8] -band 0x3f) -bor 0x80
+    [byte[]]$orderedBytes = Convert-GuidByteOrder -Bytes $guidBytes
+    ([guid]::new($orderedBytes)).ToString()
+}
+
+function Test-ExactStringSet {
+    param(
+        [AllowNull()]
+        [object[]]$Actual,
+
+        [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        [string[]]$Expected
+    )
+
+    $actualValues = @($Actual | ForEach-Object { [string]$_ } | Sort-Object)
+    $expectedValues = @($Expected | Sort-Object)
+    if ($actualValues.Count -ne $expectedValues.Count) {
+        return $false
+    }
+
+    @((Compare-Object -ReferenceObject $expectedValues -DifferenceObject $actualValues -CaseSensitive)).Count -eq 0
+}
+
+function Get-ApprovedValidationRoleContract {
+    param([Parameter(Mandatory)][object]$TenantConfiguration)
+
+    $scope = "/subscriptions/$([string]$TenantConfiguration.SubscriptionId)"
+    $roleName = Get-TenantResourceName `
+        -NamingRoot ([string]$TenantConfiguration.NamingRoot) `
+        -ResourceType DeploymentValidationRole
+    $roleDefinitionGuid = New-ArmGuid -Values @($scope, $roleName)
+
+    [pscustomobject][ordered]@{
+        Scope = $scope
+        RoleName = $roleName
+        RoleDefinitionId = "$scope/providers/Microsoft.Authorization/roleDefinitions/$roleDefinitionGuid"
+        RoleType = 'CustomRole'
+        Actions = @(
+            '*/read'
+            'Microsoft.Resources/deployments/read'
+            'Microsoft.Resources/deployments/validate/action'
+            'Microsoft.Resources/deployments/whatIf/action'
+        )
+        NotActions = @()
+        DataActions = @()
+        NotDataActions = @()
+        AssignableScopes = @($scope)
     }
 }
 
-function Get-ValidatedRoleState {
+function Get-DefaultAccessEvidence {
+    param(
+        [Parameter(Mandatory)]
+        [object]$TenantConfiguration,
+
+        [Parameter(Mandatory)]
+        [string]$PrincipalObjectId
+    )
+
+    $scope = "/subscriptions/$([string]$TenantConfiguration.SubscriptionId)"
+    $rawAssignments = @(
+        Invoke-NativeJsonCommand -FilePath 'az' -ArgumentList @(
+            'role',
+            'assignment',
+            'list',
+            '--assignee-object-id', $PrincipalObjectId,
+            '--include-groups',
+            '--scope', $scope,
+            '--output', 'json'
+        )
+    )
+
+    $assignments = [System.Collections.Generic.List[object]]::new()
+    foreach ($assignment in $rawAssignments) {
+        $roleDefinitionId = [string]$assignment.roleDefinitionId
+        $roleDefinitions = @(
+            Invoke-NativeJsonCommand -FilePath 'az' -ArgumentList @(
+                'role',
+                'definition',
+                'list',
+                '--name', $roleDefinitionId,
+                '--output', 'json'
+            )
+        )
+        if ($roleDefinitions.Count -ne 1) {
+            throw "Access preflight could not resolve one role definition for $roleDefinitionId."
+        }
+
+        $roleDefinition = $roleDefinitions[0]
+        $actions = @($roleDefinition.permissions | ForEach-Object { @($_.actions) }) |
+            Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } |
+            Sort-Object -Unique
+        $notActions = @($roleDefinition.permissions | ForEach-Object { @($_.notActions) }) |
+            Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } |
+            Sort-Object -Unique
+        $dataActions = @($roleDefinition.permissions | ForEach-Object { @($_.dataActions) }) |
+            Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } |
+            Sort-Object -Unique
+        $notDataActions = @($roleDefinition.permissions | ForEach-Object { @($_.notDataActions) }) |
+            Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } |
+            Sort-Object -Unique
+
+        $assignments.Add([pscustomobject][ordered]@{
+            Id = [string]$assignment.id
+            PrincipalObjectId = [string]$assignment.principalId
+            PrincipalType = [string]$assignment.principalType
+            Scope = [string]$assignment.scope
+            RoleDefinitionId = $roleDefinitionId
+            RoleName = [string]$roleDefinition.roleName
+            RoleType = [string]$roleDefinition.roleType
+            PermissionBlockCount = @($roleDefinition.permissions).Count
+            AssignableScopes = @($roleDefinition.assignableScopes)
+            Actions = @($actions)
+            NotActions = @($notActions)
+            DataActions = @($dataActions)
+            NotDataActions = @($notDataActions)
+        }) | Out-Null
+    }
+
+    [pscustomobject][ordered]@{
+        SchemaVersion = '1.0'
+        TenantId = [string]$TenantConfiguration.TenantId
+        SubscriptionId = [string]$TenantConfiguration.SubscriptionId
+        PrincipalObjectId = $PrincipalObjectId
+        AssigneeObjectId = $PrincipalObjectId
+        IncludeGroups = $true
+        Scope = $scope
+        Assignments = @($assignments)
+    }
+}
+
+function Assert-MinimumWhatIfAccessEvidence {
+    param(
+        [Parameter(Mandatory)]
+        [object]$Evidence,
+
+        [Parameter(Mandatory)]
+        [object]$TenantConfiguration,
+
+        [Parameter(Mandatory)]
+        [string]$PrincipalObjectId
+    )
+
+    $contract = Get-ApprovedValidationRoleContract -TenantConfiguration $TenantConfiguration
+    $scope = [string]$contract.Scope
+    if ([string]$Evidence.SchemaVersion -cne '1.0' -or
+        [string]$Evidence.TenantId -cne [string]$TenantConfiguration.TenantId -or
+        [string]$Evidence.SubscriptionId -cne [string]$TenantConfiguration.SubscriptionId -or
+        [string]$Evidence.PrincipalObjectId -cne $PrincipalObjectId -or
+        [string]$Evidence.Scope -cne $scope) {
+        throw 'Access evidence does not match the attended Tenant 1 context.'
+    }
+
+    if ([string]$Evidence.AssigneeObjectId -cne $PrincipalObjectId -or
+        $Evidence.IncludeGroups -isnot [bool] -or
+        $Evidence.IncludeGroups -ne $true) {
+        throw 'Access evidence must prove the assignee query targeted the attended principal with group expansion.'
+    }
+
+    $assignments = @($Evidence.Assignments)
+    if ($assignments.Count -eq 0) {
+        throw 'No separately approved effective assignment permits the reviewed subscription what-if.'
+    }
+    if ($assignments.Count -ne 1) {
+        throw 'Access evidence must contain exactly one separately approved assignment for the reviewed validation role.'
+    }
+
+    $assignment = $assignments[0]
+    $assignmentIdPattern = '^' + [regex]::Escape("$scope/providers/Microsoft.Authorization/roleAssignments/") +
+        '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+    if ([string]$assignment.Id -cnotmatch $assignmentIdPattern) {
+        throw 'Access evidence assignment id must identify one assignment at the exact subscription scope.'
+    }
+    if ([string]$assignment.Scope -cne $scope) {
+        throw 'Access evidence assignment must use the exact subscription scope.'
+    }
+
+    $assignmentPrincipalObjectId = [guid]::Empty
+    if (-not [guid]::TryParse([string]$assignment.PrincipalObjectId, [ref]$assignmentPrincipalObjectId)) {
+        throw 'Access evidence assignment principal must be a GUID user or group.'
+    }
+    switch -CaseSensitive ([string]$assignment.PrincipalType) {
+        'User' {
+            if ($assignmentPrincipalObjectId -ne [guid]$PrincipalObjectId) {
+                throw 'A direct user assignment must match the attended principal.'
+            }
+        }
+        'Group' { }
+        default {
+            throw 'Access evidence assignment principal type must equal User or Group.'
+        }
+    }
+
+    if ([string]$assignment.RoleDefinitionId -cne [string]$contract.RoleDefinitionId -or
+        [string]$assignment.RoleName -cne [string]$contract.RoleName -or
+        [string]$assignment.RoleType -cne [string]$contract.RoleType -or
+        [int]$assignment.PermissionBlockCount -ne 1 -or
+        -not (Test-ExactStringSet -Actual @($assignment.AssignableScopes) -Expected @($contract.AssignableScopes)) -or
+        -not (Test-ExactStringSet -Actual @($assignment.Actions) -Expected @($contract.Actions)) -or
+        -not (Test-ExactStringSet -Actual @($assignment.NotActions) -Expected @($contract.NotActions)) -or
+        -not (Test-ExactStringSet -Actual @($assignment.DataActions) -Expected @($contract.DataActions)) -or
+        -not (Test-ExactStringSet -Actual @($assignment.NotDataActions) -Expected @($contract.NotDataActions))) {
+        throw 'Access evidence must match the exact approved validation role boundary.'
+    }
+
+    $Evidence
+}
+
+function Get-AccessEvidenceSignature {
+    param([Parameter(Mandatory)][object]$Evidence)
+
+    @(
+        [string]$Evidence.AssigneeObjectId
+        [string]$Evidence.IncludeGroups
+        foreach ($assignment in @($Evidence.Assignments) | Sort-Object -Property Id) {
+            @(
+                [string]$assignment.Id
+                [string]$assignment.PrincipalObjectId
+                [string]$assignment.PrincipalType
+                [string]$assignment.Scope
+                [string]$assignment.RoleDefinitionId
+                [string]$assignment.RoleName
+                [string]$assignment.RoleType
+                [string]$assignment.PermissionBlockCount
+                (@($assignment.AssignableScopes) | Sort-Object) -join ','
+                (@($assignment.Actions) | Sort-Object) -join ','
+                (@($assignment.NotActions) | Sort-Object) -join ','
+                (@($assignment.DataActions) | Sort-Object) -join ','
+                (@($assignment.NotDataActions) | Sort-Object) -join ','
+            ) -join '|'
+        }
+    ) -join ';'
+}
+
+function Write-JsonFile {
     param(
         [Parameter(Mandatory)]
         [string]$Path,
 
         [Parameter(Mandatory)]
-        [object]$TenantConfiguration
+        [object]$Value
     )
 
-    $roleState = Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json
-    if ([string]$roleState.SchemaVersion -cne '1.0') {
-        throw 'TemporaryRoleState.SchemaVersion must equal 1.0.'
-    }
-    if ([string]$roleState.TenantAlias -cne [string]$TenantConfiguration.TenantAlias) {
-        throw 'TemporaryRoleState.TenantAlias must match the reviewed tenant manifest.'
-    }
-    if ([string]$roleState.TenantId -cne [string]$TenantConfiguration.TenantId) {
-        throw 'TemporaryRoleState.TenantId must match the reviewed tenant manifest.'
-    }
-    if ([string]$roleState.SubscriptionId -cne [string]$TenantConfiguration.SubscriptionId) {
-        throw 'TemporaryRoleState.SubscriptionId must match the reviewed tenant manifest.'
-    }
-    $parsedRunId = [guid]::Empty
-    if (-not [guid]::TryParse([string]$roleState.RunId, [ref]$parsedRunId)) {
-        throw 'TemporaryRoleState.RunId must be a GUID.'
-    }
-    [datetime]::Parse([string]$roleState.CreatedUtc).ToUniversalTime() | Out-Null
-
-    $expectedPrincipalObjectId = [string]$TenantConfiguration.Components.EntraServicePrincipal.Id
-    if ([string]$roleState.PrincipalObjectId -cne $expectedPrincipalObjectId) {
-        throw 'TemporaryRoleState.PrincipalObjectId must match the reviewed tenant manifest.'
-    }
-
-    $expectedScope = "/subscriptions/$([string]$TenantConfiguration.SubscriptionId)"
-    if ([string]$roleState.Scope -cne $expectedScope) {
-        throw 'TemporaryRoleState.Scope must match the reviewed subscription scope.'
-    }
-
-    $assignments = @($roleState.Assignments)
-    if ($assignments.Count -ne 2) {
-        throw 'TemporaryRoleState.Assignments must contain exactly two assignments.'
-    }
-
-    $seenIds = @{}
-    $seenRoles = @{}
-    $expectedRoleDefinitionIds = @{
-        Contributor = "$expectedScope/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
-        'Role Based Access Control Administrator' = "$expectedScope/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168"
-    }
-    foreach ($assignment in $assignments) {
-        $assignmentId = [string]$assignment.Id
-        $roleName = [string]$assignment.RoleName
-        if ([string]::IsNullOrWhiteSpace($assignmentId) -or $assignmentId -cnotmatch ('^' + [regex]::Escape("$expectedScope/providers/Microsoft.Authorization/roleAssignments/") + '[0-9a-fA-F-]{36}$')) {
-            throw 'TemporaryRoleState assignments require well-formed exact Id values at the reviewed subscription scope.'
-        }
-        if ($seenIds.ContainsKey($assignmentId)) {
-            throw 'TemporaryRoleState assignment ids must be unique.'
-        }
-        $seenIds[$assignmentId] = $true
-
-        if ($roleName -notin @('Contributor', 'Role Based Access Control Administrator')) {
-            throw "TemporaryRoleState role $roleName is not allowed."
-        }
-        if ($seenRoles.ContainsKey($roleName)) {
-            throw "TemporaryRoleState role $roleName must be unique."
-        }
-        $seenRoles[$roleName] = $true
-
-        if ([string]$assignment.PrincipalObjectId -cne $expectedPrincipalObjectId) {
-            throw 'TemporaryRoleState assignment principal must match the reviewed tenant manifest.'
-        }
-        if ([string]$assignment.Scope -cne $expectedScope) {
-            throw 'TemporaryRoleState assignment scope must match the reviewed subscription scope.'
-        }
-        if ([string]$assignment.RoleDefinitionId -cne [string]$expectedRoleDefinitionIds[$roleName]) {
-            throw "TemporaryRoleState assignment RoleDefinitionId is not the expected built-in definition for $roleName."
-        }
-        [datetime]::Parse([string]$assignment.CreatedUtc) | Out-Null
-    }
-
-    $roleState
-}
-
-function Assert-ReviewedCleanupApproval {
-    param(
-        [Parameter(Mandatory)]
-        [object]$RoleState,
-
-        [Parameter(Mandatory)]
-        [string]$ExpectedRunId,
-
-        [Parameter(Mandatory)]
-        [string[]]$ApprovedAssignmentIds,
-
-        [Parameter(Mandatory)]
-        [string]$ExpectedScope
+    [System.IO.File]::WriteAllText(
+        $Path,
+        ($Value | ConvertTo-Json -Depth 32),
+        [System.Text.UTF8Encoding]::new($false)
     )
-
-    if ([string]$RoleState.RunId -cne $ExpectedRunId) {
-        throw 'BootstrapRunId must match TemporaryRoleState.RunId.'
-    }
-
-    $assignmentIdPattern = '^' + [regex]::Escape("$ExpectedScope/providers/Microsoft.Authorization/roleAssignments/") + '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
-    $seenApprovedIds = @{}
-    foreach ($approvedId in @($ApprovedAssignmentIds)) {
-        if ([string]$approvedId -cnotmatch $assignmentIdPattern) {
-            throw 'ApprovedRoleAssignmentIds must contain well-formed exact assignment ids at the reviewed subscription scope.'
-        }
-        if ($seenApprovedIds.ContainsKey([string]$approvedId)) {
-            throw 'ApprovedRoleAssignmentIds must be unique.'
-        }
-
-        $seenApprovedIds[[string]$approvedId] = $true
-    }
-
-    $stateIds = @($RoleState.Assignments | ForEach-Object { [string]$_.Id })
-    $unapprovedIds = @($stateIds | Where-Object { [string]$_ -cnotin @($ApprovedAssignmentIds) })
-    $missingIds = @($ApprovedAssignmentIds | Where-Object { [string]$_ -cnotin $stateIds })
-    if ($stateIds.Count -ne 2 -or $unapprovedIds.Count -gt 0 -or $missingIds.Count -gt 0) {
-        throw 'ApprovedRoleAssignmentIds must exactly match TemporaryRoleState assignment ids.'
-    }
 }
 
 function Test-DefaultBicepInputs {
@@ -323,7 +473,7 @@ function Test-DefaultBicepInputs {
         [string]$ParameterFilePath,
 
         [Parameter(Mandatory)]
-        [object]$RoleState
+        [string]$PrincipalObjectId
     )
 
     if ([System.IO.Path]::GetExtension($ParameterFilePath) -cne '.bicepparam') {
@@ -331,154 +481,207 @@ function Test-DefaultBicepInputs {
     }
 
     $mainBicepPath = [System.IO.Path]::GetFullPath((Get-BicepEntryPath))
-    $buildResult = Invoke-NativeCommand -FilePath 'az' -ArgumentList @('bicep', 'build', '--file', $mainBicepPath, '--stdout')
+    $buildResult = Invoke-NativeCommand -FilePath 'az' -ArgumentList @(
+        'bicep',
+        'build',
+        '--file', $mainBicepPath,
+        '--stdout'
+    )
     if ($buildResult.ExitCode -ne 0) {
         throw ("Bicep build failed. {0}" -f $buildResult.StdErr)
     }
 
-    $compiledParameters = Invoke-NativeJsonCommand -FilePath 'az' -ArgumentList @('bicep', 'build-params', '--file', $ParameterFilePath, '--stdout')
+    $compiledParameters = Invoke-NativeJsonCommand -FilePath 'az' -ArgumentList @(
+        'bicep',
+        'build-params',
+        '--file', $ParameterFilePath,
+        '--stdout'
+    )
     if ((Get-TenantParameterValue -CompiledParameters $compiledParameters -Name 'tenantAlias') -cne [string]$TenantConfiguration.TenantAlias) {
-        throw 'Compiled bicep parameters tenantAlias does not match the reviewed tenant manifest.'
+        throw 'Compiled bicep parameters tenantAlias does not match the local Tenant 1 configuration.'
     }
     if ((Get-TenantParameterValue -CompiledParameters $compiledParameters -Name 'location') -cne [string]$TenantConfiguration.PrimaryLocation) {
-        throw 'Compiled bicep parameters location does not match the reviewed tenant manifest.'
+        throw 'Compiled bicep parameters location does not match the local Tenant 1 configuration.'
     }
     if ((Get-TenantParameterValue -CompiledParameters $compiledParameters -Name 'namingRoot') -cne [string]$TenantConfiguration.NamingRoot) {
-        throw 'Compiled bicep parameters namingRoot does not match the reviewed tenant manifest.'
+        throw 'Compiled bicep parameters namingRoot does not match the local Tenant 1 configuration.'
     }
-    if ((Get-TenantParameterValue -CompiledParameters $compiledParameters -Name 'validationPrincipalId') -cne [string]$RoleState.PrincipalObjectId) {
-        throw 'Compiled bicep parameters validationPrincipalId does not match the accepted temporary role state.'
-    }
+    $compiledParameters
 }
 
 Import-Module (Get-ModuleManifestPath) -Force
 
-$resolvedTenantConfigurationPath = if ([string]::IsNullOrWhiteSpace($TenantConfigurationPath)) {
-    Get-DefaultTenantConfigurationPath -TenantAliasValue $TenantAlias
-}
-else {
-    [System.IO.Path]::GetFullPath($TenantConfigurationPath)
-}
-
+$repositoryRoot = Get-RepositoryRoot
+$resolvedTenantConfigurationPath = [System.IO.Path]::GetFullPath($TenantConfigurationPath)
 $resolvedEvidencePath = [System.IO.Path]::GetFullPath($EvidencePath)
 $resolvedParameterFile = [System.IO.Path]::GetFullPath($ParameterFile)
-$resolvedTemporaryRoleStatePath = [System.IO.Path]::GetFullPath($TemporaryRoleStatePath)
+$nativeOutputRoot = Split-Path -Parent $resolvedEvidencePath
+$normalizedRepositoryRoot = $repositoryRoot.TrimEnd('\')
+$repositoryPrefix = $normalizedRepositoryRoot + '\'
 
-foreach ($requiredPath in @($resolvedTenantConfigurationPath, $resolvedEvidencePath, $resolvedParameterFile, $resolvedTemporaryRoleStatePath)) {
+foreach ($privateRunPath in @($resolvedEvidencePath, $resolvedParameterFile)) {
+    if ($privateRunPath.TrimEnd('\') -ieq $normalizedRepositoryRoot -or
+        $privateRunPath.StartsWith($repositoryPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw 'EvidencePath and ParameterFile must resolve outside the repository.'
+    }
+}
+
+foreach ($requiredPath in @($resolvedTenantConfigurationPath, $resolvedEvidencePath, $resolvedParameterFile)) {
     if (-not (Test-Path -LiteralPath $requiredPath)) {
         throw "Required path was not found: $requiredPath"
     }
 }
 
-$tenantConfiguration = Import-TenantConfiguration -Path $resolvedTenantConfigurationPath -ValidationStage 'Bootstrap'
+$tenantConfiguration = Import-TenantConfiguration `
+    -Path $resolvedTenantConfigurationPath `
+    -ValidationStage Bootstrap `
+    -ExpectedPublicTenantKey $PublicTenantKey `
+    -RequireLocalUntracked
 
-if (-not $ConfirmRoleCleanup) {
-    throw 'ConfirmRoleCleanup must be true before temporary role cleanup can be orchestrated.'
+if (-not $WhatIfOnly) {
+    throw 'Invoke-TenantBootstrap.ps1 only supports -WhatIfOnly in this repository task slice.'
 }
 
-$effectiveDiscoveryValidator = if ($DiscoveryEvidenceValidator) { $DiscoveryEvidenceValidator } else { { param([string]$Path) Get-DefaultDiscoveryEvidence -Path $Path } }
-$effectiveIntentValidator = if ($IntentValidator) { $IntentValidator } else { $null }
-$effectiveOidcContextValidator = if ($OidcContextValidator) { $OidcContextValidator } else { $null }
-$effectiveBicepValidator = if ($BicepValidator) { $BicepValidator } else { $null }
-$effectiveRoleStateLoader = if ($RoleStateLoader) { $RoleStateLoader } else { $null }
-$effectiveWhatIfBoundaryValidator = if ($WhatIfBoundaryValidator) { $WhatIfBoundaryValidator } else { { param([string]$Path, [string]$PrincipalObjectId) & (Get-WhatIfValidatorPath) -WhatIfPayloadPath $Path -ExpectedPrincipalObjectId $PrincipalObjectId | Out-Null } }
-$cleanupNativeRunner = $NativeCommandRunner
-$cleanupExpectedRunId = $BootstrapRunId
-$cleanupApprovedRoleAssignmentIds = @($ApprovedRoleAssignmentIds)
-$cleanupExpectedPrincipalObjectId = [string]$tenantConfiguration.Components.EntraServicePrincipal.Id
-$cleanupExpectedScope = "/subscriptions/$([string]$tenantConfiguration.SubscriptionId)"
-$effectiveCleanupRunner = if ($CleanupRunner) { $CleanupRunner } else { { param([object]$RoleState) Remove-TemporaryRoleAssignments -BootstrapResult $RoleState -ExpectedRunId $cleanupExpectedRunId -ApprovedRoleAssignmentIds $cleanupApprovedRoleAssignmentIds -ExpectedPrincipalObjectId $cleanupExpectedPrincipalObjectId -ExpectedScope $cleanupExpectedScope -NativeCommandRunner $cleanupNativeRunner -Confirm:$false | Out-Null }.GetNewClosure() }
+$effectiveDiscoveryValidator = if ($DiscoveryEvidenceValidator) {
+    $DiscoveryEvidenceValidator
+}
+else {
+    { param([string]$Path) Get-DefaultDiscoveryEvidence -Path $Path }
+}
+$effectiveAttendedUserContextValidator = if ($AttendedUserContextValidator) {
+    $AttendedUserContextValidator
+}
+else {
+    { param([object]$Configuration) Get-DefaultAttendedUserPrincipal -TenantConfiguration $Configuration }
+}
+$effectiveAccessPreflightValidator = if ($AccessPreflightValidator) {
+    $AccessPreflightValidator
+}
+else {
+    {
+        param([object]$Configuration, [string]$PrincipalObjectId)
+        Get-DefaultAccessEvidence -TenantConfiguration $Configuration -PrincipalObjectId $PrincipalObjectId
+    }
+}
+$effectiveWhatIfBoundaryValidator = if ($WhatIfBoundaryValidator) {
+    $WhatIfBoundaryValidator
+}
+else {
+    {
+        param(
+            [string]$Path,
+            [string]$ConfigurationPath,
+            [object]$Parameters
+        )
+        & (Get-WhatIfValidatorPath) `
+            -WhatIfPayloadPath $Path `
+            -PublicTenantKey $PublicTenantKey `
+            -TenantConfigurationPath $ConfigurationPath `
+            -CompiledParameters $Parameters | Out-Null
+    }
+}
+
+$attendedPrincipalObjectId = & $effectiveAttendedUserContextValidator $tenantConfiguration
+$validatedAttendedPrincipalObjectId = [guid]::Empty
+if (-not [guid]::TryParse([string]$attendedPrincipalObjectId, [ref]$validatedAttendedPrincipalObjectId)) {
+    throw 'AttendedUserContextValidator must return a GUID principal object id.'
+}
+$principalObjectId = $validatedAttendedPrincipalObjectId.Guid
+
+$accessEvidencePath = Join-Path (Split-Path -Parent $resolvedEvidencePath) 'access-validation.json'
+$whatIfOutputPath = Join-Path (Split-Path -Parent $resolvedEvidencePath) 'what-if.json'
+$preflightEvidence = & $effectiveAccessPreflightValidator $tenantConfiguration $principalObjectId
+$preflightEvidence = Assert-MinimumWhatIfAccessEvidence `
+    -Evidence $preflightEvidence `
+    -TenantConfiguration $tenantConfiguration `
+    -PrincipalObjectId $principalObjectId
+
+$accessRecord = [pscustomobject][ordered]@{
+    SchemaVersion = '1.0'
+    RecordedUtc = [datetime]::UtcNow.ToString('o')
+    TenantAlias = [string]$tenantConfiguration.TenantAlias
+    TenantId = [string]$tenantConfiguration.TenantId
+    SubscriptionId = [string]$tenantConfiguration.SubscriptionId
+    PrincipalObjectId = $principalObjectId
+    Scope = "/subscriptions/$([string]$tenantConfiguration.SubscriptionId)"
+    WhatIfOnly = $true
+    Preflight = $preflightEvidence
+    ReadBack = $null
+}
+Write-JsonFile -Path $accessEvidencePath -Value $accessRecord
 
 $discoveryEvidence = & $effectiveDiscoveryValidator $resolvedEvidencePath
-if ($effectiveIntentValidator) {
-    & $effectiveIntentValidator $tenantConfiguration $resolvedEvidencePath
+if ($IntentValidator) {
+    & $IntentValidator $tenantConfiguration $resolvedEvidencePath
 }
 else {
     Test-TenantIntent -TenantConfiguration $tenantConfiguration -Evidence $discoveryEvidence | Out-Null
 }
 
-if ($effectiveOidcContextValidator) {
-    & $effectiveOidcContextValidator $tenantConfiguration
+$compiledParameters = if ($BicepValidator) {
+    & $BicepValidator $resolvedParameterFile
 }
 else {
-    Test-DefaultOidcContext -TenantConfiguration $tenantConfiguration
+    Test-DefaultBicepInputs `
+        -TenantConfiguration $tenantConfiguration `
+        -ParameterFilePath $resolvedParameterFile `
+        -PrincipalObjectId $principalObjectId
+}
+if ($null -eq $compiledParameters) {
+    throw 'BicepValidator must return the compiled parameter document.'
 }
 
-$roleState = if ($effectiveRoleStateLoader) {
-    & $effectiveRoleStateLoader $resolvedTemporaryRoleStatePath
-}
-else {
-    Get-ValidatedRoleState -Path $resolvedTemporaryRoleStatePath -TenantConfiguration $tenantConfiguration
-}
-
-Assert-ReviewedCleanupApproval -RoleState $roleState -ExpectedRunId $BootstrapRunId -ApprovedAssignmentIds $ApprovedRoleAssignmentIds -ExpectedScope $cleanupExpectedScope
-
-$originalError = $null
-$cleanupError = $null
-
-try {
-    if ($effectiveBicepValidator) {
-        & $effectiveBicepValidator $resolvedParameterFile
-    }
-    else {
-        Test-DefaultBicepInputs -TenantConfiguration $tenantConfiguration -ParameterFilePath $resolvedParameterFile -RoleState $roleState
-    }
-
-    if (-not $WhatIfOnly) {
-        throw 'Invoke-TenantBootstrap.ps1 only supports -WhatIfOnly in this repository task slice.'
-    }
-
-    $whatIfNameToken = if ([string]::IsNullOrWhiteSpace($env:GITHUB_RUN_ID)) { 'local' } else { $env:GITHUB_RUN_ID }
-    $arguments = @(
-        'deployment',
-        'sub',
-        'what-if',
-        '--location', 'switzerlandnorth',
-        '--name', ("whatif-{0}-{1}" -f $TenantAlias, $whatIfNameToken),
-        '--template-file', ([System.IO.Path]::GetFullPath((Get-BicepEntryPath))),
-        '--parameters', $resolvedParameterFile,
-        '--result-format', 'FullResourcePayloads',
-        '--no-pretty-print'
-    )
-
-    $commandResult = Invoke-NativeCommand -FilePath 'az' -ArgumentList $arguments
-    if ($commandResult.ExitCode -ne 0) {
-        throw ("az what-if failed with exit code {0}. {1}" -f $commandResult.ExitCode, $commandResult.StdErr)
-    }
-
-    $tempRoot = if (-not [string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { $env:RUNNER_TEMP } else { [System.IO.Path]::GetTempPath() }
-    $whatIfOutputPath = Join-Path $tempRoot ("whatif-{0}.json" -f ([guid]::NewGuid()).Guid)
-    [System.IO.File]::WriteAllText($whatIfOutputPath, [string]$commandResult.StdOut, [System.Text.UTF8Encoding]::new($false))
-    & $effectiveWhatIfBoundaryValidator $whatIfOutputPath ([string]$roleState.PrincipalObjectId)
-}
-catch {
-    $originalError = $_
-}
-finally {
-    if ($null -ne $roleState) {
-        try {
-            & $effectiveCleanupRunner $roleState
-        }
-        catch {
-            $cleanupError = $_
-        }
-    }
+$arguments = @(
+    'deployment',
+    'sub',
+    'what-if',
+    '--location', ([string]$tenantConfiguration.PrimaryLocation),
+    '--name', ("whatif-{0}-local" -f ([string]$tenantConfiguration.TenantAlias)),
+    '--template-file', ([System.IO.Path]::GetFullPath((Get-BicepEntryPath))),
+    '--parameters', $resolvedParameterFile,
+    '--result-format', 'FullResourcePayloads',
+    '--no-pretty-print'
+)
+$commandResult = Invoke-NativeCommand -FilePath 'az' -ArgumentList $arguments
+if ($commandResult.ExitCode -ne 0) {
+    throw ("az what-if failed with exit code {0}. {1}" -f $commandResult.ExitCode, $commandResult.StdErr)
 }
 
-if ($originalError -and $cleanupError) {
-    throw ("{0} Cleanup failure: {1}" -f $originalError.Exception.Message, $cleanupError.Exception.Message)
+[System.IO.File]::WriteAllText(
+    $whatIfOutputPath,
+    [string]$commandResult.StdOut,
+    [System.Text.UTF8Encoding]::new($false)
+)
+& $effectiveWhatIfBoundaryValidator `
+    $whatIfOutputPath `
+    $resolvedTenantConfigurationPath `
+    $compiledParameters
+
+$readBackPrincipalObjectId = & $effectiveAttendedUserContextValidator $tenantConfiguration
+$validatedReadBackPrincipalObjectId = [guid]::Empty
+if (-not [guid]::TryParse([string]$readBackPrincipalObjectId, [ref]$validatedReadBackPrincipalObjectId) -or
+    $validatedReadBackPrincipalObjectId -ne $validatedAttendedPrincipalObjectId) {
+    throw 'Attended context drift was detected after what-if.'
 }
 
-if ($originalError) {
-    throw $originalError.Exception
+$readBackEvidence = & $effectiveAccessPreflightValidator $tenantConfiguration $principalObjectId
+$readBackEvidence = Assert-MinimumWhatIfAccessEvidence `
+    -Evidence $readBackEvidence `
+    -TenantConfiguration $tenantConfiguration `
+    -PrincipalObjectId $principalObjectId
+if ((Get-AccessEvidenceSignature -Evidence $readBackEvidence) -cne
+    (Get-AccessEvidenceSignature -Evidence $preflightEvidence)) {
+    throw 'Access drift was detected after what-if.'
 }
 
-if ($cleanupError) {
-    throw $cleanupError.Exception
-}
+$accessRecord.RecordedUtc = [datetime]::UtcNow.ToString('o')
+$accessRecord.ReadBack = $readBackEvidence
+Write-JsonFile -Path $accessEvidencePath -Value $accessRecord
 
-[pscustomobject]@{
-    TenantAlias = $TenantAlias
+[pscustomobject][ordered]@{
+    TenantAlias = [string]$tenantConfiguration.TenantAlias
     WhatIfOnly = $true
-    TemporaryRoleStatePath = $resolvedTemporaryRoleStatePath
+    PrincipalObjectId = $principalObjectId
+    AccessEvidencePath = $accessEvidencePath
+    WhatIfOutputPath = $whatIfOutputPath
 }

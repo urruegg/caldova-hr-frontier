@@ -13,8 +13,6 @@ type tenantConfiguration = {
   namingRoot: string
   platformResourceGroupName: string
   logAnalyticsWorkspaceName: string
-  validationRoleName: string
-  validationPrincipalId: string
   policyAssignments: policyAssignmentConfiguration[]
 }
 
@@ -54,13 +52,6 @@ module activityLogDiagnostics 'modules/activity-log-diagnostics.bicep' = {
   }
 }
 
-module validationRole 'modules/validation-role.bicep' = {
-  params: {
-    roleName: tenant.validationRoleName
-    principalId: tenant.validationPrincipalId
-  }
-}
-
 module subscriptionPolicyAssignments 'modules/subscription-policy-assignments.bicep' = {
   params: {
     policyAssignments: tenant.policyAssignments
@@ -70,5 +61,3 @@ module subscriptionPolicyAssignments 'modules/subscription-policy-assignments.bi
 output platformResourceGroupName string = platformResourceGroup.outputs.resourceGroupName
 output platformResourceGroupId string = platformResourceGroup.outputs.resourceGroupId
 output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.outputs.workspaceResourceId
-output validationRoleDefinitionId string = validationRole.outputs.roleDefinitionResourceId
-output validationRoleAssignmentId string = validationRole.outputs.roleAssignmentResourceId

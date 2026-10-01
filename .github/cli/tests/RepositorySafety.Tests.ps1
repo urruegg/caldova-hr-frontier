@@ -10,13 +10,13 @@ BeforeAll {
     }
 
     function script:New-SafetyFixture {
-                param(
-                        [string]$Content = 'Write-Output ''safe''',
-                        [string]$WorkflowContent = @'
+        param(
+            [string]$Content = 'Write-Output ''safe''',
+            [string]$WorkflowContent = @'
 steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 '@,
-                        [string]$ManifestContent = @'
+            [string]$ManifestContent = @'
 {
     "schemaVersion": "1.0",
     "actions": {
@@ -27,19 +27,62 @@ steps:
     }
 }
 '@
-                )
+        )
 
         $root = Join-Path $TestDrive ([guid]::NewGuid().ToString())
         $scriptRoot = Join-Path $root 'infra\src\scripts'
         $workflowRoot = Join-Path $root '.github\workflows'
-                $manifestRoot = Join-Path $root 'infra\src\config\github'
+        $manifestRoot = Join-Path $root 'infra\src\config\github'
+        $tenantConfigRoot = Join-Path $root 'infra\src\config\tenants'
+        $discoveryRoot = Join-Path $root 'infra\evidence\discovery'
         [void](New-Item -ItemType Directory -Path $scriptRoot -Force)
         [void](New-Item -ItemType Directory -Path $workflowRoot -Force)
-                [void](New-Item -ItemType Directory -Path $manifestRoot -Force)
+        [void](New-Item -ItemType Directory -Path $manifestRoot -Force)
+        [void](New-Item -ItemType Directory -Path $tenantConfigRoot -Force)
+        [void](New-Item -ItemType Directory -Path $discoveryRoot -Force)
         [IO.File]::WriteAllText((Join-Path $scriptRoot 'Example.ps1'), $Content, [Text.UTF8Encoding]::new($false))
-                [IO.File]::WriteAllText((Join-Path $workflowRoot 'validate.yml'), $WorkflowContent, [Text.UTF8Encoding]::new($false))
-                [IO.File]::WriteAllText((Join-Path $manifestRoot 'action-pins.json'), $ManifestContent, [Text.UTF8Encoding]::new($false))
+        [IO.File]::WriteAllText((Join-Path $workflowRoot 'validate.yml'), $WorkflowContent, [Text.UTF8Encoding]::new($false))
+        [IO.File]::WriteAllText((Join-Path $manifestRoot 'action-pins.json'), $ManifestContent, [Text.UTF8Encoding]::new($false))
+        [IO.File]::WriteAllText(
+            (Join-Path $tenantConfigRoot '_template.psd1'),
+            "@{ SchemaVersion = '1.0' }",
+            [Text.UTF8Encoding]::new($false)
+        )
+        Copy-Item -LiteralPath (
+            Join-Path $script:repositoryRoot 'infra\src\config\tenants\caldova25668747.psd1'
+        ) -Destination $tenantConfigRoot
+        Copy-Item -LiteralPath (
+            Join-Path $script:repositoryRoot 'infra\evidence\discovery\caldova25668747.json'
+        ) -Destination $discoveryRoot
+
+        & $script:gitPath -C $root init --quiet
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Cannot initialize repository safety fixture.'
+        }
+        & $script:gitPath -C $root add -- `
+            '.github/workflows/validate.yml' `
+            'infra/src/config/github/action-pins.json' `
+            'infra/src/scripts/Example.ps1' `
+            'infra/evidence/discovery/caldova25668747.json' `
+            'infra/src/config/tenants/_template.psd1' `
+            'infra/src/config/tenants/caldova25668747.psd1'
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Cannot stage reviewed tenant boundary in repository safety fixture.'
+        }
         $root
+    }
+
+    function script:Get-TestContentFingerprint {
+        param([Parameter(Mandatory)][string]$Value)
+
+        $sha256 = [Security.Cryptography.SHA256]::Create()
+        try {
+            $bytes = [Text.Encoding]::UTF8.GetBytes($Value.Trim().ToLowerInvariant())
+            ([BitConverter]::ToString($sha256.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant()
+        }
+        finally {
+            $sha256.Dispose()
+        }
     }
 }
 
@@ -76,6 +119,33 @@ Describe 'Core repository safety validation' {
         $output = @(& $script:validatorPath -RepositoryRoot $fixtureRoot)
 
         $output | Should -Be @('Repository safety validation passed.')
+    }
+
+    It 'ignores an active-source path that is tracked for deletion and absent from the worktree' {
+        $fixtureRoot = New-SafetyFixture
+        Remove-Item -LiteralPath (Join-Path $fixtureRoot 'infra\src\scripts\Example.ps1') -Force
+
+        $output = @(& $script:validatorPath -RepositoryRoot $fixtureRoot)
+
+        $output | Should -Be @('Repository safety validation passed.')
+    }
+
+    It 'rejects protected Tenant 1 payload in tracked active source without disclosing it' {
+        $protectedValue = 'synthetic-protected-tenant-fixture'
+        $protectedFingerprint = Get-TestContentFingerprint -Value $protectedValue
+        $fixtureRoot = New-SafetyFixture -Content ("`$tenantId = '{0}'" -f $protectedValue)
+
+        $output = @(
+            & $script:validatorPath `
+                -RepositoryRoot $fixtureRoot `
+                -AdditionalProtectedTenantPayloadFingerprint $protectedFingerprint 2>&1 |
+                ForEach-Object { $_.ToString() }
+        )
+
+        $LASTEXITCODE | Should -Be 1
+        $output -join "`n" |
+            Should -Match 'Protected Tenant 1 payload fingerprint found: infra/src/scripts/Example\.ps1'
+        $output -join "`n" | Should -Not -Match ([regex]::Escape($protectedValue))
     }
 
     It 'rejects prohibited bootstrap content' -TestCases @(
@@ -127,6 +197,72 @@ steps:
         $output = @(& $script:validatorPath -RepositoryRoot $fixtureRoot)
 
         $output | Should -Be @('Repository safety validation passed.')
+    }
+
+    It 'allows only the template and exact preserved Tenant 2 files in tracked tenant boundaries' {
+        $tracked = @(& $script:gitPath -C $script:repositoryRoot ls-files -- `
+            'infra/src/config/tenants/*.psd1' 'infra/evidence/discovery/*.json')
+        $tracked | Should -Be @(
+            'infra/evidence/discovery/caldova25668747.json'
+            'infra/src/config/tenants/_template.psd1'
+            'infra/src/config/tenants/caldova25668747.psd1'
+        )
+        & $script:gitPath -C $script:repositoryRoot ls-files -- 'infra/src/config/tenants/*.local.psd1' |
+            Should -BeNullOrEmpty
+
+        (& $script:gitPath -C $script:repositoryRoot hash-object -- `
+            'infra/src/config/tenants/caldova25668747.psd1').Trim() |
+            Should -BeExactly 'f4b2dfed2f42d1d9d95d51dddaeaaedf4d8b6dce'
+        (& $script:gitPath -C $script:repositoryRoot hash-object -- `
+            'infra/evidence/discovery/caldova25668747.json').Trim() |
+            Should -BeExactly 'c2d4d66f4f812fc449752c275845fac5a713915e'
+    }
+
+    It 'rejects an unreviewed tracked tenant boundary artifact at <RelativePath>' -TestCases @(
+        @{
+            RelativePath = 'infra/src/config/tenants/tenant1.local.psd1'
+            Expected = 'Tracked tenant configuration/evidence inventory is not the reviewed lean boundary.'
+        }
+        @{
+            RelativePath = 'infra/src/config/tenants/another.psd1'
+            Expected = 'Tracked tenant configuration/evidence inventory is not the reviewed lean boundary.'
+        }
+        @{
+            RelativePath = 'infra/evidence/discovery/another.json'
+            Expected = 'Tracked tenant configuration/evidence inventory is not the reviewed lean boundary.'
+        }
+    ) {
+        param([string]$RelativePath, [string]$Expected)
+
+        $fixtureRoot = New-SafetyFixture
+        $path = Join-Path $fixtureRoot $RelativePath.Replace('/', '\')
+        [IO.File]::WriteAllText($path, 'unreviewed', [Text.UTF8Encoding]::new($false))
+        & $script:gitPath -C $fixtureRoot add -- $RelativePath
+        $LASTEXITCODE | Should -Be 0
+
+        $output = @(& $script:validatorPath -RepositoryRoot $fixtureRoot 2>&1 | ForEach-Object { $_.ToString() })
+
+        $LASTEXITCODE | Should -Be 1
+        $output -join "`n" | Should -Match ([regex]::Escape($Expected))
+    }
+
+    It 'rejects a changed protected Tenant 2 blob at <RelativePath>' -TestCases @(
+        @{ RelativePath = 'infra/src/config/tenants/caldova25668747.psd1' }
+        @{ RelativePath = 'infra/evidence/discovery/caldova25668747.json' }
+    ) {
+        param([string]$RelativePath)
+
+        $fixtureRoot = New-SafetyFixture
+        $path = Join-Path $fixtureRoot $RelativePath.Replace('/', '\')
+        [IO.File]::WriteAllText($path, 'changed', [Text.UTF8Encoding]::new($false))
+        & $script:gitPath -C $fixtureRoot add -- $RelativePath
+        $LASTEXITCODE | Should -Be 0
+
+        $output = @(& $script:validatorPath -RepositoryRoot $fixtureRoot 2>&1 | ForEach-Object { $_.ToString() })
+
+        $LASTEXITCODE | Should -Be 1
+        $output -join "`n" |
+            Should -Match ([regex]::Escape("Protected Tenant 2 blob changed: $RelativePath"))
     }
 
     It 'rejects <Reason>' -TestCases @(

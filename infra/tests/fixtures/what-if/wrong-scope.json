@@ -3,18 +3,18 @@
   "properties": {
     "changes": [
       {
-        "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-foreign/providers/Microsoft.OperationalInsights/workspaces/log-cal-hr-agentic-bc8rbt",
+        "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-foreign/providers/Microsoft.OperationalInsights/workspaces/log-syn-hr-agentic-abc123",
         "changeType": "Create",
         "before": null,
         "after": {
           "apiVersion": "2023-09-01",
-          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-foreign/providers/Microsoft.OperationalInsights/workspaces/log-cal-hr-agentic-bc8rbt",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-foreign/providers/Microsoft.OperationalInsights/workspaces/log-syn-hr-agentic-abc123",
           "type": "Microsoft.OperationalInsights/workspaces",
-          "name": "log-cal-hr-agentic-bc8rbt",
+          "name": "log-syn-hr-agentic-abc123",
           "location": "switzerlandnorth",
           "tags": {
-            "tenantAlias": "caldova25156897",
-            "namingRoot": "cal-hr-agentic-bc8rbt",
+            "tenantAlias": "fixturetenant42",
+            "namingRoot": "syn-hr-agentic-abc123",
             "baseline": "subscription-platform"
           },
           "properties": {
