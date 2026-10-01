@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        A use case enters as an **idea**. Nothing here commits GF to building it.
+        A use case enters as an **idea**. Nothing here commits Caldova to building it.
         Three use cases are in MVP scope; everything else waits.
   - type: textarea
     id: problem

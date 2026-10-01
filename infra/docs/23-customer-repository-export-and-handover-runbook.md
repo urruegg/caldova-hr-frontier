@@ -2,14 +2,14 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-09-29 |
+| **Version** | 1.3 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure (all tenants) |
 | **References** | [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md), [Customer Repository Export and Handover design](../../docs/specs/2026-09-27-customer-repository-export-and-handover-design.md), [Repository Clean-Up Runbook](./22-repository-cleanup-runbook.md) |
 
-This runbook is the end-to-end procedure a new tenant owner follows to turn a copy of Tenant 1's repository into their own tenant-dedicated repository, per [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md). Tenant 2's owner (Andrea Rizzi) runs this runbook first, as a genuine, unassisted execution -- not a second reading -- so any gap found is fixed here before Tenant 3 (Georg Fischer) receives it.
+This runbook is the end-to-end procedure a new tenant owner follows to turn a copy of Tenant 1's repository into their own tenant-dedicated repository, per [ADR-0012](../../docs/adr/0012-per-tenant-github-repository-and-account-topology.md). Tenant 2's owner (Andrea Rizzi) runs this runbook first, as a genuine, unassisted execution -- not a second reading -- so any gap found is fixed here before Tenant 3 (Caldova) receives it.
 
 ## Who Can Run This
 

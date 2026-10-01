@@ -1,9 +1,9 @@
-# GitHub Copilot instructions — GF HR Agentic Platform
+# GitHub Copilot instructions — Caldova HR Agentic Platform
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Repository |
@@ -17,7 +17,7 @@ Maintained repository documentation is written in English and follows [the docum
 
 ---
 
-You are working in the design repository for Georg Fischer's HR agentic platform. This file tells you how to find evidence here and what you must not do.
+You are working in the design repository for Caldova's HR agentic platform. This file tells you how to find evidence here and what you must not do.
 
 ---
 
@@ -48,7 +48,7 @@ The design record for a **pure agentic, Frontier-driven HR organisation** positi
 
 ## Evidence rules
 
-**1. Separate GF-stated fact from this package's assessment.** GF's own material is the four source documents listed in `docs/README.md`. Everything else is analysis produced for GF. Never attribute an assessment to GF.
+**1. Separate Caldova-stated fact from this package's assessment.** Caldova's own material is the four source documents listed in `docs/README.md`. Everything else is analysis produced for Caldova. Never attribute an assessment to Caldova.
 
 **2. Open is open.** Where a source says TBD, these documents say TBD. **Never resolve an open decision by inference.** Open lists: `docs/prd.md` §10, `docs/solution-design.md` §11, the UC-0001 PRD §13.
 
@@ -56,9 +56,9 @@ The design record for a **pure agentic, Frontier-driven HR organisation** positi
 
 **4. Status before content.** Three use cases are in MVP scope; **only UC-0001 is specified**. Fifteen are candidates with no commitment. ADR-0010 is *Proposed*, not accepted.
 
-**5. Never invent a number, name, date or field.** If it is not in the repository or GF's material, say it is not known.
+**5. Never invent a number, name, date or field.** If it is not in the repository or Caldova's material, say it is not known.
 
-**6. The brand palette is derived, not authoritative.** `docs/brand/` carries values from third-party brand data, not GF's corporate design manual — it says so at the top. **Never add a GF logo file**; the header carries a deliberate placeholder wordmark until Corporate Communications supplies the licensed asset.
+**6. The brand palette is derived, not authoritative.** `docs/brand/` carries values from third-party brand data, not Caldova's corporate design manual — it says so at the top. **Never add a Caldova logo file**; the header carries a deliberate placeholder wordmark until Corporate Communications supplies the licensed asset.
 
 ---
 
@@ -68,7 +68,7 @@ The design record for a **pure agentic, Frontier-driven HR organisation** positi
 
 > **Dataverse holds process state, never master data.** Test: *if Workday were wiped and restored from backup, would this column now be wrong?* If yes, it does not belong in Dataverse. (ADR-0007)
 
-> **The agent never holds the Workday connector.** GF IT confirmed Microsoft's Workday connector as the access API, but `Execute SOAP operation` is a raw pass-through. A governed Access Layer owns the connection. (ADR-0009)
+> **The agent never holds the Workday connector.** Caldova IT confirmed Microsoft's Workday connector as the access API, but `Execute SOAP operation` is a raw pass-through. A governed Access Layer owns the connection. (ADR-0009)
 
 > **The workflow owns the process; the agent owns the judgement.** Determinism cannot live in the agent — the GitHub Copilot harness exposes no orchestration configuration. The audit record is written by deterministic workflow steps. (ADR-0011)
 
@@ -110,4 +110,4 @@ data/     field lists, mappings, test data — never real personal data
 
 ## Tone
 
-Write for HR and IT leaders at GF, not for developers. Prefer plain sentences over bullet cascades. Never use an emoji. When a risk is real, name it plainly rather than softening it — the matching key (D-03) is the clearest example, and it is unresolved.
+Write for HR and IT leaders at Caldova, not for developers. Prefer plain sentences over bullet cascades. Never use an emoji. When a risk is real, name it plainly rather than softening it — the matching key (D-03) is the clearest example, and it is unresolved.
