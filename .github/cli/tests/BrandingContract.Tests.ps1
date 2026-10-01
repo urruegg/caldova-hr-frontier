@@ -45,6 +45,27 @@ BeforeAll {
         & $script:gitPath -C $Root add -- $RelativePath.Replace('\', '/')
         if ($LASTEXITCODE -ne 0) { throw "Cannot stage fixture: $RelativePath" }
     }
+
+    function script:Add-FixtureIndexLink {
+        param(
+            [Parameter(Mandatory)][string]$Root,
+            [Parameter(Mandatory)][string]$RelativePath
+        )
+        $blobPath = Join-Path $Root ([guid]::NewGuid().ToString('N'))
+        [IO.File]::WriteAllText(
+            $blobPath,
+            'target',
+            [Text.UTF8Encoding]::new($false)
+        )
+        $objectId = (& $script:gitPath -C $Root hash-object -w -- $blobPath).Trim()
+        Remove-Item -LiteralPath $blobPath -Force
+        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($objectId)) {
+            throw 'Cannot create fixture link object.'
+        }
+        & $script:gitPath -C $Root update-index --add --cacheinfo `
+            '120000' $objectId $RelativePath.Replace('\', '/')
+        if ($LASTEXITCODE -ne 0) { throw "Cannot stage fixture link: $RelativePath" }
+    }
 }
 
 Describe 'Branding scanner behavior' -Tag 'BrandingContractUnit' {
@@ -150,18 +171,105 @@ Describe 'Branding scanner behavior' -Tag 'BrandingContractUnit' {
             Should -Throw '*git-error*'
     }
 
-    It 'classifies a staged link record as blocking rather than following its target' {
-        $record = [Text.UTF8Encoding]::new($false).GetBytes(
-            "120000 0123456789012345678901234567890123456789 0`tlink`0"
+    It 'blocks an index-mode link through the scanner without reading its worktree path' {
+        $root = New-BrandingFixture
+        Add-FixtureIndexLink -Root $root -RelativePath 'link'
+        [IO.File]::WriteAllBytes(
+            (Join-Path $root 'link'),
+            [byte[]](195, 40)
         )
 
-        InModuleScope BrandingContract -Parameters @{ Bytes = $record } {
-            param($Bytes)
-            $entries = ConvertFrom-BrandingGitIndexBytes -Bytes $Bytes
-            @($entries).Count | Should -Be 1
-            $entries[0].Mode | Should -BeExactly '120000'
-            $entries[0].Path | Should -BeExactly 'link'
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.LinkCount | Should -Be 1
+        @($result.Files | Where-Object Path -ceq 'link').Classification |
+            Should -BeExactly 'tracked-link'
+        @($result.Findings | Where-Object Path -ceq 'link').PatternClass |
+            Should -BeExactly 'tracked-link'
+    }
+
+    It 'detects an injected reparse point on the tracked file component' {
+        $root = New-BrandingFixture
+        Add-FixtureText -Root $root -RelativePath 'link.txt' -Content 'safe'
+        $link = Join-Path $root 'link.txt'
+
+        InModuleScope BrandingContract -Parameters @{ Root = $root; Link = $link } {
+            param($Root, $Link)
+            $script:inspectedPaths = [Collections.Generic.List[string]]::new()
+            Mock Get-Item {
+                param($LiteralPath)
+                [void]$script:inspectedPaths.Add($LiteralPath)
+                [pscustomobject]@{
+                    Attributes = if ($LiteralPath -ceq $Link) {
+                        [IO.FileAttributes]::ReparsePoint
+                    }
+                    else {
+                        [IO.FileAttributes]::Directory
+                    }
+                }
+            }
+
+            Test-BrandingReparsePointInPath `
+                -Path $Link `
+                -RepositoryRoot $Root |
+                Should -BeTrue
+            @($script:inspectedPaths) | Should -Be @($Root, $Link)
         }
+    }
+
+    It 'inspects components from the repository root toward the tracked file' {
+        $root = New-BrandingFixture
+        Add-FixtureText -Root $root -RelativePath 'nested\safe.txt' -Content 'safe'
+        $file = Join-Path $root 'nested\safe.txt'
+        $expected = @($root, (Join-Path $root 'nested'), $file)
+
+        InModuleScope BrandingContract -Parameters @{
+            Root = $root
+            File = $file
+            Expected = $expected
+        } {
+            param($Root, $File, $Expected)
+            $script:inspectedPaths = [Collections.Generic.List[string]]::new()
+            Mock Get-Item {
+                param($LiteralPath)
+                [void]$script:inspectedPaths.Add($LiteralPath)
+                [pscustomobject]@{
+                    Attributes = [IO.FileAttributes]::Normal
+                }
+            }
+
+            Test-BrandingReparsePointInPath `
+                -Path $File `
+                -RepositoryRoot $Root |
+                Should -BeFalse
+            @($script:inspectedPaths) | Should -Be $Expected
+        }
+    }
+
+    It 'blocks a regular tracked file below an ancestor directory reparse point' {
+        $root = New-BrandingFixture
+        Add-FixtureText -Root $root -RelativePath 'linked\safe.txt' -Content 'safe'
+        $target = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        [void](New-Item -ItemType Directory -Path $target)
+        [IO.File]::WriteAllBytes(
+            (Join-Path $target 'safe.txt'),
+            [byte[]](195, 40)
+        )
+        $junction = Join-Path $root 'linked'
+        Remove-Item -LiteralPath $junction -Recurse -Force
+        [void](New-Item -ItemType Junction -Path $junction -Target $target -ErrorAction Stop)
+        if (-not ((Get-Item -LiteralPath $junction -Force).Attributes -band
+            [IO.FileAttributes]::ReparsePoint)) {
+            throw 'The fixture directory link is not a reparse point.'
+        }
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.LinkCount | Should -Be 1
+        @($result.Files | Where-Object Path -ceq 'linked/safe.txt').Classification |
+            Should -BeExactly 'tracked-link'
+        @($result.Findings | Where-Object Path -ceq 'linked/safe.txt').PatternClass |
+            Should -BeExactly 'tracked-link'
     }
 }
 

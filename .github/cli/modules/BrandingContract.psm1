@@ -167,6 +167,52 @@ function ConvertTo-BrandingDisplayPath {
     $builder.ToString()
 }
 
+function Test-BrandingReparsePointInPath {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$RepositoryRoot
+    )
+
+    $fullPath = [IO.Path]::GetFullPath($Path)
+    $root = [IO.Path]::GetFullPath($RepositoryRoot).TrimEnd('\')
+    $rootPrefix = $root + '\'
+    if (-not $fullPath.Equals(
+        $root,
+        [StringComparison]::OrdinalIgnoreCase
+    ) -and -not $fullPath.StartsWith(
+        $rootPrefix,
+        [StringComparison]::OrdinalIgnoreCase
+    )) {
+        throw 'path-error: Tracked path is outside RepositoryRoot.'
+    }
+
+    $paths = [Collections.Generic.List[string]]::new()
+    [void]$paths.Add($root)
+    $relativePath = $fullPath.Substring($root.Length).TrimStart('\')
+    $currentPath = $root
+    foreach ($component in $relativePath.Split(
+        [char]'\',
+        [StringSplitOptions]::RemoveEmptyEntries
+    )) {
+        $currentPath = Join-Path $currentPath $component
+        [void]$paths.Add($currentPath)
+    }
+
+    foreach ($currentPath in $paths) {
+        try {
+            $item = Get-Item -LiteralPath $currentPath -Force -ErrorAction Stop
+        }
+        catch [Management.Automation.ItemNotFoundException] {
+            $item = $null
+        }
+        if ($null -ne $item -and
+            ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            return $true
+        }
+    }
+    $false
+}
+
 function Get-RepositoryBrandingScan {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$RepositoryRoot)
@@ -243,6 +289,23 @@ function Get-RepositoryBrandingScan {
                 [StringComparison]::OrdinalIgnoreCase
             )) {
                 Add-Finding -Path $relativePath -PatternClass 'path-error'
+                continue
+            }
+        }
+        catch {
+            Add-Finding -Path $relativePath -PatternClass 'path-error'
+            continue
+        }
+
+        try {
+            if (Test-BrandingReparsePointInPath `
+                -Path $absolutePath `
+                -RepositoryRoot $root) {
+                [void]$files.Add([pscustomobject]@{
+                    Path = ConvertTo-BrandingDisplayPath -Path $relativePath
+                    Classification = 'tracked-link'
+                })
+                Add-Finding -Path $relativePath -PatternClass 'tracked-link'
                 continue
             }
         }
