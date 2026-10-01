@@ -1,0 +1,55 @@
+{
+  "schema_version": "1.0",
+  "observed_at_utc": "2026-10-01T07:48:30.9652895Z",
+  "run_id": "t2-dev-20260925-001",
+  "status": "added_to_solution",
+  "environment": {
+    "id": "84ad4c54-41d9-e5df-ba07-188b4719594a",
+    "url": "https://calhrfrontierdev.crm17.dynamics.com/"
+  },
+  "solution": {
+    "unique_name": "caldovahrfrontier",
+    "display_name": "Caldova HR frontier",
+    "solution_id": "4619f546-33e2-4f28-9763-196f2cc2be66",
+    "managed": false
+  },
+  "component": {
+    "display_name": "PersonalMasterDataFixed",
+    "model_id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
+    "approved_version": "1.0",
+    "solution_component_type": 401,
+    "ui_type": "AI Model",
+    "ui_status": "On"
+  },
+  "addition": {
+    "method": "Power Platform CLI pac solution add-solution-component",
+    "add_required_components": false,
+    "result": "The component was added successfully."
+  },
+  "visible_verification": {
+    "solution_object_count": 1,
+    "ai_model_count": 1,
+    "model_display_name": "PersonalMasterDataFixed",
+    "managed": "No",
+    "status": "On"
+  },
+  "export_readback": {
+    "zip_file": "caldovahrfrontier-task10-readback.zip",
+    "sha256": "e56f4b713604f33c0a5ede349cc219d7ef437303bb726a6e5079fd44efd6048a",
+    "root_component": {
+      "type": 401,
+      "id": "74b09a72-d1f1-4598-bc4d-3746d5c97acc"
+    },
+    "ai_model_name": "PersonalMasterDataFixed",
+    "missing_dependencies": 0,
+    "excluded_component_matches": 0
+  },
+  "excluded_components_confirmed_absent": [
+    "Capture AI Builder Evaluation Evidence",
+    "calhr_ai_evaluation_dev",
+    "24e38f04-9ebc-f111-aaae-7ced8d44be51",
+    "AIBuilderEvaluationEvidence"
+  ],
+  "automated_write_approval": false,
+  "open_draft_action": "none"
+}

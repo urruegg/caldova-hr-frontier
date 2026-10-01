@@ -25,7 +25,8 @@
         'ConvertFrom-HrAiBuilderEvaluationCapture',
         'New-HrAiBuilderHoldoutConsumptionLedger',
         'Set-HrAiBuilderHoldoutCaptured',
-        'Set-HrAiBuilderHoldoutsEvaluated'
+        'Set-HrAiBuilderHoldoutsEvaluated',
+        'Test-HrAiBuilderFixedApprovalEligibility'
     )
     CmdletsToExport = @()
     VariablesToExport = @()

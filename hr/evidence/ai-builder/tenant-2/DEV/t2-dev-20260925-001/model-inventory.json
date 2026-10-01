@@ -8,7 +8,7 @@
                        "model_kind":  "Fixed",
                        "model_id":  "74b09a72-d1f1-4598-bc4d-3746d5c97acc",
                        "version":  "1.0",
-                       "lifecycle_stage":  "evaluated",
+                       "lifecycle_stage":  "added_to_solution",
                        "lifecycle_history":  [
                                                  {
                                                      "stage":  "not_created",
@@ -49,6 +49,14 @@
                                                  {
                                                      "stage":  "evaluated",
                                                      "changed_at_utc":  "2026-09-30T13:23:16.2488740Z"
+                                                 },
+                                                 {
+                                                     "stage":  "approved_for_solution",
+                                                     "changed_at_utc":  "2026-10-01T07:44:54.4491342Z"
+                                                 },
+                                                 {
+                                                     "stage":  "added_to_solution",
+                                                     "changed_at_utc":  "2026-10-01T07:48:51.0114932Z"
                                                  }
                                              ]
                    },

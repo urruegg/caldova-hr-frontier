@@ -560,6 +560,41 @@ Describe 'AI Builder fixed holdout evaluated transition' -Tag 'HoldoutEvaluation
     }
 }
 
+Describe 'AI Builder fixed model solution approval eligibility' -Tag 'FixedApprovalEligibility' {
+    BeforeAll {
+        $script:ApprovalRepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+        $script:ApprovalEvidenceRoot = Join-Path $script:ApprovalRepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
+        $script:ApprovalModulePath = Join-Path $script:ApprovalRepositoryRoot 'hr\src\scripts\modules\Caldova.HrFrontier.AiBuilder\Caldova.HrFrontier.AiBuilder.psd1'
+        Import-Module $script:ApprovalModulePath -Force
+    }
+
+    It 'calculates approval eligibility from the complete retained fixed-model evidence' {
+        $outputPath = Join-Path $TestDrive 'fixed-approval-eligibility.json'
+        (Get-Command Test-HrAiBuilderFixedApprovalEligibility).Parameters.ContainsKey('CurrentFlowState') |
+            Should -BeFalse
+
+        $result = Test-HrAiBuilderFixedApprovalEligibility `
+            -EvidenceRoot $script:ApprovalEvidenceRoot `
+            -ModelName 'PersonalMasterDataFixed' `
+            -ModelId '74b09a72-d1f1-4598-bc4d-3746d5c97acc' `
+            -ModelVersion '1.0' `
+            -OutputPath $outputPath
+
+        $result.status | Should -Be 'eligible'
+        @($result.failed_gates).Count | Should -Be 0
+        $result.calculated.records | Should -Be 68
+        $result.calculated.false_value_count | Should -Be 0
+        $result.calculated.evaluated_holdout_count | Should -Be 4
+        $result.calculated.consumed_holdout_count | Should -Be 0
+        $result.calculated.flow_state | Should -Be 'Off'
+        $result.calculated.security_status | Should -Be 'passed'
+        $result.hashes.evaluation_metrics_sha256 | Should -Match '^[a-f0-9]{64}$'
+        $result.hashes.prediction_capture_sha256 | Should -Match '^[a-f0-9]{64}$'
+        $result.hashes.holdout_ledger_sha256 | Should -Match '^[a-f0-9]{64}$'
+        Test-Path -LiteralPath $outputPath -PathType Leaf | Should -BeTrue
+    }
+}
+
 Describe 'AI Builder observed capture replay projection' {
     BeforeAll {
         $script:ReplayRepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
@@ -1840,7 +1875,7 @@ Describe 'AI Builder field and corpus contracts' {
             $capability.exclusions.model_quality_claim | Should -BeTrue
         }
 
-        It 'retains the complete pre-existing lifecycle histories through evaluated' {
+        It 'retains the complete lifecycle histories through solution addition' {
             $manifestText = Get-Content -LiteralPath $script:CapabilityManifestPath -Raw
             $inventoryText = Get-Content -LiteralPath $script:CapabilityInventoryPath -Raw
             $convertFromJson = Get-Command ConvertFrom-Json -ErrorAction Stop
@@ -1855,8 +1890,8 @@ Describe 'AI Builder field and corpus contracts' {
             $manifestModel = @($manifest.models | Where-Object display_name -eq 'PersonalMasterDataFixed')[0]
             $inventoryModel = @($inventory.models | Where-Object display_name -eq 'PersonalMasterDataFixed')[0]
 
-            $manifestModel.lifecycle_stage | Should -Be 'evaluated'
-            $inventoryModel.lifecycle_stage | Should -Be 'evaluated'
+            $manifestModel.lifecycle_stage | Should -Be 'added_to_solution'
+            $inventoryModel.lifecycle_stage | Should -Be 'added_to_solution'
             @($manifestModel.lifecycle_history | ForEach-Object { "$($_.stage)|$($_.changed_at_utc)" }) | Should -Be @(
                 'not_created|2026-09-28T14:15:49.4691784Z'
                 'created|2026-09-29T06:42:34.4504815Z'
@@ -1866,8 +1901,10 @@ Describe 'AI Builder field and corpus contracts' {
                 'blocked|2026-09-29T09:13:38.1846955Z'
                 'evaluation_published|2026-09-29T14:16:34.8902538Z'
                 'blocked|2026-09-30T08:20:52.1561940Z'
-                "capture_validated|$($manifestModel.lifecycle_history[-2].changed_at_utc)"
-                "evaluated|$($manifestModel.lifecycle_history[-1].changed_at_utc)"
+                "capture_validated|$($manifestModel.lifecycle_history[-4].changed_at_utc)"
+                "evaluated|$($manifestModel.lifecycle_history[-3].changed_at_utc)"
+                "approved_for_solution|$($manifestModel.lifecycle_history[-2].changed_at_utc)"
+                "added_to_solution|$($manifestModel.lifecycle_history[-1].changed_at_utc)"
             )
             @($inventoryModel.lifecycle_history | ForEach-Object { "$($_.stage)|$($_.changed_at_utc)" }) | Should -Be @(
                 'not_created|2026-09-28T14:15:49.4691784Z'
@@ -1878,8 +1915,10 @@ Describe 'AI Builder field and corpus contracts' {
                 'blocked|2026-09-29T09:13:38.1865217Z'
                 'evaluation_published|2026-09-29T14:16:34.8922386Z'
                 'blocked|2026-09-30T08:20:52.1598169Z'
-                "capture_validated|$($inventoryModel.lifecycle_history[-2].changed_at_utc)"
-                "evaluated|$($inventoryModel.lifecycle_history[-1].changed_at_utc)"
+                "capture_validated|$($inventoryModel.lifecycle_history[-4].changed_at_utc)"
+                "evaluated|$($inventoryModel.lifecycle_history[-3].changed_at_utc)"
+                "approved_for_solution|$($inventoryModel.lifecycle_history[-2].changed_at_utc)"
+                "added_to_solution|$($inventoryModel.lifecycle_history[-1].changed_at_utc)"
             )
 
             $fieldBoM = Get-Content -LiteralPath $script:CapabilityFieldBoMPath -Raw
@@ -2572,7 +2611,13 @@ $document = Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json -DateKind Str
 $model = @($document.models)[0]
 $model.lifecycle_stage = 'blocked'
 $model.lifecycle_history = @(
-    $model.lifecycle_history | Where-Object stage -NotIn @('capture_validated', 'evaluated')
+    $model.lifecycle_history |
+        Where-Object stage -NotIn @(
+            'capture_validated',
+            'evaluated',
+            'approved_for_solution',
+            'added_to_solution'
+        )
 )
 $json = ($document | ConvertTo-Json -Depth 100) -replace "(?<!`r)`n", "`r`n"
 [IO.File]::WriteAllText(

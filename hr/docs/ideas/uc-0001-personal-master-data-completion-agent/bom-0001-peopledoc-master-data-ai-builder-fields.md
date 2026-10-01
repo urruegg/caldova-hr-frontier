@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.4 |
-| **Date** | 2026-09-30 |
+| **Version** | 0.5 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | UC-0001 AI Builder field design, implementation and verification traceability |
@@ -119,10 +119,10 @@ The fixed-model columns in this matrix retain the stage reached before held-out 
 
 | Current stage and verification | Fields |
 |---|---|
-| `Evaluated` / `Evaluated - quality findings` | `last_name`, `dob` |
-| `Evaluated` / `Evaluated - no findings` | `candidate_id`, `first_name`, `nationality`, `marital`, `heimatort`, `permit`, `street`, `plz`, `city`, `ahv`, `iban`, `phone`, `email`, `ec_name`, `ec_phone` |
+| `Added to solution` / `Evaluated - quality findings` | `last_name`, `dob` |
+| `Added to solution` / `Evaluated - no findings` | `candidate_id`, `first_name`, `nationality`, `marital`, `heimatort`, `permit`, `street`, `plz`, `city`, `ahv`, `iban`, `phone`, `email`, `ec_name`, `ec_phone` |
 
-`PersonalMasterDataFixed` version `1.0` completed strict held-out evaluation and is not approved for solution use. Exactly four approved held-outs were processed once, producing 68 field records. The calculated result contains six quality findings: four `dob` findings classified as `missing` or `invalid_format`, and two `last_name` findings classified as `incorrect`. All other fields were evaluated with no findings, and no false value was returned. The retained [validation results](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/validation-results.json), [evaluation metrics](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-metrics.json), and [evaluation summary](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-summary.md) are this package's calculated assessment, not a GF statement or approval. The flow is Off. Task 10 approval is pending, and `PersonalMasterDataGeneral` remains uncreated.
+`PersonalMasterDataFixed` version `1.0` completed strict held-out evaluation, passed calculated solution eligibility, received attended approval, and was added as the only component in the unmanaged Tenant 2 DEV `caldovahrfrontier` solution. Exactly four approved held-outs were processed once, producing 68 field records. The calculated result contains six quality findings: four `dob` findings classified as `missing` or `invalid_format`, and two `last_name` findings classified as `incorrect`. All other fields were evaluated with no findings, and no false value was returned. The retained [validation results](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/validation-results.json), [evaluation metrics](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-metrics.json), [approval eligibility](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/fixed-approval-eligibility.json), [retained-only eligibility reverification](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/fixed-approval-eligibility-reverification.json), [attended approval](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/fixed-solution-approval.json), and [solution-addition evidence](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/fixed-solution-addition.json) are this package's calculated and observed assessment, not a GF statement. The evaluation flow is Off. The separate unpublished draft was not edited, saved, trained, published, or discarded. No automated-write approval was granted, and `PersonalMasterDataGeneral` remains uncreated pending its separate Task 11 approval.
 
 ## 4. Evidence Rules
 
@@ -139,7 +139,7 @@ Field-level result records reference this deployment context through `run_id`; t
 
 The [AI Builder Test Inputs and Outcomes BoM](bom-0002-ai-builder-test-inputs-and-outcomes.md) summarizes the qualified inputs, metrics, findings, and evidence for each model execution.
 
-Task 6 has one immutable [training-proof capture](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-remediation.json) and [capture pair](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20260930094537354Z-34bf8987/capture-pair.json). Tasks 7-9 used retained bytes for deterministic replay and strict held-out evaluation. The Section 3.2 disposition advances the fixed-model field stage to `Evaluated` for all 17 fields. It does not grant approval for solution use.
+Task 6 has one immutable [training-proof capture](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-remediation.json) and [capture pair](../../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20260930094537354Z-34bf8987/capture-pair.json). Tasks 7-9 used retained bytes for deterministic replay and strict held-out evaluation. Task 10 advanced the exact evaluated fixed version through `Approved for solution` to `Added to solution`. The Section 3.2 disposition therefore records `Added to solution` for all 17 fields while preserving their independent evaluation findings. This does not authorize an automated write path.
 
 ## 5. Tenant 1 Adaptation
 

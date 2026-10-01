@@ -315,5 +315,6 @@ Export-ModuleMember -Function @(
     'ConvertFrom-HrAiBuilderEvaluationCapture',
     'New-HrAiBuilderHoldoutConsumptionLedger',
     'Set-HrAiBuilderHoldoutCaptured',
-    'Set-HrAiBuilderHoldoutsEvaluated'
+    'Set-HrAiBuilderHoldoutsEvaluated',
+    'Test-HrAiBuilderFixedApprovalEligibility'
 )
