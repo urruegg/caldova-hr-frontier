@@ -17,7 +17,7 @@
 
 ## Why this package exists, and how it differs from the other one
 
-The [fixed-template package](../gf-aib-fixed-template/README.md) tests the easy case: known forms, stable layouts. **This one tests the case that decides whether UC-0001 works in production** — the documents nobody anticipated.
+The [fixed-template package](../caldova-aib-fixed-template/README.md) tests the easy case: known forms, stable layouts. **This one tests the case that decides whether UC-0001 works in production** — the documents nobody anticipated.
 
 | | Fixed template | General documents |
 |---|---|---|

@@ -9,7 +9,7 @@
 | **Scope** | UC-0001 Tier 1 extraction model build and evaluation |
 | **References** | [UC-0001](./README.md), [ADR-0011](../../../../docs/adr/0011-workflow-first-process-architecture.md) |
 
-IT and the Platform Owners own environment and licensing prerequisites. The controlled test data is in [the fixed-template package](./gf-aib-fixed-template/) and [the general-documents package](./gf-aib-general-documents/).
+IT and the Platform Owners own environment and licensing prerequisites. The controlled test data is in [the fixed-template package](./caldova-aib-fixed-template/) and [the general-documents package](./caldova-aib-general-documents/).
 
 ---
 
@@ -69,7 +69,7 @@ Two further constraints that shape the procedure:
 | 3 | **DLP policy applied**, AI Builder in the same data group as Dataverse, SharePoint and Workday | IT / Security | Stage 1.2. Doing this after the flow is built makes the flow un-runnable with no warning |
 | 4 | **Publisher `gf_` exists** | IT | Stage 1.3. Cannot be changed later |
 | 5 | **`GFHRPlatformCore` unmanaged solution in DEV** | DAAI | The models go here, not in the agent solution — see §4 |
-| 6 | **Synthetic test packages available locally** | DAAI | [`gf-aib-fixed-template/`](./gf-aib-fixed-template/) and [`gf-aib-general-documents/`](./gf-aib-general-documents/) |
+| 6 | **Synthetic test packages available locally** | DAAI | [`caldova-aib-fixed-template/`](./caldova-aib-fixed-template/) and [`caldova-aib-general-documents/`](./caldova-aib-general-documents/) |
 
 ---
 
@@ -85,7 +85,7 @@ Put both models in **`GFHRPlatformCore`**, not in `GFHRMasterDataAgent`.
 
 ## 5. Build the fixed-template model
 
-**Test data:** [`gf-aib-fixed-template/`](./gf-aib-fixed-template/) — 24 PDFs in 4 collections of 6.
+**Test data:** [`caldova-aib-fixed-template/`](./caldova-aib-fixed-template/) — 24 PDFs in 4 collections of 6.
 
 ### 5.1 Create
 
@@ -133,7 +133,7 @@ Tag each field in each document, then **Train**. Fixed-template training is quic
 
 ## 6. Build the general-documents model
 
-**Test data:** [`gf-aib-general-documents/`](./gf-aib-general-documents/) — 24 PDFs across 8 layout families.
+**Test data:** [`caldova-aib-general-documents/`](./caldova-aib-general-documents/) — 24 PDFs across 8 layout families.
 
 Same field definitions. Two differences that matter:
 
@@ -219,7 +219,7 @@ Collection B is the *Anmeldung Gemeinde*. The control-plane mockup reports *"12 
 
 This follows directly from §2. Because the model can only ever be trained in DEV and the training data does not travel:
 
-1. **The training documents are version-controlled** in [`gf-aib-fixed-template/`](./gf-aib-fixed-template/) and [`gf-aib-general-documents/`](./gf-aib-general-documents/). They are not a scratch upload.
+1. **The training documents are version-controlled** in [`caldova-aib-fixed-template/`](./caldova-aib-fixed-template/) and [`caldova-aib-general-documents/`](./caldova-aib-general-documents/). They are not a scratch upload.
 2. **Real PeopleDoc documents never join them.** These packages are synthetic for exactly that reason — a training set in version control must contain no personal data. When GF eventually tags real documents, those stay in the DEV environment and are governed as personal data, **never committed**.
 3. **Record which documents trained which model version**, so a rebuild is reproducible.
 4. **A DEV reset is a model loss event.** Plan for it before it happens.

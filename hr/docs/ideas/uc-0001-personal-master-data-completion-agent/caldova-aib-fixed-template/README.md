@@ -22,7 +22,7 @@
 | Tier | Does what | This package |
 |---|---|---|
 | **Tier 1** — deterministic | AI Builder document processing on well-formed documents | **What you are testing here** |
-| **Tier 2** — agent node | Reasoning over what Tier 1 could not handle | The [general-documents package](../gf-aib-general-documents/README.md) |
+| **Tier 2** — agent node | Reasoning over what Tier 1 could not handle | The [general-documents package](../caldova-aib-general-documents/README.md) |
 
 Raising Tier 1 coverage cuts credit consumption *and* narrows the prompt-injection surface, so how well this model performs is a direct input to **D-17**, the two-tier confidence threshold.
 
