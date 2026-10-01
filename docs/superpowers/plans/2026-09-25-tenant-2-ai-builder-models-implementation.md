@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-25 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | HR Solution Architecture - Tenant 2 DEV AI Builder sprint |
@@ -218,7 +218,7 @@ Create `hr/src/ai-builder/contracts/field-contract.json`:
 
 In both package READMEs:
 
-- replace “approved field list” with “designed 17-field contract” because the GF field workbook is not present;
+- replace “approved field list” with “designed 17-field contract” because the customer-supplied personal-master-data field workbook is not present;
 - remove the fixed-template “above ~95%” expectation;
 - state that the first run establishes a measured baseline;
 - retain the strict zero-false-value rule;
@@ -1019,7 +1019,7 @@ git commit -m "feat: add AI Builder evaluation evidence" `
 
 **Interfaces:**
 - Consumes: approved model names, field contract, scripts, evidence layout, strict gates, and stop behavior.
-- Produces: one operator procedure that contains no old `gf_` names, `GFHRPlatformCore`, routing flow, TEST deployment, invented percentage threshold, or Workday action.
+- Produces: one operator procedure that contains no legacy draft logical names, `GFHRPlatformCore`, routing flow, TEST deployment, invented percentage threshold, or Workday action.
 - Consumed by: Tasks 5, 6, 7, and 8.
 
 - [ ] **Step 1: Add a failing documentation contract test**
@@ -1039,7 +1039,7 @@ Describe 'AI Builder operator guide contract' {
         $script:Guide | Should -Match 'PersonalMasterDataFixed'
         $script:Guide | Should -Match 'PersonalMasterDataGeneral'
         $script:Guide | Should -Match 'caldovahrfrontier'
-        $script:Guide | Should -Not -Match 'gf_Personalstammdaten'
+        $script:Guide | Should -Not -Match 'Personalstammdaten'
         $script:Guide | Should -Not -Match 'GFHRPlatformCore'
     }
 

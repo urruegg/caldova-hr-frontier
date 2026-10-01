@@ -1,24 +1,24 @@
-# Solution Design — GF HR Agentic Platform
+# Solution Design — Caldova HR Agentic Platform
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
 | **References** | [HR Solution Functional Design Intake](specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 
-> **Document ID:** GF-SD-02
+> **Document ID:** caldova-SD-02
 > **Status:** Draft 0.1
-> **Scope:** The platform architecture for GF HR agentic use cases, with the Personal Master Data Completion Agent as the first implementation
+> **Scope:** The platform architecture for Caldova HR agentic use cases, with the Personal Master Data Completion Agent as the first implementation
 > **Owner:** DAAI / HR AI Business Lead, with IT / Platform Owners
 
 ---
 
 ## 1. Purpose
 
-This document describes **how** the GF HR agentic platform is built. The [PRD](../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) describes what the first agent must do; this describes the architecture it runs on, and the architecture every subsequent use case will reuse.
+This document describes **how** the Caldova HR agentic platform is built. The [PRD](../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) describes what the first agent must do; this describes the architecture it runs on, and the architecture every subsequent use case will reuse.
 
 It is written so the second use case costs materially less than the first.
 
@@ -96,7 +96,7 @@ That is the whole justification for the control plane. It is deliberately narrow
 | **Microsoft 365 Copilot** | Grounded questions over approved HR knowledge | HR Operations, later all employees |
 | **Cowork** | Human–agent collaboration for HR Operations work that spans documents and systems | HR Operations |
 
-> **Why a code app rather than a canvas app.** The control plane is an operational cockpit: dense tables, per-field drill-down, a live exception queue, bulk actions. That is where a code app earns its cost. Note this is a **deliberate GF-specific choice** — a lighter journey experience elsewhere would not justify it. The trade-offs accepted are in [ADR-0006](adr/0006-agentic-toolset-and-hr-control-plane.md).
+> **Why a code app rather than a canvas app.** The control plane is an operational cockpit: dense tables, per-field drill-down, a live exception queue, bulk actions. That is where a code app earns its cost. Note this is a **deliberate customer-scenario-specific choice** — a lighter journey experience elsewhere would not justify it. The trade-offs accepted are in [ADR-0006](adr/0006-agentic-toolset-and-hr-control-plane.md).
 
 **Code app constraints to design within:** end users need a **Power Apps Premium** licence; compiled assets are served from a publicly accessible endpoint with no IP restriction, so no sensitive data is rendered client-side and access is restricted by Conditional Access; code apps are not supported in Power Apps for Windows.
 
@@ -134,11 +134,11 @@ Dataverse holds **four things only**: what ran, what it touched, what happened, 
 
 > ⚠️ **The `gfhr_fieldaction` boundary is the important one.** Recording *"Added `Postal Code` from document 3, page 1, confidence 0.94"* is process state. Recording *"Added Postal Code = 8005"* is a copy of master data, and the moment it exists Dataverse becomes a second source of truth that will drift. **Record that a value was written, never what the value was.**
 
-Naming uses a tenant-specific publisher prefix, decided once per tenant before the first table, because a prefix cannot be changed afterwards without rebuilding every component that references it: `calhr` for the Caldova practice tenants (Tenant 1 & 2) and `gfhr` for the real customer tenant (Tenant 3). This design's table names below use the Tenant 3 (`gfhr`) value, since this document describes the GF solution.
+Naming uses a tenant-specific publisher prefix, decided once per tenant before the first table, because a prefix cannot be changed afterwards without rebuilding every component that references it: `calhr` for the Caldova practice tenants (Tenant 1 & 2) and `gfhr` for the customer tenant (Tenant 3). This design's table names below use the Tenant 3 (`gfhr`) value, since this document describes the Caldova solution.
 
 ### 4.4 Governed integration — the Workday access path
 
-GF IT has confirmed the **Microsoft Workday connector** as the access API for interacting with Workday. That settles a question GF's Draft 0.1 left open, and it changes the design in one important way described below.
+Caldova IT has confirmed the **Microsoft Workday connector** as the access API for interacting with Workday. That settles a question in the customer-supplied UC-0001 draft PRD, and it changes the design in one important way described below.
 
 #### 4.4.1 What the confirmed connector gives us
 
@@ -147,7 +147,7 @@ The Workday connector is published by Microsoft and invokes Workday SOAP and RES
 | Property | Value | Consequence for this design |
 |---|---|---|
 | **Tier** | **Premium** in Copilot Studio, Power Apps and Power Automate (Standard in Logic Apps) | Premium licensing is required across the path — budget it alongside the Power Apps Premium the code app already needs |
-| **Regions** | All except US Government (GCC / GCC High), US DoD and China operated by 21Vianet | No impact on GF; note it if a future entity lands in one of those clouds |
+| **Regions** | All except US Government (GCC / GCC High), US DoD and China operated by 21Vianet | No impact on Caldova; note it if a future entity lands in one of those clouds |
 | **Authentication** | Basic · OAuth 2.0 · Microsoft Entra ID Integrated · Entra ID Integrated with API Management · Default (deprecated) | **Use OAuth 2.0 or Entra ID Integrated.** Basic stores a Workday username and password in the connection and is not acceptable for a write path to the system of record |
 | **Throttling** | **200 API calls per connection per 60 seconds** | A batch-capacity constraint, not a footnote — see the arithmetic in §4.4.4 |
 | **Connection sharing** | Connections are **not shareable**. A shared app prompts each new user to create their own connection | The connection must be owned by a **service identity through a connection reference**, never by a named HR Operations user, or the write path leaves when the person does |
@@ -191,7 +191,7 @@ So the connector is the **transport**, and the envelope is enforced in two place
 
 **The Workday-side permission grant is the control that actually holds.** Everything above it is software, and software has defects. An Integration System User whose security group carries `Get Only` on every domain except the one holding the approved fields cannot overwrite a populated value even if every layer above it is compromised. Design the ISU permissions first, then the access layer, then the agent.
 
-> GF's Draft 0.1 called this component the *Workday MCP*. This design keeps the concept and names it the **Workday Access Layer**, and **the surfacing question is now closed**: it is built as a **Copilot Studio workflow using the *When an agent calls the flow* trigger**, added to the agent as a tool. Workflows are deterministic — the same input always produces the same output — which is exactly the property a write-envelope enforcement point needs, and it keeps the enforcement in the same authoring surface as the process that calls it. An MCP server or custom connector remains a valid alternative if the layer is ever consumed outside Copilot Studio; the action contract below is identical either way. See [ADR-0011](adr/0011-workflow-first-process-architecture.md).
+> The customer-supplied UC-0001 draft PRD called this component the *Workday MCP*. This design keeps the concept and names it the **Workday Access Layer**, and **the surfacing question is now closed**: it is built as a **Copilot Studio workflow using the *When an agent calls the flow* trigger**, added to the agent as a tool. Workflows are deterministic — the same input always produces the same output — which is exactly the property a write-envelope enforcement point needs, and it keeps the enforcement in the same authoring surface as the process that calls it. An MCP server or custom connector remains a valid alternative if the layer is ever consumed outside Copilot Studio; the action contract below is identical either way. See [ADR-0011](adr/0011-workflow-first-process-architecture.md).
 
 #### 4.4.3 The action contract
 
@@ -274,7 +274,7 @@ Connectors are environment-specific, so none of this can be hard-coded. **Every 
 
 ### 4.6 Organizational data import — a candidate, not a commitment
 
-Microsoft 365 can import organizational data directly from Workday through the **Microsoft 365 Organizational Data Service**. GF has raised this as a **potential additional API. It is not confirmed**, and this design does not depend on it.
+Microsoft 365 can import organizational data directly from Workday through the **Microsoft 365 Organizational Data Service**. Caldova has raised this as a **potential additional API. It is not confirmed**, and this design does not depend on it.
 
 **What it is.** A one-way, scheduled import of worker data from Workday into the Microsoft 365 profile store, where Microsoft 365 and Viva apps consume it. It uses the **`Get Workers` operation of the Workday `Human_Resources` SOAP web service** — explicitly not the Workday REST API — and supports populations of **up to 100,000 users**. Where the SOAP API is not available, the documented alternative is to send Workday RaaS output to Azure Blob Storage or to an API-based connection instead.
 

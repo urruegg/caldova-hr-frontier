@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.5 |
-| **Date** | 2026-09-25 |
+| **Version** | 0.6 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | HR Solution Architecture - Tenant 2 DEV AI Builder models |
@@ -554,7 +554,7 @@ Tenant 1 adaptation is designed, but not implemented, when a separate team can r
 The implementation plan must:
 
 1. reconcile the draft AI Builder setup guide with the approved model names and current `caldovahrfrontier` solution;
-2. preserve the future Tenant 3/GF solution architecture without pretending it exists in Tenant 2;
+2. preserve the future Tenant 3/Caldova solution architecture without pretending it exists in Tenant 2;
 3. add the common field contract, run manifest, corpus-quality record, evidence schema, and evaluation validator;
 4. validate the synthetic corpus before upload;
 5. execute the two model workstreams independently;

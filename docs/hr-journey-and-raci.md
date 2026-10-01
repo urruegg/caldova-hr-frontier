@@ -2,14 +2,14 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
 | **References** | [HR Solution Functional Design Intake](specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 
-> **Document ID:** GF-JRN-03
+> **Document ID:** caldova-JRN-03
 > **Status:** Draft 0.1
 > **Owner:** DAAI / HR AI Business Lead, with HR Operations
 > **Purpose:** The journey the agentic platform serves, the roles that own each stage, and where every candidate use case lands
@@ -20,7 +20,7 @@
 
 A use case list is a shopping list until it is placed in a journey. This document gives every candidate agent a **stage**, an **owner** and a **relationship to the systems of record**, so sequencing decisions can be made on where value compounds rather than on which idea was pitched most recently.
 
-It also makes the platform's boundaries visible: the stages where Workday is authoritative, the stages where a local system owns the truth, and the handful of places where GF has a genuine gap.
+It also makes the platform's boundaries visible: the stages where Workday is authoritative, the stages where a local system owns the truth, and the handful of places where Caldova has a genuine gap.
 
 ---
 
@@ -161,7 +161,7 @@ It also makes the platform's boundaries visible: the stages where Workday is aut
 
 ## 7. Use Case Placement
 
-Every candidate from the GF HR AI use case list, placed in the journey. Full drafts in [`hr/docs/ideas/`](../hr/docs/ideas/README.md).
+Every candidate from the customer-supplied HR AI use-case workbook, placed in the journey. Full drafts in [`hr/docs/ideas/`](../hr/docs/ideas/README.md).
 
 | Stage | Use case | Priority | Complexity | HR owner | Idea |
 |---|---|---|---|---|---|
@@ -193,7 +193,7 @@ The portfolio is **strong in Enable and Grow, and thin in Offboard and Alumni**.
 
 ## 8. Sequencing Logic
 
-GF positions at **Level 3 — agentic**. The MVP has to earn that position, so it is scoped to three use cases rather than a wave, and each is chosen for what it proves.
+Caldova positions at **Level 3 — agentic**. The MVP has to earn that position, so it is scoped to three use cases rather than a wave, and each is chosen for what it proves.
 
 ```text
 MVP — three use cases, one platform thesis

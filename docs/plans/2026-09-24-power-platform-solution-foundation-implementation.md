@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | HR Solution Architecture |
@@ -1170,7 +1170,7 @@ Power Platform solution source lives in `src/solutions/`, exported unmanaged fro
 
 **Current state (Tenant 1):** one foundation solution, [`caldovahrfrontier`](src/solutions/caldovahrfrontier/), publisher prefix `calhr`. It is empty — no Dataverse tables or Copilot Studio agent artefacts exist in it yet.
 
-**Documented target (Tenant 3 / GF), not yet built anywhere:**
+**Documented target (Tenant 3 / Caldova), not yet built anywhere:**
 
 | Solution | Contains |
 |---|---|

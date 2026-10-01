@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Solution Architecture |
@@ -13,14 +13,14 @@
 |---|---|
 | **Status** | Accepted |
 | **Date** | 2026-09-17 |
-| **Supersedes** | The unnamed "Workday MCP" placeholder in GF PRD Draft 0.1 |
+| **Supersedes** | The unnamed "Workday MCP" placeholder in the customer-supplied UC-0001 draft PRD |
 | **Related** | [ADR-0005](0005-workday-as-system-of-record.md) · [ADR-0008](0008-human-in-the-loop-and-write-envelope.md) · [ADR-0010](0010-organizational-data-service-as-people-context.md) |
 
 ---
 
 ## Context
 
-GF's Draft 0.1 named a "Workday MCP" as the agent's path to Workday without specifying what it was, who would build it, or how it would be authenticated. GF IT has now **confirmed the Microsoft Workday connector** as the access API for interacting with Workday.
+The customer-supplied UC-0001 draft PRD named a "Workday MCP" as the agent's path to Workday without specifying what it was, who would build it, or how it would be authenticated. Caldova IT has now **confirmed the Microsoft Workday connector** as the access API for interacting with Workday.
 
 That confirmation is welcome and it resolves the transport question. It also exposes a problem that the placeholder had hidden.
 
@@ -70,7 +70,7 @@ Costs a component that would not otherwise exist, and every Workday interaction 
 
 ### C. Route through the existing integration platforms — *rejected for the MVP*
 
-GF already runs Boomi, SAP Integration Suite and Informatica. Routing agent traffic through them would reuse established governance — but those platforms are built for scheduled, system-to-system integration, not for low-latency interactive calls inside an agent turn, and threading a new synchronous path through them is a larger change than building a narrow access layer. Revisit if the access layer's scope ever grows beyond agent-specific actions.
+Caldova already runs Boomi, SAP Integration Suite and Informatica. Routing agent traffic through them would reuse established governance — but those platforms are built for scheduled, system-to-system integration, not for low-latency interactive calls inside an agent turn, and threading a new synchronous path through them is a larger change than building a narrow access layer. Revisit if the access layer's scope ever grows beyond agent-specific actions.
 
 ### D. Skip the agent-specific path and use the Organizational Data Service — *rejected*
 
@@ -93,7 +93,7 @@ It is read-only, one-way and scheduled weekly or monthly. It cannot write, so it
 - **Latency on every Workday interaction** from the extra hop.
 - **The access layer becomes load-bearing.** If it cannot express an action, that action cannot be performed — and if it is down, the agent is down.
 - **Premium licensing across the path**, on top of the Power Apps Premium the code app already requires.
-- **The ISU permission design is now on the critical path** and depends on Workday security work GF has not yet scheduled.
+- **The ISU permission design is now on the critical path** and depends on Workday security work Caldova has not yet scheduled.
 
 ### Accepted risks
 

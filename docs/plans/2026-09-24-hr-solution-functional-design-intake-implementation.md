@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-30 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Cross-cutting (docs, hr, data, repository governance) |
@@ -11,7 +11,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Reconcile the new GF HR solution functional design package (PRD, solution design, journey/RACI, 7 ADRs, BrandKit, 19-item use-case portfolio) into the repository baseline, without touching anything under `infra/`.
+**Goal:** Reconcile the new Caldova HR solution functional design package (PRD, solution design, journey/RACI, 7 ADRs, BrandKit, 19-item use-case portfolio) into the repository baseline, without touching anything under `infra/`.
 
 **Architecture:** Follow this repository's own Phase 1–3 intake precedent — classify every new/modified path as `Add`, `Merge`, `PreserveTarget`, or `Reject`, execute path-by-path, then validate and record a review document. The new content already sits in the working tree (uncommitted); most tasks edit it in place rather than copying from an external source directory.
 
@@ -26,8 +26,8 @@
 - **Every repository-owned markdown file added or rewritten by this intake carries the standard six-field metadata table** (`| Field | Value |` / `|---|---|` / six rows: `Version`, `Date`, `Author`, `Status`, `Scope`, `References`, in that order, immediately after the file's single H1, separated from it only by blank lines) — enforced by `.github/cli/modules/DocumentationMetadata.psm1`. Use `Status: Proposed Baseline` for all newly added/rewritten content in this intake (nothing here is separately "Approved" by this intake alone), `Author: docs-agent (Voice of Knowledge)`, `Date: 2026-09-24`, `Version: 1.0` unless a task says otherwise. This table is independent of, and additional to, any ADR's own internal "**Status:** Accepted/Proposed" decision-tracking line.
 - **No Accepted/existing ADR content is edited in place.** Superseding uses a banner addition, never a rewrite of the superseded document's substance.
 - **This plan commits locally to the current branch only; it does not push or open a PR.** That is a separate, deliberate final step for the repository owner to trigger — not because of the (now resolved) confidentiality question, but as normal practice for a change this size.
-- **The real customer name "Georg Fischer" / "GF" is kept as-is in file content.** The repository owner confirmed this is intentional: Tenants 1 & 2 already use the "Caldova" pseudonym for the practice tenants this repository actively bootstraps, and this content specifically describes the eventual Tenant 3 (real customer) handover — no task in this plan renames or masks it.
-- **Publisher prefixes are tenant-specific: `calhr` for Tenant 1 & 2, `gfhr` for Tenant 3.** The new package hardcoded a single `gf_` value; Task 12 corrects every occurrence and generalizes the surrounding prose.
+- **Current narrative uses Caldova for the customer identity.** The intake originally retained the source customer's identity for the eventual Tenant 3 handover; the approved branding migration updates the maintained copy while Git history preserves that intake context. No external source file was renamed.
+- **Publisher prefixes are tenant-specific: `calhr` for Tenant 1 & 2, `gfhr` for Tenant 3.** The new package hardcoded a single legacy draft prefix; Task 12 corrects every occurrence and generalizes the surrounding prose.
 
 ---
 
@@ -500,7 +500,7 @@ git commit -m "docs: restore Repository Agent Workflow section in root README.md
 
 - [ ] **Step 1: Prepend the Superpowers bootstrap mandate to `.github/copilot-instructions.md`**
 
-Insert this content as the very first section, immediately after the file's H1 (`# GitHub Copilot instructions — GF HR Agentic Platform`) and before "## What this repository is":
+Insert this content as the very first section, immediately after the file's H1 (`# GitHub Copilot instructions — Caldova HR Agentic Platform`) and before "## What this repository is":
 
 ```markdown
 ## Repository workflow (read this before anything else)
@@ -524,7 +524,7 @@ Expected: no output (if there is output, it means the new draft duplicated the i
 
 - [ ] **Step 3: Add the required metadata table to both files**
 
-`.github/copilot-instructions.md`: H1 is `# GitHub Copilot instructions — GF HR Agentic Platform`. Insert after it:
+`.github/copilot-instructions.md`: H1 is `# GitHub Copilot instructions — Caldova HR Agentic Platform`. Insert after it:
 
 ```markdown
 | Field | Value |
@@ -585,7 +585,7 @@ git commit -m "docs: restore Superpowers bootstrap mandate in copilot-instructio
 ```text
 # Ownership mirrors accountability in docs/hr-journey-and-raci.md.
 # Tenant 1 & 2 (Caldova) are owned by @urruegg. Tenant 3 (the real
-# customer / GF) ownership is intentionally left open here — it is
+# customer / Caldova) ownership is intentionally left open here — it is
 # decided as part of that tenant's future repository handover, not
 # assigned to a placeholder team now.
 
@@ -613,7 +613,7 @@ git commit -m "docs: restore Superpowers bootstrap mandate in copilot-instructio
 - [ ] **Step 2: Verify no fictional handles remain**
 
 ```powershell
-Select-String -Path .github/CODEOWNERS -Pattern '@gf-'
+Select-String -Path .github/CODEOWNERS -Pattern '@caldova-'
 ```
 
 Expected: no output.
@@ -816,37 +816,37 @@ git commit -m "docs: add HR use-case portfolio and finish domain README reconcil
 ### Task 12: Correct the publisher prefix to the confirmed tenant-specific values
 
 **Files:**
-- Modify: `docs/solution-design.md` (26 occurrences of `gf_`)
+- Modify: `docs/solution-design.md` (26 legacy draft-prefix occurrences)
 - Modify: `docs/adr/0007-dataverse-process-state-boundary.md` (2 occurrences)
 - Modify: `docs/adr/0008-human-in-the-loop-and-write-envelope.md` (1 occurrence)
 - Modify: `hr/README.md` (1 occurrence)
 
 **Interfaces:**
-- Consumes: the confirmed real values from the repository owner — `calhr` for Tenant 1 & 2 (Caldova practice tenants, verified against the live Power Platform DEV environment for Tenant 1), `gfhr` for Tenant 3 (the real customer / GF).
-- Produces: every Dataverse logical-name reference in the HR solution content uses `gfhr_` (the Tenant 3 value, since this content specifically describes the GF/Tenant 3 solution), and every place that asserted a single universal prefix now states both tenant-specific values.
+- Consumes: the confirmed values from the repository owner — `calhr` for Tenant 1 & 2 (Caldova practice tenants, verified against the live Power Platform DEV environment for Tenant 1), `gfhr` for Tenant 3 (the customer tenant / Caldova).
+- Produces: every Dataverse logical-name reference in the HR solution content uses `gfhr_` (the Tenant 3 value, since this content specifically describes the Caldova/Tenant 3 solution), and every place that asserted a single universal prefix now states both tenant-specific values.
 
 - [ ] **Step 1: Replace every literal table/column identifier**
 
 In `docs/solution-design.md`, `docs/adr/0007-dataverse-process-state-boundary.md`, and `docs/adr/0008-human-in-the-loop-and-write-envelope.md`, replace each of these exact identifiers wherever they appear (backtick-quoted or in prose):
 
 ```text
-gf_agentrun        → gfhr_agentrun
-gf_employeepackage → gfhr_employeepackage
-gf_fieldaction      → gfhr_fieldaction
-gf_exception        → gfhr_exception
-gf_followup         → gfhr_followup
-gf_approvedfield    → gfhr_approvedfield
+legacy prefix + `agentrun`        → gfhr_agentrun
+legacy prefix + `employeepackage` → gfhr_employeepackage
+legacy prefix + `fieldaction`      → gfhr_fieldaction
+legacy prefix + `exception`        → gfhr_exception
+legacy prefix + `followup`         → gfhr_followup
+legacy prefix + `approvedfield`    → gfhr_approvedfield
 ```
 
 - [ ] **Step 2: Generalize the prefix-decision prose**
 
-In `docs/solution-design.md`, the line `Naming uses a GF publisher prefix — `gf_` throughout, decided once before the first table, because a prefix cannot be changed afterwards without rebuilding every component that references it.` becomes:
+In `docs/solution-design.md`, replace the line that asserted one universal legacy draft publisher prefix with:
 
 ```markdown
-Naming uses a tenant-specific publisher prefix, decided once per tenant before the first table, because a prefix cannot be changed afterwards without rebuilding every component that references it: `calhr` for the Caldova practice tenants (Tenant 1 & 2) and `gfhr` for the real customer tenant (Tenant 3). This design's table names below use the Tenant 3 (`gfhr`) value, since this document describes the GF solution.
+Naming uses a tenant-specific publisher prefix, decided once per tenant before the first table, because a prefix cannot be changed afterwards without rebuilding every component that references it: `calhr` for the Caldova practice tenants (Tenant 1 & 2) and `gfhr` for the customer tenant (Tenant 3). This design's table names below use the Tenant 3 (`gfhr`) value, since this document describes the Caldova solution.
 ```
 
-And the line `**Solution structure:** one publisher, prefix `gf_`. Two solutions, deployed in order:` becomes:
+And the line `**Solution structure:** one publisher, using the legacy draft prefix. Two solutions, deployed in order:` becomes:
 
 ```markdown
 **Solution structure:** one publisher per tenant (`calhr` for Tenant 1 & 2, `gfhr` for Tenant 3 — see [ADR-0004](adr/0004-domain-solution-architecture-and-publisher.md)). Two solutions, deployed in order:
@@ -856,16 +856,31 @@ And the line `**Solution structure:** one publisher, prefix `gf_`. Two solutions
 
 - [ ] **Step 3: Fix `hr/README.md`'s single occurrence**
 
-The line `Publisher prefix is `gf_`, decided once — it cannot be changed afterwards without rebuilding every component that references it.` becomes:
+The line `Publisher prefix uses the legacy draft value and is decided once — it cannot be changed afterwards without rebuilding every component that references it.` becomes:
 
 ```markdown
 Publisher prefix is tenant-specific and decided once per tenant before the first table — `calhr` for the Caldova practice tenants (Tenant 1 & 2), `gfhr` for the real customer tenant (Tenant 3) — because it cannot be changed afterwards without rebuilding every component that references it. This domain's solution names below (`GFHRPlatformCore`, `GFHRMasterDataAgent`) are the Tenant 3 build.
 ```
 
-- [ ] **Step 4: Verify zero remaining `gf_` occurrences outside the corrected set**
+- [ ] **Step 4: Verify zero remaining legacy draft-prefix occurrences outside the corrected set**
 
 ```powershell
-Select-String -Path docs/solution-design.md, 'docs/adr/0007-dataverse-process-state-boundary.md', 'docs/adr/0008-human-in-the-loop-and-write-envelope.md', hr/README.md -Pattern 'gf_(?!hr)'
+$root = (git rev-parse --show-toplevel).Trim()
+Import-Module (Join-Path $root '.github\cli\modules\BrandingContract.psm1') -Force
+$scan = Get-RepositoryBrandingScan -RepositoryRoot $root
+$paths = @(
+    'docs/solution-design.md'
+    'docs/adr/0007-dataverse-process-state-boundary.md'
+    'docs/adr/0008-human-in-the-loop-and-write-envelope.md'
+    'hr/README.md'
+)
+$legacyPrefixFindings = @($scan.Findings | Where-Object {
+    $_.Path -in $paths -and $_.PatternClass -ceq 'L5'
+})
+if ($legacyPrefixFindings.Count -gt 0) {
+    $legacyPrefixFindings | Format-Table -AutoSize
+    throw 'Legacy draft-prefix references remain in the corrected set.'
+}
 ```
 
 Expected: no output (the negative lookahead excludes the already-corrected `gfhr_` occurrences).
@@ -876,12 +891,12 @@ Expected: no output (the negative lookahead excludes the already-corrected `gfhr
 git add docs/solution-design.md docs/adr/0007-dataverse-process-state-boundary.md docs/adr/0008-human-in-the-loop-and-write-envelope.md hr/README.md
 git commit -m "docs: correct publisher prefix to confirmed tenant values (calhr / gfhr)
 
-The design package hardcoded a single gf_ prefix. The repository owner
+The design package hardcoded a single legacy draft prefix. The repository owner
 confirmed the real values: calhr for the Caldova practice tenants
 (Tenant 1 & 2, verified against the live Tenant 1 DEV environment) and
 gfhr for the real customer tenant (Tenant 3). This corrects every
 Dataverse logical-name reference to gfhr_ (this content describes the
-Tenant 3 / GF solution) and generalizes the prefix-decision prose to
+Tenant 3 / Caldova solution) and generalizes the prefix-decision prose to
 state both tenant-specific values."
 ```
 
@@ -891,14 +906,14 @@ state both tenant-specific values."
 
 **Files:**
 - Add: `docs/prd.md`, `docs/hr-journey-and-raci.md` (citations already fixed by Task 2; `docs/solution-design.md` and `hr/README.md` are added/finalized by Task 12 instead, since they needed the prefix correction first)
-- Add: `docs/brand/README.md`, `docs/brand/gf-tokens.css`, `docs/brand/gf-fluent-theme.ts`, `docs/brand/hr-control-plane*` (whatever exact filename `git status` shows), `docs/brand/assets/.gitkeep`
+- Add: `docs/brand/README.md`, `docs/brand/caldova-tokens.css`, `docs/brand/caldova-fluent-theme.ts`, `docs/brand/hr-control-plane*` (whatever exact filename `git status` shows), `docs/brand/assets/.gitkeep`
 - Add: `.github/ISSUE_TEMPLATE/use-case-intake.yml`
 - Revert: `infra/README.md`
 - Remove (untracked): `infra/docs/30-environment-setup.md`, `infra/docs/README.md`, `infra/src/bicep/.gitkeep`, `infra/src/config/.gitkeep`, `infra/src/scripts/.gitkeep`
 
 - [ ] **Step 1: Add the required metadata table to `docs/brand/README.md`**
 
-Its H1 is `# GF BrandKit — HR Agentic Platform`. Insert after it:
+Its H1 is `# Caldova BrandKit — HR Agentic Platform`. Insert after it:
 
 ```markdown
 | Field | Value |
@@ -911,7 +926,7 @@ Its H1 is `# GF BrandKit — HR Agentic Platform`. Insert after it:
 | **References** | [HR Solution Functional Design Intake](../specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 ```
 
-`gf-tokens.css` and `gf-fluent-theme.ts` are not markdown and are outside the documentation metadata policy's scope — no change needed to either.
+`caldova-tokens.css` and `caldova-fluent-theme.ts` are not markdown and are outside the documentation metadata policy's scope — no change needed to either.
 
 - [ ] **Step 2: Stage the straight additions**
 
@@ -994,7 +1009,7 @@ Follow the exact structure of `docs/reviews/2026-09-17-phase-3-infrastructure-te
 
 - Review Boundary: this is a working-tree intake (no separate source directory), reviewed path-by-path against the spec at `docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md`.
 - Inventory Disposition: one row per path from the spec's §1–§5, with its classification (`Add`/`Merge`/`PreserveTarget`/`Reject`), and the commit SHA that delivered it (one row per task, Tasks 1–13).
-- Reconciliation Result: summarize the ADR renumbering (0001–0007 → 0005–0011, ADR-0004 kept as-is and not superseded), the publisher-prefix correction (`gf_` → confirmed tenant values `calhr`/`gfhr`, Task 12), the CODEOWNERS/`.gitignore`/issue-template/PR-template merges, the 8 superseded legacy documents, and the confirmation that `infra/` is unchanged (cite the `git diff origin/main -- infra/` empty result from Task 13 Step 4).
+- Reconciliation Result: summarize the ADR renumbering (0001–0007 → 0005–0011, ADR-0004 kept as-is and not superseded), the legacy publisher-prefix correction to confirmed tenant values `calhr`/`gfhr` (Task 12), the CODEOWNERS/`.gitignore`/issue-template/PR-template merges, the 8 superseded legacy documents, and the confirmation that `infra/` is unchanged (cite the `git diff origin/main -- infra/` empty result from Task 13 Step 4).
 - Delivery Evidence: list every commit SHA from Tasks 1–13.
 - Approval Status: state that this review records implementation-intake disposition; the confidentiality question is resolved (no pseudonymization — see spec §2) and the publisher prefixes are confirmed by the repository owner (see spec's ADR-0004 discussion); this review does not itself push to the remote or open a pull request — that remains a separate, explicit step.
 
@@ -1019,4 +1034,4 @@ git commit -m "docs: record Phase 4 HR solution functional design intake review"
 
 - [ ] **Step 7: Report completion — push/PR is a separate, explicit follow-up step**
 
-Report to the repository owner: all 14 tasks are committed locally on the current branch; `infra/` is verified unchanged (Task 13 Step 4); the confidentiality question is resolved (real "GF"/"Georg Fischer" naming intentionally kept — spec §2) and publisher prefixes are corrected to the confirmed tenant values (`calhr` Tenant 1 & 2, `gfhr` Tenant 3 — Task 12). Pushing this branch and opening a pull request is deliberately left as a separate action, not bundled into this plan.
+Report to the repository owner: all 14 tasks are committed locally on the current branch; `infra/` is verified unchanged (Task 13 Step 4); the confidentiality question is resolved as recorded in spec §2 and the current narrative uses Caldova under the approved branding migration; publisher prefixes are corrected to the confirmed tenant values (`calhr` Tenant 1 & 2, `gfhr` Tenant 3 — Task 12). Pushing this branch and opening a pull request is deliberately left as a separate action, not bundled into this plan.

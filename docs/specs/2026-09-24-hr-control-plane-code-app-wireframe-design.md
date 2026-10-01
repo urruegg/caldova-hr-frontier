@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active |
 | **Scope** | HR |
@@ -11,7 +11,7 @@
 
 ## Purpose
 
-Bootstrap the Power Apps Code App project for the HR Employee Control Plane described in [ADR-0006](../adr/0006-agentic-toolset-and-hr-control-plane.md): a Vite + React + TypeScript project, themed with the GF BrandKit, reproducing the five structural regions of the reviewed mockup (header, nav rail, main content area, footer, action drawer) — with **no Dataverse connector, no data, and no interactive logic**. This is a wireframe milestone only.
+Bootstrap the Power Apps Code App project for the HR Employee Control Plane described in [ADR-0006](../adr/0006-agentic-toolset-and-hr-control-plane.md): a Vite + React + TypeScript project, themed with the Caldova BrandKit, reproducing the five structural regions of the reviewed mockup (header, nav rail, main content area, footer, action drawer) — with **no Dataverse connector, no data, and no interactive logic**. This is a wireframe milestone only.
 
 ## Decisions made autonomously
 
@@ -40,7 +40,7 @@ The maker was unavailable for live discussion during this design; every decision
 
 ## Theming
 
-Consume `docs/brand/gf-fluent-theme.ts` directly (`gfLightTheme` / `gfDarkTheme`, `@fluentui/react-components` `Theme` objects) via `FluentProvider` at the app root. No new token values are introduced; `docs/brand/gf-tokens.css` is not needed by the React app.
+Consume `docs/brand/caldova-fluent-theme.ts` directly (`caldovaLightTheme` / `caldovaDarkTheme`, `@fluentui/react-components` `Theme` objects) via `FluentProvider` at the app root. No new token values are introduced; `docs/brand/caldova-tokens.css` is not needed by the React app.
 
 ## File structure (post-scaffold)
 

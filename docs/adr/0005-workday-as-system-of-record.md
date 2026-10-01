@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Solution Architecture |
@@ -17,7 +17,7 @@
 
 ## Context
 
-GF operates Workday as the central source for employee master data. The Workday architecture material states it directly: *"Workday as System of Record is central source for Employee Master Data"*, with integrations built across two programme phases via Boomi, SAP Integration Suite and Informatica, and a bi-directional ServiceNow integration driving IT joiner/mover/leaver globally.
+Caldova operates Workday as the central source for employee master data. The Workday architecture material states it directly: *"Workday as System of Record is central source for Employee Master Data"*, with integrations built across two programme phases via Boomi, SAP Integration Suite and Informatica, and a bi-directional ServiceNow integration driving IT joiner/mover/leaver globally.
 
 Introducing a Power Platform agentic layer raises an obvious temptation: cache employee data in Dataverse so agents and apps can read it quickly, join it freely, and avoid round-trips to Workday.
 
@@ -41,7 +41,7 @@ Concretely:
 
 ## Rationale
 
-1. **There is already a system of record, and it works.** The problem GF has is not that Workday is the wrong place for employee data. It is that getting data *into* Workday involves manual re-keying. Solving that does not require a second store.
+1. **There is already a system of record, and it works.** The problem Caldova has is not that Workday is the wrong place for employee data. It is that getting data *into* Workday involves manual re-keying. Solving that does not require a second store.
 2. **A cache is a second source of truth the moment it exists.** It will drift — through a failed sync, a Workday change made outside the platform, or a field the cache does not know about. HR will then have two answers to the same question and no way to tell which is right.
 3. **Workday's validation is a feature, not an obstacle.** Field formats, allowed values and business rules exist for reasons the agent cannot see. Writing through Workday means inheriting them.
 4. **ServiceNow already consumes Workday bi-directionally** for joiner/mover/leaver. A third opinion on employee data would put IT provisioning at risk.

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 3.0 |
-| **Date** | 2026-09-28 |
+| **Version** | 3.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -34,12 +34,12 @@ This repository, `urruegg/caldova-hr-frontier`, has since been used as a shared 
 
 — both currently configured with `GitHub.Owner = 'urruegg'` and the same `GitHub.Repository = 'caldova-hr-frontier'`.
 
-A third tenant is now planned for Georg Fischer (Tenant 3), the actual customer this platform is designed for, as distinct from Tenant 1 and Tenant 2, which are the builder's own demonstration/development tenants under the personal `urruegg` GitHub account.
+A third tenant is now planned for Caldova (Tenant 3), the actual customer this platform is designed for, as distinct from Tenant 1 and Tenant 2, which are the builder's own demonstration/development tenants under the personal `urruegg` GitHub account.
 
 Two forces collide:
 
 1. **The Azure Boards GitHub App enforces the ADR-0001 constraint at the platform level, not just as a recorded consequence.** A GitHub repository cannot be connected to more than one Azure DevOps organization at the same time; a second connection attempt is rejected until the first is removed. Verified directly against GitHub and Microsoft's own integration behavior, not inferred.
-2. **Tenant 3 (Georg Fischer) needs the features a personal GitHub account cannot provide** — organization-level issue types, organization rulesets and secrets, and Environment protection rules with required reviewers — which ADR-0001 already listed as unavailable under `urruegg`'s personal account.
+2. **Tenant 3 (Caldova) needs the features a personal GitHub account cannot provide** — organization-level issue types, organization rulesets and secrets, and Environment protection rules with required reviewers — which ADR-0001 already listed as unavailable under `urruegg`'s personal account.
 
 Continuing to host Tenant 1 and Tenant 2 from the same repository means only one of the two can have a live Boards↔GitHub connection at any given moment. That silent, easy-to-forget trade-off is the immediate problem this ADR resolves, ahead of Tenant 3's onboarding.
 
@@ -65,7 +65,7 @@ not by a shared repository.**
 |---|---|---|---|
 | Tenant 1 | `urruegg/caldova-hr-frontier` (this repository) | Personal | Existing; unchanged |
 | Tenant 2 | `AndreaRizzi/caldova-hr-frontier` | Personal (different individual) | Not yet created |
-| Tenant 3 (Georg Fischer) | A new organization-owned repository, org not yet named | GitHub Organization | Not yet created |
+| Tenant 3 (Caldova) | A new organization-owned repository, org not yet named | GitHub Organization | Not yet created |
 
 1. **This repository is the Tenant 1 product-source repository.** The lean sprint does not alter, migrate, package, or validate existing Tenant 2 files.
 2. **Tenant 2 gets its own personal-account repository** when separately attended and authorized.
@@ -88,7 +88,7 @@ Each new tenant repository (Tenant 2, Tenant 3) is seeded as a **one-time copy**
 1. **The constraint is real and already enforced**, not merely a documented trade-off to manage by convention. Designing around it now, before Tenant 3 onboards, is cheaper than discovering it mid-incident when a Tenant 1 change silently drops Tenant 2's Boards traceability.
 2. **Symmetry avoids a tenant-dependent exception.** Making personal-vs-organization the only axis of difference — rather than shared-repository-for-personal, dedicated-repository-for-organization — keeps one topology rule instead of two, which is easier to state, audit and explain to a new contributor.
 3. **A one-time seed matches this repository's own attended-change philosophy.** Automatic propagation is deliberately avoided in favor of reviewed, deliberate promotion.
-4. **It does not block on work this repository cannot do.** Creating `AndreaRizzi`'s repository or Georg Fischer's GitHub Organization requires credentials this environment does not hold. Recording the decision and the seeding mechanism now lets that attended work proceed independently, on its own schedule, without blocking documentation or planning.
+4. **It does not block on work this repository cannot do.** Creating `AndreaRizzi`'s repository or Caldova's GitHub Organization requires credentials this environment does not hold. Recording the decision and the seeding mechanism now lets that attended work proceed independently, on its own schedule, without blocking documentation or planning.
 
 ---
 
@@ -97,7 +97,7 @@ Each new tenant repository (Tenant 2, Tenant 3) is seeded as a **one-time copy**
 ### Positive
 
 - Every tenant has a clean, symmetric, always-correct Boards↔GitHub connection — no manual re-pointing, no silent one-tenant-at-a-time trade-off.
-- Tenant 3 (Georg Fischer) gets full organization-level GitHub features from day one, without forcing Tenant 1 or Tenant 2 into an organization they do not need.
+- Tenant 3 (Caldova) gets full organization-level GitHub features from day one, without forcing Tenant 1 or Tenant 2 into an organization they do not need.
 - The seeding mechanism requires no new tooling; it is a one-time repository operation available in the GitHub product today.
 
 ### Negative

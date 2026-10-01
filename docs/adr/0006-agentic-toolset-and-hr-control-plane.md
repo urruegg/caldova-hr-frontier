@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Solution Architecture |
@@ -17,7 +17,7 @@
 
 ## Context
 
-The GF HR agentic platform needs two different things from the Power Platform, and conflating them produces a confused architecture:
+The Caldova HR agentic platform needs two different things from the Power Platform, and conflating them produces a confused architecture:
 
 1. **Reasoning** — reading documents, applying rules, calling tools, deciding when to refuse and escalate.
 2. **Operating** — a place where HR Operations starts work, sees what happened, and resolves what the agent could not.
@@ -68,7 +68,7 @@ The constraint is deliberate: **run state, task state, exception state, audit.**
 
 The control plane is a dense operational surface: run lists, per-field drill-down, a live exception queue, bulk resolution, filtering across runs. A canvas app can approximate it; a code app is the right tool for it.
 
-> **This is a GF-specific judgement, and it goes the opposite way to the equivalent decision in the Caldova HR Frontier reference implementation**, where a code app was deferred because a standard Power App met the need. The difference is the user: an HR Operations cockpit processing exceptions all day is a different problem from a new joiner completing a checklist.
+> **This is a customer-scenario-specific judgement, and it goes the opposite way to the equivalent decision in the Caldova HR Frontier reference implementation**, where a code app was deferred because a standard Power App met the need. The difference is the user: an HR Operations cockpit processing exceptions all day is a different problem from a new joiner completing a checklist.
 
 The trade-offs are accepted knowingly:
 

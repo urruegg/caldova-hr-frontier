@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -17,11 +17,11 @@ Phase 4 is an implementation-intake review of a new, real-named HR solution func
 
 ## Confidentiality Disposition
 
-This repository is public. The new content uses the real customer name "Georg Fischer" / "GF" where the existing baseline used the pseudonym "Caldova". **Resolved by the repository owner:** "Caldova" is the umbrella pseudonym for the two practice tenants this repository actively bootstraps (Tenant 1 and Tenant 2); Tenant 3 is the real customer's own tenant, reserved for a future repository handover. The GF-named content in this intake specifically describes that eventual Tenant 3 handover and is not pseudonymized. No content was masked or renamed on confidentiality grounds.
+This repository is public. The intake content originally used the source customer's identity where the existing baseline used the pseudonym "Caldova". **Resolved by the repository owner:** Caldova is now the repository-wide identity for the two practice tenants this repository actively bootstraps (Tenant 1 and Tenant 2) and for the future Tenant 3 handover narrative. The approved branding migration updates the current narrative while Git history preserves the original intake wording. No external source file was renamed.
 
 ## Publisher Prefix Disposition
 
-The source package hardcoded a single Dataverse publisher prefix, `gf_`, throughout `docs/solution-design.md`, two ADRs, and `hr/README.md`. **Resolved by the repository owner:** the confirmed real values are `calhr` for the Caldova practice tenants (Tenant 1 & 2, verified against the live Power Platform DEV environment for Tenant 1) and `gfhr` for the real customer tenant (Tenant 3). Every `gf_`-prefixed Dataverse logical name was corrected to `gfhr_` (this content describes the Tenant 3 / GF solution specifically), and the surrounding prose now states both tenant-specific values. Existing **ADR-0004** ("Domain Solution Architecture, Naming and Publisher") was not superseded: its actual rule — adopt the one publisher already present in the tenant's supplied solution zip, never create a second one — is tenant-scoped and remains valid; only the previously-documented concrete value (`ur_`) and the new package's concrete value (`gf_`) were both superseded by the confirmed real values.
+The source package hardcoded a single legacy Dataverse publisher prefix throughout `docs/solution-design.md`, two ADRs, and `hr/README.md`. **Resolved by the repository owner:** the confirmed values are `calhr` for the Caldova practice tenants (Tenant 1 & 2, verified against the live Power Platform DEV environment for Tenant 1) and `gfhr` for the customer tenant (Tenant 3). Every legacy-prefixed Dataverse logical name was corrected to `gfhr_` (this content describes the Tenant 3 / Caldova solution specifically), and the surrounding prose now states both tenant-specific values. Existing **ADR-0004** ("Domain Solution Architecture, Naming and Publisher") was not superseded: its actual rule — adopt the one publisher already present in the tenant's supplied solution zip, never create a second one — is tenant-scoped and remains valid; only the previously documented concrete value (`ur_`) and the source package's legacy value were superseded by the confirmed real values.
 
 ## Inventory Disposition
 
@@ -31,7 +31,7 @@ The source package hardcoded a single Dataverse publisher prefix, `gf_`, through
 | 2 | `docs/adr/README.md` | `Merge` | Unified 11-record index (4 existing + 7 renumbered). ADR-0004 kept, not superseded — see Publisher Prefix Disposition above. | `66c3f4e` |
 | 3 | `docs/operating-model/00-05*.md`, `docs/90-microsoft-best-practice-evaluation.md`, `hr/docs/20-hr-employee-journey.md` | `Merge` | Superseded banner added, Status field changed to `Superseded`; content otherwise untouched and retained for history. | `3dbdd7d` |
 | 4 | `docs/README.md` | `Merge` | Adopted the new nav/authority-rule/evidence-rules structure; restored the Infrastructure Domain documentation map and the Documentation Policy statement; added a Superseded (Phase 2) pointer section. | `9242d7b`, `10ca571` |
-| 5 | `README.md` | `Merge` | Adopted the new GF HR Agentic Platform product narrative; restored the Repository Agent Workflow (Superpowers) section, the Phase 3 Infrastructure Map, and fixed a stale link to the rejected `infra/docs/30-environment-setup.md`. | `bb083da`, `10ca571` |
+| 5 | `README.md` | `Merge` | Adopted the new Caldova HR Agentic Platform product narrative; restored the Repository Agent Workflow (Superpowers) section, the Phase 3 Infrastructure Map, and fixed a stale link to the rejected `infra/docs/30-environment-setup.md`. | `bb083da`, `10ca571` |
 | 6 | `.github/copilot-instructions.md`, `AGENTS.md` | `Merge` | Superpowers bootstrap mandate and documentation-policy pointer moved to/retained in `copilot-instructions.md`; `AGENTS.md` became the HR-agent design rules content, per the new package's own stated intent, with a short pointer retained for the repository's required-content contract. | `1b44b3c` |
 | 7 | `.github/CODEOWNERS` | `Merge` | Adopted the new per-area ownership breakdown, bound to the real owner `@urruegg`; Tenant 3 ownership explicitly left open pending future handover; wildcard default-owner entry restored. | `aef7846`, `10ca571` |
 | 8 | `.gitignore` | `Merge` | Restored the pre-intake baseline (453 lines, including `.wt/`, `/.superpowers/`, the `.vscode/` allowlist); appended only the genuinely new, non-redundant Power Platform/secrets/real-data entries. | `7c03b61` |

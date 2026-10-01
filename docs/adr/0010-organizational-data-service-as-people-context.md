@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Solution Architecture |
@@ -11,7 +11,7 @@
 
 | | |
 |---|---|
-| **Status** | **Proposed** — not confirmed by GF, and nothing in the MVP depends on it |
+| **Status** | **Proposed** — not confirmed by Caldova, and nothing in the MVP depends on it |
 | **Date** | 2026-09-17 |
 | **Related** | [ADR-0005](0005-workday-as-system-of-record.md) · [ADR-0009](0009-workday-access-via-connector-behind-governed-layer.md) |
 
@@ -19,7 +19,7 @@
 
 ## Context
 
-Microsoft 365 can import organizational data directly from Workday through the **Microsoft 365 Organizational Data Service**, which lands worker attributes in the Microsoft 365 profile store for Microsoft 365 and Viva apps to consume. GF has raised it as a **potential additional API**, explicitly not yet confirmed.
+Microsoft 365 can import organizational data directly from Workday through the **Microsoft 365 Organizational Data Service**, which lands worker attributes in the Microsoft 365 profile store for Microsoft 365 and Viva apps to consume. Caldova has raised it as a **potential additional API**, explicitly not yet confirmed.
 
 It is worth being precise about what it is, because the name invites a misreading. It is **not** a second way to talk to Workday. It is a scheduled, one-way import into a profile store:
 
@@ -71,7 +71,7 @@ It cannot write, it cannot be read on demand, and it is scheduled in weeks. Trea
 
 ### D. Use the Workday RaaS route to Azure Blob Storage instead — *held open*
 
-The documented alternative when the SOAP API is not available or the population exceeds 100,000. GF's SOAP API is confirmed available and the population is well inside the limit, so this is not needed — but it is the fallback if Workday security declines the additional ISU.
+The documented alternative when the SOAP API is not available or the population exceeds 100,000. Caldova's SOAP API is confirmed available and the population is well inside the limit, so this is not needed — but it is the fallback if Workday security declines the additional ISU.
 
 ## Consequences
 
@@ -90,7 +90,7 @@ The grounding-dependent use cases each pay their own round-trip to Workday, and 
 1. Will Workday security grant a **second** Integration System User, separate from the one ADR-0009 requires?
 2. Is weekly sufficient, or does any consuming use case need fresher data than that — in which case it is the wrong mechanism?
 3. Should the service take priority over existing Microsoft 365 profile data, and who owns that call?
-4. Which of the four unmapped Microsoft fields does GF actually need, and where would they come from?
+4. Which of the four unmapped Microsoft fields does Caldova actually need, and where would they come from?
 5. Does anything in scope require the contingent-worker population, and is it included in the import?
 
 ## Compliance
