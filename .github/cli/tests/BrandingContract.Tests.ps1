@@ -348,6 +348,28 @@ Describe 'Branding scanner behavior' -Tag 'BrandingContractUnit' {
             [regex]::Escape($script:forms.L4)
     }
 
+    It 'rejects a content exception when its tracked path has the same prohibited class' {
+        $root = New-BrandingFixture
+        $evidencePath = 'hr\evidence\ai-builder\tenant-test\DEV\run-test\{0}.json' -f
+            $script:forms.L3
+        Add-FixtureText -Root $root -RelativePath $evidencePath `
+            -Content ("captured {0} value" -f $script:forms.L3)
+        $exception = New-FixtureEvidenceException -Root $root `
+            -RelativePath $evidencePath -PatternClass 'L3'
+        Add-FixtureEvidenceManifest -Root $root -Exceptions @($exception)
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.ApprovedEvidenceCount | Should -Be 0
+        $result.Findings.PatternClass | Should -Contain 'evidence-exception-error'
+        @($result.Findings | Where-Object {
+            $_.Path -ceq $evidencePath.Replace('\', '/') -and
+            $_.PatternClass -ceq 'L3'
+        }).Count | Should -Be 1
+        ($result | ConvertTo-Json -Depth 5) | Should -Not -Match `
+            [regex]::Escape("captured $($script:forms.L3) value")
+    }
+
     It 'fails closed when immutable evidence bytes drift from the declared hash' {
         $root = New-BrandingFixture
         $evidencePath = 'hr\evidence\ai-builder\tenant-test\DEV\run-test\evidence.json'

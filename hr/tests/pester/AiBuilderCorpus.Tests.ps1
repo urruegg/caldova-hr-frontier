@@ -67,6 +67,37 @@ Describe 'AI Builder corpus target paths and truth' {
         }
     }
 
+    It 'partitions every tracked PDF into 48 corpus files and 7 immutable evidence files' {
+        $trackedPdfs = @(
+            git -c core.quotepath=false -C $script:root ls-files -- '*.pdf'
+        )
+        $LASTEXITCODE | Should -Be 0
+        $corpusPrefixes = @(
+            'hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/'
+            'hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/'
+        )
+        $corpusPdfs = @($trackedPdfs | Where-Object {
+            $path = $_
+            @($corpusPrefixes | Where-Object {
+                $path.StartsWith($_, [StringComparison]::Ordinal)
+            }).Count -eq 1
+        })
+        $evidencePdfs = @($trackedPdfs | Where-Object {
+            $_.StartsWith(
+                'hr/evidence/ai-builder/',
+                [StringComparison]::Ordinal
+            )
+        })
+        $otherPdfs = @($trackedPdfs | Where-Object {
+            $_ -notin $corpusPdfs -and $_ -notin $evidencePdfs
+        })
+
+        $trackedPdfs.Count | Should -Be 55
+        $corpusPdfs.Count | Should -Be 48
+        $evidencePdfs.Count | Should -Be 7
+        $otherPdfs | Should -BeNullOrEmpty
+    }
+
     It 'keeps CSV and JSON truth equivalent for every document and field' {
         foreach ($packagePath in $script:packages.Values) {
             $csvRows = @(

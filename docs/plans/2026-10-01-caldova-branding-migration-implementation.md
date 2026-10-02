@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
+| **Version** | 1.3 |
 | **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -13,7 +13,7 @@
 
 **Goal:** Remove the legacy customer identity from the maintained repository and present Caldova consistently in tracked prose, identifiers, paths, generated documents, tests, and catalogues without changing technical meaning, synthetic truth, accessibility semantics, or immutable review evidence.
 
-**Architecture:** One fail-closed PowerShell module owns Git-index enumeration, path classification, strict text decoding, L1-L7 matching, and exact immutable-evidence manifest validation; its Pester suite is the maintained current-tree contract, so operational checks and tests never duplicate scanner logic. The migration then renames brand and corpus assets before repairing consumers, scrubs current prose by owning domain, updates both generator copies, regenerates all 48 PDFs through their maintained entry points, and closes with the complete local acceptance set. Generated review evidence, seven hash-bound AI Builder source-evidence files, and the six already-sanitized screenshots remain immutable, while their bytes are compared directly with the applicable baseline.
+**Architecture:** One fail-closed PowerShell module owns Git-index enumeration, path classification, strict text decoding, L1-L7 matching, and exact immutable-evidence manifest validation; its Pester suite is the maintained current-tree contract, so operational checks and tests never duplicate scanner logic. The migration then renames brand and corpus assets before repairing consumers, scrubs current prose by owning domain, updates both generator copies, regenerates all 48 corpus PDFs through their maintained entry points, and closes with the complete local acceptance set. Generated review evidence, seven hash-bound AI Builder source-evidence files, seven immutable AI Builder input PDFs, and the six already-sanitized screenshots remain immutable, while their bytes are compared directly with the applicable baseline.
 
 **Tech Stack:** Windows PowerShell 5.1, Pester 5.7.1, Git, Python 3, ReportLab, local `pypdf`, React 19, TypeScript 5.9, Fluent UI React Components 9, Vite 7, ESLint 9, npm, Bicep CLI.
 
@@ -57,9 +57,11 @@ Seven new-main files remain byte-for-byte immutable:
 - `evaluation-summary.md`, with one `L4` occurrence; and
 - `training-capture-attempt.json`, `training-capture-remediation.json`, and `training-capture-retry.json`, each with one `L4` occurrence.
 
-Their live-model output cannot be rewritten truthfully without a separately authorized rerun. The tracked `.github/cli/config/branding-evidence-exceptions.json` therefore records exactly those seven normalized paths, lowercase SHA-256 values, declared classes, count `1`, provenance, and rationale. The one BrandingContract module loads that repository manifest by default and validates exact schema, no extra properties, unique normalized paths, exact evidence root, tracked regular-file mode, hash, class, count, and absence of extra matches. A malformed, missing, untracked, out-of-root, duplicate, drifted, or mismatched record fails closed without exposing matched content. Fixture scans use their own fixture manifest or the explicit manifest parameter; they never fall back to another repository.
+Their live-model output cannot be rewritten truthfully without a separately authorized rerun. The tracked `.github/cli/config/branding-evidence-exceptions.json` therefore records exactly those seven normalized paths, lowercase SHA-256 values, declared classes, count `1`, provenance, and rationale. The one BrandingContract module loads that repository manifest by default and validates exact schema, no extra properties, unique normalized paths, exact evidence root, tracked regular-file mode, hash, class, count, and absence of extra matches. A declared exception path must itself contain no `L1`-`L7` match; approval is content-only and never suppresses a path finding. A malformed, missing, untracked, out-of-root, duplicate, drifted, or mismatched record fails closed without exposing matched content. Fixture scans use their own fixture manifest or the explicit manifest parameter; they never fall back to another repository.
 
 No broad scanner exception exists. Every mutable match in the integrated plans, HR guidance, BoMs, scripts, tests, fixtures, and evidence README is migrated. Acceptance is zero unapproved `Findings`, exactly seven `ApprovedEvidence` entries, `ApprovedEvidenceCount = 7`, complete tracked accounting, and byte equality between all seven evidence files and `origin/main`.
+
+The integrated PDF inventory is exactly 55: 48 generated corpus PDFs below the two exact `caldova-aib-*` document roots, 7 point-in-time input PDFs below `hr/evidence/ai-builder/`, and no others. Corpus PDFs must be readable and free of prohibited embedded matches. Evidence PDFs may retain historical branding because they are immutable inputs; acceptance reports their historical match classes and counts and requires all seven to be readable plus byte-identical by Git blob and SHA-256 to `402f42ff01e662dcb6762d44e9a5fec09b3484cd`.
 
 ---
 
@@ -2234,7 +2236,16 @@ patterns = {
 }
 
 raw = subprocess.check_output(["git", "ls-files", "-z", "--", "*.pdf"])
-paths = [Path(value) for value in raw.decode("utf-8").split("\0") if value]
+tracked = [Path(value) for value in raw.decode("utf-8").split("\0") if value]
+use_case_root = "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/"
+corpus_roots = (
+    use_case_root + "caldova-aib-fixed-template/documents/",
+    use_case_root + "caldova-aib-general-documents/documents/",
+)
+paths = [
+    path for path in tracked
+    if path.as_posix().startswith(corpus_roots)
+]
 readable = 0
 extraction_errors = []
 legacy_matches = []
@@ -2265,7 +2276,7 @@ if len(paths) != 48 or readable != 48 or extraction_errors or legacy_matches:
 '@ | python -
 ```
 
-Expected: corpus and branding contracts pass, and local PDF extraction has exactly 48 readable files with no error or legacy match.
+Expected: corpus and branding contracts pass, and local PDF extraction has exactly 48 readable corpus files with no error or legacy match. The final 55-file corpus/evidence partition and evidence byte-equality check runs in Task 8 Step 8.
 
 - [ ] **Step 9: Review and commit generators plus generated output**
 
@@ -2310,7 +2321,7 @@ Expected: one generator/generated-output commit with exactly 48 regenerated PDFs
 
 **Interfaces:**
 - Consumes: all target paths, symbols, prose, generator outputs, and test contracts from Tasks 1-7.
-- Produces: zero `Findings` from `Get-RepositoryBrandingScan`, zero failed maintained Pester tests, six baseline-equal screenshot SHA-256 values, five successful Bicep builds when the comprehensive workflow still requires them, one passing app lint/build, semantically equivalent truth, and exactly 48 readable PDFs with no extraction error or prohibited embedded text.
+- Produces: zero `Findings` from `Get-RepositoryBrandingScan`, zero failed maintained Pester tests, six baseline-equal screenshot SHA-256 values, five successful Bicep builds when the comprehensive workflow still requires them, one passing app lint/build, semantically equivalent truth, exactly 48 readable corpus PDFs with no extraction error or prohibited embedded text, and exactly 7 readable byte-identical evidence PDFs with historical matches reported separately.
 - Produces: a reviewed branch diff from `ba35a098e058a51425c5e6052912bda4d04864be` containing only approved current-tree migration changes.
 - Consumer rule: after the final whole-branch review, the controller may prepare a pull request; this task does not create, push, merge, or deploy one.
 
@@ -2591,6 +2602,8 @@ This is the approved specification command and adds no CI dependency:
 
 ```powershell
 @'
+from collections import Counter
+from hashlib import sha256
 from pathlib import Path
 import re
 import subprocess
@@ -2598,60 +2611,137 @@ import sys
 
 from pypdf import PdfReader
 
+integrated_main = "402f42ff01e662dcb6762d44e9a5fec09b3484cd"
 first = "".join(chr(value) for value in (71, 101, 111, 114, 103))
 second = "".join(chr(value) for value in (70, 105, 115, 99, 104, 101, 114))
 initials = first[0] + second[0]
 patterns = {
-    "spaced-full-name": re.compile(re.escape(first + " " + second), re.IGNORECASE),
-    "joined-full-name": re.compile(re.escape(first + second), re.IGNORECASE),
-    "standalone-initials": re.compile(
-        rf"(?<![A-Za-z0-9]){re.escape(initials)}(?![A-Za-z0-9])"
-    ),
-    "branded-prefix": re.compile(
-        rf"(?<![A-Za-z0-9]){re.escape(initials.lower())}[-_]",
+    "L1": re.compile(re.escape(first + " " + second), re.IGNORECASE),
+    "L2": re.compile(re.escape(first + second), re.IGNORECASE),
+    "L3": re.compile(
+        rf"(?<![A-Za-z0-9]){re.escape(initials)}(?![A-Za-z0-9])",
         re.IGNORECASE,
     ),
-    "lower-camel-prefix": re.compile(
+    "L4": re.compile(
+        rf"(?<![A-Za-z0-9]){re.escape(initials.lower())}-",
+        re.IGNORECASE,
+    ),
+    "L5": re.compile(
+        rf"(?<![A-Za-z0-9]){re.escape(initials.lower())}_",
+        re.IGNORECASE,
+    ),
+    "L6": re.compile(
         rf"(?<![A-Za-z0-9]){re.escape(initials.lower())}(?=[A-Z])"
     ),
-    "pascal-prefix": re.compile(
+    "L7": re.compile(
         rf"(?<![A-Za-z0-9]){re.escape(initials[0] + initials[1].lower())}(?=[A-Z])"
     ),
 }
 
 raw = subprocess.check_output(["git", "ls-files", "-z", "--", "*.pdf"])
 paths = [Path(value) for value in raw.decode("utf-8").split("\0") if value]
-readable = 0
-extraction_errors = []
-legacy_matches = []
-
-for path in paths:
-    try:
-        reader = PdfReader(path)
-        text = "\n".join((page.extract_text() or "") for page in reader.pages)
-        readable += 1
-    except Exception as exc:
-        extraction_errors.append(f"{path}: {type(exc).__name__}: {exc}")
-        continue
-    for label, pattern in patterns.items():
-        if pattern.search(text):
-            legacy_matches.append(f"{path}: {label}")
-
-print(
-    "PDF verification: "
-    f"readable={readable}; "
-    f"extraction_errors={len(extraction_errors)}; "
-    f"legacy_matches={len(legacy_matches)}"
+use_case_root = "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/"
+corpus_roots = (
+    use_case_root + "caldova-aib-fixed-template/documents/",
+    use_case_root + "caldova-aib-general-documents/documents/",
 )
-for failure in extraction_errors + legacy_matches:
-    print(failure)
+corpus = [
+    path for path in paths
+    if path.as_posix().startswith(corpus_roots)
+]
+evidence = [
+    path for path in paths
+    if path.as_posix().startswith("hr/evidence/ai-builder/")
+]
+other = [
+    path for path in paths
+    if path not in corpus and path not in evidence
+]
 
-if len(paths) != 48 or readable != 48 or extraction_errors or legacy_matches:
+def inspect(group):
+    readable = 0
+    extraction_errors = []
+    matches = []
+    for path in group:
+        try:
+            text = "\n".join(
+                (page.extract_text() or "") for page in PdfReader(path).pages
+            )
+            readable += 1
+        except Exception as exc:
+            extraction_errors.append(
+                f"{path}: {type(exc).__name__}: {exc}"
+            )
+            continue
+        for label, pattern in patterns.items():
+            matches.extend([label] * len(pattern.findall(text)))
+    return readable, extraction_errors, matches
+
+corpus_readable, corpus_errors, corpus_matches = inspect(corpus)
+evidence_readable, evidence_errors, evidence_matches = inspect(evidence)
+blob_mismatches = []
+sha256_mismatches = []
+for path in evidence:
+    relative = path.as_posix()
+    main_blob = subprocess.check_output(
+        ["git", "rev-parse", f"{integrated_main}:{relative}"],
+        text=True,
+    ).strip()
+    worktree_blob = subprocess.check_output(
+        ["git", "hash-object", "--", relative],
+        text=True,
+    ).strip()
+    main_bytes = subprocess.check_output(
+        ["git", "cat-file", "blob", main_blob]
+    )
+    worktree_bytes = path.read_bytes()
+    if main_blob != worktree_blob:
+        blob_mismatches.append(relative)
+    if sha256(main_bytes).hexdigest() != sha256(worktree_bytes).hexdigest():
+        sha256_mismatches.append(relative)
+
+evidence_classes = ",".join(
+    f"{label}:{count}"
+    for label, count in sorted(Counter(evidence_matches).items())
+)
+print(
+    f"PDF inventory: total={len(paths)}; corpus={len(corpus)}; "
+    f"evidence={len(evidence)}; other={len(other)}"
+)
+print(
+    f"Corpus PDF verification: readable={corpus_readable}; "
+    f"extraction_errors={len(corpus_errors)}; "
+    f"legacy_matches={len(corpus_matches)}"
+)
+print(
+    f"Evidence PDF verification: readable={evidence_readable}; "
+    f"extraction_errors={len(evidence_errors)}; "
+    f"blob_mismatches={len(blob_mismatches)}; "
+    f"sha256_mismatches={len(sha256_mismatches)}"
+)
+print(
+    f"Evidence historical matches: count={len(evidence_matches)}; "
+    f"classes={evidence_classes}"
+)
+
+if (
+    len(paths) != 55
+    or len(corpus) != 48
+    or len(evidence) != 7
+    or other
+    or corpus_readable != 48
+    or corpus_errors
+    or corpus_matches
+    or evidence_readable != 7
+    or evidence_errors
+    or blob_mismatches
+    or sha256_mismatches
+):
     sys.exit(1)
 '@ | python -
 ```
 
-Expected exactly: `PDF verification: readable=48; extraction_errors=0; legacy_matches=0`.
+Expected: total `55` partitioned as corpus `48`, evidence `7`, other `0`; corpus readable `48`, extraction errors `0`, prohibited matches `0`; evidence readable `7`, extraction errors `0`, blob mismatches `0`, SHA-256 mismatches `0`. Historical evidence match count and classes are reported separately and do not fail acceptance.
 
 - [ ] **Step 9: Verify all six screenshot SHA-256 values against the baseline again**
 
@@ -2833,7 +2923,7 @@ Review the complete diff against the acceptance-criteria map at the top of this 
 
 - all 475-file baseline evidence categories were addressed despite overlap;
 - every rename has all consumers repaired;
-- all 48 PDFs were preserved before regeneration and regenerated only through maintained entry points;
+- all 48 corpus PDFs were preserved before regeneration and regenerated only through maintained entry points;
 - all truth rows and synthetic-person disclaimers remain intact;
 - all six screenshots and generated review evidence remain unchanged;
 - no external-source rename, live-system change, deployment, history rewrite, or excluded-path edit appears.

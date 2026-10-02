@@ -544,6 +544,11 @@ function Get-RepositoryBrandingScan {
                     )) {
                         throw 'Manifest record path is outside the evidence root.'
                     }
+                    foreach ($pattern in $patterns.Values) {
+                        if ($pattern.IsMatch($recordPath)) {
+                            throw 'Manifest record path contains a prohibited pattern.'
+                        }
+                    }
                     if (-not $recordPaths.Add($recordPath)) {
                         throw 'Manifest record path is duplicated.'
                     }
