@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "actionId",
+    "classification",
+    "startedAtUtc",
+    "completedAtUtc",
+    "preReadDigest",
+    "decision",
+    "postReadDigest",
+    "status",
+    "errorCode",
+    "recovery"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "runId": { "$ref": "#/$defs/runId" },
+    "actionId": { "$ref": "#/$defs/name" },
+    "classification": { "$ref": "#/$defs/classification" },
+    "startedAtUtc": { "$ref": "#/$defs/timestamp" },
+    "completedAtUtc": { "$ref": "#/$defs/timestamp" },
+    "preReadDigest": { "$ref": "#/$defs/digest" },
+    "decision": { "$ref": "#/$defs/name" },
+    "postReadDigest": { "$ref": "#/$defs/digest" },
+    "status": { "$ref": "#/$defs/status" },
+    "errorCode": {
+      "oneOf": [
+        { "$ref": "#/$defs/name" },
+        { "type": "null" }
+      ]
+    },
+    "recovery": { "type": "string", "minLength": 1, "maxLength": 512 }
+  },
+  "$defs": {
+    "runId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "timestamp": { "type": "string", "format": "date-time", "pattern": "Z$" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "status": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z][A-Za-z0-9]*$" },
+    "classification": {
+      "enum": ["NoChange", "Create", "Update", "Manual", "Blocked", "Refused"]
+    }
+  }
+}

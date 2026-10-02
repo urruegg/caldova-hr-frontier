@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "generatedAtUtc",
+    "components",
+    "status",
+    "digest"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "runId": { "$ref": "#/$defs/runId" },
+    "generatedAtUtc": { "$ref": "#/$defs/timestamp" },
+    "components": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/component" }
+    },
+    "status": { "$ref": "#/$defs/status" },
+    "digest": { "$ref": "#/$defs/digest" }
+  },
+  "$defs": {
+    "runId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "timestamp": { "type": "string", "format": "date-time", "pattern": "Z$" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "stableId": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "status": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z][A-Za-z0-9]*$" },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "provider", "stableId", "ownedPropertiesDigest", "status"],
+      "properties": {
+        "id": { "$ref": "#/$defs/name" },
+        "provider": { "$ref": "#/$defs/name" },
+        "stableId": { "$ref": "#/$defs/stableId" },
+        "ownedPropertiesDigest": { "$ref": "#/$defs/digest" },
+        "status": { "$ref": "#/$defs/status" }
+      }
+    }
+  }
+}

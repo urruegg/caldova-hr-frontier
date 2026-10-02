@@ -22,7 +22,8 @@
         'Update-RunbookProcessPath',
         'New-RunbookExecutionManifest',
         'Test-RunbookExecutionManifest',
-        'ConvertTo-RunbookEvidenceRecord'
+        'ConvertTo-RunbookEvidenceRecord',
+        'Test-TenantLifecycleContract'
         'Resolve-CloudNativeTool'
         'Test-CloudDelegatedContext'
         'Get-CloudFoundationAssessment'
