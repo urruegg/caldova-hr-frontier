@@ -8,6 +8,7 @@
     Description = 'Tenant bootstrap configuration helpers for Caldova HR Frontier.'
     PowerShellVersion = '5.1'
     FunctionsToExport = @(
+        'ConvertTo-TenantLifecycleAcceptanceProjection',
         'ConvertTo-DiscoveryEvidence',
         'Import-TenantConfiguration',
         'New-TenantSuffix',

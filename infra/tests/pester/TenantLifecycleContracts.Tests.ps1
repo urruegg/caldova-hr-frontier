@@ -863,6 +863,436 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
         }
     }
 
+        Describe 'Tenant lifecycle acceptance projection contracts' {
+            BeforeAll {
+                $script:ProjectionRepositoryRoot = (
+                    Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
+                ).Path
+                $script:ProjectionModulePath = Join-Path $script:ProjectionRepositoryRoot (
+                    'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\' +
+                    'Caldova.HrFrontier.Bootstrap.psd1'
+                )
+                Import-Module $script:ProjectionModulePath -Force
+
+                function New-AcceptanceProjectionEvidence {
+                    param(
+                        [Parameter(Mandatory)][string]$RunDirectory,
+                        [switch]$CorruptActionDigest
+                    )
+
+                    $runId = [guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+                    $runIdText = $runId.ToString('D').ToLowerInvariant()
+                    $sourceCommit = 'a' * 40
+                    $inputDigest = '9' * 64
+                    $approvedStableId = 'stable-synthetic-001'
+                    $urlStableId = (
+                        'https://Portal.Example.Invalid/private/path' +
+                        '?token=PROHIBITED-TOKEN#private'
+                    )
+                    $unapprovedStableId = 'stable-private-PROHIBITED-ID'
+                    $state = [pscustomobject][ordered]@{
+                        schemaVersion = '1.0'
+                        publicTenantKey = 'tenant1'
+                        resources = @(
+                            [pscustomobject][ordered]@{
+                                provider = 'Synthetic'
+                                resourceType = 'SyntheticResource'
+                                logicalName = 'approved-component'
+                                stableId = $approvedStableId
+                                lastVerifiedAtUtc = '2026-10-02T12:09:00.0000000Z'
+                                ownedPropertiesDigest = 'e' * 64
+                            }
+                            [pscustomobject][ordered]@{
+                                provider = 'Synthetic'
+                                resourceType = 'SyntheticResource'
+                                logicalName = 'url-component'
+                                stableId = $urlStableId
+                                lastVerifiedAtUtc = '2026-10-02T12:09:00.0000000Z'
+                                ownedPropertiesDigest = 'd' * 64
+                            }
+                            [pscustomobject][ordered]@{
+                                provider = 'Synthetic'
+                                resourceType = 'SyntheticResource'
+                                logicalName = 'private-component'
+                                stableId = $unapprovedStableId
+                                lastVerifiedAtUtc = '2026-10-02T12:09:00.0000000Z'
+                                ownedPropertiesDigest = 'c' * 64
+                            }
+                        )
+                    }
+                    $stateDigest = Get-RunbookContentDigest -InputObject $state
+                    $action = [pscustomobject][ordered]@{
+                        id = 'Foundation'
+                        provider = 'Synthetic'
+                        classification = 'NoChange'
+                        targetStableId = $approvedStableId
+                        absencePredicate = 'NotPresent'
+                        desiredPropertiesDigest = $inputDigest
+                        preconditionDigest = '8' * 64
+                        prerequisiteActionIds = [string[]]@()
+                        adapter = 'SyntheticAdapter'
+                        shouldProcessTarget = 'SyntheticResource/approved-component'
+                        expectedPostcondition = 'MatchesDesiredProperties'
+                        recovery = 'Reassess'
+                        evidenceProjection = @('classification', 'status')
+                    }
+                    $manifestParameters = New-EvidenceManifestParameters
+                    $manifestParameters.RunId = $runId
+                    $manifestParameters.SourceCommit = $sourceCommit
+                    $manifestParameters.EvidenceRoot = $RunDirectory
+                    $manifestParameters.IntentDigest = '1' * 64
+                    $manifestParameters.StateDigest = $stateDigest
+                    $manifestParameters.Actions = @($action)
+                    $manifest = New-TenantLifecycleExecutionManifest @manifestParameters
+                    $approval = [pscustomobject][ordered]@{
+                        schemaVersion = '1.0'
+                        runId = $runIdText
+                        executionManifestDigest = $manifest.digest
+                        approverRole = 'TenantLifecycleApprover'
+                        approvedAtUtc = '2026-10-02T12:06:00.0000000Z'
+                        expiresAtUtc = '2026-10-02T12:35:00.0000000Z'
+                        scope = @('Foundation')
+                        status = 'Approved'
+                    }
+                    $assessment = [pscustomobject][ordered]@{
+                        schemaVersion = '1.0'
+                        runId = $runIdText
+                        kind = 'TenantLifecycle'
+                        generatedAtUtc = '2026-10-02T12:00:00.0000000Z'
+                        sourceCommit = $sourceCommit
+                        machine = [pscustomobject][ordered]@{
+                            machineId = 'machine-synthetic-001'
+                            platform = 'Windows 11'
+                        }
+                        publicTenantKey = 'tenant1'
+                        intentDigest = $manifest.intentDigest
+                        stateDigest = $manifest.stateDigest
+                        toolIdentities = @($manifest.toolIdentities)
+                        providerContexts = @($manifest.providerContexts)
+                        components = @(
+                            [pscustomobject][ordered]@{
+                                id = 'approved-component'
+                                provider = 'Synthetic'
+                                resourceType = 'SyntheticResource'
+                                classification = 'NoChange'
+                                targetStableId = $approvedStableId
+                                ownedPropertiesDigest = 'e' * 64
+                                status = 'Passed'
+                            }
+                            [pscustomobject][ordered]@{
+                                id = 'url-component'
+                                provider = 'Synthetic'
+                                resourceType = 'SyntheticResource'
+                                classification = 'NoChange'
+                                targetStableId = $urlStableId
+                                ownedPropertiesDigest = 'd' * 64
+                                status = 'Passed'
+                            }
+                            [pscustomobject][ordered]@{
+                                id = 'private-component'
+                                provider = 'Synthetic'
+                                resourceType = 'SyntheticResource'
+                                classification = 'NoChange'
+                                targetStableId = $unapprovedStableId
+                                ownedPropertiesDigest = 'c' * 64
+                                status = 'Passed'
+                            }
+                        )
+                        prerequisites = @($manifest.prerequisites)
+                        digest = '5' * 64
+                    }
+                    $actionEvidence = [pscustomobject][ordered]@{
+                        schemaVersion = '1.0'
+                        runId = $runIdText
+                        actionId = 'Foundation'
+                        classification = 'NoChange'
+                        startedAtUtc = '2026-10-02T12:07:00.0000000Z'
+                        completedAtUtc = '2026-10-02T12:08:00.0000000Z'
+                        preReadDigest = $inputDigest
+                        decision = 'NoChange'
+                        postReadDigest = $inputDigest
+                        status = 'Passed'
+                        errorCode = $null
+                        recovery = 'NotRequired'
+                    }
+                    $actionEvidenceDigest = Get-RunbookContentDigest -InputObject $actionEvidence
+                    $summaryEvidenceDigest = if ($CorruptActionDigest) {
+                        '0' * 64
+                    }
+                    else {
+                        $actionEvidenceDigest
+                    }
+                    $readBackWithoutDigest = [pscustomobject][ordered]@{
+                        schemaVersion = '1.0'
+                        runId = $runIdText
+                        generatedAtUtc = '2026-10-02T12:10:00.0000000Z'
+                        components = @(
+                            foreach ($resource in $state.resources) {
+                                [pscustomobject][ordered]@{
+                                    id = $resource.logicalName
+                                    provider = $resource.provider
+                                    stableId = $resource.stableId
+                                    ownedPropertiesDigest = $resource.ownedPropertiesDigest
+                                    status = 'Passed'
+                                }
+                            }
+                        )
+                        status = 'Passed'
+                    }
+                    $readBack = [pscustomobject][ordered]@{
+                        schemaVersion = $readBackWithoutDigest.schemaVersion
+                        runId = $readBackWithoutDigest.runId
+                        generatedAtUtc = $readBackWithoutDigest.generatedAtUtc
+                        components = @($readBackWithoutDigest.components)
+                        status = $readBackWithoutDigest.status
+                        digest = Get-RunbookContentDigest -InputObject $readBackWithoutDigest
+                    }
+                    $summary = [pscustomobject][ordered]@{
+                        schemaVersion = '1.0'
+                        runId = $runIdText
+                        sourceCommit = $sourceCommit
+                        manifestDigest = $manifest.digest
+                        startedAtUtc = '2026-10-02T12:00:00.0000000Z'
+                        completedAtUtc = '2026-10-02T12:11:00.0000000Z'
+                        status = 'Passed'
+                        counts = [pscustomobject][ordered]@{
+                            NoChange = 1
+                            Create = 0
+                            Update = 0
+                            Manual = 0
+                            Blocked = 0
+                            Refused = 0
+                        }
+                        prerequisites = @([pscustomobject][ordered]@{
+                            id = 'Foundation'
+                            status = 'Passed'
+                            inputDigest = $inputDigest
+                            evidenceDigest = $summaryEvidenceDigest
+                        })
+                        actions = @([pscustomobject][ordered]@{
+                            id = 'Foundation'
+                            classification = 'NoChange'
+                            status = 'Passed'
+                            evidenceRelativePath = 'actions/Foundation.json'
+                        })
+                        nonClaims = @(
+                            'Subsystem evidence remains independently reviewable.'
+                        )
+                    }
+
+                    foreach ($record in @(
+                        @{ Path = 'assessment.json'; Kind = 'Assessment'; Value = $assessment }
+                        @{ Path = 'execution-manifest.json'; Kind = 'ExecutionManifest'; Value = $manifest }
+                        @{ Path = 'approvals.json'; Kind = 'Approval'; Value = $approval }
+                        @{ Path = 'actions/Foundation.json'; Kind = 'ActionEvidence'; Value = $actionEvidence }
+                        @{ Path = 'state.json'; Kind = 'State'; Value = $state }
+                        @{ Path = 'read-back.json'; Kind = 'ReadBack'; Value = $readBack }
+                        @{ Path = 'summary.json'; Kind = 'Summary'; Value = $summary }
+                    )) {
+                        Write-TenantLifecycleEvidence `
+                            -RunDirectory $RunDirectory `
+                            -RelativePath $record.Path `
+                            -Kind $record.Kind `
+                            -InputObject $record.Value |
+                            Out-Null
+                    }
+
+                    [IO.File]::WriteAllText(
+                        (Join-Path $RunDirectory 'provider-raw.json'),
+                        (
+                            '{"token":"PROHIBITED-TOKEN","rawCommandOutput":' +
+                            '"PROHIBITED-RAW","privateIntent":"PROHIBITED-INTENT",' +
+                            '"privatePath":"C:\\private\\tenant"}'
+                        ),
+                        [Text.UTF8Encoding]::new($false)
+                    )
+
+                    [pscustomobject]@{
+                        ApprovedStableId = $approvedStableId
+                        ActionEvidenceDigest = $actionEvidenceDigest
+                        RunId = $runIdText
+                        SourceCommit = $sourceCommit
+                    }
+                }
+            }
+
+            BeforeEach {
+                $script:ProjectionRunDirectory = Join-Path $TestDrive (
+                    "projection-run-$([guid]::NewGuid().ToString('N'))"
+                )
+                $script:ProjectionOutputPath = Join-Path $TestDrive (
+                    "acceptance-$([guid]::NewGuid().ToString('N')).json"
+                )
+            }
+
+            It 'exports the sanitized acceptance projection command' {
+                Get-Command `
+                    -Name ConvertTo-TenantLifecycleAcceptanceProjection `
+                    -Module Caldova.HrFrontier.Bootstrap `
+                    -ErrorAction SilentlyContinue |
+                    Should -Not -BeNullOrEmpty
+            }
+
+            It 'writes a canonical acceptance projection from allowlisted fields only' {
+                $evidence = New-AcceptanceProjectionEvidence `
+                    -RunDirectory $script:ProjectionRunDirectory
+
+                $path = ConvertTo-TenantLifecycleAcceptanceProjection `
+                    -RunDirectory $script:ProjectionRunDirectory `
+                    -AllowedStableIds @($evidence.ApprovedStableId) `
+                    -AllowedUrlHosts @('portal.example.invalid') `
+                    -OutputPath $script:ProjectionOutputPath
+
+                $path | Should -BeExactly ([IO.Path]::GetFullPath($script:ProjectionOutputPath))
+                $bytes = [IO.File]::ReadAllBytes($path)
+                $bytes[0..2] | Should -Not -Be @(0xEF, 0xBB, 0xBF)
+                $bytes[-1] | Should -Be 10
+                $bytes[-2] | Should -Not -Be 10
+                $raw = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
+                foreach ($marker in @(
+                    'PROHIBITED-TOKEN',
+                    'PROHIBITED-RAW',
+                    'PROHIBITED-INTENT',
+                    'PROHIBITED-ID',
+                    'C:\\private',
+                    '/private/path',
+                    '?token=',
+                    '#private'
+                )) {
+                    $raw | Should -Not -Match ([regex]::Escape($marker))
+                }
+
+                $projection = $raw | ConvertFrom-Json
+                ($projection.PSObject.Properties.Name -join ',') |
+                    Should -BeExactly (
+                        'actions,approvedDigests,artifactDigest,counts,' +
+                        'disclosedStableIds,disclosedUrlHosts,nonClaims,' +
+                        'runId,sourceCommit,statuses'
+                    )
+                $projection.runId | Should -BeExactly $evidence.RunId
+                $projection.sourceCommit | Should -BeExactly $evidence.SourceCommit
+                @($projection.disclosedStableIds) |
+                    Should -BeExactly @($evidence.ApprovedStableId)
+                @($projection.disclosedUrlHosts) |
+                    Should -BeExactly @('portal.example.invalid')
+                $projection.actions.Count | Should -Be 1
+                $projection.actions[0].id | Should -BeExactly 'Foundation'
+                $projection.actions[0].classification | Should -BeExactly 'NoChange'
+                $projection.actions[0].status | Should -BeExactly 'Passed'
+                $projection.actions[0].digest |
+                    Should -BeExactly $evidence.ActionEvidenceDigest
+                $projection.statuses.approval | Should -BeExactly 'Approved'
+                $projection.statuses.readBack | Should -BeExactly 'Passed'
+                $projection.statuses.summary | Should -BeExactly 'Passed'
+                $projection.nonClaims | Should -Contain (
+                    'Provider mutation was not verified by this projection.'
+                )
+                $projection.nonClaims | Should -Contain (
+                    'Pipeline import was not verified by this projection.'
+                )
+                $projection.nonClaims | Should -Contain (
+                    'Artifact bytes were not verified by this projection.'
+                )
+
+                $digestInput = [pscustomobject][ordered]@{}
+                foreach ($property in $projection.PSObject.Properties) {
+                    if ($property.Name -cne 'artifactDigest') {
+                        $digestInput | Add-Member `
+                            -NotePropertyName $property.Name `
+                            -NotePropertyValue $property.Value
+                    }
+                }
+                $projection.artifactDigest |
+                    Should -BeExactly (Get-RunbookContentDigest -InputObject $digestInput)
+            }
+
+            It 'fails closed on an uncorrelated action evidence digest without leaking evidence' {
+                New-AcceptanceProjectionEvidence `
+                    -RunDirectory $script:ProjectionRunDirectory `
+                    -CorruptActionDigest |
+                    Out-Null
+
+                $message = try {
+                    ConvertTo-TenantLifecycleAcceptanceProjection `
+                        -RunDirectory $script:ProjectionRunDirectory `
+                        -AllowedStableIds @('stable-synthetic-001') `
+                        -AllowedUrlHosts @('portal.example.invalid') `
+                        -OutputPath $script:ProjectionOutputPath
+                    ''
+                }
+                catch {
+                    $_.Exception.Message
+                }
+
+                $message | Should -BeExactly 'TenantLifecycle.Disclosure.ActionEvidence.Correlation'
+                $message | Should -Not -Match 'PROHIBITED'
+                $script:ProjectionOutputPath | Should -Not -Exist
+            }
+
+            It 'does not overwrite an existing acceptance projection' {
+                $evidence = New-AcceptanceProjectionEvidence `
+                    -RunDirectory $script:ProjectionRunDirectory
+                ConvertTo-TenantLifecycleAcceptanceProjection `
+                    -RunDirectory $script:ProjectionRunDirectory `
+                    -AllowedStableIds @($evidence.ApprovedStableId) `
+                    -AllowedUrlHosts @('portal.example.invalid') `
+                    -OutputPath $script:ProjectionOutputPath |
+                    Out-Null
+                $before = [IO.File]::ReadAllBytes($script:ProjectionOutputPath)
+
+                {
+                    ConvertTo-TenantLifecycleAcceptanceProjection `
+                        -RunDirectory $script:ProjectionRunDirectory `
+                        -AllowedStableIds @($evidence.ApprovedStableId) `
+                        -AllowedUrlHosts @('portal.example.invalid') `
+                        -OutputPath $script:ProjectionOutputPath
+                } | Should -Throw -ExpectedMessage 'TenantLifecycle.Disclosure.OutputExists'
+
+                [Convert]::ToBase64String([IO.File]::ReadAllBytes($script:ProjectionOutputPath)) |
+                    Should -BeExactly ([Convert]::ToBase64String($before))
+            }
+
+            It 'rejects a private filesystem path in the stable ID disclosure allowlist' {
+                New-AcceptanceProjectionEvidence `
+                    -RunDirectory $script:ProjectionRunDirectory |
+                    Out-Null
+
+                {
+                    ConvertTo-TenantLifecycleAcceptanceProjection `
+                        -RunDirectory $script:ProjectionRunDirectory `
+                        -AllowedStableIds @('C:\private\tenant') `
+                        -AllowedUrlHosts @('portal.example.invalid') `
+                        -OutputPath $script:ProjectionOutputPath
+                } | Should -Throw -ExpectedMessage 'TenantLifecycle.Disclosure.Allowlist'
+
+                $script:ProjectionOutputPath | Should -Not -Exist
+            }
+
+            It 'rejects an acceptance projection output inside a Git worktree' {
+                New-AcceptanceProjectionEvidence `
+                    -RunDirectory $script:ProjectionRunDirectory |
+                    Out-Null
+                $insideGit = Join-Path $script:ProjectionRepositoryRoot (
+                    ".superpowers\projection-$([guid]::NewGuid().ToString('N')).json"
+                )
+
+                try {
+                    {
+                        ConvertTo-TenantLifecycleAcceptanceProjection `
+                            -RunDirectory $script:ProjectionRunDirectory `
+                            -AllowedStableIds @('stable-synthetic-001') `
+                            -AllowedUrlHosts @('portal.example.invalid') `
+                            -OutputPath $insideGit
+                    } | Should -Throw -ExpectedMessage 'TenantLifecycle.Disclosure.OutputGit'
+                }
+                finally {
+                    if (Test-Path -LiteralPath $insideGit) {
+                        Remove-Item -LiteralPath $insideGit -Force
+                    }
+                }
+            }
+        }
+
     BeforeEach {
         $script:EvidenceRunDirectory = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
     }

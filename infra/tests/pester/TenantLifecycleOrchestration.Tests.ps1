@@ -1806,6 +1806,149 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                 ($summary.actions.evidenceRelativePath -join ',') |
                     Should -BeExactly 'actions/Foundation.json,actions/ReadBack.json'
             }
+
+            It 'builds an acceptance projection from actual correlated action evidence without execution claims' {
+                $runId = [guid]::NewGuid()
+                $runIdText = $runId.ToString('D').ToLowerInvariant()
+                $runDirectory = Join-Path $script:EvidenceRoot $runIdText
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory `
+                    -Stages @('Foundation', 'ReadBack')
+                $calls = [Collections.Generic.List[string]]::new()
+                $records = [Collections.Generic.List[object]]::new()
+                $invoker = New-SyntheticPassedInvoker `
+                    -Calls $calls `
+                    -ControlRecords $records
+
+                Invoke-SyntheticOrchestrator `
+                    -RunId $runId `
+                    -Stages @('Foundation', 'ReadBack') `
+                    -Mode Invoke `
+                    -ExecutionManifestPath $manifestRecord.Path `
+                    -ApprovedDigest $manifestRecord.Manifest.digest `
+                    -SubsystemInvoker $invoker `
+                    -Apply |
+                    Out-Null
+
+                $state = Get-Content -Raw -LiteralPath $script:StatePath |
+                    ConvertFrom-Json
+                $approval = [pscustomobject][ordered]@{
+                    schemaVersion = '1.0'
+                    runId = $runIdText
+                    executionManifestDigest = $manifestRecord.Manifest.digest
+                    approverRole = 'TenantLifecycleApprover'
+                    approvedAtUtc = '2026-10-02T19:01:00.0000000Z'
+                    expiresAtUtc = '2026-10-02T19:30:00.0000000Z'
+                    scope = @('Foundation', 'ReadBack')
+                    status = 'Approved'
+                }
+                $assessment = $script:OrchestratorFixture.assessment |
+                    ConvertTo-Json -Depth 30 |
+                    ConvertFrom-Json
+                $assessment.runId = $runIdText
+                $assessment.sourceCommit = $script:SyntheticSourceCommit
+                $assessment.intentDigest = $manifestRecord.Manifest.intentDigest
+                $assessment.stateDigest = $manifestRecord.Manifest.stateDigest
+                $assessment.digest = Get-RunbookContentDigest -InputObject (
+                    [pscustomobject][ordered]@{
+                        runId = $assessment.runId
+                        sourceCommit = $assessment.sourceCommit
+                        intentDigest = $assessment.intentDigest
+                        stateDigest = $assessment.stateDigest
+                    }
+                )
+                $readBackInput = [pscustomobject][ordered]@{
+                    schemaVersion = '1.0'
+                    runId = $runIdText
+                    generatedAtUtc = '2026-10-02T19:06:00.0000000Z'
+                    components = @(
+                        foreach ($resource in $state.resources) {
+                            [pscustomobject][ordered]@{
+                                id = $resource.logicalName
+                                provider = $resource.provider
+                                stableId = $resource.stableId
+                                ownedPropertiesDigest = $resource.ownedPropertiesDigest
+                                status = 'Passed'
+                            }
+                        }
+                    )
+                    status = 'Passed'
+                }
+                $readBack = [pscustomobject][ordered]@{
+                    schemaVersion = $readBackInput.schemaVersion
+                    runId = $readBackInput.runId
+                    generatedAtUtc = $readBackInput.generatedAtUtc
+                    components = @($readBackInput.components)
+                    status = $readBackInput.status
+                    digest = Get-RunbookContentDigest -InputObject $readBackInput
+                }
+
+                foreach ($record in @(
+                    @{
+                        Path = 'assessment.json'
+                        Kind = 'Assessment'
+                        Value = $assessment
+                    }
+                    @{
+                        Path = 'execution-manifest.json'
+                        Kind = 'ExecutionManifest'
+                        Value = $manifestRecord.Manifest
+                    }
+                    @{
+                        Path = 'approvals.json'
+                        Kind = 'Approval'
+                        Value = $approval
+                    }
+                    @{
+                        Path = 'state.json'
+                        Kind = 'State'
+                        Value = $state
+                    }
+                    @{
+                        Path = 'read-back.json'
+                        Kind = 'ReadBack'
+                        Value = $readBack
+                    }
+                )) {
+                    Write-TenantLifecycleEvidence `
+                        -RunDirectory $runDirectory `
+                        -RelativePath $record.Path `
+                        -Kind $record.Kind `
+                        -InputObject $record.Value |
+                        Out-Null
+                }
+
+                $outputPath = Join-Path $TestDrive (
+                    "orchestrator-acceptance-$($runId.ToString('N')).json"
+                )
+                ConvertTo-TenantLifecycleAcceptanceProjection `
+                    -RunDirectory $runDirectory `
+                    -AllowedStableIds @('stable-synthetic-001') `
+                    -AllowedUrlHosts @() `
+                    -OutputPath $outputPath |
+                    Out-Null
+
+                $projection = Get-Content -Raw -LiteralPath $outputPath |
+                    ConvertFrom-Json
+                ($projection.actions.id -join ',') |
+                    Should -BeExactly 'Foundation,ReadBack'
+                ($projection.actions.classification -join ',') |
+                    Should -BeExactly 'NoChange,NoChange'
+                ($projection.actions.status -join ',') |
+                    Should -BeExactly 'Passed,Passed'
+                $projection.disclosedStableIds |
+                    Should -Contain 'stable-synthetic-001'
+                $projection.nonClaims | Should -Contain (
+                    'Provider mutation was not verified by this projection.'
+                )
+                $projection.nonClaims | Should -Contain (
+                    'Pipeline import was not verified by this projection.'
+                )
+                $projection.nonClaims | Should -Contain (
+                    'Artifact bytes were not verified by this projection.'
+                )
+            }
         }
 
     BeforeAll {

@@ -176,6 +176,22 @@ function Test-TenantLifecycleOrchestratorReparsePath {
     return $false
 }
 
+function Get-TenantLifecycleCanonicalEvidenceDigest {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([Parameter(Mandatory)][byte[]]$Bytes)
+
+    $hash = [Security.Cryptography.SHA256]::Create()
+    try {
+        return [BitConverter]::ToString(
+            $hash.ComputeHash($Bytes)
+        ).Replace('-', '').ToLowerInvariant()
+    }
+    finally {
+        $hash.Dispose()
+    }
+}
+
 function Get-TenantLifecycleCorrelatedActionEvidence {
     [CmdletBinding()]
     param(
@@ -253,7 +269,7 @@ function Get-TenantLifecycleCorrelatedActionEvidence {
             -Kind ActionEvidence `
             -InputObject $evidence |
             Out-Null
-        $evidenceDigest = Get-RunbookContentDigest -InputObject $evidence
+        $evidenceDigest = Get-TenantLifecycleCanonicalEvidenceDigest -Bytes $bytes
     }
     catch {
         if ($_.Exception.Message -cmatch (
