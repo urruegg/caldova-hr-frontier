@@ -34,7 +34,7 @@ function Get-RepositoryRoot {
 }
 
 function Get-DefaultIdeasRoot {
-    Join-Path (Get-RepositoryRoot) 'hr\docs\ideas'
+    Join-Path (Get-RepositoryRoot) 'docs\ideas'
 }
 
 function ConvertTo-RepoRelativeForwardSlashPath {

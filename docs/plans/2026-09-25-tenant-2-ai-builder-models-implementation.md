@@ -61,11 +61,11 @@ The sprint creates or changes the following units:
 | `hr/tests/pester/AiBuilderEvidence.Tests.ps1` | Unit and contract tests for all local AI Builder evidence behavior |
 | `hr/evidence/ai-builder/README.md` | Evidence layout, retention boundary, and operator instructions |
 | `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/` | First Tenant 2 DEV run evidence |
-| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md` | Attended operator procedure reconciled to the approved design |
-| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/` | Versioned fixed-template synthetic corpus |
-| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/` | Versioned general-document synthetic corpus |
-| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md` | Field lifecycle status updated from evidence |
-| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md` | Run input and outcome summary updated from evidence |
+| `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md` | Attended operator procedure reconciled to the approved design |
+| `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/` | Versioned fixed-template synthetic corpus |
+| `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/` | Versioned general-document synthetic corpus |
+| `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md` | Field lifecycle status updated from evidence |
+| `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md` | Run input and outcome summary updated from evidence |
 | `hr/src/solutions/caldovahrfrontier/` | Unpacked solution source after the evaluated models are added |
 
 ---
@@ -75,10 +75,10 @@ The sprint creates or changes the following units:
 **Files:**
 - Create: `hr/src/ai-builder/contracts/field-contract.json`
 - Create: `hr/tests/pester/AiBuilderEvidence.Tests.ps1`
-- Add: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/`
-- Add: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/`
-- Modify: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/README.md`
-- Modify: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/README.md`
+- Add: `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/`
+- Add: `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/`
+- Modify: `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/README.md`
+- Modify: `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/README.md`
 
 **Interfaces:**
 - Produces: `field-contract.json` with `contract_version`, `field_count`, and ordered `fields`.
@@ -99,7 +99,7 @@ Describe 'AI Builder field and corpus contracts' {
     BeforeAll {
         $script:RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
         $script:ContractPath = Join-Path $script:RepositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
-        $script:UseCaseRoot = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent'
+        $script:UseCaseRoot = Join-Path $script:RepositoryRoot 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent'
         $script:ExpectedFields = @(
             'candidate_id', 'last_name', 'first_name', 'dob', 'nationality',
             'marital', 'heimatort', 'permit', 'street', 'plz', 'city', 'ahv',
@@ -248,8 +248,8 @@ Record the SHA-256 values for all 48 PDFs, all four ground-truth files (CSV and 
 ```powershell
 git add hr/src/ai-builder/contracts/field-contract.json `
     hr/tests/pester/AiBuilderEvidence.Tests.ps1 `
-    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template `
-    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents
+    hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template `
+    hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents
 git commit -m "feat: version AI Builder corpus contract" `
     -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ```
@@ -296,7 +296,7 @@ Describe 'AI Builder corpus qualification' {
         Import-Module $script:ModulePath -Force
         $script:RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
         $script:ContractPath = Join-Path $script:RepositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
-        $script:FixedPath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
+        $script:FixedPath = Join-Path $script:RepositoryRoot 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
     }
 
     It 'creates one pending visual review record per document' {
@@ -1011,8 +1011,8 @@ git commit -m "feat: add AI Builder evaluation evidence" `
 ### Task 4: Reconcile the attended model setup procedure
 
 **Files:**
-- Modify: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md`
-- Modify: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/README.md`
+- Modify: `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md`
+- Modify: `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/README.md`
 - Modify: `hr/tests/pester/AiBuilderEvidence.Tests.ps1`
 - Test: `.github/cli/tests/DocumentationMetadata.Tests.ps1`
 - Test: `.github/cli/tests/DocumentationLinks.Tests.ps1`
@@ -1031,7 +1031,7 @@ Describe 'AI Builder operator guide contract' {
     BeforeAll {
         $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
         $script:Guide = Get-Content -LiteralPath (
-            Join-Path $root 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\ai-builder-model-setup.md'
+            Join-Path $root 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\ai-builder-model-setup.md'
         ) -Raw
     }
 
@@ -1105,8 +1105,8 @@ Expected: all tests pass.
 - [ ] **Step 5: Commit the operator procedure**
 
 ```powershell
-git add hr/docs/ideas/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md `
-    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/README.md `
+git add hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md `
+    hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/README.md `
     hr/tests/pester/AiBuilderEvidence.Tests.ps1
 git commit -m "docs: reconcile AI Builder setup procedure" `
     -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
@@ -1123,7 +1123,7 @@ git commit -m "docs: reconcile AI Builder setup procedure" `
 - Create: `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/run-manifest.json`
 - Create: `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-inventory.json`
 - Create: `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/readiness.json`
-- Modify: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md`
+- Modify: `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md`
 
 **Interfaces:**
 - Consumes: Tasks 1 through 4.
@@ -1279,7 +1279,7 @@ Commit:
 
 ```powershell
 git add hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001 `
-    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md
+    hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md
 git commit -m "test: qualify AI Builder sprint inputs" `
     -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ```
@@ -1303,8 +1303,8 @@ git commit -m "test: qualify AI Builder sprint inputs" `
 - Modify: `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/validation-results.json`
 - Modify: `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-metrics.json`
 - Modify: `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-summary.md`
-- Modify: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md`
-- Modify: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md`
+- Modify: `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md`
+- Modify: `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md`
 
 **Interfaces:**
 - Consumes: qualified run manifest, fixed training allocation, field contract, and readiness pass.
@@ -1527,7 +1527,7 @@ Run:
     -RunManifestPath 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\run-manifest.json' `
     -FieldContractPath 'hr\src\ai-builder\contracts\field-contract.json' `
     -ModelSchemaRecordPath 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\model-schema-fixed.json' `
-    -GroundTruthPath 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template\ground-truth.json' `
+    -GroundTruthPath 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template\ground-truth.json' `
     -PredictionCapturePath 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\prediction-capture-fixed.json' `
     -OutputDirectory 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
 ```
@@ -1606,8 +1606,8 @@ Run all AI Builder and documentation tests, then:
 
 ```powershell
 git add hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001 `
-    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md `
-    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md
+    hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md `
+    hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md
 git commit -m "test: evaluate fixed AI Builder model" `
     -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ```
@@ -1783,7 +1783,7 @@ Run:
     -RunManifestPath 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\run-manifest.json' `
     -FieldContractPath 'hr\src\ai-builder\contracts\field-contract.json' `
     -ModelSchemaRecordPath 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\model-schema-general.json' `
-    -GroundTruthPath 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents\ground-truth.json' `
+    -GroundTruthPath 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents\ground-truth.json' `
     -PredictionCapturePath 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\prediction-capture-general.json' `
     -OutputDirectory 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
 ```
@@ -1861,8 +1861,8 @@ Commit:
 
 ```powershell
 git add hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001 `
-    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md `
-    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md
+    hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md `
+    hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md
 git commit -m "test: evaluate general AI Builder model" `
     -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ```
@@ -1878,7 +1878,7 @@ git commit -m "test: evaluate general AI Builder model" `
 - Modify: `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-summary.md`
 - Create: `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/acceptance-criteria.json`
 - Modify: both AI Builder BoMs
-- Modify: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md` only if execution exposed a verified procedural correction
+- Modify: `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md` only if execution exposed a verified procedural correction
 - External: GitHub issue #13
 
 **Interfaces:**
@@ -2011,8 +2011,8 @@ if ($manifest.overall_status -eq 'technically_complete' -and $allCriteriaPassed)
 ```powershell
 git add hr/src/solutions/caldovahrfrontier `
     hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001 `
-    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md `
-    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md
+    hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md `
+    hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md
 git commit -m "feat: complete Tenant 2 AI Builder sprint" `
     -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ```

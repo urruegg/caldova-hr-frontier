@@ -67,6 +67,18 @@ $Summary
     }
 
     Context 'Get-HrIdeaPortfolioItems' {
+        It 'defaults future local population to the repository central idea root' {
+            $items = & $script:ScriptPath `
+                -TenantAlias 'fixturetenant42' `
+                -RepositoryRootOverride $script:RepositoryRoot `
+                -ReturnPortfolioOnly
+
+            $items.Count | Should -Be 19
+            foreach ($item in $items) {
+                $item.SourcePath | Should -Match '^docs/ideas/uc-\d{4}-[^/]+\.md$'
+            }
+        }
+
         It 'parses UseCaseId, Title, Status, JourneyStage, SourcePath, and Summary from each fixture idea file' {
             $ideasRoot = New-FixtureIdeasRoot
 

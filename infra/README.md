@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.5 |
+| **Version** | 1.6 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -26,6 +26,16 @@ This domain contains public Bicep, scripts, tests, solution-source ownership gui
 ## Reading Order
 
 Start at the [repository knowledge map](../docs/README.md), then this domain boundary, then the [infrastructure documentation catalogue](docs/README.md). Read the relevant design before a runbook, and use current sanitized read-back before making a claim about deployed state.
+
+## Safety-Critical Entry Points
+
+- [Tenant 1 Lean Platform Runbook](docs/24-tenant-1-lean-platform-runbook.md) is the active attended local Tenant 1 sequence and acceptance contract.
+- [Operational Runbooks](docs/runbooks/README.md) catalogues the shared preview, approval, evidence, read-back, and recovery procedures.
+- [Developer Workstation](docs/runbooks/01-developer-workstation.md) defines the approved local workstation assessment and initialization boundary.
+- [Tenant Trust Activation Runbook](docs/20-tenant-trust-activation-runbook.md) is a `Superseded stop notice`; no supported trust-activation mutation path exists.
+- [Azure Boards Population Runbook](docs/21-azure-boards-population-runbook.md) is a `Superseded stop notice`; Board synchronization remains deferred.
+- [Cloud Service Foundation Runbook](docs/runbooks/02-cloud-service-foundation.md) is a `Superseded stop notice`; the dormant planner and apply entry points remain unsupported.
+- [Customer Repository Handover](docs/runbooks/03-customer-handover.md) defines the attended synthetic export, approval, validation, and handover boundaries.
 
 ## Naming and Lifecycle
 

@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
+| **Version** | 1.4 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -998,7 +998,18 @@ git commit -m "docs: establish canonical knowledge catalogues" `
 ### Task 6: Enforce Retired-Path Boundaries and Run Full Acceptance
 
 **Files:**
+- Modify: `.github/copilot-instructions.md`
 - Modify: `.github/cli/tests/DocumentationNavigation.Tests.ps1`
+- Modify: `infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1`
+- Modify: `infra/tests/pester/AzureBoardsPopulation.Tests.ps1`
+- Restore immutable bytes: `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-summary.md`
+- Verify unchanged: `.github/cli/config/branding-evidence-exceptions.json`
+- Modify: `infra/README.md`
+- Verify unchanged: `infra/docs/README.md`
+- Modify: `docs/plans/2026-09-25-tenant-2-ai-builder-models-implementation.md`
+- Modify: `docs/plans/2026-09-29-ai-builder-evaluation-capture-implementation.md`
+- Modify: `docs/plans/2026-10-02-documentation-knowledge-architecture-cleanup-implementation.md`
+- Modify: `docs/specs/2026-10-01-caldova-branding-migration-design.md`
 - Modify: `docs/reviews/2026-10-02-documentation-knowledge-architecture-migration-review.md`
 - Modify: `docs/reviews/README.md`
 
@@ -1006,12 +1017,64 @@ git commit -m "docs: establish canonical knowledge catalogues" `
 - Consumes: complete migration from Tasks 1-5.
 - Produces: fail-closed retired-path allowlist, Board-neutral and workflow-neutral acceptance, final hash evidence, full-suite results, and an Active migration review.
 
+**Controller-approved amendment (2026-10-02):**
+
+- Modernize `.github/copilot-instructions.md` so repository-owned specifications
+  remain in `docs/specs/`, implementation plans remain in `docs/plans/`, and
+  vendored examples do not establish repository paths, without retaining the
+  literal retired documentation prefix.
+- Modernize every retired HR idea path in the two AI Builder implementation
+  plans and the Caldova branding migration design. Route central idea records
+  and portfolio references to `docs/ideas/`; route detailed UC-0001 package
+  content to
+  `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/`.
+- Add exact final exceptions for the maintained historical source contract
+  `.github/cli/tests/Phase2SourceContract.Tests.ps1` and the immutable Task 1
+  baseline manifest
+  `docs/reviews/evidence/2026-10-02-documentation-knowledge-architecture/migration-baseline.json`.
+- Remove `docs/specs/2026-09-25-azure-boards-population-design.md` and seven
+  archive snapshots that no longer contain retired path facts. Keep only
+  `docs/archive/phase-2-operating-model/20-hr-employee-journey.md` among the
+  eight archived Phase 2 snapshots.
+- Re-run the fail-closed whole-repository scan after modernization. If any
+  other unplanned active path appears, stop and amend this plan again instead
+  of broadening the allowlist.
+
+**Controller-approved amendment (2026-10-02, acceptance blockers):**
+
+- Change only `Get-DefaultIdeasRoot` in
+  `infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1` from the retired
+  local source to repository `docs\ideas`. Add exact coverage in
+  `infra/tests/pester/AzureBoardsPopulation.Tests.ps1` by invoking the
+  portfolio-only path without `-IdeasRoot`. Do not invoke Azure DevOps, change
+  Board configuration or identifiers, or broaden mutation behavior.
+- Restore
+  `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-summary.md`
+  byte-for-byte to SHA-256
+  `7b6826dad33d2575a2abd55bc10bd3e38a8f6e07f0c2387d6bd4a75f85a28dd2`,
+  matching both the Task 1 migration baseline and
+  `.github/cli/config/branding-evidence-exceptions.json`. Keep the exception
+  manifest unchanged and add the exact immutable evidence path to the final
+  retired-path allowlist because its historical content may retain the old
+  location.
+- Restore direct safety routing in `infra/README.md` for the active Tenant 1
+  lean platform runbook, the operational runbook catalogue, developer
+  workstation and customer handover procedures, and the safety-critical
+  superseded stop notices. Keep `infra/docs/README.md` as the complete domain
+  catalogue and do not change the established safety tests.
+- Preserve the no-workflow, no-Board-operation or configuration,
+  no-vendored-skill, no-baseline or source-inventory, no-archive, no-corpus,
+  and no-other-evidence change boundaries. Stop if another unplanned active
+  retired path or any security, destructive, or live-system action becomes
+  necessary.
+
 - [ ] **Step 1: Add the final retired-path, Board, and workflow tests**
 
 Add an exact allowlist for old-path mentions. It contains:
 
 ```powershell
 $exactHistoricalAllowlist = @(
+    '.github/cli/tests/Phase2SourceContract.Tests.ps1'
     'docs/plans/2026-09-15-repository-superpowers-implementation.md'
     'docs/plans/2026-09-17-governance-github-intake-implementation.md'
     'docs/plans/2026-09-17-product-hr-operating-model-intake-implementation.md'
@@ -1021,19 +1084,13 @@ $exactHistoricalAllowlist = @(
     'docs/reviews/2026-09-17-architecture-baseline-source-inventory.json'
     'docs/reviews/2026-09-17-phase-2-product-hr-operating-model-intake.md'
     'docs/reviews/2026-09-24-phase-4-hr-solution-functional-design-intake.md'
+    'docs/reviews/evidence/2026-10-02-documentation-knowledge-architecture/migration-baseline.json'
+    'hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-summary.md'
     'docs/specs/2026-09-17-architecture-baseline-intake-design.md'
     'docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md'
-    'docs/specs/2026-09-25-azure-boards-population-design.md'
     'docs/specs/2026-10-02-documentation-knowledge-architecture-cleanup-design.md'
     'docs/plans/2026-10-02-documentation-knowledge-architecture-cleanup-implementation.md'
     'docs/reviews/2026-10-02-documentation-knowledge-architecture-migration-review.md'
-    'docs/archive/phase-2-operating-model/00-north-star.md'
-    'docs/archive/phase-2-operating-model/01-prd.md'
-    'docs/archive/phase-2-operating-model/02-system-design.md'
-    'docs/archive/phase-2-operating-model/03-agent-operating-model.md'
-    'docs/archive/phase-2-operating-model/04-hitl-governance.md'
-    'docs/archive/phase-2-operating-model/05-implementation-roadmap.md'
-    'docs/archive/phase-2-operating-model/90-microsoft-best-practice-evaluation.md'
     'docs/archive/phase-2-operating-model/20-hr-employee-journey.md'
 )
 ```

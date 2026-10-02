@@ -99,6 +99,70 @@ BeforeAll {
     $script:ideaRoot = Join-Path $script:repositoryRoot 'docs\ideas'
     $script:useCaseRoot = Join-Path $script:repositoryRoot 'hr\docs\use-cases'
     $script:phase2ArchiveRoot = Join-Path $script:repositoryRoot 'docs\archive\phase-2-operating-model'
+
+    $script:exactHistoricalAllowlist = @(
+        '.github/cli/tests/Phase2SourceContract.Tests.ps1'
+        'docs/plans/2026-09-15-repository-superpowers-implementation.md'
+        'docs/plans/2026-09-17-governance-github-intake-implementation.md'
+        'docs/plans/2026-09-17-product-hr-operating-model-intake-implementation.md'
+        'docs/plans/2026-09-24-hr-solution-functional-design-intake-implementation.md'
+        'docs/plans/2026-09-25-azure-boards-population-implementation.md'
+        'docs/plans/2026-10-01-caldova-branding-migration-implementation.md'
+        'docs/reviews/2026-09-17-architecture-baseline-source-inventory.json'
+        'docs/reviews/2026-09-17-phase-2-product-hr-operating-model-intake.md'
+        'docs/reviews/2026-09-24-phase-4-hr-solution-functional-design-intake.md'
+        'docs/reviews/evidence/2026-10-02-documentation-knowledge-architecture/migration-baseline.json'
+        'hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-summary.md'
+        'docs/specs/2026-09-17-architecture-baseline-intake-design.md'
+        'docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md'
+        'docs/specs/2026-10-02-documentation-knowledge-architecture-cleanup-design.md'
+        'docs/plans/2026-10-02-documentation-knowledge-architecture-cleanup-implementation.md'
+        'docs/reviews/2026-10-02-documentation-knowledge-architecture-migration-review.md'
+        'docs/archive/phase-2-operating-model/20-hr-employee-journey.md'
+    )
+    $script:retiredPathPattern = @(
+        ('docs[/\\]' + 'superpowers[/\\]')
+        ('docs[/\\]' + 'operating-model[/\\]')
+        ('docs[/\\]' + 'brandkit[/\\]')
+        ('docs[/\\]' + 'business[/\\]')
+        ('docs[/\\]' + 'delegation[/\\]')
+        ('docs[/\\]' + 'issues[/\\]')
+        ('docs[/\\]' + 'sprints[/\\]')
+        ('docs[/\\]' + 'templates[/\\]')
+        ('hr[/\\]docs[/\\]' + 'ideas[/\\]')
+    ) -join '|'
+
+    Push-Location $script:repositoryRoot
+    try {
+        $grepOutput = @(
+            & git grep -I -n -E $script:retiredPathPattern --
+        )
+        $grepExitCode = $LASTEXITCODE
+        if ($grepExitCode -gt 1) {
+            throw "Retired-path scan failed with exit code $grepExitCode."
+        }
+
+        $script:migrationBase = (& git merge-base origin/main HEAD).Trim()
+        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($script:migrationBase)) {
+            throw 'Cannot resolve the origin/main merge base.'
+        }
+    }
+    finally {
+        Pop-Location
+    }
+
+    $script:retiredPathMatches = @(
+        foreach ($line in $grepOutput) {
+            if ($line -notmatch '^(?<Path>[^:]+):(?<Line>\d+):(?<Text>.*)$') {
+                throw "Cannot parse retired-path match: $line"
+            }
+            [pscustomobject]@{
+                Path = $Matches.Path.Replace('\', '/')
+                Line = [int]$Matches.Line
+                Text = $Matches.Text
+            }
+        }
+    )
 }
 
 Describe 'Central idea portfolio and HR use-case detail' {
@@ -199,5 +263,113 @@ Describe 'Retired placeholder documentation roots' {
         'hr/docs/ideas'
     ) {
         Join-Path $script:repositoryRoot $_ | Should -Not -Exist
+    }
+}
+
+Describe 'Final migration boundaries' {
+    It 'rejects every unallowlisted retired path with exact file and line evidence' {
+        $unexpected = @(
+            $script:retiredPathMatches |
+                Where-Object {
+                    -not $_.Path.StartsWith(
+                        '.github/skills/',
+                        [StringComparison]::Ordinal
+                    ) -and
+                    -not ($script:exactHistoricalAllowlist -ccontains $_.Path)
+                } |
+                ForEach-Object { '{0}:{1}:{2}' -f $_.Path, $_.Line, $_.Text }
+        )
+
+        $unexpected | Should -BeNullOrEmpty -Because (
+            "retired paths require an exact reviewed disposition:`n{0}" -f
+            ($unexpected -join "`n")
+        )
+    }
+
+    It 'keeps every exact historical exception necessary' {
+        $matchedAllowlist = @(
+            $script:retiredPathMatches.Path |
+                Where-Object { $script:exactHistoricalAllowlist -ccontains $_ } |
+                Sort-Object -Unique
+        )
+        $unused = @(
+            $script:exactHistoricalAllowlist |
+                Where-Object { -not ($matchedAllowlist -ccontains $_) }
+        )
+
+        $unused | Should -BeNullOrEmpty -Because (
+            "unused historical exceptions broaden the boundary: {0}" -f
+            ($unused -join ', ')
+        )
+    }
+
+    It 'keeps every idea catalogue row Board-neutral' {
+        $catalogueLines = Get-Content -LiteralPath (
+            Join-Path $script:ideaRoot 'README.md'
+        )
+        $ideaRows = @(
+            $catalogueLines |
+                Where-Object { $_ -match '^\|\s*(UC-\d{4}|IDEA-[^|]+)\s*\|' }
+        )
+        $ideaRows.Count | Should -BeGreaterThan 0
+
+        foreach ($row in $ideaRows) {
+            $boardStatus = @($row -split '\|')[-2].Trim()
+            $boardStatus | Should -BeIn @(
+                'Deferred - not synchronized'
+                'Not applicable'
+            )
+        }
+    }
+
+    It 'keeps central idea files free of Azure Boards identifiers' {
+        $boardReferences = @(
+            Get-ChildItem -LiteralPath $script:ideaRoot -File -Recurse |
+                Select-String -Pattern 'AB#\d+'
+        )
+        $boardReferences | Should -BeNullOrEmpty
+    }
+
+    It 'requires a governing record before a verified Azure Boards closure' {
+        $template = Get-Content -LiteralPath (
+            Join-Path $script:repositoryRoot '.github\pull_request_template.md'
+        ) -Raw
+
+        $template | Should -Match '(?m)^## Governing record\s*$'
+        $template | Should -Match 'repository idea,\s+specification, and plan'
+        $template | Should -Match 'Use `Fixes AB#<id>` only after Azure Boards synchronization'
+        $template | Should -Match 'referenced ID has been verified'
+    }
+
+    It 'keeps the workflow directory limited to the established pair' {
+        $workflowNames = @(
+            Get-ChildItem -LiteralPath (
+                Join-Path $script:repositoryRoot '.github\workflows'
+            ) -File |
+                Sort-Object Name |
+                Select-Object -ExpandProperty Name
+        )
+
+        $workflowNames | Should -Be @(
+            'README.md'
+            'validate-repository.yml'
+        )
+    }
+
+    It 'keeps the migration range workflow-neutral' {
+        Push-Location $script:repositoryRoot
+        try {
+            $workflowChanges = @(
+                & git diff --name-only "$script:migrationBase...HEAD" -- '.github/workflows'
+            )
+            if ($LASTEXITCODE -ne 0) {
+                throw 'Workflow range comparison failed.'
+            }
+        }
+        finally {
+            Pop-Location
+        }
+
+        $workflowChanges | Should -BeNullOrEmpty
     }
 }

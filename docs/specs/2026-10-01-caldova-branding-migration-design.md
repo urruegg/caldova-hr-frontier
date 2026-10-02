@@ -107,7 +107,7 @@ The required path outcomes include:
 
 - the current Fluent theme asset becomes `docs/brand/caldova-fluent-theme.ts`;
 - the current token stylesheet becomes `docs/brand/caldova-tokens.css`; and
-- both AI Builder package directories below `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/` replace their legacy slug with `caldova-aib-*`.
+- both AI Builder package directories below `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/` replace their legacy slug with `caldova-aib-*`.
 
 At the baseline commit, each source path is derived by replacing `caldova` in the target with the lowercase code-point pair defined in `L4`, without its trailing hyphen.
 
@@ -258,7 +258,7 @@ patterns = {
 
 raw = subprocess.check_output(["git", "ls-files", "-z", "--", "*.pdf"])
 paths = [Path(value) for value in raw.decode("utf-8").split("\0") if value]
-use_case_root = "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/"
+use_case_root = "hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/"
 corpus_roots = (
     use_case_root + "caldova-aib-fixed-template/documents/",
     use_case_root + "caldova-aib-general-documents/documents/",

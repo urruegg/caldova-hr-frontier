@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
+| **Version** | 1.3 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -17,8 +17,9 @@ Maintained repository documentation is written in English and follows [the docum
 
 **Repository documentation path override.** Store approved design specifications in
 `docs/specs/` and implementation plans in `docs/plans/`. These repository-owned
-paths override the vendored Superpowers default `docs/superpowers/` locations.
-Do not edit vendored skills to change their examples.
+paths are authoritative. Path examples in vendored skills are illustrative and
+do not establish repository paths. Do not edit vendored skills to change their
+examples.
 
 ### External Windows worktrees
 

@@ -76,7 +76,7 @@ Original Tasks 1–5 are completed inputs and remain preserved. All unchanged co
 | `hr/src/scripts/Measure-AiBuilderEvaluation.ps1` | Existing metrics writer updated for new lifecycle disposition and capture provenance. |
 | `hr/tests/fixtures/ai-builder/evaluation-capture/` | Synthetic raw-response and canonical-envelope fixtures shaped from the observed `Process documents` output. |
 | `hr/tests/pester/AiBuilderEvidence.Tests.ps1` | Red-first lifecycle, schema, serialization, replay, fail-closed, historical-evidence, and guide tests. |
-| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md` | Attended operator guide for approval, solution/flow setup, security verification, capture, failure, and disablement. |
+| `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md` | Attended operator guide for approval, solution/flow setup, security verification, capture, failure, and disablement. |
 | `hr/evidence/ai-builder/README.md` | Raw/canonical pair layout, immutable retention, exact operator evidence, and replay commands. |
 | `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-capture-intent.json` | Approved final names, owners, connector choices, dedicated folder, and explicit mutation authorization. |
 | `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/` | Downloaded synthetic sources and immutable raw/canonical pairs for capability and holdout executions. |
@@ -86,8 +86,8 @@ Original Tasks 1–5 are completed inputs and remain preserved. All unchanged co
 | `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/security-verification.json` | Observed owners, state, secure settings, connectors, folder boundary, and retention controls. |
 | `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/run-manifest.json` | Existing deployment context and append-only lifecycle history. |
 | `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-inventory.json` | Existing per-model lifecycle mirror. |
-| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md` | Field stages and evidence links. |
-| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md` | Run inputs, capability, metrics, findings, publication, and solution status. |
+| `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md` | Field stages and evidence links. |
+| `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md` | Run inputs, capability, metrics, findings, publication, and solution status. |
 | `hr/src/solutions/caldovahrfrontier/` | Synchronized business solution source after an approved model is added; never contains the evaluation flow. |
 
 The production adapter has this exact interface:
@@ -265,7 +265,7 @@ git commit -m "feat: add AI Builder evaluation capture contracts" `
 ### Task 2: Update the attended guide and evidence contract
 
 **Files:**
-- Modify: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md`
+- Modify: `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md`
 - Modify: `hr/evidence/ai-builder/README.md`
 - Modify: `hr/src/scripts/README.md`
 - Modify: `hr/tests/pester/AiBuilderEvidence.Tests.ps1`
@@ -353,7 +353,7 @@ Expected: PASS and no broken relative links.
 - [ ] **Step 6: Commit the attended procedure**
 
 ```powershell
-git add -- hr/docs/ideas/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md `
+git add -- hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md `
     hr/evidence/ai-builder/README.md `
     hr/src/scripts/README.md `
     hr/tests/pester/AiBuilderEvidence.Tests.ps1
@@ -368,7 +368,7 @@ git commit -m "docs: define attended AI Builder capture procedure" `
 **Files:**
 - Create: `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-capture-intent.json`
 - Create: `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-capture-readiness.json`
-- Modify: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md`
+- Modify: `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md`
 
 **Interfaces:**
 - Produces selected names and an explicit approval record consumed by every tenant task.
@@ -445,7 +445,7 @@ Run documentation tests and `git diff --check`.
 ```powershell
 git add -- hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-capture-intent.json `
     hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-capture-readiness.json `
-    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md
+    hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md
 git commit -m "test: approve Tenant 2 evaluation capture intent" `
     -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ```
@@ -898,7 +898,7 @@ Expected: 4 exact documents, 68 field captures, source/raw/canonical/adapter has
     -FieldContractPath '.\hr\src\ai-builder\contracts\field-contract.json' `
     -ModelSchemaRecordPath "$evidenceRoot\model-schema-fixed.json" `
     -PredictionCapturePath "$evidenceRoot\prediction-capture-fixed.json" `
-    -GroundTruthPath '.\hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template\ground-truth.json' `
+    -GroundTruthPath '.\hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template\ground-truth.json' `
     -EvidenceDirectory $evidenceRoot
 ```
 
@@ -922,8 +922,8 @@ Run AI Builder, documentation, and solution lifecycle tests; expect zero failure
 
 ```powershell
 git add -- hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001 `
-    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md `
-    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md
+    hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md `
+    hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md
 git commit -m "test: evaluate fixed model from replayed capture" `
     -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ```

@@ -2,10 +2,10 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Draft |
+| **Status** | Active |
 | **Scope** | Documentation knowledge architecture migration evidence |
 | **References** | [Approved Cleanup Design](../specs/2026-10-02-documentation-knowledge-architecture-cleanup-design.md), [Migration Plan](../plans/2026-10-02-documentation-knowledge-architecture-cleanup-implementation.md), [Baseline Manifest](evidence/2026-10-02-documentation-knowledge-architecture/migration-baseline.json) |
 
@@ -36,7 +36,7 @@ They returned a clean status, `de0f222db262a36242b6c50b30c0c49f1b1334df`, and `f
 
 ## Migration Register
 
-Every post-move hash and validation result remains `Not run - migration pending` until the corresponding later task observes it. The grouped corpus row is permitted only with the explicit 48-file count and per-file comparison contract below.
+The register preserves the planned baseline disposition recorded before mutation. Observed execution, hash, and validation results are recorded in the task sections below; Task 6 is the final acceptance authority. The grouped corpus row is permitted only with the explicit 48-file count and per-file comparison contract below.
 
 | Old path | New path | Class | Pre-move SHA-256 | Post-move SHA-256 | Disposition | Active replacement | Validation |
 |---|---|---|---|---|---|---|---|
@@ -135,7 +135,7 @@ Every post-move hash and validation result remains `Not run - migration pending`
 | `Invoke-Pester` for `DocumentationLinks.Tests.ps1` | Passed - combined run: 175 passed, 0 failed, 0 skipped, 0 not run |
 | `git diff --check` | Passed (exit 0) |
 | Baseline manifest path and checkout-form hash audit | Passed - 458 sorted paths and lowercase SHA-256 values matched commit `de0f222db262a36242b6c50b30c0c49f1b1334df` |
-| Tasks 2-6 post-move SHA-256 comparisons | Not run - migration pending |
+| Tasks 2-6 post-move SHA-256 comparisons | Passed - 78 individual files matched; both protected manifests retained their pinned hashes |
 
 ## Rollback Evidence
 
@@ -353,3 +353,115 @@ Task 5 executed from clean Task 4 commit `1a9dd82d9fabed33b32d8946f545836aef4de8
 | `git diff --check` | Passed (exit 0). |
 
 No rollback was required. The one setup-validation failure was retained as diagnostic evidence, repaired at the stale validation contract, and followed by a successful rerun.
+
+## Task 6 - Retired-Path Boundaries and Full Acceptance
+
+Task 6 executed from clean Task 5 commit
+`0f09ff074547dd38e2b9b69575461c65d75b7470` on branch
+`feat/documentation-knowledge-architecture-cleanup`. The migration range uses
+merge base `6e82b041225794581ed5dc8d015c89481d515b23`. The final acceptance commit is
+the commit containing this Active review with subject
+`test: verify documentation knowledge migration`; the external Task 6 report
+records its resolved SHA-1 after commit creation.
+
+### Final dispositions
+
+| Path or surface | Final disposition |
+|---|---|
+| `.github/copilot-instructions.md` | Modernized the repository-owned specification and plan placement rule without retaining the literal retired documentation prefix; vendored skills remain unchanged. |
+| `docs/plans/2026-09-25-tenant-2-ai-builder-models-implementation.md` | Modernized every forward-slash and backslash-form HR idea package path to the canonical central idea or HR use-case location. |
+| `docs/plans/2026-09-29-ai-builder-evaluation-capture-implementation.md` | Modernized every forward-slash and backslash-form HR idea package path to the HR use-case location. |
+| `docs/specs/2026-10-01-caldova-branding-migration-design.md` | Modernized the active branding package path to the HR use-case location. |
+| `infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1` | Changed only the default local population source from the retired HR idea root to repository `docs\ideas`; Azure DevOps request, configuration, identifier, and mutation behavior are unchanged. |
+| `infra/tests/pester/AzureBoardsPopulation.Tests.ps1` | Added portfolio-only coverage that omits `-IdeasRoot`, verifies all 19 central records, and returns before any Azure DevOps capability query or mutation path. |
+| `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-summary.md` | Restored byte-for-byte to immutable SHA-256 `7b6826dad33d2575a2abd55bc10bd3e38a8f6e07f0c2387d6bd4a75f85a28dd2`; retained as an exact retired-path exception because the historical evidence records the original location. |
+| `.github/cli/config/branding-evidence-exceptions.json` | Unchanged; its existing summary hash already equals the immutable baseline value. |
+| `infra/README.md` | Retained direct links to the active Tenant 1 runbook, operational runbook package, developer workstation and customer handover procedures, and all three safety-critical superseded stop notices. |
+| `infra/docs/README.md` | Unchanged as the complete infrastructure documentation catalogue. |
+| `.github/cli/tests/Phase2SourceContract.Tests.ps1` | Unchanged maintained historical-source contract; retained as an exact retired-path exception. |
+| `docs/reviews/evidence/2026-10-02-documentation-knowledge-architecture/migration-baseline.json` | Unchanged immutable Task 1 manifest; retained as an exact retired-path exception. |
+
+The fail-closed scan recognizes both `/` and `\` path separators. This caught
+six remaining executable examples in the two AI Builder plans that a
+forward-slash-only scan missed; those already ruled active files were
+modernized rather than allowlisted.
+
+### RED and GREEN evidence
+
+| Stage | Discovered | Passed | Failed | Skipped | Inconclusive | Not run | Result |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Focused RED: Board population, branding, cloud-foundation safety, and runbook documentation | 64 | 56 | 8 | 0 | 0 | 0 | Expected failures: five Board default-path cases, one branding hash contract, and two infrastructure root-link contracts. |
+| Focused GREEN plus final navigation | 96 | 96 | 0 | 0 | 0 | 0 | Passed after the ruled code, immutable-byte, README, dual-separator scan, and exact allowlist changes. |
+| Final navigation contract | 32 | 32 | 0 | 0 | 0 | 0 | Passed with no unallowlisted retired path and no unused exception. |
+
+### Final exact retired-path allowlist
+
+Files below `.github/skills/` remain separately excluded as vendored,
+immutable content. The repository-owned exact allowlist is:
+
+```text
+.github/cli/tests/Phase2SourceContract.Tests.ps1
+docs/plans/2026-09-15-repository-superpowers-implementation.md
+docs/plans/2026-09-17-governance-github-intake-implementation.md
+docs/plans/2026-09-17-product-hr-operating-model-intake-implementation.md
+docs/plans/2026-09-24-hr-solution-functional-design-intake-implementation.md
+docs/plans/2026-09-25-azure-boards-population-implementation.md
+docs/plans/2026-10-01-caldova-branding-migration-implementation.md
+docs/reviews/2026-09-17-architecture-baseline-source-inventory.json
+docs/reviews/2026-09-17-phase-2-product-hr-operating-model-intake.md
+docs/reviews/2026-09-24-phase-4-hr-solution-functional-design-intake.md
+docs/reviews/evidence/2026-10-02-documentation-knowledge-architecture/migration-baseline.json
+hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-summary.md
+docs/specs/2026-09-17-architecture-baseline-intake-design.md
+docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md
+docs/specs/2026-10-02-documentation-knowledge-architecture-cleanup-design.md
+docs/plans/2026-10-02-documentation-knowledge-architecture-cleanup-implementation.md
+docs/reviews/2026-10-02-documentation-knowledge-architecture-migration-review.md
+docs/archive/phase-2-operating-model/20-hr-employee-journey.md
+```
+
+### Final hash acceptance
+
+Every selected file was compared individually with its Task 1 baseline entry.
+Aggregate SHA-256 values are calculated over sorted
+`target-relative-path|individual-sha256` lines.
+
+| Group | Files | Expected aggregate SHA-256 | Actual aggregate SHA-256 | Verdict |
+|---|---:|---|---|---|
+| Synthetic corpus PDFs | 48 | `becea6c2e0b7a24cd1ee530722e42b00fb75dd9d24c11b780e19de534c9a0fb6` | `becea6c2e0b7a24cd1ee530722e42b00fb75dd9d24c11b780e19de534c9a0fb6` | Pass |
+| CSV and JSON truth files | 4 | `ff177838e11bc0365456116b8363494fa7556fbe5f02a94af6f4f088052926ff` | `ff177838e11bc0365456116b8363494fa7556fbe5f02a94af6f4f088052926ff` | Pass |
+| Python generators | 8 | `bb4fedd6637dd004fc2344b129c5929a056420ed047dc96e59c011995ed348cb` | `bb4fedd6637dd004fc2344b129c5929a056420ed047dc96e59c011995ed348cb` | Pass |
+| Unchanged package READMEs | 2 | `83230a5e9540ec7816b940890c0e6e44d71379e5e94b678b7cbb54452da1cdc1` | `83230a5e9540ec7816b940890c0e6e44d71379e5e94b678b7cbb54452da1cdc1` | Pass |
+| Immutable evidence PDFs | 7 | `490a8581cb50062f95ca9676b79b24327c10dcfc4e9174351570608d4c0127e7` | `490a8581cb50062f95ca9676b79b24327c10dcfc4e9174351570608d4c0127e7` | Pass |
+| Archived Phase 2 snapshots | 8 | `8478541e77df59f42bd638dd00953bc33788eadb742a426ac55996ce05c1ccef` | `8478541e77df59f42bd638dd00953bc33788eadb742a426ac55996ce05c1ccef` | Pass |
+| Immutable evaluation summary | 1 | `f8a8843713b0b32b7eed31d7efa893e24170429a8c9fbb1a49d3b785d885f9e0` | `f8a8843713b0b32b7eed31d7efa893e24170429a8c9fbb1a49d3b785d885f9e0` | Pass |
+
+The 78 individual checks passed. The immutable evaluation summary itself is
+SHA-256
+`7b6826dad33d2575a2abd55bc10bd3e38a8f6e07f0c2387d6bd4a75f85a28dd2`.
+The protected Task 1 manifest remains
+`4001f033a1e683a5a689f18c8b7cd91999a81594dfaf5510fbb77d73cd3ad2b3`,
+and the protected architecture source inventory remains
+`b02025c290613173433d1c09ad9b2c459f01033983603ab677a87f7a09d5598d`.
+
+### Full acceptance
+
+| Command or gate | Outcome |
+|---|---|
+| Fresh dual-separator retired-path scan | Passed: 446 match lines across 23 paths; 18 exact historical paths and 5 vendored skill paths; 0 unexpected and 0 unused. |
+| Complete maintained Pester discovery | Passed: 1,020 discovered; 1,017 passed; 0 failed; 3 skipped; 0 inconclusive; 0 not run; duration 00:17:42.5436572. |
+| `.github/cli/verify-repository-safety.ps1` | Passed: `Repository safety validation passed.` |
+| Comprehensive `.github/cli/verify-repository-setup.ps1` | Passed: `Repository setup validation passed.` |
+| Explicit recursive `az bicep build --stdout` | Passed: 5 of 5 `.bicep` files; 0 failed. |
+| Migration-range and working-tree `git diff --check` | Passed. |
+| Workflow-neutral checks | Passed: 0 migration-range changes and 0 Task 6 working-tree changes below `.github/workflows/`. |
+| Branch and scope checks | Passed on `feat/documentation-knowledge-architecture-cleanup`; 0 forbidden Task 6 changes. |
+| Board-neutral checks | Passed: central idea rows remain deferred or not applicable; no central idea contains an `AB#` identifier; no Board operation or configuration changed. |
+| Protected change boundaries | Passed: no vendored skill, baseline, source inventory, archive, corpus, workflow, Board configuration, or other evidence file changed. |
+
+## Final Exceptions and Failures
+
+The exact historical allowlist above is the only repository-owned retired-path
+exception set. The immutable evaluation summary is the only Task 6 evidence
+file changed, and its bytes were restored to the already approved manifest
+value. Unresolved failures: `None`.
