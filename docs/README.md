@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.7 |
-| **Date** | 2026-10-01 |
+| **Version** | 1.8 |
+| **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -151,13 +151,9 @@ The Infrastructure domain contains the approved lean control-plane topology toge
 
 ## Superseded (Phase 2)
 
-The original Proposed Baseline product/HR operating model is superseded by the documents above, reconciled through the [Phase 4 HR Solution Functional Design Intake](reviews/2026-09-24-phase-4-hr-solution-functional-design-intake.md). Retained for history, each carrying its own superseded banner:
+The original Proposed Baseline product/HR operating model is superseded by the documents above, reconciled through the [Phase 4 HR Solution Functional Design Intake](reviews/2026-09-24-phase-4-hr-solution-functional-design-intake.md).
 
-| Document | Superseded by |
-|---|---|
-| [operating-model/00-05](operating-model/00-north-star.md) | `prd.md`, `solution-design.md`, `hr-journey-and-raci.md` |
-| [90 Microsoft Best Practice Evaluation](90-microsoft-best-practice-evaluation.md) | A fresh evaluation against the new design is not yet performed — treat this as historical only |
-| [HR Employee Journey (Phase 2)](../hr/docs/20-hr-employee-journey.md) | `hr-journey-and-raci.md`, `ideas/`, `hr/docs/use-cases/` |
+For historical questions, start with the [Phase 2 Operating Model Archive catalogue](archive/phase-2-operating-model/README.md). It records the purpose and current replacement for each immutable snapshot. Do not use the snapshots as current authority.
 
 ---
 

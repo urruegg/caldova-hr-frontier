@@ -4,6 +4,7 @@ BeforeAll {
     $script:repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
     $script:ideaRoot = Join-Path $script:repositoryRoot 'docs\ideas'
     $script:useCaseRoot = Join-Path $script:repositoryRoot 'hr\docs\use-cases'
+    $script:phase2ArchiveRoot = Join-Path $script:repositoryRoot 'docs\archive\phase-2-operating-model'
 }
 
 Describe 'Central idea portfolio and HR use-case detail' {
@@ -51,5 +52,23 @@ Describe 'Canonical specification and plan roots' {
         )) {
             Join-Path $script:repositoryRoot $relativePath | Should -Exist
         }
+    }
+}
+
+Describe 'Phase 2 archive navigation' {
+    It 'routes historical discovery through the archive catalogue' {
+        (Join-Path $script:repositoryRoot 'docs\operating-model') | Should -Not -Exist
+
+        $phase2Catalogue = Join-Path $script:phase2ArchiveRoot 'README.md'
+        $phase2Catalogue | Should -Exist
+
+        $docsNavigation = Get-Content -LiteralPath (
+            Join-Path $script:repositoryRoot 'docs\README.md'
+        ) -Raw
+        $archiveNavigation = Get-Content -LiteralPath (
+            Join-Path $script:repositoryRoot 'docs\archive\README.md'
+        ) -Raw
+        $docsNavigation | Should -Match 'archive/phase-2-operating-model/README\.md'
+        $archiveNavigation | Should -Match 'phase-2-operating-model/README\.md'
     }
 }

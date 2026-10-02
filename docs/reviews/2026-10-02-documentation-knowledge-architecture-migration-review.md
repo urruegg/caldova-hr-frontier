@@ -276,3 +276,49 @@ The specification catalogue lists all 18 direct Markdown children other than `RE
 | Protected-surface diff | Passed: no changes below `.github/skills/`, `.github/workflows/`, `docs/archive/`, `infra/src/config/`, or the baseline manifest. |
 
 No Azure Boards configuration, workflow, live system, corpus binary, immutable evidence binary, archive path, or baseline-manifest content was changed.
+
+## Task 4 - Immutable Phase 2 Archive and Governance Routing
+
+Task 4 executed from clean Task 3 commit `363d61bfb1f2026a1ff777ee7ef132e704fcebbe` on branch `feat/documentation-knowledge-architecture-cleanup`. The Task 1 migration baseline remained unchanged with `baselineCommit` `de0f222db262a36242b6c50b30c0c49f1b1334df`.
+
+### Archived snapshots
+
+The source inventory remains an immutable record of the eight originally imported Phase 2 bytes at their original paths. The on-disk archive contract separately pins the bytes present at the Task 1 migration baseline. Each file moved with `git mv`; no snapshot metadata, content, or internal link was edited.
+
+| Original path | Archive path | Source-inventory SHA-256 | Task 1 pre-move and Task 4 post-move SHA-256 |
+|---|---|---|---|
+| `docs/operating-model/00-north-star.md` | `docs/archive/phase-2-operating-model/00-north-star.md` | `7be5151f04031f4f36e58b80d741ad40c8beb2b26a4dd5ddf8363f318fe9f025` | `3703b4e925594a7a3c18f317eaa876eb2feb8fa10d3ae5ded2c688dc951cfef4` |
+| `docs/operating-model/01-prd.md` | `docs/archive/phase-2-operating-model/01-prd.md` | `7fdc213f864cff3cd0e4755e073b0a23fbf797953132b8a94fab55e8548204a3` | `32693db435ebe9a75f9b33b641d6ab1bb48a9ab1d9c2cb93c84dac8d46ac0cf6` |
+| `docs/operating-model/02-system-design.md` | `docs/archive/phase-2-operating-model/02-system-design.md` | `e0b6ff1c43ae0954bb51edf1993ddd9a6d81376834849a756335034bdd1d88e6` | `774403be1636ab8816e706e112ffd2b24745f91354af0cf99302f55539b378c6` |
+| `docs/operating-model/03-agent-operating-model.md` | `docs/archive/phase-2-operating-model/03-agent-operating-model.md` | `556efcd4af83d221fbe055bbea468d20585112e8d302a4b8ada28514867888a7` | `7e572ba85e309125bab3559c4a4f3cb2963d01889e7da4a052dc340ea5797c33` |
+| `docs/operating-model/04-hitl-governance.md` | `docs/archive/phase-2-operating-model/04-hitl-governance.md` | `8c98c9d1d839d92711b01d651b8277cdd67bf61bb81c29c1defb9a5d6eb1de2b` | `9863ef687d48c8df7070c4ccfd23d1bb633206f8c7b4f971ce9556f94e5538e6` |
+| `docs/operating-model/05-implementation-roadmap.md` | `docs/archive/phase-2-operating-model/05-implementation-roadmap.md` | `8698e90d24f7f2809c7c4208769395e9296f39fe4323f8edbe33b4ec0fb2c509` | `c0b7ac25792ec3905e94fc19546d50befeec62b319d1e5114fca432789de7bbd` |
+| `docs/90-microsoft-best-practice-evaluation.md` | `docs/archive/phase-2-operating-model/90-microsoft-best-practice-evaluation.md` | `fb4d29d4cf75f7cb659c71b21f83e900a484257e8d2cc06e1a006ec40f1b6031` | `00956bdea42e8642b19a3cfd0c44fbb0fd30458667bb65e34beac42fc8e49889` |
+| `hr/docs/20-hr-employee-journey.md` | `docs/archive/phase-2-operating-model/20-hr-employee-journey.md` | `49d6988c476b9866bc3ca6b70cae3d84b48a5e4c6e2918426c5b2b1614464bca` | `066ec9dfa5de630ca3856970b7e7fc200893ca4fdff559d490a798436a66c4e4` |
+
+The maintained `docs/archive/phase-2-operating-model/README.md` is the discovery entry point. It records each snapshot's original purpose and current replacement. The eight exact snapshot paths retain their original internal links and are excluded from live-link traversal; the archive catalogue, archive root, and every other archive artifact remain validated.
+
+### Current governance routing
+
+- Frontier intake now routes proposals into the central repository idea lifecycle and does not promise Azure Boards creation.
+- Issue-form contacts route the idea portfolio to `docs/ideas/README.md`.
+- Privacy, employment-decision, platform-administration, and escalation rules route to `.github/agent-policy/NON_DELEGABLE_WORK.md`.
+- Active infrastructure and HR solution documentation route journey ownership to `docs/hr-journey-and-raci.md`.
+- The pull request template uses a repository idea, specification, plan, or verified Azure Boards item as its governing record. `Fixes AB#<id>` is conditional on a later rebuilt and verified synchronization.
+- No Azure Boards configuration, GitHub workflow, live system, operational stop notice, vendored skill, corpus byte, or evidence byte changed.
+
+### Task 4 validation results
+
+| Command or gate | Outcome |
+|---|---|
+| RED: `Phase2SourceContract.Tests.ps1` plus `DocumentationLinks.Tests.ps1` | Expected failure observed: 4 passed, 3 failed; all failures identified missing archive targets before the moves. |
+| RED: `DocumentationNavigation.Tests.ps1` plus `IssueFormContract.Tests.ps1` | Expected failure observed: 13 passed, 6 failed; failures identified the legacy directory, missing archive catalogue, retired governance routes, and mandatory Boards wording. |
+| Task 1 baseline comparison for the eight moved snapshots | Passed: 8 of 8 post-move SHA-256 values matched their pre-move manifest entries. |
+| Exact live-link exclusion audit | Passed: exactly the eight immutable snapshot paths are excluded; neither archive README is excluded. |
+| Required five-file Pester run | Passed: 201 passed, 0 failed, 0 skipped, 0 not run. |
+| `git diff --check` | Passed (exit 0). |
+| VS Code problem diagnostics for changed PowerShell tests | No errors found. |
+| Task 1 migration-baseline file | Unchanged; SHA-256 `4001f033a1e683a5a689f18c8b7cd91999a81594dfaf5510fbb77d73cd3ad2b3`. |
+| Immutable source-inventory file | Unchanged; SHA-256 `b02025c290613173433d1c09ad9b2c459f01033983603ab677a87f7a09d5598d`. |
+
+No rollback was required.

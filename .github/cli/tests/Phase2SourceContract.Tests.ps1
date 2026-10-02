@@ -12,9 +12,9 @@ BeforeAll {
 		'docs/adr/0001-azure-devops-as-engineering-control-plane.md'
 		'docs/adr/0002-github-first-bootstrap-and-the-role-of-azure-repos.md'
 	)
-	$script:expectedEvaluationPath = 'docs/90-microsoft-best-practice-evaluation.md'
+	$script:expectedEvaluationPath = 'docs/archive/phase-2-operating-model/90-microsoft-best-practice-evaluation.md'
 
-	$script:expected = [ordered]@{
+	$script:sourceInventoryExpected = [ordered]@{
 		'README.md' = '5035ac2b1c59ce776de359ac9592483bf0b9e20572dd1bee8a5aae2638ab8605'
 		'data/README.md' = '610ab9bc996f3641b14e0832cc5cfced346f7c88b3f3d7c268bac47498d34c77'
 		'docs/90-microsoft-best-practice-evaluation.md' = 'fb4d29d4cf75f7cb659c71b21f83e900a484257e8d2cc06e1a006ec40f1b6031'
@@ -32,24 +32,47 @@ BeforeAll {
 		'hr/docs/20-hr-employee-journey.md' = '49d6988c476b9866bc3ca6b70cae3d84b48a5e4c6e2918426c5b2b1614464bca'
 		'hr/src/solutions/.gitkeep' = 'b3f560ecbb33867e20f4481b6ed3f8a590f5500940c61b9975f806720b790122'
 	}
+
+	$script:archivedPhase2 = [ordered]@{
+		'docs/archive/phase-2-operating-model/00-north-star.md' = '3703b4e925594a7a3c18f317eaa876eb2feb8fa10d3ae5ded2c688dc951cfef4'
+		'docs/archive/phase-2-operating-model/01-prd.md' = '32693db435ebe9a75f9b33b641d6ab1bb48a9ab1d9c2cb93c84dac8d46ac0cf6'
+		'docs/archive/phase-2-operating-model/02-system-design.md' = '774403be1636ab8816e706e112ffd2b24745f91354af0cf99302f55539b378c6'
+		'docs/archive/phase-2-operating-model/03-agent-operating-model.md' = '7e572ba85e309125bab3559c4a4f3cb2963d01889e7da4a052dc340ea5797c33'
+		'docs/archive/phase-2-operating-model/04-hitl-governance.md' = '9863ef687d48c8df7070c4ccfd23d1bb633206f8c7b4f971ce9556f94e5538e6'
+		'docs/archive/phase-2-operating-model/05-implementation-roadmap.md' = 'c0b7ac25792ec3905e94fc19546d50befeec62b319d1e5114fca432789de7bbd'
+		'docs/archive/phase-2-operating-model/90-microsoft-best-practice-evaluation.md' = '00956bdea42e8642b19a3cfd0c44fbb0fd30458667bb65e34beac42fc8e49889'
+		'docs/archive/phase-2-operating-model/20-hr-employee-journey.md' = '066ec9dfa5de630ca3856970b7e7fc200893ca4fdff559d490a798436a66c4e4'
+	}
 }
 
 Describe 'Phase 2 source contract' {
 	It 'matches every reviewed path and hash exactly once' {
 		$matchedPaths = [Collections.Generic.List[string]]::new()
 
-		foreach ($entry in $script:expected.GetEnumerator()) {
+		foreach ($entry in $script:sourceInventoryExpected.GetEnumerator()) {
 			$record = @($script:inventory.files | Where-Object { $_.relativePath -ceq $entry.Key })
 			$record.Count | Should -Be 1
 			$record[0].sha256 | Should -Be $entry.Value
 			[void]$matchedPaths.Add($record[0].relativePath)
 		}
 
-		$matchedPaths.Count | Should -Be $script:expected.Count
+		$matchedPaths.Count | Should -Be $script:sourceInventoryExpected.Count
 	}
 
 	It 'has not imported the source placeholder target' {
 		Test-Path -LiteralPath (Join-Path $script:repositoryRoot 'hr\src\solutions\.gitkeep') | Should -BeFalse
+	}
+
+	It 'retains the eight reviewed snapshots byte-identically in the Phase 2 archive' {
+		foreach ($entry in $script:archivedPhase2.GetEnumerator()) {
+			$path = Join-Path $script:repositoryRoot $entry.Key.Replace('/', '\')
+			Test-Path -LiteralPath $path -PathType Leaf |
+				Should -BeTrue -Because "archived Phase 2 snapshot must exist: $($entry.Key)"
+			if (Test-Path -LiteralPath $path -PathType Leaf) {
+				(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() |
+					Should -BeExactly $entry.Value
+			}
+		}
 	}
 }
 
@@ -121,21 +144,13 @@ Describe 'Root product and agent workflow map' {
 		$supersededPointerContent = Get-Content -LiteralPath $supersededPointerPath -Raw
 		$supersededPointerContent | Should -Match 'Superseded \(Phase 2\)'
 
-		$preservedPhase2Paths = @(
-			'docs/operating-model/00-north-star.md'
-			'docs/operating-model/01-prd.md'
-			'docs/operating-model/02-system-design.md'
-			'docs/operating-model/03-agent-operating-model.md'
-			'docs/operating-model/04-hitl-governance.md'
-			'docs/operating-model/05-implementation-roadmap.md'
+		$preservedPhase2Paths = @($script:archivedPhase2.Keys) + @(
 			'docs/adr/0001-azure-devops-as-engineering-control-plane.md'
 			'docs/adr/0002-github-first-bootstrap-and-the-role-of-azure-repos.md'
 			'docs/adr/0003-bicep-and-powershell-for-infrastructure-as-code.md'
 			'docs/adr/0004-domain-solution-architecture-and-publisher.md'
-			'docs/90-microsoft-best-practice-evaluation.md'
 			'data/README.md'
 			'hr/README.md'
-			'hr/docs/20-hr-employee-journey.md'
 			'hr/src/solutions/README.md'
 		)
 		foreach ($relativePath in $preservedPhase2Paths) {

@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.3 |
+| **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR |
-| **References** | [Power Platform Solution Foundation Design](../../../docs/specs/2026-09-24-power-platform-solution-foundation-design.md), [HR Control Plane Code App Wireframe Design](../../../docs/specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md), [HR Employee Journey](../../docs/20-hr-employee-journey.md) |
+| **References** | [Power Platform Solution Foundation Design](../../../docs/specs/2026-09-24-power-platform-solution-foundation-design.md), [HR Control Plane Code App Wireframe Design](../../../docs/specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md), [HR Journey and RACI](../../../docs/hr-journey-and-raci.md) |
 
 This folder contains unpacked, reviewable Power Platform solution source owned by the HR domain.
 

@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-17 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
-| **References** | [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json) |
+| **References** | [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Source Inventory](../../docs/reviews/2026-09-17-architecture-baseline-source-inventory.json), [Non-Delegable Work](../../.github/agent-policy/NON_DELEGABLE_WORK.md), [HR Journey and RACI](../../docs/hr-journey-and-raci.md) |
 
 This source-derived Proposed Baseline describes intended agent and workload configuration. It does not prove that any Power Platform solution, app, flow, agent, knowledge source, connection, channel, runtime, pipeline, environment, or deployed service currently exists.
 
@@ -41,7 +41,7 @@ Task 1 does not create a publisher, solution, environment, component collection,
 
 Future HR agents use only approved, versioned knowledge sources. Public-website grounding and ad hoc document uploads are outside the Proposed Baseline. Ungrounded responses remain disabled for policy answers, and the agent escalates individual employment decisions to a human.
 
-The governing human-in-the-loop constraints are defined in [HITL Governance](../../docs/operating-model/04-hitl-governance.md). The HR data and journey boundary is defined in [HR Employee Journey](../../hr/docs/20-hr-employee-journey.md).
+The current human approval, privacy, and escalation constraints are defined in [Non-Delegable Work](../../.github/agent-policy/NON_DELEGABLE_WORK.md). The HR data, ownership, and journey boundary is defined in [HR Journey and RACI](../../docs/hr-journey-and-raci.md).
 
 Relevant platform constraints are documented in [Knowledge sources overview](https://learn.microsoft.com/en-us/microsoft-copilot-studio/knowledge-copilot-studio) and [Import and export agents](https://learn.microsoft.com/en-us/microsoft-copilot-studio/authoring-solutions-import-export). Their presence here is design guidance, not evidence of configured knowledge or a successful import.
 

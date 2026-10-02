@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-09-29 |
+| **Version** | 1.3 |
+| **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
-| **References** | [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Tenant 1 Lean Platform Runbook](24-tenant-1-lean-platform-runbook.md), [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md) |
+| **References** | [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Tenant 1 Lean Platform Runbook](24-tenant-1-lean-platform-runbook.md), [Approved Intake Design](../../docs/specs/2026-09-17-architecture-baseline-intake-design.md), [Non-Delegable Work](../../.github/agent-policy/NON_DELEGABLE_WORK.md), [HR Journey and RACI](../../docs/hr-journey-and-raci.md) |
 
 This source-derived Proposed Baseline describes intended security, governance, and compliance controls. It does not prove that any policy, role, audit setting, DLP rule, Managed Environment, security group, ruleset, scanning feature, identity, or service is currently configured.
 
@@ -20,7 +20,7 @@ This source-derived Proposed Baseline describes intended security, governance, a
 5. Every later mutation is read back and compared with reviewed desired state.
 6. A failed validation is repaired at its cause; permissions and scope are not broadened to bypass it.
 
-The cross-cutting human approval and data rules are defined in [HITL Governance](../../docs/operating-model/04-hitl-governance.md).
+The current cross-cutting human approval, privacy, escalation, and platform-administration rules are defined in [Non-Delegable Work](../../.github/agent-policy/NON_DELEGABLE_WORK.md). HR ownership and accountability are defined in [HR Journey and RACI](../../docs/hr-journey-and-raci.md).
 
 ## Data Classification and Repository Safety
 

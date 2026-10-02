@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Repository |
@@ -19,13 +19,15 @@
 
 <!-- Link the decision, requirement or open item this serves: ADR-nnnn, FR-nnnn, D-nn, UC-nnnn -->
 
-## Work item
+## Governing record
 
-AB#
+<!-- Link the repository idea, specification, plan, or verified Azure Boards item. -->
 
-For the final governed proof, use the literal `Fixes AB#` prefix followed by the
-selected Azure Boards Issue ID. Human review verifies the reference; no separate
-traceability workflow is required.
+Board synchronization: Deferred - not synchronized
+
+Use `Fixes AB#<id>` only after Azure Boards synchronization has been rebuilt and
+the referenced ID has been verified. Until then, the repository idea,
+specification, and plan are the governing delivery record.
 
 ## Journey stage
 
