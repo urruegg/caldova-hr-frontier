@@ -15,6 +15,7 @@ param(
     [ValidatePattern('^[0-9a-f]{64}$')][string]$ApprovedDigest,
     [switch]$Apply,
     [Parameter(DontShow)][scriptblock]$SubsystemInvoker,
+    [Parameter(DontShow)][scriptblock]$BindingObserver,
     [datetime]$NowUtc = [datetime]::UtcNow
 )
 
@@ -58,7 +59,8 @@ function Assert-TenantLifecycleSubsystemOutcome {
     param(
         [Parameter(Mandatory)][AllowNull()][object]$Outcome,
         [Parameter(Mandatory)][string]$ExpectedStage,
-        [Parameter(Mandatory)][string]$ExpectedInputDigest
+        [Parameter(Mandatory)][string]$ExpectedInputDigest,
+        [switch]$RequireReadBackDigest
     )
 
     try {
@@ -131,11 +133,12 @@ function Assert-TenantLifecycleSubsystemOutcome {
             throw [IO.InvalidDataException]::new()
         }
 
-        if ($null -ne $Outcome.readBackDigest -and
-            (
-                -not ($Outcome.readBackDigest -is [string]) -or
-                [string]$Outcome.readBackDigest -cnotmatch '^[0-9a-f]{64}$'
-            )) {
+        if (($RequireReadBackDigest -or
+                $null -ne $Outcome.readBackDigest) -and
+                (
+                    -not ($Outcome.readBackDigest -is [string]) -or
+                    [string]$Outcome.readBackDigest -cnotmatch '^[0-9a-f]{64}$'
+                )) {
             throw [IO.InvalidDataException]::new()
         }
     }
@@ -381,20 +384,50 @@ function Invoke-TenantLifecycleGit {
     }
 }
 
-$sourceResult = Invoke-TenantLifecycleGit -Arguments @(
-    '-C',
-    $repository,
-    'rev-parse',
-    'HEAD'
-)
-$sourceCommit = ([string]$sourceResult.stdout).Trim().ToLowerInvariant()
-if ([int]$sourceResult.exitCode -ne 0 -or
-    $sourceCommit -cnotmatch '^[0-9a-f]{40}$' -or
-    -not [StringComparer]::Ordinal.Equals(
-        $sourceCommit,
-        $ExpectedSourceCommit.ToLowerInvariant()
-    )) {
-    throw [IO.InvalidDataException]::new('TenantLifecycle.Source.Commit')
+function Get-TenantLifecycleSourceBinding {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param()
+
+    $sourceResult = Invoke-TenantLifecycleGit -Arguments @(
+        '-C',
+        $repository,
+        'rev-parse',
+        'HEAD'
+    )
+    $currentSourceCommit = (
+        [string]$sourceResult.stdout
+    ).Trim().ToLowerInvariant()
+    if ([int]$sourceResult.exitCode -ne 0 -or
+        $currentSourceCommit -cnotmatch '^[0-9a-f]{40}$' -or
+        -not [StringComparer]::Ordinal.Equals(
+            $currentSourceCommit,
+            $ExpectedSourceCommit.ToLowerInvariant()
+        )) {
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.Source.Commit'
+        )
+    }
+
+    $cleanResult = Invoke-TenantLifecycleGit -Arguments @(
+        '-C',
+        $repository,
+        'status',
+        '--porcelain=v1',
+        '--untracked-files=all'
+    )
+    if ([int]$cleanResult.exitCode -ne 0) {
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.Source.Command'
+        )
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$cleanResult.stdout)) {
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.Source.Clean'
+        )
+    }
+
+    return $currentSourceCommit
 }
 
 $gitBoundaryRunner = {
@@ -408,22 +441,32 @@ $gitBoundaryRunner = {
     Invoke-TenantLifecycleGit -Arguments $ArgumentList
 }
 
-try {
-    $privateBoundary = Test-TenantLifecyclePrivateBoundary `
-        -PublicTenantKey $PublicTenantKey `
-        -IntentPath $TenantConfigurationPath `
-        -StatePath $TenantStatePath `
-        -RepositoryRoot $repository `
-        -NativeCommandRunner $gitBoundaryRunner
-}
-catch {
-    if ($_.Exception.Message -cmatch '^TenantLifecycle\.PrivateBoundary\.') {
-        throw
+function Get-TenantLifecyclePrivateBinding {
+    [CmdletBinding()]
+    param()
+
+    try {
+        return Test-TenantLifecyclePrivateBoundary `
+            -PublicTenantKey $PublicTenantKey `
+            -IntentPath $TenantConfigurationPath `
+            -StatePath $TenantStatePath `
+            -RepositoryRoot $repository `
+            -NativeCommandRunner $gitBoundaryRunner
     }
-    throw [IO.InvalidDataException]::new(
-        'TenantLifecycle.PrivateBoundary.Invalid'
-    )
+    catch {
+        if ($_.Exception.Message -cmatch (
+                '^TenantLifecycle\.PrivateBoundary\.'
+            )) {
+            throw
+        }
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.PrivateBoundary.Invalid'
+        )
+    }
 }
+
+$sourceCommit = Get-TenantLifecycleSourceBinding
+$privateBoundary = Get-TenantLifecyclePrivateBinding
 
 $manifest = $null
 if (-not [string]::IsNullOrWhiteSpace($ExecutionManifestPath)) {
@@ -499,6 +542,59 @@ if ($Mode -ceq 'Invoke') {
             )
         }
     }
+
+    function Assert-TenantLifecycleApprovedBinding {
+        [CmdletBinding()]
+        param()
+
+        $currentSourceCommit = Get-TenantLifecycleSourceBinding
+        if (-not [StringComparer]::Ordinal.Equals(
+                $currentSourceCommit,
+                [string]$manifest.sourceCommit
+            )) {
+            throw [IO.InvalidDataException]::new(
+                'TenantLifecycle.Source.Commit'
+            )
+        }
+
+        $currentPrivateBoundary = Get-TenantLifecyclePrivateBinding
+        foreach ($digestField in @('intentDigest', 'stateDigest')) {
+            $currentDigest = if ($digestField -ceq 'intentDigest') {
+                [string]$currentPrivateBoundary.intent.digest
+            }
+            else {
+                [string]$currentPrivateBoundary.state.digest
+            }
+            if (-not [StringComparer]::Ordinal.Equals(
+                    $currentDigest,
+                    [string]$manifest.$digestField
+                )) {
+                throw [IO.InvalidDataException]::new(
+                    "TenantLifecycle.Orchestrator.Drift.$digestField"
+                )
+            }
+        }
+    }
+
+    function Invoke-TenantLifecycleBindingObserver {
+        [CmdletBinding()]
+        param(
+            [Parameter(Mandatory)][string]$Checkpoint,
+            [AllowNull()][string]$Stage
+        )
+
+        if ($null -eq $BindingObserver) {
+            return
+        }
+        try {
+            & $BindingObserver $Checkpoint $Stage
+        }
+        catch {
+            throw [InvalidOperationException]::new(
+                'TenantLifecycle.BindingObserver.Failed'
+            )
+        }
+    }
 }
 
 $canonicalStageOrder = @(
@@ -566,12 +662,17 @@ if ($Mode -ceq 'Invoke') {
     }
 }
 
-if ($Mode -ceq 'Invoke' -and
-    -not $PSCmdlet.ShouldProcess(
-        "tenant lifecycle run $($RunId.ToString('D'))",
-        "Invoke stages: $($orderedStages -join ',')"
-    )) {
-    return
+if ($Mode -ceq 'Invoke') {
+    Invoke-TenantLifecycleBindingObserver `
+        -Checkpoint 'BeforeShouldProcessRebind' `
+        -Stage $null
+    Assert-TenantLifecycleApprovedBinding
+    if (-not $PSCmdlet.ShouldProcess(
+            "tenant lifecycle run $($RunId.ToString('D'))",
+            "Invoke stages: $($orderedStages -join ',')"
+        )) {
+        return
+    }
 }
 
 $machineLabel = if ($null -ne $manifest) {
@@ -609,6 +710,23 @@ $correlatedEvidenceById =
     )
 for ($index = 0; $index -lt $orderedStages.Count; $index++) {
     $stage = $orderedStages[$index]
+    $stageInputDigest = $null
+    if ($null -ne $manifest) {
+        $contextActions = @(
+            $manifest.actions |
+                Where-Object {
+                    [StringComparer]::Ordinal.Equals(
+                        [string]$_.id,
+                        $stage
+                    )
+                }
+        )
+        if ($contextActions.Count -eq 1) {
+            $stageInputDigest = [string](
+                $contextActions[0].desiredPropertiesDigest
+            )
+        }
+    }
     $controlRecord = [pscustomobject][ordered]@{
         runId = $RunId.ToString('D').ToLowerInvariant()
         runDirectoryLabel = $RunId.ToString('D').ToLowerInvariant()
@@ -618,6 +736,7 @@ for ($index = 0; $index -lt $orderedStages.Count; $index++) {
         operatorLabel = $operatorLabel
         toolIdentities = @($toolIdentities)
         approvedDigest = $normalizedApprovedDigest
+        stageInputDigest = $stageInputDigest
         prerequisiteOutcomes = @($outcomes.ToArray())
     }
     $inputDigest = Get-RunbookContentDigest -InputObject (
@@ -653,6 +772,12 @@ for ($index = 0; $index -lt $orderedStages.Count; $index++) {
         break
     }
 
+    if ($Mode -ceq 'Invoke') {
+        Invoke-TenantLifecycleBindingObserver `
+            -Checkpoint 'BeforeStageRebind' `
+            -Stage $stage
+        Assert-TenantLifecycleApprovedBinding
+    }
     try {
         $outcome = & $SubsystemInvoker $stage $Mode $controlRecord
     }
@@ -664,8 +789,9 @@ for ($index = 0; $index -lt $orderedStages.Count; $index++) {
     Assert-TenantLifecycleSubsystemOutcome `
         -Outcome $outcome `
         -ExpectedStage $stage `
-        -ExpectedInputDigest $inputDigest
-    if ($null -ne $manifest) {
+        -ExpectedInputDigest $inputDigest `
+        -RequireReadBackDigest:($Mode -ceq 'Invoke')
+    if ($Mode -ceq 'Invoke') {
         $matchingManifestActions = @(
             $manifest.actions |
                 Where-Object {
@@ -704,7 +830,7 @@ for ($index = 0; $index -lt $orderedStages.Count; $index++) {
     }
 }
 
-if ($null -ne $manifest -and $outcomes.Count -gt 0) {
+if ($Mode -ceq 'Invoke' -and $outcomes.Count -gt 0) {
     $completedNodes = @($nodes.ToArray())[0..($outcomes.Count - 1)]
     $resolvedOutcomes = @(
         Resolve-TenantLifecycleGraph `

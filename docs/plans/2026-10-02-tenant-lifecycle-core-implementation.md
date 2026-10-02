@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -32,8 +32,9 @@
 - Keep `tenant1.local.psd1` as human-reviewed intent and `tenant1.state.local.json` as observed stable state. State cannot introduce desired resources or change a `Manual`, `Blocked`, or `Refused` classification.
 - Use only `NoChange`, `Create`, `Update`, `Manual`, `Blocked`, and `Refused`. A dependent step proceeds only from a fresh successful prerequisite.
 - Canonical JSON is UTF-8 without BOM, ordinal-key-sorted, array-order-preserving, depth 30, one trailing LF, and lowercase SHA-256 over those exact bytes.
-- Evidence filenames are exactly `assessment.json`, `execution-manifest.json`, `approvals.json`, `actions/<ordered-action-id>.json`, `read-back.json`, `pipeline.json`, `power-platform.json`, and `summary.json`.
+- Umbrella evidence filenames are exactly `assessment.json`, `execution-manifest.json`, `approvals.json`, `actions/<stage>.json`, `read-back.json`, `pipeline.json`, `power-platform.json`, and `summary.json`.
 - Approval expires at the earlier of the manifest expiry or 30 minutes after generation. Restart, source, intent, state, machine, tool, context, prerequisite, action, or evidence-root drift invalidates it.
+- The core execution manifest is stage-level: exactly one action per selected umbrella stage in canonical selected-stage order. A provider subsystem may own multiple actions only in its own digest-bound provider manifest; only that manifest's digest may cross the umbrella stage input/evidence boundary.
 - No committed fixture may contain a real tenant ID, subscription ID, application ID, environment URL, private path, credential, token, customer data, or HR data.
 - Each task follows RED/GREEN, focused review, and a focused commit. Use the exact commit trailer `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>`.
 
@@ -357,15 +358,24 @@ param(
     [ValidatePattern('^[0-9a-f]{64}$')][string]$ApprovedDigest,
     [switch]$Apply,
     [Parameter(DontShow)][scriptblock]$SubsystemInvoker,
+    [Parameter(DontShow)][scriptblock]$BindingObserver,
     [datetime]$NowUtc = [datetime]::UtcNow
 )
 ```
 
 The invoker contract is `param([string]$Stage,[string]$Mode,[object]$ControlRecord)` and returns `id`, `stage`, `classification`, `status`, `inputDigest`, `readBackDigest`, `evidenceRelativePath`.
 
+The execution manifest and invoker boundary are amended as follows:
+
+- `actions` contains exactly one lifecycle action for each selected umbrella stage, in canonical selected-stage order. Provider actions never appear in this manifest.
+- The first selected stage has no `prerequisiteActionIds`. Each later selected stage has exactly the immediately preceding selected stage as its sole prerequisite. An independent subset therefore starts with no prerequisite and stays linear across only the selected stages.
+- A provider subsystem may hold multiple provider actions in its own digest-bound provider manifest. Its umbrella stage action references that provider manifest through `desiredPropertiesDigest`; the closed control record exposes only the same opaque `stageInputDigest`, never the provider manifest or its actions. The stage input digest and action evidence bind that value transitively.
+- The invoker continues to return one outcome and one umbrella action-evidence path per stage.
+- `BindingObserver` is a hidden provider-neutral test hook. It receives checkpoint and optional stage labels before revalidation and supplies no provider data, approval material, or path. Production callers omit it.
+
 - [ ] **Step 1: Write failing orchestration and safety tests**
 
-Test stage order, independent subset execution, prerequisite blocking, no `-Apply` without approved digest, `-WhatIf` dominance, no provider executable literals, no credential parameters, no direct import of subsystem scripts, no mutation when an injected stage returns `Manual`, and exact non-secret control-record properties.
+Test stage order, exact stage-level manifest scope, linear prerequisites for full and independently selected subsets, prerequisite blocking, no `-Apply` without approved digest, `-WhatIf` dominance, no provider executable literals, no credential parameters, no direct import of subsystem scripts, no mutation when an injected stage returns `Manual`, and exact non-secret control-record properties. Add RED cases for source/intent/state drift injected after initial validation and between stages, `Assess` and `Plan` with a supplied manifest but no action evidence or read-back, `Invoke` with a null read-back digest, and a nested provider manifest represented only by its opaque digest with no provider actions in the umbrella control record.
 
 - [ ] **Step 2: Run RED**
 
@@ -379,7 +389,7 @@ Expected: **FAIL** because `Invoke-TenantLifecycle.ps1` and its contract are abs
 
 - [ ] **Step 3: Implement the thin orchestrator**
 
-Resolve the run directory with `Resolve-RunbookReportPath`; validate source and private boundary before invoking a selected stage; evaluate prerequisites with Task 3; pass only `runId`, run-directory label, public tenant key, source commit, machine/operator labels, tool identity records, approved digest, and prerequisite outcomes. Default invoker must fail closed with `TenantLifecycle.SubsystemInvoker.Required`; it must not discover or call providers.
+Resolve the run directory with `Resolve-RunbookReportPath`; validate source `HEAD`, source cleanliness, and the private boundary during initial intake. In `Invoke`, rerun those source checks and `Test-TenantLifecyclePrivateBoundary` immediately before `ShouldProcess`, compare source/intent/state to the approved manifest, and repeat the rebind immediately before every subsystem invocation. Drift introduced by an earlier stage or concurrent process blocks later invocation. Evaluate prerequisites with Task 3; pass only `runId`, run-directory label, public tenant key, source commit, machine/operator labels, tool identity records, approved digest, opaque `stageInputDigest`, and prerequisite outcomes. Gate non-null read-back validation, action-evidence correlation, and umbrella summary emission to `Invoke`; `Assess` and `Plan` may use a supplied manifest as context without those requirements. Default invoker must fail closed with `TenantLifecycle.SubsystemInvoker.Required`; it must not discover or call providers.
 
 - [ ] **Step 4: Run GREEN**
 
@@ -387,7 +397,7 @@ Run the RED command again. Expected: **PASS** with injected synthetic invocation
 
 - [ ] **Step 5: Perform focused review**
 
-Compare the script to spec section 4.1. Confirm it is sequencing-only, independently runnable subsystems remain possible, `ShouldProcess` wraps invocation mode, and no token/payload/fallback crosses the interface.
+Compare the script to spec section 4.1. Confirm it is sequencing-only, independently runnable subsets use only their selected-stage chain, the manifest has one action and the invoker one outcome per stage, provider manifests cross only as an opaque stage-input/evidence digest, source/private rebinds occur immediately before `ShouldProcess` and each invocation, `ShouldProcess` wraps invocation mode, and no token/payload/fallback/provider action crosses the interface.
 
 - [ ] **Step 6: Commit**
 

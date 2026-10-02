@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
@@ -107,15 +107,24 @@ Three runbooks remain independently runnable:
 
 The orchestrator passes only shared, non-secret control data:
 
-- run ID and evidence root;
-- explicit private tenant selector and intent path;
+- run ID and run-directory label;
+- public tenant key;
 - source commit;
 - machine and operator identity labels;
 - exact native-tool identities;
-- approved execution-manifest digest; and
+- approved execution-manifest digest;
+- opaque stage-input digest; and
 - prerequisite outcomes.
 
 It never supplies a token, secret, tenant fallback, approval substitute, or provider-specific write payload.
+
+The umbrella execution manifest is explicitly stage-level. It contains exactly one lifecycle action for each selected umbrella stage, in canonical selected-stage order. The first selected stage has no umbrella prerequisite; each later selected stage depends only on the immediately preceding selected stage. This rule applies equally to a full sequential run and an independently selected subset, so omitted stages are not introduced as implicit prerequisites.
+
+A provider subsystem may own a separate digest-bound provider manifest containing multiple provider actions. The corresponding umbrella stage action references only that provider-manifest digest through its desired-properties digest. The closed control record carries the same opaque value as `stageInputDigest`, and the stage outcome and action evidence bind it transitively through their input digest. Neither the provider manifest nor any provider action crosses the umbrella control record, graph, outcome, or summary. The subsystem invoker still returns exactly one outcome for the umbrella stage.
+
+In `Invoke` mode, approval is rebound to current state at every mutation boundary. The orchestrator reruns the source `HEAD` and clean-worktree checks plus the private intent/state boundary immediately before `ShouldProcess`, then repeats the same rebind immediately before each subsystem invocation. Drift introduced by a concurrent process or an earlier stage blocks every later invocation. The hidden test observer receives provider-neutral checkpoint and stage labels only and runs before revalidation; it receives no provider data, approval material, or path, and production callers omit it.
+
+`Assess` and `Plan` may consume a valid execution manifest as context, but they do not require a stage action evidence file or non-null read-back digest and do not write the umbrella summary. Action-evidence correlation, non-null read-back enforcement, and summary emission apply only to `Invoke`.
 
 ### 4.2 Lifecycle and Dependency Order
 
@@ -173,14 +182,14 @@ All raw operational evidence stays outside Git under one selected root:
 ├── execution-manifest.json
 ├── approvals.json
 ├── actions/
-│   └── <ordered-action-id>.json
+│   └── <stage>.json
 ├── read-back.json
 ├── pipeline.json
 ├── power-platform.json
 └── summary.json
 ```
 
-The execution manifest binds the run ID, source commit, machine, private tenant selector, intent digest, state digest, tool identities, provider contexts, ordered actions, prerequisite outcomes, expiry, and evidence root. `approvals.json` records the approved digest, approver role, timestamp, and scope without credentials or approval-session payloads.
+The execution manifest binds the run ID, source commit, machine, private tenant selector, intent digest, state digest, tool identities, provider contexts, ordered stage actions, prerequisite outcomes, expiry, and evidence root. Each umbrella action ID is the selected stage ID and `actions/<stage>.json` is the one correlated umbrella evidence envelope for that stage. Provider-owned manifests and their action evidence remain subsystem records referenced only by digest. `approvals.json` records the approved digest, approver role, timestamp, and scope without credentials or approval-session payloads.
 
 Raw responses, private identifiers beyond the reviewed allowlist, command transcripts, generated parameters, pipeline tokens, and authentication material remain outside Git. A separately reviewed sanitized acceptance record is the only committed run output.
 
