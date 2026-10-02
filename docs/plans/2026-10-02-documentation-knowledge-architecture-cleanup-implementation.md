@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -22,6 +22,7 @@
 ## Global Constraints
 
 - Start execution from commit `a56a521` or a reviewed descendant that contains both approved designs and this plan. At execution time, use `superpowers:using-git-worktrees` to create the isolated branch/worktree selected by that skill.
+- On Windows developer workstations, place external worktrees below `%LOCALAPPDATA%\CaldovaHrFrontier\worktrees\<repository>\<branch>`. Resolve Local AppData with `[Environment]::GetFolderPath('LocalApplicationData')`, create only the task-specific directory, and prove current-user write/delete permission with a unique probe file before `git worktree add`. Do not require elevation or broaden ACLs.
 - Repository-wide lifecycle roots are exactly `docs/ideas/`, `docs/specs/`, and `docs/plans/`.
 - Central idea records remain after graduation. UC-0001 becomes `Graduated`; its detailed package moves to `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/`.
 - Do not preserve, create, infer, rebuild, or modify Azure Boards IDs, links, work items, iterations, teams, areas, or configuration. Central idea rows use `Deferred - not synchronized`.
@@ -723,6 +724,7 @@ git commit -m "docs: archive superseded phase 2 records" `
 - Modify: `.github/cli/tests/DocumentationNavigation.Tests.ps1`
 - Modify: `.github/cli/verify-repository-setup.ps1`
 - Modify: `.github/agents/docs-agent.agent.md`
+- Modify: `.github/copilot-instructions.md`
 - Modify: `.github/cli/tests/DocsAgentContract.Tests.ps1`
 - Modify: `docs/README.md`
 - Modify: `docs/ideas/README.md`
@@ -736,6 +738,7 @@ git commit -m "docs: archive superseded phase 2 records" `
 - Modify: `hr/docs/use-cases/README.md`
 - Create: `infra/docs/README.md`
 - Modify: `infra/README.md`
+- Modify: `infra/docs/runbooks/01-developer-workstation.md`
 - Modify: `data/README.md`
 - Modify: `docs/reviews/2026-10-02-documentation-knowledge-architecture-migration-review.md`
 
@@ -930,7 +933,26 @@ Update `.github/agents/docs-agent.agent.md` so its mandatory outputs include:
 
 Update `DocsAgentContract.Tests.ps1` to assert those phrases and the canonical paths.
 
-- [ ] **Step 7: Run navigation, docs-agent, metadata, links, and setup validation**
+- [ ] **Step 7: Document the external worktree convention**
+
+Add this Windows convention to `.github/copilot-instructions.md` and `infra/docs/runbooks/01-developer-workstation.md`:
+
+```powershell
+$localAppData = [Environment]::GetFolderPath('LocalApplicationData')
+if ([string]::IsNullOrWhiteSpace($localAppData)) {
+    throw 'LocalApplicationData is unavailable.'
+}
+$worktreeRoot = Join-Path $localAppData 'CaldovaHrFrontier\worktrees'
+$repositoryRoot = Join-Path $worktreeRoot 'caldova-hr-frontier'
+New-Item -ItemType Directory -Path $repositoryRoot -Force | Out-Null
+$probe = Join-Path $repositoryRoot ('.write-probe-{0}.tmp' -f [guid]::NewGuid().ToString('N'))
+[IO.File]::WriteAllText($probe, 'permission-probe', [Text.UTF8Encoding]::new($false))
+Remove-Item -LiteralPath $probe -Force
+```
+
+State that task worktrees append a sanitized branch name below this repository root, require no administrator rights, and are removed through `git worktree remove` after branch completion. Never loosen directory ACLs automatically; a failed probe is a blocking workstation prerequisite.
+
+- [ ] **Step 8: Run navigation, docs-agent, metadata, links, and setup validation**
 
 Run:
 
@@ -954,7 +976,7 @@ git diff --check
 
 Expected: all selected tests pass and the setup validator prints `Repository setup validation passed.`
 
-- [ ] **Step 8: Update migration evidence and commit**
+- [ ] **Step 9: Update migration evidence and commit**
 
 ```powershell
 git add -- '.github' 'docs' 'hr' 'infra' 'data'
