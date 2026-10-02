@@ -43,7 +43,7 @@ This folder contains detailed, reviewable artifacts for graduated HR use cases. 
 ## Domain links
 
 - [Central ideas](../../../docs/ideas/README.md)
-- [HR documentation](../README.md)
+- [HR documentation](../../README.md)
 - [Platform requirements](../../../docs/prd.md)
 - [Solution design](../../../docs/solution-design.md)
 - [HR journey and RACI](../../../docs/hr-journey-and-raci.md)

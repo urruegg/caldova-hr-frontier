@@ -16,4 +16,4 @@
 - Run manifest: C:\Users\anrizzi\Repositories\caldova-hr-frontier.worktrees\issue-13-ai-builder-setup-worktree\hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\run-manifest.json
 - Corpus quality: C:\Users\anrizzi\Repositories\caldova-hr-frontier.worktrees\issue-13-ai-builder-setup-worktree\hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\corpus-quality.json
 - Model schema record: C:\Users\anrizzi\Repositories\caldova-hr-frontier.worktrees\issue-13-ai-builder-setup-worktree\hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\model-schema-fixed.json
-- Ground truth: C:\Users\anrizzi\Repositories\caldova-hr-frontier.worktrees\issue-13-ai-builder-setup-worktree\hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template\ground-truth.json
+- Ground truth: C:\Users\anrizzi\Repositories\caldova-hr-frontier.worktrees\issue-13-ai-builder-setup-worktree\hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template\ground-truth.json

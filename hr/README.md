@@ -16,17 +16,21 @@
 ## Structure
 
 ```text
+docs/
+└── ideas/                    central use case portfolio
+    ├── README.md             index, lifecycle, waves, journey placement
+    ├── uc-0001-….md          graduated idea record
+    └── uc-0002 … uc-0019.md  candidate idea records
+
 hr/
 ├── README.md                  this file
 ├── docs/
-│   ├── ideas/                 the use case portfolio
-│   │   ├── README.md          index, waves, journey placement
-│   │   ├── uc-0001-personal-master-data-completion-agent/
-│   │   │   ├── README.md      the MVP use case folder
-│   │   │   ├── uc-0001-….md   the use case
-│   │   │   └── prd-0001-….md  the requirements  ◀ authoritative
-│   │   └── uc-0002 … uc-0019.md
-│   └── (use-case folders join here as they graduate)
+│   └── use-cases/             graduated HR use-case detail
+│       ├── README.md          domain package index
+│       └── uc-0001-personal-master-data-completion-agent/
+│           ├── README.md      the MVP use case package
+│           ├── prd-0001-….md  the requirements  ◀ authoritative
+│           └── supporting BoMs, guidance, architecture, and test material
 └── src/
     ├── apps/                  Power Apps Code App projects
     │   └── hr-control-plane/  wireframe shell (no functional code yet)
