@@ -307,6 +307,29 @@ Describe 'Tenant lifecycle intent and state separation' {
             $InputObject | ConvertTo-Json -Depth 30 | ConvertFrom-Json
         }
 
+        function New-ReviewedIntentResource {
+            param(
+                [Parameter(Mandatory)]
+                [ValidateSet('Existing', 'Create')]
+                [string]$Mode,
+
+                [string]$LogicalName = 'component-001',
+
+                [string]$Id
+            )
+
+            $resource = [ordered]@{
+                provider = 'Synthetic'
+                resourceType = 'SyntheticResource'
+                logicalName = $LogicalName
+                Mode = $Mode
+            }
+            if ($PSBoundParameters.ContainsKey('Id')) {
+                $resource.Id = $Id
+            }
+            [pscustomobject]$resource
+        }
+
         function Reset-SyntheticPrivatePair {
             $intent = Get-Content -Raw -LiteralPath (
                 Join-Path $script:RepositoryRoot 'infra\src\config\tenants\_template.psd1'
@@ -576,8 +599,52 @@ Describe 'Tenant lifecycle intent and state separation' {
             Should -Be 2
     }
 
-    It 'updates only observed fields on an existing state resource after exact read-back' {
+    It 'uses the tracked state ignore rule in the actual repository' {
+        $rules = Get-Content -LiteralPath (Join-Path $script:RepositoryRoot '.gitignore')
+        $rules | Should -Contain 'infra/src/config/tenants/*.state.local.json'
+
+        & git -C $script:RepositoryRoot check-ignore --quiet -- (
+            'infra/src/config/tenants/tenant1.state.local.json'
+        )
+        $LASTEXITCODE | Should -Be 0
+    }
+
+    It 'updates only observed fields for matching Existing reviewed intent' {
         $state = Copy-LifecycleValue $script:Fixture.state
+        $reviewedIntentResource = New-ReviewedIntentResource `
+            -Mode Existing `
+            -Id 'stable-synthetic-001'
+        $verifiedResource = [pscustomobject]@{
+            provider = 'Synthetic'
+            resourceType = 'SyntheticResource'
+            logicalName = 'component-001'
+            stableId = 'stable-synthetic-001'
+            ownedPropertiesDigest = 'f' * 64
+            exactReadBack = $true
+        }
+        $now = [datetime]::SpecifyKind([datetime]'2026-10-02T14:30:00', [DateTimeKind]::Utc)
+
+        $updated = Update-TenantLifecycleState `
+            -State $state `
+            -ReviewedIntentResource $reviewedIntentResource `
+            -VerifiedResource $verifiedResource `
+            -NowUtc $now
+
+        $state.resources[0].stableId | Should -BeExactly 'stable-synthetic-001'
+        $updated.resources[0].provider | Should -BeExactly 'Synthetic'
+        $updated.resources[0].resourceType | Should -BeExactly 'SyntheticResource'
+        $updated.resources[0].logicalName | Should -BeExactly 'component-001'
+        $updated.resources[0].stableId | Should -BeExactly 'stable-synthetic-001'
+        $updated.resources[0].lastVerifiedAtUtc | Should -BeExactly '2026-10-02T14:30:00.0000000Z'
+        $updated.resources[0].ownedPropertiesDigest | Should -BeExactly ('f' * 64)
+        Test-TenantLifecycleContract -Kind State -InputObject $updated | Should -BeTrue
+    }
+
+    It 'rejects a stable ID change for Existing reviewed intent' {
+        $state = Copy-LifecycleValue $script:Fixture.state
+        $reviewedIntentResource = New-ReviewedIntentResource `
+            -Mode Existing `
+            -Id 'stable-synthetic-001'
         $verifiedResource = [pscustomobject]@{
             provider = 'Synthetic'
             resourceType = 'SyntheticResource'
@@ -586,25 +653,76 @@ Describe 'Tenant lifecycle intent and state separation' {
             ownedPropertiesDigest = 'f' * 64
             exactReadBack = $true
         }
-        $now = [datetime]::SpecifyKind([datetime]'2026-10-02T14:30:00', [DateTimeKind]::Utc)
 
-        $updated = Update-TenantLifecycleState `
-            -State $state `
-            -VerifiedResource $verifiedResource `
-            -NowUtc $now
-
-        $state.resources[0].stableId | Should -BeExactly 'stable-synthetic-001'
-        $updated.resources[0].provider | Should -BeExactly 'Synthetic'
-        $updated.resources[0].resourceType | Should -BeExactly 'SyntheticResource'
-        $updated.resources[0].logicalName | Should -BeExactly 'component-001'
-        $updated.resources[0].stableId | Should -BeExactly 'stable-synthetic-002'
-        $updated.resources[0].lastVerifiedAtUtc | Should -BeExactly '2026-10-02T14:30:00.0000000Z'
-        $updated.resources[0].ownedPropertiesDigest | Should -BeExactly ('f' * 64)
-        Test-TenantLifecycleContract -Kind State -InputObject $updated | Should -BeTrue
+        {
+            Update-TenantLifecycleState `
+                -State $state `
+                -ReviewedIntentResource $reviewedIntentResource `
+                -VerifiedResource $verifiedResource `
+                -NowUtc ([datetime]::UtcNow)
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.Intent'
     }
 
-    It 'refuses state adoption without exact read-back or a pre-existing reviewed resource' {
+    It 'requires the reviewed intent resource and rejects an identity mismatch' {
         $state = Copy-LifecycleValue $script:Fixture.state
+        $verifiedResource = [pscustomobject]@{
+            provider = 'Synthetic'
+            resourceType = 'SyntheticResource'
+            logicalName = 'component-001'
+            stableId = 'stable-synthetic-001'
+            ownedPropertiesDigest = 'f' * 64
+            exactReadBack = $true
+        }
+
+        {
+            Update-TenantLifecycleState `
+                -State $state `
+                -VerifiedResource $verifiedResource `
+                -NowUtc ([datetime]::UtcNow)
+        } | Should -Throw -ExpectedMessage '*ReviewedIntentResource*'
+
+        $wrongIntentResource = New-ReviewedIntentResource `
+            -Mode Existing `
+            -LogicalName 'component-999' `
+            -Id 'stable-synthetic-001'
+        {
+            Update-TenantLifecycleState `
+                -State $state `
+                -ReviewedIntentResource $wrongIntentResource `
+                -VerifiedResource $verifiedResource `
+                -NowUtc ([datetime]::UtcNow)
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.Intent'
+    }
+
+    It 'rejects an inexact reviewed intent mode' {
+        $state = Copy-LifecycleValue $script:Fixture.state
+        $reviewedIntentResource = [pscustomobject]@{
+            provider = 'Synthetic'
+            resourceType = 'SyntheticResource'
+            logicalName = 'component-001'
+            Mode = 'create'
+        }
+        $verifiedResource = [pscustomobject]@{
+            provider = 'Synthetic'
+            resourceType = 'SyntheticResource'
+            logicalName = 'component-001'
+            stableId = 'stable-synthetic-002'
+            ownedPropertiesDigest = 'f' * 64
+            exactReadBack = $true
+        }
+
+        {
+            Update-TenantLifecycleState `
+                -State $state `
+                -ReviewedIntentResource $reviewedIntentResource `
+                -VerifiedResource $verifiedResource `
+                -NowUtc ([datetime]::UtcNow)
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.Intent'
+    }
+
+    It 'adopts a verified stable ID only for matching Create reviewed intent' {
+        $state = Copy-LifecycleValue $script:Fixture.state
+        $reviewedIntentResource = New-ReviewedIntentResource -Mode Create
         $unverified = [pscustomobject]@{
             provider = 'Synthetic'
             resourceType = 'SyntheticResource'
@@ -616,26 +734,71 @@ Describe 'Tenant lifecycle intent and state separation' {
         {
             Update-TenantLifecycleState `
                 -State $state `
+                -ReviewedIntentResource $reviewedIntentResource `
                 -VerifiedResource $unverified `
                 -NowUtc ([datetime]::UtcNow)
         } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.ReadBack'
 
-        $unknown = Copy-LifecycleValue $unverified
-        $unknown.logicalName = 'component-999'
-        $unknown.exactReadBack = $true
+        $verified = Copy-LifecycleValue $unverified
+        $verified.exactReadBack = $true
+        $updated = Update-TenantLifecycleState `
+            -State $state `
+            -ReviewedIntentResource $reviewedIntentResource `
+            -VerifiedResource $verified `
+            -NowUtc (
+                [datetime]::SpecifyKind(
+                    [datetime]'2026-10-02T15:30:00',
+                    [DateTimeKind]::Utc
+                )
+            )
+
+        $state.resources[0].stableId | Should -BeExactly 'stable-synthetic-001'
+        $updated.resources[0].stableId | Should -BeExactly 'stable-synthetic-002'
+        $updated.resources[0].lastVerifiedAtUtc |
+            Should -BeExactly '2026-10-02T15:30:00.0000000Z'
+        $updated.resources[0].ownedPropertiesDigest | Should -BeExactly ('f' * 64)
+    }
+
+    It 'refuses state adoption without a pre-existing state resource' {
+        $state = Copy-LifecycleValue $script:Fixture.state
+        $unknownIntent = New-ReviewedIntentResource `
+            -Mode Create `
+            -LogicalName 'component-999'
+        $unknown = [pscustomobject]@{
+            provider = 'Synthetic'
+            resourceType = 'SyntheticResource'
+            logicalName = 'component-999'
+            stableId = 'stable-synthetic-999'
+            ownedPropertiesDigest = 'f' * 64
+            exactReadBack = $true
+        }
+
         {
             Update-TenantLifecycleState `
                 -State $state `
+                -ReviewedIntentResource $unknownIntent `
                 -VerifiedResource $unknown `
                 -NowUtc ([datetime]::UtcNow)
         } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.Resource'
+    }
 
-        $classificationChange = Copy-LifecycleValue $unverified
-        $classificationChange.exactReadBack = $true
-        $classificationChange | Add-Member -NotePropertyName classification -NotePropertyValue 'Manual'
+    It 'rejects fields outside the exact read-back contract' {
+        $state = Copy-LifecycleValue $script:Fixture.state
+        $reviewedIntentResource = New-ReviewedIntentResource -Mode Create
+        $classificationChange = [pscustomobject]@{
+            provider = 'Synthetic'
+            resourceType = 'SyntheticResource'
+            logicalName = 'component-001'
+            stableId = 'stable-synthetic-002'
+            ownedPropertiesDigest = 'f' * 64
+            exactReadBack = $true
+            classification = 'Manual'
+        }
+
         {
             Update-TenantLifecycleState `
                 -State $state `
+                -ReviewedIntentResource $reviewedIntentResource `
                 -VerifiedResource $classificationChange `
                 -NowUtc ([datetime]::UtcNow)
         } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.ReadBack'

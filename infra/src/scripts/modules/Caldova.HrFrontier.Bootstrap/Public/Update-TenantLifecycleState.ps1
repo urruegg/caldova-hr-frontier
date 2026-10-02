@@ -5,6 +5,9 @@ function Update-TenantLifecycleState {
         [object]$State,
 
         [Parameter(Mandatory)]
+        [object]$ReviewedIntentResource,
+
+        [Parameter(Mandatory)]
         [object]$VerifiedResource,
 
         [Parameter(Mandatory)]
@@ -54,6 +57,42 @@ function Update-TenantLifecycleState {
         throw [IO.InvalidDataException]::new('TenantLifecycle.State.ReadBack')
     }
 
+    $intentProperties = @(
+        $ReviewedIntentResource.PSObject.Properties |
+            Where-Object { $_.MemberType -in @('NoteProperty', 'Property', 'AliasProperty') }
+    )
+    $intentFields = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($property in $intentProperties) {
+        [void]$intentFields.Add($property.Name)
+    }
+    $intentMode = [string]$ReviewedIntentResource.Mode
+    $expectedIntentFields = @('provider', 'resourceType', 'logicalName', 'Mode')
+    if ($intentMode -ceq 'Existing') {
+        $expectedIntentFields += 'Id'
+    }
+    if ($intentMode -cnotin @('Existing', 'Create') -or
+        $intentProperties.Count -ne $expectedIntentFields.Count -or
+        @($expectedIntentFields | Where-Object { -not $intentFields.Contains($_) }).Count -ne 0) {
+        throw [IO.InvalidDataException]::new('TenantLifecycle.State.Intent')
+    }
+
+    foreach ($name in @('provider', 'resourceType', 'logicalName')) {
+        $value = $ReviewedIntentResource.PSObject.Properties[$name].Value
+        if ($value -isnot [string] -or
+            $value.Length -gt 128 -or
+            $value -cnotmatch '^[A-Za-z0-9][A-Za-z0-9._:-]*$' -or
+            [string]$value -cne [string]$VerifiedResource.PSObject.Properties[$name].Value) {
+            throw [IO.InvalidDataException]::new('TenantLifecycle.State.Intent')
+        }
+    }
+    if ($intentMode -ceq 'Existing' -and
+        ($ReviewedIntentResource.Id -isnot [string] -or
+            [string]::IsNullOrWhiteSpace([string]$ReviewedIntentResource.Id) -or
+            ([string]$ReviewedIntentResource.Id).Length -gt 2048 -or
+            [string]$ReviewedIntentResource.Id -match '[\x00-\x1f]')) {
+        throw [IO.InvalidDataException]::new('TenantLifecycle.State.Intent')
+    }
+
     $matchingIndexes = @()
     for ($index = 0; $index -lt @($State.resources).Count; $index++) {
         $resource = @($State.resources)[$index]
@@ -67,9 +106,18 @@ function Update-TenantLifecycleState {
         throw [IO.InvalidDataException]::new('TenantLifecycle.State.Resource')
     }
 
+    $currentResource = @($State.resources)[$matchingIndexes[0]]
+    if ($intentMode -ceq 'Existing' -and
+        ([string]$ReviewedIntentResource.Id -cne [string]$currentResource.stableId -or
+            [string]$ReviewedIntentResource.Id -cne [string]$VerifiedResource.stableId)) {
+        throw [IO.InvalidDataException]::new('TenantLifecycle.State.Intent')
+    }
+
     $updated = $State | ConvertTo-Json -Depth 30 | ConvertFrom-Json
     $target = @($updated.resources)[$matchingIndexes[0]]
-    $target.stableId = [string]$VerifiedResource.stableId
+    if ($intentMode -ceq 'Create') {
+        $target.stableId = [string]$VerifiedResource.stableId
+    }
     $target.lastVerifiedAtUtc = $NowUtc.ToString(
         'yyyy-MM-ddTHH:mm:ss.fffffffZ',
         [Globalization.CultureInfo]::InvariantCulture

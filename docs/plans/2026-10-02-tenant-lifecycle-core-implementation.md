@@ -151,7 +151,7 @@ git commit -m "feat(runbooks): add lifecycle contract schemas" -m "Co-authored-b
 - Consumes: `Import-TenantConfiguration -Path <tenant1.local.psd1>` and Task 1 state contract.
 - Produces: `Test-TenantLifecyclePrivateBoundary -PublicTenantKey tenant1 -IntentPath <absolute> -StatePath <absolute> -RepositoryRoot <absolute> -NativeCommandRunner <scriptblock>`.
 - Produces: `Import-TenantLifecycleState -Path <absolute> -PublicTenantKey tenant1`.
-- Produces: `Update-TenantLifecycleState -State <object> -VerifiedResource <object> -NowUtc <datetime>`; the resource must already exist in reviewed intent and have exact post-read proof.
+- Produces: `Update-TenantLifecycleState -State <object> -ReviewedIntentResource <object> -VerifiedResource <object> -NowUtc <datetime>`; the resource must already exist in reviewed intent and state and have exact post-read proof.
 
 - [ ] **Step 1: Write failing separation tests**
 
@@ -179,10 +179,13 @@ Test-TenantLifecyclePrivateBoundary `
 Import-TenantLifecycleState -Path <string> -PublicTenantKey <string>
 
 Update-TenantLifecycleState `
-  -State <object> -VerifiedResource <object> -NowUtc <datetime>
+  -State <object> -ReviewedIntentResource <object> `
+  -VerifiedResource <object> -NowUtc <datetime>
 ```
 
-Return a sanitized boundary record containing only `publicTenantKey`, relative labels, existence/ignored/tracked/schema statuses, and intent/state digests. Never return private values or hash a private value into committed evidence. `Update-TenantLifecycleState` may update only `stableId`, `lastVerifiedAtUtc`, and `ownedPropertiesDigest` after exact read-back.
+`ReviewedIntentResource` is a closed normalized resource with `provider`, `resourceType`, `logicalName`, and `Mode`, plus `Id` for `Existing`. Its identity must match the exact verified resource and exactly one resource already represented in state. `Existing` keeps the reviewed `Id` unchanged; `Create` may adopt the exact verified stable ID only after exact read-back.
+
+Return a sanitized boundary record containing only `publicTenantKey`, relative labels, existence/ignored/tracked/schema statuses, and intent/state digests. Never return private values or hash a private value into committed evidence. `Update-TenantLifecycleState` may update only `stableId` for `Create`, plus `lastVerifiedAtUtc` and `ownedPropertiesDigest`, after exact read-back.
 
 - [ ] **Step 4: Run GREEN**
 
