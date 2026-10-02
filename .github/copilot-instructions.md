@@ -15,6 +15,11 @@ This repository bundles agent skills in `.github/skills/`; no machine-level Supe
 
 Maintained repository documentation is written in English and follows [the documentation policy](../docs/README.md). Use [`.github/agents/docs-agent.agent.md`](agents/docs-agent.agent.md) as the documentation policy owner. Preserve the documented exclusions and never edit vendored Superpowers content to enforce repository metadata.
 
+**Repository documentation path override.** Store approved design specifications in
+`docs/specs/` and implementation plans in `docs/plans/`. These repository-owned
+paths override the vendored Superpowers default `docs/superpowers/` locations.
+Do not edit vendored skills to change their examples.
+
 ---
 
 You are working in the design repository for Caldova's HR agentic platform. This file tells you how to find evidence here and what you must not do.

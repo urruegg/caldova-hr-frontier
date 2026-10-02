@@ -243,3 +243,36 @@ Five moved Markdown files changed only for approved navigation, metadata-scope, 
 | Protected-surface diff from `53b07c0` | Passed: no changes under `.github/workflows`, `infra/src/config`, `infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1`, or the baseline manifest |
 
 No rollback was required. The one non-green full targeted run was retained as diagnostic evidence, repaired at the active source links, and followed by a complete green rerun.
+
+## Task 3 - Canonical Specifications and Plans
+
+Task 3 removed the repository-owned `docs/superpowers/` documentation root and consolidated its two specifications and five implementation plans under the canonical roots. The Task 3 start hashes below were observed at `b6c7920fbb762946320e1d76bcbd6ad267d8364d`, after Task 2 link repairs and before these moves. Result hashes include only move-coupled canonical path and relative-link repairs.
+
+| Old path | Canonical path | Task 3 start SHA-256 | Task 3 result SHA-256 | Disposition |
+|---|---|---|---|---|
+| `docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md` | `docs/specs/2026-09-25-tenant-2-ai-builder-models-design.md` | `9121f564fcd401dc7a583486d99bebe23625a35890355b643d288094e1179710` | `2ab1fee0c019ccd126fd267b8b1bb7d77ce51015251c2aa97b42d95f2c7b91a5` | Moved; repaired canonical ADR, specification, PRD, and BoM links. |
+| `docs/superpowers/specs/2026-09-29-ai-builder-evaluation-capture-design.md` | `docs/specs/2026-09-29-ai-builder-evaluation-capture-design.md` | `d9954cc0f4fa5a2b0bcde291626e7029534c180d72d6363a8615e58798aa4e2c` | `76ec75e6352e44a884f286153b54bdc1d04f04ed267fcaacba83051b10b6440a` | Moved; repaired canonical ADR and retained-evidence links. |
+| `docs/superpowers/plans/2026-09-25-tenant-2-ai-builder-models-implementation.md` | `docs/plans/2026-09-25-tenant-2-ai-builder-models-implementation.md` | `6baf1ed8d277e04162d73dc5485d5aaaa5c567ac97785c48b64e94d0f8fe69a1` | `191f7aab8824c5e20d28626ee1caf38d257f7890b687cf5d1f7356b923b06556` | Moved; replaced the explicit legacy specification label with the canonical path. |
+| `docs/superpowers/plans/2026-09-26-runbook-cloud-foundation.md` | `docs/plans/2026-09-26-runbook-cloud-foundation.md` | `d022fc916f0bbde92c9cb1486758a792631090bb07f52477204c71d29e58ce4d` | `03c8b4aa8903d41fe82fef8a85c8b8800da02dc5d59c6b91f2111922bcb83d97` | Moved; repaired metadata links for the canonical plan depth. |
+| `docs/superpowers/plans/2026-09-26-runbook-customer-handover.md` | `docs/plans/2026-09-26-runbook-customer-handover.md` | `d18979cb8887f06bc55636f2838ae132689aa5f95d0fa725ad71ce994aa54a5b` | `a61988b808ac5e38384bdf9a881a06ed4ee1965051352d54d62e58583fe1b3ad` | Moved; repaired metadata links and the plan's explicit self-path. |
+| `docs/superpowers/plans/2026-09-26-runbook-foundation-workstation.md` | `docs/plans/2026-09-26-runbook-foundation-workstation.md` | `24baf3775f0badae2ef2a3abaf8d4bcedd0a0afcf9b05768c0280fabe1320c7d` | `471d2d85e5decb49b364a396b784ebe81a0748e63199a2c6ae5e0a5ce405c886` | Moved; repaired metadata links for the canonical plan depth. |
+| `docs/superpowers/plans/2026-09-29-ai-builder-evaluation-capture-implementation.md` | `docs/plans/2026-09-29-ai-builder-evaluation-capture-implementation.md` | `0f085a6105ca6e04892a01187fd3f1ff8e852af6bd953e2b8781ca0060b5cb71` | `dad0d1e34f38a12c29f8d19249c3a0bb4cb54dec2c2686a17c0f67a5d26934fc` | Moved; repaired the documentation-policy link and explicit specification path. |
+
+Active AI Builder consumers now reference `docs/specs/` and the already canonical `hr/docs/use-cases/` BoMs. `DocsAgentContract.Tests.ps1` reads the moved AI Builder design from `docs/specs/`. The repository-owned placement override is recorded in `.github/copilot-instructions.md` and referenced from `AGENTS.md`; vendored skills remain unchanged.
+
+The specification catalogue lists all 18 direct Markdown children other than `README.md` exactly once. The plan catalogue lists all 21 direct Markdown children other than `README.md` exactly once. Catalogue statuses match the documents' metadata, and every row records purpose, authority, and a linked successor or next stage.
+
+### Task 3 validation results
+
+| Command or gate | Outcome |
+|---|---|
+| RED: `DocumentationNavigation.Tests.ps1` | Expected failure observed: 3 passed, 2 failed; the legacy root still existed and canonical targets were absent. |
+| First GREEN attempt | 4 passed, 1 failed; all seven canonical targets existed, but empty physical `docs/superpowers/plans/` and `docs/superpowers/specs/` directories remained after `git mv`. |
+| Focused GREEN rerun after verified empty-directory removal | Passed: 5 passed, 0 failed. |
+| Catalogue completeness and status comparison | Passed: 18 specifications and 21 plans, each listed exactly once with matching metadata status. |
+| Required four-file Pester run | Passed: 186 passed, 0 failed, 0 skipped, 0 not run. |
+| `git diff --check` | Passed (exit 0). |
+| VS Code problem diagnostics for changed PowerShell tests | No errors found. |
+| Protected-surface diff | Passed: no changes below `.github/skills/`, `.github/workflows/`, `docs/archive/`, `infra/src/config/`, or the baseline manifest. |
+
+No Azure Boards configuration, workflow, live system, corpus binary, immutable evidence binary, archive path, or baseline-manifest content was changed.

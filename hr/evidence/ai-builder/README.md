@@ -7,7 +7,7 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | UC-0001 AI Builder evidence contract |
-| **References** | [AI Builder Evaluation Capture Design Addendum](../../../docs/superpowers/specs/2026-09-29-ai-builder-evaluation-capture-design.md), [Tenant 2 AI Builder Model Implementation Design](../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md), [HR script tooling](../../src/scripts/README.md) |
+| **References** | [AI Builder Evaluation Capture Design Addendum](../../../docs/specs/2026-09-29-ai-builder-evaluation-capture-design.md), [Tenant 2 AI Builder Model Implementation Design](../../../docs/specs/2026-09-25-tenant-2-ai-builder-models-design.md), [HR script tooling](../../src/scripts/README.md) |
 
 This folder holds tenant-local evidence for attended AI Builder evaluation runs. The fixed training history and the preserved no-flow blocker remain part of the record; the approved capture path for resumed evaluation is the restricted Power Automate `Process documents` flow described in the addendum.
 

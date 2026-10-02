@@ -7,7 +7,7 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | HR Solution Architecture - Tenant 2 DEV AI Builder evaluation capture |
-| **References** | [Tenant 2 AI Builder Model Implementation Design](2026-09-25-tenant-2-ai-builder-models-design.md), [Tenant 2 AI Builder Model Sprint Implementation Plan](../plans/2026-09-25-tenant-2-ai-builder-models-implementation.md), [ADR-0011](../../adr/0011-workflow-first-process-architecture.md), [blocked capture evidence](../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-test-capability.json) |
+| **References** | [Tenant 2 AI Builder Model Implementation Design](2026-09-25-tenant-2-ai-builder-models-design.md), [Tenant 2 AI Builder Model Sprint Implementation Plan](../plans/2026-09-25-tenant-2-ai-builder-models-implementation.md), [ADR-0011](../adr/0011-workflow-first-process-architecture.md), [blocked capture evidence](../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-test-capability.json) |
 
 ## 1. Status, Authority, and Scope
 
@@ -28,7 +28,7 @@ It does not authorize the general model, Tenant 1 work, a business workflow, or 
 
 ## 2. Problem Statement and Preserved Evidence
 
-Run `t2-dev-20260925-001` reached a valid stop after `PersonalMasterDataFixed` version `1.0` was trained. The [blocked capability record](../../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-test-capability.json) establishes that AI Builder Quick Test displayed field values and confidence scores but supplied no supported machine-readable export, retained raw bytes, or exact input-document identity. Only visual results and the `Start over` and `Close` actions were available.
+Run `t2-dev-20260925-001` reached a valid stop after `PersonalMasterDataFixed` version `1.0` was trained. The [blocked capability record](../../hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-test-capability.json) establishes that AI Builder Quick Test displayed field values and confidence scores but supplied no supported machine-readable export, retained raw bytes, or exact input-document identity. Only visual results and the `Start over` and `Close` actions were available.
 
 The existing evidence contract correctly rejected screenshots and manual transcription. As a result:
 
@@ -138,7 +138,7 @@ Publishing makes the model available to users in the current environment. That p
 | `AEC-C08` | Local adapter | Reads retained source and raw JSON bytes, independently hashes the source PDF, verifies correlation, reproduces the canonical capture, and supplies the existing evaluator. |
 | `AEC-C09` | Repository evaluator | Calculates result rows, metrics, confidence distribution, lifecycle disposition, and strict gates. Operator-entered pass flags are not accepted. |
 
-No Dataverse table is required. The flow is a deterministic evidence-capture mechanism consistent with [ADR-0011](../../adr/0011-workflow-first-process-architecture.md); it contains no agent or judgement node.
+No Dataverse table is required. The flow is a deterministic evidence-capture mechanism consistent with [ADR-0011](../adr/0011-workflow-first-process-architecture.md); it contains no agent or judgement node.
 
 ## 7. End-to-End Data Flow
 

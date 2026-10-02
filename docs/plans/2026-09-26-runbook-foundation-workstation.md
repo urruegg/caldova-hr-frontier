@@ -7,7 +7,7 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure runbook contracts and Windows 11 developer workstation readiness |
-| **References** | [Operational Runbooks Design](../../specs/2026-09-26-operational-runbooks-design.md), [Documentation Policy](../../README.md), [Infrastructure Domain](../../../infra/README.md) |
+| **References** | [Operational Runbooks Design](../specs/2026-09-26-operational-runbooks-design.md), [Documentation Policy](../README.md), [Infrastructure Domain](../../infra/README.md) |
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

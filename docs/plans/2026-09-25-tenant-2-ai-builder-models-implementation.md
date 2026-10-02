@@ -17,7 +17,7 @@
 
 **Tech Stack:** PowerShell 5.1+, Pester 5.7.1, Microsoft Power Platform CLI (`pac`), AI Builder maker portal, JSON, CSV, Markdown, GitHub CLI (`gh`), and the existing deterministic Python/ReportLab document generators.
 
-**Spec:** [`docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md`](../specs/2026-09-25-tenant-2-ai-builder-models-design.md)
+**Spec:** [`docs/specs/2026-09-25-tenant-2-ai-builder-models-design.md`](../specs/2026-09-25-tenant-2-ai-builder-models-design.md)
 
 ## Global Constraints
 

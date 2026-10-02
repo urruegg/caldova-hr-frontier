@@ -33,3 +33,23 @@ Describe 'Central idea portfolio and HR use-case detail' {
         $catalogue | Should -Not -Match 'AB#\d+'
     }
 }
+
+Describe 'Canonical specification and plan roots' {
+    It 'has no repository documentation below docs/superpowers' {
+        (Join-Path $script:repositoryRoot 'docs\superpowers') | Should -Not -Exist
+    }
+
+    It 'stores the two AI Builder designs and five plans in canonical roots' {
+        foreach ($relativePath in @(
+            'docs/specs/2026-09-25-tenant-2-ai-builder-models-design.md'
+            'docs/specs/2026-09-29-ai-builder-evaluation-capture-design.md'
+            'docs/plans/2026-09-25-tenant-2-ai-builder-models-implementation.md'
+            'docs/plans/2026-09-26-runbook-cloud-foundation.md'
+            'docs/plans/2026-09-26-runbook-customer-handover.md'
+            'docs/plans/2026-09-26-runbook-foundation-workstation.md'
+            'docs/plans/2026-09-29-ai-builder-evaluation-capture-implementation.md'
+        )) {
+            Join-Path $script:repositoryRoot $relativePath | Should -Exist
+        }
+    }
+}

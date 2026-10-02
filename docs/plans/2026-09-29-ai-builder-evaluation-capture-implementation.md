@@ -7,7 +7,7 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | HR Solution Architecture - Tenant 2 DEV AI Builder evaluation capture and issue 13 completion |
-| **References** | [AI Builder Evaluation Capture Design Addendum](../specs/2026-09-29-ai-builder-evaluation-capture-design.md), [Original Tenant 2 AI Builder Model Sprint Plan](./2026-09-25-tenant-2-ai-builder-models-implementation.md), [Documentation Policy](../../README.md) |
+| **References** | [AI Builder Evaluation Capture Design Addendum](../specs/2026-09-29-ai-builder-evaluation-capture-design.md), [Original Tenant 2 AI Builder Model Sprint Plan](./2026-09-25-tenant-2-ai-builder-models-implementation.md), [Documentation Policy](../README.md) |
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -17,7 +17,7 @@
 
 **Tech Stack:** Windows PowerShell 5.1, Pester 5.7.1, JSON Schema draft 2020-12, SHA-256, UTF-8 JSON, Microsoft Power Apps and AI Builder, Microsoft Power Automate, Tenant 2 OneDrive or SharePoint, Microsoft Power Platform CLI (`pac`), Git, and GitHub CLI (`gh`).
 
-**Spec:** `docs/superpowers/specs/2026-09-29-ai-builder-evaluation-capture-design.md`
+**Spec:** `docs/specs/2026-09-29-ai-builder-evaluation-capture-design.md`
 
 ## Supersession and preserved work
 

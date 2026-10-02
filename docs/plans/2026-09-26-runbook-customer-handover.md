@@ -7,7 +7,7 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure customer repository export and handover |
-| **References** | [Operational Runbooks Design](../../specs/2026-09-26-operational-runbooks-design.md), [Runbook Foundation Plan](2026-09-26-runbook-foundation-workstation.md), [Documentation Policy](../../README.md), [Infrastructure Domain](../../../infra/README.md) |
+| **References** | [Operational Runbooks Design](../specs/2026-09-26-operational-runbooks-design.md), [Runbook Foundation Plan](2026-09-26-runbook-foundation-workstation.md), [Documentation Policy](../README.md), [Infrastructure Domain](../../infra/README.md) |
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -1621,7 +1621,7 @@ Expected: no uncovered customer-export requirement; unrelated cloud/workstation 
 - [ ] **Step 7: Self-review placeholders and interface consistency**
 
 ```powershell
-$planPath = 'docs/superpowers/plans/2026-09-26-runbook-customer-handover.md'
+$planPath = 'docs/plans/2026-09-26-runbook-customer-handover.md'
 $patterns = @(
     (@('T','B','D') -join ''),
     (@('T','O','D','O') -join ''),

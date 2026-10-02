@@ -33,7 +33,7 @@ Describe 'Documentation agent contract' {
 
     It 'uses Mermaid for the AI Builder design and field BoM visual explanations' {
         $design = Get-Content -LiteralPath (
-            Join-Path $repositoryRoot 'docs\superpowers\specs\2026-09-25-tenant-2-ai-builder-models-design.md'
+            Join-Path $repositoryRoot 'docs\specs\2026-09-25-tenant-2-ai-builder-models-design.md'
         ) -Raw
         $bom = Get-Content -LiteralPath (
             Join-Path $repositoryRoot (

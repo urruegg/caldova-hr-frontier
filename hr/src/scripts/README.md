@@ -7,7 +7,7 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Solution Architecture |
-| **References** | [Power Platform Solution Foundation Design](../../../docs/specs/2026-09-24-power-platform-solution-foundation-design.md), [AI Builder Evaluation Capture Design Addendum](../../../docs/superpowers/specs/2026-09-29-ai-builder-evaluation-capture-design.md), [AI Builder evidence contract](../../evidence/ai-builder/README.md) |
+| **References** | [Power Platform Solution Foundation Design](../../../docs/specs/2026-09-24-power-platform-solution-foundation-design.md), [AI Builder Evaluation Capture Design Addendum](../../../docs/specs/2026-09-29-ai-builder-evaluation-capture-design.md), [AI Builder evidence contract](../../evidence/ai-builder/README.md) |
 
 **Purpose.** Connects to a tenant's Power Platform environment, pulls its Dataverse solution into source control, and supports the local evidence toolchain used to qualify and evaluate AI Builder models.
 

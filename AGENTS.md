@@ -18,6 +18,8 @@ Two kinds of agent are in scope here, and conflating them causes real errors:
 
 This file is about the **first** kind: the rules every HR agent Caldova builds must satisfy. For the **second** kind: this repository bundles agent skills in `.github/skills/`, discovered by loading the `using-superpowers` skill first, and documented under [`.github/agents/docs-agent.agent.md`](.github/agents/docs-agent.agent.md); the full mandate is authoritative in [`.github/copilot-instructions.md`](.github/copilot-instructions.md).
 
+Repository-owned specifications and implementation plans follow the [repository documentation path override](.github/copilot-instructions.md): use `docs/specs/` and `docs/plans/`, and leave vendored Superpowers examples unchanged.
+
 ---
 
 ## The floor

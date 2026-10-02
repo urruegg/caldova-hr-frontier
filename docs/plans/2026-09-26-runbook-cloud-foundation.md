@@ -7,7 +7,7 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure cloud-foundation assessment, planning, attended delegated Apply, and verification |
-| **References** | [Operational Runbooks Design](../../specs/2026-09-26-operational-runbooks-design.md), [Runbook Foundation and Windows 11 Workstation Plan](./2026-09-26-runbook-foundation-workstation.md), [Documentation Policy](../../README.md), [Infrastructure Domain](../../../infra/README.md), [Bootstrap Recovery](../../../infra/docs/19-bootstrap-recovery.md) |
+| **References** | [Operational Runbooks Design](../specs/2026-09-26-operational-runbooks-design.md), [Runbook Foundation and Windows 11 Workstation Plan](./2026-09-26-runbook-foundation-workstation.md), [Documentation Policy](../README.md), [Infrastructure Domain](../../infra/README.md), [Bootstrap Recovery](../../infra/docs/19-bootstrap-recovery.md) |
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
