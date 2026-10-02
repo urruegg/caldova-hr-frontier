@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-27 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure (all tenants) |
@@ -15,12 +15,12 @@ Proposed Baseline. This document operationalizes ADR-0012 (itself still Proposed
 
 ## Objective
 
-ADR-0012 decided that Tenant 1, Tenant 2, and Tenant 3 (Georg Fischer) each get their own dedicated GitHub repository. This document designs **how that split actually happens**, reframed per direction from this sprint's kickoff:
+ADR-0012 decided that Tenant 1, Tenant 2, and Tenant 3 (Caldova) each get their own dedicated GitHub repository. This document designs **how that split actually happens**, reframed per direction from this sprint's kickoff:
 
 1. **Nothing is deleted yet.** Tenant 2's and Tenant 3's configuration stays in this repository for now. Their removal is written as a separate, reusable runbook - not executed as a one-off cleanup pass.
 2. **Tenant 1 finishes first, as the proven blueprint.** This repository completes its target configuration for Tenant 1 alone, and every step is verified end-to-end, before anyone else uses the pattern.
 3. **Tenant 2's owner (Andrea Rizzi) validates the handover runbooks themselves**, acting as the first real test of the documentation - not just a second customer, but the dry run that proves the runbook is followable by someone who is not the person who wrote it.
-4. **Tenant 3 (Georg Fischer) receives the same, by-then-validated runbooks.**
+4. **Tenant 3 (Caldova) receives the same, by-then-validated runbooks.**
 
 This produces two outcomes: a proven, working reference configuration (Tenant 1), and a handover process that has already survived one real execution (Tenant 2) before the customer who matters most for revenue (Tenant 3) receives it.
 
@@ -35,7 +35,7 @@ This produces two outcomes: a proven, working reference configuration (Tenant 1)
 
 ### Out of scope (this sprint)
 
-- **Actually creating** Andrea Rizzi's repository or Georg Fischer's GitHub Organization and repository. Both require credentials this environment does not hold and remain attended, human-only actions performed by their respective owners, using the runbooks this sprint produces.
+- **Actually creating** Andrea Rizzi's repository or Caldova's GitHub Organization and repository. Both require credentials this environment does not hold and remain attended, human-only actions performed by their respective owners, using the runbooks this sprint produces.
 - **Removing Tenant 2's or Tenant 3's configuration from this repository.** That happens only when each tenant's owner runs the Clean-Up Runbook against *their own new repository* - never against this one.
 - **Live Entra Application, Service Principal, Federated Identity Credential, or GitHub Environment provisioning for Tenant 1.** "Finishing the blueprint" in this sprint means completing the *documented and code-level* target state - tenant manifest, workflows, scripts, verification runbooks - to a state that is provably correct and ready to execute. Actually running that live, security-sensitive provisioning is a separate attended activity, consistent with how every other live-mutation step in this repository's history has required an explicit, present human to trigger it.
 
@@ -81,7 +81,7 @@ The end-to-end procedure a new tenant owner follows, referencing the Clean-Up Ru
 
 ### Validation loop
 
-Tenant 2's owner (Andrea Rizzi) runs this runbook as a genuine end-to-end user, not merely a second reader - an owner who did not write the runbook, following it as written. Gaps, ambiguous steps, or missing prerequisites found during that run are corrected in the runbook itself before Tenant 3 (Georg Fischer) receives it. This is the deliberate "validate the runbook once for real before the customer that matters most" sequencing requested for this sprint.
+Tenant 2's owner (Andrea Rizzi) runs this runbook as a genuine end-to-end user, not merely a second reader - an owner who did not write the runbook, following it as written. Gaps, ambiguous steps, or missing prerequisites found during that run are corrected in the runbook itself before Tenant 3 (Caldova) receives it. This is the deliberate "validate the runbook once for real before the customer that matters most" sequencing requested for this sprint.
 
 ## Open Items (resolved)
 

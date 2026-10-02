@@ -93,7 +93,7 @@ Measure the fixed holdout evaluation:
     -FieldContractPath '.\hr\src\ai-builder\contracts\field-contract.json' `
     -ModelSchemaRecordPath "$evidenceDirectory\model-schema-record-fixed.json" `
     -PredictionCapturePath "$evidenceDirectory\prediction-capture-fixed.json" `
-    -GroundTruthPath '.\hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template\ground-truth.json' `
+    -GroundTruthPath '.\hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template\ground-truth.json' `
     -EvidenceDirectory $evidenceDirectory
 ```
 

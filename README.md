@@ -1,9 +1,9 @@
-# GF HR Agentic Platform
+# Caldova HR Agentic Platform
 
 | Field | Value |
 |---|---|
-| **Version** | 1.4 |
-| **Date** | 2026-09-29 |
+| **Version** | 1.5 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Repository |
@@ -11,22 +11,22 @@
 
 **A pure agentic, Frontier-driven HR organisation — with Workday as the system of record.**
 
-Georg Fischer is not automating HR tasks. It is building an HR organisation where agents do the reading, preparing, checking and completing, and people do the deciding. This package is the design for that platform: the requirements, the architecture, the decisions, the journey it serves, and every use case considered.
+Caldova is not automating HR tasks. It is building an HR organisation where agents do the reading, preparing, checking and completing, and people do the deciding. This package is the design for that platform: the requirements, the architecture, the decisions, the journey it serves, and every use case considered.
 
 ---
 
-## Where GF is positioning
+## Where Caldova is positioning
 
 Microsoft describes three levels of process automation, and organisations usually climb them in order — traditional scripted automation, then digital orchestration across systems, then agentic.
 
 ```text
 LEVEL 1   Traditional (BPA)     scripts, rule-based tasks, static processes
 LEVEL 2   Digital (DPA/RPA)     orchestration across systems and teams
-LEVEL 3   AGENTIC               <-- GF positions here
+LEVEL 3   AGENTIC               <-- Caldova positions here
           agents that plan, reason and act toward a business goal
 ```
 
-**GF is positioning at Level 3, deliberately and from the start.** The Level 2 estate already exists — Boomi, SAP Integration Suite, Informatica, and a bi-directional Workday to ServiceNow flow. This platform does not rebuild it. It puts reasoning on top of it.
+**Caldova is positioning at Level 3, deliberately and from the start.** The Level 2 estate already exists — Boomi, SAP Integration Suite, Informatica, and a bi-directional Workday to ServiceNow flow. This platform does not rebuild it. It puts reasoning on top of it.
 
 ### What "pure agentic" means here — and what it does not
 
@@ -42,7 +42,7 @@ Two things, both deliberate:
 
 | | |
 |---|---|
-| **Operating at the frontier** | GF builds on capability as it lands — the GitHub Copilot harness, workflows with agent nodes, skills, computer use — rather than waiting for it to settle. Each is adopted against a written decision, not on release-note enthusiasm |
+| **Operating at the frontier** | Caldova builds on capability as it lands — the GitHub Copilot harness, workflows with agent nodes, skills, computer use — rather than waiting for it to settle. Each is adopted against a written decision, not on release-note enthusiasm |
 | **The Microsoft Frontier Program** | The concrete mechanism for early access. Several capabilities in this design reached customers through it first. **Enrolment is a recommended next step** — it is how a frontier-driven position stops being a slogan |
 
 The trade is explicit: earlier capability, in exchange for preview terms, moving documentation, and features that occasionally change or get cancelled. That is an acceptable trade for a showcase organisation and an unacceptable one for an unmanaged estate — which is why every preview capability in this package carries a status and a named owner.
@@ -94,14 +94,14 @@ RECORD           SharePoint · ServiceNow · SAP P01 (CH payroll) · ERP
 1. **Workday is the system of record.** Nothing else holds employee master data — not a cache, not a staging table, not "just for reporting". ([ADR-0005](docs/adr/0005-workday-as-system-of-record.md))
 2. **Dataverse records what happened, never what the data is.** The test: *if Workday were restored from backup, would this column now be wrong?* If yes, it does not belong in Dataverse. ([ADR-0007](docs/adr/0007-dataverse-process-state-boundary.md))
 3. **Every write path declares an envelope, enforced server-side.** Which fields, under which conditions, with which refusals — rejected regardless of what the agent asks for. ([ADR-0008](docs/adr/0008-human-in-the-loop-and-write-envelope.md))
-4. **The agent never holds the Workday connector.** GF IT confirmed Microsoft's Workday connector as the access API, but its `Execute SOAP operation` action is a raw pass-through — so a governed access layer sits in front of it, and the Workday Integration System User's permissions make an out-of-envelope write impossible rather than merely rejected. ([ADR-0009](docs/adr/0009-workday-access-via-connector-behind-governed-layer.md))
+4. **The agent never holds the Workday connector.** Caldova IT confirmed Microsoft's Workday connector as the access API, but its `Execute SOAP operation` action is a raw pass-through — so a governed access layer sits in front of it, and the Workday Integration System User's permissions make an out-of-envelope write impossible rather than merely rejected. ([ADR-0009](docs/adr/0009-workday-access-via-connector-behind-governed-layer.md))
 5. **The workflow owns the process; the agent owns the judgement.** Determinism cannot live in the agent — the GitHub Copilot harness applies its orchestration model to all agents and exposes no configuration for it. So the audit trail, the step sequence and the escalation path run as a deterministic workflow, and the agent is called at the one point reasoning is required. ([ADR-0011](docs/adr/0011-workflow-first-process-architecture.md))
 
 ### How we reach Workday
 
 | Path | Status | Role |
 |---|---|---|
-| **Microsoft Workday connector** (SOAP/REST) | **Confirmed by GF IT** | The transport for every read and governed write. Premium tier; connections are not shareable; throttled at 200 calls per connection per 60 seconds. The MVP builds on `Execute SOAP operation` — the typed Workday actions are all Preview |
+| **Microsoft Workday connector** (SOAP/REST) | **Confirmed by Caldova IT** | The transport for every read and governed write. Premium tier; connections are not shareable; throttled at 200 calls per connection per 60 seconds. The MVP builds on `Execute SOAP operation` — the typed Workday actions are all Preview |
 | **Workday Access Layer** | This design | Three declared actions — `search_profile`, `read_fields`, `add_missing_value` — and nothing else. Built as a **workflow with the *When an agent calls the flow* trigger**, added to the agent as a tool. Owns the connection so the agent does not |
 | **Microsoft 365 Organizational Data Service** | **Not confirmed** | A candidate for people context in Wave 2. Read-only, one-way, weekly or monthly. It cannot serve the MVP: it imports *workers*, and the MVP operates on *candidates and pre-hires* |
 
@@ -171,7 +171,7 @@ HR Operations exports new-joiner PDFs from PeopleDoc to SharePoint. The agent re
 | **Why** was it decided | [`docs/adr/`](docs/adr/README.md) — and what was rejected |
 | How do we stand it up | [`infra/README.md`](infra/README.md) and its documentation map — Tenant 1 is the active repository scope; Tenant 2 files remain only as the approved transition exception until Slice 5 |
 | How must an agent behave | [`AGENTS.md`](AGENTS.md) |
-| What must it look like | [`docs/brand/`](docs/brand/README.md) — GF palette, Fluent themes, EN/DE/IT/FR/ES |
+| What must it look like | [`docs/brand/`](docs/brand/README.md) — Caldova palette, Fluent themes, EN/DE/IT/FR/ES |
 
 **Authority rule.** More specific wins — except on governance, where the platform wins. A use-case PRD may add requirements; it may never weaken the platform's. A repository-level Approved ADR outranks narrative text anywhere.
 
@@ -183,7 +183,7 @@ HR Operations exports new-joiner PDFs from PeopleDoc to SharePoint. The agent re
 
 ## The use case portfolio
 
-18 candidates from the GF HR AI use case list, placed in the journey and sequenced by what unlocks what. **Three are the MVP. The rest wait.**
+18 candidates from the customer-supplied HR AI use-case workbook, placed in the journey and sequenced by what unlocks what. **Three are the MVP. The rest wait.**
 
 ```text
 MVP     prove Level 3, close the loop, extend one stage
@@ -228,20 +228,20 @@ write envelope · refusal set · escalation path · grounding sources · data cl
 
 A use case that cannot answer all seven is not ready, whatever its priority.
 
-For the MVP specifically, the Definition of Ready is in the [PRD](hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) §13, and the full artefact inventory — 60+ items across business, data, system, security, build, test and operations — is in the GF *Build of Materials* document.
+For the MVP specifically, the Definition of Ready is in the [PRD](hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) §13, and the full artefact inventory — 60+ items across business, data, system, security, build, test and operations — is in the customer-supplied UC-0001 artefact inventory.
 
 ---
 
 ## Sources
 
-This package is built from GF-supplied material:
+This package is built from customer-supplied material:
 
 | Source | Contributed |
 |---|---|
-| `PRD_Personal_Master_Data_Completion_Agent_Switzerland_Draft_0.1` | MVP scope, business rules, functional requirements, acceptance criteria, open decisions |
-| `BOM_Artefacts_Personal_Master_Data_Completion_Agent_Switzerland_Draft_0.1` | Artefact inventory, ownership, status |
-| `GF_HR AI Use case list.xlsx` | 16 use cases with business value, KPIs, personas, complexity, risks; plus 2 HR Ops CH pain points |
-| `GFAG_Workday Information for Microsoft.pptx` | Workday as system of record, integration landscape, functional areas in use |
+| the customer-supplied UC-0001 draft PRD | MVP scope, business rules, functional requirements, acceptance criteria, open decisions |
+| the customer-supplied UC-0001 artefact inventory | Artefact inventory, ownership, status |
+| the customer-supplied HR AI use-case workbook | 16 use cases with business value, KPIs, personas, complexity, risks; plus 2 HR Ops CH pain points |
+| the source Workday presentation | Workday as system of record, integration landscape, functional areas in use |
 
 Where a source says TBD, this package says TBD. Nothing has been invented to fill a gap — open decisions are listed as open.
 
@@ -254,8 +254,8 @@ Where a source says TBD, this package says TBD. Nothing has been invented to fil
 | Platform PRD | Draft 0.1 — FR-0001…FR-0014, NFR-0001…NFR-0012 |
 | Solution Design | Draft 0.2 — workflow-first |
 | HR Journey and RACI | Draft 0.1 |
-| ADR 0005–0009, 0011 | Accepted, pending GF ratification |
-| ADR 0010 | **Proposed** — Organizational Data Service not confirmed by GF |
+| ADR 0005–0009, 0011 | Accepted, pending Caldova ratification |
+| ADR 0010 | **Proposed** — Organizational Data Service not confirmed by Caldova |
 | UC-0001 | **Specified** — PRD Draft 0.3. Definition of Ready **not met** |
 | UC-0010, UC-0005 | In MVP scope, **no PRD yet** |
 | 15 further use cases | Ideas. No commitment attached |
@@ -263,7 +263,7 @@ Where a source says TBD, this package says TBD. Nothing has been invented to fil
 
 ### The three things to settle first
 
-1. **D-03 — the Workday matching key.** Last Name + First Name + Postal Code is marked TBD in GF's own draft and is not sufficient: names repeat and postal codes change, so a false match writes one person's data onto another's record. Carrying a Candidate or Pre-Hire ID through the PeopleDoc export would remove the risk rather than mitigate it. **This is the highest-risk open item in the MVP.**
+1. **D-03 — the Workday matching key.** Last Name + First Name + Postal Code is marked TBD in the customer-supplied UC-0001 draft PRD and is not sufficient: names repeat and postal codes change, so a false match writes one person's data onto another's record. Carrying a Candidate or Pre-Hire ID through the PeopleDoc export would remove the risk rather than mitigate it. **This is the highest-risk open item in the MVP.**
 2. **D-0002 — the Workday ISU write scope.** If Workday security cannot scope a write permission to the approved field set alone, the hard enforcement boundary collapses to software-only controls and the risk position changes materially. Confirm before build, not during.
 3. **D-01 — the approved field list.** Until it is final, extraction mapping cannot be completed and MVP scope is unstable.
 

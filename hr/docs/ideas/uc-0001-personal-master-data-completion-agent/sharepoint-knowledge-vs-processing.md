@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
-| **Date** | 2026-09-25 |
+| **Version** | 0.2 |
+| **Date** | 2026-10-01 |
 | **Author** | DAAI and HR Operations |
 | **Status** | Draft |
 | **Scope** | Separation of SharePoint knowledge and HR document-processing sites |
@@ -52,7 +52,7 @@ Nothing was hacked. Permissions were not bypassed. Somebody simply pointed an ag
 
 ```text
 ┌─ SITE 1 ──────────────────────────────────────────────────────────┐
-│  GF HR Knowledge          /sites/gf-hr-knowledge                  │
+│  Caldova HR Knowledge     /sites/caldova-hr-knowledge             │
 │                                                                   │
 │  PURPOSE   Grounding source for Copilot agents                    │
 │  CONTENT   Policies, guides, FAQ, process descriptions            │
@@ -67,7 +67,7 @@ Nothing was hacked. Permissions were not bypassed. Somebody simply pointed an ag
                               │  (UC-0020, propose-only)
                               │
 ┌─ SITE 2 ──────────────────────────────────────────────────────────┐
-│  GF HR Document Operations   /sites/gf-hr-docops                  │
+│  Caldova HR Document Operations   /sites/caldova-hr-docops        │
 │                                                                   │
 │  PURPOSE   Intake and processing of employee documents            │
 │  CONTENT   Personalblatt, Anmeldung, contracts, certificates      │
@@ -131,7 +131,7 @@ Apply **all four**. They are cheap relative to the failure in §2.
 ## 5. The Knowledge Base site in detail
 
 ```text
-/sites/gf-hr-knowledge
+/sites/caldova-hr-knowledge
 ├── Policies/          approved HR policy — the primary grounding source
 ├── Guides/            how-to content for employees and managers
 ├── FAQ/               question/answer pairs derived from resolved cases
@@ -144,11 +144,11 @@ Apply **all four**. They are cheap relative to the failure in §2.
 
 | Column | Purpose |
 |---|---|
-| `gf_Jurisdiction` | **Mandatory.** CH · DE · AT · IT · FR · ES · Global. No default |
-| `gf_ContentOwner` | Named human. Content without an owner is content nobody trusts |
-| `gf_ReviewDate` | Unreviewed items expire out of grounding scope |
-| `gf_ApprovedBy` · `gf_ApprovedOn` | The audit trail for publication |
-| `gf_IntentTags` | Links to the intent taxonomy in the closed-loop model |
+| `caldova_Jurisdiction` | **Mandatory.** CH · DE · AT · IT · FR · ES · Global. No default |
+| `caldova_ContentOwner` | Named human. Content without an owner is content nobody trusts |
+| `caldova_ReviewDate` | Unreviewed items expire out of grounding scope |
+| `caldova_ApprovedBy` · `caldova_ApprovedOn` | The audit trail for publication |
+| `caldova_IntentTags` | Links to the intent taxonomy in the closed-loop model |
 
 ### The PII rule that does apply here — absolutely
 
@@ -166,8 +166,8 @@ Content carries personal data. That is the point. The remaining question is meta
 
 | Approach | Metadata | Trade-off |
 |---|---|---|
-| **A — reference only** *(recommended default)* | `gf_PackageRef`, `gf_RunRef`, channel, jurisdiction, type, hash | Clean. Requires the control plane app for human work, because SharePoint alone shows only references |
-| **B — minimal identifying** *(Exceptions library only)* | Adds `gf_EmployeeDisplay` — surname and initial, snapshot at intake | HR Operations can work the queue directly in SharePoint. More exposure |
+| **A — reference only** *(recommended default)* | `caldova_PackageRef`, `caldova_RunRef`, channel, jurisdiction, type, hash | Clean. Requires the control plane app for human work, because SharePoint alone shows only references |
+| **B — minimal identifying** *(Exceptions library only)* | Adds `caldova_EmployeeDisplay` — surname and initial, snapshot at intake | HR Operations can work the queue directly in SharePoint. More exposure |
 
 **Recommendation: A everywhere, B permitted on `Exceptions/` only** — that is the one library where a human works items directly and needs to know whose document they are resolving without opening each file.
 
@@ -204,7 +204,7 @@ Three rules govern the only permitted path:
 ## 8. Provisioning checklist
 
 **Knowledge site**
-- [ ] Create `/sites/gf-hr-knowledge` (communication site)
+- [ ] Create `/sites/caldova-hr-knowledge` (communication site)
 - [ ] Libraries: `Policies`, `Guides`, `FAQ`, `Drafts`
 - [ ] **`NoCrawl` ON for `Drafts` only**; off elsewhere
 - [ ] RCD **off** — this site must be discoverable
@@ -213,7 +213,7 @@ Three rules govern the only permitted path:
 - [ ] **PII review before any content is added**, worked examples included
 
 **Processing site**
-- [ ] Create `/sites/gf-hr-docops`
+- [ ] Create `/sites/caldova-hr-docops`
 - [ ] Libraries: `Intake`, `Processing`, `Archive`, `Exceptions`
 - [ ] **`NoCrawl` ON for all four**
 - [ ] **RCD ON** for the site — removes the *Create an agent* entry point
@@ -258,7 +258,7 @@ Three rules govern the only permitted path:
 
 ## 11. Proposed ADR-0008
 
-If GF accepts this, it is a decision worth recording rather than a configuration note:
+If Caldova accepts this, it is a decision worth recording rather than a configuration note:
 
 > **ADR-0008 — Knowledge and personal-data content are separated at site level**
 >

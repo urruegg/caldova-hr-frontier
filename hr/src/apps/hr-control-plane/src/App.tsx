@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { FluentProvider, makeStyles, Button } from "@fluentui/react-components";
-import { gfLightTheme } from "./theme";
+import { caldovaLightTheme } from "./theme";
 import { AppHeader } from "./components/AppHeader";
 import { NavRail } from "./components/NavRail";
 import { MainRegion } from "./components/MainRegion";
@@ -24,8 +24,8 @@ const useStyles = makeStyles({
  * HR Control Plane — wireframe shell.
  *
  * Reproduces the five structural regions of docs/brand/hr-control-plane-mockup.html
- * (header, nav rail, main, footer, action drawer) themed with the GF BrandKit
- * (docs/brand/gf-fluent-theme.ts). No Dataverse connector, no data, no
+ * (header, nav rail, main, footer, action drawer) themed with the Caldova
+ * product theme (docs/brand/caldova-fluent-theme.ts). No Dataverse connector, no data, no
  * business logic — only local UI state for nav selection and drawer
  * open/closed. See docs/specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md.
  */
@@ -35,7 +35,7 @@ function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
-    <FluentProvider theme={gfLightTheme} className={styles.shell}>
+    <FluentProvider theme={caldovaLightTheme} className={styles.shell}>
       <AppHeader />
       <div className={styles.body}>
         <NavRail selected={selectedNav} onSelect={setSelectedNav} />

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
-| **Date** | 2026-09-25 |
+| **Version** | 0.2 |
+| **Date** | 2026-10-01 |
 | **Author** | DAAI and HR Operations |
 | **Status** | Draft |
 | **Scope** | UC-0001 SharePoint document intake architecture |
@@ -48,8 +48,8 @@ This is the one decision everything else follows from, and it resolves the usual
 One site. Four libraries. Shallow folders.
 
 ```text
-SharePoint site:  GF HR Document Operations
-                  /sites/gf-hr-docops
+SharePoint site:  Caldova HR Document Operations
+                  /sites/caldova-hr-docops
 
 ├── Intake                    ← landing zones, one folder per CHANNEL
 │   ├── peopledoc/                system export — trusted format
@@ -119,15 +119,15 @@ Defined once as **site columns** so they are identical across all four libraries
 
 | Column | Type | Values | Purpose |
 |---|---|---|---|
-| `gf_Channel` | Choice | PeopleDoc · Email · Upload · Scan · Partner | Provenance |
-| `gf_TrustLevel` | Choice | System · Verified · Unverified · Rejected | Derived from channel at intake |
-| `gf_Jurisdiction` | Choice | CH · DE · AT · IT · FR · ES · Unknown | **Routes to the right rules.** Default `Unknown` → human triage |
-| `gf_DocumentType` | Choice | Personalblatt · AnmeldungGemeinde · Sozialversicherung · Bankverbindung · Arbeitsvertrag · Other · Unclassified | Selects the extraction model |
-| `gf_PackageRef` | Text, indexed | `PKG-2026-0923-07` | → `gf_employeepackage` |
-| `gf_RunRef` | Text, indexed | `RUN-2026-0923-04` | → `gf_agentrun` |
-| `gf_IntakeAt` | DateTime, indexed | | Arrival, for ageing and retention |
-| `gf_ProcessingState` | Choice, indexed | New · Validated · InFlight · Complete · Exception · Quarantined | Mirrors the folder, for views |
-| `gf_SourceHash` | Text, indexed | SHA-256 | **Idempotency** — see §7 |
+| `caldova_Channel` | Choice | PeopleDoc · Email · Upload · Scan · Partner | Provenance |
+| `caldova_TrustLevel` | Choice | System · Verified · Unverified · Rejected | Derived from channel at intake |
+| `caldova_Jurisdiction` | Choice | CH · DE · AT · IT · FR · ES · Unknown | **Routes to the right rules.** Default `Unknown` → human triage |
+| `caldova_DocumentType` | Choice | Personalblatt · AnmeldungGemeinde · Sozialversicherung · Bankverbindung · Arbeitsvertrag · Other · Unclassified | Selects the extraction model |
+| `caldova_PackageRef` | Text, indexed | `PKG-2026-0923-07` | → `caldova_employeepackage` |
+| `caldova_RunRef` | Text, indexed | `RUN-2026-0923-04` | → `caldova_agentrun` |
+| `caldova_IntakeAt` | DateTime, indexed | | Arrival, for ageing and retention |
+| `caldova_ProcessingState` | Choice, indexed | New · Validated · InFlight · Complete · Exception · Quarantined | Mirrors the folder, for views |
+| `caldova_SourceHash` | Text, indexed | SHA-256 | **Idempotency** — see §7 |
 
 > ### Corrected - see [`sharepoint-knowledge-vs-processing.md`](sharepoint-knowledge-vs-processing.md)
 >
@@ -146,8 +146,8 @@ Defined once as **site columns** so they are identical across all four libraries
 
 | Approach | Metadata | Where |
 |---|---|---|
-| **A — reference only** | `gf_PackageRef`, `gf_RunRef`, channel, jurisdiction, type, hash | **Default, all libraries** |
-| **B — minimal identifying** | Adds `gf_EmployeeDisplay` — surname + initial, snapshot at intake | **`Exceptions/` only**, where a human works items directly |
+| **A — reference only** | `caldova_PackageRef`, `caldova_RunRef`, channel, jurisdiction, type, hash | **Default, all libraries** |
+| **B — minimal identifying** | Adds `caldova_EmployeeDisplay` — surname + initial, snapshot at intake | **`Exceptions/` only**, where a human works items directly |
 
 Under both options, **date of birth, AHV number, address and IBAN never appear in metadata**. They live in the document, where permissions and sensitivity labels protect them.
 
@@ -157,7 +157,7 @@ Where option B applies, the name is a **snapshot, never authoritative** — it d
 
 `{channel}-{intakeDate}-{shortHash}.pdf` → `peopledoc-20260923-a4f91c.pdf`
 
-No names, no candidate IDs, no document types in the filename. Everything that identifies the document lives in metadata, where it can be permissioned. The hash makes the name unique and ties to `gf_SourceHash`.
+No names, no candidate IDs, no document types in the filename. Everything that identifies the document lives in metadata, where it can be permissioned. The hash makes the name unique and ties to `caldova_SourceHash`.
 
 ---
 
@@ -174,7 +174,7 @@ These are real limits, and they are the reason for the structure above rather th
 
 > **The folder-per-employee temptation.** It is the first idea everyone has, and it is wrong here. A thousand joiners a year is a thousand folders in year one, each holding three or four files. The library hits the view threshold on *folders* before it does on documents, nothing can be re-sliced by channel or type, and the folder name itself becomes personal data (§5).
 >
-> **The package reference does this job properly.** `gf_PackageRef` groups an employee's documents across libraries, survives the move to Archive, and carries no personal data.
+> **The package reference does this job properly.** `caldova_PackageRef` groups an employee's documents across libraries, survives the move to Archive, and carries no personal data.
 
 ---
 
@@ -182,7 +182,7 @@ These are real limits, and they are the reason for the structure above rather th
 
 BR-10 requires that the same file/field transaction is never applied twice. The document layer is where that starts.
 
-1. At intake, compute **SHA-256** of the file bytes → `gf_SourceHash`
+1. At intake, compute **SHA-256** of the file bytes → `caldova_SourceHash`
 2. Before processing, the workflow checks whether that hash already exists in `Archive` or `Processing`
 3. A match means the document has been seen: skip it, record it as a duplicate against the run, and move it to Archive without re-extracting
 
@@ -196,19 +196,19 @@ UC-0005 Onboarding Assistant will also handle documents. It does **not** get its
 
 | What it shares | What it gets of its own |
 |---|---|
-| The site, the four libraries, the channel folders | Its own `gf_DocumentType` values |
+| The site, the four libraries, the channel folders | Its own `caldova_DocumentType` values |
 | The site columns and the trust model | Its own extraction models |
-| Validation, quarantine, idempotency, retention | Its own workflow and `gf_RunRef` series |
+| Validation, quarantine, idempotency, retention | Its own workflow and `caldova_RunRef` series |
 
 **Use cases are separated by metadata and by which workflow claims a document — not by duplicating the structure.** Two sites means two permission models, two retention policies and two places to look when something goes missing.
 
-**How a workflow claims a document:** it queries Intake for `gf_ProcessingState = Validated` **and** `gf_DocumentType` in its own set, then moves matches to `Processing`. The move is the claim — a document in `Processing` is owned by exactly one run, which prevents two agents racing for the same file.
+**How a workflow claims a document:** it queries Intake for `caldova_ProcessingState = Validated` **and** `caldova_DocumentType` in its own set, then moves matches to `Processing`. The move is the claim — a document in `Processing` is owned by exactly one run, which prevents two agents racing for the same file.
 
 ---
 
 ## 9. Multi-jurisdiction: how DE joins
 
-`gf_Jurisdiction` is on every document from day one, defaulting to `Unknown`.
+`caldova_Jurisdiction` is on every document from day one, defaulting to `Unknown`.
 
 For the CH-only MVP it is always `CH` and does nothing visible. That is deliberate: **adding the column later means back-filling every document in Archive**, and the point of putting it in now is that it costs nothing today.
 
@@ -219,10 +219,10 @@ When a second country joins:
 | Same site? | **Yes**, unless data residency requires otherwise — then a second site in the required geography, same structure |
 | Same libraries? | Yes |
 | Same retention? | **No.** Retention is statutory and per country — that is why it is a metadata-driven label, not a library-wide setting |
-| Same permissions? | **No.** Swiss HR Operations should not routinely read German employee documents. Permissions scope on `gf_Jurisdiction` |
+| Same permissions? | **No.** Swiss HR Operations should not routinely read German employee documents. Permissions scope on `caldova_Jurisdiction` |
 | Same extraction models? | No — different documents, different languages |
 
-> **`gf_Jurisdiction = Unknown` must never auto-process.** A document whose jurisdiction cannot be determined goes to human triage. This is the same default-refuse principle described in the closed-loop analysis §3.3: a plausible answer under the wrong country's rules is worse than no answer.
+> **`caldova_Jurisdiction = Unknown` must never auto-process.** A document whose jurisdiction cannot be determined goes to human triage. This is the same default-refuse principle described in the closed-loop analysis §3.3: a plausible answer under the wrong country's rules is worse than no answer.
 
 ---
 
@@ -234,7 +234,7 @@ Documents here contain personal data. Retention is a legal obligation in both di
 |---|---|---|
 | **Intake** | Delete **N days after successful processing** | Processing complete. A copy is in Archive |
 | **Processing** | Transient — hours | Nothing rests here. An item older than 24h is a stuck run, and should alert |
-| **Archive** | **Statutory, per jurisdiction** | Applied as a retention label driven by `gf_Jurisdiction` |
+| **Archive** | **Statutory, per jurisdiction** | Applied as a retention label driven by `caldova_Jurisdiction` |
 | **Exceptions** | Until resolved, then as Archive | Resolution |
 | **`_quarantine/`** | Short, then delete | Human decision, or timeout |
 
@@ -250,7 +250,7 @@ Documents here contain personal data. Retention is a legal obligation in both di
 |---|---|---|---|---|
 | **Agent service identity** | Read, delete | Read, write, delete | **Write only** | Write |
 | **HR Operations CH** | Write, read | Read | Read | **Read, write** |
-| **HR Operations (other jurisdiction)** | Scoped by `gf_Jurisdiction` | — | Scoped | Scoped |
+| **HR Operations (other jurisdiction)** | Scoped by `caldova_Jurisdiction` | — | Scoped | Scoped |
 | **HRIS / Workday Solutions** | Read | Read | Read | Read |
 | **Security / Privacy (audit)** | Read | Read | Read | Read |
 | **Everyone else** | **No access** | **No access** | **No access** | **No access** |
@@ -275,7 +275,7 @@ The UC-0001 PRD names `/New Employees`, `/Complete`, `/Exceptions`. The mapping 
 | — | `Processing/` (new — the in-flight claim) |
 | — | `Intake/{other channels}/`, `_quarantine/` (new) |
 
-**Do this before the MVP build, not after.** The three folders are referenced in FR-01 and FR-12; changing them once documents exist means migrating files, re-pointing a live workflow and reconciling `gf_employeepackage` records against moved paths. Before build it is a text change in a requirement.
+**Do this before the MVP build, not after.** The three folders are referenced in FR-01 and FR-12; changing them once documents exist means migrating files, re-pointing a live workflow and reconciling `caldova_employeepackage` records against moved paths. Before build it is a text change in a requirement.
 
 ---
 
@@ -311,4 +311,4 @@ The UC-0001 PRD names `/New Employees`, `/Complete`, `/Exceptions`. The mapping 
 
 **Folders carry state; metadata carries facets.** Four libraries because permissions, retention and sensitivity differ by lifecycle stage. Channel folders at intake because provenance differs even though trust in content never does. **Personal data is required in document content and minimised in metadata** — and this site is never a grounding source, which is what makes that safe ([knowledge vs processing](sharepoint-knowledge-vs-processing.md)). A SHA-256 at the door prevents the double-export that will otherwise generate a queue of exceptions that are not exceptions.
 
-And the one to decide now rather than later: **`gf_Jurisdiction` goes on every document from day one**, even while the answer is always `CH`. Adding it after Archive has ten thousand documents in it is a back-fill nobody will enjoy.
+And the one to decide now rather than later: **`caldova_Jurisdiction` goes on every document from day one**, even while the answer is always `CH`. Adding it after Archive has ten thousand documents in it is a back-fill nobody will enjoy.

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.6 |
-| **Date** | 2026-09-30 |
+| **Version** | 1.7 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -80,13 +80,13 @@ The use case portfolio moved to **[`hr/docs/ideas/`](../hr/docs/ideas/README.md)
 
 ## Evidence rules for agents
 
-**1. Distinguish GF-stated fact from this package's assessment.** Every document marks its sources. Statements sourced from GF material (`PRD_…Draft_0.1`, the Build of Materials, `GF_HR AI Use case list.xlsx`, `GFAG_Workday Information for Microsoft.pptx`) are GF's own. Everything else is analysis produced here. Do not attribute an assessment to GF.
+**1. Distinguish customer-stated fact from this package's assessment.** Every document marks its sources. Statements sourced from the customer-supplied UC-0001 draft PRD, the customer-supplied UC-0001 artefact inventory, the customer-supplied HR AI use-case workbook, or the source Workday presentation are customer-stated. Everything else is analysis produced here. Do not attribute repository analysis to the customer.
 
 **2. Open is open.** Where a source says TBD, these documents say TBD. Open decisions are listed as open — `prd.md` §10, each use-case PRD §13, `solution-design.md` §11. **Never resolve one by inference.** If a value is needed and marked open, say it is open.
 
 **3. Cite the identifier, not the prose.** Requirements, decisions and use cases all carry stable IDs — `FR-0006`, `NFR-0008`, `ADR-0009`, `UC-0001`, `D-0003`. Cite those. They survive rewording; a quoted sentence does not.
 
-**4. Status before content.** `Approved`, `Accepted`, `Proposed`, `Draft`, `Idea` and `Selected as MVP` mean materially different things. `Approved` marks a repository-level decision; the HR package's legacy `Accepted` records remain pending GF ratification. **Three use cases are in MVP scope; only UC-0001 is specified.** Fifteen are candidates with no commitment attached.
+**4. Status before content.** `Approved`, `Accepted`, `Proposed`, `Draft`, `Idea` and `Selected as MVP` mean materially different things. `Approved` marks a repository-level decision; the HR package's legacy `Accepted` records remain pending Caldova ratification. **Three use cases are in MVP scope; only UC-0001 is specified.** Fifteen are candidates with no commitment attached.
 
 ---
 
@@ -94,7 +94,7 @@ The use case portfolio moved to **[`hr/docs/ideas/`](../hr/docs/ideas/README.md)
 
 Stated here because they are load-bearing and easy to get backwards:
 
-> **The agent never holds the Workday connector.** GF IT confirmed Microsoft's Workday connector as the access API, but its `Execute SOAP operation` action is a raw pass-through. A governed **Workday Access Layer** sits in front of it and owns the connection. ([ADR-0009](adr/0009-workday-access-via-connector-behind-governed-layer.md))
+> **The agent never holds the Workday connector.** Caldova IT confirmed Microsoft's Workday connector as the access API, but its `Execute SOAP operation` action is a raw pass-through. A governed **Workday Access Layer** sits in front of it and owns the connection. ([ADR-0009](adr/0009-workday-access-via-connector-behind-governed-layer.md))
 
 > **Dataverse holds process state, never master data.** The test: *if Workday were wiped and restored from backup, would this column now be wrong?* If yes, it does not belong in Dataverse. ([ADR-0007](adr/0007-dataverse-process-state-boundary.md))
 
@@ -102,7 +102,7 @@ Stated here because they are load-bearing and easy to get backwards:
 
 > **The workflow owns the process; the agent owns the judgement.** Determinism cannot live in the agent — the GitHub Copilot harness exposes no orchestration configuration. The audit trail is written by deterministic workflow steps, never left to the agent's discretion. ([ADR-0011](adr/0011-workflow-first-process-architecture.md))
 
-> **GF positions at Level 3 — agentic — and the MVP is three use cases**: UC-0001, UC-0010 and UC-0005. Fifteen others are candidates only. ([`prd.md`](prd.md) §2.1–2.2)
+> **Caldova positions at Level 3 — agentic — and the MVP is three use cases**: UC-0001, UC-0010 and UC-0005. Fifteen others are candidates only. ([`prd.md`](prd.md) §2.1–2.2)
 
 ---
 
@@ -162,13 +162,13 @@ The original Proposed Baseline product/HR operating model is superseded by the d
 
 ## Source material
 
-Everything here derives from GF-supplied material:
+Everything here derives from customer-supplied material:
 
 | Source | Contributed |
 |---|---|
-| `PRD_Personal_Master_Data_Completion_Agent_Switzerland_Draft_0.1` | UC-0001 scope, business rules, functional requirements, acceptance criteria, open decisions |
-| `BOM_Artefacts_Personal_Master_Data_Completion_Agent_Switzerland_Draft_0.1` | Artefact inventory, ownership, status |
-| `GF_HR AI Use case list.xlsx` | 16 use cases with business value, KPIs, personas, complexity and risk; plus 2 HR Ops CH pain points (UC-0017, UC-0018) |
-| `GFAG_Workday Information for Microsoft.pptx` | Workday as system of record, integration landscape, functional areas in use |
+| The customer-supplied UC-0001 draft PRD | UC-0001 scope, business rules, functional requirements, acceptance criteria, open decisions |
+| The customer-supplied UC-0001 artefact inventory | Artefact inventory, ownership, status |
+| The customer-supplied HR AI use-case workbook | 16 use cases with business value, KPIs, personas, complexity and risk; plus 2 HR Ops CH pain points (UC-0017, UC-0018) |
+| The source Workday presentation | Workday as system of record, integration landscape, functional areas in use |
 
 Microsoft product behaviour is grounded in Microsoft Learn — the Workday connector reference and the Organizational Data Service import guide — and cited where it is load-bearing.

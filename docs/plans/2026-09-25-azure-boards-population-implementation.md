@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-25 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Infrastructure (Tenant 1) |
@@ -1226,7 +1226,7 @@ This runbook populates Azure DevOps Boards with one `Epic` per HR use-case idea 
 ## Who Can Run This
 
 - **Azure DevOps role:** at least **Contributor** on the `Caldova HR Frontier` project — enough to create work items and add relations; no administrative role is required.
-- **Content judgment:** this script only ever copies text already reviewed and committed in `hr/docs/ideas/*.md` into Azure Boards — it never generates new characterizations of a use case. Even so, a human should trigger the first live write of this portfolio into a system other people at GF will read as authoritative — see the spec's Runbook section for why.
+- **Content judgment:** this script only ever copies text already reviewed and committed in `hr/docs/ideas/*.md` into Azure Boards — it never generates new characterizations of a use case. Even so, a human should trigger the first live write of this portfolio into a system other people at Caldova will read as authoritative — see the spec's Runbook section for why.
 
 ## Prerequisites Checklist
 
@@ -1299,4 +1299,4 @@ git commit -m "docs(infra): add Azure Boards population runbook"
 
 ## Out of Scope (Attended Human Action)
 
-Actually running this runbook against live Tenant 1 Azure Boards is not performed by this plan — it is the human's own attended action, once Tenant 1's trust is active (per `infra/docs/20-tenant-trust-activation-runbook.md`) and they are ready to review the first live write of the portfolio into a system others at GF will read as authoritative.
+Actually running this runbook against live Tenant 1 Azure Boards is not performed by this plan — it is the human's own attended action, once Tenant 1's trust is active (per `infra/docs/20-tenant-trust-activation-runbook.md`) and they are ready to review the first live write of the portfolio into a system others at Caldova will read as authoritative.

@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.2 |
 | **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
@@ -147,6 +147,16 @@ Implementation adds `.github/cli/tests/BrandingContract.Tests.ps1` as a maintain
 
 PDF embedded text remains a separate, explicit local acceptance check. The maintained generators plus the tracked source-and-path contract prevent ordinary reintroduction without adding an unpinned PDF dependency to CI.
 
+### Post-baseline main integration and immutable AI Builder evidence
+
+The implementation branch integrates `origin/main` commit `402f42ff01e662dcb6762d44e9a5fec09b3484cd` after the original migration baseline. That integration adds the governed AI Builder evaluation subsystem and its point-in-time Tenant 2 DEV evidence. Current guidance, scripts, tests, fixtures, BoMs, and plans remain mutable and follow the Caldova migration. Seven evidence files are different: three raw model responses contain one `L3` OCR occurrence each, and the evaluation summary plus three training-capture records contain one `L4` occurrence each.
+
+Those seven occurrences are source evidence produced by the live model and its governed capture process. Rewriting their bytes would make the retained model output, hashes, and replay record false; truthful remediation would require a separately authorized live rerun, which this repository-only migration neither performs nor authorizes. The files therefore remain byte-for-byte equal to `origin/main`.
+
+`.github/cli/config/branding-evidence-exceptions.json` is the only exception authority. Each record binds one normalized tracked path below `hr/evidence/ai-builder/` to its lowercase SHA-256, exact pattern class, exact count of one, and non-sensitive provenance and rationale. The scanner validates the manifest's exact schema, tracked regular-file status, root, uniqueness, hash, class, count, and absence of extra matches before suppressing an occurrence. A declared path must itself contain no `L1`-`L7` match: approvals apply to content only, and path findings are never suppressible. Invalid or changed records fail closed, and unknown occurrences remain normal findings. There are no directory, extension, wildcard, or broad path exceptions.
+
+The integrated tree has exactly 55 tracked PDFs. The two exact Caldova corpus roots contain 48 generated PDFs; those files remain subject to embedded-text migration acceptance. The remaining seven PDFs are point-in-time AI Builder input evidence below `hr/evidence/ai-builder/`. Evidence PDFs may retain historical branding because rewriting captured inputs would break their provenance. They are governed separately by readability plus Git-blob and SHA-256 equality to integrated main commit `402f42ff01e662dcb6762d44e9a5fec09b3484cd`, not by content rewriting. No tracked PDF may exist outside those three classifications.
+
 ### Migration sequence
 
 Implementation follows this order:
@@ -155,7 +165,7 @@ Implementation follows this order:
 2. Rename branded assets and directories.
 3. Update prose, identifiers, imports, links, tests, and catalogue references.
 4. Update synthetic corpus generators.
-5. Regenerate all 48 PDFs under renamed paths.
+5. Regenerate all 48 corpus PDFs under renamed paths.
 6. Update affected tests and contracts without weakening their assertions.
 7. Run the complete acceptance set.
 
@@ -173,8 +183,8 @@ Renames precede reference repair so stale destinations can be detected. Generato
 
 The migration is accepted only when all of the following are true:
 
-1. The branding contract reports zero prohibited matches in tracked paths and zero prohibited matches in scannable tracked text, with no repository-document exception for this specification.
-2. Local `pypdf` verification reports exactly 48 readable tracked PDFs, zero extraction errors, and zero embedded legacy matches.
+1. The branding contract reports zero unapproved findings in tracked paths and scannable tracked text, exactly seven approved immutable-evidence occurrences, and complete tracked-file accounting. Only the seven exact hash-bound AI Builder evidence records may be approved; there is no broad exception.
+2. Local `pypdf` verification reports exactly 55 tracked PDFs partitioned into 48 corpus PDFs below the two exact Caldova corpus roots and 7 evidence PDFs below `hr/evidence/ai-builder/`, with no other tracked PDFs. All 48 corpus PDFs are readable with zero extraction errors and zero prohibited embedded matches. All 7 evidence PDFs are readable and byte-identical by Git blob and SHA-256 to integrated main commit `402f42ff01e662dcb6762d44e9a5fec09b3484cd`; their historical embedded-match classes and counts are reported but do not fail acceptance.
 3. SHA-256 values for all six sanitized screenshots equal the values of the corresponding files at baseline commit `63e7900edd431cc810a8396a24b19c17ef4999d1`.
 4. `npm run lint` and `npm run build` pass from `hr/src/apps/hr-control-plane`.
 5. Regenerating the synthetic corpus produces the checked-in PDFs, and candidate truth remains equivalent except for explicitly documented brand fields.
@@ -210,6 +220,8 @@ This acceptance command uses the operator's local `pypdf` installation. It does 
 
 ```powershell
 @'
+from collections import Counter
+from hashlib import sha256
 from pathlib import Path
 import re
 import subprocess
@@ -217,60 +229,137 @@ import sys
 
 from pypdf import PdfReader
 
+integrated_main = "402f42ff01e662dcb6762d44e9a5fec09b3484cd"
 first = "".join(chr(value) for value in (71, 101, 111, 114, 103))
 second = "".join(chr(value) for value in (70, 105, 115, 99, 104, 101, 114))
 initials = first[0] + second[0]
 patterns = {
-    "spaced-full-name": re.compile(re.escape(first + " " + second), re.IGNORECASE),
-    "joined-full-name": re.compile(re.escape(first + second), re.IGNORECASE),
-    "standalone-initials": re.compile(
-        rf"(?<![A-Za-z0-9]){re.escape(initials)}(?![A-Za-z0-9])"
-    ),
-    "branded-prefix": re.compile(
-        rf"(?<![A-Za-z0-9]){re.escape(initials.lower())}[-_]",
+    "L1": re.compile(re.escape(first + " " + second), re.IGNORECASE),
+    "L2": re.compile(re.escape(first + second), re.IGNORECASE),
+    "L3": re.compile(
+        rf"(?<![A-Za-z0-9]){re.escape(initials)}(?![A-Za-z0-9])",
         re.IGNORECASE,
     ),
-    "lower-camel-prefix": re.compile(
+    "L4": re.compile(
+        rf"(?<![A-Za-z0-9]){re.escape(initials.lower())}-",
+        re.IGNORECASE,
+    ),
+    "L5": re.compile(
+        rf"(?<![A-Za-z0-9]){re.escape(initials.lower())}_",
+        re.IGNORECASE,
+    ),
+    "L6": re.compile(
         rf"(?<![A-Za-z0-9]){re.escape(initials.lower())}(?=[A-Z])"
     ),
-    "pascal-prefix": re.compile(
+    "L7": re.compile(
         rf"(?<![A-Za-z0-9]){re.escape(initials[0] + initials[1].lower())}(?=[A-Z])"
     ),
 }
 
 raw = subprocess.check_output(["git", "ls-files", "-z", "--", "*.pdf"])
 paths = [Path(value) for value in raw.decode("utf-8").split("\0") if value]
-readable = 0
-extraction_errors = []
-legacy_matches = []
-
-for path in paths:
-    try:
-        reader = PdfReader(path)
-        text = "\n".join((page.extract_text() or "") for page in reader.pages)
-        readable += 1
-    except Exception as exc:
-        extraction_errors.append(f"{path}: {type(exc).__name__}: {exc}")
-        continue
-    for label, pattern in patterns.items():
-        if pattern.search(text):
-            legacy_matches.append(f"{path}: {label}")
-
-print(
-    "PDF verification: "
-    f"readable={readable}; "
-    f"extraction_errors={len(extraction_errors)}; "
-    f"legacy_matches={len(legacy_matches)}"
+use_case_root = "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/"
+corpus_roots = (
+    use_case_root + "caldova-aib-fixed-template/documents/",
+    use_case_root + "caldova-aib-general-documents/documents/",
 )
-for failure in extraction_errors + legacy_matches:
-    print(failure)
+corpus = [
+    path for path in paths
+    if path.as_posix().startswith(corpus_roots)
+]
+evidence = [
+    path for path in paths
+    if path.as_posix().startswith("hr/evidence/ai-builder/")
+]
+other = [
+    path for path in paths
+    if path not in corpus and path not in evidence
+]
 
-if len(paths) != 48 or readable != 48 or extraction_errors or legacy_matches:
+def inspect(group):
+    readable = 0
+    extraction_errors = []
+    matches = []
+    for path in group:
+        try:
+            text = "\n".join(
+                (page.extract_text() or "") for page in PdfReader(path).pages
+            )
+            readable += 1
+        except Exception as exc:
+            extraction_errors.append(
+                f"{path}: {type(exc).__name__}: {exc}"
+            )
+            continue
+        for label, pattern in patterns.items():
+            matches.extend([label] * len(pattern.findall(text)))
+    return readable, extraction_errors, matches
+
+corpus_readable, corpus_errors, corpus_matches = inspect(corpus)
+evidence_readable, evidence_errors, evidence_matches = inspect(evidence)
+blob_mismatches = []
+sha256_mismatches = []
+for path in evidence:
+    relative = path.as_posix()
+    main_blob = subprocess.check_output(
+        ["git", "rev-parse", f"{integrated_main}:{relative}"],
+        text=True,
+    ).strip()
+    worktree_blob = subprocess.check_output(
+        ["git", "hash-object", "--", relative],
+        text=True,
+    ).strip()
+    main_bytes = subprocess.check_output(
+        ["git", "cat-file", "blob", main_blob]
+    )
+    worktree_bytes = path.read_bytes()
+    if main_blob != worktree_blob:
+        blob_mismatches.append(relative)
+    if sha256(main_bytes).hexdigest() != sha256(worktree_bytes).hexdigest():
+        sha256_mismatches.append(relative)
+
+evidence_classes = ",".join(
+    f"{label}:{count}"
+    for label, count in sorted(Counter(evidence_matches).items())
+)
+print(
+    f"PDF inventory: total={len(paths)}; corpus={len(corpus)}; "
+    f"evidence={len(evidence)}; other={len(other)}"
+)
+print(
+    f"Corpus PDF verification: readable={corpus_readable}; "
+    f"extraction_errors={len(corpus_errors)}; "
+    f"legacy_matches={len(corpus_matches)}"
+)
+print(
+    f"Evidence PDF verification: readable={evidence_readable}; "
+    f"extraction_errors={len(evidence_errors)}; "
+    f"blob_mismatches={len(blob_mismatches)}; "
+    f"sha256_mismatches={len(sha256_mismatches)}"
+)
+print(
+    f"Evidence historical matches: count={len(evidence_matches)}; "
+    f"classes={evidence_classes}"
+)
+
+if (
+    len(paths) != 55
+    or len(corpus) != 48
+    or len(evidence) != 7
+    or other
+    or corpus_readable != 48
+    or corpus_errors
+    or corpus_matches
+    or evidence_readable != 7
+    or evidence_errors
+    or blob_mismatches
+    or sha256_mismatches
+):
     sys.exit(1)
 '@ | python -
 ```
 
-The command fails when the tracked PDF count is not 48 as well as when reading, extraction, or legacy-text checks fail.
+The command fails unless the exact 48/7/0 partition, corpus content gate, evidence readability, and evidence byte-equality gates all pass. Historical evidence match counts are reported by class without disclosing matched content and do not authorize rewriting those files.
 
 ## Migration Risks
 

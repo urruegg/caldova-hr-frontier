@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Solution Architecture |
@@ -73,7 +73,7 @@ For any proposed Dataverse column, ask:
 2. **The test is mechanical.** "Would a Workday restore make this wrong?" can be applied by a reviewer who was not in the original design discussion.
 3. **Privacy scope stays small.** Dataverse holding references and decisions rather than attributes means a data-subject request is answered from Workday, with the process store providing an activity trail — not a second disclosure surface.
 4. **Provenance replaces duplication.** HR's real need is *"what did the agent do, and can I verify it?"* — answered by recording the source document and location. They can open the PDF; they do not need the platform to restate its contents.
-5. **It keeps the platform honest about its role.** The agentic layer is a tool that operates on GF's systems of record. The moment it holds its own version of employee data, it has quietly become one.
+5. **It keeps the platform honest about its role.** The agentic layer is a tool that operates on Caldova's systems of record. The moment it holds its own version of employee data, it has quietly become one.
 
 ---
 

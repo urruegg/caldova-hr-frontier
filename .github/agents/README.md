@@ -2,14 +2,14 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Repository |
 | **References** | [HR Solution Functional Design Intake](../../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 
-**Purpose.** Definitions for agents that work *on this repository* — drafting, reviewing and checking documents. Not the HR agents GF builds; those are described in [`AGENTS.md`](../../AGENTS.md) and specified in [`hr/`](../../hr/README.md).
+**Purpose.** Definitions for agents that work *on this repository* — drafting, reviewing and checking documents. Not the HR agents Caldova builds; those are described in [`AGENTS.md`](../../AGENTS.md) and specified in [`hr/`](../../hr/README.md).
 
 **Not empty.** This folder already contains repository-scoped GitHub Copilot custom agent profiles, in addition to the shared instructions in [`copilot-instructions.md`](../copilot-instructions.md) that apply to all repository work:
 

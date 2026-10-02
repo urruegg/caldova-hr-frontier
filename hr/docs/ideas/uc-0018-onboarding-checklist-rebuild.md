@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Use Case Portfolio |
@@ -15,7 +15,7 @@
 > **HR owner:** HR Ops CH
 > **Suggested wave:** 2
 >
-> **Source:** GF HR AI use case list. This document expands the list entry into a reviewable idea; it is **not** an approved requirement.
+> **Source:** The customer-supplied HR AI use-case workbook. This document expands the workbook entry into a reviewable idea; it is **not** an approved requirement.
 
 ---
 
@@ -70,7 +70,7 @@ See [`hr-journey-and-raci.md`](../../../docs/hr-journey-and-raci.md) for the ful
 
 ## 4. Assessment
 
-**Source: GF HR Ops CH pain point list** — *"Onboarding Checklist – the one from WD is not helpful"*, frequency ad-hoc, manual effort **medium**.
+**Source: the customer-supplied HR AI use-case workbook, HR Ops CH pain-point list** — *"Onboarding Checklist – the one from WD is not helpful"*, frequency ad-hoc, manual effort **medium**.
 
 **Ask why it is not helpful before rebuilding it.** If the Workday checklist is configurable, configuration is cheaper than a parallel system — and avoids the *two checklists* risk that is the main danger here.
 

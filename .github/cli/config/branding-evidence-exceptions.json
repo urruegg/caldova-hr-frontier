@@ -1,0 +1,61 @@
+{
+    "schemaVersion":  "1.0",
+    "exceptions":  [
+                       {
+                           "path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20260930094537354Z-34bf8987/cap-20260930094537354Z-34bf8987.ai-builder.raw.json",
+                           "sha256":  "6ddf6d3ab1a79a25422fc7750d7eb1900c30957ca7bc5a6cd098a090706b39f3",
+                           "patternClass":  "L3",
+                           "count":  1,
+                           "provenance":  "Captured by the governed Tenant 2 DEV model evaluation workflow.",
+                           "rationale":  "Point-in-time raw or evaluation evidence must remain byte-for-byte reproducible."
+                       },
+                       {
+                           "path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930114811428Z-ed0cd329/cap-20260930114811428Z-ed0cd329.ai-builder.raw.json",
+                           "sha256":  "5853d642de33cd4beb46fb008be25c3e0e7e547c5211ea1a7aefca3424232e23",
+                           "patternClass":  "L3",
+                           "count":  1,
+                           "provenance":  "Captured by the governed Tenant 2 DEV model evaluation workflow.",
+                           "rationale":  "Point-in-time raw or evaluation evidence must remain byte-for-byte reproducible."
+                       },
+                       {
+                           "path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930131319261Z-e8d57452/cap-20260930131319261Z-e8d57452.ai-builder.raw.json",
+                           "sha256":  "e0b00426a4d0de7f611d55f4c33aad9a2ea40ce2fd2037c1aea06662b4429fac",
+                           "patternClass":  "L3",
+                           "count":  1,
+                           "provenance":  "Captured by the governed Tenant 2 DEV model evaluation workflow.",
+                           "rationale":  "Point-in-time raw or evaluation evidence must remain byte-for-byte reproducible."
+                       },
+                       {
+                           "path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-summary.md",
+                           "sha256":  "7b6826dad33d2575a2abd55bc10bd3e38a8f6e07f0c2387d6bd4a75f85a28dd2",
+                           "patternClass":  "L4",
+                           "count":  1,
+                           "provenance":  "Captured by the governed Tenant 2 DEV model evaluation workflow.",
+                           "rationale":  "Point-in-time raw or evaluation evidence must remain byte-for-byte reproducible."
+                       },
+                       {
+                           "path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-attempt.json",
+                           "sha256":  "e13164d0df85424ed8d356079a450282bd053867c2fb9d6299f126d95fccbef8",
+                           "patternClass":  "L4",
+                           "count":  1,
+                           "provenance":  "Captured by the governed Tenant 2 DEV model evaluation workflow.",
+                           "rationale":  "Point-in-time raw or evaluation evidence must remain byte-for-byte reproducible."
+                       },
+                       {
+                           "path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-remediation.json",
+                           "sha256":  "97cc0242e13388f2b1ff8551cc20d733c4aef1a92e6453bc4f7bf5370269d324",
+                           "patternClass":  "L4",
+                           "count":  1,
+                           "provenance":  "Captured by the governed Tenant 2 DEV model evaluation workflow.",
+                           "rationale":  "Point-in-time raw or evaluation evidence must remain byte-for-byte reproducible."
+                       },
+                       {
+                           "path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-retry.json",
+                           "sha256":  "94b097e594080aaed8ed40fb513b983a631b917650ee6a17a29c96b3ab3cf386",
+                           "patternClass":  "L4",
+                           "count":  1,
+                           "provenance":  "Captured by the governed Tenant 2 DEV model evaluation workflow.",
+                           "rationale":  "Point-in-time raw or evaluation evidence must remain byte-for-byte reproducible."
+                       }
+                   ]
+}

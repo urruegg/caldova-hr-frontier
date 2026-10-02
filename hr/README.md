@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR |
@@ -59,7 +59,7 @@ Power Apps Code App projects — npm/Vite projects, a different kind of source t
 
 **Current state (Tenant 1):** one foundation solution, [`caldovahrfrontier`](src/solutions/caldovahrfrontier/), publisher prefix `calhr`. It is empty — no Dataverse tables or Copilot Studio agent artefacts exist in it yet.
 
-**Documented target (Tenant 3 / GF), not yet built anywhere:**
+**Documented target (Tenant 3 / Caldova), not yet built anywhere:**
 
 | Solution | Contains |
 |---|---|
@@ -88,8 +88,8 @@ These are not aspirations. They are testable, and they come from [`docs/prd.md`]
 
 ## For agents working in this folder
 
-**The PRD is authoritative for a use case; `docs/prd.md` is authoritative for the platform.** A question about *this agent's* business rules is answered from the use-case PRD. A question about how *any* GF agent must behave is answered from the platform PRD. Getting that backwards produces requirements that look use-case-specific when they are not.
+**The PRD is authoritative for a use case; `docs/prd.md` is authoritative for the platform.** A question about *this agent's* business rules is answered from the use-case PRD. A question about how *any* Caldova agent must behave is answered from the platform PRD. Getting that backwards produces requirements that look use-case-specific when they are not.
 
-**D-03 is unresolved and is the highest-risk open item in the MVP.** The Workday matching key — Last Name + First Name + Postal Code — is marked TBD in GF's source and is not sufficient. Do not treat it as decided, and do not propose a workaround that leaves the risk in place.
+**D-03 is unresolved and is the highest-risk open item in the MVP.** The Workday matching key — Last Name + First Name + Postal Code — is marked TBD in the customer-supplied source and is not sufficient. Do not treat it as decided, and do not propose a workaround that leaves the risk in place.
 
 **Cite identifiers, not prose.** `BR-08`, `FR-23`, `AC-11`, `D-17`, `UC-0010` are stable. Sentences are not.

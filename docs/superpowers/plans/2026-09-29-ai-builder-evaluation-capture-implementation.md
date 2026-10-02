@@ -898,7 +898,7 @@ Expected: 4 exact documents, 68 field captures, source/raw/canonical/adapter has
     -FieldContractPath '.\hr\src\ai-builder\contracts\field-contract.json' `
     -ModelSchemaRecordPath "$evidenceRoot\model-schema-fixed.json" `
     -PredictionCapturePath "$evidenceRoot\prediction-capture-fixed.json" `
-    -GroundTruthPath '.\hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template\ground-truth.json' `
+    -GroundTruthPath '.\hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template\ground-truth.json' `
     -EvidenceDirectory $evidenceRoot
 ```
 

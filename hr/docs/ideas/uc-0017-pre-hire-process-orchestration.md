@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Use Case Portfolio |
@@ -15,7 +15,7 @@
 > **HR owner:** HR Ops CH
 > **Suggested wave:** Deferred — depends on the MVP
 >
-> **Source:** GF HR AI use case list. This document expands the list entry into a reviewable idea; it is **not** an approved requirement.
+> **Source:** The customer-supplied HR AI use-case workbook. This document expands the workbook entry into a reviewable idea; it is **not** an approved requirement.
 
 ---
 
@@ -71,7 +71,7 @@ See [`hr-journey-and-raci.md`](../../../docs/hr-journey-and-raci.md) for the ful
 
 ## 4. Assessment
 
-**Source: GF HR Ops CH pain point list** — *"Prehire Process still open… Workday – PeopleDoc – Workday – SAP"*, frequency ad-hoc, manual effort **high**.
+**Source: the customer-supplied HR AI use-case workbook, HR Ops CH pain-point list** — *"Prehire Process still open… Workday – PeopleDoc – Workday – SAP"*, frequency ad-hoc, manual effort **high**.
 
 **The process is described as still open.** That is the blocker: you cannot orchestrate an undefined process. Defining it is the prerequisite, and it is HR work, not platform work.
 

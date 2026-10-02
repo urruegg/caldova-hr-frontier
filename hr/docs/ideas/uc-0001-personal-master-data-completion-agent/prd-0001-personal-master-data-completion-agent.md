@@ -2,20 +2,20 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Use Case Portfolio |
 | **References** | [HR Solution Functional Design Intake](../../../../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 
-> **Document ID:** GF-PRD-01
-> **Status:** Draft 0.3 — supersedes *PRD_Personal_Master_Data_Completion_Agent_Switzerland_Draft_0.1*
+> **Document ID:** caldova-PRD-01
+> **Status:** Draft 0.3 — supersedes the customer-supplied UC-0001 draft PRD
 > **Scope:** Switzerland MVP only
 > **Document owner:** DAAI / HR AI Business Lead
 > **Process owner:** Switzerland HR Operations
 > **Systems in scope:** SharePoint, Microsoft Copilot Studio (**workflows and agents**), Power Platform (Dataverse, Power Apps code app), the **Workday Access Layer** over the **Microsoft Workday connector**, Workday
-> **MVP position:** the first of three use cases proving GF's **Level 3 — agentic** position. See [`prd.md`](../../../../docs/prd.md) §2.1–2.2
+> **MVP position:** the first of three use cases proving Caldova's **Level 3 — agentic** position. See [`prd.md`](../../../../docs/prd.md) §2.1–2.2
 
 ---
 
@@ -63,7 +63,7 @@ The agent never creates an employee, never overwrites an existing Workday value,
 - PDF files manually placed in SharePoint `/New Employees` by HR Operations.
 - HR-initiated agent run from the HR Employee Control Plane App.
 - Reading and grouping PDFs belonging to one employee package.
-- Field selection from `Personalstammdaten_Felder_DE_EN.xlsx`: the English field name in **column C**, only where **column E = yes**.
+- Field selection from the customer-supplied personal-master-data field workbook: the English field name in **column C**, only where **column E = yes**.
 - Matching exactly one existing Workday profile. *(Matching key is open — see D-03.)*
 - Adding missing approved values to Workday through the Workday Access Layer.
 - Run, field-action and exception records in Dataverse, surfaced in the control plane app.
@@ -90,7 +90,7 @@ The agent never creates an employee, never overwrites an existing Workday value,
 | SharePoint `/Complete`, `/Exceptions` | Archive and quarantine after a recorded outcome |
 | **Microsoft Copilot Studio agent** | Reads documents, applies business rules, coordinates Workday updates and records outcomes |
 | **Workday Access Layer** | The governed path used to search a profile, read current values and add approved missing values. Exposes three actions and nothing else. It owns the **Microsoft Workday connector** connection; the agent does not — see [ADR-0009](../../../../docs/adr/0009-workday-access-via-connector-behind-governed-layer.md) |
-| **Microsoft Workday connector** | Microsoft's Premium connector, **confirmed by GF IT** as the Workday access API. The MVP uses its `Execute SOAP operation` action against the Workday `Human_Resources` web service |
+| **Microsoft Workday connector** | Microsoft's Premium connector, **confirmed by Caldova IT** as the Workday access API. The MVP uses its `Execute SOAP operation` action against the Workday `Human_Resources` web service |
 | **Dataverse** | **Process state and audit only** — run, package, field action, exception. Never a copy of Workday master data |
 | **HR Employee Control Plane App** (Power Apps code app) | Where HR Operations starts a run, reviews outcomes, works exceptions and follows up on gaps |
 | Microsoft 365 Copilot · Teams · Cowork | Where HR Operations is notified, asks questions and picks up follow-ups |
@@ -348,7 +348,7 @@ Carried forward from Draft 0.1, plus those raised by this revision.
 | **D-12** | Whether HR Ops can approve a low-confidence value in the control plane app, or must enter it in Workday directly | HR Ops / HRIS | FR-16 |
 | **D-13** | Whether the Switzerland MVP will extend to other countries, and what would change | DAAI / HR Ops | Roadmap |
 
-> **Definition of Ready.** The build starts when field rules, sample PDFs, the matching key, Workday target fields, **Integration System User permissions**, **the Access Layer action contract**, report design, audit requirements, folder access and test cases are approved by the accountable GF owners.
+> **Definition of Ready.** The build starts when field rules, sample PDFs, the matching key, Workday target fields, **Integration System User permissions**, **the Access Layer action contract**, report design, audit requirements, folder access and test cases are approved by the accountable Caldova owners.
 
 ---
 

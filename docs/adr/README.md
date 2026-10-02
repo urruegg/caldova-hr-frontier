@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-09-28 |
+| **Version** | 1.3 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -32,7 +32,7 @@
 | [0011](0011-workflow-first-process-architecture.md) | Workflow-first process architecture — the workflow owns the process, the agent owns the judgement | Accepted |
 | [0012](0012-per-tenant-github-repository-and-account-topology.md) | Per-tenant GitHub repository and account topology — one product-source repository and one Azure DevOps project and Basic backlog per tenant | Approved |
 
-ADRs 0001, 0002, and 0012 are repository-level **Approved** decisions for Option A in the attended [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md). They establish GitHub as sole source authority, Azure Boards Basic as the single backlog, future Azure Pipelines consuming GitHub directly, and ignored local Tenant 1 private configuration. ADRs 0003 and 0004 remain Proposed Baseline candidates from the infrastructure/governance intake. ADRs 0005–0011 are the HR solution architecture set from the Phase 4 intake; their own "Accepted"/"Proposed" status reflects the design package's internal decision tracking and remains pending repository-level ratification. All Accepted records among 0005–0011 are **pending GF ratification** — accepted as the design position of that package, not yet countersigned by GF.
+ADRs 0001, 0002, and 0012 are repository-level **Approved** decisions for Option A in the attended [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md). They establish GitHub as sole source authority, Azure Boards Basic as the single backlog, future Azure Pipelines consuming GitHub directly, and ignored local Tenant 1 private configuration. ADRs 0003 and 0004 remain Proposed Baseline candidates from the infrastructure/governance intake. ADRs 0005–0011 are the HR solution architecture set from the Phase 4 intake; their own "Accepted"/"Proposed" status reflects the design package's internal decision tracking and remains pending repository-level ratification. All Accepted records among 0005–0011 are **pending Caldova ratification** — accepted as the design position of that package, not yet countersigned by Caldova.
 
 ---
 
@@ -56,7 +56,7 @@ Each record carries the same sections, and two of them carry most of the value:
 
 **1. A repository-level Approved ADR outranks narrative text anywhere else.** If `solution-design.md` and an Approved ADR conflict, the ADR is correct and the design document has drifted. Report the drift rather than reconciling it silently. Legacy "Accepted" statuses in the Phase 4 HR package remain package decisions pending repository-level ratification.
 
-**2. Status is not decoration.** ADR-0010 is **Proposed** — the Organizational Data Service is not confirmed by GF, and nothing depends on it. Do not describe it as part of the platform.
+**2. Status is not decoration.** ADR-0010 is **Proposed** — the Organizational Data Service is not confirmed by Caldova, and nothing depends on it. Do not describe it as part of the platform.
 
 **3. Cite the ADR number.** `ADR-0009` survives rewording; a quoted sentence does not.
 

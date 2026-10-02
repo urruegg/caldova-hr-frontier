@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Use Case Portfolio |
@@ -15,7 +15,7 @@
 > **HR owner:** Talent Acquisition
 > **Suggested wave:** 2
 >
-> **Source:** GF HR AI use case list. This document expands the list entry into a reviewable idea; it is **not** an approved requirement.
+> **Source:** The customer-supplied HR AI use-case workbook. This document expands the workbook entry into a reviewable idea; it is **not** an approved requirement.
 
 ---
 
@@ -56,7 +56,7 @@ See [`hr-journey-and-raci.md`](../../../docs/hr-journey-and-raci.md) for the ful
 
 **Write envelope:** **No write to a system of record.** It produces a draft a human edits and submits.
 
-**Grounding:** GF job architecture data and approved JD templates.
+**Grounding:** Caldova job architecture data and approved JD templates.
 
 **Data classification:** **Internal.** No personal data involved.
 

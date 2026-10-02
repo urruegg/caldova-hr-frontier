@@ -614,9 +614,9 @@ Describe 'AI Builder observed capture replay projection' {
         $script:ReplayRawFixturePath = Join-Path $script:ReplayFixtureRoot 'process-documents-response.json'
         $script:ReplayCanonicalFixturePath = Join-Path $script:ReplayFixtureRoot 'canonical-envelope.json'
         $script:ReplayContractPath = Join-Path $script:ReplayRepositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
-        $script:ReplaySourcePath = Join-Path $script:ReplayRepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template\documents\a-personalblatt\a01-CAND-2026-0411-brunner.pdf'
         $script:RetainedReplayRoot = Join-Path $script:ReplayRepositoryRoot 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
         $script:RetainedCaptureDirectory = Join-Path $script:RetainedReplayRoot 'capture\cap-20260930094537354Z-34bf8987'
+        $script:ReplaySourcePath = Join-Path $script:RetainedCaptureDirectory 'source\a01-CAND-2026-0411-brunner.pdf'
         $script:RetainedReplayHash = '627dc0d4cc26b288ebbcd4109688972f14d7a23ed1f98eee7b2009e47a8fe3f7'
         $script:RetainedHoldout1Directory = Join-Path $script:RetainedReplayRoot 'capture\fixed-holdout\cap-20260930114811428Z-ed0cd329'
         $script:RetainedHoldout1Hash = '531e7522b8896cc44c8b4179eb49eba6394e2cd96ffa008575b51adc6be78f48'
@@ -1624,7 +1624,7 @@ Describe 'AI Builder field and corpus contracts' {
             $script:Guide | Should -Match 'Do not train, edit, delete, publish, or use draft `2\.0`'
             $script:Guide | Should -Not -Match 'No Power Automate flow'
             $script:Guide | Should -Not -Match 'Publish that evaluated version'
-            $script:Guide | Should -Not -Match 'gf_Personalstammdaten'
+            $script:Guide | Should -Not -Match 'caldova_Personalstammdaten'
             $script:Guide | Should -Not -Match 'GFHRPlatformCore'
         }
 
@@ -2079,6 +2079,7 @@ Describe 'AI Builder field and corpus contracts' {
             $script:Task6TrainingCaptureRetryPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\training-capture-retry.json'
             $script:Task6RetryUploadRequestPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-retry-upload-request.json'
             $script:Task6TrainingCaptureRemediationPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\training-capture-remediation.json'
+            $script:HistoricalTrainingSourcePath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\capture\cap-20260930094537354Z-34bf8987\source\a01-CAND-2026-0411-brunner.pdf'
             $script:TrainingCaptureFolderScreenshotPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-upload-failure-folder-empty.png'
             $script:TestBoM = Get-Content -LiteralPath (
                 Join-Path $root 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\bom-0002-ai-builder-test-inputs-and-outcomes.md'
@@ -2285,7 +2286,7 @@ Describe 'AI Builder field and corpus contracts' {
             $uploadRequest = Get-Content -LiteralPath $script:Task6RetryUploadRequestPath -Raw | ConvertFrom-Json
             $evidenceRoot = Split-Path -Parent $script:Task6TrainingCaptureRetryPath
             $security = Get-Content -LiteralPath (Join-Path $evidenceRoot 'security-verification.json') -Raw | ConvertFrom-Json
-            $localSource = Join-Path $script:RepositoryRoot $retry.selected_document.qualified_local_path
+            $localSource = $script:HistoricalTrainingSourcePath
             $remoteSource = Join-Path $evidenceRoot 'task6-retry-remote-source-mismatch.pdf'
             $screenshot = Join-Path $evidenceRoot 'task6-retry-source-mismatch-folder.png'
 
@@ -2345,7 +2346,7 @@ Describe 'AI Builder field and corpus contracts' {
             $script:Task6TrainingCaptureRemediationPath | Should -Exist
             $remediation = Get-Content -LiteralPath $script:Task6TrainingCaptureRemediationPath -Raw | ConvertFrom-Json
             $evidenceRoot = Split-Path -Parent $script:Task6TrainingCaptureRemediationPath
-            $qualifiedSource = Join-Path $script:RepositoryRoot $remediation.selected_document.qualified_local_path
+            $qualifiedSource = $script:HistoricalTrainingSourcePath
             $retainedMismatch = Join-Path $evidenceRoot $remediation.preserved_failure_evidence.local_evidence_filename
             $verifiedSource = Join-Path $evidenceRoot $remediation.native_upload.remote_read_back_evidence_filename
 
@@ -2645,8 +2646,8 @@ Describe 'AI Builder field and corpus contracts' {
             Import-Module $script:ModulePath -Force
             $script:RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
             $script:ContractPath = Join-Path $script:RepositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
-            $script:FixedPath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template'
-            $script:GeneralPath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-general-documents'
+            $script:FixedPath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
+            $script:GeneralPath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents'
         }
 
         It 'creates one pending visual review record per document' {
@@ -3724,8 +3725,8 @@ catch {
 
         It 'refuses to reset an existing manifest and inventory on rerun' {
             $outputDirectory = Join-Path $TestDrive 'run-existing-manifest'
-            $fixedPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template'
-            $generalPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-general-documents'
+            $fixedPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
+            $generalPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents'
             $contractPath = Join-Path $script:RepositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
 
             foreach ($pair in @(
@@ -3794,7 +3795,7 @@ catch {
     }
 
     It 'contains 24 fixed PDFs and matching ground-truth rows' {
-        $root = Join-Path $script:UseCaseRoot 'gf-aib-fixed-template'
+        $root = Join-Path $script:UseCaseRoot 'caldova-aib-fixed-template'
         $truth = Get-Content -LiteralPath (Join-Path $root 'ground-truth.json') -Raw | ConvertFrom-Json
         $pdfs = @(Get-ChildItem -LiteralPath (Join-Path $root 'documents') -Filter '*.pdf' -Recurse)
 
@@ -3805,7 +3806,7 @@ catch {
     }
 
     It 'contains 24 general PDFs and matching ground-truth rows' {
-        $root = Join-Path $script:UseCaseRoot 'gf-aib-general-documents'
+        $root = Join-Path $script:UseCaseRoot 'caldova-aib-general-documents'
         $truth = Get-Content -LiteralPath (Join-Path $root 'ground-truth.json') -Raw | ConvertFrom-Json
         $pdfs = @(Get-ChildItem -LiteralPath (Join-Path $root 'documents') -Filter '*.pdf' -Recurse)
 
@@ -3816,7 +3817,7 @@ catch {
     }
 
     It 'keeps CSV and JSON ground truth equivalent for both supplied packages' {
-        foreach ($package in @('gf-aib-fixed-template', 'gf-aib-general-documents')) {
+        foreach ($package in @('caldova-aib-fixed-template', 'caldova-aib-general-documents')) {
             $root = Join-Path $script:UseCaseRoot $package
             $jsonRows = @(
                 (Get-Content -LiteralPath (Join-Path $root 'ground-truth.json') -Raw |
@@ -3832,7 +3833,7 @@ catch {
 
     It 'contains the versioned generator source for each supplied package' {
         $expected = @('gen_fixed.py', 'gen_general.py', 'gen_truth.py', 'personas.py')
-        foreach ($package in @('gf-aib-fixed-template', 'gf-aib-general-documents')) {
+        foreach ($package in @('caldova-aib-fixed-template', 'caldova-aib-general-documents')) {
             $generatorRoot = Join-Path (Join-Path $script:UseCaseRoot $package) 'generators'
             @(
                 Get-ChildItem -LiteralPath $generatorRoot -File -Filter '*.py' |
@@ -4419,8 +4420,8 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
                     -ReviewPath $reviewPath -FieldContractPath $script:FieldContractPath
             }
 
-            $fixedPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template'
-            $generalPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-general-documents'
+            $fixedPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
+            $generalPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents'
             $script:FixedCorpusResult = New-TestAiBuilderConfirmedCorpusResult -PackagePath $fixedPackagePath -ModelKind Fixed
             $script:GeneralCorpusResult = New-TestAiBuilderConfirmedCorpusResult -PackagePath $generalPackagePath -ModelKind General
 
@@ -4525,10 +4526,10 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
 
                 $corpusResult = if ($ModelName -eq 'PersonalMasterDataFixed') { $script:FixedCorpusResult } else { $script:GeneralCorpusResult }
                 $groundTruthRoot = if ($ModelName -eq 'PersonalMasterDataFixed') {
-                    Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template'
+                    Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
                 }
                 else {
-                    Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-general-documents'
+                    Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents'
                 }
                 $groundTruthPath = Join-Path $groundTruthRoot 'ground-truth.json'
                 $groundTruth = Get-Content -LiteralPath $groundTruthPath -Raw | ConvertFrom-Json
@@ -4740,6 +4741,29 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
             New-Item -ItemType Directory -Path $root -Force | Out-Null
             $predictionCapturePath = Join-Path $root 'prediction-capture-fixed.json'
             $evaluationDirectory = Join-Path $root 'evaluation'
+            $historicalPackageRoot = Join-Path $root 'historical-fixed-package'
+            $historicalGroundTruthPath = Join-Path $historicalPackageRoot 'ground-truth.json'
+            New-Item -ItemType Directory -Path $historicalPackageRoot -Force | Out-Null
+            Copy-Item -LiteralPath (
+                Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template\ground-truth.json'
+            ) -Destination $historicalGroundTruthPath
+            $manifest = Get-Content -LiteralPath (Join-Path $evidenceRoot 'run-manifest.json') -Raw |
+                ConvertFrom-Json
+            $heldOutDocuments = @(
+                @($manifest.models | Where-Object display_name -ceq 'PersonalMasterDataFixed')[0].documents |
+                    Where-Object assignment -ceq 'held-out'
+            )
+            foreach ($document in $heldOutDocuments) {
+                $captureSource = @(
+                    Get-ChildItem -LiteralPath (Join-Path $evidenceRoot 'capture\fixed-holdout') `
+                        -Recurse -Filter ([string]$document.document) -File
+                )
+                $captureSource.Count | Should -Be 1
+                $historicalSourcePath = Join-Path $historicalPackageRoot ([string]$document.source_path)
+                New-Item -ItemType Directory -Path (Split-Path -Parent $historicalSourcePath) -Force |
+                    Out-Null
+                Copy-Item -LiteralPath $captureSource[0].FullName -Destination $historicalSourcePath
+            }
 
             & pwsh -NoProfile -File $script:ImportQuickTestResultsPath `
                 -RunManifestPath (Join-Path $evidenceRoot 'run-manifest.json') `
@@ -4756,7 +4780,7 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
                 -FieldContractPath $script:FieldContractPath `
                 -ModelSchemaRecordPath (Join-Path $evidenceRoot 'model-schema-fixed.json') `
                 -PredictionCapturePath $predictionCapturePath `
-                -GroundTruthPath (Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template\ground-truth.json') `
+                -GroundTruthPath $historicalGroundTruthPath `
                 -EvidenceDirectory $evaluationDirectory 2>&1
             $exitCode = $LASTEXITCODE
 
@@ -5057,7 +5081,7 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
             }
 
             $exitCode | Should -Not -Be 0
-            ($output -join [Environment]::NewLine) | Should -Match 'already exists'
+            ($output | Out-String -Width 4096) | Should -Match 'already\s+exists'
             @((Get-Content -LiteralPath (Join-Path $evidenceDirectory 'evaluation-metrics.json') -Raw | ConvertFrom-Json).models).Count |
                 Should -Be 1
         }
@@ -5152,7 +5176,7 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
             $blockedCapturePath | Should -Exist
             $summaryPath | Should -Exist
             (Get-Content -LiteralPath $summaryPath -Raw) | Should -Match ([regex]::Escape($blockedCapturePath))
-            ($output -join [Environment]::NewLine) | Should -Match 'violates the capture contract'
+            ($output | Out-String -Width 4096) | Should -Match 'violates\s+the capture contract'
         }
     }
 }

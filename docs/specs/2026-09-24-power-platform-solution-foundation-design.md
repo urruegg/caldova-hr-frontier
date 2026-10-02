@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | HR Solution Architecture |
@@ -26,7 +26,7 @@ This is a **foundation** sprint: no Dataverse tables or Copilot Studio agent are
 
 ### 1. One solution now, not the documented two-solution split
 
-`docs/solution-design.md` §7 documents an eventual split into `GFHRPlatformCore` (Dataverse tables, security roles, connection references, environment variable definitions, shared agent components) and `GFHRMasterDataAgent` (the agent, its flows, the control plane app registration) — Tenant 3/GF naming, for the fully-built target. Only one solution exists in Power Platform today, for Tenant 1.
+`docs/solution-design.md` §7 documents an eventual split into `GFHRPlatformCore` (Dataverse tables, security roles, connection references, environment variable definitions, shared agent components) and `GFHRMasterDataAgent` (the agent, its flows, the control plane app registration) — Tenant 3/Caldova naming, for the fully-built target. Only one solution exists in Power Platform today, for Tenant 1.
 
 **Decision:** treat `caldovahrfrontier` as the one foundation solution for now. Do not create a second solution in Power Platform, and do not invent a Tenant-1-equivalent "Core"/"Agent" naming split that nobody has asked for. `hr/README.md`'s Solutions table is updated to state the current single-solution reality for Tenant 1 alongside the still-valid Tenant 3 target, rather than silently reconciling the two.
 

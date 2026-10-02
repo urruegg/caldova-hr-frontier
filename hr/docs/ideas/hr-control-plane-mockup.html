@@ -29,23 +29,23 @@
   --fg-3:#8A8886;
   --fg-disabled:#A19F9D;
 
-  /* GF brand ramp — verbatim from the project BrandKit. 60 is primary. */
-  --gf-brand-10:#04121E;  --gf-brand-20:#08243C;  --gf-brand-30:#0C3559;
-  --gf-brand-40:#104776;  --gf-brand-50:#145893;  --gf-brand-60:#1965A3;
-  --gf-brand-70:#2C76B0;  --gf-brand-80:#4488BE;  --gf-brand-90:#5F9ACB;
-  --gf-brand-100:#7CACD8; --gf-brand-110:#99BFE4; --gf-brand-120:#B5D1EC;
-  --gf-brand-130:#CFE1F3; --gf-brand-140:#E2EDF8; --gf-brand-150:#EFF5FB;
-  --gf-brand-160:#F7FAFD;
-  --gf-accent-sky:#4AA6E5;
+  /* Caldova product ramp — verbatim from the project BrandKit. 60 is primary. */
+  --caldova-brand-10:#04121E;  --caldova-brand-20:#08243C;  --caldova-brand-30:#0C3559;
+  --caldova-brand-40:#104776;  --caldova-brand-50:#145893;  --caldova-brand-60:#1965A3;
+  --caldova-brand-70:#2C76B0;  --caldova-brand-80:#4488BE;  --caldova-brand-90:#5F9ACB;
+  --caldova-brand-100:#7CACD8; --caldova-brand-110:#99BFE4; --caldova-brand-120:#B5D1EC;
+  --caldova-brand-130:#CFE1F3; --caldova-brand-140:#E2EDF8; --caldova-brand-150:#EFF5FB;
+  --caldova-brand-160:#F7FAFD;
+  --caldova-accent-sky:#4AA6E5;
 
   /* Brand aliases. #1965A3 is 6.05:1 on white — safe as text and as a fill
      carrying white text. The light tints only ever carry --brand as text. */
-  --brand:var(--gf-brand-60);
-  --brand-110:var(--gf-brand-50);
-  --brand-120:var(--gf-brand-40);
-  --brand-border:var(--gf-brand-120);
-  --brand-tint:var(--gf-brand-140);
-  --brand-tint-2:var(--gf-brand-150);
+  --brand:var(--caldova-brand-60);
+  --brand-110:var(--caldova-brand-50);
+  --brand-120:var(--caldova-brand-40);
+  --brand-border:var(--caldova-brand-120);
+  --brand-tint:var(--caldova-brand-140);
+  --brand-tint-2:var(--caldova-brand-150);
   --on-brand:#FFFFFF;
   --on-danger:#FFFFFF;
 
@@ -58,14 +58,14 @@
   --danger:#A4262C;  --danger-bg:#FDF3F4;  --danger-border:#EFC8CA;
   --info:#0F6CBD;    --info-bg:#EFF6FC;    --info-border:#BFD9F0;
 
-  --header-bg:var(--gf-brand-30);
+  --header-bg:var(--caldova-brand-30);
   --header-fg:#FFFFFF;
-  --header-fg-2:var(--gf-brand-130);
-  --header-stroke:var(--gf-brand-40);
-  --header-surface:var(--gf-brand-40);
-  --header-hover:var(--gf-brand-50);
-  --header-track:var(--gf-brand-50);
-  --header-div:var(--gf-brand-80);
+  --header-fg-2:var(--caldova-brand-130);
+  --header-stroke:var(--caldova-brand-40);
+  --header-surface:var(--caldova-brand-40);
+  --header-hover:var(--caldova-brand-50);
+  --header-track:var(--caldova-brand-50);
+  --header-div:var(--caldova-brand-80);
 
   --shadow2:0 1px 2px rgba(0,0,0,.14),0 0 2px rgba(0,0,0,.12);
   --shadow4:0 2px 4px rgba(0,0,0,.14),0 0 2px rgba(0,0,0,.12);
@@ -91,13 +91,13 @@
 
     /* #1965A3 is only 2.1:1 on a dark canvas, so dark mode steps the brand
        up the ramp to #7CACD8 (6.5:1 on --surface) and inverts --on-brand. */
-    --brand:var(--gf-brand-100);
-    --brand-110:var(--gf-brand-110);
-    --brand-120:var(--gf-brand-120);
-    --brand-border:var(--gf-brand-50);
-    --brand-tint:var(--gf-brand-20);
-    --brand-tint-2:var(--gf-brand-10);
-    --on-brand:var(--gf-brand-10);
+    --brand:var(--caldova-brand-100);
+    --brand-110:var(--caldova-brand-110);
+    --brand-120:var(--caldova-brand-120);
+    --brand-border:var(--caldova-brand-50);
+    --brand-tint:var(--caldova-brand-20);
+    --brand-tint-2:var(--caldova-brand-10);
+    --on-brand:var(--caldova-brand-10);
     --on-danger:#2A1416;
 
     --viz-1:#7CACD8; --viz-2:#4AA6E5; --viz-3:#5EC98B;
@@ -108,13 +108,13 @@
     --danger:#EF7C85;  --danger-bg:#291417;  --danger-border:#5E2B30;
     --info:#63AEEC;    --info-bg:#112232;    --info-border:#2A4E70;
 
-    --header-bg:var(--gf-brand-10);
-    --header-fg-2:var(--gf-brand-120);
-    --header-stroke:var(--gf-brand-30);
-    --header-surface:var(--gf-brand-20);
-    --header-hover:var(--gf-brand-30);
-    --header-track:var(--gf-brand-30);
-    --header-div:var(--gf-brand-70);
+    --header-bg:var(--caldova-brand-10);
+    --header-fg-2:var(--caldova-brand-120);
+    --header-stroke:var(--caldova-brand-30);
+    --header-surface:var(--caldova-brand-20);
+    --header-hover:var(--caldova-brand-30);
+    --header-track:var(--caldova-brand-30);
+    --header-div:var(--caldova-brand-70);
   }
 }
 
@@ -157,9 +157,9 @@ table{border-collapse:collapse;width:100%}
   border-block-end:1px solid var(--header-stroke);position:relative;z-index:120;
 }
 .brand-block{display:flex;align-items:center;gap:12px}
-/* Placeholder wordmark, not the GF trademark: 28px slot reserved for the
-   licensed SVG, with clear space either side. See the LOGO SLOT comment. */
-.gf-logo{height:28px;flex:0 0 auto;margin-inline-end:4px;cursor:default}
+/* Placeholder wordmark, not an official Caldova trademark: 28px slot reserved
+   for an approved SVG, with clear space either side. See the LOGO SLOT comment. */
+.caldova-logo{height:28px;flex:0 0 auto;margin-inline-end:4px;cursor:default}
 .wordmark{font-size:var(--fs-subtitle2);font-weight:700;letter-spacing:.22em;color:var(--header-fg)}
 .header-div{width:1px;height:20px;background:var(--header-div)}
 .app-name{font-size:var(--fs-body1);font-weight:600;white-space:nowrap}
@@ -466,7 +466,7 @@ table{border-collapse:collapse;width:100%}
 .tl-label{font-size:var(--fs-body1)}
 .tl-meta{font-size:var(--fs-caption1);color:var(--fg-2);text-align:end}
 .tl-step.is-agent{background:var(--brand-tint-2);border:1px solid var(--brand-border);
-  border-inline-start:3px solid var(--gf-accent-sky);padding-inline-start:9px}
+  border-inline-start:3px solid var(--caldova-accent-sky);padding-inline-start:9px}
 .tl-step.is-agent .tl-marker{border-color:var(--brand-border);color:var(--brand)}
 .tl-step.is-agent .tl-label{font-weight:600;color:var(--brand)}
 .tl-step.is-tier{background:var(--surface-sunken);border:1px solid var(--stroke);padding-inline-start:9px;border-inline-start:3px solid var(--stroke-strong)}
@@ -640,11 +640,11 @@ table{border-collapse:collapse;width:100%}
 <div class="app-shell">
   <header class="app-header">
     <!-- LOGO SLOT — placeholder wordmark.
-         Replace with the official GF SVG from Corporate Communications.
+         Replace with an approved Caldova SVG when supplied.
          Keep the 28px height and surrounding clear space.
          See docs/brand/README.md section 5. -->
-    <div class="brand-block gf-logo" id="gfLogo" title="Placeholder wordmark — official GF logo to be supplied">
-      <span class="wordmark">GF</span>
+    <div class="brand-block caldova-logo" id="caldovaLogo" title="Placeholder Caldova wordmark">
+      <span class="wordmark">Caldova</span>
       <span class="header-div" aria-hidden="true"></span>
       <span class="app-name">HR Control Plane</span>
     </div>
@@ -664,7 +664,7 @@ table{border-collapse:collapse;width:100%}
       <div class="content">
         <div id="noticeSlot"><div class="msgbar" style="margin-block-end:20px" role="note"><span class="mb-icon"><svg class="ic" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="7"/><path d="M10 9.2v4.2"/><circle cx="10" cy="6.6" r=".8" fill="currentColor" stroke="none"/></svg></span><span class="mb-text"><strong>Mockup — illustrative data only.</strong> Not connected to Workday or Dataverse. Every figure, name and document reference on this screen is fictional.</span><button class="icon-btn" type="button" data-act="dismiss-notice" aria-label="Dismiss notice"><svg class="ic" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5.2 5.2l9.6 9.6M14.8 5.2l-9.6 9.6"/></svg></button></div></div>
         <div id="screenSlot" class="screen"><section class="section"><div class="greeting"><div><h1 class="t-title2">Good morning, Andrea. 3 things need a person today.</h1><div class="sub"><span>Wednesday 23 September 2026</span><span class="sep">·</span><span>HR Operations Switzerland</span><span class="sep">·</span><span>3 approvals are assigned to you · 7 blocked cases sit with the team</span></div></div><div class="row"><button class="btn" type="button" data-act="go-runs">All runs</button><button class="btn btn-primary" type="button" data-act="go-decide">Open work queue</button></div></div></section><section class="section"><div class="triage"><article class="tri is-lead" style="--accent:var(--danger)"><div class="tri-top"><span class="tri-label">DECIDE</span><span class="tri-rank">Top priority</span></div><div class="tri-count">7</div><p class="tri-meaning">Blocked — the agent stopped and needs a human</p><button class="btn btn-sm btn-primary" type="button" data-act="go-decide">Work queue</button></article><article class="tri" style="--accent:var(--info)"><div class="tri-top"><span class="tri-label">REVIEW</span></div><div class="tri-count">12</div><p class="tri-meaning">Written at low confidence — verify after the fact</p><button class="btn btn-sm " type="button" data-act="go-review">Review writes</button></article><article class="tri" style="--accent:var(--warning)"><div class="tri-top"><span class="tri-label">APPROVE</span></div><div class="tri-count">3</div><p class="tri-meaning">Run paused, waiting on your decision</p><button class="btn btn-sm " type="button" data-act="go-approve">Open approvals</button></article><article class="tri" style="--accent:var(--brand)"><div class="tri-top"><span class="tri-label">REFINE</span></div><div class="tri-count">4</div><p class="tri-meaning">Patterns suggesting a fix-once opportunity</p><button class="btn btn-sm " type="button" data-act="go-refine">See patterns</button></article><article class="tri" style="--accent:var(--fg-3)"><div class="tri-top"><span class="tri-label">WATCH</span></div><div class="tri-count">—</div><p class="tri-meaning">Agent health, capacity, evaluation drift</p><div class="tri-chips"><span class="pill pill-success t-caption2"><span class="dot"></span>1 agent live</span><span class="pill pill-warning t-caption2">Capacity 68%</span><span class="pill pill-danger t-caption2">Eval 2 failing</span></div><button class="btn btn-sm " type="button" data-act="go-agents">Agent status</button></article></div><p class="t-caption muted-3">Every number here is a queue with an owner and a next action. Counts refresh with each run.</p></section><section class="section"><div class="section-head"><div class="sh-text"><h2 class="t-sub1">Employee journey — agent coverage</h2><p class="t-caption muted">Nine stages. One agent live, three planned. Select a stage for detail.</p></div><button class="btn btn-sm" type="button" data-act="go-journey">Open journey</button></div><div class="ribbon"><button class="stage is-ghost" type="button" data-act="stage" data-id="attract"><span class="st-name">Attract</span><span class="t-caption2 muted-3">No agent</span></button><span class="chev" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.6l5.4 5.4-5.4 5.4"/></svg></span><button class="stage is-ghost" type="button" data-act="stage" data-id="hire"><span class="st-name">Hire</span><span class="t-caption2 muted-3">No agent</span></button><span class="chev" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.6l5.4 5.4-5.4 5.4"/></svg></span><button class="stage is-live" type="button" data-act="stage" data-id="preboard"><span class="st-name">Pre-board</span><span class="pill pill-brand"><span class="dot"></span>Live · PROD</span><span class="st-meta">UC-0001 Personal Master Data Completion</span><span class="st-meta">Run 04 · completed with exceptions · 07:42</span></button><span class="chev" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.6l5.4 5.4-5.4 5.4"/></svg></span><button class="stage " type="button" data-act="stage" data-id="onboard"><span class="st-name">Onboard</span><span class="pill pill-ghost">MVP · not built</span><span class="st-meta">UC-0005 Onboarding Assistant</span></button><span class="chev" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.6l5.4 5.4-5.4 5.4"/></svg></span><button class="stage is-ghost" type="button" data-act="stage" data-id="enable"><span class="st-name">Enable</span><span class="t-caption2 muted-3">No agent</span></button><span class="chev" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.6l5.4 5.4-5.4 5.4"/></svg></span><button class="stage is-ghost" type="button" data-act="stage" data-id="grow"><span class="st-name">Grow</span><span class="t-caption2 muted-3">No agent</span></button><span class="chev" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.6l5.4 5.4-5.4 5.4"/></svg></span><button class="stage is-ghost" type="button" data-act="stage" data-id="change"><span class="st-name">Change</span><span class="t-caption2 muted-3">No agent</span></button><span class="chev" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.6l5.4 5.4-5.4 5.4"/></svg></span><button class="stage is-gap" type="button" data-act="stage" data-id="offboard"><span class="st-name">Offboard</span><span class="pill pill-warning">Empty</span><span class="st-meta">No agent coverage — candidate gap</span></button><span class="chev" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4.6l5.4 5.4-5.4 5.4"/></svg></span><button class="stage is-ghost" type="button" data-act="stage" data-id="alumni"><span class="st-name">Alumni</span><span class="t-caption2 muted-3">No agent</span></button></div><div class="crosscut"><span class="cc-label">CROSS-CUTTING</span><span class="cc-item">UC-0010 Employee Data Validation <span class="pill pill-ghost">MVP · not built</span></span><span class="cc-item">UC-0002 HR Policy Chat <span class="pill pill-info"><span class="dot"></span>Running alongside</span></span></div></section><section class="section"><div class="section-head"><div class="sh-text"><h2 class="t-sub1">Needs you now</h2><p class="t-caption muted">The merged DECIDE and APPROVE queue — 10 items in total, one of each type shown.</p></div><button class="btn btn-sm" type="button" data-act="go-decide">Open full queue</button></div><div class="card"><table class="dg"><caption class="sr-only">Items needing a human decision</caption><thead><tr><th scope="col">Type</th><th scope="col">Package ref</th><th scope="col">Employee</th><th scope="col">Age</th><th scope="col">Owner</th><th scope="col" class="end">Action</th></tr></thead><tbody><tr><td><span class="pill pill-square pill-warning">Multiple Match</span></td><td class="mono">PKG-2026-0923-07</td><td><span class="livename">V. Steiner</span><span class="live" role="img" tabindex="0" aria-label="Resolved live from Workday — not stored" data-tip="Resolved live from Workday — not stored">live</span></td><td><span class="num">4h 4m</span></td><td class="muted">A. Brunner</td><td class="end"><div class="rowacts"><button class="linkbtn" type="button" data-act="resolve" data-id="EXC-2026-0923-11">Resolve</button><span class="sep">·</span><button class="linkbtn" type="button" data-act="assign" data-id="EXC-2026-0923-11">Assign</button><span class="sep">·</span><button class="linkbtn" type="button" data-act="escalate" data-id="EXC-2026-0923-11">Escalate</button></div></td></tr><tr><td><span class="pill pill-square pill-danger">Employee Not Found</span></td><td class="mono">PKG-2026-0923-12</td><td><span class="noresolve" data-tip="No Workday profile matched — there is nothing to resolve. The document subject is not stored." tabindex="0" role="note">no matched profile</span></td><td><span class="num">2h 30m</span></td><td class="muted">Unassigned</td><td class="end"><div class="rowacts"><button class="linkbtn" type="button" data-act="resolve" data-id="EXC-2026-0923-14">Resolve</button><span class="sep">·</span><button class="linkbtn" type="button" data-act="assign" data-id="EXC-2026-0923-14">Assign</button><span class="sep">·</span><button class="linkbtn" type="button" data-act="escalate" data-id="EXC-2026-0923-14">Escalate</button></div></td></tr><tr><td><span class="pill pill-square pill-info">Low Confidence</span></td><td class="mono">PKG-2026-0922-11</td><td><span class="livename">T. Ochsner</span><span class="live" role="img" tabindex="0" aria-label="Resolved live from Workday — not stored" data-tip="Resolved live from Workday — not stored">live</span></td><td><span class="num">1d 3h</span></td><td class="muted">A. Brunner</td><td class="end"><div class="rowacts"><button class="linkbtn" type="button" data-act="resolve" data-id="EXC-2026-0922-11">Resolve</button><span class="sep">·</span><button class="linkbtn" type="button" data-act="assign" data-id="EXC-2026-0922-11">Assign</button><span class="sep">·</span><button class="linkbtn" type="button" data-act="escalate" data-id="EXC-2026-0922-11">Escalate</button></div></td></tr><tr><td><span class="pill pill-square pill-warning">Document Unreadable</span></td><td class="mono">PKG-2026-0922-03</td><td><span class="livename">M. Iten</span><span class="live" role="img" tabindex="0" aria-label="Resolved live from Workday — not stored" data-tip="Resolved live from Workday — not stored">live</span></td><td><span class="num">1d 5h</span></td><td class="muted">S. Keller</td><td class="end"><div class="rowacts"><button class="linkbtn" type="button" data-act="resolve" data-id="EXC-2026-0922-07">Resolve</button><span class="sep">·</span><button class="linkbtn" type="button" data-act="assign" data-id="EXC-2026-0922-07">Assign</button><span class="sep">·</span><button class="linkbtn" type="button" data-act="escalate" data-id="EXC-2026-0922-07">Escalate</button></div></td></tr><tr><td><span class="pill pill-square pill-danger">Access Layer Error</span></td><td class="mono">PKG-2026-0921-06</td><td><span class="livename">A. Perren</span><span class="live" role="img" tabindex="0" aria-label="Resolved live from Workday — not stored" data-tip="Resolved live from Workday — not stored">live</span></td><td><span class="num">2d 2h</span></td><td class="muted">N. Ammann · HRIS</td><td class="end"><div class="rowacts"><button class="linkbtn" type="button" data-act="resolve" data-id="EXC-2026-0921-09">Resolve</button><span class="sep">·</span><button class="linkbtn" type="button" data-act="assign" data-id="EXC-2026-0921-09">Assign</button><span class="sep">·</span><button class="linkbtn" type="button" data-act="escalate" data-id="EXC-2026-0921-09">Escalate</button></div></td></tr></tbody></table></div></section><section class="section" id="refine"><div class="section-head"><div class="sh-text"><h2 class="t-sub1">Refine — fix once, not twelve times</h2><p class="t-caption muted">Patterns across runs where one systemic change removes a queue. Ranked for HR Operations Switzerland.</p></div></div><div class="refine-grid"><article class="refine"><div class="rf-head"><h3 class="rf-pattern">12 Low Confidence on Postal Code — 9 from the same document template.</h3></div><div class="rf-row"><span class="rf-key">Evidence</span><span class="muted">Anmeldung Gemeinde template changed layout ~15 Sep.</span></div><div class="rf-fix"><div class="rf-row"><span class="rf-key">Fix</span><span>Update the Tier 1 extraction mapping — do not work 12 exceptions individually.</span></div></div><div class="rf-foot"><span class="rf-owner">Owner: HRIS · raised 22 Sep</span><button class="btn btn-sm" type="button" data-act="go-fields">Open field mapping</button></div></article><article class="refine"><div class="rf-head"><h3 class="rf-pattern">Multiple Match rate 4.1% this week vs 1.2% baseline.</h3></div><div class="rf-row"><span class="rf-key">Evidence</span><span class="muted">All 6 cases matched on Last Name + Postal Code only.</span></div><div class="rf-fix"><div class="rf-row"><span class="rf-key">Fix</span><span>This is open decision D-03 — the matching key is not sufficient. Escalate to HRIS.</span></div></div><div class="rf-foot"><span class="rf-owner">Owner: HRIS · open 9 days</span><button class="btn btn-sm" type="button" data-act="open-d03">Open D-03</button></div></article><article class="refine"><div class="rf-head"><h3 class="rf-pattern">Tier 2 handled 38% of documents — target is under 20%.</h3></div><div><svg class="chart" viewBox="0 0 280 22" role="img" aria-label="Tier 1 62 percent, Tier 2 38 percent, target 80 percent."><rect x="0" y="4" width="280" height="14" rx="3" class="bar-track"/><rect x="0" y="4" width="173.6" height="14" rx="3" class="bar-brand"/><rect x="173.6" y="4" width="106.4" height="14" class="bar-warning"/><line x1="224" y1="0" x2="224" y2="22" class="line-target"/></svg></div><div class="rf-row"><span class="rf-key">Evidence</span><span class="muted">Deterministic extraction failing on scanned PDFs from one source.</span></div><div class="rf-fix"><div class="rf-row"><span class="rf-key">Fix</span><span>Raising Tier 1 coverage cuts credit consumption and narrows the prompt-injection surface.</span></div></div><div class="rf-foot"><span class="rf-owner">Owner: DAAI · reviewed weekly</span><button class="btn btn-sm" type="button" data-act="open-tier">View tier split</button></div></article><article class="refine"><div class="rf-head"><h3 class="rf-pattern">Emergency Contact blank on 23 of 31 packages.</h3></div><div class="rf-row"><span class="rf-key">Evidence</span><span class="muted">The field is approved but rarely present in the document set.</span></div><div class="rf-fix"><div class="rf-row"><span class="rf-key">Fix</span><span>Either collect it upstream or remove it from the approved field list — it is generating follow-ups that cannot be resolved.</span></div></div><div class="rf-foot"><span class="rf-owner">Owner: HR Operations · decide this week</span><button class="btn btn-sm" type="button" data-act="go-followups">Open follow-ups</button></div></article></div></section><section class="section"><div class="section-head"><div class="sh-text"><h2 class="t-sub1">Today’s runs</h2><p class="t-caption muted">Wednesday 23 Sep · 4 runs · 26 packages processed</p></div><button class="btn btn-sm" type="button" data-act="go-runs">All runs</button></div><div class="card"><table class="dg"><caption class="sr-only">Runs today</caption><thead><tr><th scope="col">Run ID</th><th scope="col">Trigger</th><th scope="col">Started</th><th scope="col">Duration</th><th scope="col">Packages</th><th scope="col">Status</th></tr></thead><tbody><tr class="row-click" data-act="open-run" data-id="RUN-2026-0923-06"><td><button class="linkbtn mono" type="button" data-act="open-run" data-id="RUN-2026-0923-06">RUN-2026-0923-06</button></td><td class="muted">Document arrival</td><td class="num">11:31</td><td class="num">00:19 elapsed</td><td class="num">5</td><td><span class="row" style="gap:8px"><span class="pill pill-brand"><span class="dot"></span>Running</span><span class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="60" aria-label="Run progress"><span class="fill pulse" style="width:60%"></span></span><span class="t-caption muted num">3 of 5</span></span></td></tr><tr class="row-click" data-act="open-run" data-id="RUN-2026-0923-05"><td><button class="linkbtn mono" type="button" data-act="open-run" data-id="RUN-2026-0923-05">RUN-2026-0923-05</button></td><td class="muted">Document arrival</td><td class="num">09:15</td><td class="num">12m 04s</td><td class="num">6</td><td><span class="pill pill-warning"><span class="dot"></span>Completed with exceptions</span></td></tr><tr class="row-click" data-act="open-run" data-id="RUN-2026-0923-04"><td><button class="linkbtn mono" type="button" data-act="open-run" data-id="RUN-2026-0923-04">RUN-2026-0923-04</button></td><td class="muted">Manual · A. Brunner</td><td class="num">07:42</td><td class="num">11m 20s</td><td class="num">9</td><td><span class="pill pill-warning"><span class="dot"></span>Completed with exceptions</span></td></tr><tr class="row-click" data-act="open-run" data-id="RUN-2026-0923-02"><td><button class="linkbtn mono" type="button" data-act="open-run" data-id="RUN-2026-0923-02">RUN-2026-0923-02</button></td><td class="muted">Scheduled 06:00</td><td class="num">06:00</td><td class="num">04m 12s</td><td class="num">6</td><td><span class="pill pill-success"><span class="dot"></span>Completed</span></td></tr></tbody></table></div></section></div>
-        <footer class="app-foot" id="appFoot"><div class="foot-cols"><div class="foot-col"><span class="foot-title">Platform</span><span class="foot-name">GF HR Agentic Platform</span><span class="foot-line">Level 3 — agentic. Workday is the system of record. Humans decide.</span><span class="foot-line is-quiet">Control Plane · design mockup v0.1</span></div><div class="foot-col"><span class="foot-title">Governance</span><div class="foot-links"><button class="foot-link" type="button" data-act="doc-link" data-id="ADR-0004">Write envelope (ADR-0004)</button><button class="foot-link" type="button" data-act="doc-link" data-id="ADR-0005">Workday access (ADR-0005)</button><button class="foot-link" type="button" data-act="doc-link" data-id="ADR-0007">Process architecture (ADR-0007)</button><button class="foot-link" type="button" data-act="doc-link" data-id="ADR-0003">Data boundary (ADR-0003)</button><button class="foot-link" type="button" data-act="doc-link" data-id="prd.md">Platform requirements (prd.md)</button></div></div><div class="foot-col"><span class="foot-title">Status</span><div class="foot-stats"><span class="foot-stat"><span class="fs-k">Environment</span><span class="fs-v">PROD</span></span><span class="foot-stat"><span class="fs-k">Agents live</span><span class="fs-v">1</span></span><span class="foot-stat"><span class="fs-k">Capacity</span><span class="fs-v">68%</span></span><span class="foot-stat"><span class="fs-k">Last run</span><span class="fs-v">RUN-2026-0923-04</span></span><span class="foot-stat"><span class="fs-k">Evaluation</span><span class="fs-v is-warning">34/36 · 2 failing</span></span></div></div></div><div class="foot-bar"><span>Mockup — illustrative data only. Not connected to Workday or Dataverse.</span><span class="fb-right"><span>Georg Fischer Ltd · Schaffhausen · © 2026</span><span class="fb-sep" aria-hidden="true">·</span><button class="foot-link" type="button" data-act="doc-link" data-id="Privacy">Privacy</button><button class="foot-link" type="button" data-act="doc-link" data-id="Accessibility">Accessibility</button></span></div></footer>
+        <footer class="app-foot" id="appFoot"><div class="foot-cols"><div class="foot-col"><span class="foot-title">Platform</span><span class="foot-name">Caldova HR Agentic Platform</span><span class="foot-line">Level 3 — agentic. Workday is the system of record. Humans decide.</span><span class="foot-line is-quiet">Control Plane · design mockup v0.1</span></div><div class="foot-col"><span class="foot-title">Governance</span><div class="foot-links"><button class="foot-link" type="button" data-act="doc-link" data-id="ADR-0004">Write envelope (ADR-0004)</button><button class="foot-link" type="button" data-act="doc-link" data-id="ADR-0005">Workday access (ADR-0005)</button><button class="foot-link" type="button" data-act="doc-link" data-id="ADR-0007">Process architecture (ADR-0007)</button><button class="foot-link" type="button" data-act="doc-link" data-id="ADR-0003">Data boundary (ADR-0003)</button><button class="foot-link" type="button" data-act="doc-link" data-id="prd.md">Platform requirements (prd.md)</button></div></div><div class="foot-col"><span class="foot-title">Status</span><div class="foot-stats"><span class="foot-stat"><span class="fs-k">Environment</span><span class="fs-v">PROD</span></span><span class="foot-stat"><span class="fs-k">Agents live</span><span class="fs-v">1</span></span><span class="foot-stat"><span class="fs-k">Capacity</span><span class="fs-v">68%</span></span><span class="foot-stat"><span class="fs-k">Last run</span><span class="fs-v">RUN-2026-0923-04</span></span><span class="foot-stat"><span class="fs-k">Evaluation</span><span class="fs-v is-warning">34/36 · 2 failing</span></span></div></div></div><div class="foot-bar"><span>Mockup — illustrative data only. Not connected to Workday or Dataverse.</span><span class="fb-right"><span>Caldova · © 2026</span><span class="fb-sep" aria-hidden="true">·</span><button class="foot-link" type="button" data-act="doc-link" data-id="Privacy">Privacy</button><button class="foot-link" type="button" data-act="doc-link" data-id="Accessibility">Accessibility</button></span></div></footer>
       </div>
     </main>
   </div>
@@ -722,7 +722,7 @@ const ICON = {
    notice bar and the footer. Sample record content (Refine insight prose,
    run-detail prose, evidence and fix sentences) stays in English.
    NEVER TRANSLATED, in any locale: identifiers. UC-0001, FR-0013, ADR-0007,
-   RUN-…, PKG-…, EXC-…, D-03, gf_fieldaction, Workday field and reference
+   RUN-…, PKG-…, EXC-…, D-03, caldova_fieldaction, Workday field and reference
    names (Postal Code, AHV Number, IBAN, Heimatort, Home_Address.…) and the
    approved field list all stay in source form — a translated identifier
    cannot be traced back to the system that issued it. */
@@ -808,7 +808,7 @@ const TR = {
   "Agent writes disabled": ["Agentenschreibzugriff deaktiviert", "Scritture dell’agente disattivate", "Écritures de l’agent désactivées", "Escrituras del agente desactivadas"],
   "Collapse navigation": ["Navigation einklappen", "Comprimi la navigazione", "Réduire la navigation", "Contraer la navegación"],
   "Expand navigation": ["Navigation ausklappen", "Espandi la navigazione", "Développer la navigation", "Expandir la navegación"],
-  "Placeholder wordmark — official GF logo to be supplied": ["Platzhalter-Wortmarke — offizielles GF-Logo wird nachgeliefert", "Logotipo segnaposto — il logo GF ufficiale sarà fornito in seguito", "Logotype provisoire — le logo GF officiel sera fourni", "Logotipo provisional — el logotipo oficial de GF se facilitará más adelante"],
+  "Placeholder Caldova wordmark": ["Platzhalter-Wortmarke für Caldova", "Logotipo segnaposto Caldova", "Logotype provisoire Caldova", "Logotipo provisional de Caldova"],
   "View this console as": ["Diese Konsole anzeigen als", "Visualizza questa console come", "Afficher cette console en tant que", "Ver esta consola como"],
   "Works the queues": ["Arbeitet die Warteschlangen ab", "Gestisce le code", "Traite les files d’attente", "Trabaja las colas"],
   "Field list, access layer, match quality": ["Feldliste, Access Layer, Matching-Qualität", "Elenco campi, Access Layer, qualità del matching", "Liste des champs, Access Layer, qualité du rapprochement", "Lista de campos, Access Layer, calidad de coincidencia"],
@@ -1763,7 +1763,7 @@ function renderHeader() {
   el('#bellSlot').innerHTML = bellBtnHTML();
   el('#personaSlot').innerHTML = personaBtnHTML();
   const ep = el('#envPill'); if (ep) ep.setAttribute('title', t('Production environment'));
-  const lg = el('#gfLogo'); if (lg) lg.setAttribute('title', t('Placeholder wordmark — official GF logo to be supplied'));
+  const lg = el('#caldovaLogo'); if (lg) lg.setAttribute('title', t('Placeholder Caldova wordmark'));
 }
 
 const NAV = [
@@ -2684,7 +2684,7 @@ function footerHTML() {
   return '<div class="foot-cols">' +
       '<div class="foot-col">' +
         '<span class="foot-title">' + te('Platform') + '</span>' +
-        '<span class="foot-name">GF HR Agentic Platform</span>' +
+        '<span class="foot-name">Caldova HR Agentic Platform</span>' +
         '<span class="foot-line">' + te('Level 3 — agentic. Workday is the system of record. Humans decide.') + '</span>' +
         '<span class="foot-line is-quiet">Control Plane · ' + te('design mockup') + ' v0.1</span>' +
       '</div>' +
@@ -2700,7 +2700,7 @@ function footerHTML() {
     '</div>' +
     '<div class="foot-bar">' +
       '<span>' + te('Mockup — illustrative data only.') + ' ' + te('Not connected to Workday or Dataverse.') + '</span>' +
-      '<span class="fb-right"><span>Georg Fischer Ltd · Schaffhausen · © 2026</span>' +
+      '<span class="fb-right"><span>Caldova · © 2026</span>' +
         '<span class="fb-sep" aria-hidden="true">·</span>' +
         '<button class="foot-link" type="button" data-act="doc-link" data-id="Privacy">' + te('Privacy') + '</button>' +
         '<button class="foot-link" type="button" data-act="doc-link" data-id="Accessibility">' + te('Accessibility') + '</button>' +

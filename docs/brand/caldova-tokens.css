@@ -1,0 +1,188 @@
+/* ============================================================
+   Caldova product theme — design tokens
+   Caldova HR Agentic Platform
+
+   The inherited values are an interim product palette pending an
+   approved Caldova design standard. They are not an official corporate
+   identity. Names and provenance wording changed; palette values,
+   contrast targets, semantic-state colours, and dark-mode behavior did not.
+   ============================================================ */
+
+:root {
+  /* ---- Brand ramp (primary at 60) ---- */
+  --caldova-brand-10:  #04121E;
+  --caldova-brand-20:  #08243C;
+  --caldova-brand-30:  #0C3559;
+  --caldova-brand-40:  #104776;
+  --caldova-brand-50:  #145893;
+  --caldova-brand-60:  #1965A3;   /* PRIMARY — 6.05:1 on white */
+  --caldova-brand-70:  #2C76B0;
+  --caldova-brand-80:  #4488BE;
+  --caldova-brand-90:  #5F9ACB;
+  --caldova-brand-100: #7CACD8;   /* dark-mode primary — 7.28:1 on #1B1A19 */
+  --caldova-brand-110: #99BFE4;
+  --caldova-brand-120: #B5D1EC;
+  --caldova-brand-130: #CFE1F3;
+  --caldova-brand-140: #E2EDF8;
+  --caldova-brand-150: #EFF5FB;
+  --caldova-brand-160: #F7FAFD;
+
+  /* ---- Secondary ---- */
+  --caldova-accent-sky:    #4AA6E5;  /* data viz, agent-reasoning emphasis */
+  --caldova-accent-bright: #33ADFF;  /* charts only — too light for text */
+  --caldova-ink:           #000115;
+
+  /* ---- Semantic (Fluent, unbranded on purpose) ---- */
+  --caldova-success:      #0F7B3F;
+  --caldova-success-bg:   #DFF6E6;
+  --caldova-warning:      #AF5700;   /* 4.76:1 on its tint; #B85C00 measured 4.36 */
+  --caldova-warning-bg:   #FFF4E0;
+  --caldova-danger:       #A4262C;
+  --caldova-danger-bg:    #FDE7E9;
+  --caldova-info:         #0F6CBD;   /* kept distinct from brand — see the brand guide */
+  --caldova-info-bg:      #EFF6FC;
+
+  /* ---- Neutrals ---- */
+  --caldova-canvas:         #FAF9F8;
+  --caldova-surface:        #FFFFFF;
+  --caldova-surface-alt:    #F3F2F1;
+  --caldova-stroke:         #E1DFDD;
+  --caldova-stroke-strong:  #C8C6C4;
+  --caldova-text-secondary: #605E5C;
+  --caldova-text-tertiary:  #6E6C6A;  /* lightest grey permitted for text — 4.97:1 on canvas */
+  --caldova-text:           #242424;
+  --caldova-text-strong:    #1B1A19;
+  --caldova-text-disabled:  #A19F9D;
+  --caldova-text-on-brand:  #FFFFFF;
+
+  /* ---- Chrome ---- */
+  --caldova-header-bg:   var(--caldova-brand-30);
+  --caldova-header-text: #FFFFFF;
+
+  /* ---- Type ---- */
+  --caldova-font: "Segoe UI Variable Display", "Segoe UI Variable Text",
+             "Segoe UI", system-ui, -apple-system, sans-serif;
+  --caldova-font-mono: "Cascadia Mono", "Consolas", "SF Mono", monospace;
+
+  --caldova-size-caption1:  12px;  --caldova-line-caption1:  16px;
+  --caldova-size-body1:     14px;  --caldova-line-body1:     20px;
+  --caldova-size-subtitle2: 16px;  --caldova-line-subtitle2: 22px;
+  --caldova-size-subtitle1: 20px;  --caldova-line-subtitle1: 26px;
+  --caldova-size-title3:    24px;  --caldova-line-title3:    32px;
+  --caldova-size-title2:    28px;  --caldova-line-title2:    36px;
+
+  --caldova-weight-regular:  400;
+  --caldova-weight-semibold: 600;
+  --caldova-weight-bold:     700;
+
+  /* ---- Shape ---- */
+  --caldova-radius-sm: 2px;
+  --caldova-radius:    4px;
+  --caldova-radius-lg: 8px;
+
+  /* ---- Elevation ---- */
+  --caldova-shadow-2:  0 1px 2px rgba(0,0,0,.14),  0 0 2px rgba(0,0,0,.12);
+  --caldova-shadow-4:  0 2px 4px rgba(0,0,0,.14),  0 0 2px rgba(0,0,0,.12);
+  --caldova-shadow-8:  0 4px 8px rgba(0,0,0,.14),  0 0 2px rgba(0,0,0,.12);
+  --caldova-shadow-16: 0 8px 16px rgba(0,0,0,.14), 0 0 2px rgba(0,0,0,.12);
+  --caldova-shadow-64: 0 32px 64px rgba(0,0,0,.24),0 0 8px rgba(0,0,0,.20);
+
+  /* ---- Spacing: 4px grid ---- */
+  --caldova-space-xs:   4px;
+  --caldova-space-s:    8px;
+  --caldova-space-m:   12px;
+  --caldova-space-l:   16px;
+  --caldova-space-xl:  20px;
+  --caldova-space-2xl: 24px;
+  --caldova-space-3xl: 32px;
+  --caldova-space-4xl: 40px;
+
+  /* ---- Motion ---- */
+  --caldova-duration-fast:   100ms;
+  --caldova-duration-normal: 200ms;
+  --caldova-curve-standard:  cubic-bezier(.33,0,.67,1);
+  --caldova-curve-decel:     cubic-bezier(.1,.9,.2,1);
+}
+
+/* ============================================================
+   Dark theme. Brand moves 60 -> 100; the light blue fails
+   contrast on a dark surface (2.1:1).
+   ============================================================ */
+:root[data-theme="dark"],
+.caldova-theme-dark {
+  --caldova-canvas:         #1B1A19;
+  --caldova-surface:        #252423;
+  --caldova-surface-alt:    #2D2C2B;
+  --caldova-stroke:         #3B3A39;
+  --caldova-stroke-strong:  #484644;
+  --caldova-text-secondary: #C8C6C4;
+  --caldova-text:           #F3F2F1;
+  --caldova-text-strong:    #FFFFFF;
+  --caldova-text-disabled:  #797775;
+
+  --caldova-brand-60:  #7CACD8;
+  --caldova-brand-50:  #99BFE4;
+  --caldova-brand-130: #104776;
+  --caldova-brand-140: #0C3559;
+  --caldova-brand-150: #08243C;
+  --caldova-brand-160: #04121E;
+
+  --caldova-success:    #5EC98A;  --caldova-success-bg: #10301C;
+  --caldova-warning:    #E8A33D;  --caldova-warning-bg: #3A2609;
+  --caldova-danger:     #F1707B;  --caldova-danger-bg:  #3B1014;
+  --caldova-info:       #7CACD8;  --caldova-info-bg:    #08243C;
+
+  --caldova-header-bg:     #0C3559;
+  --caldova-text-on-brand: #04121E;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+  }
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
+.caldova-app {
+  font-family: var(--caldova-font);
+  font-size: var(--caldova-size-body1);
+  line-height: var(--caldova-line-body1);
+  color: var(--caldova-text);
+  background: var(--caldova-canvas);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Figures must align. This app is full of numeric columns. */
+.caldova-num, .caldova-table td.caldova-num, .caldova-metric {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Focus ring — 2px brand, never removed */
+.caldova-focusable:focus-visible,
+.caldova-app :focus-visible {
+  outline: 2px solid var(--caldova-brand-60);
+  outline-offset: 2px;
+  border-radius: var(--caldova-radius-sm);
+}
+
+/* Logo slot. Placeholder wordmark — see the brand guide.
+   Swap the contents, keep the box. */
+.caldova-logo {
+  display: inline-flex;
+  align-items: center;
+  block-size: 28px;
+  padding-inline: var(--caldova-space-s);
+  font-weight: var(--caldova-weight-bold);
+  letter-spacing: .06em;
+  color: var(--caldova-header-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caldova-app *, .caldova-app *::before, .caldova-app *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}

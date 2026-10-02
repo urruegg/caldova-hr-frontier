@@ -2,14 +2,14 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | HR Use Case Portfolio |
 | **References** | [HR Solution Functional Design Intake](../../../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md), [BrandKit](../../../docs/brand/README.md) |
 
-**This is an internal design exploration, not one of GF's 19 stated use cases.** It does not appear in `GF_HR AI use case list.xlsx` and carries no `UC-nnnn` identifier for that reason — conflating it with the GF-sourced portfolio would misattribute an internal idea as GF-stated fact, which the evidence rules in [`README.md`](README.md) forbid.
+**This is an internal design exploration, not one of the 19 customer-stated use cases.** It does not appear in the customer-supplied HR AI use-case workbook and carries no `UC-nnnn` identifier for that reason — conflating it with the customer-stated portfolio would misattribute an internal idea as customer-stated fact, which the evidence rules in [`README.md`](README.md) forbid.
 
 ## What this is
 

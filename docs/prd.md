@@ -1,9 +1,9 @@
-# Product Requirements — GF HR Agentic Platform
+# Product Requirements — Caldova HR Agentic Platform
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -21,7 +21,7 @@
 
 ## 1. Purpose
 
-This document states what the **platform** must do, once, so that no individual use case has to restate it. Every agent GF builds inherits these requirements; a use-case PRD adds only what is specific to that use case.
+This document states what the **platform** must do, once, so that no individual use case has to restate it. Every agent Caldova builds inherits these requirements; a use-case PRD adds only what is specific to that use case.
 
 The distinction matters because it is where governance either holds or erodes. If each use case re-decides how it escalates to a human, what it refuses, or where its audit record lives, then by the fifth agent there are five answers and no platform. The requirements below are the ones that must have exactly one answer.
 
@@ -31,7 +31,7 @@ The distinction matters because it is where governance either holds or erodes. I
 
 ## 2. Product Vision
 
-> HR work at GF is supported by agents that read, prepare and complete — and by humans who decide.
+> HR work at Caldova is supported by agents that read, prepare and complete — and by humans who decide.
 
 Three commitments follow from that sentence, and they are the reason the requirements below take the shape they do:
 
@@ -43,9 +43,9 @@ Three commitments follow from that sentence, and they are the reason the require
 
 ## 2.1 Maturity Position — Level 3, Agentic
 
-Microsoft describes three levels of process automation. GF positions at **Level 3**.
+Microsoft describes three levels of process automation. Caldova positions at **Level 3**.
 
-| Level | Definition | GF today |
+| Level | Definition | Caldova today |
 |---|---|---|
 | **1 — Traditional (BPA)** | Scripts or predefined instructions executing repetitive, rule-based tasks; best suited to static, predictable processes | Scheduled Workday integrations |
 | **2 — Digital (DPA / RPA)** | Connects workflows across systems and teams, enabling end-to-end process orchestration | Boomi, SAP Integration Suite, Informatica, Workday ↔ ServiceNow |
@@ -240,7 +240,7 @@ Platform-level. Use-case decisions sit in the relevant use-case PRD.
 | **D-0006** | Dataverse capacity and retention for audit tables | IT / Privacy |
 | **D-0007** | Whether Cowork participates in the MVP or a later increment | DAAI |
 | **D-0008** | Source-control and pipeline tooling for solution ALM | IT / DAAI |
-| **D-0009** | **Microsoft Frontier Program enrolment** — whether GF joins, and which environments are in scope. This is the concrete mechanism behind the frontier-driven position | IT / DAAI |
+| **D-0009** | **Microsoft Frontier Program enrolment** — whether Caldova joins, and which environments are in scope. This is the concrete mechanism behind the frontier-driven position | IT / DAAI |
 | **D-0010** | Model lifecycle policy: what happens to a validated agent when its model is updated or retired | DAAI / IT |
 | **D-0011** | Connected-agent envelope rule — a connected agent may hold privileges its parent does not, so delegation must not become a bypass | Security / DAAI |
 

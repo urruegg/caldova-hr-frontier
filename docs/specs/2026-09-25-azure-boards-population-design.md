@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-25 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure (Tenant 1) |
@@ -112,7 +112,7 @@ Covered the same way `infra/tests/pester/TenantTrust.Tests.ps1` covers `Initiali
 `infra/docs/21-azure-boards-population-runbook.md` is written but **not run** as part of this sub-project — exactly like the tenant-trust-activation runbook, running it live is an attended human action, for two independent reasons, not one:
 
 1. **Access does not exist yet.** Live execution needs an authenticated Azure DevOps session for Tenant 1, which depends on the tenant-trust-activation runbook (PR #16) actually being run.
-2. **Content judgment belongs to a human, deliberately.** Five of the 19 ideas (`UC-0007`, `UC-0008`, `UC-0014`, `UC-0015`, `UC-0019`) touch employment-decision adjacency per `hr/docs/ideas/README.md`'s own observations section. Even though this sub-project only ever copies existing, reviewed text into Azure Boards — it never generates new characterizations of a use case — a human should be the one who triggers the first live write of that portfolio into a system other people at GF will read as authoritative.
+2. **Content judgment belongs to a human, deliberately.** Five of the 19 ideas (`UC-0007`, `UC-0008`, `UC-0014`, `UC-0015`, `UC-0019`) touch employment-decision adjacency per `hr/docs/ideas/README.md`'s own observations section. Even though this sub-project only ever copies existing, reviewed text into Azure Boards — it never generates new characterizations of a use case — a human should be the one who triggers the first live write of that portfolio into a system other people at Caldova will read as authoritative.
 
 ## Open Items
 

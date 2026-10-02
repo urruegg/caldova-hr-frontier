@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.4 |
-| **Date** | 2026-09-30 |
+| **Version** | 0.5 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | UC-0001 attended AI Builder model build and evaluation in Tenant 2 DEV |
@@ -293,7 +293,7 @@ Import the fixed holdout captures and calculate the evaluation:
     -FieldContractPath '.\hr\src\ai-builder\contracts\field-contract.json' `
     -ModelSchemaRecordPath "$evidenceDirectory\model-schema-record-fixed.json" `
     -PredictionCapturePath "$evidenceDirectory\prediction-capture-fixed.json" `
-    -GroundTruthPath '.\hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template\ground-truth.json' `
+    -GroundTruthPath '.\hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template\ground-truth.json' `
     -EvidenceDirectory $evidenceDirectory
 ```
 

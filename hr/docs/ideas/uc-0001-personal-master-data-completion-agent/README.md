@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | **Version** | 1.2 |
-| **Date** | 2026-09-28 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Use Case Portfolio |
@@ -22,8 +22,8 @@
 | Document | What it is | Authority |
 |---|---|---|
 | [`uc-0001-personal-master-data-completion-agent.md`](uc-0001-personal-master-data-completion-agent.md) | The use case: what it does, where it sits in the journey, platform fit, assessment | Orientation |
-| [`prd-0001-personal-master-data-completion-agent.md`](prd-0001-personal-master-data-completion-agent.md) | **The requirements.** Draft 0.2, superseding GF Draft 0.1. Business rules, functional and non-functional requirements, acceptance criteria, open decisions, risks | **Authoritative for this use case** |
-| [`bom-0001-peopledoc-master-data-ai-builder-fields.md`](bom-0001-peopledoc-master-data-ai-builder-fields.md) | Repository-owned traceability for the 17 AI Builder fields from design through tenant-specific implementation evidence; not the GF 60+ item artefact inventory | **Authoritative for AI Builder field lifecycle status** |
+| [`prd-0001-personal-master-data-completion-agent.md`](prd-0001-personal-master-data-completion-agent.md) | **The requirements.** Draft 0.2, superseding the customer-supplied UC-0001 draft PRD. Business rules, functional and non-functional requirements, acceptance criteria, open decisions, risks | **Authoritative for this use case** |
+| [`bom-0001-peopledoc-master-data-ai-builder-fields.md`](bom-0001-peopledoc-master-data-ai-builder-fields.md) | Repository-owned traceability for the 17 AI Builder fields from design through tenant-specific implementation evidence; not the customer-supplied UC-0001 artefact inventory of 60+ items | **Authoritative for AI Builder field lifecycle status** |
 | [`bom-0002-ai-builder-test-inputs-and-outcomes.md`](bom-0002-ai-builder-test-inputs-and-outcomes.md) | Repository-owned run-level traceability from qualified test inputs to model metrics, findings, and evidence | **Authoritative for AI Builder test-run input and outcome summaries** |
 | [`ai-builder-model-setup.md`](ai-builder-model-setup.md) | Attended Tenant 2 DEV procedure for readiness, corpus qualification, model training, no-flow evidence capture, strict-gate evaluation, publication, solution synchronization, and evidence closeout | Operator guide; subordinate to the approved design and BoMs |
 
@@ -63,11 +63,11 @@ This use case does **not** restate platform requirements — it inherits them, a
 
 ## Evidence rules for agents
 
-**1. The PRD is authoritative for this use case; `prd.md` is authoritative for the platform.** A question about *this agent's* business rules is answered from the PRD. A question about how *any* GF agent must behave is answered from `prd.md`. Answering the second from the first produces requirements that look use-case-specific when they are not.
+**1. The PRD is authoritative for this use case; `prd.md` is authoritative for the platform.** A question about *this agent's* business rules is answered from the PRD. A question about how *any* Caldova agent must behave is answered from `prd.md`. Answering the second from the first produces requirements that look use-case-specific when they are not.
 
-**2. Draft 0.2 supersedes GF's Draft 0.1.** Where they differ, this package is current — it adds the HR Employee Control Plane App, the Dataverse process-state boundary, Teams notification, BR-13…BR-15, FR-16…FR-20, AC-11…AC-13 and D-11…D-13. What changed is listed in PRD §1.
+**2. Draft 0.2 supersedes the customer-supplied UC-0001 draft PRD.** Where they differ, this package is current — it adds the HR Employee Control Plane App, the Dataverse process-state boundary, Teams notification, BR-13…BR-15, FR-16…FR-20, AC-11…AC-13 and D-11…D-13. What changed is listed in PRD §1.
 
-**3. D-03 is unresolved and is the highest-risk open item.** The matching key — Last Name + First Name + Postal Code — is marked TBD in GF's source and is **not sufficient**. Names repeat, postal codes change, and a false match writes one person's data onto another's record. **Do not treat it as decided, and do not propose a workaround that leaves the risk in place.**
+**3. D-03 is unresolved and is the highest-risk open item.** The matching key — Last Name + First Name + Postal Code — is marked TBD in the customer-supplied UC-0001 draft PRD and is **not sufficient**. Names repeat, postal codes change, and a false match writes one person's data onto another's record. **Do not treat it as decided, and do not propose a workaround that leaves the risk in place.**
 
 **4. Cite IDs.** `BR-08`, `FR-16`, `AC-11`, `D-03` are stable. Prose is not.
 
@@ -94,7 +94,7 @@ The folder name matches the use case document name exactly. Later artefacts — 
 
 | Source | Contributed |
 |---|---|
-| `PRD_Personal_Master_Data_Completion_Agent_Switzerland_Draft_0.1` | Scope, business rules, functional requirements, acceptance criteria, open decisions |
-| `BOM_Artefacts_Personal_Master_Data_Completion_Agent_Switzerland_Draft_0.1` | Artefact inventory — 60+ items across business, data, system, security, build, test and operations, with ownership and status |
-| `GF_HR AI Use case list.xlsx` | Portfolio context and the HR Ops CH pain points |
-| `Personalstammdaten_Felder_DE_EN.xlsx` | The approved field list — column C where column E = yes. **Referenced by GF, not included in this package** |
+| The customer-supplied UC-0001 draft PRD | Scope, business rules, functional requirements, acceptance criteria, open decisions |
+| The customer-supplied UC-0001 artefact inventory | Artefact inventory — 60+ items across business, data, system, security, build, test and operations, with ownership and status |
+| The customer-supplied HR AI use-case workbook | Portfolio context and the HR Ops CH pain points |
+| The customer-supplied personal-master-data field workbook | The approved field list — column C where column E = yes. **Referenced by the source material, not included in this package** |

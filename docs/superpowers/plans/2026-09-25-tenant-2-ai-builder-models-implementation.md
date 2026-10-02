@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-25 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | HR Solution Architecture - Tenant 2 DEV AI Builder sprint |
@@ -62,8 +62,8 @@ The sprint creates or changes the following units:
 | `hr/evidence/ai-builder/README.md` | Evidence layout, retention boundary, and operator instructions |
 | `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/` | First Tenant 2 DEV run evidence |
 | `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md` | Attended operator procedure reconciled to the approved design |
-| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/gf-aib-fixed-template/` | Versioned fixed-template synthetic corpus |
-| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/gf-aib-general-documents/` | Versioned general-document synthetic corpus |
+| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/` | Versioned fixed-template synthetic corpus |
+| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/` | Versioned general-document synthetic corpus |
 | `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md` | Field lifecycle status updated from evidence |
 | `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md` | Run input and outcome summary updated from evidence |
 | `hr/src/solutions/caldovahrfrontier/` | Unpacked solution source after the evaluated models are added |
@@ -75,10 +75,10 @@ The sprint creates or changes the following units:
 **Files:**
 - Create: `hr/src/ai-builder/contracts/field-contract.json`
 - Create: `hr/tests/pester/AiBuilderEvidence.Tests.ps1`
-- Add: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/gf-aib-fixed-template/`
-- Add: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/gf-aib-general-documents/`
-- Modify: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/gf-aib-fixed-template/README.md`
-- Modify: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/gf-aib-general-documents/README.md`
+- Add: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/`
+- Add: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/`
+- Modify: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/README.md`
+- Modify: `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/README.md`
 
 **Interfaces:**
 - Produces: `field-contract.json` with `contract_version`, `field_count`, and ordered `fields`.
@@ -122,7 +122,7 @@ Describe 'AI Builder field and corpus contracts' {
     }
 
     It 'contains 24 fixed PDFs and matching ground-truth rows' {
-        $root = Join-Path $script:UseCaseRoot 'gf-aib-fixed-template'
+        $root = Join-Path $script:UseCaseRoot 'caldova-aib-fixed-template'
         $truth = Get-Content -LiteralPath (Join-Path $root 'ground-truth.json') -Raw | ConvertFrom-Json
         $pdfs = @(Get-ChildItem -LiteralPath (Join-Path $root 'documents') -Filter '*.pdf' -Recurse)
 
@@ -133,7 +133,7 @@ Describe 'AI Builder field and corpus contracts' {
     }
 
     It 'contains 24 general PDFs and matching ground-truth rows' {
-        $root = Join-Path $script:UseCaseRoot 'gf-aib-general-documents'
+        $root = Join-Path $script:UseCaseRoot 'caldova-aib-general-documents'
         $truth = Get-Content -LiteralPath (Join-Path $root 'ground-truth.json') -Raw | ConvertFrom-Json
         $pdfs = @(Get-ChildItem -LiteralPath (Join-Path $root 'documents') -Filter '*.pdf' -Recurse)
 
@@ -144,7 +144,7 @@ Describe 'AI Builder field and corpus contracts' {
     }
 
     It 'keeps CSV and JSON ground truth equivalent for both supplied packages' {
-        foreach ($package in @('gf-aib-fixed-template', 'gf-aib-general-documents')) {
+        foreach ($package in @('caldova-aib-fixed-template', 'caldova-aib-general-documents')) {
             $root = Join-Path $script:UseCaseRoot $package
             $jsonRows = @(
                 (Get-Content -LiteralPath (Join-Path $root 'ground-truth.json') -Raw |
@@ -160,7 +160,7 @@ Describe 'AI Builder field and corpus contracts' {
 
     It 'contains the versioned generator source for each supplied package' {
         $expected = @('gen_fixed.py', 'gen_general.py', 'gen_truth.py', 'personas.py')
-        foreach ($package in @('gf-aib-fixed-template', 'gf-aib-general-documents')) {
+        foreach ($package in @('caldova-aib-fixed-template', 'caldova-aib-general-documents')) {
             $generatorRoot = Join-Path (Join-Path $script:UseCaseRoot $package) 'generators'
             @(
                 Get-ChildItem -LiteralPath $generatorRoot -File -Filter '*.py' |
@@ -218,7 +218,7 @@ Create `hr/src/ai-builder/contracts/field-contract.json`:
 
 In both package READMEs:
 
-- replace “approved field list” with “designed 17-field contract” because the GF field workbook is not present;
+- replace “approved field list” with “designed 17-field contract” because the customer-supplied personal-master-data field workbook is not present;
 - remove the fixed-template “above ~95%” expectation;
 - state that the first run establishes a measured baseline;
 - retain the strict zero-false-value rule;
@@ -248,8 +248,8 @@ Record the SHA-256 values for all 48 PDFs, all four ground-truth files (CSV and 
 ```powershell
 git add hr/src/ai-builder/contracts/field-contract.json `
     hr/tests/pester/AiBuilderEvidence.Tests.ps1 `
-    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/gf-aib-fixed-template `
-    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/gf-aib-general-documents
+    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template `
+    hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents
 git commit -m "feat: version AI Builder corpus contract" `
     -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ```
@@ -296,7 +296,7 @@ Describe 'AI Builder corpus qualification' {
         Import-Module $script:ModulePath -Force
         $script:RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
         $script:ContractPath = Join-Path $script:RepositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
-        $script:FixedPath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template'
+        $script:FixedPath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
     }
 
     It 'creates one pending visual review record per document' {
@@ -1019,7 +1019,7 @@ git commit -m "feat: add AI Builder evaluation evidence" `
 
 **Interfaces:**
 - Consumes: approved model names, field contract, scripts, evidence layout, strict gates, and stop behavior.
-- Produces: one operator procedure that contains no old `gf_` names, `GFHRPlatformCore`, routing flow, TEST deployment, invented percentage threshold, or Workday action.
+- Produces: one operator procedure that contains no legacy draft logical names, `GFHRPlatformCore`, routing flow, TEST deployment, invented percentage threshold, or Workday action.
 - Consumed by: Tasks 5, 6, 7, and 8.
 
 - [ ] **Step 1: Add a failing documentation contract test**
@@ -1039,7 +1039,7 @@ Describe 'AI Builder operator guide contract' {
         $script:Guide | Should -Match 'PersonalMasterDataFixed'
         $script:Guide | Should -Match 'PersonalMasterDataGeneral'
         $script:Guide | Should -Match 'caldovahrfrontier'
-        $script:Guide | Should -Not -Match 'gf_Personalstammdaten'
+        $script:Guide | Should -Not -Match 'Personalstammdaten'
         $script:Guide | Should -Not -Match 'GFHRPlatformCore'
     }
 
@@ -1527,7 +1527,7 @@ Run:
     -RunManifestPath 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\run-manifest.json' `
     -FieldContractPath 'hr\src\ai-builder\contracts\field-contract.json' `
     -ModelSchemaRecordPath 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\model-schema-fixed.json' `
-    -GroundTruthPath 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-fixed-template\ground-truth.json' `
+    -GroundTruthPath 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template\ground-truth.json' `
     -PredictionCapturePath 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\prediction-capture-fixed.json' `
     -OutputDirectory 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
 ```
@@ -1783,7 +1783,7 @@ Run:
     -RunManifestPath 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\run-manifest.json' `
     -FieldContractPath 'hr\src\ai-builder\contracts\field-contract.json' `
     -ModelSchemaRecordPath 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\model-schema-general.json' `
-    -GroundTruthPath 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\gf-aib-general-documents\ground-truth.json' `
+    -GroundTruthPath 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents\ground-truth.json' `
     -PredictionCapturePath 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\prediction-capture-general.json' `
     -OutputDirectory 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001'
 ```
