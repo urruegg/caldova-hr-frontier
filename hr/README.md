@@ -2,38 +2,36 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-10-01 |
+| **Version** | 1.3 |
+| **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR |
 | **References** | [HR Solution Functional Design Intake](../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md), [HR Control Plane Code App Wireframe Design](../docs/specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md) |
 
-**Purpose.** Everything specific to HR: the use cases, their requirements, and the Power Platform solutions that implement them. If it is about *what HR does*, it lives here. If it is about *how the platform works*, it lives in [`docs/`](../docs/README.md).
+## Purpose and Authority
 
----
+This domain owns HR-specific use cases, requirements, evidence contracts, and Power Platform solution source. If a question is about *what HR does*, start here. Platform-wide behavior remains governed by [`docs/`](../docs/README.md), and current evidence controls claims about what exists.
 
-## Structure
+## Contains and Does Not Contain
 
-```text
-hr/
-├── README.md                  this file
-├── docs/
-│   ├── ideas/                 the use case portfolio
-│   │   ├── README.md          index, waves, journey placement
-│   │   ├── uc-0001-personal-master-data-completion-agent/
-│   │   │   ├── README.md      the MVP use case folder
-│   │   │   ├── uc-0001-….md   the use case
-│   │   │   └── prd-0001-….md  the requirements  ◀ authoritative
-│   │   └── uc-0002 … uc-0019.md
-│   └── (use-case folders join here as they graduate)
-└── src/
-    ├── apps/                  Power Apps Code App projects
-    │   └── hr-control-plane/  wireframe shell (no functional code yet)
-    └── solutions/             Power Platform solution source
-```
+This domain contains detailed packages for graduated HR ideas, HR application and solution source, and governed AI Builder evidence. It does not contain candidate idea records, platform-wide requirements, infrastructure configuration, real personal data, or proof inferred from a plan.
 
-**A flat file is an idea. A folder is a commitment.** A use case graduates into a folder — named identically to its use case document — when a PRD is written for it.
+## Reading Order
+
+Start at the [central idea catalogue](../docs/ideas/README.md). For a graduated idea, follow its domain-detail link to the [use-case catalogue](docs/use-cases/README.md), then read the package PRD and named supporting artifacts. Use evidence to verify implementation state.
+
+**A central record is an idea. A domain package is a commitment.** Every idea stays in [`docs/ideas/`](../docs/ideas/README.md); a selected HR use case graduates into a matching package under [`docs/use-cases/`](docs/use-cases/README.md) when its detailed artifacts are created.
+
+## Naming and Lifecycle
+
+Use-case packages use `uc-nnnn-<context>/` and match the retained central idea identifier. Requirements use `prd-nnnn-<context>.md`; supporting artifacts keep stable BoM or procedure identifiers. Graduation, supersession, and archive changes update the central and domain catalogues in the same pull request.
+
+## Catalogue
+
+| Prior or next stage | HR documentation entry | Status | Purpose | Authority |
+|---|---|---|---|---|
+| [Central ideas](../docs/ideas/README.md) | [HR Use Cases](docs/use-cases/README.md) | Active | Catalogues detailed packages for graduated HR ideas. | Routes to package PRDs and supporting artifacts; platform governance remains higher authority. |
 
 ---
 
@@ -41,11 +39,11 @@ hr/
 
 | # | Use case | Status |
 |---|---|---|
-| **UC-0001** | [Personal Master Data Completion Agent](docs/ideas/uc-0001-personal-master-data-completion-agent/README.md) | **Specified** — PRD Draft 0.3, pending Definition of Ready |
-| **UC-0010** | [Employee Data Validation](docs/ideas/uc-0010-employee-data-validation-bot.md) | In scope, **no PRD yet** |
-| **UC-0005** | [Onboarding Assistant](docs/ideas/uc-0005-onboarding-assistant.md) | In scope, **no PRD yet** |
+| **UC-0001** | [Personal Master Data Completion Agent](docs/use-cases/uc-0001-personal-master-data-completion-agent/README.md) | **Specified** — PRD Draft 0.3, pending Definition of Ready |
+| **UC-0010** | [Employee Data Validation](../docs/ideas/uc-0010-employee-data-validation-bot.md) | In scope, **no PRD yet** |
+| **UC-0005** | [Onboarding Assistant](../docs/ideas/uc-0005-onboarding-assistant.md) | In scope, **no PRD yet** |
 
-Fifteen further use cases are candidates with no commitment attached. See the [portfolio](docs/ideas/README.md).
+Fifteen further use cases are candidates with no commitment attached. See the [central portfolio](../docs/ideas/README.md).
 
 ---
 
@@ -93,3 +91,16 @@ These are not aspirations. They are testable, and they come from [`docs/prd.md`]
 **D-03 is unresolved and is the highest-risk open item in the MVP.** The Workday matching key — Last Name + First Name + Postal Code — is marked TBD in the customer-supplied source and is not sufficient. Do not treat it as decided, and do not propose a workaround that leaves the risk in place.
 
 **Cite identifiers, not prose.** `BR-08`, `FR-23`, `AC-11`, `D-17`, `UC-0010` are stable. Sentences are not.
+
+## Domain Links
+
+- [Documentation knowledge map](../docs/README.md)
+- [Central ideas](../docs/ideas/README.md)
+- [Platform requirements](../docs/prd.md)
+- [Architecture decisions](../docs/adr/README.md)
+- [Infrastructure domain](../infra/README.md)
+- [Data domain](../data/README.md)
+
+## Board Synchronization
+
+Central HR ideas remain `Deferred - not synchronized`. This domain README does not create or infer Azure Boards identifiers.

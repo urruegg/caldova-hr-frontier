@@ -7,7 +7,7 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active |
 | **Scope** | Completed Task 5 Tenant 2 DEV evaluation capture flow |
-| **References** | [Evaluation Capture Design](../../../../../../docs/superpowers/specs/2026-09-29-ai-builder-evaluation-capture-design.md), [Capture intent](evaluation-capture-intent.json), [Capture readiness](evaluation-capture-readiness.json), [Model publication](model-evaluation-publication.json), [Security verification](security-verification.json) |
+| **References** | [Evaluation Capture Design](../../../../../../docs/specs/2026-09-29-ai-builder-evaluation-capture-design.md), [Capture intent](evaluation-capture-intent.json), [Capture readiness](evaluation-capture-readiness.json), [Model publication](model-evaluation-publication.json), [Security verification](security-verification.json) |
 
 ## Current outcome
 

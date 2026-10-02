@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-10-01 |
+| **Version** | 1.4 |
+| **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Repository |
@@ -14,6 +14,40 @@
 This repository bundles agent skills in `.github/skills/`; no machine-level Superpowers installation is required. Before responding or taking any action, load and follow the `using-superpowers` skill from `.github/skills/using-superpowers/SKILL.md`, check for other applicable skills, and follow the applicable workflow. Repository and user instructions take precedence over a conflicting skill instruction.
 
 Maintained repository documentation is written in English and follows [the documentation policy](../docs/README.md). Use [`.github/agents/docs-agent.agent.md`](agents/docs-agent.agent.md) as the documentation policy owner. Preserve the documented exclusions and never edit vendored Superpowers content to enforce repository metadata.
+
+**Repository documentation path override.** Store approved design specifications in
+`docs/specs/` and implementation plans in `docs/plans/`. These repository-owned
+paths are authoritative. Path examples in vendored skills are illustrative and
+do not establish repository paths. Do not edit vendored skills to change their
+examples.
+
+### External Windows worktrees
+
+The durable convention is `%LOCALAPPDATA%\CaldovaHR\wt\<repository>\<short-task-id>`. Task worktrees append a reviewed short task ID below the repository root, require no administrator rights, and are removed through `git worktree remove` after branch completion.
+
+```powershell
+$localAppData = [Environment]::GetFolderPath('LocalApplicationData')
+if ([string]::IsNullOrWhiteSpace($localAppData)) {
+    throw 'LocalApplicationData is unavailable.'
+}
+$worktreeRoot = Join-Path $localAppData 'CaldovaHR\wt'
+$repositoryRoot = Join-Path $worktreeRoot 'caldova-hr-frontier'
+New-Item -ItemType Directory -Path $repositoryRoot -Force | Out-Null
+$probe = Join-Path $repositoryRoot ('.write-probe-{0}.tmp' -f [guid]::NewGuid().ToString('N'))
+[IO.File]::WriteAllText($probe, 'permission-probe', [Text.UTF8Encoding]::new($false))
+Remove-Item -LiteralPath $probe -Force
+$taskRoot = Join-Path $repositoryRoot 'doc-arch'
+$longestRelative = @(
+    git -c core.quotepath=false ls-files |
+        Sort-Object Length -Descending
+)[0]
+$longestCheckoutPath = Join-Path $taskRoot $longestRelative
+if ($longestCheckoutPath.Length -ge 240) {
+    throw "Worktree path budget exceeded: $($longestCheckoutPath.Length)"
+}
+```
+
+Never loosen directory ACLs or enable `core.longpaths` automatically. A failed current-user write/delete probe or a checkout path of 240 characters or more is a blocking workstation prerequisite.
 
 ---
 
@@ -34,15 +68,17 @@ The design record for a **pure agentic, Frontier-driven HR organisation** positi
 | Question | File | Not |
 |---|---|---|
 | What must the platform do, always | `docs/prd.md` | A use-case PRD — it inherits, it does not restate |
-| What must *this* use case do | `hr/docs/ideas/<uc>/prd-xxxx-<context>.md` | `docs/prd.md` — it is use-case-agnostic |
+| What must *this* use case do | `hr/docs/use-cases/<uc>/prd-xxxx-<context>.md` | `docs/prd.md` — it is use-case-agnostic |
 | How is it built | `docs/solution-design.md` | `docs/prd.md` |
 | Who is accountable | `docs/hr-journey-and-raci.md` §5–6 | — |
 | **Why** was it decided, what was rejected | `docs/adr/` | Any other document |
-| How do we stand it up | `infra/docs/30-environment-setup.md` | `docs/solution-design.md` — that is the design, not the procedure |
+| How do we stand it up | [Infrastructure documentation](../infra/docs/README.md) | `docs/solution-design.md` — that is the design, not the procedure |
 | What colour / font / logo | `docs/brand/` | Inventing a hex value — every colour is a token |
 | Is it approved | The document's own **Status** field | Its existence |
 
-**Authority rule.** More specific wins — except on governance, where the platform wins. A use-case PRD may add requirements; it may **not** weaken `docs/prd.md` FR-0001…FR-0014 or NFR-0001…NFR-0012. An Accepted ADR outranks narrative text anywhere; if `solution-design.md` and an ADR conflict, the ADR is right and the design has drifted — report that, do not silently reconcile.
+**Authority rule.** Use the knowledge map's complete
+[authority and conflict order](../docs/README.md#authority-and-conflict-order).
+Do not infer precedence from specificity, file location, or navigation order.
 
 ---
 

@@ -1,10 +1,10 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Backlog and delivery tracking
-    url: https://dev.azure.com/
-    about: Work is planned and tracked in Azure Boards. This repository is the build plane.
+  - name: Idea portfolio and delivery lifecycle
+    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/ideas/README.md
+    about: Ideas are governed in the repository; Azure Boards synchronization is deferred until the later rebuild sprint.
   - name: Governance and data rules
-    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/operating-model/04-hitl-governance.md
+    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/.github/agent-policy/NON_DELEGABLE_WORK.md
     about: Read before raising anything that might contain personal data.
   - name: Platform design question
     url: https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/README.md

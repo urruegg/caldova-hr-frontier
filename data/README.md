@@ -2,16 +2,28 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-10-01 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Data |
 | **References** | [HR Solution Functional Design Intake](../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 
-**Purpose.** Data definitions, field mappings, reference lists and test data that are neither HR use-case logic nor infrastructure. Cross-domain by nature: the approved field list is owned by HR, targeted at Workday, and consumed by a workflow.
+## Purpose and Authority
 
----
+This domain owns data definitions, field mappings, reference lists, and synthetic test data that are neither HR use-case logic nor infrastructure configuration. A reviewed source record governs each future artifact; this empty domain does not authorize an inferred field list.
+
+## Contains and Does Not Contain
+
+This domain may contain approved field-name lists, Workday mappings, controlled vocabularies, and synthetic test fixtures. It never contains real personal data, Dataverse solution schema, environment configuration, or raw execution evidence.
+
+## Reading Order
+
+Start with the [repository knowledge map](../docs/README.md), the owning [HR use-case package](../hr/docs/use-cases/README.md), and the applicable architecture decisions. When data artifacts exist, use this catalogue and then follow each artifact's explicit source and successor links.
+
+## Naming and Lifecycle
+
+Use descriptive lowercase kebab-case names and preserve stable field or dataset identifiers. Proposed artifacts remain absent until their source is supplied and reviewed. Replaced mappings link to their successor and remain archived when audit value justifies retention.
 
 ## What belongs here
 
@@ -45,3 +57,23 @@ It determines what the agent may write. Three consequences:
 ## Status
 
 **Empty at handover.** The approved field list (D-01) is an open decision and the single largest content gap in the MVP: without it the extraction mapping cannot be completed and scope is unstable.
+
+## Catalogue
+
+There are no maintained direct-child data artifacts. Add the first row only when its authoritative source, metadata, ownership, and no-personal-data validation are present.
+
+| Successor or next stage | Artifact | Status | Purpose | Authority |
+|---|---|---|---|---|
+
+## Domain Links
+
+- [Documentation knowledge map](../docs/README.md)
+- [HR domain](../hr/README.md)
+- [HR use-case detail](../hr/docs/use-cases/README.md)
+- [Infrastructure domain](../infra/README.md)
+- [Dataverse boundary](../docs/adr/0007-dataverse-process-state-boundary.md)
+- [Human-in-the-loop and write envelope](../docs/adr/0008-human-in-the-loop-and-write-envelope.md)
+
+## Board Synchronization
+
+Not applicable. Data artifacts do not create or infer Azure Boards identifiers.

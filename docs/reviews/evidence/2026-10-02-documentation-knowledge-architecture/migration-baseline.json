@@ -1,0 +1,1838 @@
+﻿{
+    "schemaVersion":  1,
+    "baselineCommit":  "de0f222db262a36242b6c50b30c0c49f1b1334df",
+    "files":  [
+                  {
+                      "Path":  "data/README.md",
+                      "Sha256":  "1afddd166a595836875cc24e7cd7cd4e8d12e4b363e29c59f22e782963bf7374"
+                  },
+                  {
+                      "Path":  "docs/90-microsoft-best-practice-evaluation.md",
+                      "Sha256":  "00956bdea42e8642b19a3cfd0c44fbb0fd30458667bb65e34beac42fc8e49889"
+                  },
+                  {
+                      "Path":  "docs/adr/0001-azure-devops-as-engineering-control-plane.md",
+                      "Sha256":  "a3407c94a50bfe75debbfdfdd879a56a3d7eb88decfde7abf566228eef585899"
+                  },
+                  {
+                      "Path":  "docs/adr/0002-github-first-bootstrap-and-the-role-of-azure-repos.md",
+                      "Sha256":  "c2ca40513d07ca9f74d4af3fea7d4d1d582f393ec4a78aaaca6a929d5dc23eac"
+                  },
+                  {
+                      "Path":  "docs/adr/0003-bicep-and-powershell-for-infrastructure-as-code.md",
+                      "Sha256":  "1eb537331582f306d96d7f306998c2fe29cdc3b0ac7052494a8816ca3c2f37fe"
+                  },
+                  {
+                      "Path":  "docs/adr/0004-domain-solution-architecture-and-publisher.md",
+                      "Sha256":  "60750624c9302fceb7e702d048bde9ff559c3e8b6af848d89201500458b21155"
+                  },
+                  {
+                      "Path":  "docs/adr/0005-workday-as-system-of-record.md",
+                      "Sha256":  "dba743c08b1a4aec890058df8c8cca8a73e0c9158a07fcc6e4b32c1138a94d67"
+                  },
+                  {
+                      "Path":  "docs/adr/0006-agentic-toolset-and-hr-control-plane.md",
+                      "Sha256":  "3f45b6a3e235cd9d83279ef02904aae1d76000adad060c59031f8e01c61c681a"
+                  },
+                  {
+                      "Path":  "docs/adr/0007-dataverse-process-state-boundary.md",
+                      "Sha256":  "012c995cc6fa8c8b32f8733b0e36d16fe67cb2028d215f71cffa3662b9e973ff"
+                  },
+                  {
+                      "Path":  "docs/adr/0008-human-in-the-loop-and-write-envelope.md",
+                      "Sha256":  "2804385fcb8426774af65754f7dfc4751e7570dd4d1d0953adcb67cbcafca311"
+                  },
+                  {
+                      "Path":  "docs/adr/0009-workday-access-via-connector-behind-governed-layer.md",
+                      "Sha256":  "dd838e23e290d03136dd1a6a48c8e06484595632ebcb0d6a0ab26df9aa5790c7"
+                  },
+                  {
+                      "Path":  "docs/adr/0010-organizational-data-service-as-people-context.md",
+                      "Sha256":  "907a9771a7d58e0c8cca83989bd37908345ab246d088ee8dd4edc99a89a09ceb"
+                  },
+                  {
+                      "Path":  "docs/adr/0011-workflow-first-process-architecture.md",
+                      "Sha256":  "b07d4e821af4965a7dd26e03fdb22639cb8dbd350b2242d1bac5b73442cf3d4a"
+                  },
+                  {
+                      "Path":  "docs/adr/0012-per-tenant-github-repository-and-account-topology.md",
+                      "Sha256":  "56662238cfbddf18e72cbc379b18d201867f7c0ab21564b374f602fad1d9b440"
+                  },
+                  {
+                      "Path":  "docs/adr/README.md",
+                      "Sha256":  "874ef518e4afbb9d6577b38203f4b79f6e42f93d599db2cfe51d564ab47f63eb"
+                  },
+                  {
+                      "Path":  "docs/archive/README.md",
+                      "Sha256":  "bf9de097890aebfe56a82b6847b7db1a3ce219fd5384bbead53fc59955574204"
+                  },
+                  {
+                      "Path":  "docs/brand/hr-control-plane-mockup.html",
+                      "Sha256":  "88423d72bc6c8203d2ada130d9cc1ac1520254f05916bd698a8a277c0365aa6a"
+                  },
+                  {
+                      "Path":  "docs/brand/README.md",
+                      "Sha256":  "eccb93f7de1d9b1c37a7ff923410ae28d7f7313c3061423ee0d7374530310f20"
+                  },
+                  {
+                      "Path":  "docs/brandkit/README.md",
+                      "Sha256":  "52545d4e352db87377872f2c507211d2588511c59cbce887777a1546aaa8f830"
+                  },
+                  {
+                      "Path":  "docs/business/README.md",
+                      "Sha256":  "4ce0ae94eb0fb272623093fec07604ce66a3a642b508a3e0fa547e15c0ec15b4"
+                  },
+                  {
+                      "Path":  "docs/delegation/README.md",
+                      "Sha256":  "fcd3f93bc428754bcd4572f92af827c8528b8609e99b9ff743f83583a898e7f1"
+                  },
+                  {
+                      "Path":  "docs/hr-journey-and-raci.md",
+                      "Sha256":  "c493685f36d92c444b4f635435e21767ef201ae847827f6dc9c51fe402924b6b"
+                  },
+                  {
+                      "Path":  "docs/ideas/README.md",
+                      "Sha256":  "0f42cccd05a2ba4839b1d8068c3b62ee21eb021b2e5143651e0dab430a6b94e4"
+                  },
+                  {
+                      "Path":  "docs/issues/README.md",
+                      "Sha256":  "242d67904e7ce4a02a51dca37bd0de02c2f1bed993aaa5348873c61abd49fa25"
+                  },
+                  {
+                      "Path":  "docs/operating-model/00-north-star.md",
+                      "Sha256":  "3703b4e925594a7a3c18f317eaa876eb2feb8fa10d3ae5ded2c688dc951cfef4"
+                  },
+                  {
+                      "Path":  "docs/operating-model/01-prd.md",
+                      "Sha256":  "32693db435ebe9a75f9b33b641d6ab1bb48a9ab1d9c2cb93c84dac8d46ac0cf6"
+                  },
+                  {
+                      "Path":  "docs/operating-model/02-system-design.md",
+                      "Sha256":  "774403be1636ab8816e706e112ffd2b24745f91354af0cf99302f55539b378c6"
+                  },
+                  {
+                      "Path":  "docs/operating-model/03-agent-operating-model.md",
+                      "Sha256":  "7e572ba85e309125bab3559c4a4f3cb2963d01889e7da4a052dc340ea5797c33"
+                  },
+                  {
+                      "Path":  "docs/operating-model/04-hitl-governance.md",
+                      "Sha256":  "9863ef687d48c8df7070c4ccfd23d1bb633206f8c7b4f971ce9556f94e5538e6"
+                  },
+                  {
+                      "Path":  "docs/operating-model/05-implementation-roadmap.md",
+                      "Sha256":  "c0b7ac25792ec3905e94fc19546d50befeec62b319d1e5114fca432789de7bbd"
+                  },
+                  {
+                      "Path":  "docs/plans/2026-09-15-repository-superpowers-implementation.md",
+                      "Sha256":  "9f76f4746c663a3d9f2578cfbe1462e05b65bbf6398bce22282d60b9e64eb9f7"
+                  },
+                  {
+                      "Path":  "docs/plans/2026-09-17-architecture-baseline-intake-implementation.md",
+                      "Sha256":  "f43912cfc26226d3f6a1fcf43102a30790836920f37cf6d999df6ad4357408ee"
+                  },
+                  {
+                      "Path":  "docs/plans/2026-09-17-governance-github-intake-implementation.md",
+                      "Sha256":  "298454b0409a5f1be92ced298cf32dc31f0f00350f85af7f4dde103f1b72194a"
+                  },
+                  {
+                      "Path":  "docs/plans/2026-09-17-infrastructure-tenant-bootstrap-implementation.md",
+                      "Sha256":  "3e20e64573989fe22343fc08fdbcd00c85b4cffa16f34b02f4cdf450b9149a97"
+                  },
+                  {
+                      "Path":  "docs/plans/2026-09-17-product-hr-operating-model-intake-implementation.md",
+                      "Sha256":  "4cd678c02d0731f6e7414c176c0b832e27ef0731921efe0e2ce80b0975751a7b"
+                  },
+                  {
+                      "Path":  "docs/plans/2026-09-24-azure-devops-github-single-source-of-truth-implementation.md",
+                      "Sha256":  "8abecdd799ba38423b9fc05f0a6706386100b68d5b5161440bbc1104da4b54aa"
+                  },
+                  {
+                      "Path":  "docs/plans/2026-09-24-hr-solution-functional-design-intake-implementation.md",
+                      "Sha256":  "4cdf7f5fe67e72c66b786d776bdd1237f7d88d47d703f404ad25d265a83b3705"
+                  },
+                  {
+                      "Path":  "docs/plans/2026-09-24-power-platform-solution-foundation-implementation.md",
+                      "Sha256":  "dc3d1c4ce685c1a4411733614dee5650e1977036a22a084ea4d574133166425a"
+                  },
+                  {
+                      "Path":  "docs/plans/2026-09-24-tenant-trust-activation-runbook-implementation.md",
+                      "Sha256":  "f2cb30cacba8a9313463b3b023d9f4eb3bdcad88f3bbb00e6e9be799191e1105"
+                  },
+                  {
+                      "Path":  "docs/plans/2026-09-25-azure-boards-population-implementation.md",
+                      "Sha256":  "469ab632b0b356988bd252ba04ad3200c39d4be9cebb52e6d8bfa7656b6c4deb"
+                  },
+                  {
+                      "Path":  "docs/plans/2026-09-27-customer-repository-export-and-handover-implementation.md",
+                      "Sha256":  "3ede3173fc246f89c51cc05cfbe1beeb53dc42d72b8c1fe038e79e58cffde328"
+                  },
+                  {
+                      "Path":  "docs/plans/2026-09-28-tenant-1-engineering-control-plane-foundation-implementation.md",
+                      "Sha256":  "f5afd70fac64d6aeb363c5d4d25351c3e9a15bff90992fe16110c2669af0e3ae"
+                  },
+                  {
+                      "Path":  "docs/plans/2026-09-28-tenant-1-engineering-platform-configuration-review-implementation.md",
+                      "Sha256":  "f4974d8a496a68e6a7430587ba07c27562cee9c6677431633e293f3fc07b5667"
+                  },
+                  {
+                      "Path":  "docs/plans/2026-09-28-tenant-1-lean-engineering-platform-implementation.md",
+                      "Sha256":  "ddc6a50384b371023d65f852b81dd93acd3a6c878d6b5a0a340d3472b7648925"
+                  },
+                  {
+                      "Path":  "docs/plans/2026-10-01-caldova-branding-migration-implementation.md",
+                      "Sha256":  "3a8e9a2a3b6876a684b992ad619870a1296a9f4c6c15cc9dfff94cf990d1ed3d"
+                  },
+                  {
+                      "Path":  "docs/plans/2026-10-02-documentation-knowledge-architecture-cleanup-implementation.md",
+                      "Sha256":  "cb4080d6fcacb9863e8151d76b45d51f5457b833b3613ddc3b7c118bd9899ae1"
+                  },
+                  {
+                      "Path":  "docs/plans/README.md",
+                      "Sha256":  "8ba236f986e2d4bd71b6711be386ca5ff0ab83a12be5c99e84ec2564dbfcb694"
+                  },
+                  {
+                      "Path":  "docs/prd.md",
+                      "Sha256":  "bfc7be72c3b0e21c0845882e9ddcec3925da1b13c97fd7efd416e35e3f65fca5"
+                  },
+                  {
+                      "Path":  "docs/README.md",
+                      "Sha256":  "908b8ab246faa119abe38e3353f952aae2c3d9636161bc8702138653efcaa8dc"
+                  },
+                  {
+                      "Path":  "docs/reviews/2026-09-17-architecture-baseline-source-inventory.json",
+                      "Sha256":  "b02025c290613173433d1c09ad9b2c459f01033983603ab677a87f7a09d5598d"
+                  },
+                  {
+                      "Path":  "docs/reviews/2026-09-17-phase-1-governance-github-intake.md",
+                      "Sha256":  "377d699eca456df727c80f981b55563240f8a7c0c85a8d748a4106e318161fcc"
+                  },
+                  {
+                      "Path":  "docs/reviews/2026-09-17-phase-2-product-hr-operating-model-intake.md",
+                      "Sha256":  "19eedc3148bcef7053193b64316662eb0d07ea001ed9765786d8400f27e94ce0"
+                  },
+                  {
+                      "Path":  "docs/reviews/2026-09-17-phase-3-infrastructure-tenant-bootstrap-intake.md",
+                      "Sha256":  "c471150afeda823ef2ad265247dd3c18c7a6be7a5cebbb55661622e5dbb99bb2"
+                  },
+                  {
+                      "Path":  "docs/reviews/2026-09-24-phase-4-hr-solution-functional-design-intake.md",
+                      "Sha256":  "f49c730d89a3cf69f3a7bfd8798225edece19f2a4199b4f75a43083cdf03237a"
+                  },
+                  {
+                      "Path":  "docs/reviews/2026-09-28-tenant-1-engineering-platform-configuration-review.md",
+                      "Sha256":  "57e15e03fda2fd655eb6dc482690ba808d35048e92bebcc51bc1dc41f7f18b64"
+                  },
+                  {
+                      "Path":  "docs/reviews/2026-09-28-tenant-1-lean-engineering-platform-acceptance-review.md",
+                      "Sha256":  "5fd01196254ef66deb612032b016dc913f7eff16c268596276c2d6eb816b99e9"
+                  },
+                  {
+                      "Path":  "docs/reviews/evidence/2026-09-28-tenant-1-engineering-platform/evidence-manifest.json",
+                      "Sha256":  "003f2c105c236dbbab2aad1188b3cc7764ecaa462e7e68b84b355d4cd87181b4"
+                  },
+                  {
+                      "Path":  "docs/reviews/evidence/2026-09-28-tenant-1-engineering-platform/test-results.json",
+                      "Sha256":  "5ca748edea04b47a742bf1ee53974a08514130b542e4f28908c5a6f97dd6f903"
+                  },
+                  {
+                      "Path":  "docs/reviews/README.md",
+                      "Sha256":  "020cadda274e9769e3cc7ba3c507b208a49f324ef0e93e29d1fc2d2060389842"
+                  },
+                  {
+                      "Path":  "docs/solution-design.md",
+                      "Sha256":  "df9d4a9dadf0f11ec1f6c2980d2766109183f5d691b2c27141cdfa6913b9ee7d"
+                  },
+                  {
+                      "Path":  "docs/specs/2026-09-15-repository-superpowers-design.md",
+                      "Sha256":  "c84f4f9c13ba15033633fcef1d207b3ec486fb828974073b386e98585712eb84"
+                  },
+                  {
+                      "Path":  "docs/specs/2026-09-17-architecture-baseline-intake-design.md",
+                      "Sha256":  "ac482336e80f1b42e49602fdaa7ec1646e5e22f08703691b12e1b3208ae0f1e1"
+                  },
+                  {
+                      "Path":  "docs/specs/2026-09-24-azure-devops-github-single-source-of-truth-design.md",
+                      "Sha256":  "770853fa81c6c9f9c119e107ceb9d79800468167d628df0689cb79b45cf980fb"
+                  },
+                  {
+                      "Path":  "docs/specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md",
+                      "Sha256":  "185216485c726e79f5c07eef96ea820b3c3a717549d41ee94bd579e2cc8f1543"
+                  },
+                  {
+                      "Path":  "docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md",
+                      "Sha256":  "e4ea98f4cfcdb1182cbf7715f6846570c160d27156c571ddd94c04f02c95b794"
+                  },
+                  {
+                      "Path":  "docs/specs/2026-09-24-power-platform-solution-foundation-design.md",
+                      "Sha256":  "c329c0d12d5fd8bc02369272531793e629da842d72ada0767bd9633f8f7b9b1b"
+                  },
+                  {
+                      "Path":  "docs/specs/2026-09-24-tenant-trust-activation-design.md",
+                      "Sha256":  "f436a20c165d27b993afebfe120c64af2ec6ce6338a51b355e91798708157940"
+                  },
+                  {
+                      "Path":  "docs/specs/2026-09-25-azure-boards-population-design.md",
+                      "Sha256":  "ffcd45c270d8fc89157072d0095cbf062c9ea4d49395eeee07d2e4ae3d6be034"
+                  },
+                  {
+                      "Path":  "docs/specs/2026-09-26-operational-runbooks-design.md",
+                      "Sha256":  "af35e3d3ff34b0d5a955b07b8e70a373edbcf26ada409d8870316a2b7f3c99c0"
+                  },
+                  {
+                      "Path":  "docs/specs/2026-09-27-customer-repository-export-and-handover-design.md",
+                      "Sha256":  "7ada5a11662abc7050a998d0df630e1516182488752aa0fb9f8749b7562fca11"
+                  },
+                  {
+                      "Path":  "docs/specs/2026-09-28-tenant-1-engineering-platform-configuration-review-design.md",
+                      "Sha256":  "8cdfb9215137bc266f2da0d33fdf73b255448994af40c11a2d78b387c88a5115"
+                  },
+                  {
+                      "Path":  "docs/specs/2026-09-28-tenant-1-engineering-platform-remediation-design.md",
+                      "Sha256":  "07bff8b5f683a30b05d6586a2b463d89ebe989f2562b482d92613257f75abc39"
+                  },
+                  {
+                      "Path":  "docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md",
+                      "Sha256":  "1cab21e54120814a6fcd95a7a2e9305538d9197f30360d6926f6c7fc1c10b081"
+                  },
+                  {
+                      "Path":  "docs/specs/2026-10-01-caldova-branding-migration-design.md",
+                      "Sha256":  "b8085a92a7c7495deb3d63ca48527cf0efe6c0fd231ad1365f0402c313b6ff24"
+                  },
+                  {
+                      "Path":  "docs/specs/2026-10-02-documentation-knowledge-architecture-cleanup-design.md",
+                      "Sha256":  "7f124c59fa175457bbb834ea3324e9ad9fd7a14446bbd04ebba323678a179519"
+                  },
+                  {
+                      "Path":  "docs/specs/2026-10-02-hr-frontier-copilot-agent-portfolio-governance-design.md",
+                      "Sha256":  "b0bcd5839b5d75f393cfeec3ef2c75cc392933af410b4f16da6e7b1573f24c3f"
+                  },
+                  {
+                      "Path":  "docs/specs/README.md",
+                      "Sha256":  "89ec854c973769e487d32425307f7c7991802180dedf563ce73d03b758acd582"
+                  },
+                  {
+                      "Path":  "docs/sprints/README.md",
+                      "Sha256":  "8ac34a9eb99fd7a09e66f4215a7788a179a95145a69b641a25f0ea481a71851e"
+                  },
+                  {
+                      "Path":  "docs/superpowers/plans/2026-09-25-tenant-2-ai-builder-models-implementation.md",
+                      "Sha256":  "6baf1ed8d277e04162d73dc5485d5aaaa5c567ac97785c48b64e94d0f8fe69a1"
+                  },
+                  {
+                      "Path":  "docs/superpowers/plans/2026-09-26-runbook-cloud-foundation.md",
+                      "Sha256":  "d022fc916f0bbde92c9cb1486758a792631090bb07f52477204c71d29e58ce4d"
+                  },
+                  {
+                      "Path":  "docs/superpowers/plans/2026-09-26-runbook-customer-handover.md",
+                      "Sha256":  "d18979cb8887f06bc55636f2838ae132689aa5f95d0fa725ad71ce994aa54a5b"
+                  },
+                  {
+                      "Path":  "docs/superpowers/plans/2026-09-26-runbook-foundation-workstation.md",
+                      "Sha256":  "24baf3775f0badae2ef2a3abaf8d4bcedd0a0afcf9b05768c0280fabe1320c7d"
+                  },
+                  {
+                      "Path":  "docs/superpowers/plans/2026-09-29-ai-builder-evaluation-capture-implementation.md",
+                      "Sha256":  "0f085a6105ca6e04892a01187fd3f1ff8e852af6bd953e2b8781ca0060b5cb71"
+                  },
+                  {
+                      "Path":  "docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md",
+                      "Sha256":  "d8c31d2f5d56d49cf908222b8498dab5f578bcfc9356768252f122f84b0c6fdc"
+                  },
+                  {
+                      "Path":  "docs/superpowers/specs/2026-09-29-ai-builder-evaluation-capture-design.md",
+                      "Sha256":  "d9954cc0f4fa5a2b0bcde291626e7029534c180d72d6363a8615e58798aa4e2c"
+                  },
+                  {
+                      "Path":  "docs/templates/README.md",
+                      "Sha256":  "542dbf2424fd6aa3cd1a85af4bb104cf8c5d714e9f4760b42e1b9e303cde8c69"
+                  },
+                  {
+                      "Path":  "hr/docs/20-hr-employee-journey.md",
+                      "Sha256":  "066ec9dfa5de630ca3856970b7e7fc200893ca4fdff559d490a798436a66c4e4"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/hr-control-plane-mockup.html",
+                      "Sha256":  "9d86855de31495384f8c852d69cfb304e8629e757f802f1ad9f5217b64e73623"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/hr-control-plane-mockup-idea.md",
+                      "Sha256":  "a45b7e1b81d9bfbd1bb17e8019732fb41040e0741fee5b960436fdd68a242a58"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/README.md",
+                      "Sha256":  "700be47952f69134cb6412a54e8f1360d15b1efe0cf0d57a28d348d6330ad235"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md",
+                      "Sha256":  "37af81712f71a9dfdb09fcdd9d12353018fa6f6bcb2703b96136f1f54756f65c"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md",
+                      "Sha256":  "9581dc504b12ba483fae1b556e12ee610952d092e126e3384a704c7ea8683eb1"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md",
+                      "Sha256":  "bbc873d96a54ef981c6510b4928ed3ca02925681957b2c2f3105d7074a988a46"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/a-personalblatt/a01-CAND-2026-0411-brunner.pdf",
+                      "Sha256":  "d60c3d0d5276c01a8848917930528276a10d2125c928e9aeea52b54aee3823df"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/a-personalblatt/a02-CAND-2026-0412-ochsner.pdf",
+                      "Sha256":  "eb164a04eeb8dbc131f82af13c0757e51df24ee87c089aea38c8ad01d46a62c6"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/a-personalblatt/a03-CAND-2026-0413-iten.pdf",
+                      "Sha256":  "fadc0a574e265e382095438936b396b31077dc8949c95088e6659db57e980c59"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/a-personalblatt/a04-CAND-2026-0414-perren.pdf",
+                      "Sha256":  "078901781f618ec9261c06c2c6f0dfef637f04997e798067ff7dfac4007426a2"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/a-personalblatt/a05-CAND-2026-0415-steiner.pdf",
+                      "Sha256":  "4b5774e13376af822bab0db8f2e7fb2a1aaddaec10281e086a21097431a45fc8"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/a-personalblatt/a06-CAND-2026-0416-gerber.pdf",
+                      "Sha256":  "c68fb89812c6ab9cbdbbb41fd8b82b98b0cc5058a26de9f93fb37ea13945fd6f"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/b-anmeldung-gemeinde/b01-CAND-2026-0417-bosshard.pdf",
+                      "Sha256":  "cf0935ce4ed5709174e1cef74cf795de76d7b4dbcd33df44e5357d8c20350948"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/b-anmeldung-gemeinde/b02-CAND-2026-0418-keller.pdf",
+                      "Sha256":  "d79d13ac9919d3d54bdb4a2b75472342870f0c93070f604011baedb3150fc808"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/b-anmeldung-gemeinde/b03-CAND-2026-0419-widmer.pdf",
+                      "Sha256":  "17bc2a1fd74236e721cfade4685e0ec3bdd3277f9c1ffa1d432b3d7afd30d5a8"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/b-anmeldung-gemeinde/b04-CAND-2026-0420-vogt.pdf",
+                      "Sha256":  "276b23415abc3749d120032ff35ab68ef8b133307186415588c195b49bb4be63"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/b-anmeldung-gemeinde/b05-CAND-2026-0421-ammann.pdf",
+                      "Sha256":  "c1b20827c59a4b5ca0ffc23db4eee4f0c055788e4d3a6d0ad89b4ae2fa27ca45"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/b-anmeldung-gemeinde/b06-CAND-2026-0422-schnyder.pdf",
+                      "Sha256":  "10dc0e99bda89db56ad380b0799e16ccd5874c2281e133fccb1dc03dbec548e9"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/c-sozialversicherung/c01-CAND-2026-0423-ferrari.pdf",
+                      "Sha256":  "489bb0e92848da5de01ca64312b5e402e290bb31745b1be0c3a63656f1340ec4"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/c-sozialversicherung/c02-CAND-2026-0424-müller.pdf",
+                      "Sha256":  "fa7dea48c56c314570af67f230bceb913fd9ae51563e63d53b1034559b0665ce"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/c-sozialversicherung/c03-CAND-2026-0425-dubois.pdf",
+                      "Sha256":  "4f89d529d41bc8886ce17ebebb07f1fb5247131019295bd97c97baa200bd87b1"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/c-sozialversicherung/c04-CAND-2026-0426-nowak.pdf",
+                      "Sha256":  "77da0cd03c87989be7abc027b869a32745c2155568effaed836ce50e4f19b687"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/c-sozialversicherung/c05-CAND-2026-0427-bühler.pdf",
+                      "Sha256":  "20e42c7709a2835fe86a20df24bce3f06f7ad7a4118174cb5bbc1b88d15d17c1"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/c-sozialversicherung/c06-CAND-2026-0428-frei.pdf",
+                      "Sha256":  "7bb8fe65c3e7b7863c11610d5e58b806dd96c7e625d2039b00892937c44c0960"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/d-bankverbindung/d01-CAND-2026-0429-pfister.pdf",
+                      "Sha256":  "455268a3aa5e27483ffc4fb48b244d26543c612ee4c43374ee575b34b2df7e91"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/d-bankverbindung/d02-CAND-2026-0430-meier.pdf",
+                      "Sha256":  "f2afdd7c7d6218695c07df9be7182a6aaa1f1f62b3db810d89c1148327eabcf6"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/d-bankverbindung/d03-CAND-2026-0431-roth.pdf",
+                      "Sha256":  "5e0be2bf139a24fbed9daa8fb1e4fc5265122842e2c57085cd9cf241307436c0"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/d-bankverbindung/d04-CAND-2026-0432-baumann.pdf",
+                      "Sha256":  "74de70b67b7fe51d65fa17cc76d45c39a8cf343de68913dd1130cc3cfcc566a5"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/d-bankverbindung/d05-CAND-2026-0433-hofer.pdf",
+                      "Sha256":  "dd82096248d9aeab034d4c89697589959a920f3f7e0e495caf88afe0b218df69"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/d-bankverbindung/d06-CAND-2026-0434-ochsner.pdf",
+                      "Sha256":  "95dac92e89e7e26a761e35384b3d4a032791ef057ed30622617cfc25ad0e6dc7"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/generators/gen_fixed.py",
+                      "Sha256":  "2780ee638efad3cc336bb75cd1e5f64e8e741b1c6c2a7c17839c6b4c2a2f633b"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/generators/gen_general.py",
+                      "Sha256":  "17f863c5586a55af537ba22e094d0b56e225dc121349cd5b17fbcd31d252902b"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/generators/gen_truth.py",
+                      "Sha256":  "a8a6c31f7d99afb692763e87615ea10ea2f2332be4dac5459d260c8ba05d9848"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/generators/personas.py",
+                      "Sha256":  "f54e938631337a7c8e5d288f1ce476e76f593014aee69a6038ca6b41ee9c12ab"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/ground-truth.csv",
+                      "Sha256":  "b9fee213b2574452d8202451324cb90825ca219490661b71ea62e06e40e9e4a8"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/ground-truth.json",
+                      "Sha256":  "5be4eca95fb84f196d4421e8c89eee621d07ccf7bc6549c3963949be4a8053ed"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/README.md",
+                      "Sha256":  "1430e64bfe16ed4ebaa057a25f4682e3a93db58bfd5ecef237947ca6033c9166"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g01-arbeitsvertrag-CAND-2026-0411.pdf",
+                      "Sha256":  "bc215470e4a241b7c42c9e1856ee10086737e1a4398cbe992f75a90f82b84340"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g02-arbeitsvertrag-CAND-2026-0412.pdf",
+                      "Sha256":  "ff47ec6972ee2d5e32d67e84ee6080cfedf61aade6802a8c965dd6cd8f881e35"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g03-arbeitsvertrag-CAND-2026-0413.pdf",
+                      "Sha256":  "0f6e45a329f2ef44152973cc7ca81242975dfe6430f66d1f0e8ca23ac71ced9b"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g04-anschreiben-CAND-2026-0414.pdf",
+                      "Sha256":  "516fa0e7ce9021e9745b990c7c08ec78d80ef696d1d56f60410f29a776e5e4ab"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g05-anschreiben-CAND-2026-0415.pdf",
+                      "Sha256":  "bad5c0b6b502096969d3921f0de258e0949f0628a5d0b406ec996c7f52419db4"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g06-anschreiben-CAND-2026-0416.pdf",
+                      "Sha256":  "5bbc118a7548dab3f24d0f7c372fc082ed420c679e7518ebf6e58e63fcaa15b6"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g07-bewilligung-CAND-2026-0417.pdf",
+                      "Sha256":  "c50e6cb69b1da754b96c1a9ca6a2d8751e40d028f3f015078187341e3e76d0b9"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g08-bewilligung-CAND-2026-0418.pdf",
+                      "Sha256":  "82465dc7eca840b6ef9745c552d675cc8ef71f0c0fccaf8bdcecf95385aa4d3c"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g09-bewilligung-CAND-2026-0419.pdf",
+                      "Sha256":  "0c947958df9e47784ef1eef97c4a10012544c0e3d8cb3cfa66b2a4c5a4ec654c"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g10-versicherung-CAND-2026-0420.pdf",
+                      "Sha256":  "22fe4c6d7675595367050c5b3c09b447f0339cd7e2897eb61272109dff1c8b03"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g11-versicherung-CAND-2026-0421.pdf",
+                      "Sha256":  "835cc0590dc44b57f76020a5308bafd9812e8029c7b9da2b6936703d7c275cb9"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g12-versicherung-CAND-2026-0422.pdf",
+                      "Sha256":  "9ebc6f1f017772c2db3a657c8de98ed7bcf7f2074e96598a613332178e67dc2f"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g13-zivilstand-CAND-2026-0423.pdf",
+                      "Sha256":  "d25613ea2bc6debf3984e2728470a0fb0a12bb4b0b552914327a3844a58e69f6"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g14-zivilstand-CAND-2026-0424.pdf",
+                      "Sha256":  "991a926966482a37a132bd0935281e2817d45229232ac55692765bf055ea2fdc"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g15-zivilstand-CAND-2026-0425.pdf",
+                      "Sha256":  "f9f6f1e9e49f3788848acb8a066b136a78b61c77800746a0e00640dee600096e"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g16-selbstdeklaration-CAND-2026-0426.pdf",
+                      "Sha256":  "fb31645192aa00e0ff114bf90c01deb3f28a3967c5f99f09540bb778701a09a6"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g17-selbstdeklaration-CAND-2026-0427.pdf",
+                      "Sha256":  "11b8a1c45452ec70f8bee145445e7653caf8064b28429399b25457b31911d1be"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g18-selbstdeklaration-CAND-2026-0428.pdf",
+                      "Sha256":  "2f7b098a936f9262ea106c4ab327b7aff8857a26dda0effe530f39fc98c4e76c"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g19-scan-degraded-CAND-2026-0429.pdf",
+                      "Sha256":  "32870374c46a384aa688bebf0d64360adac82542ed81a178007b0003f92bad5b"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g20-scan-degraded-CAND-2026-0430.pdf",
+                      "Sha256":  "675c7cc7282890aa00d980bce97e5d8ed104c0a0918db2ad1acaf9f8c284291c"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g21-scan-degraded-CAND-2026-0431.pdf",
+                      "Sha256":  "3bdaba06bc7773a0d65cd8dbaf0e7f681fc15cc1eb7b3e8658d7746bb1b28c43"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g22-new-joiner-sheet-CAND-2026-0432.pdf",
+                      "Sha256":  "520f407ffb23221a52b5bddf15790b83207237a6ba81f01d67f82f510e45bcfe"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g23-new-joiner-sheet-CAND-2026-0433.pdf",
+                      "Sha256":  "b2f1e03073487e4b1ae3a9b4a25f76766938fce303a8109d4f5512c3c672b208"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/g24-new-joiner-sheet-CAND-2026-0434.pdf",
+                      "Sha256":  "0d7bd7e46406f6ffa6162c57c55437fd2cf4c3ea1a92785b56b5bc8c7773020c"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/generators/gen_fixed.py",
+                      "Sha256":  "11ec719c2e8e397fd8cfda7ed470e85fd0f741eb2f14bc173a6dcd78c0d87050"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/generators/gen_general.py",
+                      "Sha256":  "2865eaeef07501a827bbfdfc10dd87a1c25c2c83fcdf7e8d61e0284b1af22238"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/generators/gen_truth.py",
+                      "Sha256":  "8354200ac2c2cffe6c826d0b92cd780741a3e1b1add637a32e141ae2abfff702"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/generators/personas.py",
+                      "Sha256":  "f54e938631337a7c8e5d288f1ce476e76f593014aee69a6038ca6b41ee9c12ab"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/ground-truth.csv",
+                      "Sha256":  "4fdec89678a3a857c377f4c629891c9a2f9b83ea95693de425582f03ee89ec87"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/ground-truth.json",
+                      "Sha256":  "337773493b4fdeda71c87f4fcbaaa9b3920670e6f58b8d87311e4ec8a3188849"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/README.md",
+                      "Sha256":  "ddef36f96ee8921ce9fd86863d9d7915332a151ee3cf86f318c117148014e9f1"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/document-intake-architecture.md",
+                      "Sha256":  "bc05ba262f2373aa2b3d89bacb280493922ab4775e055b290e4ce8face3fba57"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md",
+                      "Sha256":  "be17e53550d66823b3a142762df9319caaffe32c68762029fc3c6d6f5adcd4a5"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/README.md",
+                      "Sha256":  "a0d6e12367b96457b27ff455934c27b3250171ddaff3408df40d51de413d68e9"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/sharepoint-knowledge-vs-processing.md",
+                      "Sha256":  "d0e68e166748252ffabcb07a6c1fda6e37e07e429aa601d334dafecba19cb174"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0001-personal-master-data-completion-agent/uc-0001-personal-master-data-completion-agent.md",
+                      "Sha256":  "de085dd356b23c5c2f6c739cb522cf1e25c2fd1e8df2b6289bab230c8aca47c3"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0002-hr-policy-chat-assistant.md",
+                      "Sha256":  "72166839c393e8bc768c6d9095a959c50627e18fcc2ac5fabab3fe351ddcf645"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0003-employee-self-service-assistant.md",
+                      "Sha256":  "4e48e3363ac2b70483ea55bdc8490ecbd2e64ccfed6ccfc12871c85ea8bd4db7"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0004-hr-case-classification-bot.md",
+                      "Sha256":  "c2b486c54fda4d77f29217b82c33262835c61b773475e8583c9c58c99d55a129"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0005-onboarding-assistant.md",
+                      "Sha256":  "1dcb455831362bfff8e8ee0746b2d5224da16531c4149db36e0862afbcedd53d"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0006-job-description-generator.md",
+                      "Sha256":  "36b11009da7b0a07a18c7c84672dd4990e065906189419e9b5252cad2bb0ae2b"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0007-candidate-screening-summary.md",
+                      "Sha256":  "c531ff49c423e0f8249571709dfe2a7d694ef57dc00a8adb517b4424c81140d1"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0008-salary-benchmark-assistant.md",
+                      "Sha256":  "04350e480c42139534ed3c49fd0b0436a9e2a8f2211a890df1701d729407e7d2"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0009-workforce-insights-assistant.md",
+                      "Sha256":  "0e573f60d46d237ab51b322830a638ecbda9d4bcf4d503cb9f673071ef9ea93e"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0010-employee-data-validation-bot.md",
+                      "Sha256":  "b932373f148b426e3bba84d03e9e9a4f628ec98aaea8724ac63e1369f6387883"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0011-learning-recommendation-agent.md",
+                      "Sha256":  "a4da6580adf7554853c66e96151ddbda361848f79c2959aa9a9af82b7f4bda06"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0012-payroll-anomaly-detection.md",
+                      "Sha256":  "6f5507ab86c0dded845ac385e79b0f7371338395c8bf14e1ad21e271802d79aa"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0013-performance-review-draft-assistant.md",
+                      "Sha256":  "f45043a9e6c35b61dbe91ee9462800a7753ce335cc36853f97f7b4b119598803"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0014-continuous-performance-insights.md",
+                      "Sha256":  "7c7d5fa5707e646cb952e725e9681483258bd960caeafd441856d1480aa62c8e"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0015-leadership-pipeline-prediction.md",
+                      "Sha256":  "a2d90649fbc396bd38e34a60b5dd8f00351f8246edd1e104e6e21012deef625f"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0016-skills-inference-engine.md",
+                      "Sha256":  "c1534b65a222ad6629b7b00b32f686df42e7825a588f30f3d3332b532dc03db2"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0017-pre-hire-process-orchestration.md",
+                      "Sha256":  "653065f6a473adf18edeea137ad900c364c39cce59a4f96ed6df03747c70480f"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0018-onboarding-checklist-rebuild.md",
+                      "Sha256":  "b09dc195a7a5480cfbd05ebd3c993c3d26c032578b349603f365f810e0d1542a"
+                  },
+                  {
+                      "Path":  "hr/docs/ideas/uc-0019-attrition-risk-insight-lite.md",
+                      "Sha256":  "47d32eb425a6d1194d07f7aa8ddaf4eed76dede89a760142b59c83297045b264"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/README.md",
+                      "Sha256":  "7a4a65d293ceff0b8ead0ab62a31c4d682b309c5081335f694a967beb5355c6a"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20260930094537354Z-34bf8987/cap-20260930094537354Z-34bf8987.ai-builder.raw.json",
+                      "Sha256":  "6ddf6d3ab1a79a25422fc7750d7eb1900c30957ca7bc5a6cd098a090706b39f3"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20260930094537354Z-34bf8987/cap-20260930094537354Z-34bf8987.canonical.json",
+                      "Sha256":  "627dc0d4cc26b288ebbcd4109688972f14d7a23ed1f98eee7b2009e47a8fe3f7"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20260930094537354Z-34bf8987/capture-pair.json",
+                      "Sha256":  "1f0119e420aec082d639abf69bde717e383e21a3ab984e1e49c5f1ad1ba2a6a4"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20260930094537354Z-34bf8987/source/a01-CAND-2026-0411-brunner.pdf",
+                      "Sha256":  "9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20261001110252111Z-ab4fa091/cap-20261001110252111Z-ab4fa091.ai-builder.raw.json",
+                      "Sha256":  "e201ca7effc54c3234b6de8bb5a12244612f274fd5adf2ac81f367f92fb149fe"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20261001110252111Z-ab4fa091/cap-20261001110252111Z-ab4fa091.canonical.json",
+                      "Sha256":  "b54cb41f655e68451d68de707ea4d803da6f3a14dc5537d9d1518c810b842441"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20261001110252111Z-ab4fa091/capture-pair.json",
+                      "Sha256":  "0547decbb63bfebf5f78e22b314d79a0a6519846e16d2bf299e722635b972cc1"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20261001110252111Z-ab4fa091/source/g01-arbeitsvertrag-CAND-2026-0411.pdf",
+                      "Sha256":  "b38d977460a8d3f865662bb33a1af0342fb54975c37d18f8c54cf29ec41c0488"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930114811428Z-ed0cd329/cap-20260930114811428Z-ed0cd329.ai-builder.raw.json",
+                      "Sha256":  "5853d642de33cd4beb46fb008be25c3e0e7e547c5211ea1a7aefca3424232e23"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930114811428Z-ed0cd329/cap-20260930114811428Z-ed0cd329.canonical.json",
+                      "Sha256":  "531e7522b8896cc44c8b4179eb49eba6394e2cd96ffa008575b51adc6be78f48"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930114811428Z-ed0cd329/capture-pair.json",
+                      "Sha256":  "a25bd6371d539ae474e0bdf0a92367301e2113a7f2eb8d6f703b5b0e24998645"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930114811428Z-ed0cd329/source/a06-CAND-2026-0416-gerber.pdf",
+                      "Sha256":  "4b1110d9c394a709fbcf6dc39c3ebf20846114e4bb2f818e7dad0118e52ac5db"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930123933155Z-211c905d/cap-20260930123933155Z-211c905d.ai-builder.raw.json",
+                      "Sha256":  "eecb4445b75398edefc87f7411a75e77b425ba3a469e680c70a89270bfc427e6"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930123933155Z-211c905d/cap-20260930123933155Z-211c905d.canonical.json",
+                      "Sha256":  "4592ef6706799053fd604917d4fdbffa37ef6f53569eb0bd6663ef15bedc15a9"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930123933155Z-211c905d/capture-pair.json",
+                      "Sha256":  "7be0f59312ba53464062c671a02ca7da1ab79c859f4b0101a996b2ea8fe82efb"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930123933155Z-211c905d/source/b06-CAND-2026-0422-schnyder.pdf",
+                      "Sha256":  "2dd65e48932173a72cbfc0cad0f1bbe01b997e6a28eea60f5a2e8c5d2737a8b6"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930130912974Z-b30d5e0a/cap-20260930130912974Z-b30d5e0a.ai-builder.raw.json",
+                      "Sha256":  "4f98cddaa62134a101913088ddf470f8ccfdf8552cf993bb8788125220db0b06"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930130912974Z-b30d5e0a/cap-20260930130912974Z-b30d5e0a.canonical.json",
+                      "Sha256":  "2ddf59347aeba713c6e0bb0c21dfe91a9180ad39556990c2ecd1b7bb0e8336d7"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930130912974Z-b30d5e0a/capture-pair.json",
+                      "Sha256":  "f1306f371d324c89c2b2a6f26fb2c7a3c15684707ac3a09c038aaff121432f09"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930130912974Z-b30d5e0a/source/c06-CAND-2026-0428-frei.pdf",
+                      "Sha256":  "dc512e6545293d6532effc196f56322f12cc1b2a89ef3eb31c46c90b1ddcece4"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930131319261Z-e8d57452/cap-20260930131319261Z-e8d57452.ai-builder.raw.json",
+                      "Sha256":  "e0b00426a4d0de7f611d55f4c33aad9a2ea40ce2fd2037c1aea06662b4429fac"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930131319261Z-e8d57452/cap-20260930131319261Z-e8d57452.canonical.json",
+                      "Sha256":  "00f30d8548360f5fb41304efbd77aeec99899381adf03725f1832f054efc63a3"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930131319261Z-e8d57452/capture-pair.json",
+                      "Sha256":  "94f2ef6219e3c80fb6e67d073f9ea0fa4a48faef26b0b1392d618798c0ec4a4d"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930131319261Z-e8d57452/source/d06-CAND-2026-0434-ochsner.pdf",
+                      "Sha256":  "5ccc73225f0b12c937ea46d1f0566c5869e38f2756c73dc0b648044203fa74fa"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture-capability.json",
+                      "Sha256":  "5dc681bd82141be205a91ce61b7de93ab0aa8aa1b8b4f22f6dc8ce0daa0cbf64"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture-capability-general.json",
+                      "Sha256":  "a11c216e66c4112cb06f87ab57f3727f0e688646fd28900b854c4a5ec03df5ad"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture-capability-pre-decision.json",
+                      "Sha256":  "cb95cd603b643a4c44e3bf6c85ecba974df49923a954a4d0eba1e39a5d81e58a"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/corpus-quality.json",
+                      "Sha256":  "6dbf3ba59604d1cd354fe7078b262cb96badc9eb80ee65d643a07412ff30c4a9"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-capture-intent.json",
+                      "Sha256":  "80830cdbf1ed197a210ee98b7ce1396826c36231e2eb411f5b8b128536debc9c"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-capture-readiness.json",
+                      "Sha256":  "e6ce26562c5400bac2a0f7458065f769bd5e507e5f6e4a32dc89d214559b3b09"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-flow-definition.md",
+                      "Sha256":  "01010ca8ae10aaad30a352949ce4085d3de39f77c0e0e6128b4ed4607973d5aa"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-flow-export.json",
+                      "Sha256":  "ffd993249ef523e93897e1ffb7d6d086c2395959b89cffbf0dee0418e753a4b7"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-metrics.json",
+                      "Sha256":  "b39e0d4384fd2a7e918b9b5156a6774a27d1a809ea655202ea2178127ec1cad2"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/evaluation-summary.md",
+                      "Sha256":  "7b6826dad33d2575a2abd55bc10bd3e38a8f6e07f0c2387d6bd4a75f85a28dd2"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/fixed-approval-eligibility.json",
+                      "Sha256":  "a094a8e56f7346b731588db1b6a1c783c29080c5346af5d9e1e53aa977b659c3"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/fixed-approval-eligibility-reverification.json",
+                      "Sha256":  "93fb56f78025415c44abc81b73209dcabb979745c3b89b7a0cdef071b6a7e775"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/fixed-publication-verification.json",
+                      "Sha256":  "0b701b502343cf4d3573bab7edeb3570236e8fae7e83cd7b2f0bbf4c644688fc"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/fixed-review.json",
+                      "Sha256":  "8d11ccfb73596730136d60df270d72221eb673fb72dce4d82b593087b44e4fd5"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/fixed-solution-addition.json",
+                      "Sha256":  "1b8413f9e61bb55c3cb3324ba6678a9d66d3712c81770026daa5bd960ab12f8a"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/fixed-solution-approval.json",
+                      "Sha256":  "2b0c424347c1bca0d52168935e15d0ba47a71da29fd908da478cf1717b82d525"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/general-capture-attempt.json",
+                      "Sha256":  "f16e06db18ed3227f34a97bec910bd2af5a39c18d5dac6803dae17b4fcf4d5bd"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/general-holdout-blocked.json",
+                      "Sha256":  "72431f96333b096b8013decfb22d0256f4018d7039e50692b3c3e26e52033e60"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/general-model-approval.json",
+                      "Sha256":  "7aab3ef8339677d1ee31af3413f7ee39e7eae03af0477816689984d7eb7ec75a"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/general-model-tagging.json",
+                      "Sha256":  "079d04804793f7117732f1d5d16024337de88fc3bb362c7e23214d96608895fe"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/general-review.json",
+                      "Sha256":  "d532a29c0d10bd3210922a83f6acfcd2048e77767e2cdf5d5103f4b09e86e027"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/holdout-consumption.json",
+                      "Sha256":  "2e6c2a7868fe2895e9ba62ebf2ebd532b0ba7298c88a27d0ef24b5062614bc23"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/holdout-consumption-general.json",
+                      "Sha256":  "55fe84a48baeb6d47335d9fb9bed8b2d62e1869f5398189d1be1d6ba6bf78a79"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-evaluation-publication.json",
+                      "Sha256":  "44890dbe59abcc8e3149d692ad85f26e4c24a16755aa8df69c8e9b9fab9e0626"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-inventory.json",
+                      "Sha256":  "3f7706406e20f6121e293ba9f1256290c9e322bf63a487e278633fdd3137bfb9"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-schema-fixed.json",
+                      "Sha256":  "cd87cd499236b6dad229ef578c4906786962c56516d29c12cd9c4c167146fa29"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-schema-general.json",
+                      "Sha256":  "2033fe4aff91296bba2544cac7a0395819fc06e3256c8d3ea18100478c0c4132"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-test-capability.json",
+                      "Sha256":  "b745faa53c2847836b23325581ffe7992dcbad52c338b560b5ef5f613620e1cc"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/prediction-capture-fixed.json",
+                      "Sha256":  "21b4c03ffbb478c5f0480c8802a8e920954b35fd62e81b445bc99240cf232054"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/readiness.json",
+                      "Sha256":  "b0f7fa392e1674b304d28d736e6c50f2100f28bec8c720eb0cd7d7bf8710b471"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/run-manifest.json",
+                      "Sha256":  "06ad67689f936afcb22b175c9381ca87a94b187eeb2783ba131ede61282db117"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/security-verification.json",
+                      "Sha256":  "de2fb1efb51638e51fc5a7cc71b4e7a97f7fa9d04a7515e69f7eeee6754edb7b"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/task6-current-user.raw.json",
+                      "Sha256":  "649b2f0c201ee0740912b13c3b24be4c2bfd895a7041b4ae56a0dfaac1badac9"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/task6-failed-upload-request.json",
+                      "Sha256":  "8b05adfa36f1a4e1e13f623520f2fd32f030d2aa1f7e68c1e00daf3a26f7fd48"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/task6-folder-item.raw.json",
+                      "Sha256":  "a89ad7a24b349ddeb241928337f8527ff58b7994e1ed9a2d3a2136ee5dae78c9"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/task6-folder-role-assignments.raw.json",
+                      "Sha256":  "123861ebd8cc8abc40b417dc37cc7f59a161d434c4309341b1352073c087ab66"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/task6-permission-analysis.json",
+                      "Sha256":  "018f393a9006e7fce9a27f1daf037a7e16a802f43fac297759b556b5c3892bd8"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/task6-retry-remote-source-mismatch.pdf",
+                      "Sha256":  "74c042e2419054136cc512c58ae252b9803f2a6cd7bdfc9d8acff2b04bc4b618"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/task6-retry-upload-request.json",
+                      "Sha256":  "dfd2473240d33b9ca46daa98b770777f6a7428e03fc8b43ca4715c65eb543b18"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/task6-retry-upload-response.raw.json",
+                      "Sha256":  "554595e39bd635935604b75b057c2127a986826e8605630634dc1b3f086a2737"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/task6-role-definitions.raw.json",
+                      "Sha256":  "f357af6181feebe6de67132b43ed846ea66b5b9c60f4796687be1be9dccfab72"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/task6-upload-error.raw.json",
+                      "Sha256":  "2f0f91a36f15070a9321036081a8fa24fd26b6e96bbf378b2f94cd3975e89e83"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-attempt.json",
+                      "Sha256":  "e13164d0df85424ed8d356079a450282bd053867c2fb9d6299f126d95fccbef8"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-remediation.json",
+                      "Sha256":  "97cc0242e13388f2b1ff8551cc20d733c4aef1a92e6453bc4f7bf5370269d324"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/training-capture-retry.json",
+                      "Sha256":  "94b097e594080aaed8ed40fb513b983a631b917650ee6a17a29c96b3ab3cf386"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/validation-results.json",
+                      "Sha256":  "c27dd744189db41c9a995768b43cb9b0f82619078b16e955672713c07b6a2109"
+                  },
+                  {
+                      "Path":  "hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/validation-results-fixed.csv",
+                      "Sha256":  "9947e8521ba70b20ccf9e4ddaaea7094d06f0ee045faf26ccfce6e914da631aa"
+                  },
+                  {
+                      "Path":  "hr/README.md",
+                      "Sha256":  "c2717254ae7075ea0ea56f0082d3bfdaedc1a727d41fb5a73ca76fd03bd7d556"
+                  },
+                  {
+                      "Path":  "hr/src/ai-builder/contracts/evaluation-capture-pair.schema.json",
+                      "Sha256":  "152f0adeb2db61bd2ddf2593325b8e750b2e1ebae10aafd242289d8fc8bb4897"
+                  },
+                  {
+                      "Path":  "hr/src/ai-builder/contracts/field-contract.json",
+                      "Sha256":  "13ce7a3985841790fe7b20b97537cd9344d9cc7ce134e86cbab0b0bc10a6a9e9"
+                  },
+                  {
+                      "Path":  "hr/src/ai-builder/contracts/model-schema-record.schema.json",
+                      "Sha256":  "44fe7a0639264d01129cc25b162bd5af78a9987d678fdc78edcf53215fde1069"
+                  },
+                  {
+                      "Path":  "hr/src/ai-builder/contracts/prediction-capture.schema.json",
+                      "Sha256":  "5459b6363b0de35bfda6ee2d788c2cf16e63c260280bdaad60618d07430b2995"
+                  },
+                  {
+                      "Path":  "hr/src/apps/hr-control-plane/index.html",
+                      "Sha256":  "8abf9a78f6ea0310ad6b903f41be08a02fecc8e156653e13236490b857367eef"
+                  },
+                  {
+                      "Path":  "hr/src/apps/hr-control-plane/package.json",
+                      "Sha256":  "8031d31df116981f8c0d25e925822688f68ce2920f25c9f9ea3ed42b512dfad9"
+                  },
+                  {
+                      "Path":  "hr/src/apps/hr-control-plane/package-lock.json",
+                      "Sha256":  "31ec2c9fc3309feba5e9faab0a04e82a2fb1ca2842cf74a55c0e074216c65e7c"
+                  },
+                  {
+                      "Path":  "hr/src/apps/hr-control-plane/power.config.json",
+                      "Sha256":  "bad3390509575d0293a5ffd6eefaf41fd95ade11681267d97912d9fafc4c1f43"
+                  },
+                  {
+                      "Path":  "hr/src/apps/hr-control-plane/README.md",
+                      "Sha256":  "35302ee959e88f44ffdb328fb7279fe7d424cf5152df2582b57d90766576946a"
+                  },
+                  {
+                      "Path":  "hr/src/apps/hr-control-plane/tsconfig.app.json",
+                      "Sha256":  "185c585aa92b2cbe0df1918e999d9a6bc4fec6762a6d80de7d2d155d56369aed"
+                  },
+                  {
+                      "Path":  "hr/src/apps/hr-control-plane/tsconfig.json",
+                      "Sha256":  "ad28d132ee48d6e23917cf5827cace785d0fc01a44ca68b0dda51cc8c3fd3f52"
+                  },
+                  {
+                      "Path":  "hr/src/apps/hr-control-plane/tsconfig.node.json",
+                      "Sha256":  "a6d49d645590cac21c235a0548605d867321b2e1750e99176d2153d702dfa842"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/adapters/ConvertFrom-HrAiBuilderEvaluationCapture.ps1",
+                      "Sha256":  "9d22ec25a745e0bf63b5f034f87a80457584c8f02dac9c5fe438eb190f98ff75"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/Connect-PowerPlatformEnvironment.ps1",
+                      "Sha256":  "1d3d10ad33e1d61dcd89043aae08f4dfa808363dd5b42f5f2a3e3cb681ee1ca0"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/Import-AiBuilderQuickTestResults.ps1",
+                      "Sha256":  "3cff3f1e4523f85a0ab75e35963bdddff354d38525c615e5f64e8a9543f7d3df"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/Initialize-AiBuilderEvidenceRun.ps1",
+                      "Sha256":  "79abb14ae73b84cef02517aa1c44e90ab2299b20fc160f6569876e046fcfabc8"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/Measure-AiBuilderEvaluation.ps1",
+                      "Sha256":  "b1c297a47e9c3079d83bb3e5f13b8308b88bd6a2aa01e6b0acadf057706a8dba"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Private/Assert-HrAiBuilderCaptureCapabilityDecision.ps1",
+                      "Sha256":  "9e52c94965baeb237c3c718ffd8d283dad4b02181f0b4e84395fe05bd63b646a"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Private/Convert-HrAiBuilderPortableLocator.ps1",
+                      "Sha256":  "7246f7c82ba6005dd17576f386f3092ba0aa0019ddfb69398457b679236a22c8"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Private/ConvertTo-HrAiBuilderCanonicalJson.ps1",
+                      "Sha256":  "e990d531902dfbc1bc0e91135e2570414d37577d043773c15ec904130d919e36"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Private/Get-HrAiBuilderFileSha256.ps1",
+                      "Sha256":  "6cbd994546f74d58f2f7e1558ce36322325ddc6c541b38ed8bbe1ad3be303284"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Private/Get-HrAiBuilderTask8ReplayHash.ps1",
+                      "Sha256":  "4bb634106c00819c46602508ffaa2f8c487512bf76ae708c96413d53d0d03c60"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Private/Resolve-HrAiBuilderEvidenceLocator.ps1",
+                      "Sha256":  "7d2639d0067b5a6d2dd829ebac788c08843603c95a057ab5177c5c0f060ba696"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Private/Test-HrAiBuilderPathWithinRoot.ps1",
+                      "Sha256":  "473d149188027b80f4cfe01c632d291f81c24f87c0f3a72ace83ea007433ceb5"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/Complete-HrAiBuilderRunManifest.ps1",
+                      "Sha256":  "571ceb8fe97ba0dd5733decfcf87e4c3f7028199c2516b9ed402f5b8568fd37a"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/ConvertFrom-HrAiBuilderEvaluationCapture.ps1",
+                      "Sha256":  "d23fe0e1cf843fb1a7f91c090dcf08a7e01bddfd29e26866fb82acece204e8a0"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/ConvertTo-HrAiBuilderNormalizedValue.ps1",
+                      "Sha256":  "720e8ed885a7ce2724ba516f24d3de7143ae99df6098a4e70ffabde93a44410f"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/Get-HrAiBuilderFieldContract.ps1",
+                      "Sha256":  "0e468a63f31d5098ef2c62cf2ef4e30ff199f3d8e04a688cb1fa347341d3d5ce"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/Measure-HrAiBuilderEvaluation.ps1",
+                      "Sha256":  "c944e88618a81c0c5713b04b598f7979f0d47850b72ed140daab094dfc6f11b1"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/New-HrAiBuilderCorpusReviewTemplate.ps1",
+                      "Sha256":  "e483a28a6f03ea20292c63bb428b58540b9afbb56bab6a66537aab3517c25a60"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/New-HrAiBuilderHoldoutConsumptionLedger.ps1",
+                      "Sha256":  "76e4acdefaeb3a6217352f86a966a968f35c1ee5490ae4322202f10674252701"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/New-HrAiBuilderModelSchemaRecord.ps1",
+                      "Sha256":  "487d7286b0e0c0550271aeb98bae915f25c1eb57b14577c0f553b692495ff530"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/New-HrAiBuilderReadinessRecord.ps1",
+                      "Sha256":  "1691b18063979affca807942c1ecd32cdf0a6456b027e991e186185804544af9"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/New-HrAiBuilderRunManifest.ps1",
+                      "Sha256":  "b3f76669e77ea19ffd314b3e1a712f0a3106a2bd6995602e037a578fb4200558"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/New-HrAiBuilderTestCapabilityRecord.ps1",
+                      "Sha256":  "864550db0762fbaf65b1cc8f42bca94e615fc74c1800b2276795a819e31a2f4a"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/Set-HrAiBuilderHoldoutCaptured.ps1",
+                      "Sha256":  "64b74897e4f780b4c2257dd22f8712764eafb8c4fee90bf9435c8fac558810c4"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/Set-HrAiBuilderHoldoutsEvaluated.ps1",
+                      "Sha256":  "ebc69ec4c70eeac77d25317599cc474eee2516486cfd9c83b6b984fcb3b554ba"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/Set-HrAiBuilderModelRecord.ps1",
+                      "Sha256":  "f0b913c853c89ab2b878495a9104b31cb07d9bf5d55a793049abfa5d43a3ae41"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/Set-HrAiBuilderPredictionCaptureAdapterMetadata.ps1",
+                      "Sha256":  "51c20f13fcc4bcfd709d9a5e20612eb404cd9eeb6380acf91dc34e83d21595c8"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/Test-HrAiBuilderCapturePair.ps1",
+                      "Sha256":  "660b51c45bf2fe1269f5b2592c823ba17a63b220ce271bf986533b63dba4fdfb"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/Test-HrAiBuilderCorpus.ps1",
+                      "Sha256":  "b8707241a1fd4c1eba222f3eb52107d3045b5ec93f1016d827445d917d7755bc"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/Test-HrAiBuilderFixedApprovalEligibility.ps1",
+                      "Sha256":  "ccbf031d08af6c4c536aa0b1f794506fc03e702aff72c545ca98b31fedf00f08"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.AiBuilder/Public/Test-HrAiBuilderStrictGates.ps1",
+                      "Sha256":  "b9c1da85d08793fc4a6a7016ab6a1e629c192b1ad018963f3c6bfe572c2b4c43"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.Solutions/Private/Invoke-HrNativeCommand.ps1",
+                      "Sha256":  "ca07337290df1fb1b56a159feeab9bba98160469cd862045b9d83928a131b7e0"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.Solutions/Public/Connect-HrPowerPlatformEnvironment.ps1",
+                      "Sha256":  "0b1468606ea7cf39b76fdee53644d5e18b9361949e41ee44a5ad0a418aa63e80"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.Solutions/Public/Expand-HrSolutionPackage.ps1",
+                      "Sha256":  "67ed26250b261884f24655f3c28e09994efac63113b748f042f5e2b94c40af64"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.Solutions/Public/Export-HrSolutionPackage.ps1",
+                      "Sha256":  "5184cf43ab45ec736beaf6ba5f82af2b2a7a42fbb5959e396e3e00a0f935214a"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/modules/Caldova.HrFrontier.Solutions/Public/Get-HrTenantPowerPlatformUrl.ps1",
+                      "Sha256":  "1065e318d9defa4b71768d42d77a98a11b725bca5811cf129e068098fa3ce636"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/README.md",
+                      "Sha256":  "5f19910ae069bee6eec98c57fed4950b027e5edb6018a6bb2580e55d2e5adb61"
+                  },
+                  {
+                      "Path":  "hr/src/scripts/Sync-HrSolutionSource.ps1",
+                      "Sha256":  "eb4ced42be533525a5d1689278175df8da9172de5c939071bb47300f5f896043"
+                  },
+                  {
+                      "Path":  "hr/src/solutions/README.md",
+                      "Sha256":  "2dcb965ae51142364807b735eb61e34d22edcc2db13b51de9009dc505f86e955"
+                  },
+                  {
+                      "Path":  "hr/tests/fixtures/ai-builder/evaluation-capture/canonical-envelope.json",
+                      "Sha256":  "169e02a20c7a1e4031b8568ba017b7ce70ebff5403c1451b19692f8c9eebc257"
+                  },
+                  {
+                      "Path":  "hr/tests/fixtures/ai-builder/evaluation-capture/process-documents-response.json",
+                      "Sha256":  "361b99fe16f4543ee3154426f5fbb3248411780b39271aa12badd94fd38d2377"
+                  },
+                  {
+                      "Path":  "hr/tests/pester/AiBuilderCorpus.Tests.ps1",
+                      "Sha256":  "fdf71eac34b2fea24dd7fb612ad02ea7886a9c6a55b556441fab0446d10c26f9"
+                  },
+                  {
+                      "Path":  "hr/tests/pester/AiBuilderEvidence.Tests.ps1",
+                      "Sha256":  "5220718f59b4794b020ccf81435173b21f65bccb35a7ed58d827075426768c45"
+                  },
+                  {
+                      "Path":  "hr/tests/pester/HrControlPlaneBranding.Tests.ps1",
+                      "Sha256":  "7a17cf201b58f32baf43d35b8d57382677debe4c81590ae180c92c8997bffe02"
+                  },
+                  {
+                      "Path":  "hr/tests/pester/SolutionLifecycle.Tests.ps1",
+                      "Sha256":  "f2964a8c1e3fb6056dd5fe4a0e89f7ed35f3e2ef60e3b4eaece4cfeb544ce083"
+                  },
+                  {
+                      "Path":  "infra/docs/10-tenant-setup-and-configuration.md",
+                      "Sha256":  "c9cb6426ed9ccfcaac8a6027060012b4aa123ca714993c581265a151ed69ed56"
+                  },
+                  {
+                      "Path":  "infra/docs/11-identity-and-access.md",
+                      "Sha256":  "b5c558dc9443ffcf1d5fe5eb354bbc818d7f98e00552a05f002e5aa8a1426256"
+                  },
+                  {
+                      "Path":  "infra/docs/12-power-platform-environments-and-alm.md",
+                      "Sha256":  "bafd5c6d8dfe65a5d53e613f3c1a68ec3043fa9e93db75b11c311a178545fcfe"
+                  },
+                  {
+                      "Path":  "infra/docs/13-azure-devops-engineering-control-plane.md",
+                      "Sha256":  "7c4dc25be77d5ac851b76c1be1c30b192ce7c7c25692ce95a1b60b1442e7d488"
+                  },
+                  {
+                      "Path":  "infra/docs/14-github-repository-blueprint.md",
+                      "Sha256":  "bf5b9ea44be9acbe1daa72bf8fd03d3744b181f0351d4134f552c52b805d2ca6"
+                  },
+                  {
+                      "Path":  "infra/docs/15-agent-workload-configuration.md",
+                      "Sha256":  "19f2a642ec9343df240e40090f65a3edf40638d165e6c73ad259b6c0ef4af511"
+                  },
+                  {
+                      "Path":  "infra/docs/16-security-governance-and-compliance.md",
+                      "Sha256":  "66d5ed63eb375b7ac6142964aee08f2c9da2ff01d9c6f09f26182373442d1719"
+                  },
+                  {
+                      "Path":  "infra/docs/17-bootstrap-and-provisioning.md",
+                      "Sha256":  "27b5648539342e02524fa3e717ac7741792aeaabb3b14ef0f8c821b8641f43e1"
+                  },
+                  {
+                      "Path":  "infra/docs/18-multi-tenant-provisioning.md",
+                      "Sha256":  "01b1c2cb56c0f37868a6cb06e7cb8b37d26a4608767af75b52cba9e9bc31b330"
+                  },
+                  {
+                      "Path":  "infra/docs/19-bootstrap-recovery.md",
+                      "Sha256":  "e6d80c6e38939d47a63fe52070dfe7452ecf5278d097220ee324fafb6eb0cd6e"
+                  },
+                  {
+                      "Path":  "infra/docs/20-tenant-trust-activation-runbook.md",
+                      "Sha256":  "d0004594fb0763bb0e56b274b2e963a4c27b044b8d659c3864b6662bc5b4ff05"
+                  },
+                  {
+                      "Path":  "infra/docs/21-azure-boards-population-runbook.md",
+                      "Sha256":  "1b1e432ba88e7d5b961e0d8a3a92f97a2776290653de6adb1f45eaab69941d22"
+                  },
+                  {
+                      "Path":  "infra/docs/22-repository-cleanup-runbook.md",
+                      "Sha256":  "191964d9bff07d18af0561b4fb51c91270bed80b241195c63955fc5755281bda"
+                  },
+                  {
+                      "Path":  "infra/docs/23-customer-repository-export-and-handover-runbook.md",
+                      "Sha256":  "1f6bc6e4cebf2d367948571bc21cfb0f57830385dc77cc43dbd63a33067cc070"
+                  },
+                  {
+                      "Path":  "infra/docs/24-tenant-1-lean-platform-runbook.md",
+                      "Sha256":  "ab3aa15cc5641a9d6184588604d57979d404b1fee84a43f7b2cde80f4d71ee70"
+                  },
+                  {
+                      "Path":  "infra/docs/runbooks/01-developer-workstation.md",
+                      "Sha256":  "e945a9fe96b8ef780c46f084ebad2d8f96e1d8190e3ea190342fe722c3836148"
+                  },
+                  {
+                      "Path":  "infra/docs/runbooks/02-cloud-service-foundation.md",
+                      "Sha256":  "feed34c42660e98b2ecbfb05f21046a070cfd200e39973ca10d54e737aac0415"
+                  },
+                  {
+                      "Path":  "infra/docs/runbooks/03-customer-handover.md",
+                      "Sha256":  "22aa78bd55b318e3fdfb2ada883a76d7f87a15642fe7c7b0ef0e0ff30ae13214"
+                  },
+                  {
+                      "Path":  "infra/docs/runbooks/README.md",
+                      "Sha256":  "e6d5c7a47e3a49a07fbd44dacc44434c83a21bd524c231a373b7bb104cfccf7e"
+                  },
+                  {
+                      "Path":  "infra/evidence/discovery/caldova25668747.json",
+                      "Sha256":  "8d61e7d8198ec0e0e224293e41eb01b39fa8e1108d76ac3f11ba9359a190891f"
+                  },
+                  {
+                      "Path":  "infra/README.md",
+                      "Sha256":  "7b026dcbfce5ca9ef319ad763033d6bcb016bac6f26338cbb4eda39f803b517f"
+                  },
+                  {
+                      "Path":  "infra/src/bicep/bicepconfig.json",
+                      "Sha256":  "cf792652ee66e7c363a6d1738b3dbfa7e68b7e548381bf5a3fe7e7643d25c10b"
+                  },
+                  {
+                      "Path":  "infra/src/config/github/action-pins.json",
+                      "Sha256":  "44377b5f5a99ea1ac894c288513e95fa5fc5b1e77c845467244e650ea1e38ace"
+                  },
+                  {
+                      "Path":  "infra/src/config/github/main-ruleset.json",
+                      "Sha256":  "49bf8d5d3c18d1c8a77bbd93032bb0885caeeb69c3d90072b7a5e7bd12bb8e41"
+                  },
+                  {
+                      "Path":  "infra/src/config/runbooks/customer-export.sample.json",
+                      "Sha256":  "e09a8b15a4f8c146bef643f03ce054f130dfa887f82f363e50a74a9b2e5c9d87"
+                  },
+                  {
+                      "Path":  "infra/src/config/runbooks/workstation-prerequisites.json",
+                      "Sha256":  "001b1601bb7e714cf93ea856c5da58cfabe4b5842e836954be61f875bad561ff"
+                  },
+                  {
+                      "Path":  "infra/src/config/schemas/bootstrap-result.schema.json",
+                      "Sha256":  "98791a3d1062909f4988d43b3c4001c5e445817cb1a9140456efaee2947d0c92"
+                  },
+                  {
+                      "Path":  "infra/src/config/schemas/customer-export.schema.json",
+                      "Sha256":  "625b43397a96324337a94aeae8ce036e790339a4ac99c4aa169720628918a178"
+                  },
+                  {
+                      "Path":  "infra/src/config/schemas/discovery.schema.json",
+                      "Sha256":  "720a8744cf9fd8d48cbf856ca5af6f087c936c8bed667ce1220de3f5f2961f7f"
+                  },
+                  {
+                      "Path":  "infra/src/config/schemas/github-ruleset.schema.json",
+                      "Sha256":  "108c3ad4c1cd5ed9159d8dc8abae59454ce887a491e9e3617d62744c43b32905"
+                  },
+                  {
+                      "Path":  "infra/src/config/schemas/tenant.schema.json",
+                      "Sha256":  "7add71301d17ff47d83395af8ecc99cb7a809ecc093c403ca66d78a8974fd33b"
+                  },
+                  {
+                      "Path":  "infra/src/config/schemas/workstation-prerequisites.schema.json",
+                      "Sha256":  "654bf809f52d079a7cdd1a2d95ef7264ee0c7a9e81fde0fc3dacdab01ba2520e"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/Assert-AzureRepoEmptyProof.ps1",
+                      "Sha256":  "16c6f22fb599374255ebdf98e2407955cefcce08d68d229d194c27c4c7a0e0ec"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/Enable-GitHubGovernance.ps1",
+                      "Sha256":  "078934a8c8f84f30ada3b1e9e10a8dc1648d327bc6dbffc0a35adcf28d528f49"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/Get-TemporaryBootstrapRoleState.ps1",
+                      "Sha256":  "fb16a7542462778b486be728816603b6021ea5e1c6cb29ce6046496d9bc8ddcf"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/Grant-TemporaryBootstrapRoles.ps1",
+                      "Sha256":  "e8df9eb8abbf48457529dbc285aa795f3eeb59968cb19b7b560797eb833f938e"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/Initialize-AzureBoardsLeanSprint.ps1",
+                      "Sha256":  "96e7bba22dca55d5ab787e4e4e6526a4772cbef0dec565d45b9bccb83076031f"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1",
+                      "Sha256":  "ea104538469c3988225ad3b896a088518976f30ede8281733e86715cdaea75f6"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/Initialize-TenantTrust.ps1",
+                      "Sha256":  "2854e201a2fff26e627b8b031546eca015dd61bbd5099eb109eaa340b3920bd6"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/Invoke-TenantBootstrap.ps1",
+                      "Sha256":  "836344f686c14d1aee55a75e4fe4616c6ae60d7734d67261640b8c24934465b8"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/Invoke-TenantDiscovery.ps1",
+                      "Sha256":  "9110f327ed3866c5044466cacca053817e4e3a249c65d7255cb90988b65c9be2"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/ConvertFrom-JsonPointer.ps1",
+                      "Sha256":  "8bc3f94daddeae6252a9ea2ded7ec0da6a0bbbde92dc740ad039c0c2bd9a2144"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/ConvertTo-CanonicalJsonValue.ps1",
+                      "Sha256":  "a61d0a92e29aa5ccff1779c104e35bfacc00b08c7fbfd48e30e74599e8ea2387"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-AzureDevOpsCreateProjectPermission.ps1",
+                      "Sha256":  "f603856acb8f562bd0a0a1f382719e638400f91fbb7b59ec6f8456fb6fd8af7f"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-AzureDevOpsDiscovery.ps1",
+                      "Sha256":  "f9e58f885c00e48940abac25383f3dcda3fd839b75c5795127ca9e14c4b5b31d"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-AzureDiscovery.ps1",
+                      "Sha256":  "85a8249488b8def0d3990c683eb3b8a58460862bb27a6c274ca6ccb63fa1aa72"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-CloudServiceSnapshot.ps1",
+                      "Sha256":  "22d0a6605bcb3e22b1e2bac4a89cc89dd3868c53f669701925b7c50483fbfb0c"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-CustomerExportTextKind.ps1",
+                      "Sha256":  "400f7326640a23f4f5d8b5cc3a87bb39e89a9e820c0ed6be68e6978ec2627a93"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-EntraDiscovery.ps1",
+                      "Sha256":  "4e1913ad3d8da6221f84921851d02472e426e7a6efb3d8f9666abf5f094394da"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-GitHubDiscovery.ps1",
+                      "Sha256":  "6a5309f428d6d04607787b3a73bafc8d5ab3deac545aab6a283c7d3c5575036c"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-PowerPlatformDiscovery.ps1",
+                      "Sha256":  "5643b4b003a4119ea2bf012a9c0e6571d70552a985056271fb16a23f84ea790c"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-RunbookRelativePath.ps1",
+                      "Sha256":  "d6bb99bf5227d2e3fa794acc3503533115aa2c06013fa9c0fcc11b4e6cd8382f"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Get-SharePointDiscovery.ps1",
+                      "Sha256":  "541101478e811d8142b98e64f195b0f044736fe8e50e09ba52319e0c44a56e1e"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Invoke-AzureDevOpsFoundationMutation.ps1",
+                      "Sha256":  "7669b4e9ec6f1d2c5403d082fb923736e559914170c6ef3ceef69f3a7bad25c2"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Invoke-AzureFoundationMutation.ps1",
+                      "Sha256":  "ce72611f10cb63828eadd2034b5436fa16bd1059d944df9d0b7bd2dba422f540"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Invoke-BoundedRetry.ps1",
+                      "Sha256":  "82075644b729543e46689fb365d482d85fbdd6f8a3897686ed4c37edf8fa3a97"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Invoke-CloudNativeCommand.ps1",
+                      "Sha256":  "057062c4180d17045aef4961241529f46073ea62933b87c3071b3a089824a374"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Invoke-GitHubFoundationMutation.ps1",
+                      "Sha256":  "a3665803f9f31c762e63b175365584d4ee531c79e08059f66006e9a31d1b7ebf"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Test-CustomerExportRelativePath.ps1",
+                      "Sha256":  "ae0d6c14eb4dbf0a926f3ed2ef58d61eb951d4caef51f54affb5e85bd559e027"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Test-CustomerExportSyntheticBytes.ps1",
+                      "Sha256":  "8712de1c1b75daaa4d6001d764a9650950d570959a52f0a24c5ffbd3dfc15682"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Test-ProhibitedData.ps1",
+                      "Sha256":  "4a3c1e1bea9f90061deca47b5f512468f0b0058a51ba543e272f17d402d8c039"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/Test-RunbookPathWithin.ps1",
+                      "Sha256":  "d53f077fae96304ee2fb9f79a3d3055e837eaf0ff780222daf46b1c57930cc6b"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Convert-CustomerExportBlob.ps1",
+                      "Sha256":  "7bff9f1e4f6b942bbd59ad6a4445e2bed96c6009cddc80a85d6dfc496c5d9682"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/ConvertTo-DiscoveryEvidence.ps1",
+                      "Sha256":  "5d3e86d63c2f520a3efcb0a9822ae15c67272834374c030e81a9ea7e4974f301"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/ConvertTo-RunbookEvidenceRecord.ps1",
+                      "Sha256":  "a1bc2942ff13b376a992a71a9c09ac6fc05b0bc9777a4ef6a0e27e2af28f7b6c"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Get-CloudFoundationAssessment.ps1",
+                      "Sha256":  "860f4f202cb923fa644bbcddcb590ee1a1e0fe815e8f044e0672593267f7466f"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Get-CustomerExportAssessment.ps1",
+                      "Sha256":  "6b19e1b05395d6736e9cd107abce6c9347c4d00d21499913051db94733e68734"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Get-CustomerExportResidual.ps1",
+                      "Sha256":  "38aace605245f1dcf6e7c54256b9975b16e95dc31d97d74bcc632a3e6e9cb64b"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Get-CustomerExportSourceSnapshot.ps1",
+                      "Sha256":  "cc364704a07c16db98ea6eea88e24c1e87bc4bff47b7b90d364a20a1f7918679"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Get-CustomerSourceMarkerCatalog.ps1",
+                      "Sha256":  "9b1cf46c4d210e2e2e469d002a0d750f43bcf0ace339c8d9c1f8048f1956f68a"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Get-GitHubOidcSubject.ps1",
+                      "Sha256":  "0cb32d9980abcde2d5c25ba631c3a76365efed0c4f38c83d1545b81a724fa1df"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Get-RunbookContentDigest.ps1",
+                      "Sha256":  "535fac2762423657e483be3379a348ea998556ba2bd992eb72d4c335979b487d"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Get-TenantResourceName.ps1",
+                      "Sha256":  "5da155c4b40ce84fa210b1f11c32e58074b29a0a8f13a41b3f02b6d68fcabf58"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Import-CustomerExportManifest.ps1",
+                      "Sha256":  "b0813a50283357eca0932f5badce553a69b2f30e6f63ad47faa24374b07ee57a"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Import-TenantConfiguration.ps1",
+                      "Sha256":  "4c05467c795eb65bc9f125cd1accfc444e04c24142a968a2c2c02c26bcf33118"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Invoke-CloudFoundationAction.ps1",
+                      "Sha256":  "4f43ad485ac806cf99289e78be2f66e997df5c5b0e39bbd1866e35d19e50da04"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Invoke-CustomerStructuredReplacement.ps1",
+                      "Sha256":  "7f4130d4a99fb3758b4874e6da9ff138be447a49b524d631e6366a4f328c3579"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/New-CloudFoundationActionPlan.ps1",
+                      "Sha256":  "cb4b17c67dffbbc579146e176d5939da4fade99993d40702c1d9c0e2d0370355"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/New-RunbookExecutionManifest.ps1",
+                      "Sha256":  "352f9720a6d367d6984ec839bbb366fdcb0f5cdfd4184115a2d68375d249630a"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/New-TenantSuffix.ps1",
+                      "Sha256":  "33ae44395385c164fdc243d7b04d397f7c14c563deafe05b8ec10c0cf6623e26"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Remove-TemporaryRoleAssignments.ps1",
+                      "Sha256":  "ec0df438cf774eda25bf7b47f8775a3f7b2cd67e5bf2c7a07ff1b7dd54b741fc"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Resolve-CloudNativeTool.ps1",
+                      "Sha256":  "61429e8edf0b55c2f7ef25c7e6d0c67c5ef44d36b29ce8ba65fccfec754066cd"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Resolve-CustomerExportExecutable.ps1",
+                      "Sha256":  "d86dd0d9e2e77bb064b57371785c5183d97b3ce5132ad9f0d7e9ca0b7969f555"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Resolve-RunbookReportPath.ps1",
+                      "Sha256":  "a5ea62ed09c1b8daa2870d6774a0d549619e67209e34c40dbd05b83b7882e216"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Test-CloudDelegatedContext.ps1",
+                      "Sha256":  "64f912802f13959fe6c58241e06f02879976e025cf91483450680cb438585002"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Test-CustomerExportContent.ps1",
+                      "Sha256":  "73c98b5769afe3a273b781ad30bec21918ac55ebdd81a03772ace661f80dce81"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Test-CustomerExportSyntheticData.ps1",
+                      "Sha256":  "3672ae2c6e6e1336ff5e5e7ff0325d42cdd4d795313d14cecade92e3d4041498"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Test-DiscoveryEvidence.ps1",
+                      "Sha256":  "2279f051daf6c3d905bbdb0d2c3dfd3a38dc0142e7ff0be7680eaca65edd8bae"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Test-RunbookExecutionManifest.ps1",
+                      "Sha256":  "2303cd523fc215e5eef51274612ff5f9b5e303a140e329593369f133d0202166"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Test-TenantIntent.ps1",
+                      "Sha256":  "affca872bd2c30e0cd00f1dc536f1717713c37e4af579c56a1547fa39bbc8761"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Update-RunbookProcessPath.ps1",
+                      "Sha256":  "039ca237ce325b6d9676532370789dfe248e0b907e6151d5673b9cca4260b18b"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Write-CanonicalJson.ps1",
+                      "Sha256":  "2601fe8d47c0aef170aa177d52b2a27f580607d6df57373acb3e1ad2b9f67919"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/New-TenantBicepParameters.ps1",
+                      "Sha256":  "cc959060ed1978e8cebd55eac1bdd66b1bfd2792757391194baa74b2e478457e"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/New-TenantManifest.ps1",
+                      "Sha256":  "ecdabf774c30d23569cf199cc273f3d752e8893aa673a54016a14be27d74b756"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/Remove-OtherTenantArtifacts.ps1",
+                      "Sha256":  "6c0224d58256b11b1ce5f8fa9f8d889f7a27dbe07965a5ef5596139898f60340"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/runbooks/Get-CloudFoundationPlan.ps1",
+                      "Sha256":  "4e3dfcc7924ff356ef0242e83bf26e4ac246a239a1450d2a24807915e17ea9b7"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/runbooks/Initialize-DeveloperWorkstation.ps1",
+                      "Sha256":  "902a6996a07e8f1f305833a2959fc9aefc45732f66382959f2405eec157df43d"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/runbooks/Invoke-CloudFoundation.ps1",
+                      "Sha256":  "1a507e4501365970a80e6eba70d821efa17c9d53482f90e991c86b4ab0429b7f"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/runbooks/New-CustomerRepositoryExport.ps1",
+                      "Sha256":  "4eb0704dc6936ce7e3a179224a7b8ea5b5b59faf01f0f2d2a60eba1014f56bf1"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/runbooks/Test-CustomerRepositoryExport.ps1",
+                      "Sha256":  "b252eec6aa2f788d46a5e586decb4d58035f8684b60116d2b0f78b7ceb006fe6"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/runbooks/Test-DeveloperWorkstation.ps1",
+                      "Sha256":  "c041a173f4da6b69ac2b7a7e2b9b32e8b83ce61b737257ea1675415a37ee1df6"
+                  },
+                  {
+                      "Path":  "infra/src/scripts/Test-WhatIfBoundary.ps1",
+                      "Sha256":  "f34e8c3dd92d952e939868059d57a868fe855379b0727a1da5caf2030e40c244"
+                  },
+                  {
+                      "Path":  "infra/src/solutions/README.md",
+                      "Sha256":  "eebb124e9816e82402b701b5ce1481663d92b468c90a93b817027774843f4eeb"
+                  },
+                  {
+                      "Path":  "infra/tests/fixtures/discovery/azure.json",
+                      "Sha256":  "ee95136c6cfcf693528e528005d26cdd446962dbc99988a934c53975e6f4e958"
+                  },
+                  {
+                      "Path":  "infra/tests/fixtures/discovery/azure-devops.json",
+                      "Sha256":  "bbd7a16689bb7f65a73dc29d09ffed622ffb09dc77cf93ca673719acf2425044"
+                  },
+                  {
+                      "Path":  "infra/tests/fixtures/discovery/entra.json",
+                      "Sha256":  "44d0d5621ece23bc20256aef0c879ed8b1877a56555b26fa365581c3a44bb2ba"
+                  },
+                  {
+                      "Path":  "infra/tests/fixtures/discovery/github.json",
+                      "Sha256":  "7a0eb3be4c5acec2c9cc8cb7c0ffc503c1cb6ed0253dc277e4f915d4c5750b0a"
+                  },
+                  {
+                      "Path":  "infra/tests/fixtures/discovery/power-platform.json",
+                      "Sha256":  "a05a58f09f1d2aa7869e9ec9d5ddf1db150de7bfe1d0ce2c884f3e1ee72a5360"
+                  },
+                  {
+                      "Path":  "infra/tests/fixtures/runbooks/cloud-assessment.json",
+                      "Sha256":  "c13a6f16e322ea641b6b05508c866a1c94eeda041e28f9ff1dbc97bf1a64e863"
+                  },
+                  {
+                      "Path":  "infra/tests/fixtures/runbooks/cloud-contexts.json",
+                      "Sha256":  "7d3e7ca89ec1926f80718e392e057921c757280a911ab7a065a5202ea1abfb86"
+                  },
+                  {
+                      "Path":  "infra/tests/fixtures/runbooks/customer-export.invalid.json",
+                      "Sha256":  "059f769b19618483928bab68108fbbfc8d7f48992a6c35a669a12e3a0beef856"
+                  },
+                  {
+                      "Path":  "infra/tests/fixtures/runbooks/native-command-results.json",
+                      "Sha256":  "b59d8258d52ca1e30d7cec6ba5ecf27822b77ec444dc0f6c1ab5a5e204bf5f4b"
+                  },
+                  {
+                      "Path":  "infra/tests/fixtures/runbooks/workstation-prerequisites.invalid.json",
+                      "Sha256":  "ebcc8b4fad462af89baad66953a0771204205e4d0d7a6a0fa8f6ac1e8fbfe1bf"
+                  },
+                  {
+                      "Path":  "infra/tests/fixtures/what-if/allowed.json",
+                      "Sha256":  "9615801d2510113875c4836fd0447e9486697985a18d1b9dd6c06d96f7dfb0f6"
+                  },
+                  {
+                      "Path":  "infra/tests/fixtures/what-if/unexpected-type.json",
+                      "Sha256":  "51b2b028689e05445e8065491b3e1cfaddaa1f4da900440e7f4b3d05665cbef3"
+                  },
+                  {
+                      "Path":  "infra/tests/fixtures/what-if/wrong-scope.json",
+                      "Sha256":  "d03e548fc1796144bab2e979ad828bdbd52deb4913dc315bb32053f35a5008c7"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/AzureBoardsLeanSprint.Tests.ps1",
+                      "Sha256":  "49d3b76a3af083e917f6fa770d91fb8a38c48c4b69f618149724e10bc6b47889"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/AzureBoardsPopulation.Tests.ps1",
+                      "Sha256":  "9be411bfb6d561ec6a1dddf9d8e64503e9e8f81bb40d414196f0b4b92abeaf8a"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/AzureRepoEmptyProof.Tests.ps1",
+                      "Sha256":  "b3f2d6855fb104bd6961e56bcaa39a4175b85b07c31ee9a70a4a320e32382101"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/BicepComposition.Tests.ps1",
+                      "Sha256":  "63e0dd9e1aae12460c631b4d81ca6405fcbd9ff4a5cb0226345cf9947d76a47a"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/CloudDelegatedContext.Tests.ps1",
+                      "Sha256":  "4e886d06d62a17d4f73ed1900de0430ff215cf658ce5287c963b2274b859845a"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/CloudFoundationInvocation.Tests.ps1",
+                      "Sha256":  "04886764a41b757301bb711126a501ac715efae802a299de8097887b685a6cb0"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/CloudFoundationPlanning.Tests.ps1",
+                      "Sha256":  "879cbe8cdc04e8594bdd87a040fce4a9b0bac4712b63ea65480fe1ede6507e6d"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/CloudFoundationProviderMutations.Tests.ps1",
+                      "Sha256":  "cef389d33996bb0f798c9cf2262f44cae2f324b093b379e226739ff03290e588"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/CloudFoundationStaticSafety.Tests.ps1",
+                      "Sha256":  "71eae843f1856301be67c0351842065f9ef3f7e8825889053530a293686b1dfd"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/CustomerExportIsolation.Tests.ps1",
+                      "Sha256":  "6581db1dfd5e82ebbcb4a7fb84364ca3b469ed283c94c5ed319968364e5617e1"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/CustomerExportManifest.Tests.ps1",
+                      "Sha256":  "ca1f96274d1476dd10f95a096698d9adecbe9148b097098ac9ec9b4a195791b6"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/CustomerExportSanitization.Tests.ps1",
+                      "Sha256":  "df102295f92eb59647e006f648ac31f9ab1458f89c70b035321bb8c56d416759"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/CustomerExportStaticSafety.Tests.ps1",
+                      "Sha256":  "058a6e9cfb58a79342fbf1544bc192277b21edf42bb3c8ab4c9ed16afc4e54c3"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/CustomerRepositoryExport.Tests.ps1",
+                      "Sha256":  "ebd1c25df2d14e85d6c9bbc55d68b81c021d7e17c9c58c10a934a20056df8d33"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/DeveloperWorkstationAssessment.Tests.ps1",
+                      "Sha256":  "4fc67cda4cc8ca6f7d5656bf5e36887327c08ec31050441e9711177b2755d99b"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/DeveloperWorkstationInitialization.Tests.ps1",
+                      "Sha256":  "2fd72a8c10db206a06bd6c2fe2a3edd470106cd702de2a47777ad904600394bb"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/DiscoveryNormalization.Tests.ps1",
+                      "Sha256":  "afca2402ed039d47578161471967129ad09772c123d05313d77cfbfd2ffd8508"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/EngineeringControlPlaneDocumentation.Tests.ps1",
+                      "Sha256":  "24914da28e2ae45b9cde4c4769429aebe8dce1863856c316d6de6dc6d40a9286"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/EvidenceGate.Tests.ps1",
+                      "Sha256":  "adafac37801e4a038b4c600a5e79185fff63ae552a4227615ab83b035c9ac486"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/EvidenceSecurity.Tests.ps1",
+                      "Sha256":  "828c660949250fa0db54970a6e9783faa6e8eeeb31d4a85162972838810f8834"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/GitHubGovernance.Tests.ps1",
+                      "Sha256":  "8e9f559ddf095fb8126c9dfd15d7209eebce9669e3e003c47f01154cee9bef73"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/Idempotency.Tests.ps1",
+                      "Sha256":  "95f660f96ca42f4a674677ee9f8595aef75087f58bce2744ce8b61cf702877e2"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/IntentGate.Tests.ps1",
+                      "Sha256":  "8f250d6e6c08171f91e1e09e885667df41958fc26a3c9e70f710a43a0854d4c6"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/Naming.Tests.ps1",
+                      "Sha256":  "c9fb0533fd22c589630cc800cbb06f722a4060450d556cb56b2bb873ae382780"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/RemoveOtherTenantArtifacts.Tests.ps1",
+                      "Sha256":  "8623b65f879528b33cd890c65e9a157453318cbd192db1330af9c4d3bb5ff9d7"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/RunbookContracts.Tests.ps1",
+                      "Sha256":  "8be92521f60d79851b334f96b4911340254a143fb5992d8bcb6680be7f824f66"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/RunbookDocumentation.Tests.ps1",
+                      "Sha256":  "1b4cc6eae6ec50897782d8ab3481d7716af5c75c272c59375d931b67199aaa24"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/RunbookStaticSafety.Tests.ps1",
+                      "Sha256":  "87cdf292e6d6cbc1bf31c157397ed758728c0ffcbdcec56a30b18022d376e7c0"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/SharePointDiscovery.Tests.ps1",
+                      "Sha256":  "30c6d8a17202ef26e9928892033be549eae6f6146cc0e78851cc0f346fafd530"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/TemporaryRoleCleanup.Tests.ps1",
+                      "Sha256":  "bb1ce4bab0a7045aba28e7338f791cc80853e7da237f1571075a7291f719f8d4"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/TenantBlueprintVerification.Tests.ps1",
+                      "Sha256":  "655580c46b5226d1b718eeac64d5560be783b72dab857e6f0d40d0486c59eaff"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/TenantConfiguration.Tests.ps1",
+                      "Sha256":  "323851ec7af7bb10994812045af6efcfd9b5c484676465399cda3fab62f87f4c"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/WhatIfBoundary.Tests.ps1",
+                      "Sha256":  "16b8b7cb6945869231498c196f50623c14f2f25dd8bbe3b45df38696fa63e637"
+                  },
+                  {
+                      "Path":  "infra/tests/pester/WorkstationPrerequisitePolicy.Tests.ps1",
+                      "Sha256":  "a3a373ebdaa06b0c138ce486f4e64316d9a3ba151cc4a32a1e1970bab21195ef"
+                  }
+              ]
+}

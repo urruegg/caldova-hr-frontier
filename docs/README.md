@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.7 |
-| **Date** | 2026-10-01 |
+| **Version** | 1.10 |
+| **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -14,6 +14,51 @@
 **Read this first if you are an agent or a new contributor.** The rules below tell you which document is authoritative for which kind of question. Answering from the wrong one produces confident, wrong answers — most of the failure modes in this repository start there.
 
 ---
+
+## Purpose and Authority
+
+This README is the repository knowledge map and documentation policy. It routes lifecycle, domain, authority, and archive discovery; it does not replace the substantive requirements, decisions, specifications, plans, or evidence it links.
+
+## Contains and Does Not Contain
+
+The `docs/` root contains cross-cutting platform requirements, solution architecture, accountability, lifecycle catalogues, decisions, brand guidance, durable reviews, and historical navigation. It does not contain detailed HR packages, infrastructure source, tenant-private configuration, generated evidence, or real personal data.
+
+## Reading Order
+
+Follow `.github/copilot-instructions.md -> docs/README.md -> lifecycle catalogue -> domain README -> selected artifact and its explicit references`. For new work, start in [Ideas](ideas/README.md), proceed to [Specifications](specs/README.md), then [Implementation Plans](plans/README.md), and use [Reviews](reviews/README.md) or reproducible evidence to determine what happened. Historical questions start in the [Archive](archive/README.md).
+
+## Naming and Lifecycle
+
+Lifecycle READMEs own placement and status routing. Stable identifiers are never reused. A status change updates the owning catalogue in the same pull request, and superseded material links to a maintained successor or archive entry. Catalogue status mirrors child metadata; the child wins if a catalogue drifts.
+
+## Catalogue
+
+Successor links precede the owned child so automated navigation can identify each direct child deterministically.
+
+| Successor or next stage | Direct child | Status | Purpose | Authority |
+|---|---|---|---|---|
+| [Solution design](solution-design.md) | [Platform PRD](prd.md) | Proposed Baseline | Defines platform-wide functional and non-functional requirements. | Platform requirement authority within its metadata status and approved higher governance. |
+| [Architecture decisions](adr/README.md) | [Solution Design](solution-design.md) | Proposed Baseline | Defines platform architecture, boundaries, integration, security, and ALM. | Architecture narrative; Approved ADRs override conflicts. |
+| [HR domain](../hr/README.md) | [HR Journey and RACI](hr-journey-and-raci.md) | Proposed Baseline | Defines the end-to-end HR journey, roles, accountability, and sequencing. | Cross-cutting HR accountability guidance within its metadata status. |
+| [Specifications](specs/README.md) | [Architecture Decision Records](adr/README.md) | Proposed Baseline | Catalogues expensive or irreversible decisions and their rejected alternatives. | Approved repository-level ADRs override conflicting narrative; other records govern as stated. |
+| Use maintained replacements for current work | [Archive](archive/README.md) | Active (consolidated from current state) | Routes historical material to current replacements. | Historical navigation only. |
+| [HR control-plane wireframe design](specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md) | [Brand](brand/README.md) | Proposed Baseline | Owns interim product-theme tokens, Fluent themes, and asset guidance. | Proposed product-theme guidance; not an approved corporate identity standard. |
+| [Specifications](specs/README.md) | [Ideas](ideas/README.md) | Active | Owns permanent repository-wide ideas and lifecycle state. | Intake and routing authority; not implementation authority. |
+| [Durable reviews](reviews/README.md) | [Implementation Plans](plans/README.md) | Active (consolidated from current state) | Catalogues executable plans derived from reviewed specifications. | Plan authority depends on metadata, governing specification, and explicit gates. |
+| Use current evidence for implemented-state claims | [Reviews](reviews/README.md) | Active (consolidated from current state) | Catalogues durable intake, readiness, migration, and acceptance reviews. | Review authority is limited to recorded scope, evidence, and disposition. |
+| [Implementation plans](plans/README.md) | [Specifications](specs/README.md) | Active (consolidated from current state) | Catalogues reviewed designs and behavioral specifications. | Approved specifications govern only their stated scope. |
+
+## Domain Links
+
+- [HR domain](../hr/README.md)
+- [Infrastructure domain](../infra/README.md)
+- [Data domain](../data/README.md)
+- [HR use-case detail](../hr/docs/use-cases/README.md)
+- [Infrastructure documentation](../infra/docs/README.md)
+
+## Board Synchronization
+
+Central ideas record `Deferred - not synchronized`. This knowledge map does not create, infer, or change Azure Boards identifiers.
 
 ## Documentation Policy
 
@@ -42,15 +87,40 @@ When a maintained document already uses ASCII art for one of these purposes, pre
 ## Structure
 
 ```text
+.github/copilot-instructions.md
 docs/
-├── prd.md                    Platform requirements — FR-0001…, NFR-0001…, roles, gates
-├── solution-design.md        Architecture — layers, components, integration, security, ALM
-├── hr-journey-and-raci.md    The HR journey, roles, RACI, use-case placement, sequencing
-├── adr/                      Decision records (12: 5 infra/governance, 7 HR solution) — why, what was rejected, what it costs
-└── brand/                    BrandKit — tokens, Fluent themes, logo guidance
+├── README.md
+├── ideas/
+│   └── README.md
+├── specs/
+│   └── README.md
+├── plans/
+│   └── README.md
+├── reviews/
+│   └── README.md
+├── archive/
+│   ├── README.md
+│   └── phase-2-operating-model/
+│       └── README.md
+├── adr/
+├── brand/
+├── prd.md
+├── solution-design.md
+└── hr-journey-and-raci.md
+hr/
+├── README.md
+└── docs/
+    └── use-cases/
+        └── README.md
+infra/
+├── README.md
+└── docs/
+    └── README.md
+data/
+└── README.md
 ```
 
-The use case portfolio moved to **[`hr/docs/ideas/`](../hr/docs/ideas/README.md)** when the repository adopted domain roots. This folder is platform-only.
+The repository-wide idea portfolio is centralized in **[`docs/ideas/`](ideas/README.md)**. Detailed artifacts for graduated HR use cases live in **[`hr/docs/use-cases/`](../hr/docs/use-cases/README.md)**.
 
 ---
 
@@ -59,7 +129,7 @@ The use case portfolio moved to **[`hr/docs/ideas/`](../hr/docs/ideas/README.md)
 | If the question is about… | Read | Not |
 |---|---|---|
 | What the platform must do, for every use case | `prd.md` | A use-case PRD — it inherits these, it does not restate them |
-| What a *specific* use case must do | `hr/docs/ideas/<uc>/prd-xxxx-<context>.md` | `prd.md` — it is deliberately use-case-agnostic |
+| What a *specific* use case must do | `hr/docs/use-cases/<uc>/prd-xxxx-<context>.md` | `prd.md` — it is deliberately use-case-agnostic |
 | How something is built, and with what | `solution-design.md` | `prd.md` — requirements are not implementation |
 | Who does what, and who is accountable | `hr-journey-and-raci.md` §5–6 | `prd.md` §6, which is platform-level only |
 | **Why** a choice was made, and what was rejected | `adr/` | Any other document — they state the *what*, not the *why* |
@@ -68,13 +138,20 @@ The use case portfolio moved to **[`hr/docs/ideas/`](../hr/docs/ideas/README.md)
 
 ---
 
-## The authority rule
+## Authority and Conflict Order
 
-**When two documents disagree, the more specific one wins — except on governance, where the platform wins.**
+Navigation order is not an authority override. When maintained records conflict, use this order:
 
-- A use-case PRD may add requirements. It may **not** weaken `prd.md` FR-0001…FR-0012 or NFR-0001…NFR-0010.
-- An ADR overrides narrative text in any document. If `solution-design.md` and a repository-level Approved ADR conflict, the ADR is correct and the design document has drifted.
-- A **Proposed** ADR is a recommendation, not a commitment. Check the Status field before relying on one.
+1. law, organizational governance, and explicit human authority;
+2. Accepted or Approved policies, ADRs, and specifications;
+3. approved platform requirements and cross-cutting governance;
+4. the more specific domain or use-case contract, provided it does not weaken higher governance;
+5. the approved implementation plan for the selected specification; and
+6. evidence of the implemented state.
+
+Check status before content. `Superseded`, `Draft`, `Proposed Baseline`, `Idea`, and `Graduated` material cannot silently override Approved or Accepted authority. README catalogue text is a routing aid; if it conflicts with an authoritative child, the child wins and the README must be repaired.
+
+For a question about what currently exists or passed, current reproducible evidence controls. An approved design or plan defines intent but does not prove implementation.
 
 ---
 
@@ -114,7 +191,8 @@ Stated here because they are load-bearing and easy to get backwards:
 |---|---|---|
 | `prd-` | Product requirements for one use case | `prd-0001-personal-master-data-completion-agent.md` |
 | `adr-` | Architecture decision record | `0009-workday-access-via-connector-behind-governed-layer.md` |
-| `uc-` | Use case (in `hr/`) | `uc-0010-employee-data-validation-bot.md` |
+| `uc-` | Central portfolio idea record | `docs/ideas/uc-<number>-<context>.md` |
+| `uc-` package | Detailed HR use-case package | `hr/docs/use-cases/uc-<number>-<context>/` |
 | `fr-` / `nfr-` | Requirement IDs — **identifiers within documents**, not filenames | `FR-0006`, `NFR-0008` |
 | `d-` / `td-` | Open decision IDs — identifiers, not filenames | `D-0003`, `TD-09` |
 
@@ -150,13 +228,9 @@ The Infrastructure domain contains the approved lean control-plane topology toge
 
 ## Superseded (Phase 2)
 
-The original Proposed Baseline product/HR operating model is superseded by the documents above, reconciled through the [Phase 4 HR Solution Functional Design Intake](reviews/2026-09-24-phase-4-hr-solution-functional-design-intake.md). Retained for history, each carrying its own superseded banner:
+The original Proposed Baseline product/HR operating model is superseded by the documents above, reconciled through the [Phase 4 HR Solution Functional Design Intake](reviews/2026-09-24-phase-4-hr-solution-functional-design-intake.md).
 
-| Document | Superseded by |
-|---|---|
-| [operating-model/00-05](operating-model/00-north-star.md) | `prd.md`, `solution-design.md`, `hr-journey-and-raci.md` |
-| [90 Microsoft Best Practice Evaluation](90-microsoft-best-practice-evaluation.md) | A fresh evaluation against the new design is not yet performed — treat this as historical only |
-| [HR Employee Journey (Phase 2)](../hr/docs/20-hr-employee-journey.md) | `hr-journey-and-raci.md`, `hr/docs/ideas/` |
+For historical questions, start with the [Phase 2 Operating Model Archive catalogue](archive/phase-2-operating-model/README.md). It records the purpose and current replacement for each immutable snapshot. Do not use the snapshots as current authority.
 
 ---
 

@@ -50,7 +50,7 @@ Approve only the exact proposed mutation. Issue creation sends its four-field JS
 
 ## Optional 19-Epic Portfolio Tooling
 
-The existing `infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1` can copy the reviewed `hr/docs/ideas/*.md` portfolio into one `Epic` per idea. It remains behaviorally unchanged and is not part of lean acceptance.
+The existing `infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1` can copy the reviewed `docs/ideas/*.md` portfolio into one `Epic` per idea. It remains behaviorally unchanged and is not part of lean acceptance.
 
 ### Optional Prerequisites
 

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.4 |
-| **Date** | 2026-09-30 |
+| **Version** | 1.6 |
+| **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
@@ -11,13 +11,35 @@
 
 This source-derived Proposed Baseline describes intended infrastructure architecture and operations. It does not prove that any tenant, Azure resource, Azure DevOps object, Power Platform environment, GitHub governance control, pipeline, identity, or service is currently deployed or configured.
 
-## Purpose
+## Purpose and Authority
 
 The `infra/` domain owns public infrastructure source, subscription-scope Bicep, attended local validation scripts, infrastructure tests, and unpacked Infrastructure Power Platform solution source. Tenant-private configuration and raw operational evidence stay outside version control.
 
 Caldova HR Frontier uses one tenant-dedicated GitHub product-source repository and one Azure DevOps project per tenant. For the current Tenant 1 lean sprint, the active configuration is the ignored, validated `infra/src/config/tenants/tenant1.local.psd1` file. The approved deletion of the tracked Tenant 1 transition files is committed; they are absent and must not be reconstructed. Tenant 2's tracked files remain unchanged and are not selected by Tenant 1 validation.
 
 There is no automatic intent mode. Discovery reports observed state; a reviewed pull request records desired state.
+
+## Contains and Does Not Contain
+
+This domain contains public Bicep, scripts, tests, solution-source ownership guidance, and maintained infrastructure documentation. It does not contain tenant-private configuration, credentials, raw operational evidence, unattended live mutation, or proof that a resource exists.
+
+## Reading Order
+
+Start at the [repository knowledge map](../docs/README.md), then this domain boundary, then the [infrastructure documentation catalogue](docs/README.md). Read the relevant design before a runbook, and use current sanitized read-back before making a claim about deployed state.
+
+## Safety-Critical Entry Points
+
+- [Tenant 1 Lean Platform Runbook](docs/24-tenant-1-lean-platform-runbook.md) is the active attended local Tenant 1 sequence and acceptance contract.
+- [Operational Runbooks](docs/runbooks/README.md) catalogues the shared preview, approval, evidence, read-back, and recovery procedures.
+- [Developer Workstation](docs/runbooks/01-developer-workstation.md) defines the approved local workstation assessment and initialization boundary.
+- [Tenant Trust Activation Runbook](docs/20-tenant-trust-activation-runbook.md) is a `Superseded stop notice`; no supported trust-activation mutation path exists.
+- [Azure Boards Population Runbook](docs/21-azure-boards-population-runbook.md) is a `Superseded stop notice`; Board synchronization remains deferred.
+- [Cloud Service Foundation Runbook](docs/runbooks/02-cloud-service-foundation.md) is a `Superseded stop notice`; the dormant planner and apply entry points remain unsupported.
+- [Customer Repository Handover](docs/runbooks/03-customer-handover.md) defines the attended synthetic export, approval, validation, and handover boundaries.
+
+## Naming and Lifecycle
+
+Public source uses stable descriptive paths under `src/`; infrastructure documentation uses ordered numeric filenames. Active procedures stay at their operational path. Unsafe or unsupported procedures remain as `Superseded` stop notices and link to reviewed successors. Tenant-private files remain ignored and are never reconstructed from prose.
 
 ## Current Boundary
 
@@ -57,27 +79,11 @@ infra/
 
 A path shown here is an ownership boundary, not evidence that its artifact already exists.
 
-## Documentation Map
+## Catalogue
 
-| Document | Purpose |
-|---|---|
-| [Tenant Setup and Configuration](docs/10-tenant-setup-and-configuration.md) | Defines reviewed private configuration, sanitized evidence, explicit intent, and tenant-stage boundaries. |
-| [Identity and Access](docs/11-identity-and-access.md) | Defines attended administration and separately approved pre-existing minimum access. |
-| [Power Platform Environments and ALM](docs/12-power-platform-environments-and-alm.md) | Defines the future DEV-to-TEST-to-PROD solution lifecycle. |
-| [Azure DevOps Engineering Control Plane](docs/13-azure-devops-engineering-control-plane.md) | Describes the approved Azure Boards single backlog and GitHub sole-product-source integration. |
-| [GitHub Repository Blueprint](docs/14-github-repository-blueprint.md) | Describes the Tenant 1 repository and lean `main` governance target without a bootstrap Environment. |
-| [Agent and Workload Configuration](docs/15-agent-workload-configuration.md) | Describes future workload packaging, grounding, and release controls. |
-| [Security, Governance and Compliance](docs/16-security-governance-and-compliance.md) | Describes proposed technical controls and evidence requirements. |
-| [Bootstrap and Provisioning](docs/17-bootstrap-and-provisioning.md) | Defines the attended local, what-if-only validation sequence. |
-| [Multi-Tenant Provisioning](docs/18-multi-tenant-provisioning.md) | Defines one repository and one Azure DevOps project per tenant, plus the Tenant 2 transition exception through Slice 5. |
-| [Bootstrap Recovery](docs/19-bootstrap-recovery.md) | Defines attended recovery without bypassing validation or approvals. |
-| [Tenant Trust Activation Runbook](docs/20-tenant-trust-activation-runbook.md) | Superseded stop notice for the dormant, unsupported trust command. |
-| [Tenant 1 Lean Platform Runbook](docs/24-tenant-1-lean-platform-runbook.md) | Active attended local Tenant 1 sequence, checkpoints, and acceptance contract. |
-| [Operational Runbooks](docs/runbooks/README.md) | Defines the shared preview, approval, evidence, manual-step, read-back, and recovery contract. |
-| [Developer Workstation](docs/runbooks/01-developer-workstation.md) | Assesses and explicitly initializes an approved Windows 11 administrator workstation. |
-| [Cloud Service Foundation Runbook](docs/runbooks/02-cloud-service-foundation.md) | Superseded stop notice for dormant planner/apply entry points; no supported mutation path. |
-| [Customer Repository Handover](docs/runbooks/03-customer-handover.md) | Defines local attended synthetic customer export assessment, digest approval, apply, independent validation, and handover boundaries. |
-| [Infrastructure Solution Sources](src/solutions/README.md) | Defines ownership and exclusions for future unpacked solution source. |
+| Prior or next stage | Direct child | Status | Purpose | Authority |
+|---|---|---|---|---|
+| [Tenant 1 lean platform design](../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md) | [Infrastructure Documentation](docs/README.md) | Active | Catalogues infrastructure guidance, procedures, and operational stop notices. | Maintained navigation; each child metadata status and explicit gate governs its use. |
 
 ## Conventions
 
@@ -89,3 +95,16 @@ A path shown here is an ownership boundary, not evidence that its artifact alrea
 6. Treat local documentation links as current contracts. Refer to future paths as inline code until later tasks create them.
 
 The proposed Bicep and PowerShell split follows [ADR-0003](../docs/adr/0003-bicep-and-powershell-for-infrastructure-as-code.md). That ADR remains a candidate until separately approved.
+
+## Domain Links
+
+- [Documentation knowledge map](../docs/README.md)
+- [Specifications](../docs/specs/README.md)
+- [Implementation plans](../docs/plans/README.md)
+- [Durable reviews](../docs/reviews/README.md)
+- [HR domain](../hr/README.md)
+- [Data domain](../data/README.md)
+
+## Board Synchronization
+
+Azure Boards synchronization is `Deferred - not synchronized`. This domain README does not create or infer a Board identifier.

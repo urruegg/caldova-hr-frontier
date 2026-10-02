@@ -13,6 +13,7 @@ $script:DocumentationStatusPrefixes = @(
 	'Proposed Baseline',
 	'Active',
 	'Approved',
+	'Graduated',
 	'Superseded',
 	'Archived'
 )

@@ -1,15 +1,15 @@
 BeforeAll {
     $script:repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
     $script:issueTemplateRoot = Join-Path $script:repositoryRoot '.github\ISSUE_TEMPLATE'
-    $script:governancePolicyRelativePath = 'docs/operating-model/04-hitl-governance.md'
+    $script:governancePolicyRelativePath = '.github/agent-policy/NON_DELEGABLE_WORK.md'
     $script:governancePolicyPath = Join-Path $script:repositoryRoot (
         $script:governancePolicyRelativePath.Replace('/', '\')
     )
-    $script:governancePolicyUrl = 'https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/operating-model/04-hitl-governance.md'
-    $script:interimGovernancePath = '.github/agent-policy/NON_DELEGABLE_WORK.md'
+    $script:governancePolicyUrl = 'https://github.com/urruegg/caldova-hr-frontier/blob/main/.github/agent-policy/NON_DELEGABLE_WORK.md'
+    $script:ideaCatalogueUrl = 'https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/ideas/README.md'
     $script:governancePolicyRelativePattern = [regex]::Escape($script:governancePolicyRelativePath)
     $script:governancePolicyUrlPattern = [regex]::Escape($script:governancePolicyUrl)
-    $script:interimGovernancePathPattern = [regex]::Escape($script:interimGovernancePath)
+    $script:ideaCatalogueUrlPattern = [regex]::Escape($script:ideaCatalogueUrl)
     $metadataModulePath = Join-Path $PSScriptRoot '..\modules\DocumentationMetadata.psm1'
     Import-Module $metadataModulePath -Force
 
@@ -54,14 +54,14 @@ Describe 'Active issue forms' {
         $intake | Should -Match 'Do not include personal data'
         $intake | Should -Match 'Employee journey stage'
         $intake | Should -Match $script:governancePolicyRelativePattern
-        $intake | Should -Not -Match $script:interimGovernancePathPattern
+        $intake | Should -Match 'central repository idea lifecycle'
 
         $config = Get-FileContentIfPresent -Path (
             Join-Path $script:issueTemplateRoot 'config.yml'
         )
-        $config | Should -Match 'https://dev.azure.com/'
+        $config | Should -Match $script:ideaCatalogueUrlPattern
+        $config | Should -Match 'Azure Boards synchronization is deferred'
         $config | Should -Match $script:governancePolicyUrlPattern
-        $config | Should -Not -Match $script:interimGovernancePathPattern
     }
 
     It 'points the active governance guidance at a tracked repository policy file' {
@@ -103,11 +103,11 @@ Describe 'Active issue forms' {
         $expectedConfig = @(
             'blank_issues_enabled: false'
             'contact_links:'
-            '  - name: Backlog and delivery tracking'
-            '    url: https://dev.azure.com/'
-            '    about: Work is planned and tracked in Azure Boards. This repository is the build plane.'
+            '  - name: Idea portfolio and delivery lifecycle'
+            '    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/ideas/README.md'
+            '    about: Ideas are governed in the repository; Azure Boards synchronization is deferred until the later rebuild sprint.'
             '  - name: Governance and data rules'
-            '    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/operating-model/04-hitl-governance.md'
+            '    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/.github/agent-policy/NON_DELEGABLE_WORK.md'
             '    about: Read before raising anything that might contain personal data.'
             '  - name: Platform design question'
             '    url: https://github.com/urruegg/caldova-hr-frontier/blob/main/docs/README.md'
@@ -150,10 +150,11 @@ Describe 'CODEOWNERS contract' {
             '/AGENTS.md',
             '/docs/',
             '/docs/adr/',
+            '/docs/ideas/',
             '/docs/prd.md',
             '/infra/',
             '/hr/',
-            '/hr/docs/ideas/',
+            '/hr/docs/use-cases/',
             '/hr/src/solutions/',
             '/data/'
         )) {
@@ -162,7 +163,15 @@ Describe 'CODEOWNERS contract' {
             $matchingEntries[0].Owners | Should -BeExactly '@urruegg'
         }
 
-        $approvedScheduledDirectories = @('/infra/', '/hr/', '/hr/docs/ideas/', '/hr/src/solutions/', '/data/', '/docs/adr/')
+        $approvedScheduledDirectories = @(
+            '/infra/',
+            '/hr/',
+            '/hr/docs/use-cases/',
+            '/hr/src/solutions/',
+            '/data/',
+            '/docs/adr/',
+            '/docs/ideas/'
+        )
         foreach ($entry in $entries) {
             if ($entry.Pattern -ceq '*') {
                 continue
@@ -206,15 +215,15 @@ Describe 'Pull request template contract' {
             -DocumentRelativePath '.github/pull_request_template.md').Count |
             Should -Be 0
         $lines | Should -Contain '# Pull Request'
-        $lines | Should -Contain '| **Version** | 1.0 |'
-        $lines | Should -Contain '| **Date** | 2026-09-24 |'
+        $lines | Should -Contain '| **Version** | 1.1 |'
+        $lines | Should -Contain '| **Date** | 2026-10-02 |'
         $lines | Should -Contain '| **Author** | docs-agent (Voice of Knowledge) |'
         $lines | Should -Contain '| **Status** | Proposed Baseline |'
         $lines | Should -Contain '| **Scope** | Repository |'
         $lines | Should -Contain '| **References** | [HR Solution Functional Design Intake](../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |'
 
         foreach ($section in @(
-            '## Work item',
+            '## Governing record',
             '## Journey stage',
             '## Environments affected',
             '## Checks',
@@ -249,18 +258,25 @@ Describe 'Pull request template contract' {
         }
     }
 
-    It 'requires the governed Azure Boards closing prefix without another workflow' {
+    It 'uses repository records while Azure Boards synchronization is deferred' {
         $content = Get-FileContentIfPresent -Path (
             Join-Path $script:repositoryRoot '.github\pull_request_template.md'
         )
         $normalized = $content.Replace("`r`n", "`n").Replace("`r", "`n")
         $expected = @'
-For the final governed proof, use the literal `Fixes AB#` prefix followed by the
-selected Azure Boards Issue ID. Human review verifies the reference; no separate
-traceability workflow is required.
+## Governing record
+
+<!-- Link the repository idea, specification, plan, or verified Azure Boards item. -->
+
+Board synchronization: Deferred - not synchronized
+
+Use `Fixes AB#<id>` only after Azure Boards synchronization has been rebuilt and
+the referenced ID has been verified. Until then, the repository idea,
+specification, and plan are the governing delivery record.
 '@.Trim().Replace("`r`n", "`n").Replace("`r", "`n")
 
         $normalized | Should -Match ([regex]::Escape($expected))
+        $normalized | Should -Not -Match '(?m)^AB#$'
     }
 }
 

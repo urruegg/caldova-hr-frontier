@@ -63,7 +63,7 @@ body:
     attributes:
       label: Before submitting
       options:
-        - label: I have checked this is not already in hr/docs/ideas/
+        - label: I have checked this is not already in docs/ideas/
           required: true
         - label: I have considered whether a workflow, report or process fix would serve better than an agent
           required: true

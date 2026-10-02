@@ -15,7 +15,7 @@
 | **Status** | Draft 0.1 |
 | **Date** | 2026-09-17 |
 | **Scope** | The HR agentic platform as a whole. **Not** a single agent |
-| **Use-case requirements** | Each selected use case carries its own PRD — see [`ideas/`](../hr/docs/ideas/README.md) |
+| **Use-case requirements** | Each selected use case carries its own PRD — see [`ideas/`](../docs/ideas/README.md) |
 
 ---
 
@@ -25,7 +25,7 @@ This document states what the **platform** must do, once, so that no individual 
 
 The distinction matters because it is where governance either holds or erodes. If each use case re-decides how it escalates to a human, what it refuses, or where its audit record lives, then by the fifth agent there are five answers and no platform. The requirements below are the ones that must have exactly one answer.
 
-**The MVP proves them.** [UC-0001](../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/uc-0001-personal-master-data-completion-agent.md) is the first implementation of every requirement here, which is why its PRD is the more detailed document. What it establishes, the next use case inherits.
+**The MVP proves them.** [UC-0001](ideas/uc-0001-personal-master-data-completion-agent.md) is the first implementation of every requirement here, which is why its PRD is the more detailed document. What it establishes, the next use case inherits.
 
 ---
 
@@ -65,11 +65,11 @@ The MVP proves the platform. It does not cover HR.
 
 | # | Use case | What it proves |
 |---|---|---|
-| **UC-0001** | [Personal Master Data Completion Agent](../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/README.md) | Reasoning over unstructured documents **plus a governed write to the system of record** |
-| **UC-0010** | [Employee Data Validation](../hr/docs/ideas/uc-0010-employee-data-validation-bot.md) | The **closed loop** — detection across the population feeding completion. Workflow-first, agent only for ambiguity |
-| **UC-0005** | [Onboarding Assistant](../hr/docs/ideas/uc-0005-onboarding-assistant.md) | The pattern **extends to a second journey stage** at lower cost than the first |
+| **UC-0001** | [Personal Master Data Completion Agent](../hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/README.md) | Reasoning over unstructured documents **plus a governed write to the system of record** |
+| **UC-0010** | [Employee Data Validation](../docs/ideas/uc-0010-employee-data-validation-bot.md) | The **closed loop** — detection across the population feeding completion. Workflow-first, agent only for ambiguity |
+| **UC-0005** | [Onboarding Assistant](../docs/ideas/uc-0005-onboarding-assistant.md) | The pattern **extends to a second journey stage** at lower cost than the first |
 
-**Running alongside, not counted in the MVP:** [UC-0002 HR Policy Chat Assistant](../hr/docs/ideas/uc-0002-hr-policy-chat-assistant.md), because on the Copilot chat harness it carries no charge for Microsoft 365 Copilot-licensed users. It answers questions rather than taking action, so it is an adoption vehicle rather than an agentic exemplar.
+**Running alongside, not counted in the MVP:** [UC-0002 HR Policy Chat Assistant](../docs/ideas/uc-0002-hr-policy-chat-assistant.md), because on the Copilot chat harness it carries no charge for Microsoft 365 Copilot-licensed users. It answers questions rather than taking action, so it is an adoption vehicle rather than an agentic exemplar.
 
 **The exit test.** The MVP succeeds if UC-0005 costs materially less to build than UC-0001 — not if all three ship. If the third use case costs the same as the first, the reuse thesis is wrong, and three use cases is a cheaper place to discover that than thirteen.
 
@@ -92,7 +92,7 @@ The MVP proves the platform. It does not cover HR.
 - Replacement of Boomi, SAP Integration Suite or Informatica for system-to-system integration
 - The ServiceNow joiner/mover/leaver flow, which already exists and is consumed, not rebuilt
 - Local payroll execution (CH: SAP P01) and the 20+ local payroll and time systems
-- Any use case not yet approved — the [`ideas/`](../hr/docs/ideas/README.md) folder is a portfolio, not a backlog. **Fifteen of the eighteen candidates are explicitly out of MVP scope**
+- Any use case not yet approved — the [`ideas/`](../docs/ideas/README.md) folder is a portfolio, not a backlog. **Fifteen of the eighteen candidates are explicitly out of MVP scope**
 
 ---
 
@@ -254,4 +254,4 @@ Platform-level. Use-case decisions sit in the relevant use-case PRD.
 | A second source of truth | Dataverse holds process state. The moment it holds a master-data value, drift begins |
 | A decision-making system | Agents prepare evidence. Named humans decide about people |
 | A general-purpose Workday gateway | The Access Layer carries three actions. Each addition is a decision, not a task |
-| An approved roadmap | The 19 use cases in [`ideas/`](../hr/docs/ideas/README.md) are a portfolio. One is approved |
+| An approved roadmap | The 19 use cases in [`ideas/`](../docs/ideas/README.md) are a portfolio. One is approved |

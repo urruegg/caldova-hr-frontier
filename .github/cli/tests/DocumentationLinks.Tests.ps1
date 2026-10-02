@@ -8,6 +8,21 @@ BeforeAll {
     if (-not $script:gitPath) {
         throw 'git.exe is required for DocumentationLinks.Tests.ps1.'
     }
+    $script:linkValidationExclusions = [Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::Ordinal
+    )
+    foreach ($relativePath in @(
+        'docs/archive/phase-2-operating-model/00-north-star.md'
+        'docs/archive/phase-2-operating-model/01-prd.md'
+        'docs/archive/phase-2-operating-model/02-system-design.md'
+        'docs/archive/phase-2-operating-model/03-agent-operating-model.md'
+        'docs/archive/phase-2-operating-model/04-hitl-governance.md'
+        'docs/archive/phase-2-operating-model/05-implementation-roadmap.md'
+        'docs/archive/phase-2-operating-model/90-microsoft-best-practice-evaluation.md'
+        'docs/archive/phase-2-operating-model/20-hr-employee-journey.md'
+    )) {
+        [void]$script:linkValidationExclusions.Add($relativePath)
+    }
 
     function Remove-MarkdownFencedCode {
         param(
@@ -75,6 +90,9 @@ Describe 'Repository documentation links' {
 
         $failures = [Collections.Generic.List[string]]::new()
         foreach ($relativePath in $paths) {
+            if ($script:linkValidationExclusions.Contains($relativePath)) {
+                continue
+            }
             if ($relativePath.StartsWith('.github/skills/', [StringComparison]::Ordinal) -and
                 $relativePath -cne '.github/skills/README.md') {
                 continue

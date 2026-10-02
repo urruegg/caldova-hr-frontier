@@ -97,9 +97,10 @@ function Test-RequiredContent {
 
 $baseFolders = @(
     '.github/agent-policy', '.github/agents', '.github/cli', '.github/instructions',
-    '.github/issue-templates', '.github/skills', '.github/workflows', 'docs/adr',
-    'docs/archive', 'docs/brandkit', 'docs/business', 'docs/delegation', 'docs/ideas',
-    'docs/issues', 'docs/plans', 'docs/reviews', 'docs/specs', 'docs/sprints', 'docs/templates'
+    '.github/issue-templates', '.github/skills', '.github/workflows',
+    'docs/adr', 'docs/archive', 'docs/archive/phase-2-operating-model', 'docs/brand',
+    'docs/ideas', 'docs/plans', 'docs/reviews', 'docs/specs', 'hr/docs/use-cases',
+    'infra/docs', 'data'
 )
 foreach ($relativeFolder in $baseFolders) {
     if ($relativeFolder -ceq '.github/skills' -and -not $skillsRootTrusted) { continue }
@@ -134,9 +135,9 @@ $gitattributesRelativePath = '.gitattributes'
 $expectedIssueTemplateHashes = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
 $expectedIssueTemplateHashes.Add('01-bug.yml', '8f2c31b169477b86d85e60f9d1c91eed349fae829f1071b8b42dc93624d8879a')
 $expectedIssueTemplateHashes.Add('02-feature.yml', '748e69155e9e60acd16f5cbb93b6398fd5853905951829080a9c440ed5c0e7a4')
-$expectedIssueTemplateHashes.Add('03-frontier-intake.yml', 'af13ab5a7c0aec18af59c10a257089b5b44ebf31208396b1c5903c56c394f840')
-$expectedIssueTemplateHashes.Add('config.yml', '23d299e79424a2e1e2451dfa56b9d1691ef67a4cf7d677497816536a29bca7b0')
-$expectedIssueTemplateHashes.Add('use-case-intake.yml', 'f9a19a4752615ed78fd7a0e1481aa5e828a81a952be1cc009de98edc5a020c15')
+$expectedIssueTemplateHashes.Add('03-frontier-intake.yml', '94e89ff55fe6a9933295a8be0a115d7544c96c038899e1ff6d7eeb8619a09d96')
+$expectedIssueTemplateHashes.Add('config.yml', 'dd92612548e9d83a7c0f4f788606c9f6de8fa385be7c58b2cbdb9b04362c6f12')
+$expectedIssueTemplateHashes.Add('use-case-intake.yml', '8a6bd96569bef2829d4baa2811755e2d7359f7d3daf85c7d83c459417c5826de')
 $actualIssueTemplateFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $reparseIssueTemplateEntries = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $ordinaryIssueTemplateFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
@@ -799,7 +800,7 @@ Test-RequiredContent '.github/CODEOWNERS' @('/docs/                      @urrueg
 Test-RequiredContent '.github/pull_request_template.md' @(
     '# Pull Request',
     '## Checks',
-    '## Work item'
+    '## Governing record'
 )
 Test-RequiredContent '.github/dependabot.yml' @('package-ecosystem: "github-actions"', 'interval: "weekly"')
 Test-RequiredContent '.github/workflows/validate-repository.yml' @(

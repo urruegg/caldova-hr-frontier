@@ -55,15 +55,15 @@ Scoped to prove the platform, not to cover HR.
 
 | # | Use case | What it proves | Stage |
 |---|---|---|---|
-| **UC-0001** | **[Personal Master Data Completion Agent](hr/docs/ideas/uc-0001-personal-master-data-completion-agent/README.md)** | An agent can reason over unstructured documents and **write to the system of record** inside a governed envelope | Pre-board |
-| **UC-0010** | **[Employee Data Validation](hr/docs/ideas/uc-0010-employee-data-validation-bot.md)** | The **closed loop** — detect what is still wrong across the population and feed it back. Workflow-first, agent only for ambiguity | Cross-cutting |
-| **UC-0005** | **[Onboarding Assistant](hr/docs/ideas/uc-0005-onboarding-assistant.md)** | The pattern **extends across a journey stage** without rebuilding the platform | Onboard |
+| **UC-0001** | **[Personal Master Data Completion Agent](hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/README.md)** | An agent can reason over unstructured documents and **write to the system of record** inside a governed envelope | Pre-board |
+| **UC-0010** | **[Employee Data Validation](docs/ideas/uc-0010-employee-data-validation-bot.md)** | The **closed loop** — detect what is still wrong across the population and feed it back. Workflow-first, agent only for ambiguity | Cross-cutting |
+| **UC-0005** | **[Onboarding Assistant](docs/ideas/uc-0005-onboarding-assistant.md)** | The pattern **extends across a journey stage** without rebuilding the platform | Onboard |
 
 **Why these three.** UC-0001 and UC-0010 form a loop on the same data with the same owner: one completes what the documents allow, the other finds what remains missing across everyone else. UC-0005 then proves the second stage costs less than the first — which is the entire reuse thesis, tested rather than asserted.
 
-> **Running alongside, not counted:** the [HR Policy Chat Assistant](hr/docs/ideas/uc-0002-hr-policy-chat-assistant.md) (UC-0002) is recommended in parallel because on the Copilot chat harness it carries **no charge for Microsoft 365 Copilot-licensed users**. It is an adoption vehicle and a cheap one — but it answers questions rather than taking action, so it is not an agentic exemplar and does not carry the Level 3 claim.
+> **Running alongside, not counted:** the [HR Policy Chat Assistant](docs/ideas/uc-0002-hr-policy-chat-assistant.md) (UC-0002) is recommended in parallel because on the Copilot chat harness it carries **no charge for Microsoft 365 Copilot-licensed users**. It is an adoption vehicle and a cheap one — but it answers questions rather than taking action, so it is not an agentic exemplar and does not carry the Level 3 claim.
 
-Everything else in the [portfolio](hr/docs/ideas/README.md) — fifteen further use cases — stays an idea until these three land.
+Everything else in the [portfolio](docs/ideas/README.md) — fifteen further use cases — stays an idea until these three land.
 
 ---
 
@@ -124,7 +124,7 @@ HR Operations exports new-joiner PDFs from PeopleDoc to SharePoint. The agent re
 
 **Why this one first.** It sits at the stage with the highest manual re-keying, the clearest quality problem, and the narrowest safe write. Because it only fills blanks, every action is reversible — which is what makes writing to the system of record acceptable for a first use case.
 
-> **The highest-risk open item is the matching key.** Last Name + First Name + Postal Code is weak: postal codes change and names repeat. Resolving this — ideally by carrying a Candidate or Pre-Hire ID in the document set — is the single most valuable thing to settle before build. See D-03 in the [UC-0001 PRD](hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) §13.
+> **The highest-risk open item is the matching key.** Last Name + First Name + Postal Code is weak: postal codes change and names repeat. Resolving this — ideally by carrying a Candidate or Pre-Hire ID in the document set — is the single most valuable thing to settle before build. See D-03 in the [UC-0001 PRD](hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) §13.
 
 ---
 
@@ -143,13 +143,13 @@ HR Operations exports new-joiner PDFs from PeopleDoc to SharePoint. The agent re
 │   ├── prd.md                     FR-0001…FR-0014, NFR-0001…NFR-0012, roles, gates
 │   ├── solution-design.md         architecture, integration, security, ALM
 │   ├── hr-journey-and-raci.md     journey, RACI, sequencing, the seven declarations
+│   ├── ideas/                     permanent idea records and lifecycle catalogue
 │   ├── adr/                       12 decision records — why, and what was rejected
 │   └── brand/                     BrandKit — tokens, Fluent 2 themes, logo slot
 │
 ├── hr/                        HR DOMAIN — what HR does
-│   ├── docs/ideas/                the use case portfolio
-│   │   ├── uc-0001-…/                 the MVP: use case + PRD  ◀ specified
-│   │   └── uc-0002 … uc-0019.md       candidates
+│   ├── docs/use-cases/            detail for graduated HR use cases
+│   │   └── uc-0001-…/                 the MVP PRD, BoMs, procedures and corpus
 │   └── src/solutions/             Power Platform solution source
 │
 ├── infra/                     INFRASTRUCTURE DOMAIN — how the approved Tenant 1 control plane runs
@@ -228,7 +228,7 @@ write envelope · refusal set · escalation path · grounding sources · data cl
 
 A use case that cannot answer all seven is not ready, whatever its priority.
 
-For the MVP specifically, the Definition of Ready is in the [PRD](hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) §13, and the full artefact inventory — 60+ items across business, data, system, security, build, test and operations — is in the customer-supplied UC-0001 artefact inventory.
+For the MVP specifically, the Definition of Ready is in the [PRD](hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) §13, and the full artefact inventory — 60+ items across business, data, system, security, build, test and operations — is in the customer-supplied UC-0001 artefact inventory.
 
 ---
 

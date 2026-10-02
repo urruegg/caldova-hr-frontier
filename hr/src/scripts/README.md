@@ -7,7 +7,7 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Solution Architecture |
-| **References** | [Power Platform Solution Foundation Design](../../../docs/specs/2026-09-24-power-platform-solution-foundation-design.md), [AI Builder Evaluation Capture Design Addendum](../../../docs/superpowers/specs/2026-09-29-ai-builder-evaluation-capture-design.md), [AI Builder evidence contract](../../evidence/ai-builder/README.md) |
+| **References** | [Power Platform Solution Foundation Design](../../../docs/specs/2026-09-24-power-platform-solution-foundation-design.md), [AI Builder Evaluation Capture Design Addendum](../../../docs/specs/2026-09-29-ai-builder-evaluation-capture-design.md), [AI Builder evidence contract](../../evidence/ai-builder/README.md) |
 
 **Purpose.** Connects to a tenant's Power Platform environment, pulls its Dataverse solution into source control, and supports the local evidence toolchain used to qualify and evaluate AI Builder models.
 
@@ -93,7 +93,7 @@ Measure the fixed holdout evaluation:
     -FieldContractPath '.\hr\src\ai-builder\contracts\field-contract.json' `
     -ModelSchemaRecordPath "$evidenceDirectory\model-schema-record-fixed.json" `
     -PredictionCapturePath "$evidenceDirectory\prediction-capture-fixed.json" `
-    -GroundTruthPath '.\hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template\ground-truth.json' `
+    -GroundTruthPath '.\hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template\ground-truth.json' `
     -EvidenceDirectory $evidenceDirectory
 ```
 

@@ -1490,8 +1490,6 @@ Expected: one reviewed root/GitHub/data/infra commit, with vendored skills, lice
 - Modify: exact scanner findings under `docs/adr/`
 - Modify: exact scanner findings under `docs/specs/`
 - Modify: exact scanner findings under `docs/plans/`
-- Modify: exact scanner findings under `docs/superpowers/plans/`
-- Modify: exact scanner findings under `docs/superpowers/specs/`
 - Modify: exact scanner findings in current narrative Markdown under `docs/reviews/`
 - Modify: exact scanner findings in `docs/README.md`, `docs/prd.md`, `docs/solution-design.md`, `docs/hr-journey-and-raci.md`, `docs/operating-model/`, and other repository-owned documentation paths printed by the task command
 - Do not modify: `docs/reviews/evidence/`
