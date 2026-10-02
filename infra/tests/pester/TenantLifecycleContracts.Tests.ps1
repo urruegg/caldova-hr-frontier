@@ -804,3 +804,276 @@ Describe 'Tenant lifecycle intent and state separation' {
         } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.ReadBack'
     }
 }
+
+Describe 'Tenant lifecycle evidence manifest and writer' {
+    BeforeAll {
+        $script:EvidenceRepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
+        $script:EvidenceModulePath = Join-Path $script:EvidenceRepositoryRoot 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
+        $fixturePath = Join-Path $script:EvidenceRepositoryRoot 'infra\tests\fixtures\runbooks\tenant-lifecycle.synthetic.json'
+        $script:EvidenceFixture = Get-Content -Raw -LiteralPath $fixturePath | ConvertFrom-Json
+        Import-Module $script:EvidenceModulePath -Force
+
+        function Copy-EvidenceValue {
+            param([Parameter(Mandatory)][object]$InputObject)
+            $InputObject | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+        }
+
+        function New-EvidenceManifestParameters {
+            @{
+                RunId = [guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+                SourceCommit = 'a' * 40
+                EvidenceRoot = 'C:\evidence-root-synthetic'
+                PublicTenantKey = 'tenant1'
+                IntentDigest = '1' * 64
+                StateDigest = '2' * 64
+                Machine = Copy-EvidenceValue $script:EvidenceFixture.executionManifest.machine
+                Operator = Copy-EvidenceValue $script:EvidenceFixture.executionManifest.operator
+                ToolIdentities = @(Copy-EvidenceValue $script:EvidenceFixture.executionManifest.toolIdentities)
+                ProviderContexts = @(Copy-EvidenceValue $script:EvidenceFixture.executionManifest.providerContexts)
+                Prerequisites = @(Copy-EvidenceValue $script:EvidenceFixture.executionManifest.prerequisites)
+                Actions = @(Copy-EvidenceValue $script:EvidenceFixture.executionManifest.actions)
+                GeneratedAtUtc = [datetime]'2026-10-02T12:05:00Z'
+                ExpiresAtUtc = [datetime]'2026-10-02T12:35:00Z'
+            }
+        }
+    }
+
+    BeforeEach {
+        $script:EvidenceRunDirectory = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+    }
+
+    It 'exports the evidence manifest approval and writer commands' {
+        foreach ($name in @(
+            'New-TenantLifecycleExecutionManifest',
+            'Test-TenantLifecycleApproval',
+            'Write-TenantLifecycleEvidence'
+        )) {
+            Get-Command -Name $name -Module Caldova.HrFrontier.Bootstrap -ErrorAction SilentlyContinue |
+                Should -Not -BeNullOrEmpty
+        }
+    }
+
+    It 'creates a canonical evidence manifest whose digest binds every accepted input' {
+        $parameters = New-EvidenceManifestParameters
+        $manifest = New-TenantLifecycleExecutionManifest @parameters
+        $repeatParameters = New-EvidenceManifestParameters
+        $repeat = New-TenantLifecycleExecutionManifest @repeatParameters
+
+        ($manifest | ConvertTo-Json -Depth 30 -Compress) |
+            Should -BeExactly ($repeat | ConvertTo-Json -Depth 30 -Compress)
+        Test-TenantLifecycleContract -Kind ExecutionManifest -InputObject $manifest | Should -BeTrue
+
+        $mutations = [ordered]@{
+            runId = { param($value) $value.RunId = [guid]'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff' }
+            sourceCommit = { param($value) $value.SourceCommit = 'b' * 40 }
+            evidenceRoot = { param($value) $value.EvidenceRoot = 'C:\other-evidence-root' }
+            intentDigest = { param($value) $value.IntentDigest = '3' * 64 }
+            stateDigest = { param($value) $value.StateDigest = '4' * 64 }
+            machine = { param($value) $value.Machine.machineId = 'machine-synthetic-002' }
+            operator = { param($value) $value.Operator.operatorId = 'operator-synthetic-002' }
+            toolIdentities = { param($value) $value.ToolIdentities[0].digest = '5' * 64 }
+            providerContexts = { param($value) $value.ProviderContexts[0].digest = '6' * 64 }
+            prerequisites = { param($value) $value.Prerequisites[0].evidenceDigest = '8' * 64 }
+            actions = { param($value) $value.Actions[0].desiredPropertiesDigest = '7' * 64 }
+            generatedAtUtc = { param($value) $value.GeneratedAtUtc = [datetime]'2026-10-02T12:06:00Z' }
+            expiresAtUtc = { param($value) $value.ExpiresAtUtc = [datetime]'2026-10-02T12:34:00Z' }
+        }
+
+        foreach ($field in $mutations.Keys) {
+            $variantParameters = New-EvidenceManifestParameters
+            & $mutations[$field] $variantParameters
+            $variant = New-TenantLifecycleExecutionManifest @variantParameters
+            $variant.digest | Should -Not -BeExactly $manifest.digest -Because "$field must be digest-bound"
+        }
+    }
+
+    It 'rejects an evidence approval window longer than thirty minutes' {
+        $parameters = New-EvidenceManifestParameters
+        $parameters.ExpiresAtUtc = [datetime]'2026-10-02T12:35:00.001Z'
+
+        {
+            New-TenantLifecycleExecutionManifest @parameters
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Manifest.Expiry'
+    }
+
+    It 'writes every evidence kind only to its exact allowlisted filename' {
+        $manifestParameters = New-EvidenceManifestParameters
+        $executionManifest = New-TenantLifecycleExecutionManifest @manifestParameters
+        $cases = @(
+            @{ Kind = 'Assessment'; RelativePath = 'assessment.json'; Input = $script:EvidenceFixture.assessment }
+            @{ Kind = 'ExecutionManifest'; RelativePath = 'execution-manifest.json'; Input = $executionManifest }
+            @{ Kind = 'Approval'; RelativePath = 'approvals.json'; Input = $script:EvidenceFixture.approval }
+            @{ Kind = 'ActionEvidence'; RelativePath = 'actions/action-001.json'; Input = $script:EvidenceFixture.actionEvidence }
+            @{ Kind = 'State'; RelativePath = 'state.json'; Input = $script:EvidenceFixture.state }
+            @{ Kind = 'ReadBack'; RelativePath = 'read-back.json'; Input = $script:EvidenceFixture.readBack }
+            @{ Kind = 'Summary'; RelativePath = 'summary.json'; Input = $script:EvidenceFixture.summary }
+        )
+
+        foreach ($case in $cases) {
+            $path = Write-TenantLifecycleEvidence `
+                -RunDirectory $script:EvidenceRunDirectory `
+                -RelativePath $case.RelativePath `
+                -Kind $case.Kind `
+                -InputObject (Copy-EvidenceValue $case.Input)
+
+            $path | Should -BeExactly ([IO.Path]::GetFullPath((Join-Path $script:EvidenceRunDirectory $case.RelativePath.Replace('/', '\'))))
+            Test-Path -LiteralPath $path -PathType Leaf | Should -BeTrue
+        }
+
+        {
+            Write-TenantLifecycleEvidence `
+                -RunDirectory $script:EvidenceRunDirectory `
+                -RelativePath 'other-summary.json' `
+                -Kind Summary `
+                -InputObject (Copy-EvidenceValue $script:EvidenceFixture.summary)
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Evidence.Path'
+    }
+
+    It 'rejects a digest-stale evidence manifest before writing any bytes' {
+        $manifestParameters = New-EvidenceManifestParameters
+        $manifest = New-TenantLifecycleExecutionManifest @manifestParameters
+        $manifest.sourceCommit = 'b' * 40
+
+        {
+            Write-TenantLifecycleEvidence `
+                -RunDirectory $script:EvidenceRunDirectory `
+                -RelativePath 'execution-manifest.json' `
+                -Kind ExecutionManifest `
+                -InputObject $manifest
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Evidence.Invalid'
+
+        Test-Path -LiteralPath (Join-Path $script:EvidenceRunDirectory 'execution-manifest.json') |
+            Should -BeFalse
+    }
+
+    It 'writes canonical UTF-8 evidence with no BOM one LF and repeatable bytes' {
+        $firstRun = Join-Path $TestDrive 'canonical-first'
+        $secondRun = Join-Path $TestDrive 'canonical-second'
+        $input = Copy-EvidenceValue $script:EvidenceFixture.assessment
+
+        $firstPath = Write-TenantLifecycleEvidence -RunDirectory $firstRun -RelativePath 'assessment.json' -Kind Assessment -InputObject $input
+        $secondPath = Write-TenantLifecycleEvidence -RunDirectory $secondRun -RelativePath 'assessment.json' -Kind Assessment -InputObject (Copy-EvidenceValue $input)
+        $firstBytes = [IO.File]::ReadAllBytes($firstPath)
+        $secondBytes = [IO.File]::ReadAllBytes($secondPath)
+        $text = [Text.UTF8Encoding]::new($false, $true).GetString($firstBytes)
+
+        [Convert]::ToBase64String($firstBytes) | Should -BeExactly ([Convert]::ToBase64String($secondBytes))
+        ($firstBytes[0..2] -join ',') | Should -Not -BeExactly '239,187,191'
+        $firstBytes[-1] | Should -Be 10
+        $text.TrimEnd("`n").Contains("`n") | Should -BeFalse
+        $text.Contains("`r") | Should -BeFalse
+        @(Get-ChildItem -LiteralPath $firstRun -Recurse -Filter '*.tmp').Count | Should -Be 0
+        @(Get-ChildItem -LiteralPath $secondRun -Recurse -Filter '*.tmp').Count | Should -Be 0
+    }
+
+    It 'leaves no partial evidence or temporary file when validation fails' {
+        $invalid = Copy-EvidenceValue $script:EvidenceFixture.assessment
+        $invalid | Add-Member -NotePropertyName rawCommandOutput -NotePropertyValue 'private-marker-do-not-disclose'
+        $message = try {
+            Write-TenantLifecycleEvidence `
+                -RunDirectory $script:EvidenceRunDirectory `
+                -RelativePath 'assessment.json' `
+                -Kind Assessment `
+                -InputObject $invalid
+            ''
+        }
+        catch {
+            $_.Exception.Message
+        }
+
+        $message | Should -BeExactly 'TenantLifecycle.Evidence.Invalid'
+        $message | Should -Not -Match 'private-marker'
+        Test-Path -LiteralPath (Join-Path $script:EvidenceRunDirectory 'assessment.json') | Should -BeFalse
+        if (Test-Path -LiteralPath $script:EvidenceRunDirectory) {
+            @(Get-ChildItem -LiteralPath $script:EvidenceRunDirectory -Recurse -File).Count | Should -Be 0
+        }
+    }
+
+    It 'never overwrites a completed action evidence envelope' {
+        $path = Write-TenantLifecycleEvidence `
+            -RunDirectory $script:EvidenceRunDirectory `
+            -RelativePath 'actions/action-001.json' `
+            -Kind ActionEvidence `
+            -InputObject (Copy-EvidenceValue $script:EvidenceFixture.actionEvidence)
+        $before = [IO.File]::ReadAllBytes($path)
+        $changed = Copy-EvidenceValue $script:EvidenceFixture.actionEvidence
+        $changed.recovery = 'Reassess'
+
+        {
+            Write-TenantLifecycleEvidence `
+                -RunDirectory $script:EvidenceRunDirectory `
+                -RelativePath 'actions/action-001.json' `
+                -Kind ActionEvidence `
+                -InputObject $changed
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Evidence.Exists'
+
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) |
+            Should -BeExactly ([Convert]::ToBase64String($before))
+        @(Get-ChildItem -LiteralPath (Split-Path -Parent $path) -Filter '*.tmp').Count | Should -Be 0
+    }
+
+    It 'rejects evidence path traversal outside the run directory' {
+        {
+            Write-TenantLifecycleEvidence `
+                -RunDirectory $script:EvidenceRunDirectory `
+                -RelativePath '..\assessment.json' `
+                -Kind Assessment `
+                -InputObject (Copy-EvidenceValue $script:EvidenceFixture.assessment)
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Evidence.Path'
+
+        Test-Path -LiteralPath (Join-Path (Split-Path -Parent $script:EvidenceRunDirectory) 'assessment.json') |
+            Should -BeFalse
+    }
+
+    It 'rejects hidden evidence properties without evaluating them or disclosing their error' {
+        $hidden = Copy-EvidenceValue $script:EvidenceFixture.actionEvidence
+        $hidden.PSObject.Properties.Remove('actionId')
+        $hidden | Add-Member -MemberType ScriptProperty -Name actionId -Value {
+            throw 'hidden getter executed'
+        }
+
+        $message = try {
+            Write-TenantLifecycleEvidence `
+                -RunDirectory $script:EvidenceRunDirectory `
+                -RelativePath 'actions/action-001.json' `
+                -Kind ActionEvidence `
+                -InputObject $hidden
+            ''
+        }
+        catch {
+            $_.Exception.Message
+        }
+
+        $message | Should -BeExactly 'TenantLifecycle.Evidence.Invalid'
+        $message | Should -Not -Match 'hidden getter'
+        Test-Path -LiteralPath $script:EvidenceRunDirectory | Should -BeFalse
+    }
+
+    It 'rejects a reparse-point evidence root' {
+        $realRoot = Join-Path $TestDrive 'real-evidence-root'
+        $reparseRoot = Join-Path $TestDrive 'linked-evidence-root'
+        $nestedRoot = Join-Path $reparseRoot 'run'
+        [IO.Directory]::CreateDirectory($realRoot) | Out-Null
+        New-Item -ItemType Junction -Path $reparseRoot -Target $realRoot | Out-Null
+        try {
+            {
+                Write-TenantLifecycleEvidence `
+                    -RunDirectory $nestedRoot `
+                    -RelativePath 'assessment.json' `
+                    -Kind Assessment `
+                    -InputObject (Copy-EvidenceValue $script:EvidenceFixture.assessment)
+            } | Should -Throw -ExpectedMessage 'TenantLifecycle.Evidence.ReparsePoint'
+        }
+        finally {
+            $unexpectedRun = Join-Path $realRoot 'run'
+            if (Test-Path -LiteralPath $unexpectedRun) {
+                Remove-Item -LiteralPath $unexpectedRun -Recurse -Force
+            }
+            if (Test-Path -LiteralPath $reparseRoot) {
+                Remove-Item -LiteralPath $reparseRoot -Force
+            }
+        }
+
+        @(Get-ChildItem -LiteralPath $realRoot -Force).Count | Should -Be 0
+    }
+}

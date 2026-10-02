@@ -406,3 +406,197 @@ public static class TenantLifecycleGraphCodePropertyAccessor
         (@($result | ForEach-Object { @($_.blockingPrerequisiteIds).Count }) -join ',') | Should -BeExactly '0,0,0'
     }
 }
+
+Describe 'Tenant lifecycle approval expiry and drift' {
+    BeforeAll {
+        $script:ApprovalRepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
+        $script:ApprovalModulePath = Join-Path $script:ApprovalRepositoryRoot 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
+        $fixturePath = Join-Path $script:ApprovalRepositoryRoot 'infra\tests\fixtures\runbooks\tenant-lifecycle.synthetic.json'
+        $script:ApprovalFixture = Get-Content -Raw -LiteralPath $fixturePath | ConvertFrom-Json
+        Import-Module $script:ApprovalModulePath -Force
+
+        function Copy-ApprovalValue {
+            param([Parameter(Mandatory)][object]$InputObject)
+            $InputObject | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+        }
+
+        function New-ApprovalManifest {
+            New-TenantLifecycleExecutionManifest `
+                -RunId ([guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee') `
+                -SourceCommit ('a' * 40) `
+                -EvidenceRoot 'C:\evidence-root-synthetic' `
+                -PublicTenantKey tenant1 `
+                -IntentDigest ('1' * 64) `
+                -StateDigest ('2' * 64) `
+                -Machine (Copy-ApprovalValue $script:ApprovalFixture.executionManifest.machine) `
+                -Operator (Copy-ApprovalValue $script:ApprovalFixture.executionManifest.operator) `
+                -ToolIdentities @(Copy-ApprovalValue $script:ApprovalFixture.executionManifest.toolIdentities) `
+                -ProviderContexts @(Copy-ApprovalValue $script:ApprovalFixture.executionManifest.providerContexts) `
+                -Prerequisites @(Copy-ApprovalValue $script:ApprovalFixture.executionManifest.prerequisites) `
+                -Actions @(Copy-ApprovalValue $script:ApprovalFixture.executionManifest.actions) `
+                -GeneratedAtUtc ([datetime]'2026-10-02T12:05:00Z') `
+                -ExpiresAtUtc ([datetime]'2026-10-02T12:35:00Z')
+        }
+
+        function New-ApprovalRecord {
+            param([Parameter(Mandatory)][object]$Manifest)
+
+            [pscustomobject][ordered]@{
+                schemaVersion = '1.0'
+                runId = $Manifest.runId
+                executionManifestDigest = $Manifest.digest
+                approverRole = 'TenantLifecycleApprover'
+                approvedAtUtc = '2026-10-02T12:06:00.0000000Z'
+                expiresAtUtc = '2026-10-02T12:35:00.0000000Z'
+                scope = @($Manifest.actions | ForEach-Object id)
+                status = 'Approved'
+            }
+        }
+
+        function New-CurrentApprovalBinding {
+            param([Parameter(Mandatory)][object]$Manifest)
+
+            [pscustomobject][ordered]@{
+                runId = $Manifest.runId
+                generatedAtUtc = $Manifest.generatedAtUtc
+                expiresAtUtc = $Manifest.expiresAtUtc
+                sourceCommit = $Manifest.sourceCommit
+                evidenceRoot = $Manifest.evidenceRoot
+                publicTenantKey = $Manifest.publicTenantKey
+                intentDigest = $Manifest.intentDigest
+                stateDigest = $Manifest.stateDigest
+                machine = Copy-ApprovalValue $Manifest.machine
+                operator = Copy-ApprovalValue $Manifest.operator
+                toolIdentities = @(Copy-ApprovalValue $Manifest.toolIdentities)
+                providerContexts = @(Copy-ApprovalValue $Manifest.providerContexts)
+                prerequisites = @(Copy-ApprovalValue $Manifest.prerequisites)
+                actions = @(Copy-ApprovalValue $Manifest.actions)
+                sessionId = [string]$PID
+            }
+        }
+    }
+
+    BeforeEach {
+        $script:ApprovalManifest = New-ApprovalManifest
+        $script:Approval = New-ApprovalRecord -Manifest $script:ApprovalManifest
+        $script:CurrentBinding = New-CurrentApprovalBinding -Manifest $script:ApprovalManifest
+        $script:ApprovalNow = [datetime]'2026-10-02T12:07:00Z'
+    }
+
+    It 'accepts an exact evidence approval binding within the expiry window' {
+        Test-TenantLifecycleApproval `
+            -Manifest $script:ApprovalManifest `
+            -Approval $script:Approval `
+            -CurrentBinding $script:CurrentBinding `
+            -NowUtc $script:ApprovalNow |
+            Should -BeTrue
+    }
+
+    It 'rejects an evidence approval digest mismatch' {
+        $script:Approval.executionManifestDigest = 'f' * 64
+
+        {
+            Test-TenantLifecycleApproval `
+                -Manifest $script:ApprovalManifest `
+                -Approval $script:Approval `
+                -CurrentBinding $script:CurrentBinding `
+                -NowUtc $script:ApprovalNow
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Approval.Digest'
+    }
+
+    It 'rejects an evidence manifest whose approval window exceeds thirty minutes' {
+        $script:ApprovalManifest.expiresAtUtc = '2026-10-02T12:35:00.0010000Z'
+        $digestInput = Copy-ApprovalValue $script:ApprovalManifest
+        $digestInput.PSObject.Properties.Remove('digest')
+        $script:ApprovalManifest.digest = Get-RunbookContentDigest -InputObject $digestInput
+        $script:Approval.executionManifestDigest = $script:ApprovalManifest.digest
+        $script:Approval.expiresAtUtc = $script:ApprovalManifest.expiresAtUtc
+        $script:CurrentBinding = New-CurrentApprovalBinding -Manifest $script:ApprovalManifest
+
+        {
+            Test-TenantLifecycleApproval `
+                -Manifest $script:ApprovalManifest `
+                -Approval $script:Approval `
+                -CurrentBinding $script:CurrentBinding `
+                -NowUtc $script:ApprovalNow
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Approval.Expiry'
+    }
+
+    It 'rejects stale evidence approval continuation after expiry' {
+        {
+            Test-TenantLifecycleApproval `
+                -Manifest $script:ApprovalManifest `
+                -Approval $script:Approval `
+                -CurrentBinding $script:CurrentBinding `
+                -NowUtc ([datetime]'2026-10-02T12:35:00.001Z')
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Approval.Expired'
+    }
+
+    It 'rejects an evidence approval expiry later than the manifest expiry' {
+        $script:Approval.expiresAtUtc = '2026-10-02T12:35:00.0010000Z'
+
+        {
+            Test-TenantLifecycleApproval `
+                -Manifest $script:ApprovalManifest `
+                -Approval $script:Approval `
+                -CurrentBinding $script:CurrentBinding `
+                -NowUtc $script:ApprovalNow
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Approval.Expiry'
+    }
+
+    It 'rejects an evidence approval scope that differs from the ordered actions' {
+        $script:Approval.scope = @('other-action')
+
+        {
+            Test-TenantLifecycleApproval `
+                -Manifest $script:ApprovalManifest `
+                -Approval $script:Approval `
+                -CurrentBinding $script:CurrentBinding `
+                -NowUtc $script:ApprovalNow
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Approval.Scope'
+    }
+
+    It 'rejects evidence approval reuse after a process-session restart' {
+        $script:CurrentBinding.sessionId = "$PID-restarted"
+
+        {
+            Test-TenantLifecycleApproval `
+                -Manifest $script:ApprovalManifest `
+                -Approval $script:Approval `
+                -CurrentBinding $script:CurrentBinding `
+                -NowUtc $script:ApprovalNow
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Approval.Drift.sessionId'
+    }
+
+    It 'invalidates evidence approval on <Field> drift' -ForEach @(
+        @{ Field = 'machine' }
+        @{ Field = 'sourceCommit' }
+        @{ Field = 'intentDigest' }
+        @{ Field = 'stateDigest' }
+        @{ Field = 'toolIdentities' }
+        @{ Field = 'providerContexts' }
+        @{ Field = 'prerequisites' }
+        @{ Field = 'actions' }
+        @{ Field = 'evidenceRoot' }
+    ) {
+        switch ($Field) {
+            'machine' { $script:CurrentBinding.machine.machineId = 'machine-synthetic-002' }
+            'sourceCommit' { $script:CurrentBinding.sourceCommit = 'b' * 40 }
+            'intentDigest' { $script:CurrentBinding.intentDigest = '3' * 64 }
+            'stateDigest' { $script:CurrentBinding.stateDigest = '4' * 64 }
+            'toolIdentities' { $script:CurrentBinding.toolIdentities[0].digest = '5' * 64 }
+            'providerContexts' { $script:CurrentBinding.providerContexts[0].digest = '6' * 64 }
+            'prerequisites' { $script:CurrentBinding.prerequisites[0].evidenceDigest = '8' * 64 }
+            'actions' { $script:CurrentBinding.actions[0].desiredPropertiesDigest = '7' * 64 }
+            'evidenceRoot' { $script:CurrentBinding.evidenceRoot = 'C:\other-evidence-root' }
+        }
+
+        {
+            Test-TenantLifecycleApproval `
+                -Manifest $script:ApprovalManifest `
+                -Approval $script:Approval `
+                -CurrentBinding $script:CurrentBinding `
+                -NowUtc $script:ApprovalNow
+        } | Should -Throw -ExpectedMessage "TenantLifecycle.Approval.Drift.$Field"
+    }
+}
