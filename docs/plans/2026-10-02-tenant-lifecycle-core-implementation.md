@@ -310,7 +310,7 @@ Expected: **FAIL** because the lifecycle manifest, approval validator, and write
 
 - [ ] **Step 3: Implement minimum evidence behavior**
 
-Bind every listed manifest field into `digest`. Require approval `status: Approved`, exact digest/scope/run ID, and expiry not later than the manifest expiry. `CurrentBinding` has the same binding fields as the manifest plus `sessionId`; mismatch throws `TenantLifecycle.Approval.Drift.<field>`. Write to a same-directory GUID temporary file, flush and close, then atomically move only after validation. Never overwrite an existing action envelope.
+Bind every listed manifest field into `digest`. Require approval `status: Approved`, exact digest/scope/run ID, and expiry not later than the manifest expiry. `CurrentBinding` has the same binding fields as the manifest plus `sessionId`; mismatch throws `TenantLifecycle.Approval.Drift.<field>`. For this integration, `CurrentBinding.sessionId` is `[string]$PID` from the PowerShell process that captured the approval binding; callers must carry that binding forward rather than reconstructing it after restart. This invariant does not add a session field to the accepted schemas. Write to a same-directory GUID temporary file, flush and close, then atomically move only after validation. Never overwrite an existing action envelope.
 
 - [ ] **Step 4: Run GREEN**
 

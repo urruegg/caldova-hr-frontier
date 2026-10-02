@@ -1025,6 +1025,90 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
             Should -BeFalse
     }
 
+    It 'normalizes an evidence root that is a file without leaking its path' {
+        [IO.File]::WriteAllText($script:EvidenceRunDirectory, 'private-root-marker')
+
+        $message = try {
+            Write-TenantLifecycleEvidence `
+                -RunDirectory $script:EvidenceRunDirectory `
+                -RelativePath 'assessment.json' `
+                -Kind Assessment `
+                -InputObject (Copy-EvidenceValue $script:EvidenceFixture.assessment)
+            ''
+        }
+        catch {
+            $_.Exception.Message
+        }
+
+        $message | Should -BeExactly 'TenantLifecycle.Evidence.Root'
+        $message | Should -Not -Match 'private-root-marker'
+        [IO.File]::ReadAllText($script:EvidenceRunDirectory) | Should -BeExactly 'private-root-marker'
+    }
+
+    It 'normalizes inaccessible evidence root metadata without leaking the provider error' {
+        [IO.Directory]::CreateDirectory($script:EvidenceRunDirectory) | Out-Null
+        Mock -CommandName Get-Item -ModuleName Caldova.HrFrontier.Bootstrap -MockWith {
+            throw [UnauthorizedAccessException]::new('private-access-marker')
+        }
+
+        $message = try {
+            Write-TenantLifecycleEvidence `
+                -RunDirectory $script:EvidenceRunDirectory `
+                -RelativePath 'assessment.json' `
+                -Kind Assessment `
+                -InputObject (Copy-EvidenceValue $script:EvidenceFixture.assessment)
+            ''
+        }
+        catch {
+            $_.Exception.Message
+        }
+
+        $message | Should -BeExactly 'TenantLifecycle.Evidence.Root'
+        $message | Should -Not -Match 'private-access-marker'
+        Test-Path -LiteralPath (Join-Path $script:EvidenceRunDirectory 'assessment.json') |
+            Should -BeFalse
+    }
+
+    It 'normalizes a malformed evidence root without leaking its value' {
+        $malformedRoot = "$TestDrive\private-malformed-marker$([char]0)"
+        $message = try {
+            Write-TenantLifecycleEvidence `
+                -RunDirectory $malformedRoot `
+                -RelativePath 'assessment.json' `
+                -Kind Assessment `
+                -InputObject (Copy-EvidenceValue $script:EvidenceFixture.assessment)
+            ''
+        }
+        catch {
+            $_.Exception.Message
+        }
+
+        $message | Should -BeExactly 'TenantLifecycle.Evidence.Root'
+        $message | Should -Not -Match 'private-malformed-marker'
+    }
+
+    It 'normalizes an action directory creation failure without leaking its path' {
+        [IO.Directory]::CreateDirectory($script:EvidenceRunDirectory) | Out-Null
+        $actionDirectory = Join-Path $script:EvidenceRunDirectory 'actions'
+        [IO.File]::WriteAllText($actionDirectory, 'private-action-marker')
+
+        $message = try {
+            Write-TenantLifecycleEvidence `
+                -RunDirectory $script:EvidenceRunDirectory `
+                -RelativePath 'actions/action-001.json' `
+                -Kind ActionEvidence `
+                -InputObject (Copy-EvidenceValue $script:EvidenceFixture.actionEvidence)
+            ''
+        }
+        catch {
+            $_.Exception.Message
+        }
+
+        $message | Should -BeExactly 'TenantLifecycle.Evidence.ActionDirectory'
+        $message | Should -Not -Match 'private-action-marker'
+        [IO.File]::ReadAllText($actionDirectory) | Should -BeExactly 'private-action-marker'
+    }
+
     It 'rejects hidden evidence properties without evaluating them or disclosing their error' {
         $hidden = Copy-EvidenceValue $script:EvidenceFixture.actionEvidence
         $hidden.PSObject.Properties.Remove('actionId')

@@ -24,6 +24,41 @@ function Test-TenantLifecycleApproval {
     )
 
     try {
+        $statusProperty = $Approval.PSObject.Properties['status']
+        if ($null -eq $statusProperty -or
+            $statusProperty.MemberType -notin @('NoteProperty', 'Property') -or
+            -not [string]::Equals(
+                [string]$statusProperty.Value,
+                'Approved',
+                [StringComparison]::Ordinal
+            )) {
+            throw [IO.InvalidDataException]::new('TenantLifecycle.Approval.Status')
+        }
+    }
+    catch {
+        throw [IO.InvalidDataException]::new('TenantLifecycle.Approval.Status')
+    }
+
+    try {
+        $approved = [DateTimeOffset]::Parse(
+            [string]$Approval.approvedAtUtc,
+            [Globalization.CultureInfo]::InvariantCulture,
+            [Globalization.DateTimeStyles]::AssumeUniversal
+        )
+        $approvalExpires = [DateTimeOffset]::Parse(
+            [string]$Approval.expiresAtUtc,
+            [Globalization.CultureInfo]::InvariantCulture,
+            [Globalization.DateTimeStyles]::AssumeUniversal
+        )
+    }
+    catch {
+        throw [IO.InvalidDataException]::new('TenantLifecycle.Approval.Invalid')
+    }
+    if ($approvalExpires -le $approved) {
+        throw [IO.InvalidDataException]::new('TenantLifecycle.Approval.Expiry')
+    }
+
+    try {
         Test-TenantLifecycleContract -Kind ExecutionManifest -InputObject $Manifest | Out-Null
         Test-TenantLifecycleContract -Kind Approval -InputObject $Approval | Out-Null
     }
@@ -63,16 +98,6 @@ function Test-TenantLifecycleApproval {
         [Globalization.CultureInfo]::InvariantCulture,
         [Globalization.DateTimeStyles]::AssumeUniversal
     )
-    $approved = [DateTimeOffset]::Parse(
-        [string]$Approval.approvedAtUtc,
-        [Globalization.CultureInfo]::InvariantCulture,
-        [Globalization.DateTimeStyles]::AssumeUniversal
-    )
-    $approvalExpires = [DateTimeOffset]::Parse(
-        [string]$Approval.expiresAtUtc,
-        [Globalization.CultureInfo]::InvariantCulture,
-        [Globalization.DateTimeStyles]::AssumeUniversal
-    )
     $now = [DateTimeOffset]$NowUtc
 
     if (($manifestExpires - $manifestGenerated) -gt [TimeSpan]::FromMinutes(30) -or
@@ -84,7 +109,7 @@ function Test-TenantLifecycleApproval {
     if ($now -lt $approved) {
         throw [IO.InvalidDataException]::new('TenantLifecycle.Approval.NotYetValid')
     }
-    if ($now -gt $approvalExpires -or $now -gt $manifestExpires) {
+    if ($now -ge $approvalExpires -or $now -ge $manifestExpires) {
         throw [IO.InvalidDataException]::new('TenantLifecycle.Approval.Expired')
     }
 

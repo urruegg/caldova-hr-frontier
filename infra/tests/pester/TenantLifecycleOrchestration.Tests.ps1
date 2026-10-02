@@ -492,6 +492,23 @@ Describe 'Tenant lifecycle approval expiry and drift' {
             Should -BeTrue
     }
 
+    It 'rejects evidence approval status <Status> with a stable ordinal error' -ForEach @(
+        @{ Status = 'Pending' }
+        @{ Status = 'Rejected' }
+        @{ Status = 'approved' }
+        @{ Status = 'APPROVED' }
+    ) {
+        $script:Approval.status = $Status
+
+        {
+            Test-TenantLifecycleApproval `
+                -Manifest $script:ApprovalManifest `
+                -Approval $script:Approval `
+                -CurrentBinding $script:CurrentBinding `
+                -NowUtc $script:ApprovalNow
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Approval.Status'
+    }
+
     It 'rejects an evidence approval digest mismatch' {
         $script:Approval.executionManifestDigest = 'f' * 64
 
@@ -506,9 +523,15 @@ Describe 'Tenant lifecycle approval expiry and drift' {
 
     It 'rejects an evidence manifest whose approval window exceeds thirty minutes' {
         $script:ApprovalManifest.expiresAtUtc = '2026-10-02T12:35:00.0010000Z'
-        $digestInput = Copy-ApprovalValue $script:ApprovalManifest
-        $digestInput.PSObject.Properties.Remove('digest')
-        $script:ApprovalManifest.digest = Get-RunbookContentDigest -InputObject $digestInput
+        $digestInput = [ordered]@{}
+        foreach ($property in @(
+            $script:ApprovalManifest.PSObject.Properties |
+                Where-Object Name -CNE 'digest'
+        )) {
+            $digestInput[$property.Name] = $property.Value
+        }
+        $script:ApprovalManifest.digest =
+            Get-RunbookContentDigest -InputObject ([pscustomobject]$digestInput)
         $script:Approval.executionManifestDigest = $script:ApprovalManifest.digest
         $script:Approval.expiresAtUtc = $script:ApprovalManifest.expiresAtUtc
         $script:CurrentBinding = New-CurrentApprovalBinding -Manifest $script:ApprovalManifest
@@ -530,6 +553,40 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                 -CurrentBinding $script:CurrentBinding `
                 -NowUtc ([datetime]'2026-10-02T12:35:00.001Z')
         } | Should -Throw -ExpectedMessage 'TenantLifecycle.Approval.Expired'
+    }
+
+    It 'expires evidence approval at its exact expiry boundary' {
+        $script:Approval.expiresAtUtc = '2026-10-02T12:34:00.0000000Z'
+
+        {
+            Test-TenantLifecycleApproval `
+                -Manifest $script:ApprovalManifest `
+                -Approval $script:Approval `
+                -CurrentBinding $script:CurrentBinding `
+                -NowUtc ([datetime]'2026-10-02T12:34:00Z')
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Approval.Expired'
+    }
+
+    It 'expires evidence approval at the exact manifest expiry boundary' {
+        {
+            Test-TenantLifecycleApproval `
+                -Manifest $script:ApprovalManifest `
+                -Approval $script:Approval `
+                -CurrentBinding $script:CurrentBinding `
+                -NowUtc ([datetime]'2026-10-02T12:35:00Z')
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Approval.Expired'
+    }
+
+    It 'rejects evidence approval whose expiry is not later than approval time' {
+        $script:Approval.expiresAtUtc = $script:Approval.approvedAtUtc
+
+        {
+            Test-TenantLifecycleApproval `
+                -Manifest $script:ApprovalManifest `
+                -Approval $script:Approval `
+                -CurrentBinding $script:CurrentBinding `
+                -NowUtc $script:ApprovalNow
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Approval.Expiry'
     }
 
     It 'rejects an evidence approval expiry later than the manifest expiry' {
@@ -569,8 +626,13 @@ Describe 'Tenant lifecycle approval expiry and drift' {
     }
 
     It 'invalidates evidence approval on <Field> drift' -ForEach @(
+        @{ Field = 'runId' }
+        @{ Field = 'generatedAtUtc' }
+        @{ Field = 'expiresAtUtc' }
         @{ Field = 'machine' }
+        @{ Field = 'operator' }
         @{ Field = 'sourceCommit' }
+        @{ Field = 'publicTenantKey' }
         @{ Field = 'intentDigest' }
         @{ Field = 'stateDigest' }
         @{ Field = 'toolIdentities' }
@@ -580,8 +642,13 @@ Describe 'Tenant lifecycle approval expiry and drift' {
         @{ Field = 'evidenceRoot' }
     ) {
         switch ($Field) {
+            'runId' { $script:CurrentBinding.runId = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff' }
+            'generatedAtUtc' { $script:CurrentBinding.generatedAtUtc = '2026-10-02T12:05:01.0000000Z' }
+            'expiresAtUtc' { $script:CurrentBinding.expiresAtUtc = '2026-10-02T12:34:59.0000000Z' }
             'machine' { $script:CurrentBinding.machine.machineId = 'machine-synthetic-002' }
+            'operator' { $script:CurrentBinding.operator.operatorId = 'operator-synthetic-002' }
             'sourceCommit' { $script:CurrentBinding.sourceCommit = 'b' * 40 }
+            'publicTenantKey' { $script:CurrentBinding.publicTenantKey = 'tenant2' }
             'intentDigest' { $script:CurrentBinding.intentDigest = '3' * 64 }
             'stateDigest' { $script:CurrentBinding.stateDigest = '4' * 64 }
             'toolIdentities' { $script:CurrentBinding.toolIdentities[0].digest = '5' * 64 }

@@ -124,10 +124,10 @@ function Write-TenantLifecycleEvidence {
         [Parameter(Mandatory)][object]$InputObject
     )
 
-    if (-not [IO.Path]::IsPathRooted($RunDirectory)) {
-        throw [IO.InvalidDataException]::new('TenantLifecycle.Evidence.Root')
-    }
     try {
+        if (-not [IO.Path]::IsPathRooted($RunDirectory)) {
+            throw [IO.InvalidDataException]::new('TenantLifecycle.Evidence.Root')
+        }
         $root = [IO.Path]::GetFullPath($RunDirectory).TrimEnd(
             [IO.Path]::DirectorySeparatorChar,
             [IO.Path]::AltDirectorySeparatorChar
@@ -175,24 +175,52 @@ function Write-TenantLifecycleEvidence {
         }
     }
 
-    $relativeNativePath = $RelativePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
-    $targetPath = [IO.Path]::GetFullPath((Join-Path $root $relativeNativePath))
+    try {
+        $relativeNativePath = $RelativePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
+        $targetPath = [IO.Path]::GetFullPath((Join-Path $root $relativeNativePath))
+    }
+    catch {
+        throw [IO.InvalidDataException]::new('TenantLifecycle.Evidence.Path')
+    }
     $rootPrefix = $root + [IO.Path]::DirectorySeparatorChar
     if (-not $targetPath.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
         throw [IO.InvalidDataException]::new('TenantLifecycle.Evidence.Path')
     }
 
-    if (Test-TenantLifecycleEvidenceReparsePath -Path $root) {
+    try {
+        $rootHasReparsePoint = Test-TenantLifecycleEvidenceReparsePath -Path $root
+    }
+    catch {
+        throw [IO.InvalidDataException]::new('TenantLifecycle.Evidence.Root')
+    }
+    if ($rootHasReparsePoint) {
         throw [IO.InvalidDataException]::new('TenantLifecycle.Evidence.ReparsePoint')
     }
-    if ([IO.Directory]::Exists($root)) {
-        $rootItem = Get-Item -LiteralPath $root -Force
-        if (($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-            throw [IO.InvalidDataException]::new('TenantLifecycle.Evidence.ReparsePoint')
+
+    $rootIsInvalid = $false
+    $rootIsReparsePoint = $false
+    try {
+        if ([IO.File]::Exists($root)) {
+            $rootIsInvalid = $true
+        }
+        elseif (-not [IO.Directory]::Exists($root)) {
+            [IO.Directory]::CreateDirectory($root) | Out-Null
+        }
+        if (-not $rootIsInvalid) {
+            $rootItem = Get-Item -LiteralPath $root -Force -ErrorAction Stop
+            $rootIsInvalid = -not [bool]$rootItem.PSIsContainer
+            $rootIsReparsePoint =
+                ($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0
         }
     }
-    else {
-        [IO.Directory]::CreateDirectory($root) | Out-Null
+    catch {
+        throw [IO.InvalidDataException]::new('TenantLifecycle.Evidence.Root')
+    }
+    if ($rootIsInvalid) {
+        throw [IO.InvalidDataException]::new('TenantLifecycle.Evidence.Root')
+    }
+    if ($rootIsReparsePoint) {
+        throw [IO.InvalidDataException]::new('TenantLifecycle.Evidence.ReparsePoint')
     }
 
     $targetDirectory = [IO.Path]::GetDirectoryName($targetPath)
@@ -203,15 +231,35 @@ function Write-TenantLifecycleEvidence {
             if ([string]::IsNullOrEmpty($segment)) {
                 continue
             }
-            $currentDirectory = Join-Path $currentDirectory $segment
-            if ([IO.Directory]::Exists($currentDirectory)) {
-                $item = Get-Item -LiteralPath $currentDirectory -Force
-                if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-                    throw [IO.InvalidDataException]::new('TenantLifecycle.Evidence.ReparsePoint')
+            $actionDirectoryIsInvalid = $false
+            $actionDirectoryIsReparsePoint = $false
+            try {
+                $currentDirectory = Join-Path $currentDirectory $segment
+                if ([IO.File]::Exists($currentDirectory)) {
+                    $actionDirectoryIsInvalid = $true
+                }
+                elseif (-not [IO.Directory]::Exists($currentDirectory)) {
+                    [IO.Directory]::CreateDirectory($currentDirectory) | Out-Null
+                }
+                if (-not $actionDirectoryIsInvalid) {
+                    $item = Get-Item -LiteralPath $currentDirectory -Force -ErrorAction Stop
+                    $actionDirectoryIsInvalid = -not [bool]$item.PSIsContainer
+                    $actionDirectoryIsReparsePoint =
+                        ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0
                 }
             }
-            else {
-                [IO.Directory]::CreateDirectory($currentDirectory) | Out-Null
+            catch {
+                throw [IO.InvalidDataException]::new(
+                    'TenantLifecycle.Evidence.ActionDirectory'
+                )
+            }
+            if ($actionDirectoryIsInvalid) {
+                throw [IO.InvalidDataException]::new(
+                    'TenantLifecycle.Evidence.ActionDirectory'
+                )
+            }
+            if ($actionDirectoryIsReparsePoint) {
+                throw [IO.InvalidDataException]::new('TenantLifecycle.Evidence.ReparsePoint')
             }
         }
     }
