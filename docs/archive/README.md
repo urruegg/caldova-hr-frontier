@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
+| **Version** | 1.3 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
@@ -29,7 +29,7 @@ Move content here only when it is no longer authoritative and historical value j
 
 | Current replacement | Historical catalogue | Status | Purpose | Authority |
 |---|---|---|---|---|
-| [Current documentation map](../README.md) | [Phase 2 Operating Model Archive](phase-2-operating-model/README.md) | Superseded | Routes the immutable Phase 2 product and HR operating-model snapshots. | Historical navigation only; the linked current replacements govern active work. |
+| [Current documentation map](../README.md) | [Phase 2 Operating Model Archive](phase-2-operating-model/README.md) | Active | Routes the immutable Phase 2 product and HR operating-model snapshots. | Historical navigation only; the linked current replacements govern active work. |
 
 ## Domain Links
 

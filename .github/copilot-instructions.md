@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.3 |
+| **Version** | 1.4 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -72,11 +72,13 @@ The design record for a **pure agentic, Frontier-driven HR organisation** positi
 | How is it built | `docs/solution-design.md` | `docs/prd.md` |
 | Who is accountable | `docs/hr-journey-and-raci.md` §5–6 | — |
 | **Why** was it decided, what was rejected | `docs/adr/` | Any other document |
-| How do we stand it up | `infra/docs/30-environment-setup.md` | `docs/solution-design.md` — that is the design, not the procedure |
+| How do we stand it up | [Infrastructure documentation](../infra/docs/README.md) | `docs/solution-design.md` — that is the design, not the procedure |
 | What colour / font / logo | `docs/brand/` | Inventing a hex value — every colour is a token |
 | Is it approved | The document's own **Status** field | Its existence |
 
-**Authority rule.** More specific wins — except on governance, where the platform wins. A use-case PRD may add requirements; it may **not** weaken `docs/prd.md` FR-0001…FR-0014 or NFR-0001…NFR-0012. An Accepted ADR outranks narrative text anywhere; if `solution-design.md` and an ADR conflict, the ADR is right and the design has drifted — report that, do not silently reconcile.
+**Authority rule.** Use the knowledge map's complete
+[authority and conflict order](../docs/README.md#authority-and-conflict-order).
+Do not infer precedence from specificity, file location, or navigation order.
 
 ---
 

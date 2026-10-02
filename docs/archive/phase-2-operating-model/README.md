@@ -2,10 +2,10 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Superseded |
+| **Status** | Active |
 | **Scope** | docs/archive/phase-2-operating-model |
 | **References** | [Current Documentation Map](../../README.md), [Migration Review](../../reviews/2026-10-02-documentation-knowledge-architecture-migration-review.md) |
 

@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active |
@@ -465,3 +465,43 @@ The exact historical allowlist above is the only repository-owned retired-path
 exception set. The immutable evaluation summary is the only Task 6 evidence
 file changed, and its bytes were restored to the already approved manifest
 value. Unresolved failures: `None`.
+
+## Final whole-branch review corrections
+
+### Findings
+
+1. Consolidated the complete approved authority and conflict order in the
+   [documentation knowledge map](../README.md) and replaced the divergent
+   repository-instruction summary with a link to that section.
+2. Marked the maintained
+   [Phase 2 archive catalogue](../archive/phase-2-operating-model/README.md)
+   and its [parent catalogue row](../archive/README.md) `Active` while
+   retaining all eight snapshots as `Superseded`.
+3. Replaced the nonexistent environment-setup route with the maintained
+   [infrastructure documentation catalogue](../../infra/docs/README.md).
+4. Replaced the partial canonical tree with the approved repository routing
+   tree and distinguished central `uc-` idea records from detailed HR
+   use-case packages.
+
+### Changed files
+
+- [Documentation navigation contract](../../.github/cli/tests/DocumentationNavigation.Tests.ps1)
+- [Repository Copilot instructions](../../.github/copilot-instructions.md)
+- [Documentation knowledge map](../README.md)
+- [Archive catalogue](../archive/README.md)
+- [Phase 2 archive catalogue](../archive/phase-2-operating-model/README.md)
+- This migration review
+
+### Verification and outcome
+
+| Stage or command | Observed result |
+|---|---|
+| RED: `DocumentationNavigation.Tests.ps1` | 37 discovered; 32 passed; 5 expected contract failures; 0 skipped, inconclusive, or not run. |
+| GREEN: `DocumentationNavigation.Tests.ps1` | 37 discovered; 37 passed; 0 failed, skipped, inconclusive, or not run. |
+| GREEN: navigation, metadata, links, and Docs Agent contract suites | 219 discovered; 219 passed; 0 failed, skipped, inconclusive, or not run. |
+| `git diff --check` | Passed with no whitespace errors. |
+
+All four final-review findings are corrected. No workflow, Board
+configuration or identifier, vendored skill, immutable snapshot, migration
+baseline, source inventory, corpus, evidence, or live-system surface changed.
+Unresolved concerns: `None`.

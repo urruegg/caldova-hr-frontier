@@ -213,6 +213,143 @@ Describe 'Canonical specification and plan roots' {
     }
 }
 
+Describe 'Canonical knowledge routing contracts' {
+    It 'publishes the approved authority order from one canonical section' {
+        $knowledgeMap = Get-Content -LiteralPath (
+            Join-Path $script:repositoryRoot 'docs\README.md'
+        ) -Raw
+        $authoritySection = [regex]::Match(
+            $knowledgeMap,
+            '(?ms)^## Authority and Conflict Order\r?$\s*(?<Body>.*?)(?=^## )'
+        )
+        $authoritySection.Success | Should -BeTrue
+
+        $expectedRules = @(
+            '1. law, organizational governance, and explicit human authority;'
+            '2. Accepted or Approved policies, ADRs, and specifications;'
+            '3. approved platform requirements and cross-cutting governance;'
+            '4. the more specific domain or use-case contract, provided it does not weaken higher governance;'
+            '5. the approved implementation plan for the selected specification; and'
+            '6. evidence of the implemented state.'
+        )
+        $cursor = -1
+        foreach ($rule in $expectedRules) {
+            $next = $authoritySection.Groups['Body'].Value.IndexOf(
+                $rule,
+                ($cursor + 1),
+                [StringComparison]::Ordinal
+            )
+            $next | Should -BeGreaterThan $cursor
+            $cursor = $next
+        }
+
+        $instructions = Get-Content -LiteralPath (
+            Join-Path $script:repositoryRoot '.github\copilot-instructions.md'
+        ) -Raw
+        $instructions |
+            Should -Match '\[authority and conflict order\]\(\.\./docs/README\.md#authority-and-conflict-order\)'
+        $instructions | Should -Not -Match '(?i)\bmore specific wins\b'
+    }
+
+    It 'keeps maintained Phase 2 archive navigation active' {
+        $phase2Catalogue = Join-Path $script:phase2ArchiveRoot 'README.md'
+        Get-MetadataStatus -Path $phase2Catalogue | Should -Be 'Active'
+
+        $archiveRows = @(Get-CatalogueRows -ReadmePath (
+            Join-Path $script:repositoryRoot 'docs\archive\README.md'
+        ))
+        $phase2Rows = @(
+            $archiveRows |
+                Where-Object Target -CEQ ([IO.Path]::GetFullPath($phase2Catalogue))
+        )
+        $phase2Rows.Count | Should -Be 1
+        $phase2Rows[0].Status | Should -Be 'Active'
+
+        $snapshotRows = @(Get-CatalogueRows -ReadmePath $phase2Catalogue)
+        $snapshotRows.Count | Should -Be 8
+        @($snapshotRows | Where-Object Status -ne 'Superseded') |
+            Should -BeNullOrEmpty
+    }
+
+    It 'routes stand-up questions to the maintained infrastructure catalogue' {
+        $instructionsPath = Join-Path $script:repositoryRoot '.github\copilot-instructions.md'
+        $instructions = Get-Content -LiteralPath $instructionsPath -Raw
+        $route = [regex]::Match(
+            $instructions,
+            '(?m)^\| How do we stand it up \| \[Infrastructure documentation\]\((?<Target>\.\./infra/docs/README\.md)\) \|'
+        )
+        $route.Success | Should -BeTrue
+        if ($route.Success) {
+            $target = [IO.Path]::GetFullPath((
+                Join-Path (Split-Path -Parent $instructionsPath) (
+                    $route.Groups['Target'].Value.Replace('/', '\')
+                )
+            ))
+            $target | Should -Exist
+        }
+    }
+
+    It 'documents the complete approved canonical tree' {
+        $knowledgeMap = Get-Content -LiteralPath (
+            Join-Path $script:repositoryRoot 'docs\README.md'
+        ) -Raw
+        $structure = [regex]::Match(
+            $knowledgeMap,
+            '(?ms)^## Structure\r?$\s*```text\r?\n(?<Tree>.*?)\r?\n```'
+        )
+        $structure.Success | Should -BeTrue
+
+        $expectedTree = @'
+.github/copilot-instructions.md
+docs/
+├── README.md
+├── ideas/
+│   └── README.md
+├── specs/
+│   └── README.md
+├── plans/
+│   └── README.md
+├── reviews/
+│   └── README.md
+├── archive/
+│   ├── README.md
+│   └── phase-2-operating-model/
+│       └── README.md
+├── adr/
+├── brand/
+├── prd.md
+├── solution-design.md
+└── hr-journey-and-raci.md
+hr/
+├── README.md
+└── docs/
+    └── use-cases/
+        └── README.md
+infra/
+├── README.md
+└── docs/
+    └── README.md
+data/
+└── README.md
+'@
+        $structure.Groups['Tree'].Value.Trim() | Should -Be $expectedTree.Trim()
+    }
+
+    It 'distinguishes central use-case ideas from detailed HR packages' {
+        $knowledgeMap = Get-Content -LiteralPath (
+            Join-Path $script:repositoryRoot 'docs\README.md'
+        ) -Raw
+        $knowledgeMap | Should -Match (
+            '(?m)^\| `uc-` \| Central portfolio idea record \| ' +
+            '`docs/ideas/uc-<number>-<context>\.md` \|\r?$'
+        )
+        $knowledgeMap | Should -Match (
+            '(?m)^\| `uc-` package \| Detailed HR use-case package \| ' +
+            '`hr/docs/use-cases/uc-<number>-<context>/` \|\r?$'
+        )
+    }
+}
+
 Describe 'Phase 2 archive navigation' {
     It 'routes historical discovery through the archive catalogue' {
         (Join-Path $script:repositoryRoot 'docs\operating-model') | Should -Not -Exist

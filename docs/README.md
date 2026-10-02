@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.9 |
+| **Version** | 1.10 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -87,13 +87,37 @@ When a maintained document already uses ASCII art for one of these purposes, pre
 ## Structure
 
 ```text
+.github/copilot-instructions.md
 docs/
-├── prd.md                    Platform requirements — FR-0001…, NFR-0001…, roles, gates
-├── solution-design.md        Architecture — layers, components, integration, security, ALM
-├── hr-journey-and-raci.md    The HR journey, roles, RACI, use-case placement, sequencing
-├── ideas/                    Permanent repository-wide idea records and lifecycle catalogue
-├── adr/                      Decision records (12: 5 infra/governance, 7 HR solution) — why, what was rejected, what it costs
-└── brand/                    BrandKit — tokens, Fluent themes, logo guidance
+├── README.md
+├── ideas/
+│   └── README.md
+├── specs/
+│   └── README.md
+├── plans/
+│   └── README.md
+├── reviews/
+│   └── README.md
+├── archive/
+│   ├── README.md
+│   └── phase-2-operating-model/
+│       └── README.md
+├── adr/
+├── brand/
+├── prd.md
+├── solution-design.md
+└── hr-journey-and-raci.md
+hr/
+├── README.md
+└── docs/
+    └── use-cases/
+        └── README.md
+infra/
+├── README.md
+└── docs/
+    └── README.md
+data/
+└── README.md
 ```
 
 The repository-wide idea portfolio is centralized in **[`docs/ideas/`](ideas/README.md)**. Detailed artifacts for graduated HR use cases live in **[`hr/docs/use-cases/`](../hr/docs/use-cases/README.md)**.
@@ -114,13 +138,20 @@ The repository-wide idea portfolio is centralized in **[`docs/ideas/`](ideas/REA
 
 ---
 
-## The authority rule
+## Authority and Conflict Order
 
-**When two documents disagree, the more specific one wins — except on governance, where the platform wins.**
+Navigation order is not an authority override. When maintained records conflict, use this order:
 
-- A use-case PRD may add requirements. It may **not** weaken `prd.md` FR-0001…FR-0012 or NFR-0001…NFR-0010.
-- An ADR overrides narrative text in any document. If `solution-design.md` and a repository-level Approved ADR conflict, the ADR is correct and the design document has drifted.
-- A **Proposed** ADR is a recommendation, not a commitment. Check the Status field before relying on one.
+1. law, organizational governance, and explicit human authority;
+2. Accepted or Approved policies, ADRs, and specifications;
+3. approved platform requirements and cross-cutting governance;
+4. the more specific domain or use-case contract, provided it does not weaken higher governance;
+5. the approved implementation plan for the selected specification; and
+6. evidence of the implemented state.
+
+Check status before content. `Superseded`, `Draft`, `Proposed Baseline`, `Idea`, and `Graduated` material cannot silently override Approved or Accepted authority. README catalogue text is a routing aid; if it conflicts with an authoritative child, the child wins and the README must be repaired.
+
+For a question about what currently exists or passed, current reproducible evidence controls. An approved design or plan defines intent but does not prove implementation.
 
 ---
 
@@ -160,7 +191,8 @@ Stated here because they are load-bearing and easy to get backwards:
 |---|---|---|
 | `prd-` | Product requirements for one use case | `prd-0001-personal-master-data-completion-agent.md` |
 | `adr-` | Architecture decision record | `0009-workday-access-via-connector-behind-governed-layer.md` |
-| `uc-` | Use case (in `hr/`) | `uc-0010-employee-data-validation-bot.md` |
+| `uc-` | Central portfolio idea record | `docs/ideas/uc-<number>-<context>.md` |
+| `uc-` package | Detailed HR use-case package | `hr/docs/use-cases/uc-<number>-<context>/` |
 | `fr-` / `nfr-` | Requirement IDs — **identifiers within documents**, not filenames | `FR-0006`, `NFR-0008` |
 | `d-` / `td-` | Open decision IDs — identifiers, not filenames | `D-0003`, `TD-09` |
 
