@@ -5,6 +5,7 @@ Describe 'Runbook static safety' {
         $script:RunbookRoot = Join-Path $PSScriptRoot '..\..\src\scripts\runbooks'
         $script:Initializer = Join-Path $script:RunbookRoot 'Initialize-DeveloperWorkstation.ps1'
         $script:Assessment = Join-Path $script:RunbookRoot 'Test-DeveloperWorkstation.ps1'
+        $script:TenantLifecycle = Join-Path $script:RunbookRoot 'Invoke-TenantLifecycle.ps1'
     }
 
     It 'declares SupportsShouldProcess and an explicit Apply switch' {
@@ -66,5 +67,48 @@ Describe 'Runbook static safety' {
             $body | Should -Match ([regex]::Escape("`$policyAction.$field"))
         }
         $body | Should -Not -Match '(?i)(Install-Module\s+Pester|5\.7\.1|PSGallery|CurrentUser)'
+    }
+
+    It 'keeps the tenant lifecycle umbrella provider-neutral and sequencing-only' {
+        $content = Get-Content -Raw -LiteralPath $script:TenantLifecycle -ErrorAction Stop
+
+        $content | Should -Not -Match (
+            '(?i)\b(az|azd|gh|pac|bicep|winget|npm|npx|dotnet)(?:\.exe)?\b'
+        )
+        $content | Should -Not -Match (
+            '(?i)\b(password|token|secret|credential|authorization|providerPayload)\b'
+        )
+        $content | Should -Not -Match (
+            '(?i)(Install-Module|Install-Package|Start-Process|Invoke-Expression)'
+        )
+        $content | Should -Not -Match (
+            '(?i)(Initialize-DeveloperWorkstation|Test-DeveloperWorkstation|' +
+            'Get-CloudFoundationPlan|Invoke-CloudFoundation|' +
+            'New-CustomerRepositoryExport|Test-CustomerRepositoryExport)\.ps1'
+        )
+    }
+
+    It 'accepts no credential parameter and wraps only Invoke mode in ShouldProcess' {
+        $tokens = $null
+        $errors = $null
+        $ast = [Management.Automation.Language.Parser]::ParseFile(
+            $script:TenantLifecycle,
+            [ref]$tokens,
+            [ref]$errors
+        )
+
+        $errors.Count | Should -Be 0
+        $parameterNames = @($ast.ParamBlock.Parameters.Name.VariablePath.UserPath)
+        ($parameterNames -join '|') |
+            Should -Not -Match (
+                '(?i)\b(password|token|secret|credential|certificate|pat)\b'
+            )
+        $ast.ParamBlock.Attributes.Extent.Text |
+            Should -Match 'SupportsShouldProcess\s*=\s*\$true'
+        $ast.ParamBlock.Attributes.Extent.Text |
+            Should -Match "ConfirmImpact\s*=\s*'High'"
+        $ast.Extent.Text | Should -Match (
+            "(?s)Mode\s+-ceq\s+'Invoke'.{0,300}\`$PSCmdlet\.ShouldProcess\("
+        )
     }
 }

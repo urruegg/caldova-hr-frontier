@@ -288,6 +288,62 @@ Describe 'Shared runbook output contracts' {
         }
     }
 
+    Describe 'Tenant lifecycle umbrella public contract' {
+        BeforeAll {
+            $script:TenantLifecyclePath = Join-Path $PSScriptRoot (
+                '..\..\src\scripts\runbooks\Invoke-TenantLifecycle.ps1'
+            )
+            $script:TenantLifecycleTokens = $null
+            $script:TenantLifecycleErrors = $null
+            $script:TenantLifecycleAst = [Management.Automation.Language.Parser]::ParseFile(
+                $script:TenantLifecyclePath,
+                [ref]$script:TenantLifecycleTokens,
+                [ref]$script:TenantLifecycleErrors
+            )
+        }
+
+        It 'exposes the exact accepted parameter surface in order' {
+            $script:TenantLifecycleErrors.Count | Should -Be 0
+            (
+                $script:TenantLifecycleAst.ParamBlock.Parameters.Name.VariablePath.UserPath -join ','
+            ) | Should -BeExactly (
+                'RunId,EvidenceRoot,RepositoryRoot,ExpectedSourceCommit,' +
+                'PublicTenantKey,TenantConfigurationPath,TenantStatePath,Stages,' +
+                'Mode,ExecutionManifestPath,ApprovedDigest,Apply,' +
+                'SubsystemInvoker,NowUtc'
+            )
+        }
+
+        It 'closes the tenant stage mode source and approval values at binding time' {
+            $parameterText = @{}
+            foreach ($parameter in $script:TenantLifecycleAst.ParamBlock.Parameters) {
+                $parameterText[$parameter.Name.VariablePath.UserPath] =
+                    $parameter.Extent.Text
+            }
+
+            $parameterText.RunId |
+                Should -Match '\[guid\]\$RunId'
+            $parameterText.ExpectedSourceCommit |
+                Should -Match "\^\[0-9a-fA-F\]\{40\}\$"
+            $parameterText.PublicTenantKey |
+                Should -Match "ValidateSet\('tenant1'\)"
+            $parameterText.Stages | Should -Match (
+                "ValidateSet\('Workstation','PrivateBoundary','Foundation'," +
+                "'DevDelivery','ReadBack','Acceptance','TenantReplica'\)"
+            )
+            $parameterText.Mode |
+                Should -Match "ValidateSet\('Assess','Plan','Invoke'\)"
+            $parameterText.Mode |
+                Should -Match '\$Mode\s*=\s*''Assess'''
+            $parameterText.ApprovedDigest |
+                Should -Match "\^\[0-9a-f\]\{64\}\$"
+            $parameterText.SubsystemInvoker |
+                Should -Match 'Parameter\(DontShow\)'
+            $parameterText.NowUtc |
+                Should -Match '\$NowUtc\s*=\s*\[datetime\]::UtcNow'
+        }
+    }
+
     It 'refuses report paths in a Git working tree or staging root' {
         $repo = Join-Path $TestDrive 'repo'
         $stage = Join-Path $TestDrive 'stage'

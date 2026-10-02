@@ -452,6 +452,476 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                 status = 'Approved'
             }
         }
+    }
+
+    Describe 'Provider-neutral tenant lifecycle orchestrator' {
+            BeforeAll {
+                $script:OrchestratorRepositoryRoot = (
+                    Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
+                ).Path
+                $script:OrchestratorModulePath = Join-Path $script:OrchestratorRepositoryRoot (
+                    'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\' +
+                    'Caldova.HrFrontier.Bootstrap.psd1'
+                )
+                $script:OrchestratorPath = Join-Path $script:OrchestratorRepositoryRoot (
+                    'infra\src\scripts\runbooks\Invoke-TenantLifecycle.ps1'
+                )
+                $fixturePath = Join-Path $script:OrchestratorRepositoryRoot (
+                    'infra\tests\fixtures\runbooks\tenant-lifecycle.synthetic.json'
+                )
+                $script:OrchestratorFixture = Get-Content -Raw -LiteralPath $fixturePath |
+                    ConvertFrom-Json
+                Import-Module $script:OrchestratorModulePath -Force
+
+                $script:SyntheticRepositoryRoot = Join-Path $TestDrive 'orchestrator-repository'
+                $script:SyntheticTenantRoot = Join-Path $script:SyntheticRepositoryRoot (
+                    'infra\src\config\tenants'
+                )
+                [IO.Directory]::CreateDirectory($script:SyntheticTenantRoot) | Out-Null
+
+                $script:IntentPath = Join-Path $script:SyntheticTenantRoot 'tenant1.local.psd1'
+                $script:StatePath = Join-Path $script:SyntheticTenantRoot (
+                    'tenant1.state.local.json'
+                )
+                $intent = Get-Content -Raw -LiteralPath (
+                    Join-Path $script:OrchestratorRepositoryRoot (
+                        'infra\src\config\tenants\_template.psd1'
+                    )
+                )
+                $intent = $intent.Replace(
+                    '    Components = @{}',
+                    "    Components = @{$([Environment]::NewLine)" +
+                    "        SyntheticResource = @{ Mode = 'Existing'; " +
+                    "Id = 'stable-synthetic-001' }$([Environment]::NewLine)    }"
+                )
+                [IO.File]::WriteAllText(
+                    $script:IntentPath,
+                    $intent,
+                    [Text.UTF8Encoding]::new($false)
+                )
+                [IO.File]::WriteAllText(
+                    $script:StatePath,
+                    (($script:OrchestratorFixture.state | ConvertTo-Json -Depth 30 -Compress) + "`n"),
+                    [Text.UTF8Encoding]::new($false)
+                )
+                [IO.File]::WriteAllText(
+                    (Join-Path $script:SyntheticRepositoryRoot '.gitignore'),
+                    (
+                        "/infra/src/config/tenants/tenant1.local.psd1`n" +
+                        "/infra/src/config/tenants/tenant1.state.local.json`n"
+                    ),
+                    [Text.UTF8Encoding]::new($false)
+                )
+                [IO.File]::WriteAllText(
+                    (Join-Path $script:SyntheticRepositoryRoot 'tracked.txt'),
+                    "synthetic`n",
+                    [Text.UTF8Encoding]::new($false)
+                )
+
+                & git -C $script:SyntheticRepositoryRoot init --quiet
+                if ($LASTEXITCODE -ne 0) {
+                    throw 'Could not initialize the synthetic orchestrator repository.'
+                }
+                & git -C $script:SyntheticRepositoryRoot config user.email 'synthetic@example.invalid'
+                & git -C $script:SyntheticRepositoryRoot config user.name 'Synthetic Test'
+                & git -C $script:SyntheticRepositoryRoot add .gitignore tracked.txt
+                & git -C $script:SyntheticRepositoryRoot commit --quiet -m 'synthetic source'
+                if ($LASTEXITCODE -ne 0) {
+                    throw 'Could not commit the synthetic orchestrator repository.'
+                }
+                $script:SyntheticSourceCommit = (
+                    & git -C $script:SyntheticRepositoryRoot rev-parse HEAD
+                ).Trim().ToLowerInvariant()
+                $script:EvidenceRoot = Join-Path $TestDrive 'orchestrator-evidence'
+                $script:NowUtc = [datetime]'2026-10-02T19:05:00Z'
+
+                function New-SyntheticPassedInvoker {
+                    param(
+                        [Parameter(Mandatory)]
+                        [AllowEmptyCollection()]
+                        [Collections.Generic.List[string]]$Calls,
+
+                        [Parameter(Mandatory)]
+                        [AllowEmptyCollection()]
+                        [Collections.Generic.List[object]]$ControlRecords
+                    )
+
+                    {
+                        param([string]$Stage, [string]$Mode, [object]$ControlRecord)
+
+                        [void]$Calls.Add($Stage)
+                        [void]$ControlRecords.Add($ControlRecord)
+                        $inputDigest = Get-RunbookContentDigest -InputObject (
+                            [pscustomobject][ordered]@{
+                                stage = $Stage
+                                mode = $Mode
+                                controlRecord = $ControlRecord
+                            }
+                        )
+                        [pscustomobject][ordered]@{
+                            id = $Stage
+                            stage = $Stage
+                            classification = 'NoChange'
+                            status = 'Passed'
+                            inputDigest = $inputDigest
+                            readBackDigest = $null
+                            evidenceRelativePath = "actions/$Stage.json"
+                        }
+                    }.GetNewClosure()
+                }
+
+                function New-OrchestratorManifest {
+                    param(
+                        [Parameter(Mandatory)][guid]$RunId,
+                        [Parameter(Mandatory)][string]$RunDirectory
+                    )
+
+                    $manifest = New-TenantLifecycleExecutionManifest `
+                        -RunId $RunId `
+                        -SourceCommit $script:SyntheticSourceCommit `
+                        -EvidenceRoot $RunDirectory `
+                        -PublicTenantKey tenant1 `
+                        -IntentDigest ('1' * 64) `
+                        -StateDigest ('2' * 64) `
+                        -Machine ([pscustomobject][ordered]@{
+                            machineId = 'machine-synthetic-001'
+                            platform = 'Windows 11'
+                        }) `
+                        -Operator ([pscustomobject][ordered]@{
+                            operatorId = 'operator-synthetic-001'
+                            role = 'RunbookOperator'
+                        }) `
+                        -ToolIdentities @([pscustomobject][ordered]@{
+                            id = 'PowerShell'
+                            version = '5.1'
+                            digest = '3' * 64
+                        }) `
+                        -ProviderContexts @(
+                            $script:OrchestratorFixture.executionManifest.providerContexts
+                        ) `
+                        -Prerequisites @(
+                            $script:OrchestratorFixture.executionManifest.prerequisites
+                        ) `
+                        -Actions @($script:OrchestratorFixture.executionManifest.actions[0]) `
+                        -GeneratedAtUtc ([datetime]'2026-10-02T19:00:00Z') `
+                        -ExpiresAtUtc ([datetime]'2026-10-02T19:30:00Z')
+                    $manifestPath = Join-Path $TestDrive "manifest-$($RunId.ToString('D')).json"
+                    Write-CanonicalJson -InputObject $manifest -Path $manifestPath | Out-Null
+                    [pscustomobject]@{
+                        Manifest = $manifest
+                        Path = $manifestPath
+                    }
+                }
+
+                function Invoke-SyntheticOrchestrator {
+                    param(
+                        [Parameter(Mandatory)][guid]$RunId,
+                        [Parameter(Mandatory)][string[]]$Stages,
+                        [scriptblock]$SubsystemInvoker,
+                        [ValidateSet('Assess', 'Plan', 'Invoke')][string]$Mode = 'Assess',
+                        [string]$ExecutionManifestPath,
+                        [string]$ApprovedDigest,
+                        [switch]$Apply,
+                        [switch]$WhatIf
+                    )
+
+                    $parameters = @{
+                        RunId = $RunId
+                        EvidenceRoot = $script:EvidenceRoot
+                        RepositoryRoot = $script:SyntheticRepositoryRoot
+                        ExpectedSourceCommit = $script:SyntheticSourceCommit
+                        PublicTenantKey = 'tenant1'
+                        TenantConfigurationPath = $script:IntentPath
+                        TenantStatePath = $script:StatePath
+                        Stages = $Stages
+                        Mode = $Mode
+                        NowUtc = $script:NowUtc
+                        Confirm = $false
+                    }
+                    if ($PSBoundParameters.ContainsKey('SubsystemInvoker')) {
+                        $parameters.SubsystemInvoker = $SubsystemInvoker
+                    }
+                    if ($PSBoundParameters.ContainsKey('ExecutionManifestPath')) {
+                        $parameters.ExecutionManifestPath = $ExecutionManifestPath
+                    }
+                    if ($PSBoundParameters.ContainsKey('ApprovedDigest')) {
+                        $parameters.ApprovedDigest = $ApprovedDigest
+                    }
+                    if ($Apply) {
+                        $parameters.Apply = $true
+                    }
+                    if ($WhatIf) {
+                        $parameters.WhatIf = $true
+                    }
+
+                    & $script:OrchestratorPath @parameters
+                }
+            }
+
+            It 'orders every selected stage and passes only the closed non-secret control record' {
+                $runId = [guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+                $calls = [Collections.Generic.List[string]]::new()
+                $records = [Collections.Generic.List[object]]::new()
+                $invoker = New-SyntheticPassedInvoker -Calls $calls -ControlRecords $records
+
+                $result = @(Invoke-SyntheticOrchestrator `
+                    -RunId $runId `
+                    -Stages @(
+                        'TenantReplica',
+                        'Acceptance',
+                        'ReadBack',
+                        'DevDelivery',
+                        'Foundation',
+                        'PrivateBoundary',
+                        'Workstation'
+                    ) `
+                    -SubsystemInvoker $invoker)
+
+                ($calls -join ',') | Should -BeExactly (
+                    'Workstation,PrivateBoundary,Foundation,DevDelivery,' +
+                    'ReadBack,Acceptance,TenantReplica'
+                )
+                $result.Count | Should -Be 7
+                ($records[0].PSObject.Properties.Name -join ',') | Should -BeExactly (
+                    'runId,runDirectoryLabel,publicTenantKey,sourceCommit,' +
+                    'machineLabel,operatorLabel,toolIdentities,approvedDigest,' +
+                    'prerequisiteOutcomes'
+                )
+                [string]$records[0].runId | Should -BeExactly $runId.ToString('D')
+                $records[0].runDirectoryLabel | Should -BeExactly $runId.ToString('D')
+                $records[0].publicTenantKey | Should -BeExactly 'tenant1'
+                $records[0].sourceCommit | Should -BeExactly $script:SyntheticSourceCommit
+                @($records[0].toolIdentities).Count | Should -Be 0
+                $records[0].approvedDigest | Should -BeNullOrEmpty
+                @($records[0].prerequisiteOutcomes).Count | Should -Be 0
+                @($records[1].prerequisiteOutcomes).Count | Should -Be 1
+                $records[1].prerequisiteOutcomes[0].id | Should -BeExactly 'Workstation'
+                ($records | ConvertTo-Json -Depth 20) |
+                    Should -Not -Match '(?i)token|secret|credential|providerPayload|commandLine'
+            }
+
+            It 'runs an independently selected subsystem without forcing omitted predecessors' {
+                $calls = [Collections.Generic.List[string]]::new()
+                $records = [Collections.Generic.List[object]]::new()
+                $invoker = New-SyntheticPassedInvoker -Calls $calls -ControlRecords $records
+
+                $result = @(Invoke-SyntheticOrchestrator `
+                    -RunId ([guid]::NewGuid()) `
+                    -Stages @('TenantReplica') `
+                    -SubsystemInvoker $invoker)
+
+                ($calls -join ',') | Should -BeExactly 'TenantReplica'
+                $result.Count | Should -Be 1
+                @($records[0].prerequisiteOutcomes).Count | Should -Be 0
+            }
+
+            It 'does not invoke a dependent stage after a failed prerequisite outcome' {
+                $calls = [Collections.Generic.List[string]]::new()
+                $invoker = {
+                    param([string]$Stage, [string]$Mode, [object]$ControlRecord)
+
+                    [void]$calls.Add($Stage)
+                    $inputDigest = Get-RunbookContentDigest -InputObject (
+                        [pscustomobject][ordered]@{
+                            stage = $Stage
+                            mode = $Mode
+                            controlRecord = $ControlRecord
+                        }
+                    )
+                    [pscustomobject][ordered]@{
+                        id = $Stage
+                        stage = $Stage
+                        classification = 'NoChange'
+                        status = 'Failed'
+                        inputDigest = $inputDigest
+                        readBackDigest = $null
+                        evidenceRelativePath = "actions/$Stage.json"
+                    }
+                }.GetNewClosure()
+
+                $result = @(Invoke-SyntheticOrchestrator `
+                    -RunId ([guid]::NewGuid()) `
+                    -Stages @('Workstation', 'Foundation') `
+                    -SubsystemInvoker $invoker)
+
+                ($calls -join ',') | Should -BeExactly 'Workstation'
+                $result.Count | Should -Be 1
+                $result[0].status | Should -BeExactly 'Failed'
+            }
+
+            It 'refuses Apply without an approved digest before any subsystem invocation' {
+                $calls = [Collections.Generic.List[string]]::new()
+                $records = [Collections.Generic.List[object]]::new()
+                $invoker = New-SyntheticPassedInvoker -Calls $calls -ControlRecords $records
+
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId ([guid]::NewGuid()) `
+                        -Stages @('Foundation') `
+                        -Mode Invoke `
+                        -SubsystemInvoker $invoker `
+                        -Apply
+                } | Should -Throw -ExpectedMessage 'TenantLifecycle.Approval.Required'
+                $calls.Count | Should -Be 0
+            }
+
+            It 'lets WhatIf dominate Apply without invocation or evidence mutation' {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot $runId.ToString('D')
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory
+                $calls = [Collections.Generic.List[string]]::new()
+                $records = [Collections.Generic.List[object]]::new()
+                $invoker = New-SyntheticPassedInvoker -Calls $calls -ControlRecords $records
+
+                $result = @(Invoke-SyntheticOrchestrator `
+                    -RunId $runId `
+                    -Stages @('Foundation') `
+                    -Mode Invoke `
+                    -ExecutionManifestPath $manifestRecord.Path `
+                    -ApprovedDigest $manifestRecord.Manifest.digest `
+                    -SubsystemInvoker $invoker `
+                    -Apply `
+                    -WhatIf)
+
+                $result.Count | Should -Be 0
+                $calls.Count | Should -Be 0
+                $runDirectory | Should -Not -Exist
+            }
+
+            It 'does not invoke a later stage when an injected stage returns unresolved Manual' {
+                $calls = [Collections.Generic.List[string]]::new()
+                $invoker = {
+                    param([string]$Stage, [string]$Mode, [object]$ControlRecord)
+
+                    [void]$calls.Add($Stage)
+                    $inputDigest = Get-RunbookContentDigest -InputObject (
+                        [pscustomobject][ordered]@{
+                            stage = $Stage
+                            mode = $Mode
+                            controlRecord = $ControlRecord
+                        }
+                    )
+                    [pscustomobject][ordered]@{
+                        id = $Stage
+                        stage = $Stage
+                        classification = 'Manual'
+                        status = 'Passed'
+                        inputDigest = $inputDigest
+                        readBackDigest = $null
+                        evidenceRelativePath = "actions/$Stage.json"
+                    }
+                }.GetNewClosure()
+
+                $result = @(Invoke-SyntheticOrchestrator `
+                    -RunId ([guid]::NewGuid()) `
+                    -Stages @('PrivateBoundary', 'Foundation') `
+                    -SubsystemInvoker $invoker)
+
+                ($calls -join ',') | Should -BeExactly 'PrivateBoundary'
+                $result.Count | Should -Be 1
+                $result[0].classification | Should -BeExactly 'Manual'
+            }
+
+            It 'fails closed when no subsystem invoker is injected' {
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId ([guid]::NewGuid()) `
+                        -Stages @('Workstation')
+                } | Should -Throw -ExpectedMessage 'TenantLifecycle.SubsystemInvoker.Required'
+            }
+
+            It 'writes an exact consolidated summary through the accepted evidence writer' {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot $runId.ToString('D')
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory
+                $calls = [Collections.Generic.List[string]]::new()
+                $records = [Collections.Generic.List[object]]::new()
+                $invoker = New-SyntheticPassedInvoker -Calls $calls -ControlRecords $records
+
+                $result = @(Invoke-SyntheticOrchestrator `
+                    -RunId $runId `
+                    -Stages @('Foundation', 'ReadBack') `
+                    -Mode Invoke `
+                    -ExecutionManifestPath $manifestRecord.Path `
+                    -ApprovedDigest $manifestRecord.Manifest.digest `
+                    -SubsystemInvoker $invoker `
+                    -Apply)
+
+                $result.Count | Should -Be 2
+                $summaryPath = Join-Path $runDirectory 'summary.json'
+                $summaryPath | Should -Exist
+                $summary = Get-Content -Raw -LiteralPath $summaryPath | ConvertFrom-Json
+                Test-TenantLifecycleContract -Kind Summary -InputObject $summary |
+                    Should -BeTrue
+                $summary.runId | Should -BeExactly $runId.ToString('D')
+                $summary.sourceCommit | Should -BeExactly $script:SyntheticSourceCommit
+                $summary.manifestDigest |
+                    Should -BeExactly $manifestRecord.Manifest.digest
+                $summary.status | Should -BeExactly 'Passed'
+                $summary.counts.NoChange | Should -Be 2
+                ($summary.actions.id -join ',') |
+                    Should -BeExactly 'Foundation,ReadBack'
+                ($summary.actions.evidenceRelativePath -join ',') |
+                    Should -BeExactly 'actions/Foundation.json,actions/ReadBack.json'
+            }
+        }
+
+    BeforeAll {
+        $script:ApprovalRepositoryRoot = (
+            Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
+        ).Path
+        $script:ApprovalModulePath = Join-Path $script:ApprovalRepositoryRoot (
+            'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\' +
+            'Caldova.HrFrontier.Bootstrap.psd1'
+        )
+        $approvalFixturePath = Join-Path $script:ApprovalRepositoryRoot (
+            'infra\tests\fixtures\runbooks\tenant-lifecycle.synthetic.json'
+        )
+        $script:ApprovalFixture = Get-Content -Raw -LiteralPath $approvalFixturePath |
+            ConvertFrom-Json
+        Import-Module $script:ApprovalModulePath -Force
+
+        function Copy-ApprovalValue {
+            param([Parameter(Mandatory)][object]$InputObject)
+            $InputObject | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+        }
+
+        function New-ApprovalManifest {
+            New-TenantLifecycleExecutionManifest `
+                -RunId ([guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee') `
+                -SourceCommit ('a' * 40) `
+                -EvidenceRoot 'C:\evidence-root-synthetic' `
+                -PublicTenantKey tenant1 `
+                -IntentDigest ('1' * 64) `
+                -StateDigest ('2' * 64) `
+                -Machine (Copy-ApprovalValue $script:ApprovalFixture.executionManifest.machine) `
+                -Operator (Copy-ApprovalValue $script:ApprovalFixture.executionManifest.operator) `
+                -ToolIdentities @(Copy-ApprovalValue $script:ApprovalFixture.executionManifest.toolIdentities) `
+                -ProviderContexts @(Copy-ApprovalValue $script:ApprovalFixture.executionManifest.providerContexts) `
+                -Prerequisites @(Copy-ApprovalValue $script:ApprovalFixture.executionManifest.prerequisites) `
+                -Actions @(Copy-ApprovalValue $script:ApprovalFixture.executionManifest.actions) `
+                -GeneratedAtUtc ([datetime]'2026-10-02T12:05:00Z') `
+                -ExpiresAtUtc ([datetime]'2026-10-02T12:35:00Z')
+        }
+
+        function New-ApprovalRecord {
+            param([Parameter(Mandatory)][object]$Manifest)
+
+            [pscustomobject][ordered]@{
+                schemaVersion = '1.0'
+                runId = $Manifest.runId
+                executionManifestDigest = $Manifest.digest
+                approverRole = 'TenantLifecycleApprover'
+                approvedAtUtc = '2026-10-02T12:06:00.0000000Z'
+                expiresAtUtc = '2026-10-02T12:35:00.0000000Z'
+                scope = @($Manifest.actions | ForEach-Object id)
+                status = 'Approved'
+            }
+        }
 
         function New-CurrentApprovalBinding {
             param([Parameter(Mandatory)][object]$Manifest)
