@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -213,11 +213,13 @@ git commit -m "feat(runbooks): separate tenant intent and state" -m "Co-authored
 **Interfaces:**
 - Consumes: Task 1 action objects and six classifications.
 - Produces: `Resolve-TenantLifecycleGraph -Nodes <object[]> -ObservedOutcomes <object[]>`, returning ordered nodes with `status`, `blockingPrerequisiteIds`, and `canExecute`.
-- Node fields are exactly `id`, `kind`, `prerequisiteIds`, `requiredOutcome`, `inputDigest`, and `stage`.
+- Node fields are exactly the six readable instance properties `id`, `kind`, `prerequisiteIds`, `requiredOutcome`, `inputDigest`, and `stage`; any additional property of any member type, including `ScriptProperty` or `CodeProperty`, is invalid.
+- `requiredOutcome` is the case-sensitive literal `Passed`. It is descriptive contract data, not a caller-controlled success selector.
+- For `Create`, `Update`, and `Manual`, `inputDigest` is the approved expected owned-properties/input digest. `readBackDigest` binds ordinally to that exact value; a different valid digest is `Unverified` and never fresh success. Plans 2-6 and provider-specific plans must preserve this binding.
 
 - [ ] **Step 1: Write failing graph tests**
 
-Cover deterministic topological order, missing prerequisite, cycle, duplicate ID, stale digest, `Manual` without read-back, propagation of `Blocked` and `Refused`, failed prerequisite, and an all-`NoChange` path. Assert later nodes never execute when a prerequisite is not fresh success.
+Cover deterministic topological order across every meaningful input permutation, missing prerequisite, cycle, duplicate ID, closed property membership (including `ScriptProperty` and `CodeProperty` extras), caller-supplied non-`Passed` required outcomes, stale digest, mismatched valid read-back digest, `Manual` without read-back, propagation of `Blocked` and `Refused`, failed prerequisite, and an all-`NoChange` path. Assert later nodes never execute when a prerequisite is not fresh success.
 
 - [ ] **Step 2: Run RED**
 
@@ -244,7 +246,7 @@ function Resolve-TenantLifecycleGraph {
 }
 ```
 
-Use ordinal ID comparison and Kahn topological sorting. Fresh success means status `Passed`, a matching `inputDigest`, and classification `NoChange`, or a completed `Create`/`Update` with exact post-read. `Manual` becomes success only when its independent read-back record is `Passed`.
+Use ordinal ID comparison and Kahn topological sorting. Validate all node properties before reading their values, accepting only the exact six-property contract and rejecting hidden or executable property types. Fresh success means outcome status is the literal `Passed`, `inputDigest` matches, and classification is `NoChange`. A completed `Create`, `Update`, or `Manual` additionally requires `readBackDigest` to ordinally equal the node `inputDigest` (the approved expected owned-properties/input digest); a different valid read-back digest is `Unverified`. `Manual` without read-back remains non-success.
 
 - [ ] **Step 4: Run GREEN**
 

@@ -94,7 +94,7 @@ function Resolve-TenantLifecycleGraph {
             elseif ($outcome.classification -ceq 'Refused') {
                 $status = 'Refused'
             }
-            elseif (-not [StringComparer]::Ordinal.Equals($node.requiredOutcome, $outcome.status)) {
+            elseif (-not [StringComparer]::Ordinal.Equals('Passed', $outcome.status)) {
                 $status = $outcome.status
             }
             else {
@@ -105,7 +105,11 @@ function Resolve-TenantLifecycleGraph {
                     }
                     { $_ -in @('Create', 'Update') } {
                         $readBackProperty = $outcome.PSObject.Properties['readBackDigest']
-                        if ($null -ne $readBackProperty -and $readBackProperty.Value -is [string]) {
+                        if (
+                            $null -ne $readBackProperty -and
+                            $readBackProperty.Value -is [string] -and
+                            [StringComparer]::Ordinal.Equals($node.inputDigest, $readBackProperty.Value)
+                        ) {
                             $status = 'Passed'
                             $isFreshSuccess = $true
                         }
@@ -115,9 +119,16 @@ function Resolve-TenantLifecycleGraph {
                     }
                     'Manual' {
                         $readBackProperty = $outcome.PSObject.Properties['readBackDigest']
-                        if ($null -ne $readBackProperty -and $readBackProperty.Value -is [string]) {
+                        if (
+                            $null -ne $readBackProperty -and
+                            $readBackProperty.Value -is [string] -and
+                            [StringComparer]::Ordinal.Equals($node.inputDigest, $readBackProperty.Value)
+                        ) {
                             $status = 'Passed'
                             $isFreshSuccess = $true
+                        }
+                        elseif ($null -ne $readBackProperty -and $readBackProperty.Value -is [string]) {
+                            $status = 'Unverified'
                         }
                         else {
                             $status = 'Manual'

@@ -14,16 +14,19 @@ function Sort-TenantLifecycleGraph {
             throw [IO.InvalidDataException]::new('TenantLifecycle.Graph.InvalidNode')
         }
 
-        $properties = @(
-            $node.PSObject.Properties |
-                Where-Object { $_.MemberType -in @('NoteProperty', 'Property', 'AliasProperty') }
-        )
+        $properties = @($node.PSObject.Properties)
         if ($properties.Count -ne $expectedFields.Count) {
             throw [IO.InvalidDataException]::new('TenantLifecycle.Graph.InvalidNode')
         }
 
         $actualFields = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
         foreach ($property in $properties) {
+            if (
+                -not $property.IsGettable -or
+                $property.MemberType -notin @('NoteProperty', 'Property', 'AliasProperty')
+            ) {
+                throw [IO.InvalidDataException]::new('TenantLifecycle.Graph.InvalidNode')
+            }
             [void]$actualFields.Add($property.Name)
         }
         foreach ($field in $expectedFields) {
@@ -38,9 +41,7 @@ function Sort-TenantLifecycleGraph {
             -not ($node.kind -is [string]) -or
             [string]::IsNullOrWhiteSpace($node.kind) -or
             $node.kind.Length -gt 128 -or
-            -not ($node.requiredOutcome -is [string]) -or
-            [string]::IsNullOrWhiteSpace($node.requiredOutcome) -or
-            $node.requiredOutcome.Length -gt 64 -or
+            -not [StringComparer]::Ordinal.Equals($node.requiredOutcome, 'Passed') -or
             -not ($node.inputDigest -is [string]) -or
             -not [regex]::IsMatch($node.inputDigest, '^[0-9a-f]{64}$', [Text.RegularExpressions.RegexOptions]::CultureInvariant) -or
             -not ($node.stage -is [string]) -or

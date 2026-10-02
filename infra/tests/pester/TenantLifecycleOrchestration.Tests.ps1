@@ -10,6 +10,22 @@ Describe 'Tenant lifecycle prerequisite graph' {
         $script:DigestB = 'b' * 64
         $script:DigestC = 'c' * 64
 
+        if ($null -eq ('TenantLifecycleGraphCodePropertyAccessor' -as [type])) {
+            Add-Type -TypeDefinition @'
+using System;
+using System.Management.Automation;
+
+public static class TenantLifecycleGraphCodePropertyAccessor
+{
+    public static object Get(PSObject instance)
+    {
+        throw new InvalidOperationException();
+    }
+}
+'@
+        }
+        $script:HiddenCodePropertyGetter = [TenantLifecycleGraphCodePropertyAccessor].GetMethod('Get')
+
         function New-GraphNode {
             param(
                 [Parameter(Mandatory)][string]$Id,
@@ -49,13 +65,40 @@ Describe 'Tenant lifecycle prerequisite graph' {
         }
     }
 
-    It 'uses ordinal IDs for deterministic topological order' {
-        $nodes = @(
-            New-GraphNode -Id 'deploy' -PrerequisiteIds @('zeta', 'a', 'A')
-            New-GraphNode -Id 'zeta'
-            New-GraphNode -Id 'a'
-            New-GraphNode -Id 'A'
-        )
+    It 'uses ordinal IDs for deterministic topological order for input permutation <InputOrder>' -ForEach @(
+        @{ InputOrder = 'deploy,zeta,a,A' }
+        @{ InputOrder = 'deploy,zeta,A,a' }
+        @{ InputOrder = 'deploy,a,zeta,A' }
+        @{ InputOrder = 'deploy,a,A,zeta' }
+        @{ InputOrder = 'deploy,A,zeta,a' }
+        @{ InputOrder = 'deploy,A,a,zeta' }
+        @{ InputOrder = 'zeta,deploy,a,A' }
+        @{ InputOrder = 'zeta,deploy,A,a' }
+        @{ InputOrder = 'zeta,a,deploy,A' }
+        @{ InputOrder = 'zeta,a,A,deploy' }
+        @{ InputOrder = 'zeta,A,deploy,a' }
+        @{ InputOrder = 'zeta,A,a,deploy' }
+        @{ InputOrder = 'a,deploy,zeta,A' }
+        @{ InputOrder = 'a,deploy,A,zeta' }
+        @{ InputOrder = 'a,zeta,deploy,A' }
+        @{ InputOrder = 'a,zeta,A,deploy' }
+        @{ InputOrder = 'a,A,deploy,zeta' }
+        @{ InputOrder = 'a,A,zeta,deploy' }
+        @{ InputOrder = 'A,deploy,zeta,a' }
+        @{ InputOrder = 'A,deploy,a,zeta' }
+        @{ InputOrder = 'A,zeta,deploy,a' }
+        @{ InputOrder = 'A,zeta,a,deploy' }
+        @{ InputOrder = 'A,a,deploy,zeta' }
+        @{ InputOrder = 'A,a,zeta,deploy' }
+    ) {
+        $nodes = foreach ($id in ($InputOrder -split ',')) {
+            switch -CaseSensitive ($id) {
+                'deploy' { New-GraphNode -Id 'deploy' -PrerequisiteIds @('zeta', 'a', 'A') }
+                'zeta' { New-GraphNode -Id 'zeta' }
+                'a' { New-GraphNode -Id 'a' }
+                'A' { New-GraphNode -Id 'A' }
+            }
+        }
 
         $result = @(Resolve-TenantLifecycleGraph -Nodes $nodes -ObservedOutcomes @())
 
@@ -70,6 +113,39 @@ Describe 'Tenant lifecycle prerequisite graph' {
 
         {
             Resolve-TenantLifecycleGraph -Nodes @($node) -ObservedOutcomes @()
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Graph.InvalidNode'
+    }
+
+    It 'rejects a hidden <MemberType> outside the closed node contract' -ForEach @(
+        @{ MemberType = 'ScriptProperty' }
+        @{ MemberType = 'CodeProperty' }
+    ) {
+        $node = New-GraphNode -Id 'assessment'
+        if ($MemberType -ceq 'ScriptProperty') {
+            $node | Add-Member -MemberType ScriptProperty -Name providerCommand -Value {
+                throw 'hidden getter executed'
+            }
+        }
+        else {
+            $node | Add-Member -MemberType CodeProperty -Name providerCommand -Value $script:HiddenCodePropertyGetter
+        }
+
+        {
+            Resolve-TenantLifecycleGraph -Nodes @($node) -ObservedOutcomes @()
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Graph.InvalidNode'
+    }
+
+    It 'rejects caller-controlled Failed as the required outcome even when the outcome failed' {
+        $nodes = @(
+            New-GraphNode -Id 'assessment' -RequiredOutcome 'Failed'
+            New-GraphNode -Id 'deploy' -PrerequisiteIds @('assessment')
+        )
+        $outcomes = @(
+            New-GraphOutcome -Id 'assessment' -Classification 'NoChange' -Status 'Failed'
+        )
+
+        {
+            Resolve-TenantLifecycleGraph -Nodes $nodes -ObservedOutcomes $outcomes
         } | Should -Throw -ExpectedMessage 'TenantLifecycle.Graph.InvalidNode'
     }
 
@@ -191,7 +267,7 @@ Describe 'Tenant lifecycle prerequisite graph' {
             New-GraphNode -Id 'deploy' -PrerequisiteIds @('consent')
         )
         $outcomes = @(
-            New-GraphOutcome -Id 'consent' -Classification 'Manual' -ReadBackDigest $script:DigestB
+            New-GraphOutcome -Id 'consent' -Classification 'Manual' -ReadBackDigest $script:DigestA
         )
 
         $result = @(Resolve-TenantLifecycleGraph -Nodes $nodes -ObservedOutcomes $outcomes)
@@ -232,7 +308,9 @@ Describe 'Tenant lifecycle prerequisite graph' {
         $result = @(Resolve-TenantLifecycleGraph -Nodes $nodes -ObservedOutcomes $outcomes)
 
         $result[0].status | Should -BeExactly 'Failed'
+        $result[1].status | Should -BeExactly 'Blocked'
         $result[1].canExecute | Should -BeFalse
+        ($result[1].blockingPrerequisiteIds -join ',') | Should -BeExactly 'assessment'
     }
 
     It 'requires exact post-read for completed <Classification>' -ForEach @(
@@ -262,13 +340,34 @@ Describe 'Tenant lifecycle prerequisite graph' {
             New-GraphNode -Id 'deploy' -PrerequisiteIds @('foundation')
         )
         $outcomes = @(
-            New-GraphOutcome -Id 'foundation' -Classification $Classification -ReadBackDigest $script:DigestB
+            New-GraphOutcome -Id 'foundation' -Classification $Classification -ReadBackDigest $script:DigestA
         )
 
         $result = @(Resolve-TenantLifecycleGraph -Nodes $nodes -ObservedOutcomes $outcomes)
 
         $result[0].status | Should -BeExactly 'Passed'
         $result[1].canExecute | Should -BeTrue
+    }
+
+    It 'keeps <Classification> unverified when its valid read-back digest differs from input' -ForEach @(
+        @{ Classification = 'Create' }
+        @{ Classification = 'Update' }
+        @{ Classification = 'Manual' }
+    ) {
+        $nodes = @(
+            New-GraphNode -Id 'foundation'
+            New-GraphNode -Id 'deploy' -PrerequisiteIds @('foundation')
+        )
+        $outcomes = @(
+            New-GraphOutcome -Id 'foundation' -Classification $Classification -ReadBackDigest $script:DigestB
+        )
+
+        $result = @(Resolve-TenantLifecycleGraph -Nodes $nodes -ObservedOutcomes $outcomes)
+
+        $result[0].status | Should -BeExactly 'Unverified'
+        $result[1].status | Should -BeExactly 'Blocked'
+        $result[1].canExecute | Should -BeFalse
+        ($result[1].blockingPrerequisiteIds -join ',') | Should -BeExactly 'foundation'
     }
 
     It 'does not trust a passed dependent outcome when its prerequisite failed' {
