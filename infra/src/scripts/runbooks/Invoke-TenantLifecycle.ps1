@@ -124,9 +124,9 @@ function Assert-TenantLifecycleSubsystemOutcome {
             ) -or
             -not ($Outcome.status -is [string]) -or
             [string]$Outcome.status -cnotmatch '^[A-Za-z][A-Za-z0-9]{0,63}$' -or
-            -not [StringComparer]::Ordinal.Equals(
-                [string]$Outcome.evidenceRelativePath,
-                "actions/$ExpectedStage.json"
+            -not ($Outcome.evidenceRelativePath -is [string]) -or
+            [string]::IsNullOrWhiteSpace(
+                [string]$Outcome.evidenceRelativePath
             )) {
             throw [IO.InvalidDataException]::new()
         }
@@ -143,6 +143,172 @@ function Assert-TenantLifecycleSubsystemOutcome {
         throw [IO.InvalidDataException]::new(
             'TenantLifecycle.Orchestrator.Outcome'
         )
+    }
+}
+
+function Test-TenantLifecycleOrchestratorReparsePath {
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)][string]$Root,
+        [Parameter(Mandatory)][string]$Candidate
+    )
+
+    $rootItem = Get-Item -LiteralPath $Root -Force -ErrorAction Stop
+    if (($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        return $true
+    }
+    $rootPrefix = $Root + [IO.Path]::DirectorySeparatorChar
+    $currentPath = $Root
+    foreach ($segment in @($Candidate.Substring($rootPrefix.Length) -split '[\\/]')) {
+        if ([string]::IsNullOrEmpty($segment)) {
+            continue
+        }
+        $currentPath = Join-Path $currentPath $segment
+        $item = Get-Item -LiteralPath $currentPath -Force -ErrorAction Stop
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Get-TenantLifecycleCorrelatedActionEvidence {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$RunDirectory,
+        [Parameter(Mandatory)][guid]$RunId,
+        [Parameter(Mandatory)][string]$ExpectedStage,
+        [Parameter(Mandatory)][object]$ManifestAction,
+        [Parameter(Mandatory)][object]$Outcome
+    )
+
+    $expectedRelativePath = "actions/$ExpectedStage.json"
+    if (-not [StringComparer]::Ordinal.Equals(
+            [string]$Outcome.evidenceRelativePath,
+            $expectedRelativePath
+        )) {
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.Orchestrator.ActionEvidence.Path'
+        )
+    }
+
+    try {
+        $root = [IO.Path]::GetFullPath($RunDirectory).TrimEnd('\', '/')
+        $candidate = [IO.Path]::GetFullPath((
+            Join-Path $root (
+                $expectedRelativePath.Replace(
+                    '/',
+                    [IO.Path]::DirectorySeparatorChar
+                )
+            )
+        ))
+    }
+    catch {
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.Orchestrator.ActionEvidence.Path'
+        )
+    }
+    $rootPrefix = $root + [IO.Path]::DirectorySeparatorChar
+    if (-not $candidate.StartsWith(
+            $rootPrefix,
+            [StringComparison]::OrdinalIgnoreCase
+        )) {
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.Orchestrator.ActionEvidence.Path'
+        )
+    }
+    if (-not [IO.File]::Exists($candidate)) {
+        if ([IO.Directory]::Exists($candidate)) {
+            throw [IO.InvalidDataException]::new(
+                'TenantLifecycle.Orchestrator.ActionEvidence.File'
+            )
+        }
+        throw [IO.FileNotFoundException]::new(
+            'TenantLifecycle.Orchestrator.ActionEvidence.Missing'
+        )
+    }
+
+    try {
+        if (Test-TenantLifecycleOrchestratorReparsePath `
+                -Root $root `
+                -Candidate $candidate) {
+            throw [IO.InvalidDataException]::new(
+                'TenantLifecycle.Orchestrator.ActionEvidence.ReparsePoint'
+            )
+        }
+        $item = Get-Item -LiteralPath $candidate -Force -ErrorAction Stop
+        if ($item.PSIsContainer) {
+            throw [IO.InvalidDataException]::new(
+                'TenantLifecycle.Orchestrator.ActionEvidence.File'
+            )
+        }
+        $bytes = [IO.File]::ReadAllBytes($candidate)
+        $json = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
+        $evidence = $json | ConvertFrom-Json
+        Test-TenantLifecycleContract `
+            -Kind ActionEvidence `
+            -InputObject $evidence |
+            Out-Null
+        $evidenceDigest = Get-RunbookContentDigest -InputObject $evidence
+    }
+    catch {
+        if ($_.Exception.Message -cmatch (
+                '^TenantLifecycle\.Orchestrator\.ActionEvidence\.'
+            )) {
+            throw
+        }
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.Orchestrator.ActionEvidence.Invalid'
+        )
+    }
+
+    if (-not [StringComparer]::Ordinal.Equals(
+            [string]$evidence.runId,
+            $RunId.ToString('D').ToLowerInvariant()
+        ) -or
+        -not [StringComparer]::Ordinal.Equals(
+            [string]$evidence.actionId,
+            $ExpectedStage
+        ) -or
+        -not [StringComparer]::Ordinal.Equals(
+            [string]$ManifestAction.id,
+            $ExpectedStage
+        ) -or
+        -not [StringComparer]::Ordinal.Equals(
+            [string]$evidence.classification,
+            [string]$ManifestAction.classification
+        ) -or
+        -not [StringComparer]::Ordinal.Equals(
+            [string]$evidence.classification,
+            [string]$Outcome.classification
+        ) -or
+        -not [StringComparer]::Ordinal.Equals(
+            [string]$evidence.decision,
+            [string]$Outcome.classification
+        ) -or
+        -not [StringComparer]::Ordinal.Equals(
+            [string]$evidence.status,
+            [string]$Outcome.status
+        ) -or
+        -not [StringComparer]::Ordinal.Equals(
+            [string]$evidence.preReadDigest,
+            [string]$Outcome.inputDigest
+        ) -or
+        -not ($Outcome.readBackDigest -is [string]) -or
+        -not [StringComparer]::Ordinal.Equals(
+            [string]$evidence.postReadDigest,
+            [string]$Outcome.readBackDigest
+        )) {
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.Orchestrator.ActionEvidence.Correlation'
+        )
+    }
+
+    [pscustomobject][ordered]@{
+        relativePath = $expectedRelativePath
+        digest = $evidenceDigest
+        value = $evidence
     }
 }
 
@@ -243,13 +409,12 @@ $gitBoundaryRunner = {
 }
 
 try {
-    Test-TenantLifecyclePrivateBoundary `
+    $privateBoundary = Test-TenantLifecyclePrivateBoundary `
         -PublicTenantKey $PublicTenantKey `
         -IntentPath $TenantConfigurationPath `
         -StatePath $TenantStatePath `
         -RepositoryRoot $repository `
-        -NativeCommandRunner $gitBoundaryRunner |
-        Out-Null
+        -NativeCommandRunner $gitBoundaryRunner
 }
 catch {
     if ($_.Exception.Message -cmatch '^TenantLifecycle\.PrivateBoundary\.') {
@@ -317,6 +482,25 @@ if (-not [string]::IsNullOrWhiteSpace($ExecutionManifestPath)) {
     }
 }
 
+if ($Mode -ceq 'Invoke') {
+    foreach ($digestField in @('intentDigest', 'stateDigest')) {
+        $currentDigest = if ($digestField -ceq 'intentDigest') {
+            [string]$privateBoundary.intent.digest
+        }
+        else {
+            [string]$privateBoundary.state.digest
+        }
+        if (-not [StringComparer]::Ordinal.Equals(
+                $currentDigest,
+                [string]$manifest.$digestField
+            )) {
+            throw [IO.InvalidDataException]::new(
+                "TenantLifecycle.Orchestrator.Drift.$digestField"
+            )
+        }
+    }
+}
+
 $canonicalStageOrder = @(
     'Workstation',
     'PrivateBoundary',
@@ -336,6 +520,51 @@ $orderedStages = @(
     $canonicalStageOrder |
         Where-Object { $selectedStageSet.Contains($_) }
 )
+
+if ($Mode -ceq 'Invoke') {
+    $manifestActions = @($manifest.actions)
+    if ($manifestActions.Count -ne $orderedStages.Count) {
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.Orchestrator.Manifest.ActionScope'
+        )
+    }
+    for ($index = 0; $index -lt $orderedStages.Count; $index++) {
+        if (-not [StringComparer]::Ordinal.Equals(
+                [string]$manifestActions[$index].id,
+                [string]$orderedStages[$index]
+            )) {
+            throw [IO.InvalidDataException]::new(
+                'TenantLifecycle.Orchestrator.Manifest.ActionScope'
+            )
+        }
+        [string[]]$expectedPrerequisiteIds = @()
+        if ($index -gt 0) {
+            $expectedPrerequisiteIds = @($orderedStages[$index - 1])
+        }
+        [string[]]$actualPrerequisiteIds = @(
+            $manifestActions[$index].prerequisiteActionIds
+        )
+        if ($actualPrerequisiteIds.Count -ne $expectedPrerequisiteIds.Count) {
+            throw [IO.InvalidDataException]::new(
+                'TenantLifecycle.Orchestrator.Manifest.PrerequisiteScope'
+            )
+        }
+        for (
+            $prerequisiteIndex = 0;
+            $prerequisiteIndex -lt $expectedPrerequisiteIds.Count;
+            $prerequisiteIndex++
+        ) {
+            if (-not [StringComparer]::Ordinal.Equals(
+                    $actualPrerequisiteIds[$prerequisiteIndex],
+                    $expectedPrerequisiteIds[$prerequisiteIndex]
+                )) {
+                throw [IO.InvalidDataException]::new(
+                    'TenantLifecycle.Orchestrator.Manifest.PrerequisiteScope'
+                )
+            }
+        }
+    }
+}
 
 if ($Mode -ceq 'Invoke' -and
     -not $PSCmdlet.ShouldProcess(
@@ -374,6 +603,10 @@ else {
 
 $outcomes = [Collections.Generic.List[object]]::new()
 $nodes = [Collections.Generic.List[object]]::new()
+$correlatedEvidenceById =
+    [Collections.Generic.Dictionary[string, object]]::new(
+        [StringComparer]::Ordinal
+    )
 for ($index = 0; $index -lt $orderedStages.Count; $index++) {
     $stage = $orderedStages[$index]
     $controlRecord = [pscustomobject][ordered]@{
@@ -432,6 +665,29 @@ for ($index = 0; $index -lt $orderedStages.Count; $index++) {
         -Outcome $outcome `
         -ExpectedStage $stage `
         -ExpectedInputDigest $inputDigest
+    if ($null -ne $manifest) {
+        $matchingManifestActions = @(
+            $manifest.actions |
+                Where-Object {
+                    [StringComparer]::Ordinal.Equals(
+                        [string]$_.id,
+                        $stage
+                    )
+                }
+        )
+        if ($matchingManifestActions.Count -ne 1) {
+            throw [IO.InvalidDataException]::new(
+                'TenantLifecycle.Orchestrator.Manifest.ActionScope'
+            )
+        }
+        $correlatedEvidence = Get-TenantLifecycleCorrelatedActionEvidence `
+            -RunDirectory $runDirectory `
+            -RunId $RunId `
+            -ExpectedStage $stage `
+            -ManifestAction $matchingManifestActions[0] `
+            -Outcome $outcome
+        $correlatedEvidenceById.Add($stage, $correlatedEvidence)
+    }
     $outcomes.Add($outcome)
 
     $resolvedAfterInvocation = @(
@@ -501,7 +757,9 @@ if ($null -ne $manifest -and $outcomes.Count -gt 0) {
                     id = [string]$outcome.id
                     status = [string]$resolvedById[[string]$outcome.id].status
                     inputDigest = [string]$outcome.inputDigest
-                    evidenceDigest = Get-RunbookContentDigest -InputObject $outcome
+                    evidenceDigest = [string]$correlatedEvidenceById[
+                        [string]$outcome.id
+                    ].digest
                 }
             }
         )
@@ -511,7 +769,9 @@ if ($null -ne $manifest -and $outcomes.Count -gt 0) {
                     id = [string]$outcome.id
                     classification = [string]$outcome.classification
                     status = [string]$resolvedById[[string]$outcome.id].status
-                    evidenceRelativePath = [string]$outcome.evidenceRelativePath
+                    evidenceRelativePath = [string]$correlatedEvidenceById[
+                        [string]$outcome.id
+                    ].relativePath
                 }
             }
         )

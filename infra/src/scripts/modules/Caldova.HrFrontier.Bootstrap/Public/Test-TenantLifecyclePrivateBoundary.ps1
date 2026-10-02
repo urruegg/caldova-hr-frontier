@@ -88,6 +88,9 @@ function Test-TenantLifecyclePrivateBoundary {
         -RepositoryRoot $root `
         -RelativeLabel $stateLabel `
         -NativeCommandRunner $NativeCommandRunner
+    $intentDigestInput = $intentValue |
+        ConvertTo-Json -Depth 30 -Compress |
+        ConvertFrom-Json
 
     [pscustomobject][ordered]@{
         publicTenantKey = $PublicTenantKey
@@ -97,7 +100,7 @@ function Test-TenantLifecyclePrivateBoundary {
             ignored = [bool]$intentGit.ignored
             tracked = [bool]$intentGit.tracked
             schemaValid = $true
-            digest = Get-RunbookContentDigest -InputObject $intentValue
+            digest = Get-RunbookContentDigest -InputObject $intentDigestInput
         }
         state = [pscustomobject][ordered]@{
             label = $stateLabel

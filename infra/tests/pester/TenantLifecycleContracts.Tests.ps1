@@ -599,6 +599,31 @@ Describe 'Tenant lifecycle intent and state separation' {
             Should -Be 2
     }
 
+    It 'changes the sanitized intent digest when reviewed intent changes' {
+        $firstCalls = [Collections.Generic.List[string]]::new()
+        $first = Invoke-SyntheticPrivateBoundary `
+            -Runner (New-SyntheticGitBoundaryRunner -Calls $firstCalls)
+        $intent = Get-Content -Raw -LiteralPath $script:IntentPath
+        $intent = [regex]::Replace(
+            $intent,
+            "(?m)^\s*DisplayName\s*=\s*'[^']+'\s*$",
+            "    DisplayName = 'Reviewed Intent Drift'"
+        )
+        [IO.File]::WriteAllText(
+            $script:IntentPath,
+            $intent,
+            [Text.UTF8Encoding]::new($false)
+        )
+        $secondCalls = [Collections.Generic.List[string]]::new()
+
+        $second = Invoke-SyntheticPrivateBoundary `
+            -Runner (New-SyntheticGitBoundaryRunner -Calls $secondCalls)
+
+        $second.intent.digest | Should -Not -BeExactly $first.intent.digest
+        ($second | ConvertTo-Json -Depth 10) |
+            Should -Not -Match 'Reviewed Intent Drift|privatemarker123'
+    }
+
     It 'uses the tracked state ignore rule in the actual repository' {
         $rules = Get-Content -LiteralPath (Join-Path $script:RepositoryRoot '.gitignore')
         $rules | Should -Contain 'infra/src/config/tenants/*.state.local.json'

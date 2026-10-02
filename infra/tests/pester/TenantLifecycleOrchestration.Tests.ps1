@@ -546,6 +546,9 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         [Collections.Generic.List[object]]$ControlRecords
                     )
 
+                    $evidenceRoot = $script:EvidenceRoot
+                    $actionEvidenceFactory =
+                        ${function:New-SyntheticActionEvidence}
                     {
                         param([string]$Stage, [string]$Mode, [object]$ControlRecord)
 
@@ -558,31 +561,111 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                                 controlRecord = $ControlRecord
                             }
                         )
+                        $readBackDigest = if ($Mode -ceq 'Invoke') {
+                            $inputDigest
+                        }
+                        else {
+                            $null
+                        }
+                        if ($Mode -ceq 'Invoke') {
+                            $actionEvidence = & $actionEvidenceFactory `
+                                -RunId $ControlRecord.runId `
+                                -ActionId $Stage `
+                                -Classification NoChange `
+                                -InputDigest $inputDigest `
+                                -ReadBackDigest $readBackDigest `
+                                -Status Passed
+                            Write-TenantLifecycleEvidence `
+                                -RunDirectory (
+                                    Join-Path $evidenceRoot $ControlRecord.runId
+                                ) `
+                                -RelativePath "actions/$Stage.json" `
+                                -Kind ActionEvidence `
+                                -InputObject $actionEvidence |
+                                Out-Null
+                        }
                         [pscustomobject][ordered]@{
                             id = $Stage
                             stage = $Stage
                             classification = 'NoChange'
                             status = 'Passed'
                             inputDigest = $inputDigest
-                            readBackDigest = $null
+                            readBackDigest = $readBackDigest
                             evidenceRelativePath = "actions/$Stage.json"
                         }
                     }.GetNewClosure()
                 }
 
+                function New-SyntheticActionEvidence {
+                    param(
+                        [Parameter(Mandatory)][string]$RunId,
+                        [Parameter(Mandatory)][string]$ActionId,
+                        [Parameter(Mandatory)][string]$Classification,
+                        [Parameter(Mandatory)][string]$InputDigest,
+                        [Parameter(Mandatory)][string]$ReadBackDigest,
+                        [Parameter(Mandatory)][string]$Status
+                    )
+
+                    [pscustomobject][ordered]@{
+                        schemaVersion = '1.0'
+                        runId = $RunId
+                        actionId = $ActionId
+                        classification = $Classification
+                        startedAtUtc = '2026-10-02T19:05:00.0000000Z'
+                        completedAtUtc = '2026-10-02T19:05:01.0000000Z'
+                        preReadDigest = $InputDigest
+                        decision = $Classification
+                        postReadDigest = $ReadBackDigest
+                        status = $Status
+                        errorCode = $null
+                        recovery = 'NotRequired'
+                    }
+                }
+
                 function New-OrchestratorManifest {
                     param(
                         [Parameter(Mandatory)][guid]$RunId,
-                        [Parameter(Mandatory)][string]$RunDirectory
+                        [Parameter(Mandatory)][string]$RunDirectory,
+                        [string[]]$Stages = @('Foundation'),
+                        [object[]]$Actions
                     )
 
+                    $intentValue = Import-TenantConfiguration `
+                        -Path $script:IntentPath `
+                        -ValidationStage Discovery `
+                        -ExpectedPublicTenantKey tenant1
+                    $intentDigestInput = $intentValue |
+                        ConvertTo-Json -Depth 30 -Compress |
+                        ConvertFrom-Json
+                    $stateValue = Import-TenantLifecycleState `
+                        -Path $script:StatePath `
+                        -PublicTenantKey tenant1
+                    if (-not $PSBoundParameters.ContainsKey('Actions')) {
+                        $Actions = @(
+                            for ($index = 0; $index -lt $Stages.Count; $index++) {
+                                $action = $script:OrchestratorFixture.executionManifest.actions[0] |
+                                    ConvertTo-Json -Depth 30 |
+                                    ConvertFrom-Json
+                                $action.id = $Stages[$index]
+                                $action.classification = 'NoChange'
+                                if ($index -eq 0) {
+                                    $action.prerequisiteActionIds = [string[]]@()
+                                }
+                                else {
+                                    $action.prerequisiteActionIds =
+                                        [string[]]@($Stages[$index - 1])
+                                }
+                                $action
+                            }
+                        )
+                    }
                     $manifest = New-TenantLifecycleExecutionManifest `
                         -RunId $RunId `
                         -SourceCommit $script:SyntheticSourceCommit `
                         -EvidenceRoot $RunDirectory `
                         -PublicTenantKey tenant1 `
-                        -IntentDigest ('1' * 64) `
-                        -StateDigest ('2' * 64) `
+                        -IntentDigest (Get-RunbookContentDigest -InputObject $intentDigestInput) `
+                        -StateDigest (Get-RunbookContentDigest -InputObject $stateValue) `
                         -Machine ([pscustomobject][ordered]@{
                             machineId = 'machine-synthetic-001'
                             platform = 'Windows 11'
@@ -602,7 +685,7 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         -Prerequisites @(
                             $script:OrchestratorFixture.executionManifest.prerequisites
                         ) `
-                        -Actions @($script:OrchestratorFixture.executionManifest.actions[0]) `
+                        -Actions @($Actions) `
                         -GeneratedAtUtc ([datetime]'2026-10-02T19:00:00Z') `
                         -ExpiresAtUtc ([datetime]'2026-10-02T19:30:00Z')
                     $manifestPath = Join-Path $TestDrive "manifest-$($RunId.ToString('D')).json"
@@ -790,6 +873,170 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                 $runDirectory | Should -Not -Exist
             }
 
+            It 'rejects <DigestField> private input drift before Invoke without leaking values or paths' -ForEach @(
+                @{ DigestField = 'intentDigest' }
+                @{ DigestField = 'stateDigest' }
+            ) {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot $runId.ToString('D')
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory
+                $calls = [Collections.Generic.List[string]]::new()
+                $records = [Collections.Generic.List[object]]::new()
+                $invoker = New-SyntheticPassedInvoker -Calls $calls -ControlRecords $records
+                $driftPath = if ($DigestField -ceq 'intentDigest') {
+                    $script:IntentPath
+                }
+                else {
+                    $script:StatePath
+                }
+                $originalBytes = [IO.File]::ReadAllBytes($driftPath)
+
+                try {
+                    if ($DigestField -ceq 'intentDigest') {
+                        $intentText = [Text.UTF8Encoding]::new($false, $true).
+                            GetString($originalBytes)
+                        $intentText = [regex]::Replace(
+                            $intentText,
+                            "(?m)^\s*DisplayName\s*=\s*'[^']+'\s*$",
+                            "    DisplayName = 'Example123456 Drift'"
+                        )
+                        [IO.File]::WriteAllText(
+                            $driftPath,
+                            $intentText,
+                            [Text.UTF8Encoding]::new($false)
+                        )
+                    }
+                    else {
+                        $stateValue = Get-Content -Raw -LiteralPath $driftPath |
+                            ConvertFrom-Json
+                        $stateValue.resources[0].lastVerifiedAtUtc =
+                            '2026-10-02T12:09:01.0000000Z'
+                        Write-CanonicalJson `
+                            -InputObject $stateValue `
+                            -Path $driftPath `
+                            -Replace |
+                            Out-Null
+                    }
+
+                    $message = try {
+                        Invoke-SyntheticOrchestrator `
+                            -RunId $runId `
+                            -Stages @('Foundation') `
+                            -Mode Invoke `
+                            -ExecutionManifestPath $manifestRecord.Path `
+                            -ApprovedDigest $manifestRecord.Manifest.digest `
+                            -SubsystemInvoker $invoker `
+                            -Apply
+                        ''
+                    }
+                    catch {
+                        $_.Exception.Message
+                    }
+                }
+                finally {
+                    [IO.File]::WriteAllBytes($driftPath, $originalBytes)
+                }
+
+                $message | Should -BeExactly (
+                    "TenantLifecycle.Orchestrator.Drift.$DigestField"
+                )
+                $message | Should -Not -Match (
+                    [regex]::Escape($driftPath) + '|[0-9a-f]{64}'
+                )
+                $calls.Count | Should -Be 0
+            }
+
+            It 'rejects <ScopeCase> approved action scope before subsystem invocation' -ForEach @(
+                @{
+                    ScopeCase = 'a selected stage absent from the'
+                    ManifestStages = @('Foundation')
+                    InvocationStages = @('ReadBack')
+                }
+                @{
+                    ScopeCase = 'an extra action outside the selected'
+                    ManifestStages = @('Foundation', 'ReadBack')
+                    InvocationStages = @('Foundation')
+                }
+                @{
+                    ScopeCase = 'a mismatched stage and action ID in the'
+                    ManifestStages = @('FoundationAction')
+                    InvocationStages = @('Foundation')
+                }
+            ) {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot $runId.ToString('D')
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory `
+                    -Stages $ManifestStages
+                $calls = [Collections.Generic.List[string]]::new()
+                $records = [Collections.Generic.List[object]]::new()
+                $invoker = New-SyntheticPassedInvoker -Calls $calls -ControlRecords $records
+
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId $runId `
+                        -Stages $InvocationStages `
+                        -Mode Invoke `
+                        -ExecutionManifestPath $manifestRecord.Path `
+                        -ApprovedDigest $manifestRecord.Manifest.digest `
+                        -SubsystemInvoker $invoker `
+                        -Apply
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Orchestrator.Manifest.ActionScope'
+                )
+                $calls.Count | Should -Be 0
+            }
+
+            It 'rejects an approved prerequisite graph outside the selected stage graph' {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot $runId.ToString('D')
+                $action = $script:OrchestratorFixture.executionManifest.actions[0] |
+                    ConvertTo-Json -Depth 30 |
+                    ConvertFrom-Json
+                $action.id = 'Foundation'
+                $action.classification = 'NoChange'
+                $action.prerequisiteActionIds = @('ReadBack')
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory `
+                    -Actions @($action)
+                $calls = [Collections.Generic.List[string]]::new()
+                $records = [Collections.Generic.List[object]]::new()
+                $invoker = New-SyntheticPassedInvoker -Calls $calls -ControlRecords $records
+
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId $runId `
+                        -Stages @('Foundation') `
+                        -Mode Invoke `
+                        -ExecutionManifestPath $manifestRecord.Path `
+                        -ApprovedDigest $manifestRecord.Manifest.digest `
+                        -SubsystemInvoker $invoker `
+                        -Apply
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Orchestrator.Manifest.PrerequisiteScope'
+                )
+                $calls.Count | Should -Be 0
+            }
+
+            It 'allows Plan without an approved execution manifest' {
+                $calls = [Collections.Generic.List[string]]::new()
+                $records = [Collections.Generic.List[object]]::new()
+                $invoker = New-SyntheticPassedInvoker -Calls $calls -ControlRecords $records
+
+                $result = @(Invoke-SyntheticOrchestrator `
+                    -RunId ([guid]::NewGuid()) `
+                    -Stages @('Foundation') `
+                    -Mode Plan `
+                    -SubsystemInvoker $invoker)
+
+                $result.Count | Should -Be 1
+                ($calls -join ',') | Should -BeExactly 'Foundation'
+            }
+
             It 'does not invoke a later stage when an injected stage returns unresolved Manual' {
                 $calls = [Collections.Generic.List[string]]::new()
                 $invoker = {
@@ -832,12 +1079,252 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                 } | Should -Throw -ExpectedMessage 'TenantLifecycle.SubsystemInvoker.Required'
             }
 
-            It 'writes an exact consolidated summary through the accepted evidence writer' {
+            It 'rejects missing action evidence before writing a summary' {
                 $runId = [guid]::NewGuid()
                 $runDirectory = Join-Path $script:EvidenceRoot $runId.ToString('D')
                 $manifestRecord = New-OrchestratorManifest `
                     -RunId $runId `
                     -RunDirectory $runDirectory
+                $invoker = {
+                    param([string]$Stage, [string]$Mode, [object]$ControlRecord)
+
+                    $inputDigest = Get-RunbookContentDigest -InputObject (
+                        [pscustomobject][ordered]@{
+                            stage = $Stage
+                            mode = $Mode
+                            controlRecord = $ControlRecord
+                        }
+                    )
+                    [pscustomobject][ordered]@{
+                        id = $Stage
+                        stage = $Stage
+                        classification = 'NoChange'
+                        status = 'Passed'
+                        inputDigest = $inputDigest
+                        readBackDigest = $inputDigest
+                        evidenceRelativePath = "actions/$Stage.json"
+                    }
+                }
+
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId $runId `
+                        -Stages @('Foundation') `
+                        -Mode Invoke `
+                        -ExecutionManifestPath $manifestRecord.Path `
+                        -ApprovedDigest $manifestRecord.Manifest.digest `
+                        -SubsystemInvoker $invoker `
+                        -Apply
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Orchestrator.ActionEvidence.Missing'
+                )
+                (Join-Path $runDirectory 'summary.json') | Should -Not -Exist
+            }
+
+            It 'rejects outcome evidence that resolves outside the run evidence root' {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot $runId.ToString('D')
+                $foreignLabel = "foreign-$($runId.ToString('N'))"
+                $foreignDirectory = Join-Path $script:EvidenceRoot $foreignLabel
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory
+                $actionEvidenceFactory =
+                    ${function:New-SyntheticActionEvidence}
+                $invoker = {
+                    param([string]$Stage, [string]$Mode, [object]$ControlRecord)
+
+                    $inputDigest = Get-RunbookContentDigest -InputObject (
+                        [pscustomobject][ordered]@{
+                            stage = $Stage
+                            mode = $Mode
+                            controlRecord = $ControlRecord
+                        }
+                    )
+                    $actionEvidence = & $actionEvidenceFactory `
+                        -RunId $ControlRecord.runId `
+                        -ActionId $Stage `
+                        -Classification NoChange `
+                        -InputDigest $inputDigest `
+                        -ReadBackDigest $inputDigest `
+                        -Status Passed
+                    Write-TenantLifecycleEvidence `
+                        -RunDirectory $foreignDirectory `
+                        -RelativePath "actions/$Stage.json" `
+                        -Kind ActionEvidence `
+                        -InputObject $actionEvidence |
+                        Out-Null
+                    [pscustomobject][ordered]@{
+                        id = $Stage
+                        stage = $Stage
+                        classification = 'NoChange'
+                        status = 'Passed'
+                        inputDigest = $inputDigest
+                        readBackDigest = $inputDigest
+                        evidenceRelativePath = (
+                            "../$foreignLabel/actions/$Stage.json"
+                        )
+                    }
+                }.GetNewClosure()
+
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId $runId `
+                        -Stages @('Foundation') `
+                        -Mode Invoke `
+                        -ExecutionManifestPath $manifestRecord.Path `
+                        -ApprovedDigest $manifestRecord.Manifest.digest `
+                        -SubsystemInvoker $invoker `
+                        -Apply
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Orchestrator.ActionEvidence.Path'
+                )
+                (Join-Path $runDirectory 'summary.json') | Should -Not -Exist
+            }
+
+            It 'rejects a reparse-backed action evidence file' {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot $runId.ToString('D')
+                $foreignDirectory = Join-Path $script:EvidenceRoot (
+                    "reparse-target-$($runId.ToString('N'))"
+                )
+                [IO.Directory]::CreateDirectory(
+                    (Join-Path $foreignDirectory 'actions')
+                ) | Out-Null
+                [IO.Directory]::CreateDirectory($runDirectory) | Out-Null
+                New-Item `
+                    -ItemType Junction `
+                    -Path (Join-Path $runDirectory 'actions') `
+                    -Target (Join-Path $foreignDirectory 'actions') |
+                    Out-Null
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory
+                $actionEvidenceFactory =
+                    ${function:New-SyntheticActionEvidence}
+                $invoker = {
+                    param([string]$Stage, [string]$Mode, [object]$ControlRecord)
+
+                    $inputDigest = Get-RunbookContentDigest -InputObject (
+                        [pscustomobject][ordered]@{
+                            stage = $Stage
+                            mode = $Mode
+                            controlRecord = $ControlRecord
+                        }
+                    )
+                    $actionEvidence = & $actionEvidenceFactory `
+                        -RunId $ControlRecord.runId `
+                        -ActionId $Stage `
+                        -Classification NoChange `
+                        -InputDigest $inputDigest `
+                        -ReadBackDigest $inputDigest `
+                        -Status Passed
+                    Write-TenantLifecycleEvidence `
+                        -RunDirectory $foreignDirectory `
+                        -RelativePath "actions/$Stage.json" `
+                        -Kind ActionEvidence `
+                        -InputObject $actionEvidence |
+                        Out-Null
+                    [pscustomobject][ordered]@{
+                        id = $Stage
+                        stage = $Stage
+                        classification = 'NoChange'
+                        status = 'Passed'
+                        inputDigest = $inputDigest
+                        readBackDigest = $inputDigest
+                        evidenceRelativePath = "actions/$Stage.json"
+                    }
+                }.GetNewClosure()
+
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId $runId `
+                        -Stages @('Foundation') `
+                        -Mode Invoke `
+                        -ExecutionManifestPath $manifestRecord.Path `
+                        -ApprovedDigest $manifestRecord.Manifest.digest `
+                        -SubsystemInvoker $invoker `
+                        -Apply
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Orchestrator.ActionEvidence.ReparsePoint'
+                )
+                (Join-Path $runDirectory 'summary.json') | Should -Not -Exist
+            }
+
+            It 'rejects action evidence with tampered <EvidenceField>' -ForEach @(
+                @{ EvidenceField = 'runId'; TamperedValue = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff' }
+                @{ EvidenceField = 'actionId'; TamperedValue = 'ReadBack' }
+                @{ EvidenceField = 'classification'; TamperedValue = 'Update' }
+                @{ EvidenceField = 'status'; TamperedValue = 'Failed' }
+                @{ EvidenceField = 'preReadDigest'; TamperedValue = ('a' * 64) }
+                @{ EvidenceField = 'postReadDigest'; TamperedValue = ('b' * 64) }
+            ) {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot $runId.ToString('D')
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory
+                $actionEvidenceFactory =
+                    ${function:New-SyntheticActionEvidence}
+                $invoker = {
+                    param([string]$Stage, [string]$Mode, [object]$ControlRecord)
+
+                    $inputDigest = Get-RunbookContentDigest -InputObject (
+                        [pscustomobject][ordered]@{
+                            stage = $Stage
+                            mode = $Mode
+                            controlRecord = $ControlRecord
+                        }
+                    )
+                    $actionEvidence = & $actionEvidenceFactory `
+                        -RunId $ControlRecord.runId `
+                        -ActionId $Stage `
+                        -Classification NoChange `
+                        -InputDigest $inputDigest `
+                        -ReadBackDigest $inputDigest `
+                        -Status Passed
+                    $actionEvidence.$EvidenceField = $TamperedValue
+                    $actionPath = Join-Path $runDirectory "actions\$Stage.json"
+                    [IO.Directory]::CreateDirectory(
+                        [IO.Path]::GetDirectoryName($actionPath)
+                    ) | Out-Null
+                    Write-CanonicalJson `
+                        -InputObject $actionEvidence `
+                        -Path $actionPath |
+                        Out-Null
+                    [pscustomobject][ordered]@{
+                        id = $Stage
+                        stage = $Stage
+                        classification = 'NoChange'
+                        status = 'Passed'
+                        inputDigest = $inputDigest
+                        readBackDigest = $inputDigest
+                        evidenceRelativePath = "actions/$Stage.json"
+                    }
+                }.GetNewClosure()
+
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId $runId `
+                        -Stages @('Foundation') `
+                        -Mode Invoke `
+                        -ExecutionManifestPath $manifestRecord.Path `
+                        -ApprovedDigest $manifestRecord.Manifest.digest `
+                        -SubsystemInvoker $invoker `
+                        -Apply
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Orchestrator.ActionEvidence.Correlation'
+                )
+                (Join-Path $runDirectory 'summary.json') | Should -Not -Exist
+            }
+
+            It 'writes an exact consolidated summary through the accepted evidence writer' {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot $runId.ToString('D')
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory `
+                    -Stages @('Foundation', 'ReadBack')
                 $calls = [Collections.Generic.List[string]]::new()
                 $records = [Collections.Generic.List[object]]::new()
                 $invoker = New-SyntheticPassedInvoker -Calls $calls -ControlRecords $records
@@ -863,6 +1350,22 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                     Should -BeExactly $manifestRecord.Manifest.digest
                 $summary.status | Should -BeExactly 'Passed'
                 $summary.counts.NoChange | Should -Be 2
+                $foundationEvidencePath = Join-Path $runDirectory (
+                    'actions\Foundation.json'
+                )
+                $foundationEvidencePath | Should -Exist
+                $foundationEvidence = Get-Content `
+                    -Raw `
+                    -LiteralPath $foundationEvidencePath |
+                    ConvertFrom-Json
+                Test-TenantLifecycleContract `
+                    -Kind ActionEvidence `
+                    -InputObject $foundationEvidence |
+                    Should -BeTrue
+                $summary.prerequisites[0].evidenceDigest |
+                    Should -BeExactly (
+                        Get-RunbookContentDigest -InputObject $foundationEvidence
+                    )
                 ($summary.actions.id -join ',') |
                     Should -BeExactly 'Foundation,ReadBack'
                 ($summary.actions.evidenceRelativePath -join ',') |
