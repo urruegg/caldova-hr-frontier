@@ -27,6 +27,7 @@
         'Test-TenantLifecyclePrivateBoundary'
         'Import-TenantLifecycleState'
         'Update-TenantLifecycleState'
+        'Resolve-TenantLifecycleGraph'
         'Resolve-CloudNativeTool'
         'Test-CloudDelegatedContext'
         'Get-CloudFoundationAssessment'
