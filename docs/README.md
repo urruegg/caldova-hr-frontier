@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.8 |
+| **Version** | 1.9 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -14,6 +14,51 @@
 **Read this first if you are an agent or a new contributor.** The rules below tell you which document is authoritative for which kind of question. Answering from the wrong one produces confident, wrong answers — most of the failure modes in this repository start there.
 
 ---
+
+## Purpose and Authority
+
+This README is the repository knowledge map and documentation policy. It routes lifecycle, domain, authority, and archive discovery; it does not replace the substantive requirements, decisions, specifications, plans, or evidence it links.
+
+## Contains and Does Not Contain
+
+The `docs/` root contains cross-cutting platform requirements, solution architecture, accountability, lifecycle catalogues, decisions, brand guidance, durable reviews, and historical navigation. It does not contain detailed HR packages, infrastructure source, tenant-private configuration, generated evidence, or real personal data.
+
+## Reading Order
+
+Follow `.github/copilot-instructions.md -> docs/README.md -> lifecycle catalogue -> domain README -> selected artifact and its explicit references`. For new work, start in [Ideas](ideas/README.md), proceed to [Specifications](specs/README.md), then [Implementation Plans](plans/README.md), and use [Reviews](reviews/README.md) or reproducible evidence to determine what happened. Historical questions start in the [Archive](archive/README.md).
+
+## Naming and Lifecycle
+
+Lifecycle READMEs own placement and status routing. Stable identifiers are never reused. A status change updates the owning catalogue in the same pull request, and superseded material links to a maintained successor or archive entry. Catalogue status mirrors child metadata; the child wins if a catalogue drifts.
+
+## Catalogue
+
+Successor links precede the owned child so automated navigation can identify each direct child deterministically.
+
+| Successor or next stage | Direct child | Status | Purpose | Authority |
+|---|---|---|---|---|
+| [Solution design](solution-design.md) | [Platform PRD](prd.md) | Proposed Baseline | Defines platform-wide functional and non-functional requirements. | Platform requirement authority within its metadata status and approved higher governance. |
+| [Architecture decisions](adr/README.md) | [Solution Design](solution-design.md) | Proposed Baseline | Defines platform architecture, boundaries, integration, security, and ALM. | Architecture narrative; Approved ADRs override conflicts. |
+| [HR domain](../hr/README.md) | [HR Journey and RACI](hr-journey-and-raci.md) | Proposed Baseline | Defines the end-to-end HR journey, roles, accountability, and sequencing. | Cross-cutting HR accountability guidance within its metadata status. |
+| [Specifications](specs/README.md) | [Architecture Decision Records](adr/README.md) | Proposed Baseline | Catalogues expensive or irreversible decisions and their rejected alternatives. | Approved repository-level ADRs override conflicting narrative; other records govern as stated. |
+| Use maintained replacements for current work | [Archive](archive/README.md) | Active (consolidated from current state) | Routes historical material to current replacements. | Historical navigation only. |
+| [HR control-plane wireframe design](specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md) | [Brand](brand/README.md) | Proposed Baseline | Owns interim product-theme tokens, Fluent themes, and asset guidance. | Proposed product-theme guidance; not an approved corporate identity standard. |
+| [Specifications](specs/README.md) | [Ideas](ideas/README.md) | Active | Owns permanent repository-wide ideas and lifecycle state. | Intake and routing authority; not implementation authority. |
+| [Durable reviews](reviews/README.md) | [Implementation Plans](plans/README.md) | Active (consolidated from current state) | Catalogues executable plans derived from reviewed specifications. | Plan authority depends on metadata, governing specification, and explicit gates. |
+| Use current evidence for implemented-state claims | [Reviews](reviews/README.md) | Active (consolidated from current state) | Catalogues durable intake, readiness, migration, and acceptance reviews. | Review authority is limited to recorded scope, evidence, and disposition. |
+| [Implementation plans](plans/README.md) | [Specifications](specs/README.md) | Active (consolidated from current state) | Catalogues reviewed designs and behavioral specifications. | Approved specifications govern only their stated scope. |
+
+## Domain Links
+
+- [HR domain](../hr/README.md)
+- [Infrastructure domain](../infra/README.md)
+- [Data domain](../data/README.md)
+- [HR use-case detail](../hr/docs/use-cases/README.md)
+- [Infrastructure documentation](../infra/docs/README.md)
+
+## Board Synchronization
+
+Central ideas record `Deferred - not synchronized`. This knowledge map does not create, infer, or change Azure Boards identifiers.
 
 ## Documentation Policy
 

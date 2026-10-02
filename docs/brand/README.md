@@ -2,16 +2,50 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-10-01 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Solution Experience |
 | **References** | [HR Solution Functional Design Intake](../specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 
-Design tokens, Fluent 2 themes and asset guidance for every user-facing surface of the Caldova HR Agentic Platform — the HR Employee Control Plane App, agent cards in Teams, and any Power Apps code app built on this platform.
+## Purpose and Authority
 
----
+This folder owns interim product-theme tokens, Fluent 2 themes, mockup guidance, and the reserved asset location for user-facing Caldova HR Agentic Platform surfaces. Its Proposed Baseline metadata and provenance statement limit its authority: it is not an approved corporate identity standard.
+
+## Contains and Does Not Contain
+
+This folder contains reusable theme source, a static mockup, and an empty governed asset slot. It does not contain an approved Caldova logo, a corporate design manual, component-specific hard-coded colours, or licensed third-party assets.
+
+## Reading Order
+
+Read this README first, especially provenance and accessibility constraints. Use the CSS tokens for non-React surfaces, the TypeScript theme for Fluent React surfaces, and the static HTML only as a visual reference.
+
+## Naming and Lifecycle
+
+Theme files use the `caldova-` prefix. An approved design standard replaces token values through a reviewed specification and keeps semantic and accessibility behavior explicit. Logo assets are added only when licensed source and usage rules are supplied.
+
+## Catalogue
+
+Non-Markdown assets have no metadata header; their status below derives from this README's Proposed Baseline package status.
+
+| File or path | Status | Purpose | Authority | Successor or next stage |
+|---|---|---|---|---|
+| [`caldova-tokens.css`](caldova-tokens.css) | Maintained asset | Provides CSS custom properties for non-React surfaces. | Interim product-theme implementation governed by this README. | Replace token values only after an approved design standard. |
+| [`caldova-fluent-theme.ts`](caldova-fluent-theme.ts) | Maintained asset | Provides Fluent 2 light and dark React themes. | Interim product-theme implementation governed by this README. | Replace theme values only after an approved design standard. |
+| [`hr-control-plane-mockup.html`](hr-control-plane-mockup.html) | Maintained reference | Demonstrates the theme in the static HR control-plane mockup. | Visual reference only; not application authority. | [Wireframe design](../specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md) |
+| [`assets/`](assets/) | Reserved | Holds future reviewed and licensed brand assets. | Empty until Corporate Communications supplies approved assets and rules. | Add only through reviewed brand governance. |
+
+## Domain Links
+
+- [Documentation knowledge map](../README.md)
+- [HR domain](../../hr/README.md)
+- [HR control-plane wireframe design](../specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md)
+- [Branding migration design](../specs/2026-10-01-caldova-branding-migration-design.md)
+
+## Board Synchronization
+
+Not applicable. Brand assets do not create or infer Azure Boards identifiers.
 
 ## ⚠️ Provenance — read before using these values
 

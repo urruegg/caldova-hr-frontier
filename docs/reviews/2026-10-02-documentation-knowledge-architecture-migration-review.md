@@ -322,3 +322,34 @@ The maintained `docs/archive/phase-2-operating-model/README.md` is the discovery
 | Immutable source-inventory file | Unchanged; SHA-256 `b02025c290613173433d1c09ad9b2c459f01033983603ab677a87f7a09d5598d`. |
 
 No rollback was required.
+
+## Task 5 - Placeholder Retirement and Complete Knowledge Catalogues
+
+Task 5 executed from clean Task 4 commit `1a9dd82d9fabed33b32d8946f545836aef4de8f2` on branch `feat/documentation-knowledge-architecture-cleanup`. The Task 1 migration baseline and the immutable architecture source inventory remained unchanged.
+
+### Disposition
+
+- Removed only the six approved placeholder-only roots: `docs/brandkit/`, `docs/business/`, `docs/delegation/`, `docs/issues/`, `docs/sprints/`, and `docs/templates/`.
+- Confirmed that the previously retired `docs/superpowers/`, `docs/operating-model/`, and `hr/docs/ideas/` roots remain absent.
+- Completed authoritative direct-child catalogues for `docs/ideas/`, `docs/specs/`, `docs/plans/`, `docs/reviews/`, `docs/adr/`, `docs/brand/`, `docs/archive/`, `docs/archive/phase-2-operating-model/`, `hr/docs/use-cases/`, and `infra/docs/`.
+- Added `infra/docs/README.md` as the infrastructure documentation catalogue and updated the platform, HR, infrastructure, and data domain entry points to state purpose, placement, reading order, lifecycle, domain links, and Board synchronization.
+- Preserved the eight immutable Phase 2 snapshots byte-for-byte. Their maintained archive READMEs remain active link-validation surfaces.
+- Updated repository setup validation to require only canonical documentation roots while preserving the existing `.github/*` entries and protected `.github/skills` handling.
+- Reconciled three stale issue-template SHA-256 pins and the stale pull-request heading assertion in the setup validator with the Task 4 artifacts already present at the Task 5 base. No issue template or pull request template changed in Task 5.
+- Strengthened the Docs Agent contract so placement, direct-child catalogue maintenance, successor/archive routing, and `Deferred - not synchronized` are mandatory outputs.
+- Documented the durable Windows convention `%LOCALAPPDATA%\CaldovaHR\wt\<repository>\<short-task-id>` with a current-user write/delete probe and a checkout path budget below 240 characters. The guidance does not enable `core.longpaths`, change ACLs, or require administrator rights.
+- Did not change GitHub workflows, vendored `.github/skills/`, operational stop notices, corpus or evidence bytes, live systems, Azure Boards configuration, the Task 1 baseline manifest, or the immutable source inventory.
+
+### Task 5 validation results
+
+| Command or gate | Outcome |
+|---|---|
+| RED: `DocumentationNavigation.Tests.ps1` | Expected failure observed: 10 passed, 15 failed, 0 container failures; failures identified incomplete catalogues, the missing infrastructure catalogue, and the six approved placeholder roots. |
+| RED: `DocsAgentContract.Tests.ps1` | Expected failure observed: 5 passed, 1 failed; the new mandatory-output contract was absent. |
+| Focused GREEN: navigation and Docs Agent contracts | Passed: 31 passed, 0 failed, 0 skipped, 0 not run. |
+| Required four-file Pester run | Passed: 207 passed, 0 failed, 0 skipped, 0 not run. |
+| First repository setup validation | Failed on three stale Task 4 issue-template hash pins and the stale `## Work item` requirement; investigation confirmed all four governed files were byte-identical to Task 5 HEAD. |
+| Repository setup validation after contract repair | Passed: `Repository setup validation passed.` |
+| `git diff --check` | Passed (exit 0). |
+
+No rollback was required. The one setup-validation failure was retained as diagnostic evidence, repaired at the stale validation contract, and followed by a successful rerun.

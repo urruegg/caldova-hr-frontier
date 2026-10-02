@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-26 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Approved Windows 11 administrator workstation |
@@ -39,6 +39,34 @@ $env:Path = @(
     [Environment]::GetEnvironmentVariable('Path', 'User')
 ) -join ';'
 ```
+
+## External worktree prerequisite
+
+The durable Windows convention is `%LOCALAPPDATA%\CaldovaHR\wt\<repository>\<short-task-id>`. Task worktrees append a reviewed short task ID below the repository root, require no administrator rights, and are removed through `git worktree remove` after branch completion. In this example, `doc-arch` is the reviewed short task ID.
+
+```powershell
+$localAppData = [Environment]::GetFolderPath('LocalApplicationData')
+if ([string]::IsNullOrWhiteSpace($localAppData)) {
+    throw 'LocalApplicationData is unavailable.'
+}
+$worktreeRoot = Join-Path $localAppData 'CaldovaHR\wt'
+$repositoryRoot = Join-Path $worktreeRoot 'caldova-hr-frontier'
+New-Item -ItemType Directory -Path $repositoryRoot -Force | Out-Null
+$probe = Join-Path $repositoryRoot ('.write-probe-{0}.tmp' -f [guid]::NewGuid().ToString('N'))
+[IO.File]::WriteAllText($probe, 'permission-probe', [Text.UTF8Encoding]::new($false))
+Remove-Item -LiteralPath $probe -Force
+$taskRoot = Join-Path $repositoryRoot 'doc-arch'
+$longestRelative = @(
+    git -c core.quotepath=false ls-files |
+        Sort-Object Length -Descending
+)[0]
+$longestCheckoutPath = Join-Path $taskRoot $longestRelative
+if ($longestCheckoutPath.Length -ge 240) {
+    throw "Worktree path budget exceeded: $($longestCheckoutPath.Length)"
+}
+```
+
+Never loosen directory ACLs or enable `core.longpaths` automatically. A failed current-user write/delete probe or path-budget check is a blocking workstation prerequisite.
 
 Run assessment without installation, configuration, or authentication mutation:
 

@@ -31,6 +31,33 @@ Describe 'Documentation agent contract' {
         $agent | Should -Match '(?is)(?:does not|must not).*replace.*(?:tables|requirements|identifiers|prose)'
     }
 
+    It 'owns canonical placement, lifecycle routing, and complete catalogue maintenance' {
+        $agent = Get-Content -LiteralPath (
+            Join-Path $repositoryRoot '.github\agents\docs-agent.agent.md'
+        ) -Raw
+
+        foreach ($phrase in @(
+            'owning README updated in the same pull request'
+            'complete direct-child catalogue'
+            'correct lifecycle and domain placement'
+            'successor/archive link when status changes'
+            'Deferred - not synchronized rather than an invented Board ID'
+        )) {
+            $agent | Should -Match ([regex]::Escape($phrase))
+        }
+
+        foreach ($canonicalPath in @(
+            'docs/ideas/'
+            'docs/specs/'
+            'docs/plans/'
+            'docs/archive/phase-2-operating-model/'
+            'hr/docs/use-cases/'
+            'infra/docs/'
+        )) {
+            $agent | Should -Match ([regex]::Escape($canonicalPath))
+        }
+    }
+
     It 'uses Mermaid for the AI Builder design and field BoM visual explanations' {
         $design = Get-Content -LiteralPath (
             Join-Path $repositoryRoot 'docs\specs\2026-09-25-tenant-2-ai-builder-models-design.md'

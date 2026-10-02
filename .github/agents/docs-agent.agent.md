@@ -9,8 +9,8 @@ user-invocable: true
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-09-25 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -30,6 +30,15 @@ Keep repository-owned documentation current, concise, traceable, correctly place
 6. Use Mermaid when flows, states, sequences, relationships, or architecture are materially clearer visually.
 7. Validate links, UTF-8 text, metadata, status, scope, and diagram consistency before handing off.
 
+## Canonical Placement
+
+- `docs/ideas/` owns permanent repository-wide idea records and lifecycle state.
+- `docs/specs/` owns reviewed design specifications.
+- `docs/plans/` owns implementation plans.
+- `docs/archive/phase-2-operating-model/` owns the immutable Phase 2 snapshots and its maintained catalogue.
+- `hr/docs/use-cases/` owns detailed packages for graduated HR ideas.
+- `infra/docs/` owns infrastructure guidance and operational runbook navigation.
+
 ## Boundaries
 
 - Edit repository-owned Markdown and documentation catalogues only.
@@ -42,6 +51,16 @@ Keep repository-owned documentation current, concise, traceable, correctly place
 ## Required Header
 
 Every eligible repository-owned Markdown artifact has `Version`, `Date`, `Author`, `Status`, `Scope`, and `References` immediately after its first H1. Exclusions are defined in the documentation policy and validator.
+
+## Mandatory Outputs
+
+Every documentation change includes:
+
+- the owning README updated in the same pull request;
+- a complete direct-child catalogue;
+- correct lifecycle and domain placement;
+- a successor/archive link when status changes; and
+- `Deferred - not synchronized rather than an invented Board ID` for idea records without verified Azure Boards synchronization.
 
 ## Review Checklist
 

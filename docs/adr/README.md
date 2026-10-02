@@ -2,35 +2,47 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.3 |
-| **Date** | 2026-10-01 |
+| **Version** | 1.4 |
+| **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
 | **References** | [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [HR Solution Functional Design Intake](../specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 
-**Purpose.** The decisions that are expensive or impossible to reverse, each recorded with the options rejected and the price paid. **This folder answers *why*.** Every other folder answers *what*.
+## Purpose and Authority
+
+This folder owns decisions that are expensive or impossible to reverse, each recorded with the options rejected and the price paid. It answers *why*. Approved repository-level ADRs override conflicting narrative; other statuses govern only as stated in their metadata and decision context.
 
 **Use this folder when** a proposed change contradicts how the platform works, when someone asks why something is the way it is, or when you are about to design around a constraint that exists for a reason.
 
----
+## Contains and Does Not Contain
 
-## The records
+This folder contains architecture decision records. It does not contain design specifications, implementation plans, open-decision lists, runbooks, or implementation evidence.
 
-| ADR | Decision | Status |
-|---|---|---|
-| [0001](0001-azure-devops-as-engineering-control-plane.md) | Azure DevOps as the Engineering Control Plane, GitHub as the Digital Factory | Approved |
-| [0002](0002-github-first-bootstrap-and-the-role-of-azure-repos.md) | GitHub source authority and the ignored local Tenant 1 private-configuration boundary | Approved |
-| [0003](0003-bicep-and-powershell-for-infrastructure-as-code.md) | Bicep and PowerShell for Infrastructure as Code | Proposed Baseline |
-| [0004](0004-domain-solution-architecture-and-publisher.md) | Domain Solution Architecture, Naming and Publisher — adopt the tenant's supplied publisher; realized as `calhr` for Tenant 1 & 2, `gfhr` for Tenant 3 | Proposed Baseline |
-| [0005](0005-workday-as-system-of-record.md) | Workday is the system of record for employee master data | Accepted |
-| [0006](0006-agentic-toolset-and-hr-control-plane.md) | The agentic toolset and HR control plane split, and why a code app | Accepted |
-| [0007](0007-dataverse-process-state-boundary.md) | The Dataverse process-state boundary | Accepted |
-| [0008](0008-human-in-the-loop-and-write-envelope.md) | Human in the loop, and the agent write envelope | Accepted |
-| [0009](0009-workday-access-via-connector-behind-governed-layer.md) | Workday access through the Microsoft connector, behind a governed access layer | Accepted |
-| [0010](0010-organizational-data-service-as-people-context.md) | Organizational Data Service as people context, not an integration path | **Proposed** |
-| [0011](0011-workflow-first-process-architecture.md) | Workflow-first process architecture — the workflow owns the process, the agent owns the judgement | Accepted |
-| [0012](0012-per-tenant-github-repository-and-account-topology.md) | Per-tenant GitHub repository and account topology — one product-source repository and one Azure DevOps project and Basic backlog per tenant | Approved |
+## Reading Order
+
+Start with the [documentation knowledge map](../README.md), select the relevant record below, then read its Context, Options considered, Decision, Consequences, and Compliance sections. Check metadata status before applying it.
+
+## Naming and Lifecycle
+
+Use the next four-digit stable identifier and a lowercase descriptive filename. New decisions start `Proposed`. Supersede rather than rewrite an Approved record, and link the successor from both records and this catalogue.
+
+## Catalogue
+
+| Successor or next stage | ADR | Status | Purpose | Authority |
+|---|---|---|---|---|
+| [Lean platform design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md) | [ADR-0001](0001-azure-devops-as-engineering-control-plane.md) | Approved | Establishes Azure DevOps as the engineering control plane and GitHub as the digital factory. | Repository-level approved decision. |
+| [Lean platform design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md) | [ADR-0002](0002-github-first-bootstrap-and-the-role-of-azure-repos.md) | Approved | Establishes GitHub source authority and the ignored local Tenant 1 configuration boundary. | Repository-level approved decision. |
+| Separate ratification required | [ADR-0003](0003-bicep-and-powershell-for-infrastructure-as-code.md) | Proposed Baseline | Proposes Bicep and PowerShell for infrastructure as code. | Proposed intake decision; not independently approved. |
+| Separate ratification required | [ADR-0004](0004-domain-solution-architecture-and-publisher.md) | Proposed Baseline | Proposes domain solution naming and publisher ownership. | Proposed intake decision; not independently approved. |
+| Caldova ratification pending | [ADR-0005](0005-workday-as-system-of-record.md) | Proposed Baseline | Establishes Workday as the employee master-data system of record. | Accepted within the HR design package; repository metadata remains Proposed Baseline. |
+| Caldova ratification pending | [ADR-0006](0006-agentic-toolset-and-hr-control-plane.md) | Proposed Baseline | Defines the agentic toolset and HR control-plane split. | Accepted within the HR design package; repository metadata remains Proposed Baseline. |
+| Caldova ratification pending | [ADR-0007](0007-dataverse-process-state-boundary.md) | Proposed Baseline | Defines the Dataverse process-state boundary. | Accepted within the HR design package; repository metadata remains Proposed Baseline. |
+| Caldova ratification pending | [ADR-0008](0008-human-in-the-loop-and-write-envelope.md) | Proposed Baseline | Defines human authority and the agent write envelope. | Accepted within the HR design package; repository metadata remains Proposed Baseline. |
+| Caldova ratification pending | [ADR-0009](0009-workday-access-via-connector-behind-governed-layer.md) | Proposed Baseline | Places the Microsoft Workday connector behind a governed access layer. | Accepted within the HR design package; repository metadata remains Proposed Baseline. |
+| Validate product fit before any implementation | [ADR-0010](0010-organizational-data-service-as-people-context.md) | Proposed Baseline | Treats Organizational Data Service as optional people context, not an integration path. | Proposed within the HR design package and not confirmed by Caldova. |
+| Caldova ratification pending | [ADR-0011](0011-workflow-first-process-architecture.md) | Proposed Baseline | Defines workflow-first process architecture. | Accepted within the HR design package; repository metadata remains Proposed Baseline. |
+| [Lean platform design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md) | [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) | Approved | Establishes per-tenant GitHub repository and account topology. | Repository-level approved decision. |
 
 ADRs 0001, 0002, and 0012 are repository-level **Approved** decisions for Option A in the attended [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md). They establish GitHub as sole source authority, Azure Boards Basic as the single backlog, future Azure Pipelines consuming GitHub directly, and ignored local Tenant 1 private configuration. ADRs 0003 and 0004 remain Proposed Baseline candidates from the infrastructure/governance intake. ADRs 0005–0011 are the HR solution architecture set from the Phase 4 intake; their own "Accepted"/"Proposed" status reflects the design package's internal decision tracking and remains pending repository-level ratification. All Accepted records among 0005–0011 are **pending Caldova ratification** — accepted as the design position of that package, not yet countersigned by Caldova.
 
@@ -89,3 +101,15 @@ Each record carries the same sections, and two of them carry most of the value:
 **What deserves an ADR:** anything expensive to reverse — a system of record, a data boundary, an enforcement mechanism, a publisher prefix, a harness choice, a process shape. **What does not:** anything a pull request can undo.
 
 **Still unwritten, and probably owed one:** model lifecycle (D-0010) and the connected-agent envelope rule (D-0011). Both are recorded as open decisions in `prd.md` §10 rather than settled here.
+
+## Domain Links
+
+- [Documentation knowledge map](../README.md)
+- [Specifications](../specs/README.md)
+- [HR domain](../../hr/README.md)
+- [Infrastructure domain](../../infra/README.md)
+- [Data domain](../../data/README.md)
+
+## Board Synchronization
+
+Not applicable. ADRs do not create or infer Azure Boards identifiers.

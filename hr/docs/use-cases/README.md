@@ -34,11 +34,11 @@ This folder contains detailed, reviewable artifacts for graduated HR use cases. 
 - Detailed artifacts stay with their owning package rather than returning to the central idea root.
 - Superseded detail is retained or archived according to the repository documentation lifecycle; it is not silently deleted.
 
-## Complete use-case catalogue
+## Catalogue
 
-| ID | Package | Status | Purpose | Authority | Central idea |
-|---|---|---|---|---|---|
-| UC-0001 | [Personal Master Data Completion Agent](uc-0001-personal-master-data-completion-agent/README.md) | Proposed Baseline | Requirements, BoMs, AI Builder setup, architecture, truth, synthetic corpus, and supporting detail for the selected MVP use case | The package PRD is authoritative for UC-0001 requirements; package artifacts govern their named surfaces | [Graduated record](../../../docs/ideas/uc-0001-personal-master-data-completion-agent.md) |
+| Central idea and next stage | Package | Status | Purpose | Authority |
+|---|---|---|---|---|
+| [Graduated record](../../../docs/ideas/uc-0001-personal-master-data-completion-agent.md) | [Personal Master Data Completion Agent](uc-0001-personal-master-data-completion-agent/README.md) | Proposed Baseline | Requirements, BoMs, AI Builder setup, architecture, truth, synthetic corpus, and supporting detail for the selected MVP use case | The package PRD is authoritative for UC-0001 requirements; package artifacts govern their named surfaces |
 
 ## Domain links
 
@@ -47,3 +47,7 @@ This folder contains detailed, reviewable artifacts for graduated HR use cases. 
 - [Platform requirements](../../../docs/prd.md)
 - [Solution design](../../../docs/solution-design.md)
 - [HR journey and RACI](../../../docs/hr-journey-and-raci.md)
+
+## Board Synchronization
+
+The owning central idea records `Deferred - not synchronized`. This domain catalogue does not create or infer a Board identifier.
