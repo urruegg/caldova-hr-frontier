@@ -1799,7 +1799,11 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                     Should -BeTrue
                 $summary.prerequisites[0].evidenceDigest |
                     Should -BeExactly (
-                        Get-RunbookContentDigest -InputObject $foundationEvidence
+                        (
+                            Get-FileHash `
+                                -LiteralPath $foundationEvidencePath `
+                                -Algorithm SHA256
+                        ).Hash.ToLowerInvariant()
                     )
                 ($summary.actions.id -join ',') |
                     Should -BeExactly 'Foundation,ReadBack'

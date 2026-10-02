@@ -49,30 +49,36 @@ function ConvertTo-TenantLifecycleAcceptanceProjection {
         -AllowedStableIds $AllowedStableIds `
         -AllowedUrlHosts $AllowedUrlHosts
 
-    $assessment = Import-TenantLifecycleDisclosureEvidence `
+    $assessmentRecord = Import-TenantLifecycleDisclosureEvidence `
         -RunDirectory $runRoot `
         -RelativePath 'assessment.json' `
         -Kind Assessment
-    $manifest = Import-TenantLifecycleDisclosureEvidence `
+    $manifestRecord = Import-TenantLifecycleDisclosureEvidence `
         -RunDirectory $runRoot `
         -RelativePath 'execution-manifest.json' `
         -Kind ExecutionManifest
-    $approval = Import-TenantLifecycleDisclosureEvidence `
+    $approvalRecord = Import-TenantLifecycleDisclosureEvidence `
         -RunDirectory $runRoot `
         -RelativePath 'approvals.json' `
         -Kind Approval
-    $state = Import-TenantLifecycleDisclosureEvidence `
+    $stateRecord = Import-TenantLifecycleDisclosureEvidence `
         -RunDirectory $runRoot `
         -RelativePath 'state.json' `
         -Kind State
-    $readBack = Import-TenantLifecycleDisclosureEvidence `
+    $readBackRecord = Import-TenantLifecycleDisclosureEvidence `
         -RunDirectory $runRoot `
         -RelativePath 'read-back.json' `
         -Kind ReadBack
-    $summary = Import-TenantLifecycleDisclosureEvidence `
+    $summaryRecord = Import-TenantLifecycleDisclosureEvidence `
         -RunDirectory $runRoot `
         -RelativePath 'summary.json' `
         -Kind Summary
+    $assessment = $assessmentRecord.Value
+    $manifest = $manifestRecord.Value
+    $approval = $approvalRecord.Value
+    $state = $stateRecord.Value
+    $readBack = $readBackRecord.Value
+    $summary = $summaryRecord.Value
 
     $runId = [string]$manifest.runId
     $sourceCommit = [string]$manifest.sourceCommit
@@ -91,7 +97,7 @@ function ConvertTo-TenantLifecycleAcceptanceProjection {
         [string]$assessment.stateDigest -cne
             [string]$manifest.stateDigest -or
         [string]$manifest.stateDigest -cne
-            (Get-RunbookContentDigest -InputObject $state) -or
+            [string]$stateRecord.ByteDigest -or
         [string]$approval.executionManifestDigest -cne
             [string]$manifest.digest -or
         [string]$summary.manifestDigest -cne [string]$manifest.digest -or
@@ -110,30 +116,41 @@ function ConvertTo-TenantLifecycleAcceptanceProjection {
 
     $manifestActionIds = @($manifest.actions | ForEach-Object { [string]$_.id })
     $approvalScope = @($approval.scope | ForEach-Object { [string]$_ })
-    if ($manifestActionIds.Count -ne $approvalScope.Count) {
-        throw [IO.InvalidDataException]::new(
-            'TenantLifecycle.Disclosure.Correlation'
-        )
-    }
-    for ($index = 0; $index -lt $manifestActionIds.Count; $index++) {
-        if ($manifestActionIds[$index] -cne $approvalScope[$index]) {
-            throw [IO.InvalidDataException]::new(
-                'TenantLifecycle.Disclosure.Correlation'
-            )
-        }
-    }
+    $summaryActionIds = @(
+        $summary.actions |
+            ForEach-Object { [string]$_.id }
+    )
+    $summaryPrerequisiteIds = @(
+        $summary.prerequisites |
+            ForEach-Object { [string]$_.id }
+    )
+    Assert-TenantLifecycleDisclosureIdentifierSet `
+        -Expected $manifestActionIds `
+        -Actual $approvalScope `
+        -ErrorMessage 'TenantLifecycle.Disclosure.Correlation'
+    Assert-TenantLifecycleDisclosureIdentifierSet `
+        -Expected $manifestActionIds `
+        -Actual $summaryActionIds `
+        -ErrorMessage 'TenantLifecycle.Disclosure.ActionEvidence.Correlation'
+    Assert-TenantLifecycleDisclosureIdentifierSet `
+        -Expected $manifestActionIds `
+        -Actual $summaryPrerequisiteIds `
+        -ErrorMessage 'TenantLifecycle.Disclosure.ActionEvidence.Correlation'
 
-    $manifestActions = @{}
+    $manifestActions = [Collections.Generic.Dictionary[string, object]]::new(
+        [StringComparer]::Ordinal
+    )
     foreach ($action in @($manifest.actions)) {
-        $manifestActions[[string]$action.id] = $action
+        $manifestActions.Add([string]$action.id, $action)
     }
-    $summaryPrerequisites = @{}
+    $summaryPrerequisites =
+        [Collections.Generic.Dictionary[string, object]]::new(
+            [StringComparer]::Ordinal
+        )
     foreach ($prerequisite in @($summary.prerequisites)) {
-        $summaryPrerequisites[[string]$prerequisite.id] = $prerequisite
-    }
-    if (@($summary.actions).Count -ne @($summary.prerequisites).Count) {
-        throw [IO.InvalidDataException]::new(
-            'TenantLifecycle.Disclosure.ActionEvidence.Correlation'
+        $summaryPrerequisites.Add(
+            [string]$prerequisite.id,
+            $prerequisite
         )
     }
 
@@ -159,11 +176,12 @@ function ConvertTo-TenantLifecycleAcceptanceProjection {
         }
         $manifestAction = $manifestActions[$actionId]
         $prerequisite = $summaryPrerequisites[$actionId]
-        $evidence = Import-TenantLifecycleDisclosureEvidence `
+        $evidenceRecord = Import-TenantLifecycleDisclosureEvidence `
             -RunDirectory $runRoot `
             -RelativePath "actions/$actionId.json" `
             -Kind ActionEvidence
-        $evidenceDigest = Get-RunbookContentDigest -InputObject $evidence
+        $evidence = $evidenceRecord.Value
+        $evidenceDigest = [string]$evidenceRecord.ByteDigest
         if ([string]$evidence.runId -cne $runId -or
             [string]$evidence.actionId -cne $actionId -or
             [string]$evidence.classification -cne
@@ -213,9 +231,27 @@ function ConvertTo-TenantLifecycleAcceptanceProjection {
         }
     }
 
-    $stateByLogicalName = @{}
+    $stateResourceIds = @(
+        $state.resources |
+            ForEach-Object { [string]$_.logicalName }
+    )
+    $readBackComponentIds = @(
+        $readBack.components |
+            ForEach-Object { [string]$_.id }
+    )
+    Assert-TenantLifecycleDisclosureIdentifierSet `
+        -Expected $stateResourceIds `
+        -Actual $readBackComponentIds `
+        -ErrorMessage 'TenantLifecycle.Disclosure.ReadBack.Correlation'
+    $stateByLogicalName =
+        [Collections.Generic.Dictionary[string, object]]::new(
+            [StringComparer]::Ordinal
+        )
     foreach ($resource in @($state.resources)) {
-        $stateByLogicalName[[string]$resource.logicalName] = $resource
+        $stateByLogicalName.Add(
+            [string]$resource.logicalName,
+            $resource
+        )
     }
     foreach ($component in @($readBack.components)) {
         if (-not $stateByLogicalName.ContainsKey([string]$component.id)) {
@@ -286,13 +322,13 @@ function ConvertTo-TenantLifecycleAcceptanceProjection {
     [Array]::Sort($urlHostValues, [StringComparer]::OrdinalIgnoreCase)
 
     $approvedDigests = [pscustomobject][ordered]@{
-        assessment = [string]$assessment.digest
-        executionManifest = [string]$manifest.digest
-        approval = Get-RunbookContentDigest -InputObject $approval
+        assessment = [string]$assessmentRecord.ByteDigest
+        executionManifest = [string]$manifestRecord.ByteDigest
+        approval = [string]$approvalRecord.ByteDigest
         intent = [string]$manifest.intentDigest
-        state = [string]$manifest.stateDigest
-        readBack = [string]$readBack.digest
-        summary = Get-RunbookContentDigest -InputObject $summary
+        state = [string]$stateRecord.ByteDigest
+        readBack = [string]$readBackRecord.ByteDigest
+        summary = [string]$summaryRecord.ByteDigest
         actions = @($actionDigests.ToArray())
     }
     $coreProjection = [pscustomobject][ordered]@{

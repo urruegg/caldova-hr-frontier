@@ -877,14 +877,21 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                 function New-AcceptanceProjectionEvidence {
                     param(
                         [Parameter(Mandatory)][string]$RunDirectory,
-                        [switch]$CorruptActionDigest
+                        [string]$ApprovedStableId = 'stable-synthetic-001',
+                        [switch]$CaseDriftReadBackComponent,
+                        [switch]$CaseDriftSummaryPrerequisite,
+                        [switch]$CorruptActionDigest,
+                        [switch]$CorruptAssessmentDigest,
+                        [switch]$CorruptReadBackDigest,
+                        [switch]$IncludeUnreportedManifestAction,
+                        [switch]$OmitPrivateReadBackComponent
                     )
 
                     $runId = [guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
                     $runIdText = $runId.ToString('D').ToLowerInvariant()
                     $sourceCommit = 'a' * 40
                     $inputDigest = '9' * 64
-                    $approvedStableId = 'stable-synthetic-001'
+                    $approvedStableId = $ApprovedStableId
                     $urlStableId = (
                         'https://Portal.Example.Invalid/private/path' +
                         '?token=PROHIBITED-TOKEN#private'
@@ -936,13 +943,31 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                         recovery = 'Reassess'
                         evidenceProjection = @('classification', 'status')
                     }
+                    $manifestActions = @($action)
+                    if ($IncludeUnreportedManifestAction) {
+                        $manifestActions += [pscustomobject][ordered]@{
+                            id = 'ReadBack'
+                            provider = 'Synthetic'
+                            classification = 'NoChange'
+                            targetStableId = $approvedStableId
+                            absencePredicate = 'NotPresent'
+                            desiredPropertiesDigest = $inputDigest
+                            preconditionDigest = '7' * 64
+                            prerequisiteActionIds = @('Foundation')
+                            adapter = 'SyntheticAdapter'
+                            shouldProcessTarget = 'SyntheticResource/approved-component'
+                            expectedPostcondition = 'MatchesDesiredProperties'
+                            recovery = 'Reassess'
+                            evidenceProjection = @('classification', 'status')
+                        }
+                    }
                     $manifestParameters = New-EvidenceManifestParameters
                     $manifestParameters.RunId = $runId
                     $manifestParameters.SourceCommit = $sourceCommit
                     $manifestParameters.EvidenceRoot = $RunDirectory
                     $manifestParameters.IntentDigest = '1' * 64
                     $manifestParameters.StateDigest = $stateDigest
-                    $manifestParameters.Actions = @($action)
+                    $manifestParameters.Actions = @($manifestActions)
                     $manifest = New-TenantLifecycleExecutionManifest @manifestParameters
                     $approval = [pscustomobject][ordered]@{
                         schemaVersion = '1.0'
@@ -951,7 +976,10 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                         approverRole = 'TenantLifecycleApprover'
                         approvedAtUtc = '2026-10-02T12:06:00.0000000Z'
                         expiresAtUtc = '2026-10-02T12:35:00.0000000Z'
-                        scope = @('Foundation')
+                        scope = @(
+                            $manifestActions |
+                                ForEach-Object { [string]$_.id }
+                        )
                         status = 'Approved'
                     }
                     $assessment = [pscustomobject][ordered]@{
@@ -999,7 +1027,18 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                             }
                         )
                         prerequisites = @($manifest.prerequisites)
-                        digest = '5' * 64
+                        digest = ''
+                    }
+                    $assessment.digest = Get-RunbookContentDigest -InputObject (
+                        [pscustomobject][ordered]@{
+                            runId = $assessment.runId
+                            sourceCommit = $assessment.sourceCommit
+                            intentDigest = $assessment.intentDigest
+                            stateDigest = $assessment.stateDigest
+                        }
+                    )
+                    if ($CorruptAssessmentDigest) {
+                        $assessment.digest = '5' * 64
                     }
                     $actionEvidence = [pscustomobject][ordered]@{
                         schemaVersion = '1.0'
@@ -1022,21 +1061,34 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                     else {
                         $actionEvidenceDigest
                     }
+                    $readBackComponents = @(
+                        foreach ($resource in $state.resources) {
+                            if ($OmitPrivateReadBackComponent -and
+                                [string]$resource.logicalName -ceq
+                                    'private-component') {
+                                continue
+                            }
+                            [pscustomobject][ordered]@{
+                                id = if ($CaseDriftReadBackComponent -and
+                                    [string]$resource.logicalName -ceq
+                                        'approved-component') {
+                                    'Approved-component'
+                                }
+                                else {
+                                    [string]$resource.logicalName
+                                }
+                                provider = $resource.provider
+                                stableId = $resource.stableId
+                                ownedPropertiesDigest = $resource.ownedPropertiesDigest
+                                status = 'Passed'
+                            }
+                        }
+                    )
                     $readBackWithoutDigest = [pscustomobject][ordered]@{
                         schemaVersion = '1.0'
                         runId = $runIdText
                         generatedAtUtc = '2026-10-02T12:10:00.0000000Z'
-                        components = @(
-                            foreach ($resource in $state.resources) {
-                                [pscustomobject][ordered]@{
-                                    id = $resource.logicalName
-                                    provider = $resource.provider
-                                    stableId = $resource.stableId
-                                    ownedPropertiesDigest = $resource.ownedPropertiesDigest
-                                    status = 'Passed'
-                                }
-                            }
-                        )
+                        components = @($readBackComponents)
                         status = 'Passed'
                     }
                     $readBack = [pscustomobject][ordered]@{
@@ -1046,6 +1098,9 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                         components = @($readBackWithoutDigest.components)
                         status = $readBackWithoutDigest.status
                         digest = Get-RunbookContentDigest -InputObject $readBackWithoutDigest
+                    }
+                    if ($CorruptReadBackDigest) {
+                        $readBack.digest = '6' * 64
                     }
                     $summary = [pscustomobject][ordered]@{
                         schemaVersion = '1.0'
@@ -1064,7 +1119,12 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                             Refused = 0
                         }
                         prerequisites = @([pscustomobject][ordered]@{
-                            id = 'Foundation'
+                            id = if ($CaseDriftSummaryPrerequisite) {
+                                'foundation'
+                            }
+                            else {
+                                'Foundation'
+                            }
                             status = 'Passed'
                             inputDigest = $inputDigest
                             evidenceDigest = $summaryEvidenceDigest
@@ -1204,6 +1264,155 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                 }
                 $projection.artifactDigest |
                     Should -BeExactly (Get-RunbookContentDigest -InputObject $digestInput)
+
+                $artifactPaths = [ordered]@{
+                    assessment = 'assessment.json'
+                    executionManifest = 'execution-manifest.json'
+                    approval = 'approvals.json'
+                    state = 'state.json'
+                    readBack = 'read-back.json'
+                    summary = 'summary.json'
+                }
+                foreach ($name in $artifactPaths.Keys) {
+                    $projection.approvedDigests.$name |
+                        Should -BeExactly (
+                            (
+                                Get-FileHash `
+                                    -LiteralPath (
+                                        Join-Path `
+                                            $script:ProjectionRunDirectory `
+                                            $artifactPaths[$name]
+                                    ) `
+                                    -Algorithm SHA256
+                            ).Hash.ToLowerInvariant()
+                        )
+                }
+                $projection.approvedDigests.actions[0].digest |
+                    Should -BeExactly (
+                        (
+                            Get-FileHash `
+                                -LiteralPath (
+                                    Join-Path `
+                                        $script:ProjectionRunDirectory `
+                                        'actions\Foundation.json'
+                                ) `
+                                -Algorithm SHA256
+                        ).Hash.ToLowerInvariant()
+                    )
+            }
+
+            It 'rejects an assessment whose embedded digest does not bind its contract projection' {
+                New-AcceptanceProjectionEvidence `
+                    -RunDirectory $script:ProjectionRunDirectory `
+                    -CorruptAssessmentDigest |
+                    Out-Null
+
+                {
+                    ConvertTo-TenantLifecycleAcceptanceProjection `
+                        -RunDirectory $script:ProjectionRunDirectory `
+                        -AllowedStableIds @('stable-synthetic-001') `
+                        -AllowedUrlHosts @('portal.example.invalid') `
+                        -OutputPath $script:ProjectionOutputPath
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Disclosure.Evidence.Invalid'
+                )
+
+                $script:ProjectionOutputPath | Should -Not -Exist
+            }
+
+            It 'rejects a read-back whose embedded digest does not bind its contract projection' {
+                New-AcceptanceProjectionEvidence `
+                    -RunDirectory $script:ProjectionRunDirectory `
+                    -CorruptReadBackDigest |
+                    Out-Null
+
+                {
+                    ConvertTo-TenantLifecycleAcceptanceProjection `
+                        -RunDirectory $script:ProjectionRunDirectory `
+                        -AllowedStableIds @('stable-synthetic-001') `
+                        -AllowedUrlHosts @('portal.example.invalid') `
+                        -OutputPath $script:ProjectionOutputPath
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Disclosure.Evidence.Invalid'
+                )
+
+                $script:ProjectionOutputPath | Should -Not -Exist
+            }
+
+            It 'rejects a manifest action omitted from summary actions and prerequisites' {
+                New-AcceptanceProjectionEvidence `
+                    -RunDirectory $script:ProjectionRunDirectory `
+                    -IncludeUnreportedManifestAction |
+                    Out-Null
+
+                {
+                    ConvertTo-TenantLifecycleAcceptanceProjection `
+                        -RunDirectory $script:ProjectionRunDirectory `
+                        -AllowedStableIds @('stable-synthetic-001') `
+                        -AllowedUrlHosts @('portal.example.invalid') `
+                        -OutputPath $script:ProjectionOutputPath
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Disclosure.ActionEvidence.Correlation'
+                )
+
+                $script:ProjectionOutputPath | Should -Not -Exist
+            }
+
+            It 'rejects ordinal case drift in the summary prerequisite action set' {
+                New-AcceptanceProjectionEvidence `
+                    -RunDirectory $script:ProjectionRunDirectory `
+                    -CaseDriftSummaryPrerequisite |
+                    Out-Null
+
+                {
+                    ConvertTo-TenantLifecycleAcceptanceProjection `
+                        -RunDirectory $script:ProjectionRunDirectory `
+                        -AllowedStableIds @('stable-synthetic-001') `
+                        -AllowedUrlHosts @('portal.example.invalid') `
+                        -OutputPath $script:ProjectionOutputPath
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Disclosure.ActionEvidence.Correlation'
+                )
+
+                $script:ProjectionOutputPath | Should -Not -Exist
+            }
+
+            It 'rejects a partial read-back component set' {
+                New-AcceptanceProjectionEvidence `
+                    -RunDirectory $script:ProjectionRunDirectory `
+                    -OmitPrivateReadBackComponent |
+                    Out-Null
+
+                {
+                    ConvertTo-TenantLifecycleAcceptanceProjection `
+                        -RunDirectory $script:ProjectionRunDirectory `
+                        -AllowedStableIds @('stable-synthetic-001') `
+                        -AllowedUrlHosts @('portal.example.invalid') `
+                        -OutputPath $script:ProjectionOutputPath
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Disclosure.ReadBack.Correlation'
+                )
+
+                $script:ProjectionOutputPath | Should -Not -Exist
+            }
+
+            It 'rejects ordinal case drift in the read-back component set' {
+                New-AcceptanceProjectionEvidence `
+                    -RunDirectory $script:ProjectionRunDirectory `
+                    -CaseDriftReadBackComponent |
+                    Out-Null
+
+                {
+                    ConvertTo-TenantLifecycleAcceptanceProjection `
+                        -RunDirectory $script:ProjectionRunDirectory `
+                        -AllowedStableIds @('stable-synthetic-001') `
+                        -AllowedUrlHosts @('portal.example.invalid') `
+                        -OutputPath $script:ProjectionOutputPath
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Disclosure.ReadBack.Correlation'
+                )
+
+                $script:ProjectionOutputPath | Should -Not -Exist
             }
 
             It 'fails closed on an uncorrelated action evidence digest without leaking evidence' {
@@ -1268,6 +1477,58 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                 $script:ProjectionOutputPath | Should -Not -Exist
             }
 
+            It 'rejects host-independent path-shaped stable ID <StableId>' -ForEach @(
+                @{ StableId = 'C:\private\tenant' }
+                @{ StableId = 'C:/private/tenant' }
+                @{ StableId = '\\server\share\tenant' }
+                @{ StableId = '//server/share/tenant' }
+                @{ StableId = '/private/tenant' }
+                @{ StableId = '~/private/tenant' }
+                @{ StableId = '~\private\tenant' }
+                @{ StableId = '../private/tenant' }
+                @{ StableId = '..\private\tenant' }
+                @{ StableId = 'private/tenant' }
+                @{ StableId = 'private\tenant' }
+            ) {
+                [IO.Directory]::CreateDirectory(
+                    $script:ProjectionRunDirectory
+                ) | Out-Null
+
+                {
+                    ConvertTo-TenantLifecycleAcceptanceProjection `
+                        -RunDirectory $script:ProjectionRunDirectory `
+                        -AllowedStableIds @($StableId) `
+                        -AllowedUrlHosts @('portal.example.invalid') `
+                        -OutputPath $script:ProjectionOutputPath
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Disclosure.Allowlist'
+                )
+
+                $script:ProjectionOutputPath | Should -Not -Exist
+            }
+
+            It 'preserves a legitimate opaque stable ID allowlist value' {
+                $stableId = 'opaque:tenant.id_01'
+                New-AcceptanceProjectionEvidence `
+                    -RunDirectory $script:ProjectionRunDirectory `
+                    -ApprovedStableId $stableId |
+                    Out-Null
+
+                ConvertTo-TenantLifecycleAcceptanceProjection `
+                    -RunDirectory $script:ProjectionRunDirectory `
+                    -AllowedStableIds @($stableId) `
+                    -AllowedUrlHosts @('portal.example.invalid') `
+                    -OutputPath $script:ProjectionOutputPath |
+                    Out-Null
+
+                $projection = Get-Content `
+                    -Raw `
+                    -LiteralPath $script:ProjectionOutputPath |
+                    ConvertFrom-Json
+                @($projection.disclosedStableIds) |
+                    Should -BeExactly @($stableId)
+            }
+
             It 'rejects an acceptance projection output inside a Git worktree' {
                 New-AcceptanceProjectionEvidence `
                     -RunDirectory $script:ProjectionRunDirectory |
@@ -1288,6 +1549,72 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                 finally {
                     if (Test-Path -LiteralPath $insideGit) {
                         Remove-Item -LiteralPath $insideGit -Force
+                    }
+                }
+            }
+
+            It 'rejects a real reparse ancestor without creating projection output' {
+                $evidence = New-AcceptanceProjectionEvidence `
+                    -RunDirectory $script:ProjectionRunDirectory
+                $targetDirectory = Join-Path $TestDrive (
+                    "projection-target-$([guid]::NewGuid().ToString('N'))"
+                )
+                $reparseDirectory = Join-Path $TestDrive (
+                    "projection-reparse-$([guid]::NewGuid().ToString('N'))"
+                )
+                [IO.Directory]::CreateDirectory($targetDirectory) | Out-Null
+                $fixture = $null
+                $fixtureErrors = [Collections.Generic.List[string]]::new()
+                foreach ($itemType in @('Junction', 'SymbolicLink')) {
+                    try {
+                        $fixture = New-Item `
+                            -ItemType $itemType `
+                            -Path $reparseDirectory `
+                            -Target $targetDirectory `
+                            -ErrorAction Stop
+                        break
+                    }
+                    catch {
+                        $fixtureErrors.Add(
+                            "$itemType`: $($_.Exception.Message)"
+                        )
+                    }
+                }
+                if ($null -eq $fixture) {
+                    Set-ItResult `
+                        -Skipped `
+                        -Because (
+                            'No supported reparse fixture could be created. ' +
+                            ($fixtureErrors -join ' | ')
+                        )
+                    return
+                }
+
+                $reparseOutput = Join-Path $reparseDirectory 'acceptance.json'
+                $targetOutput = Join-Path $targetDirectory 'acceptance.json'
+                try {
+                    {
+                        ConvertTo-TenantLifecycleAcceptanceProjection `
+                            -RunDirectory $script:ProjectionRunDirectory `
+                            -AllowedStableIds @($evidence.ApprovedStableId) `
+                            -AllowedUrlHosts @('portal.example.invalid') `
+                            -OutputPath $reparseOutput
+                    } | Should -Throw -ExpectedMessage (
+                        'TenantLifecycle.Disclosure.OutputPath'
+                    )
+
+                    $reparseOutput | Should -Not -Exist
+                    $targetOutput | Should -Not -Exist
+                }
+                finally {
+                    if (Test-Path -LiteralPath $reparseDirectory) {
+                        Remove-Item -LiteralPath $reparseDirectory -Force
+                    }
+                    if (Test-Path -LiteralPath $targetDirectory) {
+                        Remove-Item `
+                            -LiteralPath $targetDirectory `
+                            -Recurse `
+                            -Force
                     }
                 }
             }

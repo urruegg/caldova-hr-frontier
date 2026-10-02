@@ -41,6 +41,52 @@ function Test-TenantLifecycleDisclosureDigest {
     }
 }
 
+function Get-TenantLifecycleDisclosureByteDigest {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([Parameter(Mandatory)][byte[]]$Bytes)
+
+    $hash = [Security.Cryptography.SHA256]::Create()
+    try {
+        return [BitConverter]::ToString(
+            $hash.ComputeHash($Bytes)
+        ).Replace('-', '').ToLowerInvariant()
+    }
+    finally {
+        $hash.Dispose()
+    }
+}
+
+function Assert-TenantLifecycleDisclosureIdentifierSet {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$Expected,
+        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$Actual,
+        [Parameter(Mandatory)][string]$ErrorMessage
+    )
+
+    if ($Expected.Count -ne $Actual.Count) {
+        throw [IO.InvalidDataException]::new($ErrorMessage)
+    }
+    $expectedSet = [Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::Ordinal
+    )
+    foreach ($identifier in $Expected) {
+        if (-not $expectedSet.Add($identifier)) {
+            throw [IO.InvalidDataException]::new($ErrorMessage)
+        }
+    }
+    $actualSet = [Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::Ordinal
+    )
+    foreach ($identifier in $Actual) {
+        if (-not $actualSet.Add($identifier) -or
+            -not $expectedSet.Contains($identifier)) {
+            throw [IO.InvalidDataException]::new($ErrorMessage)
+        }
+    }
+}
+
 function Test-TenantLifecycleDisclosureStringSet {
     [CmdletBinding()]
     param(
@@ -240,7 +286,10 @@ function Assert-TenantLifecycleDisclosureAllowlists {
         if ([string]::IsNullOrWhiteSpace($value) -or
             $value.Length -gt 2048 -or
             $value -cmatch '[\x00-\x1f]' -or
-            $value -cmatch '^(?:[A-Za-z]:[\\/]|\\\\)' -or
+            $value -cmatch '[\\/]' -or
+            $value -cmatch '^[A-Za-z]:' -or
+            $value -cmatch '^~' -or
+            $value -cin @('.', '..') -or
             $isHttpUri -or
             -not $stableIds.Add($value)) {
             throw [IO.InvalidDataException]::new(
@@ -377,13 +426,43 @@ function Import-TenantLifecycleDisclosureEvidence {
             [Convert]::ToBase64String($canonicalBytes)) {
             throw [IO.InvalidDataException]::new()
         }
-        if ($Kind -ceq 'ExecutionManifest') {
-            $digest = Get-TenantLifecycleExecutionManifestDigest -Manifest $value
-            if ([string]$value.digest -cne $digest) {
-                throw [IO.InvalidDataException]::new()
+        $embeddedDigest = switch ($Kind) {
+            'Assessment' {
+                Get-RunbookContentDigest -InputObject (
+                    [pscustomobject][ordered]@{
+                        runId = [string]$value.runId
+                        sourceCommit = [string]$value.sourceCommit
+                        intentDigest = [string]$value.intentDigest
+                        stateDigest = [string]$value.stateDigest
+                    }
+                )
+            }
+            'ExecutionManifest' {
+                Get-TenantLifecycleExecutionManifestDigest -Manifest $value
+            }
+            'ReadBack' {
+                Get-RunbookContentDigest -InputObject (
+                    [pscustomobject][ordered]@{
+                        schemaVersion = [string]$value.schemaVersion
+                        runId = [string]$value.runId
+                        generatedAtUtc = $value.generatedAtUtc
+                        components = @($value.components)
+                        status = [string]$value.status
+                    }
+                )
+            }
+            default {
+                $null
             }
         }
-        return $value
+        if ($null -ne $embeddedDigest -and
+            [string]$value.digest -cne $embeddedDigest) {
+                throw [IO.InvalidDataException]::new()
+        }
+        return [pscustomobject][ordered]@{
+            Value = $value
+            ByteDigest = Get-TenantLifecycleDisclosureByteDigest -Bytes $bytes
+        }
     }
     catch {
         throw [IO.InvalidDataException]::new(
