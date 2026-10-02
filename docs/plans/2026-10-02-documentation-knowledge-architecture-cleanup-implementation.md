@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -22,7 +22,7 @@
 ## Global Constraints
 
 - Start execution from commit `a56a521` or a reviewed descendant that contains both approved designs and this plan. At execution time, use `superpowers:using-git-worktrees` to create the isolated branch/worktree selected by that skill.
-- On Windows developer workstations, place external worktrees below `%LOCALAPPDATA%\CaldovaHrFrontier\worktrees\<repository>\<branch>`. Resolve Local AppData with `[Environment]::GetFolderPath('LocalApplicationData')`, create only the task-specific directory, and prove current-user write/delete permission with a unique probe file before `git worktree add`. Do not require elevation or broaden ACLs.
+- On Windows developer workstations, place external worktrees below `%LOCALAPPDATA%\CaldovaHR\wt\<repository>\<short-task-id>`. Resolve Local AppData with `[Environment]::GetFolderPath('LocalApplicationData')`, create only the task-specific directory, and prove current-user write/delete permission with a unique probe file before `git worktree add`. Compute the longest tracked checkout path first and block creation when it would reach 240 characters. Do not enable `core.longpaths`, require elevation, or broaden ACLs as a workaround.
 - Repository-wide lifecycle roots are exactly `docs/ideas/`, `docs/specs/`, and `docs/plans/`.
 - Central idea records remain after graduation. UC-0001 becomes `Graduated`; its detailed package moves to `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/`.
 - Do not preserve, create, infer, rebuild, or modify Azure Boards IDs, links, work items, iterations, teams, areas, or configuration. Central idea rows use `Deferred - not synchronized`.
@@ -942,15 +942,24 @@ $localAppData = [Environment]::GetFolderPath('LocalApplicationData')
 if ([string]::IsNullOrWhiteSpace($localAppData)) {
     throw 'LocalApplicationData is unavailable.'
 }
-$worktreeRoot = Join-Path $localAppData 'CaldovaHrFrontier\worktrees'
+$worktreeRoot = Join-Path $localAppData 'CaldovaHR\wt'
 $repositoryRoot = Join-Path $worktreeRoot 'caldova-hr-frontier'
 New-Item -ItemType Directory -Path $repositoryRoot -Force | Out-Null
 $probe = Join-Path $repositoryRoot ('.write-probe-{0}.tmp' -f [guid]::NewGuid().ToString('N'))
 [IO.File]::WriteAllText($probe, 'permission-probe', [Text.UTF8Encoding]::new($false))
 Remove-Item -LiteralPath $probe -Force
+$taskRoot = Join-Path $repositoryRoot 'doc-arch'
+$longestRelative = @(
+    git -c core.quotepath=false ls-files |
+        Sort-Object Length -Descending
+)[0]
+$longestCheckoutPath = Join-Path $taskRoot $longestRelative
+if ($longestCheckoutPath.Length -ge 240) {
+    throw "Worktree path budget exceeded: $($longestCheckoutPath.Length)"
+}
 ```
 
-State that task worktrees append a sanitized branch name below this repository root, require no administrator rights, and are removed through `git worktree remove` after branch completion. Never loosen directory ACLs automatically; a failed probe is a blocking workstation prerequisite.
+State that task worktrees append a reviewed short task ID below this repository root, require no administrator rights, and are removed through `git worktree remove` after branch completion. Never loosen directory ACLs or enable `core.longpaths` automatically; a failed permission probe or path-budget check is a blocking workstation prerequisite.
 
 - [ ] **Step 8: Run navigation, docs-agent, metadata, links, and setup validation**
 
