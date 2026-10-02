@@ -27,6 +27,9 @@ Export-ModuleMember -Function @(
     'Test-RunbookExecutionManifest',
     'ConvertTo-RunbookEvidenceRecord',
     'Test-TenantLifecycleContract'
+    'Test-TenantLifecyclePrivateBoundary'
+    'Import-TenantLifecycleState'
+    'Update-TenantLifecycleState'
     'Resolve-CloudNativeTool'
     'Test-CloudDelegatedContext'
     'Get-CloudFoundationAssessment'

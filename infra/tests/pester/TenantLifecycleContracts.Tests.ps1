@@ -287,3 +287,357 @@ Describe 'Tenant lifecycle contracts' {
         }
     }
 }
+
+Describe 'Tenant lifecycle intent and state separation' {
+    BeforeAll {
+        $script:RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
+        $script:ModulePath = Join-Path $script:RepositoryRoot 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
+        $fixturePath = Join-Path $script:RepositoryRoot 'infra\tests\fixtures\runbooks\tenant-lifecycle.synthetic.json'
+        $script:Fixture = Get-Content -Raw -LiteralPath $fixturePath | ConvertFrom-Json
+        Import-Module $script:ModulePath -Force
+
+        $script:SyntheticRepositoryRoot = Join-Path $TestDrive 'repository'
+        $script:SyntheticTenantRoot = Join-Path $script:SyntheticRepositoryRoot 'infra\src\config\tenants'
+        $script:IntentPath = Join-Path $script:SyntheticTenantRoot 'tenant1.local.psd1'
+        $script:StatePath = Join-Path $script:SyntheticTenantRoot 'tenant1.state.local.json'
+        [IO.Directory]::CreateDirectory($script:SyntheticTenantRoot) | Out-Null
+
+        function Copy-LifecycleValue {
+            param([Parameter(Mandatory)][object]$InputObject)
+            $InputObject | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+        }
+
+        function Reset-SyntheticPrivatePair {
+            $intent = Get-Content -Raw -LiteralPath (
+                Join-Path $script:RepositoryRoot 'infra\src\config\tenants\_template.psd1'
+            )
+            $intent = $intent.Replace("TenantAlias = 'example123456'", "TenantAlias = 'privatemarker123'")
+            $intent = $intent.Replace('bootstrap-example123456', 'bootstrap-privatemarker123')
+            $intent = $intent.Replace(
+                '    Components = @{}',
+                "    Components = @{$([Environment]::NewLine)        SyntheticResource = @{ Mode = 'Existing'; Id = 'stable-synthetic-001' }$([Environment]::NewLine)    }"
+            )
+            [IO.File]::WriteAllText($script:IntentPath, $intent, [Text.UTF8Encoding]::new($false))
+            [IO.File]::WriteAllText(
+                $script:StatePath,
+                (($script:Fixture.state | ConvertTo-Json -Depth 30 -Compress) + "`n"),
+                [Text.UTF8Encoding]::new($false)
+            )
+        }
+
+        function New-SyntheticGitBoundaryRunner {
+            param(
+                [Parameter(Mandatory)]
+                [AllowEmptyCollection()]
+                [Collections.Generic.List[string]]$Calls
+            )
+
+            {
+                param($FilePath, $ArgumentList)
+
+                $arguments = @($ArgumentList)
+                $command = ($arguments | ForEach-Object { [string]$_ }) -join ' '
+                [void]$Calls.Add("$FilePath $command")
+                $relativeLabel = [string]$arguments[-1]
+                if ($command -match ' check-ignore --quiet -- ') {
+                    return [pscustomobject]@{ exitCode = 0; stdout = ''; stderr = '' }
+                }
+                if ($command -match ' ls-files --error-unmatch -- ') {
+                    return [pscustomobject]@{ exitCode = 1; stdout = ''; stderr = '' }
+                }
+                if ($command -match ' status --porcelain=v1 --ignored --untracked-files=all -- ') {
+                    return [pscustomobject]@{
+                        exitCode = 0
+                        stdout = "!! $relativeLabel"
+                        stderr = ''
+                    }
+                }
+                throw "Unexpected synthetic Git command: $command"
+            }.GetNewClosure()
+        }
+
+        function Invoke-SyntheticPrivateBoundary {
+            param([Parameter(Mandatory)][scriptblock]$Runner)
+
+            Test-TenantLifecyclePrivateBoundary `
+                -PublicTenantKey tenant1 `
+                -IntentPath $script:IntentPath `
+                -StatePath $script:StatePath `
+                -RepositoryRoot $script:SyntheticRepositoryRoot `
+                -NativeCommandRunner $Runner
+        }
+    }
+
+    BeforeEach {
+        Reset-SyntheticPrivatePair
+    }
+
+    It 'exports the intent state and private-boundary functions' {
+        foreach ($name in @(
+            'Test-TenantLifecyclePrivateBoundary',
+            'Import-TenantLifecycleState',
+            'Update-TenantLifecycleState'
+        )) {
+            Get-Command -Name $name -Module Caldova.HrFrontier.Bootstrap -ErrorAction SilentlyContinue |
+                Should -Not -BeNullOrEmpty
+        }
+    }
+
+    It 'rejects absent private files before invoking Git without leaking paths' {
+        Remove-Item -LiteralPath $script:StatePath -Force
+        $calls = [Collections.Generic.List[string]]::new()
+        $runner = New-SyntheticGitBoundaryRunner -Calls $calls
+
+        $message = try {
+            Invoke-SyntheticPrivateBoundary -Runner $runner
+            ''
+        }
+        catch {
+            $_.Exception.Message
+        }
+
+        $message | Should -BeExactly 'TenantLifecycle.PrivateBoundary.Files'
+        $message | Should -Not -Match ([regex]::Escape($script:SyntheticRepositoryRoot))
+        $calls.Count | Should -Be 0
+    }
+
+    It 'rejects paths outside the exact tenant boundary and the tracked template before invoking Git' {
+        $calls = [Collections.Generic.List[string]]::new()
+        $runner = New-SyntheticGitBoundaryRunner -Calls $calls
+        $outsidePath = Join-Path $script:SyntheticRepositoryRoot 'tenant1.local.psd1'
+        Copy-Item -LiteralPath $script:IntentPath -Destination $outsidePath
+
+        {
+            Test-TenantLifecyclePrivateBoundary `
+                -PublicTenantKey tenant1 `
+                -IntentPath $outsidePath `
+                -StatePath $script:StatePath `
+                -RepositoryRoot $script:SyntheticRepositoryRoot `
+                -NativeCommandRunner $runner
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.PrivateBoundary.Path'
+
+        {
+            Test-TenantLifecyclePrivateBoundary `
+                -PublicTenantKey tenant1 `
+                -IntentPath (Join-Path $script:RepositoryRoot 'infra\src\config\tenants\_template.psd1') `
+                -StatePath $script:StatePath `
+                -RepositoryRoot $script:SyntheticRepositoryRoot `
+                -NativeCommandRunner $runner
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.PrivateBoundary.Path'
+
+        $calls.Count | Should -Be 0
+    }
+
+    It 'rejects a wrong public tenant key before invoking Git without leaking private values' {
+        $intent = Get-Content -Raw -LiteralPath $script:IntentPath
+        $intent = $intent.Replace("PublicTenantKey = 'tenant1'", "PublicTenantKey = 'tenant9'")
+        [IO.File]::WriteAllText($script:IntentPath, $intent, [Text.UTF8Encoding]::new($false))
+        $calls = [Collections.Generic.List[string]]::new()
+        $runner = New-SyntheticGitBoundaryRunner -Calls $calls
+
+        $message = try {
+            Invoke-SyntheticPrivateBoundary -Runner $runner
+            ''
+        }
+        catch {
+            $_.Exception.Message
+        }
+
+        $message | Should -BeExactly 'TenantLifecycle.PrivateBoundary.Intent'
+        $message | Should -Not -Match 'privatemarker123|tenant9'
+        $calls.Count | Should -Be 0
+    }
+
+    It 'rejects state-added desired properties and intent classifications' {
+        foreach ($propertyName in @('desiredProperties', 'classification')) {
+            $state = Copy-LifecycleValue $script:Fixture.state
+            $state.resources[0] | Add-Member -NotePropertyName $propertyName -NotePropertyValue 'private-marker'
+            [IO.File]::WriteAllText(
+                $script:StatePath,
+                (($state | ConvertTo-Json -Depth 30 -Compress) + "`n"),
+                [Text.UTF8Encoding]::new($false)
+            )
+
+            {
+                Import-TenantLifecycleState -Path $script:StatePath -PublicTenantKey tenant1
+            } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.Invalid'
+        }
+    }
+
+    It 'rejects a wrong state tenant key and duplicate stable IDs' {
+        $wrongKey = Copy-LifecycleValue $script:Fixture.state
+        $wrongKey.publicTenantKey = 'tenant9'
+        [IO.File]::WriteAllText(
+            $script:StatePath,
+            (($wrongKey | ConvertTo-Json -Depth 30 -Compress) + "`n"),
+            [Text.UTF8Encoding]::new($false)
+        )
+        {
+            Import-TenantLifecycleState -Path $script:StatePath -PublicTenantKey tenant1
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.PublicTenantKey'
+
+        $duplicate = Copy-LifecycleValue $script:Fixture.state
+        $second = Copy-LifecycleValue $duplicate.resources[0]
+        $second.logicalName = 'component-002'
+        $duplicate.resources = @($duplicate.resources) + @($second)
+        [IO.File]::WriteAllText(
+            $script:StatePath,
+            (($duplicate | ConvertTo-Json -Depth 30 -Compress) + "`n"),
+            [Text.UTF8Encoding]::new($false)
+        )
+        {
+            Import-TenantLifecycleState -Path $script:StatePath -PublicTenantKey tenant1
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.Invalid'
+    }
+
+    It 'rejects state resources not present in reviewed intent before invoking Git' {
+        $state = Copy-LifecycleValue $script:Fixture.state
+        $state.resources[0].resourceType = 'UnreviewedResource'
+        [IO.File]::WriteAllText(
+            $script:StatePath,
+            (($state | ConvertTo-Json -Depth 30 -Compress) + "`n"),
+            [Text.UTF8Encoding]::new($false)
+        )
+        $calls = [Collections.Generic.List[string]]::new()
+        $runner = New-SyntheticGitBoundaryRunner -Calls $calls
+
+        {
+            Invoke-SyntheticPrivateBoundary -Runner $runner
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.PrivateBoundary.State'
+        $calls.Count | Should -Be 0
+    }
+
+    It 'rejects tracked or inexactly reported private files' {
+        $trackedRunner = {
+            param($FilePath, $ArgumentList)
+            $command = (@($ArgumentList) | ForEach-Object { [string]$_ }) -join ' '
+            if ($command -match ' check-ignore --quiet -- ') {
+                return [pscustomobject]@{ exitCode = 0; stdout = ''; stderr = '' }
+            }
+            if ($command -match ' ls-files --error-unmatch -- ') {
+                return [pscustomobject]@{ exitCode = 0; stdout = [string]@($ArgumentList)[-1]; stderr = '' }
+            }
+            return [pscustomobject]@{ exitCode = 0; stdout = ''; stderr = '' }
+        }
+        {
+            Invoke-SyntheticPrivateBoundary -Runner $trackedRunner
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.PrivateBoundary.Git'
+
+        $inexactRunner = {
+            param($FilePath, $ArgumentList)
+            $command = (@($ArgumentList) | ForEach-Object { [string]$_ }) -join ' '
+            if ($command -match ' check-ignore --quiet -- ') {
+                return [pscustomobject]@{ exitCode = 0; stdout = ''; stderr = '' }
+            }
+            if ($command -match ' ls-files --error-unmatch -- ') {
+                return [pscustomobject]@{ exitCode = 1; stdout = ''; stderr = '' }
+            }
+            return [pscustomobject]@{ exitCode = 0; stdout = '!! infra/src/config/tenants/decoy.local.json'; stderr = '' }
+        }
+        {
+            Invoke-SyntheticPrivateBoundary -Runner $inexactRunner
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.PrivateBoundary.Git'
+    }
+
+    It 'accepts only the exact ignored and untracked synthetic private pair' {
+        $calls = [Collections.Generic.List[string]]::new()
+        $runner = New-SyntheticGitBoundaryRunner -Calls $calls
+
+        $result = Invoke-SyntheticPrivateBoundary -Runner $runner
+
+        $result.PSObject.Properties.Name -join ',' |
+            Should -BeExactly 'publicTenantKey,intent,state'
+        $result.intent.PSObject.Properties.Name -join ',' |
+            Should -BeExactly 'label,exists,ignored,tracked,schemaValid,digest'
+        $result.state.PSObject.Properties.Name -join ',' |
+            Should -BeExactly 'label,exists,ignored,tracked,schemaValid,digest'
+        $result.publicTenantKey | Should -BeExactly 'tenant1'
+        $result.intent.label | Should -BeExactly 'infra/src/config/tenants/tenant1.local.psd1'
+        $result.state.label | Should -BeExactly 'infra/src/config/tenants/tenant1.state.local.json'
+        $result.intent.exists | Should -BeTrue
+        $result.intent.ignored | Should -BeTrue
+        $result.intent.tracked | Should -BeFalse
+        $result.intent.schemaValid | Should -BeTrue
+        $result.intent.digest | Should -Match '^[0-9a-f]{64}$'
+        $result.state.exists | Should -BeTrue
+        $result.state.ignored | Should -BeTrue
+        $result.state.tracked | Should -BeFalse
+        $result.state.schemaValid | Should -BeTrue
+        $result.state.digest | Should -Match '^[0-9a-f]{64}$'
+        ($result | ConvertTo-Json -Depth 10) |
+            Should -Not -Match 'privatemarker123|SyntheticResource|stable-synthetic|repository'
+
+        $calls.Count | Should -Be 6
+        @($calls | Where-Object { $_ -match ' check-ignore --quiet -- infra/src/config/tenants/tenant1\.local\.psd1$' }).Count |
+            Should -Be 1
+        @($calls | Where-Object { $_ -match ' ls-files --error-unmatch -- infra/src/config/tenants/tenant1\.state\.local\.json$' }).Count |
+            Should -Be 1
+        @($calls | Where-Object { $_ -match ' status --porcelain=v1 --ignored --untracked-files=all -- ' }).Count |
+            Should -Be 2
+    }
+
+    It 'updates only observed fields on an existing state resource after exact read-back' {
+        $state = Copy-LifecycleValue $script:Fixture.state
+        $verifiedResource = [pscustomobject]@{
+            provider = 'Synthetic'
+            resourceType = 'SyntheticResource'
+            logicalName = 'component-001'
+            stableId = 'stable-synthetic-002'
+            ownedPropertiesDigest = 'f' * 64
+            exactReadBack = $true
+        }
+        $now = [datetime]::SpecifyKind([datetime]'2026-10-02T14:30:00', [DateTimeKind]::Utc)
+
+        $updated = Update-TenantLifecycleState `
+            -State $state `
+            -VerifiedResource $verifiedResource `
+            -NowUtc $now
+
+        $state.resources[0].stableId | Should -BeExactly 'stable-synthetic-001'
+        $updated.resources[0].provider | Should -BeExactly 'Synthetic'
+        $updated.resources[0].resourceType | Should -BeExactly 'SyntheticResource'
+        $updated.resources[0].logicalName | Should -BeExactly 'component-001'
+        $updated.resources[0].stableId | Should -BeExactly 'stable-synthetic-002'
+        $updated.resources[0].lastVerifiedAtUtc | Should -BeExactly '2026-10-02T14:30:00.0000000Z'
+        $updated.resources[0].ownedPropertiesDigest | Should -BeExactly ('f' * 64)
+        Test-TenantLifecycleContract -Kind State -InputObject $updated | Should -BeTrue
+    }
+
+    It 'refuses state adoption without exact read-back or a pre-existing reviewed resource' {
+        $state = Copy-LifecycleValue $script:Fixture.state
+        $unverified = [pscustomobject]@{
+            provider = 'Synthetic'
+            resourceType = 'SyntheticResource'
+            logicalName = 'component-001'
+            stableId = 'stable-synthetic-002'
+            ownedPropertiesDigest = 'f' * 64
+            exactReadBack = $false
+        }
+        {
+            Update-TenantLifecycleState `
+                -State $state `
+                -VerifiedResource $unverified `
+                -NowUtc ([datetime]::UtcNow)
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.ReadBack'
+
+        $unknown = Copy-LifecycleValue $unverified
+        $unknown.logicalName = 'component-999'
+        $unknown.exactReadBack = $true
+        {
+            Update-TenantLifecycleState `
+                -State $state `
+                -VerifiedResource $unknown `
+                -NowUtc ([datetime]::UtcNow)
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.Resource'
+
+        $classificationChange = Copy-LifecycleValue $unverified
+        $classificationChange.exactReadBack = $true
+        $classificationChange | Add-Member -NotePropertyName classification -NotePropertyValue 'Manual'
+        {
+            Update-TenantLifecycleState `
+                -State $state `
+                -VerifiedResource $classificationChange `
+                -NowUtc ([datetime]::UtcNow)
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.ReadBack'
+    }
+}
