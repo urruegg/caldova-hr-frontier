@@ -161,29 +161,29 @@ It also makes the platform's boundaries visible: the stages where Workday is aut
 
 ## 7. Use Case Placement
 
-Every candidate from the customer-supplied HR AI use-case workbook, placed in the journey. Full drafts in [`hr/docs/ideas/`](../hr/docs/ideas/README.md).
+Every candidate from the customer-supplied HR AI use-case workbook, placed in the journey. Full drafts in [`docs/ideas/`](../docs/ideas/README.md).
 
 | Stage | Use case | Priority | Complexity | HR owner | Idea |
 |---|---|---|---|---|---|
-| **Hire** | Job Description Generator | High | Low | Talent Acquisition | [UC-0006](../hr/docs/ideas/uc-0006-job-description-generator.md) |
-| **Hire** | Candidate Screening Summary | High | Medium | Talent Acquisition | [UC-0007](../hr/docs/ideas/uc-0007-candidate-screening-summary.md) |
-| **Pre-board** | **Personal Master Data Completion Agent** | **MVP** | Medium | HR Ops CH | [PRD](../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) |
-| **Pre-board** | Pre-hire Process Orchestration | High | High | HR Ops CH | [UC-0017](../hr/docs/ideas/uc-0017-pre-hire-process-orchestration.md) |
-| **Onboard** | Onboarding Assistant | High | Medium | HR Ops | [UC-0005](../hr/docs/ideas/uc-0005-onboarding-assistant.md) |
-| **Onboard** | Onboarding Checklist Rebuild | Medium | Medium | HR Ops CH | [UC-0018](../hr/docs/ideas/uc-0018-onboarding-checklist-rebuild.md) |
-| **Enable** | Learning Recommendation Agent | High | Medium | L&D | [UC-0011](../hr/docs/ideas/uc-0011-learning-recommendation-agent.md) |
-| **Enable** | Performance Review Draft Assistant | High | Low | HRBP | [UC-0013](../hr/docs/ideas/uc-0013-performance-review-draft-assistant.md) |
-| **Enable** | Continuous Performance Insights | High | High | Talent Management | [UC-0014](../hr/docs/ideas/uc-0014-continuous-performance-insights.md) |
-| **Grow** | Skills Inference Engine | High | High | Talent Management | [UC-0016](../hr/docs/ideas/uc-0016-skills-inference-engine.md) |
-| **Grow** | Leadership Pipeline Prediction | High | High | HR Leadership | [UC-0015](../hr/docs/ideas/uc-0015-leadership-pipeline-prediction.md) |
-| **Change** | Salary Benchmark Assistant | Low — Phase 2 | High | Comp & Ben | [UC-0008](../hr/docs/ideas/uc-0008-salary-benchmark-assistant.md) |
-| **Cross — Service Delivery** | HR Policy Chat Assistant | High | Low | HR Ops | [UC-0002](../hr/docs/ideas/uc-0002-hr-policy-chat-assistant.md) |
-| **Cross — Service Delivery** | Employee Self-Service Assistant | High | Medium | Workday Solutions | [UC-0003](../hr/docs/ideas/uc-0003-employee-self-service-assistant.md) |
-| **Cross — Service Delivery** | HR Case Classification Bot | High | Medium | HR Ops | [UC-0004](../hr/docs/ideas/uc-0004-hr-case-classification-bot.md) |
-| **Cross — Operations** | Employee Data Validation Bot | High | Medium | Workday Solutions | [UC-0010](../hr/docs/ideas/uc-0010-employee-data-validation-bot.md) |
-| **Cross — Operations** | Payroll Anomaly Detection | High | High | HR Ops / Local Payroll | [UC-0012](../hr/docs/ideas/uc-0012-payroll-anomaly-detection.md) |
-| **Cross — Analytics** | Workforce Insights Assistant | Medium | High | People Analytics | [UC-0009](../hr/docs/ideas/uc-0009-workforce-insights-assistant.md) |
-| **Cross — Analytics** | Attrition Risk Insight Lite | Medium | High | People Analytics | [UC-0019](../hr/docs/ideas/uc-0019-attrition-risk-insight-lite.md) |
+| **Hire** | Job Description Generator | High | Low | Talent Acquisition | [UC-0006](../docs/ideas/uc-0006-job-description-generator.md) |
+| **Hire** | Candidate Screening Summary | High | Medium | Talent Acquisition | [UC-0007](../docs/ideas/uc-0007-candidate-screening-summary.md) |
+| **Pre-board** | **Personal Master Data Completion Agent** | **MVP** | Medium | HR Ops CH | [PRD](../hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) |
+| **Pre-board** | Pre-hire Process Orchestration | High | High | HR Ops CH | [UC-0017](../docs/ideas/uc-0017-pre-hire-process-orchestration.md) |
+| **Onboard** | Onboarding Assistant | High | Medium | HR Ops | [UC-0005](../docs/ideas/uc-0005-onboarding-assistant.md) |
+| **Onboard** | Onboarding Checklist Rebuild | Medium | Medium | HR Ops CH | [UC-0018](../docs/ideas/uc-0018-onboarding-checklist-rebuild.md) |
+| **Enable** | Learning Recommendation Agent | High | Medium | L&D | [UC-0011](../docs/ideas/uc-0011-learning-recommendation-agent.md) |
+| **Enable** | Performance Review Draft Assistant | High | Low | HRBP | [UC-0013](../docs/ideas/uc-0013-performance-review-draft-assistant.md) |
+| **Enable** | Continuous Performance Insights | High | High | Talent Management | [UC-0014](../docs/ideas/uc-0014-continuous-performance-insights.md) |
+| **Grow** | Skills Inference Engine | High | High | Talent Management | [UC-0016](../docs/ideas/uc-0016-skills-inference-engine.md) |
+| **Grow** | Leadership Pipeline Prediction | High | High | HR Leadership | [UC-0015](../docs/ideas/uc-0015-leadership-pipeline-prediction.md) |
+| **Change** | Salary Benchmark Assistant | Low — Phase 2 | High | Comp & Ben | [UC-0008](../docs/ideas/uc-0008-salary-benchmark-assistant.md) |
+| **Cross — Service Delivery** | HR Policy Chat Assistant | High | Low | HR Ops | [UC-0002](../docs/ideas/uc-0002-hr-policy-chat-assistant.md) |
+| **Cross — Service Delivery** | Employee Self-Service Assistant | High | Medium | Workday Solutions | [UC-0003](../docs/ideas/uc-0003-employee-self-service-assistant.md) |
+| **Cross — Service Delivery** | HR Case Classification Bot | High | Medium | HR Ops | [UC-0004](../docs/ideas/uc-0004-hr-case-classification-bot.md) |
+| **Cross — Operations** | Employee Data Validation Bot | High | Medium | Workday Solutions | [UC-0010](../docs/ideas/uc-0010-employee-data-validation-bot.md) |
+| **Cross — Operations** | Payroll Anomaly Detection | High | High | HR Ops / Local Payroll | [UC-0012](../docs/ideas/uc-0012-payroll-anomaly-detection.md) |
+| **Cross — Analytics** | Workforce Insights Assistant | Medium | High | People Analytics | [UC-0009](../docs/ideas/uc-0009-workforce-insights-assistant.md) |
+| **Cross — Analytics** | Attrition Risk Insight Lite | Medium | High | People Analytics | [UC-0019](../docs/ideas/uc-0019-attrition-risk-insight-lite.md) |
 
 ### Coverage observation
 

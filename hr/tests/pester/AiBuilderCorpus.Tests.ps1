@@ -3,7 +3,7 @@ Set-StrictMode -Version Latest
 BeforeAll {
     $script:root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
     $script:ucRoot = Join-Path $script:root (
-        'hr\docs\ideas\uc-0001-personal-master-data-completion-agent'
+        'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent'
     )
     $script:packages = [ordered]@{
         Fixed = Join-Path $script:ucRoot 'caldova-aib-fixed-template'
@@ -73,8 +73,8 @@ Describe 'AI Builder corpus target paths and truth' {
         )
         $LASTEXITCODE | Should -Be 0
         $corpusPrefixes = @(
-            'hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/'
-            'hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/'
+            'hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/'
+            'hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/documents/'
         )
         $corpusPdfs = @($trackedPdfs | Where-Object {
             $path = $_

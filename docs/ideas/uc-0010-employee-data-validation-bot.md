@@ -7,7 +7,7 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Use Case Portfolio |
-| **References** | [HR Solution Functional Design Intake](../../../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+| **References** | [HR Solution Functional Design Intake](../specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 
 > **Status:** **IN MVP SCOPE** — selected, not yet specified
 > **Journey stage:** Cross-cutting — HR Operations
@@ -23,7 +23,7 @@
 >
 > **Selected.** UC-0010 closes the loop that UC-0001 opens: the completion agent fills the blanks it has documents for, this finds what is still missing or inconsistent across the whole population. Same data, same owner, same quality problem.
 >
-> **Expected shape: workflow-first, agent-light.** If the validation rules are deterministic — and most are — this is a scheduled workflow with an agent node only where a rule cannot express the check. **That is not a lesser outcome.** A Level 3 organisation is one that knows where an agent earns its place; see [ADR-0011](../../../docs/adr/0011-workflow-first-process-architecture.md) and FR-0013.
+> **Expected shape: workflow-first, agent-light.** If the validation rules are deterministic — and most are — this is a scheduled workflow with an agent node only where a rule cannot express the check. **That is not a lesser outcome.** A Level 3 organisation is one that knows where an agent earns its place; see [ADR-0011](../adr/0011-workflow-first-process-architecture.md) and FR-0013.
 >
 > **Not yet specified.** No PRD exists. It graduates into its own folder when one is written — after UC-0001's Definition of Ready is met.
 
@@ -55,7 +55,7 @@ Continuously scans employee master data within Workday to identify missing or in
 
 **Journey stage:** Cross-cutting — HR Operations
 
-See [`hr-journey-and-raci.md`](../../../docs/hr-journey-and-raci.md) for the full journey and the placement of every use case.
+See [`hr-journey-and-raci.md`](../hr-journey-and-raci.md) for the full journey and the placement of every use case.
 
 ---
 
@@ -92,7 +92,7 @@ Honest question worth asking: does this need an agent, or a scheduled report? If
 
 ## 5. Before This Becomes a Requirement
 
-The seven declarations from [`hr-journey-and-raci.md`](../../../docs/hr-journey-and-raci.md) §9 must be answerable:
+The seven declarations from [`hr-journey-and-raci.md`](../hr-journey-and-raci.md) §9 must be answerable:
 
 - [ ] **Write envelope** — what may it write, where, under what conditions?
 - [ ] **Refusal set** — what does it refuse, and what happens then?

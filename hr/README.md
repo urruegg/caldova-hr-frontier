@@ -33,7 +33,7 @@ hr/
     └── solutions/             Power Platform solution source
 ```
 
-**A flat file is an idea. A folder is a commitment.** A use case graduates into a folder — named identically to its use case document — when a PRD is written for it.
+**A central record is an idea. A domain package is a commitment.** Every idea stays in [`docs/ideas/`](../docs/ideas/README.md); a selected HR use case graduates into a matching package under [`docs/use-cases/`](docs/use-cases/README.md) when its detailed artifacts are created.
 
 ---
 
@@ -41,11 +41,11 @@ hr/
 
 | # | Use case | Status |
 |---|---|---|
-| **UC-0001** | [Personal Master Data Completion Agent](docs/ideas/uc-0001-personal-master-data-completion-agent/README.md) | **Specified** — PRD Draft 0.3, pending Definition of Ready |
-| **UC-0010** | [Employee Data Validation](docs/ideas/uc-0010-employee-data-validation-bot.md) | In scope, **no PRD yet** |
-| **UC-0005** | [Onboarding Assistant](docs/ideas/uc-0005-onboarding-assistant.md) | In scope, **no PRD yet** |
+| **UC-0001** | [Personal Master Data Completion Agent](docs/use-cases/uc-0001-personal-master-data-completion-agent/README.md) | **Specified** — PRD Draft 0.3, pending Definition of Ready |
+| **UC-0010** | [Employee Data Validation](../docs/ideas/uc-0010-employee-data-validation-bot.md) | In scope, **no PRD yet** |
+| **UC-0005** | [Onboarding Assistant](../docs/ideas/uc-0005-onboarding-assistant.md) | In scope, **no PRD yet** |
 
-Fifteen further use cases are candidates with no commitment attached. See the [portfolio](docs/ideas/README.md).
+Fifteen further use cases are candidates with no commitment attached. See the [central portfolio](../docs/ideas/README.md).
 
 ---
 

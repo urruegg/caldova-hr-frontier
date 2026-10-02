@@ -1531,7 +1531,7 @@ Describe 'AI Builder field and corpus contracts' {
     BeforeAll {
         $script:RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
         $script:ContractPath = Join-Path $script:RepositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
-        $script:UseCaseRoot = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent'
+        $script:UseCaseRoot = Join-Path $script:RepositoryRoot 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent'
         $script:ExpectedContractVersion = '0.1'
         $script:ExpectedFieldDefinitions = @(
             @{ bom_id = 'BOM-0001-F01'; name = 'candidate_id'; ai_builder_type = 'Text'; normalization = 'text' }
@@ -1578,7 +1578,7 @@ Describe 'AI Builder field and corpus contracts' {
         BeforeAll {
             $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
             $script:Guide = Get-Content -LiteralPath (
-                Join-Path $root 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\ai-builder-model-setup.md'
+                Join-Path $root 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\ai-builder-model-setup.md'
             ) -Raw
             $script:EvidenceReadme = Get-Content -LiteralPath (
                 Join-Path $root 'hr\evidence\ai-builder\README.md'
@@ -1764,8 +1764,8 @@ Describe 'AI Builder field and corpus contracts' {
             $script:CapabilityFieldContractPath = Join-Path $script:CapabilityRepositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
             $script:CapabilityModelSchemaPath = Join-Path $script:CapabilityEvidenceRoot 'model-schema-fixed.json'
             $script:CapabilityModulePath = Join-Path $script:CapabilityRepositoryRoot 'hr\src\scripts\modules\Caldova.HrFrontier.AiBuilder\Caldova.HrFrontier.AiBuilder.psd1'
-            $script:CapabilityFieldBoMPath = Join-Path $script:CapabilityRepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\bom-0001-peopledoc-master-data-ai-builder-fields.md'
-            $script:CapabilityTestBoMPath = Join-Path $script:CapabilityRepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\bom-0002-ai-builder-test-inputs-and-outcomes.md'
+            $script:CapabilityFieldBoMPath = Join-Path $script:CapabilityRepositoryRoot 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\bom-0001-peopledoc-master-data-ai-builder-fields.md'
+            $script:CapabilityTestBoMPath = Join-Path $script:CapabilityRepositoryRoot 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\bom-0002-ai-builder-test-inputs-and-outcomes.md'
             Import-Module $script:CapabilityModulePath -Force
         }
 
@@ -2082,7 +2082,7 @@ Describe 'AI Builder field and corpus contracts' {
             $script:HistoricalTrainingSourcePath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\capture\cap-20260930094537354Z-34bf8987\source\a01-CAND-2026-0411-brunner.pdf'
             $script:TrainingCaptureFolderScreenshotPath = Join-Path $root 'hr\evidence\ai-builder\tenant-2\DEV\t2-dev-20260925-001\task6-upload-failure-folder-empty.png'
             $script:TestBoM = Get-Content -LiteralPath (
-                Join-Path $root 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\bom-0002-ai-builder-test-inputs-and-outcomes.md'
+                Join-Path $root 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\bom-0002-ai-builder-test-inputs-and-outcomes.md'
             ) -Raw
         }
 
@@ -2646,8 +2646,8 @@ Describe 'AI Builder field and corpus contracts' {
             Import-Module $script:ModulePath -Force
             $script:RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
             $script:ContractPath = Join-Path $script:RepositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
-            $script:FixedPath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
-            $script:GeneralPath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents'
+            $script:FixedPath = Join-Path $script:RepositoryRoot 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
+            $script:GeneralPath = Join-Path $script:RepositoryRoot 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents'
         }
 
         It 'creates one pending visual review record per document' {
@@ -3725,8 +3725,8 @@ catch {
 
         It 'refuses to reset an existing manifest and inventory on rerun' {
             $outputDirectory = Join-Path $TestDrive 'run-existing-manifest'
-            $fixedPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
-            $generalPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents'
+            $fixedPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
+            $generalPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents'
             $contractPath = Join-Path $script:RepositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
 
             foreach ($pair in @(
@@ -4420,8 +4420,8 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
                     -ReviewPath $reviewPath -FieldContractPath $script:FieldContractPath
             }
 
-            $fixedPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
-            $generalPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents'
+            $fixedPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
+            $generalPackagePath = Join-Path $script:RepositoryRoot 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents'
             $script:FixedCorpusResult = New-TestAiBuilderConfirmedCorpusResult -PackagePath $fixedPackagePath -ModelKind Fixed
             $script:GeneralCorpusResult = New-TestAiBuilderConfirmedCorpusResult -PackagePath $generalPackagePath -ModelKind General
 
@@ -4526,10 +4526,10 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
 
                 $corpusResult = if ($ModelName -eq 'PersonalMasterDataFixed') { $script:FixedCorpusResult } else { $script:GeneralCorpusResult }
                 $groundTruthRoot = if ($ModelName -eq 'PersonalMasterDataFixed') {
-                    Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
+                    Join-Path $script:RepositoryRoot 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
                 }
                 else {
-                    Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents'
+                    Join-Path $script:RepositoryRoot 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents'
                 }
                 $groundTruthPath = Join-Path $groundTruthRoot 'ground-truth.json'
                 $groundTruth = Get-Content -LiteralPath $groundTruthPath -Raw | ConvertFrom-Json
@@ -4745,7 +4745,7 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
             $historicalGroundTruthPath = Join-Path $historicalPackageRoot 'ground-truth.json'
             New-Item -ItemType Directory -Path $historicalPackageRoot -Force | Out-Null
             Copy-Item -LiteralPath (
-                Join-Path $script:RepositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template\ground-truth.json'
+                Join-Path $script:RepositoryRoot 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template\ground-truth.json'
             ) -Destination $historicalGroundTruthPath
             $manifest = Get-Content -LiteralPath (Join-Path $evidenceRoot 'run-manifest.json') -Raw |
                 ConvertFrom-Json

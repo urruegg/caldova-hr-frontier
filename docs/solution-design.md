@@ -18,7 +18,7 @@
 
 ## 1. Purpose
 
-This document describes **how** the Caldova HR agentic platform is built. The [PRD](../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) describes what the first agent must do; this describes the architecture it runs on, and the architecture every subsequent use case will reuse.
+This document describes **how** the Caldova HR agentic platform is built. The [PRD](../hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) describes what the first agent must do; this describes the architecture it runs on, and the architecture every subsequent use case will reuse.
 
 It is written so the second use case costs materially less than the first.
 

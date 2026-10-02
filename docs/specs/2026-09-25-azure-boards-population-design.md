@@ -7,7 +7,7 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure (Tenant 1) |
-| **References** | [ADR-0001](../adr/0001-azure-devops-as-engineering-control-plane.md), [Azure DevOps and GitHub Single Source of Truth](2026-09-24-azure-devops-github-single-source-of-truth-design.md), [Tenant Trust Activation Design](2026-09-24-tenant-trust-activation-design.md), [HR Use Case Portfolio](../../hr/docs/ideas/README.md), [`docs/prd.md`](../prd.md) |
+| **References** | [ADR-0001](../adr/0001-azure-devops-as-engineering-control-plane.md), [Azure DevOps and GitHub Single Source of Truth](2026-09-24-azure-devops-github-single-source-of-truth-design.md), [Tenant Trust Activation Design](2026-09-24-tenant-trust-activation-design.md), [HR Use Case Portfolio](../ideas/README.md), [`docs/prd.md`](../prd.md) |
 
 ## Status
 

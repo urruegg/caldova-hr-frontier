@@ -34,7 +34,7 @@ The design record for a **pure agentic, Frontier-driven HR organisation** positi
 | Question | File | Not |
 |---|---|---|
 | What must the platform do, always | `docs/prd.md` | A use-case PRD — it inherits, it does not restate |
-| What must *this* use case do | `hr/docs/ideas/<uc>/prd-xxxx-<context>.md` | `docs/prd.md` — it is use-case-agnostic |
+| What must *this* use case do | `hr/docs/use-cases/<uc>/prd-xxxx-<context>.md` | `docs/prd.md` — it is use-case-agnostic |
 | How is it built | `docs/solution-design.md` | `docs/prd.md` |
 | Who is accountable | `docs/hr-journey-and-raci.md` §5–6 | — |
 | **Why** was it decided, what was rejected | `docs/adr/` | Any other document |

@@ -6,8 +6,8 @@
 | **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
-| **Scope** | HR Use Case Portfolio |
-| **References** | [HR Solution Functional Design Intake](../../../../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+| **Scope** | HR Use-Case Detail |
+| **References** | [Central idea record](../../../../docs/ideas/uc-0001-personal-master-data-completion-agent.md), [HR Solution Functional Design Intake](../../../../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 
 **Purpose.** Everything specific to the **selected MVP use case**. This is the only use case in the portfolio that has advanced past idea, and this folder is the pattern every future selected use case follows.
 
@@ -21,7 +21,7 @@
 
 | Document | What it is | Authority |
 |---|---|---|
-| [`uc-0001-personal-master-data-completion-agent.md`](uc-0001-personal-master-data-completion-agent.md) | The use case: what it does, where it sits in the journey, platform fit, assessment | Orientation |
+| [Central idea record](../../../../docs/ideas/uc-0001-personal-master-data-completion-agent.md) | The use case: what it does, where it sits in the journey, platform fit, assessment | Orientation |
 | [`prd-0001-personal-master-data-completion-agent.md`](prd-0001-personal-master-data-completion-agent.md) | **The requirements.** Draft 0.2, superseding the customer-supplied UC-0001 draft PRD. Business rules, functional and non-functional requirements, acceptance criteria, open decisions, risks | **Authoritative for this use case** |
 | [`bom-0001-peopledoc-master-data-ai-builder-fields.md`](bom-0001-peopledoc-master-data-ai-builder-fields.md) | Repository-owned traceability for the 17 AI Builder fields from design through tenant-specific implementation evidence; not the customer-supplied UC-0001 artefact inventory of 60+ items | **Authoritative for AI Builder field lifecycle status** |
 | [`bom-0002-ai-builder-test-inputs-and-outcomes.md`](bom-0002-ai-builder-test-inputs-and-outcomes.md) | Repository-owned run-level traceability from qualified test inputs to model metrics, findings, and evidence | **Authoritative for AI Builder test-run input and outcome summaries** |
@@ -77,16 +77,15 @@ This use case does **not** restate platform requirements — it inherits them, a
 
 ## The pattern for future use cases
 
-When a use case is selected, it graduates from a flat idea document into a folder:
+When a use case is selected, its central idea record is retained and detailed artifacts graduate into the HR domain:
 
 ```text
-ideas/uc-nnnn-<context>/
+hr/docs/use-cases/uc-nnnn-<context>/
 ├── README.md                      this file's equivalent
-├── uc-nnnn-<context>.md           the use case (moved from ideas/)
 └── prd-nnnn-<context>.md          the requirements (new)
 ```
 
-The folder name matches the use case document name exactly. Later artefacts — test plans, field mappings, evaluation sets — join them here rather than scattering across the repository.
+The folder name matches the retained central idea filename. Later artefacts — test plans, field mappings, evaluation sets — join them here rather than scattering across the repository.
 
 ---
 

@@ -46,11 +46,12 @@ docs/
 ├── prd.md                    Platform requirements — FR-0001…, NFR-0001…, roles, gates
 ├── solution-design.md        Architecture — layers, components, integration, security, ALM
 ├── hr-journey-and-raci.md    The HR journey, roles, RACI, use-case placement, sequencing
+├── ideas/                    Permanent repository-wide idea records and lifecycle catalogue
 ├── adr/                      Decision records (12: 5 infra/governance, 7 HR solution) — why, what was rejected, what it costs
 └── brand/                    BrandKit — tokens, Fluent themes, logo guidance
 ```
 
-The use case portfolio moved to **[`hr/docs/ideas/`](../hr/docs/ideas/README.md)** when the repository adopted domain roots. This folder is platform-only.
+The repository-wide idea portfolio is centralized in **[`docs/ideas/`](ideas/README.md)**. Detailed artifacts for graduated HR use cases live in **[`hr/docs/use-cases/`](../hr/docs/use-cases/README.md)**.
 
 ---
 
@@ -59,7 +60,7 @@ The use case portfolio moved to **[`hr/docs/ideas/`](../hr/docs/ideas/README.md)
 | If the question is about… | Read | Not |
 |---|---|---|
 | What the platform must do, for every use case | `prd.md` | A use-case PRD — it inherits these, it does not restate them |
-| What a *specific* use case must do | `hr/docs/ideas/<uc>/prd-xxxx-<context>.md` | `prd.md` — it is deliberately use-case-agnostic |
+| What a *specific* use case must do | `hr/docs/use-cases/<uc>/prd-xxxx-<context>.md` | `prd.md` — it is deliberately use-case-agnostic |
 | How something is built, and with what | `solution-design.md` | `prd.md` — requirements are not implementation |
 | Who does what, and who is accountable | `hr-journey-and-raci.md` §5–6 | `prd.md` §6, which is platform-level only |
 | **Why** a choice was made, and what was rejected | `adr/` | Any other document — they state the *what*, not the *why* |
@@ -156,7 +157,7 @@ The original Proposed Baseline product/HR operating model is superseded by the d
 |---|---|
 | [operating-model/00-05](operating-model/00-north-star.md) | `prd.md`, `solution-design.md`, `hr-journey-and-raci.md` |
 | [90 Microsoft Best Practice Evaluation](90-microsoft-best-practice-evaluation.md) | A fresh evaluation against the new design is not yet performed — treat this as historical only |
-| [HR Employee Journey (Phase 2)](../hr/docs/20-hr-employee-journey.md) | `hr-journey-and-raci.md`, `hr/docs/ideas/` |
+| [HR Employee Journey (Phase 2)](../hr/docs/20-hr-employee-journey.md) | `hr-journey-and-raci.md`, `ideas/`, `hr/docs/use-cases/` |
 
 ---
 

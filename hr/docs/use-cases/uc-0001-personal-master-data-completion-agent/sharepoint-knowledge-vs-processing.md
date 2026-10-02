@@ -239,7 +239,7 @@ Three rules govern the only permitted path:
 |---|---|
 | [`document-intake-architecture.md`](document-intake-architecture.md) §5 | The blanket "no personal data in metadata" rule is replaced by §6 above |
 | UC-0020 | The `Drafts/` → indexed-library move **is** the propose-only control, now architectural |
-| [UC-0002](../uc-0002-hr-policy-chat-assistant.md) | Grounding scope names the knowledge libraries explicitly — never a hub or a broad scope |
+| [UC-0002](../../../../docs/ideas/uc-0002-hr-policy-chat-assistant.md) | Grounding scope names the knowledge libraries explicitly — never a hub or a broad scope |
 | [Solution Design §4.5](../../../../docs/solution-design.md) | SharePoint Advanced Management is a **licensing prerequisite** for RCD, alongside the Copilot licence |
 
 ---

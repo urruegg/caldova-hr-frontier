@@ -115,4 +115,4 @@ The seven declarations from [`docs/hr-journey-and-raci.md`](docs/hr-journey-and-
 
 write envelope · refusal set · escalation path · grounding sources · data classification · employment-decision surface · measurement
 
-**A use case that cannot answer all seven is not ready, whatever its business value.** For UC-0001 specifically, the Definition of Ready is in its [PRD](hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) §13 — and it is not yet met.
+**A use case that cannot answer all seven is not ready, whatever its business value.** For UC-0001 specifically, the Definition of Ready is in its [PRD](hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) §13 — and it is not yet met.

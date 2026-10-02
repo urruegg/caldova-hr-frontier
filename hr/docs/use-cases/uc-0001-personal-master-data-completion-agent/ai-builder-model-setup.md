@@ -7,7 +7,7 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | UC-0001 attended AI Builder model build and evaluation in Tenant 2 DEV |
-| **References** | [AI Builder Evaluation Capture Design Addendum](../../../../docs/superpowers/specs/2026-09-29-ai-builder-evaluation-capture-design.md), [Tenant 2 AI Builder Model Implementation Design](../../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md), [AI Builder Field BoM](./bom-0001-peopledoc-master-data-ai-builder-fields.md), [AI Builder Test BoM](./bom-0002-ai-builder-test-inputs-and-outcomes.md), [AI Builder evidence contract](../../../evidence/ai-builder/README.md) |
+| **References** | [Central idea record](../../../../docs/ideas/uc-0001-personal-master-data-completion-agent.md), [AI Builder Evaluation Capture Design Addendum](../../../../docs/superpowers/specs/2026-09-29-ai-builder-evaluation-capture-design.md), [Tenant 2 AI Builder Model Implementation Design](../../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md), [AI Builder Field BoM](./bom-0001-peopledoc-master-data-ai-builder-fields.md), [AI Builder Test BoM](./bom-0002-ai-builder-test-inputs-and-outcomes.md), [AI Builder evidence contract](../../../evidence/ai-builder/README.md) |
 
 This attended procedure resumes run `t2-dev-20260925-001` after Tasks 1-6 completed corpus qualification, readiness, fixed-model training, secured flow creation, and one immutable training-proof observation. It preserves the historical blocked event at [`model-test-capability.json`](../../../evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/model-test-capability.json) and both blocked upload attempts while preparing the captured bytes for deterministic replay.
 
@@ -293,7 +293,7 @@ Import the fixed holdout captures and calculate the evaluation:
     -FieldContractPath '.\hr\src\ai-builder\contracts\field-contract.json' `
     -ModelSchemaRecordPath "$evidenceDirectory\model-schema-record-fixed.json" `
     -PredictionCapturePath "$evidenceDirectory\prediction-capture-fixed.json" `
-    -GroundTruthPath '.\hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template\ground-truth.json' `
+    -GroundTruthPath '.\hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template\ground-truth.json' `
     -EvidenceDirectory $evidenceDirectory
 ```
 

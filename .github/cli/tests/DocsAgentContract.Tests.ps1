@@ -37,7 +37,7 @@ Describe 'Documentation agent contract' {
         ) -Raw
         $bom = Get-Content -LiteralPath (
             Join-Path $repositoryRoot (
-                'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\' +
+                'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\' +
                 'bom-0001-peopledoc-master-data-ai-builder-fields.md'
             )
         ) -Raw
@@ -48,7 +48,7 @@ Describe 'Documentation agent contract' {
 
     It 'provides a traceable AI Builder test input and outcome BoM' {
         $relativePath = (
-            'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\' +
+            'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\' +
             'bom-0002-ai-builder-test-inputs-and-outcomes.md'
         )
         $path = Join-Path $repositoryRoot $relativePath
@@ -71,7 +71,7 @@ Describe 'Documentation agent contract' {
 
         $catalogue = Get-Content -LiteralPath (
             Join-Path $repositoryRoot (
-                'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\README.md'
+                'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\README.md'
             )
         ) -Raw
         $catalogue | Should -Match ([regex]::Escape('bom-0002-ai-builder-test-inputs-and-outcomes.md'))

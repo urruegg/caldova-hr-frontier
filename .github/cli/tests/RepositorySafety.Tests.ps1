@@ -143,7 +143,7 @@ Describe 'Core repository safety validation' {
     }
 
     It 'treats PDF corpus files as binary on every Git installation' {
-        $pdfPath = 'hr/docs/ideas/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/a-personalblatt/a01-CAND-2026-0411-brunner.pdf'
+        $pdfPath = 'hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/documents/a-personalblatt/a01-CAND-2026-0411-brunner.pdf'
 
         $attributes = @(
             & $script:gitPath -C $script:repositoryRoot check-attr text diff merge -- $pdfPath

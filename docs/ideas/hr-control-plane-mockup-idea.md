@@ -7,19 +7,19 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | HR Use Case Portfolio |
-| **References** | [HR Solution Functional Design Intake](../../../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md), [BrandKit](../../../docs/brand/README.md) |
+| **References** | [HR Solution Functional Design Intake](../specs/2026-09-24-hr-solution-functional-design-intake-design.md), [BrandKit](../brand/README.md) |
 
 **This is an internal design exploration, not one of the 19 customer-stated use cases.** It does not appear in the customer-supplied HR AI use-case workbook and carries no `UC-nnnn` identifier for that reason — conflating it with the customer-stated portfolio would misattribute an internal idea as customer-stated fact, which the evidence rules in [`README.md`](README.md) forbid.
 
 ## What this is
 
-[`hr-control-plane-mockup.html`](hr-control-plane-mockup.html) is a static HTML mockup of an HR Employee Control Plane cockpit surface — the kind of operational dashboard [`docs/solution-design.md`](../../../docs/solution-design.md) describes for reviewing agent runs, field actions and exceptions. It is a visual exploration, not a built artefact, and nothing in the platform depends on it.
+[`hr-control-plane-mockup.html`](hr-control-plane-mockup.html) is a static HTML mockup of an HR Employee Control Plane cockpit surface — the kind of operational dashboard [`docs/solution-design.md`](../solution-design.md) describes for reviewing agent runs, field actions and exceptions. It is a visual exploration, not a built artefact, and nothing in the platform depends on it.
 
 **Treat it as an idea to explore later.** It is not scheduled, not committed, and not part of the MVP (UC-0001, UC-0010, UC-0005). Revisit it once the control-plane app design in `docs/solution-design.md` §4.1 is ready to move from narrative to a concrete UI pass.
 
 ## A known discrepancy, flagged rather than silently fixed
 
-This copy is **not identical** to the mockup already committed at [`docs/brand/hr-control-plane-mockup.html`](../../../docs/brand/hr-control-plane-mockup.html) — same structure and size, but two CSS variables carry older values that the BrandKit document explicitly records as corrected for accessibility:
+This copy is **not identical** to the mockup already committed at [`docs/brand/hr-control-plane-mockup.html`](../brand/hr-control-plane-mockup.html) — same structure and size, but two CSS variables carry older values that the BrandKit document explicitly records as corrected for accessibility:
 
 | Variable | This copy | `docs/brand/` copy (corrected, canonical) |
 |---|---|---|

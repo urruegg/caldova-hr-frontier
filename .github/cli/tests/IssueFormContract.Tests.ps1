@@ -150,10 +150,11 @@ Describe 'CODEOWNERS contract' {
             '/AGENTS.md',
             '/docs/',
             '/docs/adr/',
+            '/docs/ideas/',
             '/docs/prd.md',
             '/infra/',
             '/hr/',
-            '/hr/docs/ideas/',
+            '/hr/docs/use-cases/',
             '/hr/src/solutions/',
             '/data/'
         )) {
@@ -162,7 +163,15 @@ Describe 'CODEOWNERS contract' {
             $matchingEntries[0].Owners | Should -BeExactly '@urruegg'
         }
 
-        $approvedScheduledDirectories = @('/infra/', '/hr/', '/hr/docs/ideas/', '/hr/src/solutions/', '/data/', '/docs/adr/')
+        $approvedScheduledDirectories = @(
+            '/infra/',
+            '/hr/',
+            '/hr/docs/use-cases/',
+            '/hr/src/solutions/',
+            '/data/',
+            '/docs/adr/',
+            '/docs/ideas/'
+        )
         foreach ($entry in $entries) {
             if ($entry.Pattern -ceq '*') {
                 continue

@@ -7,7 +7,7 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | UC-0001 AI Builder test-run input and outcome traceability |
-| **References** | [Tenant 2 AI Builder Model Implementation Design](../../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md), [PeopleDoc Master Data AI Builder Field BoM](bom-0001-peopledoc-master-data-ai-builder-fields.md), [UC-0001 PRD](prd-0001-personal-master-data-completion-agent.md) |
+| **References** | [Central idea record](../../../../docs/ideas/uc-0001-personal-master-data-completion-agent.md), [Tenant 2 AI Builder Model Implementation Design](../../../../docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md), [PeopleDoc Master Data AI Builder Field BoM](bom-0001-peopledoc-master-data-ai-builder-fields.md), [UC-0001 PRD](prd-0001-personal-master-data-completion-agent.md) |
 
 ## 1. Purpose and Authority
 

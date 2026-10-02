@@ -7,7 +7,7 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | HR Solution Architecture - Tenant 2 DEV AI Builder models |
-| **References** | [UC-0001 PRD](../../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md), [PeopleDoc Master Data AI Builder Field BoM](../../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md), [AI Builder Test Inputs and Outcomes BoM](../../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md), [ADR-0011](../../adr/0011-workflow-first-process-architecture.md), [Power Platform Solution Foundation Design](../../specs/2026-09-24-power-platform-solution-foundation-design.md) |
+| **References** | [UC-0001 PRD](../../../hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md), [PeopleDoc Master Data AI Builder Field BoM](../../../hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md), [AI Builder Test Inputs and Outcomes BoM](../../../hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md), [ADR-0011](../../adr/0011-workflow-first-process-architecture.md), [Power Platform Solution Foundation Design](../../specs/2026-09-24-power-platform-solution-foundation-design.md) |
 
 ## 1. Objective
 
@@ -27,7 +27,7 @@ This design establishes Tenant 2 as one independent development box. Tenant 1 is
 This design applies the following existing decisions and requirements:
 
 - [ADR-0011](../../adr/0011-workflow-first-process-architecture.md) requires deterministic extraction before any agent reasoning. These two models are candidate Tier 1 extraction components.
-- The [UC-0001 PRD](../../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) requires extraction of approved fields, confidence handling, source traceability, and no invented data. The implementation produces evidence for D-05 and D-17; it does not close those decisions.
+- The [UC-0001 PRD](../../../hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) requires extraction of approved fields, confidence handling, source traceability, and no invented data. The implementation produces evidence for D-05 and D-17; it does not close those decisions.
 - Workday remains the system of record. This implementation does not connect to or write to Workday.
 - Dataverse may hold platform and process configuration. This implementation does not create an employee master-data store.
 - No model or agent makes a decision about a person.
@@ -156,7 +156,7 @@ The families deliberately cover prose, letters, two-column layouts, tables, cent
 
 ### 5.3 Common field contract
 
-Both models define exactly the following fields. The BoM ID provides stable field-level traceability to the [PeopleDoc Master Data AI Builder Field BoM](../../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md), which is authoritative for design status, per-model implementation stage, verification status and evidence. This section remains authoritative for the model contract.
+Both models define exactly the following fields. The BoM ID provides stable field-level traceability to the [PeopleDoc Master Data AI Builder Field BoM](../../../hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md), which is authoritative for design status, per-model implementation stage, verification status and evidence. This section remains authoritative for the model contract.
 
 | BoM ID | Field | AI Builder type | Contract rule |
 |---|---|---|---|
@@ -338,7 +338,7 @@ Validation produces one record for every held-out document and every contract fi
 | `exact_match` | Exact normalized equality |
 | `error_class` | Empty on match; otherwise missing, incorrect, false value, or invalid format |
 
-The [AI Builder Test Inputs and Outcomes BoM](../../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md) summarizes each model execution. The machine-readable result records remain authoritative for calculated metrics and findings.
+The [AI Builder Test Inputs and Outcomes BoM](../../../hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md) summarizes each model execution. The machine-readable result records remain authoritative for calculated metrics and findings.
 
 ### 8.2 Normalization
 

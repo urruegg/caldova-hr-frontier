@@ -14,7 +14,8 @@
 
 # HR domain
 /hr/                        @urruegg
-/hr/docs/ideas/              @urruegg
+/docs/ideas/                 @urruegg
+/hr/docs/use-cases/          @urruegg
 /hr/src/solutions/          @urruegg
 
 # Infrastructure — unchanged ownership, untouched by this intake

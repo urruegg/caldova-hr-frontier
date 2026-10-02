@@ -7,7 +7,7 @@
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Use Case Portfolio |
-| **References** | [HR Solution Functional Design Intake](../../../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+| **References** | [HR Solution Functional Design Intake](../specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
 
 > **Status:** Idea — draft for review
 > **Journey stage:** Grow
@@ -46,7 +46,7 @@ Infers employee skills by analysing job history and project assignments.
 
 **Journey stage:** Grow
 
-See [`hr-journey-and-raci.md`](../../../docs/hr-journey-and-raci.md) for the full journey and the placement of every use case.
+See [`hr-journey-and-raci.md`](../hr-journey-and-raci.md) for the full journey and the placement of every use case.
 
 ---
 
@@ -84,7 +84,7 @@ This is a dependency for [UC-11](uc-0011-learning-recommendation-agent.md). Sequ
 
 ## 5. Before This Becomes a Requirement
 
-The seven declarations from [`hr-journey-and-raci.md`](../../../docs/hr-journey-and-raci.md) §9 must be answerable:
+The seven declarations from [`hr-journey-and-raci.md`](../hr-journey-and-raci.md) §9 must be answerable:
 
 - [ ] **Write envelope** — what may it write, where, under what conditions?
 - [ ] **Refusal set** — what does it refuse, and what happens then?

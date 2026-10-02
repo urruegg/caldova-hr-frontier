@@ -144,6 +144,6 @@ Steps 5 and 6 are the ones that get skipped under time pressure, and they are th
 
 ## References
 
-- [`prd-0001-personal-master-data-completion-agent.md`](../../hr/docs/ideas/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) §6, §9
+- [`prd-0001-personal-master-data-completion-agent.md`](../../hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) §6, §9
 - [`solution-design.md`](../solution-design.md) §4.4, §6.2
 - [`hr-journey-and-raci.md`](../hr-journey-and-raci.md) §6

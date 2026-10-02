@@ -153,6 +153,14 @@ Describe 'Test-DocumentationMetadataContent valid documents' {
 			Should -Be 0
 	}
 
+	It 'accepts Graduated for a retained idea record' {
+		$content = New-ValidMetadataDocument -Status 'Graduated'
+		@(Test-DocumentationMetadataContent `
+			-Content $content `
+			-DocumentRelativePath 'docs/ideas/uc-0001-example.md').Count |
+			Should -Be 0
+	}
+
 	It 'accepts agent YAML frontmatter before the H1' {
 		$content = @(
 			'---'

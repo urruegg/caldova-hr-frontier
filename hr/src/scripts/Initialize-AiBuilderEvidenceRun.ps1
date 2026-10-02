@@ -37,8 +37,8 @@ function Get-InitializerRevisionHash {
 
 $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $scriptRoot '..\..\..'))
 $contractPath = Join-Path $repositoryRoot 'hr\src\ai-builder\contracts\field-contract.json'
-$fixedPackagePath = Join-Path $repositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
-$generalPackagePath = Join-Path $repositoryRoot 'hr\docs\ideas\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents'
+$fixedPackagePath = Join-Path $repositoryRoot 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-fixed-template'
+$generalPackagePath = Join-Path $repositoryRoot 'hr\docs\use-cases\uc-0001-personal-master-data-completion-agent\caldova-aib-general-documents'
 
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
 $fixedReviewPath = Join-Path $OutputDirectory 'fixed-review.json'

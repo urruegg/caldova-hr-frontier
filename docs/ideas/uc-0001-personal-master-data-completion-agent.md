@@ -5,9 +5,9 @@
 | **Version** | 1.1 |
 | **Date** | 2026-10-01 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed Baseline |
+| **Status** | Graduated |
 | **Scope** | HR Use Case Portfolio |
-| **References** | [HR Solution Functional Design Intake](../../../../docs/specs/2026-09-24-hr-solution-functional-design-intake-design.md) |
+| **References** | [HR use-case detail](../../hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/README.md), [HR Solution Functional Design Intake](../specs/2026-09-24-hr-solution-functional-design-intake-design.md), [Implementation Plan](../plans/2026-09-24-hr-solution-functional-design-intake-implementation.md) |
 
 > **Status:** **Selected as MVP** — the only use case in this portfolio that has advanced past idea
 > **Journey stage:** Pre-board
@@ -15,7 +15,7 @@
 > **HR owner:** Switzerland HR Operations
 > **Suggested wave:** **1 — in flight**
 >
-> **Source:** The customer-supplied UC-0001 draft PRD and UC-0001 artefact inventory. Unlike every other document in this folder, this one describes **approved, in-flight work** — its requirements live in [`prd-0001-personal-master-data-completion-agent.md`](prd-0001-personal-master-data-completion-agent.md).
+> **Source:** The customer-supplied UC-0001 draft PRD and UC-0001 artefact inventory. Unlike every other document in this folder, this one describes **approved, in-flight work** — its requirements live in the [HR use-case detail package](../../hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/README.md).
 
 ---
 
@@ -48,7 +48,7 @@ New joiners in Switzerland arrive with personal master data spread across PDF do
 
 This is the earliest point at which employee master data enters Workday, which is why it was chosen. Data quality established here propagates through every downstream stage and every downstream system; data quality *not* established here is corrected repeatedly, by hand, for the length of the employment.
 
-See [`hr-journey-and-raci.md`](../../../../docs/hr-journey-and-raci.md) for the full journey and the placement of every use case.
+See [`hr-journey-and-raci.md`](../hr-journey-and-raci.md) for the full journey and the placement of every use case.
 
 ---
 
@@ -56,7 +56,7 @@ See [`hr-journey-and-raci.md`](../../../../docs/hr-journey-and-raci.md) for the 
 
 **Harness:** **GitHub Copilot harness** — multi-step reasoning across documents and a governed integration. The choice **cannot be changed after the agent is created**, and credits are consumed from the moment building starts, so the budget is confirmed before build (TD-01).
 
-**Write envelope:** **Narrow and additive.** Approved fields only, on a blank field only, on exactly one matched profile. Enforced in three independent places — agent rules, the Workday Access Layer, and the Workday Integration System User's permissions. See [ADR-0008](../../../../docs/adr/0008-human-in-the-loop-and-write-envelope.md) and [ADR-0009](../../../../docs/adr/0009-workday-access-via-connector-behind-governed-layer.md).
+**Write envelope:** **Narrow and additive.** Approved fields only, on a blank field only, on exactly one matched profile. Enforced in three independent places — agent rules, the Workday Access Layer, and the Workday Integration System User's permissions. See [ADR-0008](../adr/0008-human-in-the-loop-and-write-envelope.md) and [ADR-0009](../adr/0009-workday-access-via-connector-behind-governed-layer.md).
 
 **Grounding:** The approved field list (the customer-supplied personal-master-data field workbook, column C where column E = yes), versioned in Dataverse as `caldova_approvedfield`. Workday read live through the Access Layer — never a cached copy.
 
@@ -92,13 +92,13 @@ This use case has passed the gate the rest of this folder has not. Its artefacts
 
 | Artefact | Where |
 |---|---|
-| **Product requirements** | [`prd-0001-personal-master-data-completion-agent.md`](prd-0001-personal-master-data-completion-agent.md) — Draft 0.2, superseding the customer-supplied UC-0001 draft PRD |
-| **Platform requirements it inherits** | [`prd.md`](../../../../docs/prd.md) — FR-0001…FR-0012, NFR-0001…NFR-0010 |
-| **Architecture** | [`solution-design.md`](../../../../docs/solution-design.md) |
-| **Decisions** | [ADR-0005](../../../../docs/adr/0005-workday-as-system-of-record.md) · [ADR-0007](../../../../docs/adr/0007-dataverse-process-state-boundary.md) · [ADR-0008](../../../../docs/adr/0008-human-in-the-loop-and-write-envelope.md) · [ADR-0009](../../../../docs/adr/0009-workday-access-via-connector-behind-governed-layer.md) |
+| **Product requirements** | [`prd-0001-personal-master-data-completion-agent.md`](../../hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) — Draft 0.2, superseding the customer-supplied UC-0001 draft PRD |
+| **Platform requirements it inherits** | [`prd.md`](../prd.md) — FR-0001…FR-0012, NFR-0001…NFR-0010 |
+| **Architecture** | [`solution-design.md`](../solution-design.md) |
+| **Decisions** | [ADR-0005](../adr/0005-workday-as-system-of-record.md) · [ADR-0007](../adr/0007-dataverse-process-state-boundary.md) · [ADR-0008](../adr/0008-human-in-the-loop-and-write-envelope.md) · [ADR-0009](../adr/0009-workday-access-via-connector-behind-governed-layer.md) |
 | **Artefact inventory** | The customer-supplied UC-0001 artefact inventory — 60+ items across business, data, system, security, build, test and operations |
 
-The seven platform declarations are answered in the PRD rather than left open here. The remaining gates are in [`prd-0001-personal-master-data-completion-agent.md`](prd-0001-personal-master-data-completion-agent.md) §13 as the Definition of Ready.
+The seven platform declarations are answered in the PRD rather than left open here. The remaining gates are in [`prd-0001-personal-master-data-completion-agent.md`](../../hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md) §13 as the Definition of Ready.
 
 ---
 

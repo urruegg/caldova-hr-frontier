@@ -144,3 +144,102 @@ The baseline manifest records the baseline commit plus the lowercase SHA-256 of 
 ## Exceptions and Failures
 
 No exception or failure is recorded at baseline.
+
+## Task 2 - Central Ideas and HR Use-Case Detail
+
+Task 2 executed from clean Task 1 commit `53b07c0974b40b2d8b0046ab438c633f034f4ee3` on branch `feat/documentation-knowledge-architecture-cleanup`. The Task 1 baseline manifest at commit `de0f222db262a36242b6c50b30c0c49f1b1334df` remained unchanged.
+
+### Disposition
+
+- Replaced the placeholder `docs/ideas/README.md` with the single repository-wide idea lifecycle and catalogue.
+- Merged the substantive HR portfolio guidance from `hr/docs/ideas/README.md`, then removed that retired catalogue and root.
+- Moved 19 permanent `UC-nnnn` idea records and the HR Control Plane idea/HTML companion into `docs/ideas/`.
+- Retained UC-0001 centrally, changed its metadata status to `Graduated`, and linked its HR detail, governing specification, and implementation plan without adding an Azure Boards ID.
+- Moved the remaining 69-file UC-0001 package by identical relative suffix from `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/` to `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/`.
+- Created `hr/docs/use-cases/README.md` as the HR detail catalogue.
+- Updated active navigation, ownership, intake, metadata, safety, corpus, evidence, and operator consumers. `hr/evidence/ai-builder/` remained in place.
+- Repaired active links in `docs/specs/2026-09-25-azure-boards-population-design.md`, `docs/superpowers/specs/2026-09-25-tenant-2-ai-builder-models-design.md`, and the moved SharePoint guidance after the link contract identified them as move-coupled consumers.
+- Did not change Azure Boards configuration or execution code, GitHub workflows, vendored `.github/skills/`, live systems, or the baseline manifest.
+
+Git recognized 90 renames: 21 central idea/mockup moves and 69 UC-0001 package moves. The retired HR catalogue is one deletion. The central catalogue is one in-place rewrite. The new navigation test and HR use-case catalogue are additions.
+
+### Central move hashes
+
+Changed Markdown hashes are expected and reviewed because each moved record required a relative-link repair; UC-0001 also required its graduation metadata and successor links. The HTML companion moved byte-identically.
+
+| Old path | New path | Baseline SHA-256 | Task 2 SHA-256 |
+|---|---|---|---|
+| `hr/docs/ideas/hr-control-plane-mockup-idea.md` | `docs/ideas/hr-control-plane-mockup-idea.md` | `a45b7e1b81d9bfbd1bb17e8019732fb41040e0741fee5b960436fdd68a242a58` | `404e59d8f3334e8198e4082b9d0646bb1e1d55657a91798055d151ab26aedae5` |
+| `hr/docs/ideas/hr-control-plane-mockup.html` | `docs/ideas/hr-control-plane-mockup.html` | `9d86855de31495384f8c852d69cfb304e8629e757f802f1ad9f5217b64e73623` | `9d86855de31495384f8c852d69cfb304e8629e757f802f1ad9f5217b64e73623` |
+| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/uc-0001-personal-master-data-completion-agent.md` | `docs/ideas/uc-0001-personal-master-data-completion-agent.md` | `de085dd356b23c5c2f6c739cb522cf1e25c2fd1e8df2b6289bab230c8aca47c3` | `f526c280a221d5e8aa1c11c50bf80cca4540206d860d7e6cba2afa89e6f29448` |
+| `hr/docs/ideas/uc-0002-hr-policy-chat-assistant.md` | `docs/ideas/uc-0002-hr-policy-chat-assistant.md` | `72166839c393e8bc768c6d9095a959c50627e18fcc2ac5fabab3fe351ddcf645` | `789297fbbb486905bfc9e817fc4610cd160eb0a2cd0cbbae7d4c305fa14063a5` |
+| `hr/docs/ideas/uc-0003-employee-self-service-assistant.md` | `docs/ideas/uc-0003-employee-self-service-assistant.md` | `4e48e3363ac2b70483ea55bdc8490ecbd2e64ccfed6ccfc12871c85ea8bd4db7` | `ded05234b95af3283ff11434a5be331a997cda15e3dd655d09a942b08c11a391` |
+| `hr/docs/ideas/uc-0004-hr-case-classification-bot.md` | `docs/ideas/uc-0004-hr-case-classification-bot.md` | `c2b486c54fda4d77f29217b82c33262835c61b773475e8583c9c58c99d55a129` | `aa87cd15486c30861a5773524371c91eaec23459cd07726cb43a6ca1a4c251a8` |
+| `hr/docs/ideas/uc-0005-onboarding-assistant.md` | `docs/ideas/uc-0005-onboarding-assistant.md` | `1dcb455831362bfff8e8ee0746b2d5224da16531c4149db36e0862afbcedd53d` | `41b5fc744a0f7663b18c2aa51fb5a44d997ece2121b1fcb5e05798ae0306c4ef` |
+| `hr/docs/ideas/uc-0006-job-description-generator.md` | `docs/ideas/uc-0006-job-description-generator.md` | `36b11009da7b0a07a18c7c84672dd4990e065906189419e9b5252cad2bb0ae2b` | `5a8401179aac2087468f263c6bee72f3c0b6474c0db129397f7bfa61fc118e62` |
+| `hr/docs/ideas/uc-0007-candidate-screening-summary.md` | `docs/ideas/uc-0007-candidate-screening-summary.md` | `c531ff49c423e0f8249571709dfe2a7d694ef57dc00a8adb517b4424c81140d1` | `e6f57bf4d40a1ce91cd0ef8cabc42f31b5a36083392edb441d8c9179364797a6` |
+| `hr/docs/ideas/uc-0008-salary-benchmark-assistant.md` | `docs/ideas/uc-0008-salary-benchmark-assistant.md` | `04350e480c42139534ed3c49fd0b0436a9e2a8f2211a890df1701d729407e7d2` | `9b3380fc57e4b68493a2bff5f58cdd1d5962be647bb7bef6408d352acfccb894` |
+| `hr/docs/ideas/uc-0009-workforce-insights-assistant.md` | `docs/ideas/uc-0009-workforce-insights-assistant.md` | `0e573f60d46d237ab51b322830a638ecbda9d4bcf4d503cb9f673071ef9ea93e` | `52459ec842499564a4369fa134851691dfc4e2e26808456e8f7f3bcaa3daa5f8` |
+| `hr/docs/ideas/uc-0010-employee-data-validation-bot.md` | `docs/ideas/uc-0010-employee-data-validation-bot.md` | `b932373f148b426e3bba84d03e9e9a4f628ec98aaea8724ac63e1369f6387883` | `75e5e8aff724c55d34e00cff9317ea9d364f47f29ad3cf796c2dcf2b4bef08a7` |
+| `hr/docs/ideas/uc-0011-learning-recommendation-agent.md` | `docs/ideas/uc-0011-learning-recommendation-agent.md` | `a4da6580adf7554853c66e96151ddbda361848f79c2959aa9a9af82b7f4bda06` | `cae8d66d3a8ab05bfc33176f4e607587fee370931be9bed858b37fd045a047a2` |
+| `hr/docs/ideas/uc-0012-payroll-anomaly-detection.md` | `docs/ideas/uc-0012-payroll-anomaly-detection.md` | `6f5507ab86c0dded845ac385e79b0f7371338395c8bf14e1ad21e271802d79aa` | `476fd033660afa4ad6f20024f3f1d5d3a52433788bf3c1e614a9331e2ec43e95` |
+| `hr/docs/ideas/uc-0013-performance-review-draft-assistant.md` | `docs/ideas/uc-0013-performance-review-draft-assistant.md` | `f45043a9e6c35b61dbe91ee9462800a7753ce335cc36853f97f7b4b119598803` | `4c93714cf5d23b1121a14c5aaaed382a3c32ba190a98cea079fe084092e16ca9` |
+| `hr/docs/ideas/uc-0014-continuous-performance-insights.md` | `docs/ideas/uc-0014-continuous-performance-insights.md` | `7c7d5fa5707e646cb952e725e9681483258bd960caeafd441856d1480aa62c8e` | `3475453e0c3571ede569c301eed9eb290c57da17aecb33f98065d4f33a229998` |
+| `hr/docs/ideas/uc-0015-leadership-pipeline-prediction.md` | `docs/ideas/uc-0015-leadership-pipeline-prediction.md` | `a2d90649fbc396bd38e34a60b5dd8f00351f8246edd1e104e6e21012deef625f` | `eda34467a82cee159da116a57606204574e3bae983cc1edcadecd40d4555eadc` |
+| `hr/docs/ideas/uc-0016-skills-inference-engine.md` | `docs/ideas/uc-0016-skills-inference-engine.md` | `c1534b65a222ad6629b7b00b32f686df42e7825a588f30f3d3332b532dc03db2` | `0e0d643623777e72bad31950aed7321484088cfe4f73b6bd4d08350b77b9ec75` |
+| `hr/docs/ideas/uc-0017-pre-hire-process-orchestration.md` | `docs/ideas/uc-0017-pre-hire-process-orchestration.md` | `653065f6a473adf18edeea137ad900c364c39cce59a4f96ed6df03747c70480f` | `97c8dc7499b1075e4a6c129c25c59990b37f5452af13b609c9440e8bcd351465` |
+| `hr/docs/ideas/uc-0018-onboarding-checklist-rebuild.md` | `docs/ideas/uc-0018-onboarding-checklist-rebuild.md` | `b09dc195a7a5480cfbd05ebd3c993c3d26c032578b349603f365f810e0d1542a` | `23972508d262ab4608215df16817693d7f0e93afa07de37532a331971827b7e4` |
+| `hr/docs/ideas/uc-0019-attrition-risk-insight-lite.md` | `docs/ideas/uc-0019-attrition-risk-insight-lite.md` | `47d32eb425a6d1194d07f7aa8ddaf4eed76dede89a760142b59c83297045b264` | `b954e0f6941042a20b4733f350f04e688de22a44bcbdde381304f961aeeaf440` |
+
+The rewritten `docs/ideas/README.md` has Task 2 SHA-256 `e3c399035beda41f1c2d6f83f6abf9e83f0117c780fbf5a85b4130920ffb926f`. The new `hr/docs/use-cases/README.md` has SHA-256 `49ad2f0f99df14bca18a24deebd2a9d02cd2c921dde56db0e90973e7e11f1b76`.
+
+### UC-0001 package move and hashes
+
+All 69 package files moved by retaining the suffix below the old and new roots. Sixty non-Markdown artifacts were compared individually to the Task 1 manifest: 48 PDFs, 2 CSV files, 2 JSON files, and 8 Python generators all matched. Four Markdown files also matched their baseline bytes:
+
+| New path | Verified SHA-256 |
+|---|---|
+| `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/caldova-aib-fixed-template/README.md` | `1430e64bfe16ed4ebaa057a25f4682e3a93db58bfd5ecef237947ca6033c9166` |
+| `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/caldova-aib-general-documents/README.md` | `ddef36f96ee8921ce9fd86863d9d7915332a151ee3cf86f318c117148014e9f1` |
+| `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/document-intake-architecture.md` | `bc05ba262f2373aa2b3d89bacb280493922ab4775e055b290e4ce8face3fba57` |
+| `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/prd-0001-personal-master-data-completion-agent.md` | `be17e53550d66823b3a142762df9319caaffe32c68762029fc3c6d6f5adcd4a5` |
+
+Five moved Markdown files changed only for approved navigation, metadata-scope, or reference repairs:
+
+| Old path | New path | Baseline SHA-256 | Task 2 SHA-256 |
+|---|---|---|---|
+| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/README.md` | `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/README.md` | `a0d6e12367b96457b27ff455934c27b3250171ddaff3408df40d51de413d68e9` | `450f84b4d9c74607483aa9ebaf2bb078c2f48224e1e6410e8d4822a07d639faf` |
+| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md` | `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/ai-builder-model-setup.md` | `37af81712f71a9dfdb09fcdd9d12353018fa6f6bcb2703b96136f1f54756f65c` | `d7e39c869127ab6603a241ca45cb7997055f7d14be27e12d4b44d7ce1dffbb4d` |
+| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md` | `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0001-peopledoc-master-data-ai-builder-fields.md` | `9581dc504b12ba483fae1b556e12ee610952d092e126e3384a704c7ea8683eb1` | `d4303d922f6eeee5f1e9bc29efed431f46da8d3b424ecac3785d808b37546168` |
+| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md` | `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/bom-0002-ai-builder-test-inputs-and-outcomes.md` | `bbc873d96a54ef981c6510b4928ed3ca02925681957b2c2f3105d7074a988a46` | `8cce7470551ad66efffc330535471a943d29592d5ebb34c62505f53fe72de68e` |
+| `hr/docs/ideas/uc-0001-personal-master-data-completion-agent/sharepoint-knowledge-vs-processing.md` | `hr/docs/use-cases/uc-0001-personal-master-data-completion-agent/sharepoint-knowledge-vs-processing.md` | `d0e68e166748252ffabcb07a6c1fda6e37e07e429aa601d334dafecba19cb174` | `23306dfb8873e963e6e5a81de0046b2b9a5aaa91f3eb899b723a2978c427c5b1` |
+
+### Retained immutable evidence PDFs
+
+| Retained path | Verified SHA-256 | Disposition |
+|---|---|---|
+| `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20260930094537354Z-34bf8987/source/a01-CAND-2026-0411-brunner.pdf` | `9c7ebe8d706b5b6ee98d779bcd83a578f8dff44b9b6bd7d02bff2b64e2ba67bd` | Verified in place |
+| `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/cap-20261001110252111Z-ab4fa091/source/g01-arbeitsvertrag-CAND-2026-0411.pdf` | `b38d977460a8d3f865662bb33a1af0342fb54975c37d18f8c54cf29ec41c0488` | Verified in place |
+| `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930114811428Z-ed0cd329/source/a06-CAND-2026-0416-gerber.pdf` | `4b1110d9c394a709fbcf6dc39c3ebf20846114e4bb2f818e7dad0118e52ac5db` | Verified in place |
+| `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930123933155Z-211c905d/source/b06-CAND-2026-0422-schnyder.pdf` | `2dd65e48932173a72cbfc0cad0f1bbe01b997e6a28eea60f5a2e8c5d2737a8b6` | Verified in place |
+| `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930130912974Z-b30d5e0a/source/c06-CAND-2026-0428-frei.pdf` | `dc512e6545293d6532effc196f56322f12cc1b2a89ef3eb31c46c90b1ddcece4` | Verified in place |
+| `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/capture/fixed-holdout/cap-20260930131319261Z-e8d57452/source/d06-CAND-2026-0434-ochsner.pdf` | `5ccc73225f0b12c937ea46d1f0566c5869e38f2756c73dc0b648044203fa74fa` | Verified in place |
+| `hr/evidence/ai-builder/tenant-2/DEV/t2-dev-20260925-001/task6-retry-remote-source-mismatch.pdf` | `74c042e2419054136cc512c58ae252b9803f2a6cd7bdfc9d8acff2b04bc4b618` | Verified in place |
+
+### Task 2 validation results
+
+| Command or gate | Outcome |
+|---|---|
+| RED: `DocumentationNavigation.Tests.ps1` plus `DocumentationMetadata.Tests.ps1` | Expected failure observed: 174 passed, 4 failed; missing new root, retained old root/records, and unsupported `Graduated` were all detected |
+| Focused `Graduated` metadata test | Passed: 1 passed, 0 failed |
+| Task 1 hash comparison for moved `.pdf`, `.csv`, `.json`, and `.py` files | Passed: 60 of 60 matched (`.pdf` 48, `.csv` 2, `.json` 2, `.py` 8) |
+| Task 1 hash comparison for retained evidence PDFs | Passed: 7 of 7 matched at unchanged paths |
+| First full targeted run | 422 passed, 1 failed; the documentation-link test identified ten stale links across five move-coupled files |
+| Focused documentation-link rerun after root-cause repair | Passed: 1 passed, 0 failed |
+| Required targeted eight-file Pester run | Passed: 423 passed, 0 failed, 0 skipped, 0 not run |
+| `.github/cli/verify-repository-safety.ps1` | Passed: `Repository safety validation passed.` |
+| `git diff --check` | Passed (exit 0) |
+| VS Code problem diagnostics for changed PowerShell files | No errors found |
+| Protected-surface diff from `53b07c0` | Passed: no changes under `.github/workflows`, `infra/src/config`, `infra/src/scripts/Initialize-AzureDevOpsWorkItems.ps1`, or the baseline manifest |
+
+No rollback was required. The one non-green full targeted run was retained as diagnostic evidence, repaired at the active source links, and followed by a complete green rerun.
