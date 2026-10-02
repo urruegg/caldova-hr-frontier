@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.7 |
+| **Version** | 1.8 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
@@ -59,6 +59,10 @@ A specification is created from a selected idea or approved problem. It precedes
 | [Implementation plan](../plans/2026-10-01-caldova-branding-migration-implementation.md) | [`2026-10-01-caldova-branding-migration-design.md`](2026-10-01-caldova-branding-migration-design.md) | Approved | Defines the current-tree migration to Caldova branding. | Governs branding migration without rewriting history or immutable evidence. |
 | [Implementation-plan entry criteria](2026-10-02-documentation-knowledge-architecture-cleanup-design.md#15-dependencies-and-entry-criteria) | [`2026-10-02-documentation-knowledge-architecture-cleanup-design.md`](2026-10-02-documentation-knowledge-architecture-cleanup-design.md) | Approved | Defines canonical documentation lifecycle, navigation, migration, archive, and validation. | Governs the documentation cleanup and is prerequisite to repository-agent implementation. |
 | [Documentation-cleanup prerequisite](2026-10-02-documentation-knowledge-architecture-cleanup-design.md) | [`2026-10-02-hr-frontier-copilot-agent-portfolio-governance-design.md`](2026-10-02-hr-frontier-copilot-agent-portfolio-governance-design.md) | Approved | Defines the twelve-agent repository portfolio, action tiers, delivery handoffs, and acceptance evidence. | Governs future repository-agent implementation after documentation cleanup acceptance. |
+| User approval, then subsystem implementation plans | [`2026-10-02-tenant-1-runbook-end-to-end-design.md`](2026-10-02-tenant-1-runbook-end-to-end-design.md) | Proposed Baseline | Proposes the composable Tenant 1 runbook lifecycle and sprint acceptance authority. | Proposal only; it authorizes no implementation plan, live Apply, supersession, archive, or tenant mutation before explicit user approval. |
+| User approval, then workstation implementation plan | [`2026-10-02-developer-workstation-runbook-refactor-design.md`](2026-10-02-developer-workstation-runbook-refactor-design.md) | Proposed Baseline | Proposes the exact-version, restart-safe Windows 11 workstation subsystem and fresh-laptop acceptance. | Proposal only under the umbrella design; the current workstation runbook remains the operational reference within its own status. |
+| User approval, then cloud-foundation implementation plan | [`2026-10-02-cloud-service-foundation-runbook-design.md`](2026-10-02-cloud-service-foundation-runbook-design.md) | Proposed Baseline | Proposes Tenant 1 provider reconciliation, an Azure Pipeline using Power Platform Build Tools 2.0 and WIF, and exact DEV deployment. | Proposal only under the umbrella design; current cloud public entry points remain unsupported stop stubs. |
+| User approval, then profile-based handover implementation plan | [`2026-10-02-tenant-replica-and-customer-handover-runbook-design.md`](2026-10-02-tenant-replica-and-customer-handover-runbook-design.md) | Proposed Baseline | Proposes local `TenantReplica` and stricter `CustomerHandover` export profiles with independent validation. | Proposal only under the umbrella design; it authorizes no publication, destination repository, or Tenant 2 live action. |
 
 ## Domain Links
 
