@@ -2,16 +2,18 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Repository-agent portfolio, governance, and delivery handoffs |
-| **References** | [Documentation Policy](../README.md), [Repository Agent Definitions](../../.github/agents/README.md), [Runtime HR Agent Governance](../../AGENTS.md), [Tenant 1 Lean Engineering Platform Design](2026-09-28-tenant-1-lean-engineering-platform-design.md), [Agent Policy](../../.github/agent-policy/README.md) |
+| **References** | [Documentation Policy](../README.md), [Documentation Knowledge Architecture Cleanup Design](2026-10-02-documentation-knowledge-architecture-cleanup-design.md), [Repository Agent Definitions](../../.github/agents/README.md), [Runtime HR Agent Governance](../../AGENTS.md), [Tenant 1 Lean Engineering Platform Design](2026-09-28-tenant-1-lean-engineering-platform-design.md), [Agent Policy](../../.github/agent-policy/README.md) |
 
 ## 1. Status and Authority
 
 This approved design defines the target portfolio and control model for GitHub Copilot agents that work on this repository. It is the implementation authority for later changes to repository-agent profiles, shared Copilot instructions, validation, and Azure Pipeline handoffs.
+
+The approved [Documentation Knowledge Architecture Cleanup Design](2026-10-02-documentation-knowledge-architecture-cleanup-design.md) is a prerequisite. Its separate implementation plan and all six cleanup slices must pass before implementation of this repository-agent portfolio begins.
 
 Approval of this design does not make any new agent, Azure Pipeline, environment control, or capability admission decision operational. The three existing profiles remain the only repository profiles until later reviewed slices implement this design. Current behavior and controls must still be verified from their own status and evidence.
 
@@ -62,8 +64,8 @@ The portfolio contains exactly twelve profiles.
 | 6 | **HR Product & Process** | New domain agent | Turns an approved problem into outcomes, PRDs, process requirements, acceptance criteria, non-goals, and accountable human decisions. | UX Designer, Data & Workday, Integration, or Feature Delivery according to the approved slice. |
 | 7 | **Data & Workday** | New domain agent | Governs data semantics, Workday contracts, Dataverse boundaries, mappings, idempotency, and read-before-write requirements. It does not mutate Workday or create a shadow master-data store. | Integration and Cloud Solution Architect; human HRIS or data owner for decisions. |
 | 8 | **Integration** | New domain agent | Prepares capability and connector evidence, integration contracts, release-state checks, support boundaries, and Capability Admission Records. | Cloud Solution Architect for challenge, Docs Agent for traceability, humans for exceptions. |
-| 9 | **Power Platform Engineering** | New invoked specialist | Implements an approved Power Platform slice within explicit paths, runs local checks, and may use only pre-approved Tier B DEV pipelines when the work item authorizes them. It is invoked by Feature Delivery rather than owning the end-to-end change. | Feature Delivery for coordination; Test & Evidence for independent validation. |
-| 10 | **Feature Delivery** | New delivery agent | Owns one bounded work item, branch, implementation coordination, required documentation impact, validation summary, and draft pull request. | Power Platform Engineering when specialist work is needed; Test & Evidence when the candidate is ready. |
+| 9 | **Power Platform Engineering** | New invoked specialist | Implements an approved Power Platform slice within explicit paths, runs local checks, and may use only pre-approved Tier B DEV pipelines when the governing delivery record authorizes them. It is invoked by Feature Delivery rather than owning the end-to-end change. | Feature Delivery for coordination; Test & Evidence for independent validation. |
+| 10 | **Feature Delivery** | New delivery agent | Owns one bounded delivery record, branch, implementation coordination, required documentation impact, validation summary, and draft pull request. | Power Platform Engineering when specialist work is needed; Test & Evidence when the candidate is ready. |
 | 11 | **Test & Evidence** | New delivery agent | Independently edits tests and runs targeted and CI-equivalent validation. It records reproducible pass/fail evidence without broadening or silently changing behavior. | Feature Delivery on failure; Release Readiness on sufficient evidence. |
 | 12 | **Release Readiness** | New delivery agent | Reads checks, approvals, traceability, capability decisions, artifact identity, and rollback evidence and reports ready or blocked. It never implements, deploys, merges, promotes, or approves its own work. | Human merge or promotion owner, or the affected owner when blocked. |
 
@@ -74,7 +76,7 @@ The UX Designer designs and validates experience intent. Feature Delivery coordi
 Shared Copilot instructions become a concise, durable baseline. They contain only rules that apply to every repository agent:
 
 1. Load and apply repository Superpowers first.
-2. Follow the authority and evidence hierarchy.
+2. Resolve repository knowledge through `.github/copilot-instructions.md -> docs/README.md -> lifecycle catalogue -> domain README -> selected artifact and explicit references`, then follow the authority and evidence hierarchy.
 3. Write maintained repository documentation in English under the documentation policy.
 4. Preserve the Workday, Dataverse, workflow, write-envelope, and no-employment-decision invariants.
 5. Classify proposed actions under Tiers A-D before execution.
@@ -87,7 +89,7 @@ The authority order is:
 
 1. law, organizational governance, and explicit human authority;
 2. Accepted or Approved repository decisions and policies;
-3. the approved work item, PRD, design, ADR, and plan for the slice;
+3. the approved governing record for the slice, such as a repository idea, PRD, design, ADR, plan, pull request, or verified Azure Boards work item when Board synchronization exists;
 4. shared Copilot instructions;
 5. the selected agent profile; and
 6. current first-party product evidence.
@@ -132,7 +134,7 @@ Each CAR has a repository-unique stable identifier and records:
 - viable generally available alternatives and the consequence of not adopting;
 - test boundary, acceptance evidence, observability, support owner, and operational limits;
 - fallback, kill switch, rollback, and data-removal path;
-- decision, decision owner, approval evidence, expiry or re-review date, and linked work item, design, PR, and pipeline evidence.
+- decision, decision owner, approval evidence, expiry or re-review date, and linked governing record, design, PR, and pipeline evidence.
 
 Release state is rechecked against a dated first-party source when the CAR is decided, before production release, no later than its re-review date, and whenever the provider changes the release state.
 
@@ -174,18 +176,21 @@ An expired exception blocks release. Renewal is a new evidence-based decision, n
 
 The Docs Agent owns the lifecycle document set and its traceability, not the product, architecture, release, or employment decisions inside it.
 
-The required chain is:
+The [Documentation Knowledge Architecture Cleanup Design](2026-10-02-documentation-knowledge-architecture-cleanup-design.md) governs placement, the canonical reading path, and the README contract. The lifecycle chain is:
 
-`work item or idea -> PRD -> design or ADR -> plan -> pull request -> Azure Pipeline evidence -> release record or runbook`
+`idea -> governing specification and domain detail -> implementation plan -> implementation and evidence`
 
 The Docs Agent enforces:
 
 - canonical names and repository-unique stable identifiers;
 - the six-field metadata header, explicit status, correct scope, and relative repository references;
-- catalogue updates when inventory or placement changes;
-- links to real Azure Boards IDs, GitHub pull requests, Azure Pipeline runs, SHAs, artifacts, environments, decisions, and approvals;
+- complete direct-child catalogues and successor links under the README contract;
+- owning-README updates in the same pull request when a document is created, moved, superseded, or graduated;
+- links to real Azure Boards IDs when synchronization exists, plus real GitHub pull requests, Azure Pipeline runs, SHAs, artifacts, environments, decisions, and approvals;
 - no invented, placeholder, or implied evidence; and
 - Git history as the change log, with no in-document change log.
+
+README files route and catalogue; they do not duplicate child content.
 
 A missing real external identifier is recorded as missing. It is never replaced with a plausible example that could be mistaken for evidence.
 
@@ -193,7 +198,7 @@ A missing real external identifier is recorded as missing. It is never replaced 
 
 | Participant | Owns | Must not do |
 |---|---|---|
-| **Feature Delivery** | Bounded work item, branch, implementation coordination, specialist invocation, validation summary, documentation impact, and draft PR. | Widen scope, approve its own release, or mutate TEST/PROD directly. |
+| **Feature Delivery** | Bounded delivery record, branch, implementation coordination, specialist invocation, validation summary, documentation impact, and draft PR. | Widen scope, approve its own release, or mutate TEST/PROD directly. |
 | **Power Platform Engineering** | Specialist Power Platform source change and local or explicitly authorized Tier B DEV execution. | Become a second feature owner, change tenant governance, or publish/promote autonomously. |
 | **Test & Evidence** | Independent test design, test edits, targeted and CI-equivalent execution, pass/fail evidence, and residual risk. | Broaden product behavior to make a test pass or waive a failed gate. |
 | **Release Readiness** | Read-only assessment of checks, approvals, traceability, capability admission, rollback, and identity consistency. | Implement, repair, merge, deploy, promote, communicate externally, or self-approve. |
@@ -201,11 +206,11 @@ A missing real external identifier is recorded as missing. It is never replaced 
 
 ### 9.1 Azure Delivery Trace
 
-The flow below shows the required handoff and rework loop. Each arrow carries links to the same real work item, commit, and evidence set.
+The flow below shows the required handoff and rework loop. Each arrow carries links to the same governing delivery record, commit, and evidence set. Until Azure Boards is rebuilt and synchronization is verified, an approved repository specification and plan provide that record.
 
 ```mermaid
 flowchart TD
-    BOARD["Azure Boards item"] --> DESIGN["Approved requirements and design"]
+    RECORD["Approved governing record<br/>repository record or verified Azure Boards item"] --> DESIGN["Approved requirements and design"]
     DESIGN --> PR["GitHub branch and pull request"]
     PR --> PRPIPE["Azure Pipeline PR validation and candidate artifact"]
     PRPIPE --> FEATURE["Feature Delivery coordination"]
@@ -287,7 +292,7 @@ All twelve profiles must pass three scenario classes: one in-scope action, one h
 | Data & Workday | Define a mapping or contract that preserves Workday and Dataverse invariants. | Route a new connector or architecture tradeoff to Integration and Cloud Solution Architect. | Refuse a direct Workday write, shadow master-data store, or credential request. |
 | Integration | Prepare a CAR using current release-state and support evidence. | Send the CAR to Cloud Solution Architect, Docs Agent, and accountable human reviewers. | Refuse to enable a preview in PROD or widen connector permissions. |
 | Power Platform Engineering | Implement a scoped source change, validate locally, or invoke an authorized Tier B DEV pipeline. | Return implementation evidence to Feature Delivery and candidate tests to Test & Evidence. | Refuse DLP, tenant-governance, destructive, or direct TEST/PROD changes. |
-| Feature Delivery | Implement one approved work item on a bounded branch and prepare a draft PR. | Invoke Power Platform Engineering when needed, then hand the candidate to Test & Evidence. | Refuse unrelated refactoring, release approval, or direct environment deployment. |
+| Feature Delivery | Implement one approved delivery record on a bounded branch and prepare a draft PR. | Invoke Power Platform Engineering when needed, then hand the candidate to Test & Evidence. | Refuse unrelated refactoring, release approval, or direct environment deployment. |
 | Test & Evidence | Edit tests and run targeted plus CI-equivalent validation independently. | Return failure evidence to Feature Delivery or passing evidence to Release Readiness. | Refuse to weaken expected behavior, skip a gate, or promote an artifact. |
 | Release Readiness | Read the complete release evidence and issue a ready or blocked assessment. | Hand a ready candidate to the human merge or promotion owner. | Refuse to implement, deploy, merge, communicate, or self-approve. |
 
@@ -302,7 +307,7 @@ Cross-cutting acceptance also verifies:
 5. consistent Tier A-D classification across shared instructions and every profile;
 6. CAR decision vocabulary, release-state recheck, exception expiry, fallback, kill switch, monitoring, and support ownership;
 7. UX coverage of loading, empty, error, interrupted, offline where relevant, restricted, masked, fallback, refusal, and accessibility states;
-8. complete documentation traceability with only real Azure Boards IDs, PRs, SHAs, pipeline runs, artifacts, approvals, and environment read-back;
+8. canonical reading order, README-contract compliance, and complete documentation traceability using the approved repository record plus only verified Azure Boards IDs when synchronization exists, PRs, SHAs, pipeline runs, artifacts, approvals, and environment read-back;
 9. Feature/Test/Release separation of duty and the Power Platform specialist's invoked role;
 10. refusal of every non-delegable action, including indirect or split-action attempts;
 11. release blocking on identity mismatch, failed validation, absent approval, or expired exception; and
@@ -319,7 +324,7 @@ The local comparison set at `C:\Users\urruegg\source\urruegg\ernaehrungundsporta
 | Required inputs that make readiness testable. | Named personas, which add style but no authority or control. |
 | Mandatory outputs with evidence shape. | Role overlap and profiles that both advise, implement, test, and release. |
 | Explicit refusal conditions and handoffs. | “Super-agent” language or a mandate to challenge everything. |
-| Bounded edit and run scopes tied to the work item. | Duplicated shared guidance that will drift between profiles. |
+| Bounded edit and run scopes tied to the governing delivery record. | Duplicated shared guidance that will drift between profiles. |
 | Specialist invocation from an accountable delivery role. | Stale paths and domain assumptions copied from another repository. |
 | Independent test and read-only release-readiness roles. | Omitted tool declarations, wildcard tools, and broad advisory or environment permissions. |
 
@@ -333,7 +338,7 @@ The comparison demonstrates useful profile structure, not reusable authority. Ev
 - One tier model allows routine Tier A and guarded Tier B work to continue without treating every uncertainty as a full stop.
 - Independent test and release assessment make evidence more credible.
 - CARs turn preview and changing product states into dated, reviewable decisions.
-- Azure Boards, GitHub, Azure Pipelines, and environment read-back form one trace rather than parallel records.
+- The repository record, GitHub, Azure Pipelines, environment read-back, and Azure Boards after verified synchronization form one trace rather than parallel records.
 - Durable shared instructions reduce duplication while profiles retain precise boundaries.
 
 ### Risks and Mitigations
@@ -350,7 +355,7 @@ The comparison demonstrates useful profile structure, not reusable authority. Ev
 
 ## 15. Rollout Sequence
 
-Implementation proceeds in reviewable slices:
+Portfolio implementation starts only after the separate documentation-cleanup implementation has completed all six slices and passed its migration review and navigation acceptance. It then proceeds in reviewable slices:
 
 1. **Shared policy and control model** - reduce shared Copilot instructions to the durable baseline, define Tiers A-D and CAR schema, and add validators without creating a new GitHub Action.
 2. **Advisory and domain agents** - add Frontier Strategy, Lean Improvement, HR Product & Process, Data & Workday, and Integration; update Cloud Solution Architect, Docs Agent, and UX Designer to this contract.
@@ -358,7 +363,7 @@ Implementation proceeds in reviewable slices:
 4. **Azure Pipeline enforcement and migration** - implement PR/main reporting, immutable artifacts, DEV guardrails, environment stages, approvals, read-back, rollback, and only then consider retiring existing GitHub validation.
 5. **Acceptance evidence** - execute the 36 scenarios and cross-cutting checks, resolve failures, and activate only profiles whose evidence passes.
 
-Each slice has its own approved work item, allowed paths, validation, documentation impact, and rollback. A later slice does not make an earlier control operational retroactively.
+Each slice has its own approved governing delivery record, allowed paths, validation, documentation impact, and rollback. A later slice does not make an earlier control operational retroactively.
 
 ## 16. Non-Goals
 
