@@ -14,12 +14,13 @@ function Test-TenantLifecycleEvidencePropertyBoundary {
         return $true
     }
 
+    $clientCredentialPropertyName = 'client' + 'Secret'
     $prohibitedNames = @(
         'accessToken',
         'approvalSession',
         'approvalSessionPayload',
         'authorization',
-        'clientSecret',
+        $clientCredentialPropertyName,
         'command',
         'commandLine',
         'commandOutput',

@@ -2,14 +2,20 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Approved Windows 11 administrator workstation |
-| **References** | [Infrastructure Operational Runbooks](README.md); [Operational Runbooks Design](../../../docs/specs/2026-09-26-operational-runbooks-design.md) |
+| **References** | [Infrastructure Operational Runbooks](README.md); [Approved Tenant 1 Runbook End-to-End Design](../../../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md); [Tenant Lifecycle Core Implementation Plan](../../../docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md); [Operational Runbooks Design](../../../docs/specs/2026-09-26-operational-runbooks-design.md) |
 
 This runbook assesses and, when explicitly approved, initializes one local Windows 11 administrator workstation for later attended infrastructure operations. It does not authenticate to cloud services, deploy infrastructure, create tenants, install repository-bundled skills, or mutate vendored content.
+
+## Lifecycle-core integration boundary
+
+The lifecycle core recognizes `Workstation` as a stage identifier but does not invoke [`Test-DeveloperWorkstation.ps1`](../../src/scripts/runbooks/Test-DeveloperWorkstation.ps1) or [`Initialize-DeveloperWorkstation.ps1`](../../src/scripts/runbooks/Initialize-DeveloperWorkstation.ps1). The workstation procedure remains independently runnable under its own manifest and evidence contract. A later reviewed plan must supply and test the production subsystem invoker before the umbrella may sequence it.
+
+Plan 1's synthetic `Workstation` stage is not workstation assessment, installation, authentication, Apply, or read-back evidence. It authorizes none of those operations and does not change the gates in this runbook.
 
 ## Authoritative installation and authentication references
 
@@ -218,4 +224,4 @@ Before approving PAC use on a workstation, run `pac auth create help` locally an
 
 ## Recovery
 
-Any restart, partial failure, identity change, PATH change, or tool drift requires full reassessment, a new manifest when state changed, and a new approval digest. Recovery never broadens scope, changes package IDs, weakens security, or claims a `Manual` item as verified. Sanitized evidence is preserved for escalation to the service owner and the responsible workstation or security administrator.
+Any restart, partial failure, identity change, PATH change, or tool drift requires full reassessment, a new manifest, and a new approval digest. A process restart invalidates the lifecycle approval even when source and private files are byte-identical; the prior action evidence is preserved but is not resumed as an approved run. Recovery never broadens scope, changes package IDs, weakens security, or claims a `Manual` item as verified. Sanitized evidence is preserved for escalation to the service owner and the responsible workstation or security administrator.

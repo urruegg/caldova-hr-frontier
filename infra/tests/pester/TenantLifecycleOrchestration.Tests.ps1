@@ -524,6 +524,7 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                 }
                 & git -C $script:SyntheticRepositoryRoot config user.email 'synthetic@example.invalid'
                 & git -C $script:SyntheticRepositoryRoot config user.name 'Synthetic Test'
+                & git -C $script:SyntheticRepositoryRoot config core.autocrlf false
                 & git -C $script:SyntheticRepositoryRoot add .gitignore tracked.txt
                 & git -C $script:SyntheticRepositoryRoot commit --quiet -m 'synthetic source'
                 if ($LASTEXITCODE -ne 0) {
@@ -1952,6 +1953,377 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                 $projection.nonClaims | Should -Contain (
                     'Artifact bytes were not verified by this projection.'
                 )
+            }
+
+            It 'completes synthetic lifecycle acceptance without provider mutation across interruption and restart' {
+                function New-SyntheticAcceptanceAssessment {
+                    param([Parameter(Mandatory)][object]$Manifest)
+
+                    $assessment = $script:OrchestratorFixture.assessment |
+                        ConvertTo-Json -Depth 30 |
+                        ConvertFrom-Json
+                    $assessment.runId = $Manifest.runId
+                    $assessment.sourceCommit = $Manifest.sourceCommit
+                    $assessment.machine = $Manifest.machine
+                    $assessment.publicTenantKey = $Manifest.publicTenantKey
+                    $assessment.intentDigest = $Manifest.intentDigest
+                    $assessment.stateDigest = $Manifest.stateDigest
+                    $assessment.toolIdentities = @($Manifest.toolIdentities)
+                    $assessment.providerContexts = @($Manifest.providerContexts)
+                    $assessment.prerequisites = @($Manifest.prerequisites)
+                    $assessment.digest = Get-RunbookContentDigest -InputObject (
+                        [pscustomobject][ordered]@{
+                            runId = $assessment.runId
+                            sourceCommit = $assessment.sourceCommit
+                            intentDigest = $assessment.intentDigest
+                            stateDigest = $assessment.stateDigest
+                        }
+                    )
+                    return $assessment
+                }
+
+                function New-SyntheticAcceptanceApproval {
+                    param([Parameter(Mandatory)][object]$Manifest)
+
+                    [pscustomobject][ordered]@{
+                        schemaVersion = '1.0'
+                        runId = $Manifest.runId
+                        executionManifestDigest = $Manifest.digest
+                        approverRole = 'TenantLifecycleApprover'
+                        approvedAtUtc = '2026-10-02T19:01:00.0000000Z'
+                        expiresAtUtc = $Manifest.expiresAtUtc
+                        scope = @($Manifest.actions | ForEach-Object id)
+                        status = 'Approved'
+                    }
+                }
+
+                function New-SyntheticAcceptanceBinding {
+                    param(
+                        [Parameter(Mandatory)][object]$Manifest,
+                        [Parameter(Mandatory)][string]$SessionId
+                    )
+
+                    [pscustomobject][ordered]@{
+                        runId = $Manifest.runId
+                        generatedAtUtc = $Manifest.generatedAtUtc
+                        expiresAtUtc = $Manifest.expiresAtUtc
+                        sourceCommit = $Manifest.sourceCommit
+                        evidenceRoot = $Manifest.evidenceRoot
+                        publicTenantKey = $Manifest.publicTenantKey
+                        intentDigest = $Manifest.intentDigest
+                        stateDigest = $Manifest.stateDigest
+                        machine = $Manifest.machine
+                        operator = $Manifest.operator
+                        toolIdentities = @($Manifest.toolIdentities)
+                        providerContexts = @($Manifest.providerContexts)
+                        prerequisites = @($Manifest.prerequisites)
+                        actions = @($Manifest.actions)
+                        sessionId = $SessionId
+                    }
+                }
+
+                function Write-SyntheticAcceptanceInputs {
+                    param(
+                        [Parameter(Mandatory)][string]$RunDirectory,
+                        [Parameter(Mandatory)][object]$Manifest,
+                        [Parameter(Mandatory)][object]$Approval,
+                        [Parameter(Mandatory)][object]$State
+                    )
+
+                    foreach ($record in @(
+                        @{
+                            Path = 'assessment.json'
+                            Kind = 'Assessment'
+                            Value = New-SyntheticAcceptanceAssessment `
+                                -Manifest $Manifest
+                        }
+                        @{
+                            Path = 'execution-manifest.json'
+                            Kind = 'ExecutionManifest'
+                            Value = $Manifest
+                        }
+                        @{
+                            Path = 'approvals.json'
+                            Kind = 'Approval'
+                            Value = $Approval
+                        }
+                        @{
+                            Path = 'state.json'
+                            Kind = 'State'
+                            Value = $State
+                        }
+                    )) {
+                        Write-TenantLifecycleEvidence `
+                            -RunDirectory $RunDirectory `
+                            -RelativePath $record.Path `
+                            -Kind $record.Kind `
+                            -InputObject $record.Value |
+                            Out-Null
+                    }
+                }
+
+                function New-SyntheticAcceptanceReadBack {
+                    param(
+                        [Parameter(Mandatory)][string]$RunId,
+                        [Parameter(Mandatory)][object]$State
+                    )
+
+                    $input = [pscustomobject][ordered]@{
+                        schemaVersion = '1.0'
+                        runId = $RunId
+                        generatedAtUtc = '2026-10-02T19:06:00.0000000Z'
+                        components = @(
+                            foreach ($resource in $State.resources) {
+                                [pscustomobject][ordered]@{
+                                    id = $resource.logicalName
+                                    provider = $resource.provider
+                                    stableId = $resource.stableId
+                                    ownedPropertiesDigest = (
+                                        $resource.ownedPropertiesDigest
+                                    )
+                                    status = 'Passed'
+                                }
+                            }
+                        )
+                        status = 'Passed'
+                    }
+                    [pscustomobject][ordered]@{
+                        schemaVersion = $input.schemaVersion
+                        runId = $input.runId
+                        generatedAtUtc = $input.generatedAtUtc
+                        components = @($input.components)
+                        status = $input.status
+                        digest = Get-RunbookContentDigest -InputObject $input
+                    }
+                }
+
+                $stages = @('Foundation', 'ReadBack')
+                $state = Get-Content -Raw -LiteralPath $script:StatePath |
+                    ConvertFrom-Json
+                $providerRunnerCalls =
+                    [Collections.Generic.List[string]]::new()
+                $providerRunner = {
+                    param([Parameter(Mandatory)][string]$Stage)
+                    [void]$providerRunnerCalls.Add($Stage)
+                    throw 'SyntheticLifecycle.ProviderRunnerCalled'
+                }.GetNewClosure()
+
+                $interruptedRunId = [guid]::NewGuid()
+                $interruptedRunDirectory = Join-Path (
+                    $script:EvidenceRoot
+                ) $interruptedRunId.ToString('D')
+                $interruptedManifestRecord = New-OrchestratorManifest `
+                    -RunId $interruptedRunId `
+                    -RunDirectory $interruptedRunDirectory `
+                    -Stages $stages
+                $interruptedManifest = $interruptedManifestRecord.Manifest
+                $interruptedApproval = New-SyntheticAcceptanceApproval `
+                    -Manifest $interruptedManifest
+                $currentBinding = New-SyntheticAcceptanceBinding `
+                    -Manifest $interruptedManifest `
+                    -SessionId ([string]$PID)
+                Test-TenantLifecycleApproval `
+                    -Manifest $interruptedManifest `
+                    -Approval $interruptedApproval `
+                    -CurrentBinding $currentBinding `
+                    -NowUtc ([datetime]'2026-10-02T19:05:00Z') |
+                    Should -BeTrue
+                Write-SyntheticAcceptanceInputs `
+                    -RunDirectory $interruptedRunDirectory `
+                    -Manifest $interruptedManifest `
+                    -Approval $interruptedApproval `
+                    -State $state
+
+                $interruptedCalls =
+                    [Collections.Generic.List[string]]::new()
+                $interruptedRecords =
+                    [Collections.Generic.List[object]]::new()
+                $interruptedCoreInvoker = New-SyntheticPassedInvoker `
+                    -Calls $interruptedCalls `
+                    -ControlRecords $interruptedRecords
+                $interruptedInvoker = {
+                    param(
+                        [string]$Stage,
+                        [string]$Mode,
+                        [object]$ControlRecord
+                    )
+
+                    if ($Stage -ceq 'ReadBack') {
+                        throw 'SyntheticLifecycle.Interrupted'
+                    }
+                    $outcome = & $interruptedCoreInvoker `
+                        -Stage $Stage `
+                        -Mode $Mode `
+                        -ControlRecord $ControlRecord
+                    if ($outcome.classification -cne 'NoChange') {
+                        & $providerRunner -Stage $Stage
+                    }
+                    return $outcome
+                }.GetNewClosure()
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId $interruptedRunId `
+                        -Stages $stages `
+                        -Mode Invoke `
+                        -ExecutionManifestPath (
+                            $interruptedManifestRecord.Path
+                        ) `
+                        -ApprovedDigest $interruptedManifest.digest `
+                        -SubsystemInvoker $interruptedInvoker `
+                        -Apply
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.SubsystemInvoker.Failed'
+                )
+                ($interruptedCalls -join ',') |
+                    Should -BeExactly 'Foundation'
+
+                $restartedBinding = New-SyntheticAcceptanceBinding `
+                    -Manifest $interruptedManifest `
+                    -SessionId "$PID-restarted"
+                {
+                    Test-TenantLifecycleApproval `
+                        -Manifest $interruptedManifest `
+                        -Approval $interruptedApproval `
+                        -CurrentBinding $restartedBinding `
+                        -NowUtc ([datetime]'2026-10-02T19:05:00Z')
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Approval.Drift.sessionId'
+                )
+
+                $completedRunId = [guid]::NewGuid()
+                $completedRunDirectory = Join-Path (
+                    $script:EvidenceRoot
+                ) $completedRunId.ToString('D')
+                $completedManifestRecord = New-OrchestratorManifest `
+                    -RunId $completedRunId `
+                    -RunDirectory $completedRunDirectory `
+                    -Stages $stages
+                $completedManifest = $completedManifestRecord.Manifest
+                $completedManifest.digest |
+                    Should -Not -BeExactly $interruptedManifest.digest
+                $completedApproval = New-SyntheticAcceptanceApproval `
+                    -Manifest $completedManifest
+                $completedBinding = New-SyntheticAcceptanceBinding `
+                    -Manifest $completedManifest `
+                    -SessionId ([string]$PID)
+                Test-TenantLifecycleApproval `
+                    -Manifest $completedManifest `
+                    -Approval $completedApproval `
+                    -CurrentBinding $completedBinding `
+                    -NowUtc ([datetime]'2026-10-02T19:05:00Z') |
+                    Should -BeTrue
+                Write-SyntheticAcceptanceInputs `
+                    -RunDirectory $completedRunDirectory `
+                    -Manifest $completedManifest `
+                    -Approval $completedApproval `
+                    -State $state
+
+                $completedCalls =
+                    [Collections.Generic.List[string]]::new()
+                $completedRecords =
+                    [Collections.Generic.List[object]]::new()
+                $completedCoreInvoker = New-SyntheticPassedInvoker `
+                    -Calls $completedCalls `
+                    -ControlRecords $completedRecords
+                $completedInvoker = {
+                    param(
+                        [string]$Stage,
+                        [string]$Mode,
+                        [object]$ControlRecord
+                    )
+
+                    $outcome = & $completedCoreInvoker `
+                        -Stage $Stage `
+                        -Mode $Mode `
+                        -ControlRecord $ControlRecord
+                    if ($outcome.classification -cne 'NoChange') {
+                        & $providerRunner -Stage $Stage
+                    }
+                    return $outcome
+                }.GetNewClosure()
+                $outcomes = @(Invoke-SyntheticOrchestrator `
+                    -RunId $completedRunId `
+                    -Stages $stages `
+                    -Mode Invoke `
+                    -ExecutionManifestPath $completedManifestRecord.Path `
+                    -ApprovedDigest $completedManifest.digest `
+                    -SubsystemInvoker $completedInvoker `
+                    -Apply)
+                $outcomes.Count | Should -Be 2
+                ($completedCalls -join ',') |
+                    Should -BeExactly 'Foundation,ReadBack'
+
+                $readBack = New-SyntheticAcceptanceReadBack `
+                    -RunId $completedManifest.runId `
+                    -State $state
+                Write-TenantLifecycleEvidence `
+                    -RunDirectory $completedRunDirectory `
+                    -RelativePath 'read-back.json' `
+                    -Kind ReadBack `
+                    -InputObject $readBack |
+                    Out-Null
+
+                $projectionPath = Join-Path $TestDrive (
+                    "synthetic-lifecycle-acceptance-" +
+                    "$($completedRunId.ToString('N')).json"
+                )
+                ConvertTo-TenantLifecycleAcceptanceProjection `
+                    -RunDirectory $completedRunDirectory `
+                    -AllowedStableIds @('stable-synthetic-001') `
+                    -AllowedUrlHosts @() `
+                    -OutputPath $projectionPath |
+                    Out-Null
+
+                $interruptedActionPath = Join-Path (
+                    $interruptedRunDirectory
+                ) 'actions\Foundation.json'
+                $interruptedActionPath | Should -Exist
+                (Join-Path $interruptedRunDirectory 'actions\ReadBack.json') |
+                    Should -Not -Exist
+                (Join-Path $interruptedRunDirectory 'summary.json') |
+                    Should -Not -Exist
+
+                foreach ($relativePath in @(
+                    'assessment.json',
+                    'execution-manifest.json',
+                    'approvals.json',
+                    'actions\Foundation.json',
+                    'actions\ReadBack.json',
+                    'state.json',
+                    'read-back.json',
+                    'summary.json'
+                )) {
+                    (Join-Path $completedRunDirectory $relativePath) |
+                        Should -Exist
+                }
+
+                $summary = Get-Content `
+                    -Raw `
+                    -LiteralPath (
+                        Join-Path $completedRunDirectory 'summary.json'
+                    ) |
+                    ConvertFrom-Json
+                $summary.status | Should -BeExactly 'Passed'
+                $summary.counts.NoChange | Should -Be 2
+                $summary.counts.Create | Should -Be 0
+                $summary.counts.Update | Should -Be 0
+                ($summary.actions.classification -join ',') |
+                    Should -BeExactly 'NoChange,NoChange'
+                ($summary.actions.status -join ',') |
+                    Should -BeExactly 'Passed,Passed'
+
+                $projectionPath | Should -Exist
+                $projection = Get-Content -Raw -LiteralPath $projectionPath |
+                    ConvertFrom-Json
+                ($projection.actions.id -join ',') |
+                    Should -BeExactly 'Foundation,ReadBack'
+                ($projection.actions.classification -join ',') |
+                    Should -BeExactly 'NoChange,NoChange'
+                ($projection.actions.status -join ',') |
+                    Should -BeExactly 'Passed,Passed'
+                $projection.disclosedStableIds |
+                    Should -Contain 'stable-synthetic-001'
+                $providerRunnerCalls.Count | Should -Be 0
             }
         }
 

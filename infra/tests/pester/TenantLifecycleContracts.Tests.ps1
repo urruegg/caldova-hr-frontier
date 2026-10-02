@@ -65,8 +65,19 @@ Describe 'Tenant lifecycle contracts' {
             $json = $InputObject | ConvertTo-Json -Depth 30 -Compress
             $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json))
             $program = "import base64,json,jsonschema,sys; schema=json.load(open(sys.argv[1],encoding='utf-8')); instance=json.loads(base64.b64decode(sys.argv[2]).decode('utf-8')); jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker()).validate(instance)"
-            $output = & python -c $program $SchemaPath $encoded 2>&1
-            [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = ($output -join [Environment]::NewLine) }
+            $previousErrorActionPreference = $ErrorActionPreference
+            try {
+                $ErrorActionPreference = 'Continue'
+                $output = & python -c $program $SchemaPath $encoded 2>&1
+                $exitCode = $LASTEXITCODE
+            }
+            finally {
+                $ErrorActionPreference = $previousErrorActionPreference
+            }
+            [pscustomobject]@{
+                ExitCode = $exitCode
+                Output = ($output -join [Environment]::NewLine)
+            }
         }
 
         function Set-ContractPropertyValue {

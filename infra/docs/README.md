@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active |
 | **Scope** | Infrastructure documentation |
-| **References** | [Infrastructure Domain](../README.md), [Documentation Policy](../../docs/README.md), [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md) |
+| **References** | [Infrastructure Domain](../README.md), [Documentation Policy](../../docs/README.md), [Approved Tenant 1 Runbook End-to-End Design](../../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md), [Tenant Lifecycle Core Implementation Plan](../../docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md), [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md) |
 
 ## Purpose and Authority
 
@@ -15,7 +15,7 @@ This folder is the maintained catalogue for infrastructure architecture, configu
 
 ## Contains and Does Not Contain
 
-This folder contains infrastructure guidance, active attended procedures, superseded stop notices, and the operational-runbook catalogue. It does not contain tenant-private configuration, raw operational evidence, credentials, deployment state, or source code.
+This folder contains infrastructure guidance, active attended procedures, superseded stop notices, and the operational-runbook catalogue, including the implemented provider-neutral lifecycle-core boundary. It does not contain tenant-private configuration, raw operational evidence, credentials, deployment state, or source code. The lifecycle-core documentation authorizes no provider procedure.
 
 ## Reading Order
 
@@ -44,7 +44,7 @@ Number maintained infrastructure guidance in the intended reading order. Use des
 | [Customer handover runbook](runbooks/03-customer-handover.md) | [Repository Clean-Up Runbook](22-repository-cleanup-runbook.md) | Proposed Baseline | Defines tenant-agnostic repository clean-up boundaries. | Proposed procedure; external publication remains separately approved. |
 | [Customer handover runbook](runbooks/03-customer-handover.md) | [Customer Repository Export and Handover Runbook](23-customer-repository-export-and-handover-runbook.md) | Proposed Baseline | Defines reviewed export and handover preparation. | Proposed procedure; it authorizes no external repository mutation. |
 | [Acceptance review](../../docs/reviews/2026-09-28-tenant-1-lean-engineering-platform-acceptance-review.md) | [Tenant 1 Lean Platform Runbook](24-tenant-1-lean-platform-runbook.md) | Proposed Baseline | Defines the active attended Tenant 1 sequence and acceptance contract. | Proposed operational sequence under the approved lean design and explicit human gates. |
-| [Operational runbook design](../../docs/specs/2026-09-26-operational-runbooks-design.md) | [Infrastructure Operational Runbooks](runbooks/README.md) | Proposed Baseline | Catalogues shared preview, approval, evidence, read-back, and recovery procedures. | Maintained routing for the runbook package; each child status controls execution. |
+| [Approved end-to-end runbook design](../../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md) | [Infrastructure Operational Runbooks](runbooks/README.md) | Proposed Baseline | Catalogues shared preview, approval, evidence, read-back, recovery, and the provider-neutral lifecycle-core contract. | Maintained routing for the runbook package; Plan 1 is synthetic core only and each child status controls execution. |
 
 ## Domain Links
 

@@ -2,16 +2,22 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-26 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure customer repository handover |
-| **References** | [Operational Runbooks](README.md); [Operational Runbooks Design](../../../docs/specs/2026-09-26-operational-runbooks-design.md); [`New-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/New-CustomerRepositoryExport.ps1); [`Test-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/Test-CustomerRepositoryExport.ps1); [`customer-export.schema.json`](../../src/config/schemas/customer-export.schema.json); [`customer-export.sample.json`](../../src/config/runbooks/customer-export.sample.json) |
+| **References** | [Operational Runbooks](README.md); [Approved Tenant 1 Runbook End-to-End Design](../../../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md); [Tenant Lifecycle Core Implementation Plan](../../../docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md); [Operational Runbooks Design](../../../docs/specs/2026-09-26-operational-runbooks-design.md); [`New-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/New-CustomerRepositoryExport.ps1); [`Test-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/Test-CustomerRepositoryExport.ps1); [`customer-export.schema.json`](../../src/config/schemas/customer-export.schema.json); [`customer-export.sample.json`](../../src/config/runbooks/customer-export.sample.json) |
 
 ## Purpose
 
 This runbook prepares a synthetic customer-facing repository export from the reusable source without mutating the source tree. Execution is local, attended, and limited to Windows 11 PowerShell 5.1 or 7. Authentication is `NotApplicable`. Evidence is written only outside Git. Publication is not implemented here and remains a separate attended procedure.
+
+## Lifecycle-core integration boundary
+
+The lifecycle core recognizes `TenantReplica` as a stage identifier but does not invoke [`New-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/New-CustomerRepositoryExport.ps1), [`Test-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/Test-CustomerRepositoryExport.ps1), a publication remote, or any handover provider. The local export and independent validator remain directly runnable under this runbook's separate contracts. A later reviewed replica/handover plan must define the digest binding and production subsystem invoker before the umbrella may sequence this stage.
+
+Plan 1's synthetic `TenantReplica` stage is not export, independent-validation, human-review, transfer, or publication evidence. A sanitized lifecycle projection cannot make any of those claims.
 
 ## Roles and prerequisites
 
@@ -95,7 +101,7 @@ The report directory may contain `customer-export-assessment.json`, `customer-ex
 
 ## Failure and recovery
 
-Failure leaves the source untouched and does not produce a publish-ready destination. The only removable path is the explicitly named disposable or customer staging directory after a human path review. Any failed validation, digest mismatch, executable-identity change, residual detection, or source-state change requires a new assessment and approval. Recovery never broadens scope and never treats a failed or manual item as verified.
+Failure leaves the source untouched and does not produce a publish-ready destination. The only removable path is the explicitly named disposable or customer staging directory after a human path review. Any restart, failed validation, digest mismatch, executable-identity change, residual detection, or source-state change requires a new assessment, manifest, and approval. Prior evidence is preserved but cannot resume an approval bound to the earlier process session. Recovery never broadens scope and never treats a failed or manual item as verified.
 
 ## Definition of Done
 

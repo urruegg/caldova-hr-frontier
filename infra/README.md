@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.6 |
+| **Version** | 1.7 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
-| **References** | [Tenant 1 Lean Engineering Platform Design](../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Tenant 1 Lean Platform Runbook](docs/24-tenant-1-lean-platform-runbook.md), [Approved Intake Design](../docs/specs/2026-09-17-architecture-baseline-intake-design.md) |
+| **References** | [Approved Tenant 1 Runbook End-to-End Design](../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md), [Tenant Lifecycle Core Implementation Plan](../docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md), [Tenant 1 Lean Engineering Platform Design](../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Tenant 1 Lean Platform Runbook](docs/24-tenant-1-lean-platform-runbook.md), [Approved Intake Design](../docs/specs/2026-09-17-architecture-baseline-intake-design.md) |
 
 This source-derived Proposed Baseline describes intended infrastructure architecture and operations. It does not prove that any tenant, Azure resource, Azure DevOps object, Power Platform environment, GitHub governance control, pipeline, identity, or service is currently deployed or configured.
 
@@ -31,6 +31,7 @@ Start at the [repository knowledge map](../docs/README.md), then this domain bou
 
 - [Tenant 1 Lean Platform Runbook](docs/24-tenant-1-lean-platform-runbook.md) is the active attended local Tenant 1 sequence and acceptance contract.
 - [Operational Runbooks](docs/runbooks/README.md) catalogues the shared preview, approval, evidence, read-back, and recovery procedures.
+- [`Invoke-TenantLifecycle.ps1`](src/scripts/runbooks/Invoke-TenantLifecycle.ps1) is a provider-neutral sequencing core with no production subsystem invoker; omission fails closed and no provider procedure is activated.
 - [Developer Workstation](docs/runbooks/01-developer-workstation.md) defines the approved local workstation assessment and initialization boundary.
 - [Tenant Trust Activation Runbook](docs/20-tenant-trust-activation-runbook.md) is a `Superseded stop notice`; no supported trust-activation mutation path exists.
 - [Azure Boards Population Runbook](docs/21-azure-boards-population-runbook.md) is a `Superseded stop notice`; Board synchronization remains deferred.
@@ -43,9 +44,9 @@ Public source uses stable descriptive paths under `src/`; infrastructure documen
 
 ## Current Boundary
 
-At the end of Sprint 2, this domain contains documentation, solution-source ownership guidance, workstation assessment and initialization tooling, shared runbook contracts, and validation tests. It still contains no cloud-foundation Apply step, customer export or publication flow, production deployment flow, tenant-creation flow, Power Platform solution payload, or deployed resource.
+Plan 1 adds closed tenant-lifecycle schemas, private intent/state validation, deterministic prerequisites, digest-bound evidence and approval, a provider-neutral umbrella orchestrator, a sanitized acceptance projection, and synthetic verification. It adds no workstation, cloud-foundation, DEV-delivery, or handover subsystem implementation to the umbrella. It still contains no active cloud-foundation Apply step, lifecycle-driven customer export or publication flow, production deployment flow, tenant-creation flow, Power Platform solution payload, or deployed resource. The dormant cloud-foundation stop stubs remain unchanged.
 
-This sprint permits attended local discovery, sanitized review, Bicep build, subscription-scope `what-if`, boundary validation, and context and access read-back. The operator uses pre-existing, separately approved least-privilege access. The sprint performs no role mutation, trust activation, GitHub Environment creation, Azure Pipeline execution, or deployment creation.
+Existing independently runnable procedures retain their own explicit gates. The lifecycle core itself permits only provider-neutral validation, sequencing through an injected invoker, synthetic action evidence, and allowlisted projection. It performs no authentication, provider discovery, role mutation, trust activation, GitHub Environment creation, Azure Pipeline execution, PAC operation, solution import, deployment creation, handover publication, or provider mutation.
 
 No resource group, Log Analytics workspace, custom role, policy, Key Vault, storage account, application runtime, Power Platform environment, Azure DevOps project, repository, pipeline, solution, or GitHub ruleset is created or deployed by Task 1.
 
@@ -83,7 +84,7 @@ A path shown here is an ownership boundary, not evidence that its artifact alrea
 
 | Prior or next stage | Direct child | Status | Purpose | Authority |
 |---|---|---|---|---|
-| [Tenant 1 lean platform design](../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md) | [Infrastructure Documentation](docs/README.md) | Active | Catalogues infrastructure guidance, procedures, and operational stop notices. | Maintained navigation; each child metadata status and explicit gate governs its use. |
+| [Approved Tenant 1 runbook end-to-end design](../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md) | [Infrastructure Documentation](docs/README.md) | Active | Catalogues infrastructure guidance, procedures, operational stop notices, and the implemented provider-neutral lifecycle-core boundary. | Maintained navigation; the lifecycle core is synthetic-only and each child metadata status and explicit gate governs operational use. |
 
 ## Conventions
 
