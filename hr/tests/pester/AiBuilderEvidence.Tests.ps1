@@ -5176,7 +5176,7 @@ $capture | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Enco
             $blockedCapturePath | Should -Exist
             $summaryPath | Should -Exist
             (Get-Content -LiteralPath $summaryPath -Raw) | Should -Match ([regex]::Escape($blockedCapturePath))
-            ($output | Out-String -Width 4096) | Should -Match 'violates\s+the capture contract'
+            ($output | Out-String -Width 4096) | Should -Match 'violates\s+the\s+capture\s+contract'
         }
     }
 }
