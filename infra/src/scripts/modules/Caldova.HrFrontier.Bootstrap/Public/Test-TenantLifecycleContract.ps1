@@ -55,6 +55,13 @@ function Assert-TenantLifecycleName {
     Assert-TenantLifecycleString -Value $Value -Pattern '^[A-Za-z0-9][A-Za-z0-9._:-]*$' -MaximumLength 128
 }
 
+function Assert-TenantLifecycleStatus {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][AllowNull()][object]$Value)
+
+    Assert-TenantLifecycleString -Value $Value -Pattern '^[A-Za-z][A-Za-z0-9]*$' -MaximumLength 64
+}
+
 function Assert-TenantLifecycleStableId {
     [CmdletBinding()]
     param([Parameter(Mandatory)][AllowNull()][object]$Value)
@@ -85,15 +92,27 @@ function Assert-TenantLifecycleTimestamp {
         return
     }
     Assert-TenantLifecycleCondition ($Value -is [string])
-    Assert-TenantLifecycleCondition ($Value -match 'Z$')
-    $parsed = [DateTimeOffset]::MinValue
-    $valid = [DateTimeOffset]::TryParse(
+    $timestampMatch = [regex]::Match(
         $Value,
-        [Globalization.CultureInfo]::InvariantCulture,
-        [Globalization.DateTimeStyles]::RoundtripKind,
-        [ref]$parsed
+        '^(?<year>[0-9]{4})-(?<month>[0-9]{2})-(?<day>[0-9]{2})[Tt](?<hour>[0-9]{2}):(?<minute>[0-9]{2}):(?<second>[0-9]{2})(?:\.[0-9]+)?Z$',
+        [Text.RegularExpressions.RegexOptions]::CultureInvariant
     )
-    Assert-TenantLifecycleCondition $valid
+    Assert-TenantLifecycleCondition $timestampMatch.Success
+
+    try {
+        [void][DateTime]::new(
+            [int]$timestampMatch.Groups['year'].Value,
+            [int]$timestampMatch.Groups['month'].Value,
+            [int]$timestampMatch.Groups['day'].Value,
+            [int]$timestampMatch.Groups['hour'].Value,
+            [int]$timestampMatch.Groups['minute'].Value,
+            [int]$timestampMatch.Groups['second'].Value,
+            [DateTimeKind]::Utc
+        )
+    }
+    catch {
+        Assert-TenantLifecycleCondition $false
+    }
 }
 
 function Assert-TenantLifecycleArray {
@@ -196,7 +215,7 @@ function Assert-TenantLifecycleProviderContexts {
         Assert-TenantLifecycleProperties -InputObject $context -Fields @('provider', 'contextId', 'status', 'digest')
         Assert-TenantLifecycleName $context.provider
         Assert-TenantLifecycleStableId $context.contextId
-        Assert-TenantLifecycleName $context.status
+        Assert-TenantLifecycleStatus $context.status
         Assert-TenantLifecycleDigest $context.digest
     }
     Assert-TenantLifecycleUniqueValues -Values @($Value) -PropertyName 'contextId'
@@ -210,7 +229,7 @@ function Assert-TenantLifecyclePrerequisites {
     foreach ($prerequisite in @($Value)) {
         Assert-TenantLifecycleProperties -InputObject $prerequisite -Fields @('id', 'status', 'inputDigest', 'evidenceDigest')
         Assert-TenantLifecycleName $prerequisite.id
-        Assert-TenantLifecycleName $prerequisite.status
+        Assert-TenantLifecycleStatus $prerequisite.status
         Assert-TenantLifecycleDigest $prerequisite.inputDigest
         Assert-TenantLifecycleDigest $prerequisite.evidenceDigest
     }
@@ -238,7 +257,7 @@ function Assert-TenantLifecycleAssessmentComponents {
         Assert-TenantLifecycleClassification $component.classification
         Assert-TenantLifecycleStableId $component.targetStableId
         Assert-TenantLifecycleDigest $component.ownedPropertiesDigest
-        Assert-TenantLifecycleName $component.status
+        Assert-TenantLifecycleStatus $component.status
     }
     Assert-TenantLifecycleUniqueValues -Values @($Value) -PropertyName 'id'
     Assert-TenantLifecycleUniqueValues -Values @($Value) -PropertyName 'targetStableId'
@@ -326,7 +345,7 @@ function Assert-TenantLifecycleReadBackComponents {
         Assert-TenantLifecycleName $component.provider
         Assert-TenantLifecycleStableId $component.stableId
         Assert-TenantLifecycleDigest $component.ownedPropertiesDigest
-        Assert-TenantLifecycleName $component.status
+        Assert-TenantLifecycleStatus $component.status
     }
     Assert-TenantLifecycleUniqueValues -Values @($Value) -PropertyName 'id'
     Assert-TenantLifecycleUniqueValues -Values @($Value) -PropertyName 'stableId'
@@ -359,7 +378,7 @@ function Assert-TenantLifecycleSummaryActions {
         )
         Assert-TenantLifecycleName $action.id
         Assert-TenantLifecycleClassification $action.classification
-        Assert-TenantLifecycleName $action.status
+        Assert-TenantLifecycleStatus $action.status
         Assert-TenantLifecycleString `
             -Value $action.evidenceRelativePath `
             -Pattern '^actions/[A-Za-z0-9][A-Za-z0-9._:-]*\.json$' `
@@ -377,6 +396,7 @@ function Test-TenantLifecycleContract {
         [string]$Kind,
 
         [Parameter(Mandatory)]
+        [AllowNull()]
         [object]$InputObject
     )
 
@@ -497,7 +517,7 @@ function Test-TenantLifecycleContract {
                 Assert-TenantLifecycleDigest $InputObject.preReadDigest
                 Assert-TenantLifecycleName $InputObject.decision
                 Assert-TenantLifecycleDigest $InputObject.postReadDigest
-                Assert-TenantLifecycleName $InputObject.status
+                Assert-TenantLifecycleStatus $InputObject.status
                 if ($null -ne $InputObject.errorCode) {
                     Assert-TenantLifecycleName $InputObject.errorCode
                 }
@@ -526,7 +546,7 @@ function Test-TenantLifecycleContract {
                 Assert-TenantLifecycleString -Value $InputObject.runId -Pattern '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' -MaximumLength 36
                 Assert-TenantLifecycleTimestamp $InputObject.generatedAtUtc
                 Assert-TenantLifecycleReadBackComponents $InputObject.components
-                Assert-TenantLifecycleName $InputObject.status
+                Assert-TenantLifecycleStatus $InputObject.status
                 Assert-TenantLifecycleDigest $InputObject.digest
             }
             'Summary' {
@@ -550,7 +570,7 @@ function Test-TenantLifecycleContract {
                 Assert-TenantLifecycleTimestamp $InputObject.startedAtUtc
                 Assert-TenantLifecycleTimestamp $InputObject.completedAtUtc
                 Assert-TenantLifecycleCondition (([DateTimeOffset]$InputObject.completedAtUtc) -ge ([DateTimeOffset]$InputObject.startedAtUtc))
-                Assert-TenantLifecycleName $InputObject.status
+                Assert-TenantLifecycleStatus $InputObject.status
                 Assert-TenantLifecycleCounts $InputObject.counts
                 Assert-TenantLifecyclePrerequisites $InputObject.prerequisites
                 Assert-TenantLifecycleSummaryActions $InputObject.actions
