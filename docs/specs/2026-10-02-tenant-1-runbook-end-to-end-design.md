@@ -2,24 +2,21 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed Baseline |
+| **Status** | Approved |
 | **Scope** | Tenant 1 infrastructure runbooks and Power Platform DEV delivery |
-| **References** | [Specification Catalogue](README.md), [Operational Runbooks Design](2026-09-26-operational-runbooks-design.md), [Tenant 1 Lean Engineering Platform Design](2026-09-28-tenant-1-lean-engineering-platform-design.md), [Active Configuration Review](../reviews/2026-09-28-tenant-1-engineering-platform-configuration-review.md), [Infrastructure Domain](../../infra/README.md) |
+| **References** | [Specification Catalogue](README.md), [Tenant Lifecycle Core Plan](../plans/2026-10-02-tenant-lifecycle-core-implementation.md), [Tenant 1 End-to-End Acceptance Plan](../plans/2026-10-02-tenant-1-end-to-end-acceptance-implementation.md), [Operational Runbooks Design](2026-09-26-operational-runbooks-design.md), [Tenant 1 Lean Engineering Platform Design](2026-09-28-tenant-1-lean-engineering-platform-design.md), [Active Configuration Review](../reviews/2026-09-28-tenant-1-engineering-platform-configuration-review.md), [Infrastructure Domain](../../infra/README.md) |
 
-## 1. Status and Approval Gate
+## 1. Status and Execution Authority
 
-This specification proposes the architecture and acceptance authority for the next Tenant 1 runbook sprint. It is not approved implementation authority. User approval is still required before:
+The user approved this specification and its three companion specifications on 2026-10-02 as implementation-planning authority for the next Tenant 1 runbook sprint. This approval authorizes the six scoped Draft implementation plans linked from the [specification catalogue](README.md). It does not by itself authorize:
 
-- writing implementation plans from this design;
 - changing the status of an older specification or plan;
-- reactivating any cloud-foundation Apply path;
+- reactivating any cloud-foundation Apply path before its replacement passes review;
 - running a live provider assessment, pipeline, deployment, import, or tenant mutation; or
-- archiving or moving an existing document.
-
-The sprint outcome below is the recommended default selected during brainstorming because the user was unavailable at that decision point. Recording it as a Proposed Baseline does not convert that recommendation into approval.
+- archiving or moving an existing document before the replacement and acceptance gates in this specification pass.
 
 The core responsibility split in ADR-0001, ADR-0002, and ADR-0012 remains: GitHub owns product source, Azure Boards owns the backlog, Azure Pipelines owns HR solution delivery, and each tenant has an isolated repository and project. This proposal advances the previously future Azure Pipeline into the next sprint; it does not restore the rejected private Azure Repo or GitHub OIDC bootstrap. Approval requires a targeted authority review of those ADRs' time-bound “current sprint” wording, without silently changing their architectural decisions.
 
@@ -236,9 +233,9 @@ Human-only identity, role, consent, secret-dependent, external-publication, and 
 | Cloud public scripts are stop stubs | Replace the stopped surface through focused test-driven implementation; never remove only the guard. |
 | Acceptance record is historical or Draft | Create a new sprint-specific review; do not overwrite either 2026-09-28 review. |
 
-## 9. Proposed Acceptance Authority
+## 9. Acceptance Authority
 
-A new sprint-specific acceptance review is the proposed authority for claims that this lifecycle ran. It must live under `docs/reviews/`, reference this specification and the approved implementation plans, and contain only sanitized evidence. It does not overwrite the historical configuration review or Draft lean acceptance review.
+The approved authority model requires a new sprint-specific acceptance review for claims that this lifecycle ran. It must live under `docs/reviews/`, reference this specification and the approved implementation plans, and contain only sanitized evidence. It does not overwrite the historical configuration review or Draft lean acceptance review.
 
 All mandatory controls must pass in one traceable lifecycle. `Manual`, `Blocked`, `Refused`, `Not Run`, stale, or ambiguous outcomes cannot be accepted.
 
@@ -259,9 +256,9 @@ All mandatory controls must pass in one traceable lifecycle. `Manual`, `Blocked`
 | `T1-E2E-13` | TenantReplica | A local profile export from the exact source commit passes independent byte-level and policy validation with no Tenant 1 private state, identifiers, or evidence. |
 | `T1-E2E-14` | Sanitized review | A new acceptance review maps every control to sanitized evidence and explicitly records non-claims. |
 
-## 10. Documentation Disposition After Approval and Replacement
+## 10. Documentation Disposition After Replacement Acceptance
 
-This change moves or archives nothing. The following matrix is a proposal for later implementation. An archive action occurs only after replacement runbooks are accepted and the documentation policy determines the canonical archive route.
+This approval moves or archives nothing. The following matrix governs later implementation. An archive action occurs only after replacement runbooks are accepted and the documentation policy determines the canonical archive route.
 
 | Current document or group | Proposed disposition | Gate |
 |---|---|---|

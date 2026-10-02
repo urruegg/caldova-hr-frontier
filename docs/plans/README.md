@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.8 |
+| **Version** | 1.9 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
 | **Scope** | docs/plans |
-| **References** | [Documentation Knowledge Architecture Cleanup Implementation Plan](2026-10-02-documentation-knowledge-architecture-cleanup-implementation.md), [Approved Documentation Knowledge Architecture Cleanup Design](../specs/2026-10-02-documentation-knowledge-architecture-cleanup-design.md), [Caldova Branding Migration Implementation Plan](2026-10-01-caldova-branding-migration-implementation.md) |
+| **References** | [Tenant Lifecycle Core Implementation Plan](2026-10-02-tenant-lifecycle-core-implementation.md), [Tenant 1 End-to-End Acceptance Implementation Plan](2026-10-02-tenant-1-end-to-end-acceptance-implementation.md), [Approved Tenant 1 Runbook End-to-End Design](../specs/2026-10-02-tenant-1-runbook-end-to-end-design.md) |
 
 ## Purpose and Authority
 
@@ -50,6 +50,12 @@ Name plans `YYYY-MM-DD-topic-implementation.md`. Include exact files, ordered st
 | [AI Builder evidence contract](../../hr/evidence/ai-builder/README.md) | [AI Builder Evaluation Capture Implementation Plan](2026-09-29-ai-builder-evaluation-capture-implementation.md) | Draft | Replaces the blocked no-flow path with restricted replayable Tenant 2 DEV evaluation capture. | Draft plan; publication is evaluation executability only and tenant changes remain gated. |
 | [Brand catalogue](../brand/README.md) | [Caldova Branding Migration Implementation Plan](2026-10-01-caldova-branding-migration-implementation.md) | Draft | Migrates the tracked tree to Caldova branding while preserving technical and immutable evidence. | Draft migration plan governed by the approved branding design and protected-surface checks. |
 | [Migration review](../reviews/2026-10-02-documentation-knowledge-architecture-migration-review.md) | [Documentation Knowledge Architecture Cleanup Implementation Plan](2026-10-02-documentation-knowledge-architecture-cleanup-implementation.md) | Draft | Consolidates lifecycle documentation and validates canonical navigation. | Draft migration plan governed by the approved cleanup design; archive and evidence exclusions remain binding. |
+| [Workstation plan](2026-10-02-developer-workstation-runbook-refactor-implementation.md) and [replica base plan](2026-10-02-tenant-replica-handover-implementation.md) | [Tenant Lifecycle Core Implementation Plan](2026-10-02-tenant-lifecycle-core-implementation.md) | Draft | Builds shared lifecycle schemas, intent/state separation, prerequisite graph, evidence, approval, sanitized projection, and the provider-neutral umbrella orchestrator. | Draft local implementation plan governed by the approved umbrella design; it authorizes no provider mutation or live execution. |
+| [Cloud core plan](2026-10-02-cloud-service-foundation-core-implementation.md) | [Developer Workstation Runbook Refactor Implementation Plan](2026-10-02-developer-workstation-runbook-refactor-implementation.md) | Draft | Refactors the existing Windows 11 workstation subsystem for exact versions, external worktrees, restart safety, and private backup/restore gates. | Draft local implementation plan after lifecycle core; it authorizes no cloud authentication or provider call. |
+| [Power Platform DEV delivery plan](2026-10-02-power-platform-dev-delivery-implementation.md) | [Cloud Service Foundation Core Implementation Plan](2026-10-02-cloud-service-foundation-core-implementation.md) | Draft | Builds supported provider assessment/planning/reconciliation entry points and adapters while preserving stopped legacy entry points. | Draft implementation plan after lifecycle/workstation plans; implementation uses synthetic/provider-contract tests and authorizes no live execution. |
+| [Replica final validation](2026-10-02-tenant-replica-handover-implementation.md), then [end-to-end acceptance](2026-10-02-tenant-1-end-to-end-acceptance-implementation.md) | [Power Platform DEV Delivery Implementation Plan](2026-10-02-power-platform-dev-delivery-implementation.md) | Draft | Adds the manual Azure Pipeline, Build Tools 2.0 WIF contract, immutable HR artifact, DEV-only import, and attended application-user read-back. | Draft implementation plan after Plans 1-3; it authorizes no pipeline queue, role grant, import, or live execution. |
+| [End-to-end acceptance plan](2026-10-02-tenant-1-end-to-end-acceptance-implementation.md) | [Tenant Replica and Customer Handover Implementation Plan](2026-10-02-tenant-replica-handover-implementation.md) | Draft | Adds explicit `TenantReplica` and `CustomerHandover` profiles over one local export and independent-validation engine. | Draft local implementation plan after lifecycle core; final retained-pipeline acceptance waits for the DEV delivery plan and no remote or Tenant 2 action is authorized. |
+| New sprint-specific review at `docs/reviews/2026-10-02-tenant-1-runbook-end-to-end-acceptance-review.md` | [Tenant 1 End-to-End Acceptance Implementation Plan](2026-10-02-tenant-1-end-to-end-acceptance-implementation.md) | Draft | Gates attended current-workstation execution, exact DEV delivery, NoChange, fresh-laptop continuation, local replica validation, sanitized review, and post-acceptance documentation disposition. | Draft final plan after Plans 1-5; it cannot execute until current-main is green, private prerequisites exist, and every hard live-entry approval is recorded. |
 
 ## Domain Links
 

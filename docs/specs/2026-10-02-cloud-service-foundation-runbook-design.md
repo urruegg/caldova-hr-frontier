@@ -2,18 +2,16 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed Baseline |
+| **Status** | Approved |
 | **Scope** | Tenant 1 provider foundation, Azure Pipeline, and Power Platform DEV deployment |
-| **References** | [Tenant 1 Runbook End-to-End Design](2026-10-02-tenant-1-runbook-end-to-end-design.md), [Current Cloud Foundation Stop Notice](../../infra/docs/runbooks/02-cloud-service-foundation.md), [Power Platform Environments and ALM](../../infra/docs/12-power-platform-environments-and-alm.md), [Azure DevOps Engineering Control Plane](../../infra/docs/13-azure-devops-engineering-control-plane.md), [ADR-0003](../adr/0003-bicep-and-powershell-for-infrastructure-as-code.md) |
+| **References** | [Tenant 1 Runbook End-to-End Design](2026-10-02-tenant-1-runbook-end-to-end-design.md), [Cloud Core Implementation Plan](../plans/2026-10-02-cloud-service-foundation-core-implementation.md), [Power Platform DEV Delivery Plan](../plans/2026-10-02-power-platform-dev-delivery-implementation.md), [Current Cloud Foundation Stop Notice](../../infra/docs/runbooks/02-cloud-service-foundation.md), [Power Platform Environments and ALM](../../infra/docs/12-power-platform-environments-and-alm.md), [Azure DevOps Engineering Control Plane](../../infra/docs/13-azure-devops-engineering-control-plane.md), [ADR-0003](../adr/0003-bicep-and-powershell-for-infrastructure-as-code.md) |
 
 ## 1. Status and Authority
 
-This specification proposes the cloud subsystem of the [Tenant 1 end-to-end lifecycle](2026-10-02-tenant-1-runbook-end-to-end-design.md). It is independently plannable but is not approved implementation or live-operation authority.
-
-User approval of the complete design set is required before an implementation plan is written, the current [stop notice](../../infra/docs/runbooks/02-cloud-service-foundation.md) is replaced, a public Apply path is activated, or any provider is contacted for live execution.
+The user approved this cloud subsystem of the [Tenant 1 end-to-end lifecycle](2026-10-02-tenant-1-runbook-end-to-end-design.md) on 2026-10-02 as implementation-planning authority for its stated scope. Approval does not replace the current [stop notice](../../infra/docs/runbooks/02-cloud-service-foundation.md), activate a public Apply path, or authorize provider contact or live execution.
 
 The current public scripts remain unsupported stop stubs until reviewed implementation, tests, runbook replacement, and live-entry approval are complete. Removing their initial `throw` statements is explicitly insufficient.
 
@@ -383,7 +381,7 @@ The sanitized acceptance review cites hashes, stable IDs approved for disclosure
 
 ## 11. Implementation Decomposition
 
-After user approval, the cloud implementation plan can use these ordered units:
+The cloud implementation plans use these ordered units:
 
 1. Define closed assessment, state, action-plan, pipeline-provenance, and read-back schemas.
 2. Write focused failing tests for stopped-entry safety and the three new public contracts.

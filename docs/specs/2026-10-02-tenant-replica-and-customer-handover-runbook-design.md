@@ -2,18 +2,16 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed Baseline |
+| **Status** | Approved |
 | **Scope** | Local repository export profiles for tenant replication and customer handover |
-| **References** | [Tenant 1 Runbook End-to-End Design](2026-10-02-tenant-1-runbook-end-to-end-design.md), [Current Customer Handover Runbook](../../infra/docs/runbooks/03-customer-handover.md), [Customer Repository Export and Handover Design](2026-09-27-customer-repository-export-and-handover-design.md), [ADR-0012](../adr/0012-per-tenant-github-repository-and-account-topology.md), [Multi-Tenant Provisioning](../../infra/docs/18-multi-tenant-provisioning.md) |
+| **References** | [Tenant 1 Runbook End-to-End Design](2026-10-02-tenant-1-runbook-end-to-end-design.md), [Tenant Replica and Handover Implementation Plan](../plans/2026-10-02-tenant-replica-handover-implementation.md), [Current Customer Handover Runbook](../../infra/docs/runbooks/03-customer-handover.md), [Customer Repository Export and Handover Design](2026-09-27-customer-repository-export-and-handover-design.md), [ADR-0012](../adr/0012-per-tenant-github-repository-and-account-topology.md), [Multi-Tenant Provisioning](../../infra/docs/18-multi-tenant-provisioning.md) |
 
-## 1. Status and Planning Gate
+## 1. Status and Execution Gate
 
-This specification proposes the repository-handover subsystem of the [Tenant 1 end-to-end lifecycle](2026-10-02-tenant-1-runbook-end-to-end-design.md). It is independently plannable but is not approved implementation or publication authority.
-
-User approval of the complete design set is required before an implementation plan is written or an existing handover design or plan is marked Superseded. This design authorizes no export execution, repository creation, publication, push, transfer, Tenant 2 operation, document move, or tenant mutation.
+The user approved this repository-handover subsystem of the [Tenant 1 end-to-end lifecycle](2026-10-02-tenant-1-runbook-end-to-end-design.md) on 2026-10-02 as implementation-planning authority for its stated local scope. Approval does not mark an existing handover design or plan Superseded and authorizes no export execution, repository creation, publication, push, transfer, Tenant 2 operation, document move, or tenant mutation.
 
 ## 2. Problem and Proposed Outcome
 
@@ -317,7 +315,7 @@ Successful validation means only that the local export matches the approved prof
 
 ## 13. Implementation Decomposition
 
-After user approval, one implementation plan can use these ordered units:
+The repository-handover implementation plan uses these ordered units:
 
 1. Add failing schema tests for explicit `TenantReplica` and `CustomerHandover` profiles.
 2. Refactor shared manifest import, assessment, planning, and validation without weakening current customer-export tests.

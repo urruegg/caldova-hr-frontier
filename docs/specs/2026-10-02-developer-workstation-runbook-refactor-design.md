@@ -2,16 +2,16 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-10-02 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed Baseline |
+| **Status** | Approved |
 | **Scope** | Windows 11 workstation subsystem for the Tenant 1 runbook sprint |
-| **References** | [Tenant 1 Runbook End-to-End Design](2026-10-02-tenant-1-runbook-end-to-end-design.md), [Current Developer Workstation Runbook](../../infra/docs/runbooks/01-developer-workstation.md), [Operational Runbooks Design](2026-09-26-operational-runbooks-design.md), [Infrastructure Domain](../../infra/README.md) |
+| **References** | [Tenant 1 Runbook End-to-End Design](2026-10-02-tenant-1-runbook-end-to-end-design.md), [Developer Workstation Implementation Plan](../plans/2026-10-02-developer-workstation-runbook-refactor-implementation.md), [Current Developer Workstation Runbook](../../infra/docs/runbooks/01-developer-workstation.md), [Operational Runbooks Design](2026-09-26-operational-runbooks-design.md), [Infrastructure Domain](../../infra/README.md) |
 
-## 1. Status and Planning Gate
+## 1. Status and Execution Gate
 
-This specification proposes the workstation subsystem of the [Tenant 1 end-to-end lifecycle](2026-10-02-tenant-1-runbook-end-to-end-design.md). It is independently plannable but is not approved implementation authority. User approval of the complete design set is required before an implementation plan is written or a live Apply is run.
+The user approved this workstation subsystem of the [Tenant 1 end-to-end lifecycle](2026-10-02-tenant-1-runbook-end-to-end-design.md) on 2026-10-02. It is implementation-planning authority for its stated local scope. Approval does not authorize a live Apply, cloud authentication, provider access, or provider mutation.
 
 The existing workstation assessment and Apply engine remains the starting point. This proposal refactors and extends it; it does not justify a second workstation framework.
 
@@ -251,7 +251,7 @@ Failure at steps 5-8 can fail the overall fresh-laptop acceptance even when the 
 
 ## 12. Implementation Decomposition
 
-After approval, one workstation implementation plan can use these ordered units:
+The workstation implementation plan uses these ordered units:
 
 1. Add failing schema and policy tests for exact version requirements and delivery-tool coverage.
 2. Revise the existing policy and schema rather than create parallel artifacts.
