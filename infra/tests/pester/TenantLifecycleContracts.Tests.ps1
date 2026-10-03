@@ -2115,23 +2115,49 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
             $script:StageProjectionOutputPath = Join-Path (
                 $script:StageProjectionRunDirectory
             ) 'summary.json'
+            $stageDefinitions = @(
+                [pscustomobject][ordered]@{
+                    Stage = 'Foundation'
+                    SourceCommit = 'a' * 40
+                    IntentDigest = '1' * 64
+                    StateDigest = '2' * 64
+                    PhaseManifestDigest = '3' * 64
+                    PhaseSummaryDigest = '4' * 64
+                    Classification = 'NoChange'
+                    CompletedAtUtc = [datetime]'2026-10-03T08:31:00Z'
+                }
+                [pscustomobject][ordered]@{
+                    Stage = 'ReadBack'
+                    SourceCommit = 'b' * 40
+                    IntentDigest = '5' * 64
+                    StateDigest = '6' * 64
+                    PhaseManifestDigest = '7' * 64
+                    PhaseSummaryDigest = '8' * 64
+                    Classification = 'Changed'
+                    CompletedAtUtc = [datetime]'2026-10-03T08:32:00Z'
+                }
+            )
             $script:StageProjectionResults = @(
-                foreach ($stage in @('Foundation', 'ReadBack')) {
+                foreach ($definition in $stageDefinitions) {
                     New-TenantLifecycleStageResult `
                         -RunId $script:StageProjectionRunId `
-                        -Stage $stage `
-                        -SourceCommit ('a' * 40) `
+                        -Stage $definition.Stage `
+                        -SourceCommit $definition.SourceCommit `
                         -PublicTenantKey tenant1 `
-                        -IntentDigest ('1' * 64) `
-                        -StateDigest ('2' * 64) `
-                        -PhaseManifestDigest ('3' * 64) `
-                        -PhaseSummaryDigest ('4' * 64) `
+                        -IntentDigest $definition.IntentDigest `
+                        -StateDigest $definition.StateDigest `
+                        -PhaseManifestDigest (
+                            $definition.PhaseManifestDigest
+                        ) `
+                        -PhaseSummaryDigest (
+                            $definition.PhaseSummaryDigest
+                        ) `
                         -Status Passed `
-                        -Classification NoChange `
-                        -EvidenceRelativePath "phases/$stage/summary.json" `
-                        -CompletedAtUtc (
-                            [datetime]'2026-10-03T08:31:00Z'
-                        )
+                        -Classification $definition.Classification `
+                        -EvidenceRelativePath (
+                            "phases/$($definition.Stage)/summary.json"
+                        ) `
+                        -CompletedAtUtc $definition.CompletedAtUtc
                 }
             )
 
@@ -2172,7 +2198,23 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
             )
             ($projection.stages.stage -join ',') |
                 Should -BeExactly 'Foundation,ReadBack'
-            foreach ($stage in @($projection.stages)) {
+            $projectedFields = @(
+                'stage',
+                'status',
+                'classification',
+                'phaseManifestDigest',
+                'phaseSummaryDigest',
+                'sourceCommit',
+                'intentDigest',
+                'stateDigest'
+            )
+            for (
+                $index = 0;
+                $index -lt $script:StageProjectionResults.Count;
+                $index++
+            ) {
+                $stage = $projection.stages[$index]
+                $expected = $script:StageProjectionResults[$index]
                 (
                     @($stage.PSObject.Properties.Name) |
                         Sort-Object
@@ -2180,6 +2222,11 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                     'classification,intentDigest,phaseManifestDigest,' +
                     'phaseSummaryDigest,sourceCommit,stage,stateDigest,status'
                 )
+                foreach ($field in $projectedFields) {
+                    [string]$stage.$field | Should -BeExactly (
+                        [string]$expected.$field
+                    )
+                }
             }
             ($projection.nonClaims -join "`n") | Should -BeExactly (
                 "The umbrella did not execute a provider mutation.`n" +
@@ -2293,22 +2340,27 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                     -NotePropertyName $entry.Key `
                     -NotePropertyValue $entry.Value
             }
+            $invalidProjectionRoot = Join-Path (
+                $TestDrive
+            ) ([guid]::NewGuid().ToString('N'))
+            $invalidRunDirectory = Join-Path (
+                $invalidProjectionRoot
+            ) $script:StageProjectionRunId.ToString('D').ToLowerInvariant()
+            [IO.Directory]::CreateDirectory($invalidRunDirectory) | Out-Null
+            $invalidOutputPath = Join-Path $invalidRunDirectory 'summary.json'
             $message = try {
                 ConvertTo-TenantLifecycleAcceptanceProjection `
                     -RunId $script:StageProjectionRunId `
                     -PublicTenantKey tenant1 `
                     -OrderedStageResults @($invalidResult) `
-                    -OutputPath (
-                        Join-Path (
-                            $script:StageProjectionRunDirectory
-                        ) 'invalid-summary.json'
-                    )
+                    -OutputPath $invalidOutputPath
                 'NO-ERROR'
             }
             catch {
                 $_.Exception.Message
             }
-            $message | Should -Not -BeExactly 'NO-ERROR'
+            $message | Should -BeExactly 'TenantLifecycle.Disclosure.Invalid'
+            $invalidOutputPath | Should -Not -Exist
             foreach ($value in @(
                 $prohibited +
                 $prohibitedPropertyNames
@@ -2321,6 +2373,150 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
             ).Parameters.Keys
             $parameters | Should -Not -Contain 'AllowedStableIds'
             $parameters | Should -Not -Contain 'AllowedUrlHosts'
+        }
+
+        It 'keeps a stage-only projection immutable on a second write' {
+            ConvertTo-TenantLifecycleAcceptanceProjection `
+                -RunId $script:StageProjectionRunId `
+                -PublicTenantKey tenant1 `
+                -OrderedStageResults $script:StageProjectionResults `
+                -OutputPath $script:StageProjectionOutputPath |
+                Out-Null
+            $before = [IO.File]::ReadAllBytes(
+                $script:StageProjectionOutputPath
+            )
+
+            {
+                ConvertTo-TenantLifecycleAcceptanceProjection `
+                    -RunId $script:StageProjectionRunId `
+                    -PublicTenantKey tenant1 `
+                    -OrderedStageResults $script:StageProjectionResults `
+                    -OutputPath $script:StageProjectionOutputPath
+            } | Should -Throw -ExpectedMessage (
+                'TenantLifecycle.Disclosure.OutputExists'
+            )
+
+            [Convert]::ToBase64String(
+                [IO.File]::ReadAllBytes($script:StageProjectionOutputPath)
+            ) | Should -BeExactly ([Convert]::ToBase64String($before))
+        }
+
+        It 'rejects a Git-contained stage-only projection output' {
+            $gitProjectionRoot = Join-Path (
+                $script:EvidenceRepositoryRoot
+            ) (
+                '.superpowers\projection-review-' +
+                [guid]::NewGuid().ToString('N')
+            )
+            $gitRunDirectory = Join-Path (
+                $gitProjectionRoot
+            ) $script:StageProjectionRunId.ToString('D').ToLowerInvariant()
+            $gitOutputPath = Join-Path $gitRunDirectory 'summary.json'
+            [IO.Directory]::CreateDirectory($gitRunDirectory) | Out-Null
+
+            try {
+                {
+                    ConvertTo-TenantLifecycleAcceptanceProjection `
+                        -RunId $script:StageProjectionRunId `
+                        -PublicTenantKey tenant1 `
+                        -OrderedStageResults (
+                            $script:StageProjectionResults
+                        ) `
+                        -OutputPath $gitOutputPath
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Disclosure.OutputGit'
+                )
+                $gitOutputPath | Should -Not -Exist
+            }
+            finally {
+                if (Test-Path -LiteralPath $gitProjectionRoot) {
+                    Remove-Item `
+                        -LiteralPath $gitProjectionRoot `
+                        -Recurse `
+                        -Force
+                }
+            }
+        }
+
+        It 'rejects a reparse-backed stage-only projection output' {
+            $targetRoot = Join-Path (
+                $TestDrive
+            ) ("projection-target-$([guid]::NewGuid().ToString('N'))")
+            $targetRunDirectory = Join-Path (
+                $targetRoot
+            ) $script:StageProjectionRunId.ToString('D').ToLowerInvariant()
+            $reparseRoot = Join-Path (
+                $TestDrive
+            ) ("projection-link-$([guid]::NewGuid().ToString('N'))")
+            $reparseRunDirectory = Join-Path (
+                $reparseRoot
+            ) $script:StageProjectionRunId.ToString('D').ToLowerInvariant()
+            [IO.Directory]::CreateDirectory($targetRunDirectory) | Out-Null
+            [IO.Directory]::CreateDirectory($reparseRoot) | Out-Null
+
+            $fixture = $null
+            $fixtureErrors = [Collections.Generic.List[string]]::new()
+            foreach ($itemType in @('Junction', 'SymbolicLink')) {
+                try {
+                    $fixture = New-Item `
+                        -ItemType $itemType `
+                        -Path $reparseRunDirectory `
+                        -Target $targetRunDirectory `
+                        -ErrorAction Stop
+                    break
+                }
+                catch {
+                    $fixtureErrors.Add(
+                        "$itemType`: $($_.Exception.Message)"
+                    )
+                }
+            }
+            if ($null -eq $fixture) {
+                Set-ItResult `
+                    -Skipped `
+                    -Because (
+                        'No supported reparse fixture could be created. ' +
+                        ($fixtureErrors -join ' | ')
+                    )
+                return
+            }
+
+            $reparseOutput = Join-Path $reparseRunDirectory 'summary.json'
+            $targetOutput = Join-Path $targetRunDirectory 'summary.json'
+            try {
+                {
+                    ConvertTo-TenantLifecycleAcceptanceProjection `
+                        -RunId $script:StageProjectionRunId `
+                        -PublicTenantKey tenant1 `
+                        -OrderedStageResults (
+                            $script:StageProjectionResults
+                        ) `
+                        -OutputPath $reparseOutput
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Disclosure.OutputPath'
+                )
+                $reparseOutput | Should -Not -Exist
+                $targetOutput | Should -Not -Exist
+            }
+            finally {
+                if (Test-Path -LiteralPath $reparseRunDirectory) {
+                    Remove-Item `
+                        -LiteralPath $reparseRunDirectory `
+                        -Force
+                }
+                if (Test-Path -LiteralPath $reparseRoot) {
+                    Remove-Item `
+                        -LiteralPath $reparseRoot `
+                        -Recurse `
+                        -Force
+                }
+                if (Test-Path -LiteralPath $targetRoot) {
+                    Remove-Item `
+                        -LiteralPath $targetRoot `
+                        -Recurse `
+                        -Force
+                }
+            }
         }
     }
 
