@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
+| **Version** | 1.3 |
 | **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -19,7 +19,9 @@ The lifecycle core recognizes `TenantReplica` as a stage identifier but does not
 
 Plan 1's synthetic `TenantReplica` stage is not export, independent-validation, human-review, transfer, or publication evidence. A sanitized lifecycle projection cannot make any of those claims.
 
-Future production integration must provide both the subsystem invoker and an independently implemented current-binding provider. Umbrella `Invoke` validates fixed `approvals.json` and a fresh closed current binding immediately before `ShouldProcess` and again before the `TenantReplica` stage. Private lifecycle state remains only in the ignored local state file and is never copied into run or handover evidence.
+The replica/handover child owns its assessment, execution manifest, approval, WhatIf/Apply, `ShouldProcess`, independent full-tree read-back, terminal summary, and immutable `<run>/stages/TenantReplica.json` result. Existing `ExecutionManifestPath`, `ApprovedDigest`, and Apply behavior remain child interfaces. The exact future sequence is child `Plan` -> child `approvals.json` -> child `WhatIf` -> child `Apply` -> child read-back -> canonical stage result -> umbrella `Verify`.
+
+Umbrella `Assess` or `Plan` may later dispatch only the matching non-mutating replica child mode through a reviewed invoker. Umbrella `Verify` never invokes the export engine, never publishes a repository, and never interprets destination or file-level evidence; it accepts only an exact canonical stage result with literal `Passed` status. Private lifecycle state remains only in the ignored local state file and is never copied into run or handover evidence. Plan 1 was implemented with local synthetic tests only; no live cloud, provider, or tenant operation was performed.
 
 ## Roles and prerequisites
 

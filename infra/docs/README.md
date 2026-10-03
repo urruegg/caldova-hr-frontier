@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
+| **Version** | 1.3 |
 | **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active |
@@ -15,7 +15,9 @@ This folder is the maintained catalogue for infrastructure architecture, configu
 
 ## Contains and Does Not Contain
 
-This folder contains infrastructure guidance, active attended procedures, superseded stop notices, and the operational-runbook catalogue, including the implemented provider-neutral lifecycle-core boundary. It does not contain tenant-private configuration or state, raw operational evidence, credentials, deployment state, or source code. Lifecycle state remains ignored and digest-bound rather than copied into run evidence. The lifecycle-core documentation authorizes no provider procedure.
+This folder contains infrastructure guidance, active attended procedures, superseded stop notices, and the operational-runbook catalogue, including the implemented provider-neutral coordinate-only lifecycle-core boundary. The umbrella exposes only Assess/Plan/Verify: child runbooks retain manifest approval, WhatIf/Apply, `ShouldProcess`, provider read-back, state adoption, and immutable canonical stage-result ownership. Umbrella `Verify` never invokes a child and publishes only the stage-only projection. It does not contain tenant-private configuration or state, raw operational evidence, credentials, deployment state, or source code. Lifecycle state remains ignored and digest-bound rather than copied into run evidence. The lifecycle-core documentation authorizes no provider procedure.
+
+Plan 1 was implemented with local synthetic tests only; no live cloud, provider, or tenant operation was performed. Plan 1 remains incomplete and Plans 2-6 remain `Draft` and blocked until the coordinate-only correction is merged and then-current `main` is green.
 
 ## Reading Order
 

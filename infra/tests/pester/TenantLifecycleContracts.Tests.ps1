@@ -784,6 +784,187 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
     }
 }
 
+Describe 'Tenant lifecycle cross-host coordinate-only golden contracts' {
+    BeforeAll {
+        $script:CrossHostRepositoryRoot = (
+            Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
+        ).Path
+        $script:CrossHostModulePath = Join-Path (
+            $script:CrossHostRepositoryRoot
+        ) (
+            'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\' +
+            'Caldova.HrFrontier.Bootstrap.psd1'
+        )
+        Import-Module $script:CrossHostModulePath -Force
+    }
+
+    It 'cross-host coordinate-only golden preserves canonical stage-result files exact summary digests and projection bytes' {
+        $runnerPath = Join-Path $TestDrive 'cross-host-contract-golden.ps1'
+        $runner = @'
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory)][string]$ModulePath,
+    [Parameter(Mandatory)][string]$OutputRoot
+)
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+Import-Module $ModulePath -Force
+
+function Get-GoldenFileDigest {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $algorithm = [Security.Cryptography.SHA256]::Create()
+    try {
+        -join @(
+            $algorithm.ComputeHash([IO.File]::ReadAllBytes($Path)) |
+                ForEach-Object { $_.ToString('x2') }
+        )
+    }
+    finally {
+        $algorithm.Dispose()
+    }
+}
+
+$runId = [guid]'11111111-2222-4333-8444-555555555555'
+$runDirectory = Join-Path $OutputRoot $runId.ToString('D')
+[IO.Directory]::CreateDirectory($runDirectory) | Out-Null
+$definitions = @(
+    @{
+        Stage = 'Foundation'
+        PhaseManifestDigest = '3' * 64
+        PhaseSummaryDigest = '4' * 64
+    }
+    @{
+        Stage = 'ReadBack'
+        PhaseManifestDigest = '5' * 64
+        PhaseSummaryDigest = '6' * 64
+    }
+)
+$results = @(
+    foreach ($definition in $definitions) {
+        $result = New-TenantLifecycleStageResult `
+            -RunId $runId `
+            -Stage $definition.Stage `
+            -SourceCommit ('a' * 40) `
+            -PublicTenantKey tenant1 `
+            -IntentDigest ('1' * 64) `
+            -StateDigest ('2' * 64) `
+            -PhaseManifestDigest $definition.PhaseManifestDigest `
+            -PhaseSummaryDigest $definition.PhaseSummaryDigest `
+            -Status Passed `
+            -Classification NoChange `
+            -EvidenceRelativePath (
+                "phases/$($definition.Stage)/summary.json"
+            ) `
+            -CompletedAtUtc ([datetime]'2026-10-03T08:31:00Z')
+        Write-TenantLifecycleStageResult `
+            -RunDirectory $runDirectory `
+            -StageResult $result |
+            Out-Null
+        $result
+    }
+)
+$summaryPath = Join-Path $runDirectory 'summary.json'
+ConvertTo-TenantLifecycleAcceptanceProjection `
+    -RunId $runId `
+    -PublicTenantKey tenant1 `
+    -OrderedStageResults $results `
+    -OutputPath $summaryPath |
+    Out-Null
+$summary = ConvertFrom-TenantLifecycleJson -InputObject (
+    [IO.File]::ReadAllText(
+        $summaryPath,
+        [Text.UTF8Encoding]::new($false, $true)
+    )
+)
+$golden = [pscustomobject][ordered]@{
+    stageFileDigests = [pscustomobject][ordered]@{
+        Foundation = Get-GoldenFileDigest -Path (
+            Join-Path $runDirectory 'stages\Foundation.json'
+        )
+        ReadBack = Get-GoldenFileDigest -Path (
+            Join-Path $runDirectory 'stages\ReadBack.json'
+        )
+    }
+    summaryDigest = [string]$summary.digest
+    summaryFileDigest = Get-GoldenFileDigest -Path $summaryPath
+}
+[IO.File]::WriteAllText(
+    (Join-Path $OutputRoot 'golden.json'),
+    (ConvertTo-TenantLifecycleCanonicalJson -InputObject $golden),
+    [Text.UTF8Encoding]::new($false)
+)
+'@
+        [IO.File]::WriteAllText(
+            $runnerPath,
+            $runner,
+            [Text.UTF8Encoding]::new($false)
+        )
+
+        $outputs = @{}
+        foreach ($hostName in @('powershell.exe', 'pwsh.exe')) {
+            $hostPath = (Get-Command $hostName -CommandType Application).Source
+            $hostKey = [IO.Path]::GetFileNameWithoutExtension($hostName)
+            $outputRoot = Join-Path $TestDrive $hostKey
+            [IO.Directory]::CreateDirectory($outputRoot) | Out-Null
+            $hostOutput = @(
+                & $hostPath `
+                    -NoProfile `
+                    -NonInteractive `
+                    -ExecutionPolicy Bypass `
+                    -File $runnerPath `
+                    -ModulePath $script:CrossHostModulePath `
+                    -OutputRoot $outputRoot 2>&1
+            )
+            $LASTEXITCODE |
+                Should -Be 0 -Because ($hostOutput -join [Environment]::NewLine)
+            $outputs[$hostKey] = $outputRoot
+        }
+
+        foreach ($relativePath in @(
+            '11111111-2222-4333-8444-555555555555\stages\Foundation.json',
+            '11111111-2222-4333-8444-555555555555\stages\ReadBack.json',
+            '11111111-2222-4333-8444-555555555555\summary.json',
+            'golden.json'
+        )) {
+            [Convert]::ToBase64String([IO.File]::ReadAllBytes((
+                Join-Path $outputs.powershell $relativePath
+            ))) | Should -BeExactly (
+                [Convert]::ToBase64String([IO.File]::ReadAllBytes((
+                    Join-Path $outputs.pwsh $relativePath
+                )))
+            )
+        }
+
+        $golden = ConvertFrom-TenantLifecycleJson -InputObject (
+            Get-Content -Raw -LiteralPath (
+                Join-Path $outputs.powershell 'golden.json'
+            )
+        )
+        $golden.stageFileDigests.Foundation |
+            Should -BeExactly (
+                'f16b9225a68b6a0ab552b4d4df497f2d' +
+                'a625dc22681b447b46744860bc6efa64'
+            )
+        $golden.stageFileDigests.ReadBack |
+            Should -BeExactly (
+                '2acceeadd180a75460527c586572dd990' +
+                '5cecee93895cf73547ddf810fc50981'
+            )
+        $golden.summaryDigest |
+            Should -BeExactly (
+                '2e18a3849e362bfb3f821d363c629025' +
+                'dff1204eb059f1ec5e441df6f24db62d'
+            )
+        $golden.summaryFileDigest |
+            Should -BeExactly (
+                '246109c33513dc4ee90a9388d0630032' +
+                'f3b3250fe6029fa5732da8a2cfb894a5'
+            )
+    }
+}
+
 Describe 'Tenant lifecycle contracts' {
     BeforeAll {
         $script:RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path

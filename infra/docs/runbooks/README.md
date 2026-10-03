@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.4 |
+| **Version** | 1.5 |
 | **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -13,34 +13,39 @@ These runbooks govern attended, local operations for the infrastructure domain. 
 
 ## Implemented lifecycle-core boundary
 
-Plan 1 implements closed lifecycle contracts, deterministic prerequisite evaluation, digest-bound evidence, process-session approval binding, a provider-neutral umbrella orchestrator, and an allowlisted acceptance projection. Its verification is synthetic. The exact operational boundary is: **no provider mutation is implemented by the lifecycle core.**
+Plan 1 implements closed lifecycle contracts, deterministic prerequisite evaluation, retained child-owned digest/approval/evidence helpers, a provider-neutral coordinate-only umbrella, canonical child stage results, and a stage-only acceptance projection. Plan 1 was implemented with local synthetic tests only; no live cloud, provider, or tenant operation was performed. The exact operational boundary is: **no provider mutation is implemented by the lifecycle core.**
 
 The core does not install a tool, authenticate, discover or select a provider object, invoke a provider command, deploy infrastructure, queue a pipeline, import a solution, export a customer repository, or publish a handover. The dormant cloud-foundation stop stubs remain unchanged. The `Workstation`, `Foundation`, `DevDelivery`, and `TenantReplica` stage names are sequencing identifiers, not claims that those subsystem implementations are wired.
 
-### Exact core evidence names
+### Exact coordinate-only evidence envelope
 
-One run uses one absolute evidence directory. The core accepts only these canonical lifecycle paths:
+One run uses one absolute evidence directory outside Git. The coordinate-only umbrella accepts or writes only these canonical paths:
 
-| Relative path | Lifecycle-core meaning |
+| Relative path | Coordinate-only meaning |
 |---|---|
-| `assessment.json` | Closed assessment, classifications, source, intent/state digests, tool identities, provider-context labels, and prerequisite evidence. |
-| `execution-manifest.json` | One approved umbrella action per selected stage, in canonical stage order. |
-| `approvals.json` | Human approval for the exact manifest digest, ordered scope, and expiry; `Invoke` reloads this fixed file and validates a fresh closed current binding at every mutation boundary. |
-| `actions/<stage>.json` | One verified umbrella action envelope for the named selected stage. |
-| `read-back.json` | Consolidated stable-ID and exact-owned-property read-back. |
-| `summary.json` | Consolidated statuses, six-value counts, action evidence paths and digests, prerequisites, and explicit non-claims. |
+| `phases/<stage>/assessment.json` | Canonical non-mutating output produced by that child during umbrella `Assess`. |
+| `phases/<stage>/execution-manifest.json` | Canonical non-mutating output produced by that child during umbrella `Plan`. Its required root includes `selectedStages` and `prerequisiteResults`; both are validated ordinally. |
+| `phases/<stage>/summary.json` | Immutable canonical terminal child summary. Provider details remain here as child-owned evidence and are validated only by exact bytes and digest during umbrella `Verify`. |
+| `<run>/stages/<stage>.json` | Immutable canonical stage result containing only stage status, classification, source/intent/state provenance, child manifest/summary digests, its canonical summary path, and completion time. |
+| `<run>/summary.json` | Stage-only projection written by umbrella `Verify` after the exact selected stage-result set succeeds. |
 
-`pipeline.json` and `power-platform.json` remain reserved provider evidence names from the approved design. Plan 1 does not create, consume, or validate them as proof of pipeline execution, artifact import, or provider mutation.
+Child runbooks retain their own execution manifest, `approvals.json`, WhatIf/Apply, `ShouldProcess`, action, state-adoption, and read-back evidence. Those files are not umbrella inputs or outputs. The umbrella validates `selectedStages` and `prerequisiteResults` in exact ordinal order and never reads provider actions to derive topology. `pipeline.json` and `power-platform.json` remain provider-child evidence names; Plan 1 does not create or consume them as proof of pipeline execution, artifact import, or provider mutation.
 
-The only classifications are `NoChange`, `Create`, `Update`, `Manual`, `Blocked`, and `Refused`. `Manual` is not successful until independently read back. `Blocked` and `Refused` stop dependents. A completed unchanged synthetic run must contain only `NoChange`; this does not prove a live provider is unchanged.
+The retained child classifications are `NoChange`, `Create`, `Update`, `Manual`, `Blocked`, and `Refused`. At the umbrella boundary, a dependency succeeds only when its canonical stage result has literal `Passed` status and a `NoChange` or `Changed` classification. `Failed`, `Manual`, `Blocked`, and `Refused` all block dependants. A completed unchanged synthetic run does not prove a live provider is unchanged.
 
 ### Intent, state, and disclosure boundary
 
 Human-reviewed intent remains in ignored `infra/src/config/tenants/tenant1.local.psd1`. Tool-observed stable state remains only in ignored `infra/src/config/tenants/tenant1.state.local.json`; it is never copied into run evidence. Every state row binds the exact reviewed `Provider`, `ResourceType`, and `LogicalName` component identity. `Existing` requires the exact non-null reviewed ID. Unadopted reviewed `Create` intent uses `stableId: null`, permits one exact verified null-to-ID adoption, and then keeps that non-null ID immutable. State may not introduce desired values, classifications, credentials, or resources absent from reviewed intent and existing state. Source, intent, state, machine, operator, tool, provider context, prerequisite, action, evidence root, expiry, scope, status, or process-session drift invalidates approval.
 
-The acceptance projection reads only validated canonical core evidence. It binds the assessment and manifest `stateDigest`, validates closed read-back and actual action evidence, requires every non-null manifest action target stable ID to appear in read-back, and reconstructs an allowlisted record containing approved evidence digests, reviewed stable IDs, host-only URL disclosures, classifications, statuses, counts, an artifact digest, and fixed non-claims. It never reads private state or promotes the raw run directory or provider output into a committed acceptance claim.
+Umbrella `Verify` reads only the validated in-memory canonical stage results after it validates each exact stage-result file, its child execution-manifest bytes/digest, its child summary bytes/digest, root `selectedStages`, root `prerequisiteResults`, source/intent/state continuity, canonical order, and literal `Passed` dependencies. It never invokes children and never interprets provider actions, IDs, URLs, payloads, or raw read-back.
 
-All lifecycle JSON reloads use the shared cross-host string-preserving loader. Seven-fraction UTC timestamp strings remain strings on Windows PowerShell 5.1 and PowerShell 7.6.6. Runtime contracts reject alias, script, code, executable, hidden, and additional nested members before reading values. Action evidence must already be canonical UTF-8 without BOM and with exactly one trailing LF before the orchestrator correlates or hashes it.
+The stage-only projection root is exactly `schemaVersion`, `runId`, `publicTenantKey`, `stages`, `nonClaims`, and `digest`. Every projected stage is exactly `stage`, `status`, `classification`, `phaseManifestDigest`, `phaseSummaryDigest`, `sourceCommit`, `intentDigest`, and `stateDigest`. The stage-only projection does not claim provider execution, provider approval, provider read-back, deployment, publication, or live tenant state. Its exact nonclaims are:
+
+- `The umbrella did not execute a provider mutation.`
+- `Provider approvals and read-back remain child-runbook evidence.`
+- `This projection discloses no provider resource identity or raw provider response.`
+
+All lifecycle JSON reloads use the shared cross-host string-preserving loader. Seven-fraction UTC timestamp strings remain strings on Windows PowerShell 5.1 and PowerShell 7.6.6. Canonical stage-result and projection bytes are UTF-8 without BOM, ordinal-key-sorted, array-order-preserving, depth 30, and terminated by exactly one LF.
 
 ### Umbrella signature and subsystem independence
 
@@ -56,17 +61,31 @@ Invoke-TenantLifecycle.ps1 `
   -TenantConfigurationPath <ignored-intent-path> `
   -TenantStatePath <ignored-state-path> `
   -Stages <Workstation|PrivateBoundary|Foundation|DevDelivery|ReadBack|Acceptance|TenantReplica[]> `
-  [-Mode <Assess|Plan|Invoke>] `
-  [-ExecutionManifestPath <absolute-path>] `
-  [-ApprovedDigest <64-lowercase-hex>] `
-  [-Apply] [-WhatIf] [-Confirm]
+  [-Mode <Assess|Plan|Verify>] `
+  [-SubsystemInvoker <hidden-scriptblock>] `
+  [-NowUtc <utc-datetime>]
 ```
 
-`Invoke` requires `-Apply`, the manifest, the approved digest, fixed `approvals.json`, and a hidden `[scriptblock]$CurrentBindingProvider`; `Assess` and `Plan` require neither approval nor current binding. `-WhatIf` prevents subsystem invocation and new action or summary evidence. The current-binding provider takes no orchestrator-supplied manifest values and returns a newly captured closed binding each time. The hidden injected invoker has the exact shape `param([string]$Stage,[string]$Mode,[object]$ControlRecord)` and returns exactly `id`, `stage`, `classification`, `status`, `inputDigest`, `readBackDigest`, and `evidenceRelativePath`. Production callers currently have neither a provider invoker nor a current-binding provider; omission fails closed with `TenantLifecycle.SubsystemInvoker.Required` or `TenantLifecycle.Approval.BindingProvider.Required`.
+`Assess` and `Plan` require the hidden injected invoker and may dispatch only the same non-mutating child mode. The invoker has the exact shape `param([string]$Stage,[string]$Mode,[object]$ControlRecord)`; its return value is discarded, and the umbrella accepts only the canonical artifact at the exact child path after invocation. `Verify` rejects an invoker and performs no dispatch. There is no umbrella `Apply`, `ExecutionManifestPath`, `ApprovedDigest`, `BindingObserver`, `CurrentBindingProvider`, `WhatIf`, `Confirm`, `SupportsShouldProcess`, approval loading, provider result, or provider correlation.
 
-The closed control record contains only `runId`, `runDirectoryLabel`, `publicTenantKey`, `sourceCommit`, `machineLabel`, `operatorLabel`, `toolIdentities`, `approvedDigest`, opaque `stageInputDigest`, and `prerequisiteOutcomes`. A provider subsystem may own a separate multi-action manifest, but only its digest may cross `stageInputDigest`. Each subsystem remains independently runnable, and an independently selected stage subset forms a linear chain across only those selected stages.
+The closed control record contains only `schemaVersion`, `runId`, `sourceCommit`, `publicTenantKey`, `intentDigest`, `stateDigest`, `selectedStages`, `prerequisiteResults`, and `evidenceRunRelativePath`. `selectedStages` is the exact canonical selected order. `prerequisiteResults` is empty for the first selected stage and otherwise contains only the immediately preceding canonical stage result. Each subsystem remains independently runnable, and the selected subset forms a linear dependency chain without provider topology.
 
-Immediately before `ShouldProcess` and again before every `Invoke` stage, the core rechecks source `HEAD`, repository cleanliness, private intent, and private state, reloads fixed approval evidence, captures a fresh current binding, and calls `Test-TenantLifecycleApproval`. The orchestrator never fills current machine, operator, tool, provider-context, prerequisite, action, or session values from the manifest. A process restart changes the approval session binding. Recovery therefore preserves evidence, starts a fresh run, creates a new manifest, and obtains new approval; it never resumes the prior approved mutation scope.
+Before and after each `Assess` or `Plan` child dispatch, and around `Verify` evidence validation, the umbrella rechecks source `HEAD`, repository cleanliness, private intent, and private state. Source, intent, or state drift fails closed. Approval, WhatIf/Apply, `ShouldProcess`, provider mutation, state adoption, and provider read-back stay entirely within independently invoked child runbooks.
+
+### Child-owned operator sequence
+
+For every selected stage, the operator follows this order:
+
+1. run the child assessment and invoke the child directly in `Plan` mode;
+2. review that child manifest and record the exact child approval in child `approvals.json`;
+3. invoke the child directly with `WhatIf`;
+4. pass the child-specific hard stop and invoke the child directly with `Apply`;
+5. complete child read-back, child state adoption where applicable, and the terminal child summary;
+6. write the immutable canonical stage result at `<run>/stages/<stage>.json`;
+7. stop if the result is `Failed`, `Manual`, `Blocked`, or `Refused`, otherwise repeat for the next selected dependency; and
+8. after all selected results have literal `Passed`, run umbrella `Verify` without `SubsystemInvoker`.
+
+Umbrella `Verify` never invokes a child. It validates the immutable child envelope and writes only the stage-only projection.
 
 ## Audience and ownership
 

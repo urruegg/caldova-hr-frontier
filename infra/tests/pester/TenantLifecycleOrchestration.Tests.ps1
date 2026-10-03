@@ -523,6 +523,376 @@ public static class TenantLifecycleGraphCodePropertyAccessor
     }
 }
 
+Describe 'Tenant lifecycle cross-host coordinate-only golden orchestration' {
+    BeforeAll {
+        $script:CrossHostRepositoryRoot = (
+            Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
+        ).Path
+        $script:CrossHostModulePath = Join-Path (
+            $script:CrossHostRepositoryRoot
+        ) (
+            'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\' +
+            'Caldova.HrFrontier.Bootstrap.psd1'
+        )
+        $script:CrossHostOrchestratorPath = Join-Path (
+            $script:CrossHostRepositoryRoot
+        ) 'infra\src\scripts\runbooks\Invoke-TenantLifecycle.ps1'
+        $script:CrossHostFixturePath = Join-Path (
+            $script:CrossHostRepositoryRoot
+        ) 'infra\tests\fixtures\runbooks\tenant-lifecycle.synthetic.json'
+        $script:CrossHostIntentTemplatePath = Join-Path (
+            $script:CrossHostRepositoryRoot
+        ) 'infra\src\config\tenants\_template.psd1'
+        Import-Module $script:CrossHostModulePath -Force
+    }
+
+    It 'cross-host coordinate-only golden preserves source private drift error IDs and exact ordered dependency outcomes' {
+        $runnerPath = Join-Path $TestDrive 'cross-host-orchestration-golden.ps1'
+        $runner = @'
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory)][string]$ModulePath,
+    [Parameter(Mandatory)][string]$OrchestratorPath,
+    [Parameter(Mandatory)][string]$FixturePath,
+    [Parameter(Mandatory)][string]$IntentTemplatePath,
+    [Parameter(Mandatory)][string]$OutputRoot
+)
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+Import-Module $ModulePath -Force
+
+function Write-GoldenCanonicalFile {
+    param(
+        [Parameter(Mandatory)][object]$InputObject,
+        [Parameter(Mandatory)][string]$Path
+    )
+
+    [IO.Directory]::CreateDirectory((Split-Path -Parent $Path)) |
+        Out-Null
+    [IO.File]::WriteAllText(
+        $Path,
+        (ConvertTo-TenantLifecycleCanonicalJson -InputObject $InputObject),
+        [Text.UTF8Encoding]::new($false)
+    )
+}
+
+function New-GoldenGraphNode {
+    param(
+        [Parameter(Mandatory)][string]$Id,
+        [string[]]$PrerequisiteIds = @()
+    )
+
+    [pscustomobject][ordered]@{
+        id = $Id
+        kind = 'Action'
+        prerequisiteIds = @($PrerequisiteIds)
+        requiredOutcome = 'Passed'
+        inputDigest = 'a' * 64
+        stage = 'Synthetic'
+    }
+}
+
+function New-GoldenGraphOutcome {
+    param(
+        [Parameter(Mandatory)][string]$Classification,
+        [Parameter(Mandatory)][string]$Status
+    )
+
+    [pscustomobject][ordered]@{
+        id = 'Root'
+        classification = $Classification
+        status = $Status
+        inputDigest = 'a' * 64
+        readBackDigest = $null
+    }
+}
+
+$sourceRoot = Join-Path $OutputRoot 'source'
+$tenantRoot = Join-Path $sourceRoot 'infra\src\config\tenants'
+[IO.Directory]::CreateDirectory($tenantRoot) | Out-Null
+$intentPath = Join-Path $tenantRoot 'tenant1.local.psd1'
+$statePath = Join-Path $tenantRoot 'tenant1.state.local.json'
+$intent = [IO.File]::ReadAllText(
+    $IntentTemplatePath,
+    [Text.UTF8Encoding]::new($false, $true)
+)
+$intent = $intent.Replace(
+    '    Components = @{}',
+    "    Components = @{$([Environment]::NewLine)" +
+    "        SyntheticResource = @{$([Environment]::NewLine)" +
+    "            Provider = 'Synthetic'$([Environment]::NewLine)" +
+    "            ResourceType = 'SyntheticResource'$([Environment]::NewLine)" +
+    "            LogicalName = 'component-001'$([Environment]::NewLine)" +
+    "            Mode = 'Existing'$([Environment]::NewLine)" +
+    "            Id = 'stable-synthetic-001'$([Environment]::NewLine)" +
+    "        }$([Environment]::NewLine)" +
+    "    }"
+)
+[IO.File]::WriteAllText(
+    $intentPath,
+    $intent,
+    [Text.UTF8Encoding]::new($false)
+)
+$fixture = ConvertFrom-TenantLifecycleJson -InputObject (
+    [IO.File]::ReadAllText(
+        $FixturePath,
+        [Text.UTF8Encoding]::new($false, $true)
+    )
+)
+Write-GoldenCanonicalFile -InputObject $fixture.state -Path $statePath
+[IO.File]::WriteAllText(
+    (Join-Path $sourceRoot '.gitignore'),
+    (
+        "/infra/src/config/tenants/tenant1.local.psd1`n" +
+        "/infra/src/config/tenants/tenant1.state.local.json`n"
+    ),
+    [Text.UTF8Encoding]::new($false)
+)
+[IO.File]::WriteAllText(
+    (Join-Path $sourceRoot 'tracked.txt'),
+    "synthetic`n",
+    [Text.UTF8Encoding]::new($false)
+)
+& git -C $sourceRoot init --quiet
+& git -C $sourceRoot config user.email synthetic@example.invalid
+& git -C $sourceRoot config user.name 'Synthetic Test'
+& git -C $sourceRoot config core.autocrlf false
+& git -C $sourceRoot add .gitignore tracked.txt
+& git -C $sourceRoot commit --quiet -m 'synthetic source'
+if ($LASTEXITCODE -ne 0) {
+    throw 'Could not create the synthetic golden repository.'
+}
+$sourceCommit = (& git -C $sourceRoot rev-parse HEAD).Trim().ToLowerInvariant()
+$pristineIntent = [IO.File]::ReadAllText(
+    $intentPath,
+    [Text.UTF8Encoding]::new($false, $true)
+)
+$pristineState = [IO.File]::ReadAllText(
+    $statePath,
+    [Text.UTF8Encoding]::new($false, $true)
+)
+$evidenceRoot = Join-Path $OutputRoot 'evidence'
+
+function Get-GoldenDriftError {
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet('Source', 'Intent', 'State')]
+        [string]$Target
+    )
+
+    [IO.File]::WriteAllText(
+        $intentPath,
+        $pristineIntent,
+        [Text.UTF8Encoding]::new($false)
+    )
+    [IO.File]::WriteAllText(
+        $statePath,
+        $pristineState,
+        [Text.UTF8Encoding]::new($false)
+    )
+    $expectedCommit = $sourceCommit
+    $breakpoint = $null
+    if ($Target -ceq 'Source') {
+        $expectedCommit = 'f' * 40
+    }
+    else {
+        $bindingLine = @(
+            Select-String `
+                -LiteralPath $OrchestratorPath `
+                -Pattern (
+                    '^\s*\$verifiedCoordinates\s*=\s*' +
+                    'Assert-TenantLifecycleBindings\s*$'
+                ) |
+                Select-Object -First 1
+        ).LineNumber
+        if ($null -eq $bindingLine) {
+            throw 'Could not locate the Verify binding checkpoint.'
+        }
+        $triggered = $false
+        $driftTarget = $Target
+        $driftIntentPath = $intentPath
+        $driftStatePath = $statePath
+        $action = {
+            if (-not $triggered) {
+                $triggered = $true
+                if ($driftTarget -ceq 'Intent') {
+                    $content = [IO.File]::ReadAllText(
+                        $driftIntentPath,
+                        [Text.UTF8Encoding]::new($false, $true)
+                    )
+                    $content = $content.Replace(
+                        "DisplayName = 'Example123456'",
+                        "DisplayName = 'Example123456 Drift'"
+                    )
+                    [IO.File]::WriteAllText(
+                        $driftIntentPath,
+                        $content,
+                        [Text.UTF8Encoding]::new($false)
+                    )
+                }
+                else {
+                    $content = [IO.File]::ReadAllText(
+                        $driftStatePath,
+                        [Text.UTF8Encoding]::new($false, $true)
+                    )
+                    $content = $content.Replace(
+                        '2026-10-02T12:09:00.0000000Z',
+                        '2026-10-02T12:10:00.0000000Z'
+                    )
+                    [IO.File]::WriteAllText(
+                        $driftStatePath,
+                        $content,
+                        [Text.UTF8Encoding]::new($false)
+                    )
+                }
+            }
+        }.GetNewClosure()
+        $breakpoint = Set-PSBreakpoint `
+            -Script $OrchestratorPath `
+            -Line $bindingLine `
+            -Action $action
+    }
+
+    try {
+        & $OrchestratorPath `
+            -RunId ([guid]::NewGuid()) `
+            -EvidenceRoot $evidenceRoot `
+            -RepositoryRoot $sourceRoot `
+            -ExpectedSourceCommit $expectedCommit `
+            -PublicTenantKey tenant1 `
+            -TenantConfigurationPath $intentPath `
+            -TenantStatePath $statePath `
+            -Stages @('Foundation') `
+            -Mode Verify `
+            -NowUtc ([datetime]'2026-10-03T08:00:00Z')
+        throw "Expected $Target drift was accepted."
+    }
+    catch {
+        if ($_.Exception.Message -clike 'Expected * drift was accepted.') {
+            throw
+        }
+        [string]$_.Exception.Message
+    }
+    finally {
+        if ($null -ne $breakpoint) {
+            Remove-PSBreakpoint -Breakpoint $breakpoint
+        }
+    }
+}
+
+$nodes = @(
+    New-GoldenGraphNode -Id Root
+    New-GoldenGraphNode -Id Dependent -PrerequisiteIds @('Root')
+)
+$dependencyOutcomes = @(
+    foreach ($case in @(
+        @{ Name = 'Passed'; Classification = 'NoChange'; Status = 'Passed' }
+        @{ Name = 'Failed'; Classification = 'NoChange'; Status = 'Failed' }
+        @{ Name = 'Manual'; Classification = 'Manual'; Status = 'Passed' }
+        @{ Name = 'Blocked'; Classification = 'Blocked'; Status = 'Passed' }
+        @{ Name = 'Refused'; Classification = 'Refused'; Status = 'Passed' }
+    )) {
+        $resolved = @(
+            Resolve-TenantLifecycleGraph `
+                -Nodes $nodes `
+                -ObservedOutcomes @(
+                    New-GoldenGraphOutcome `
+                        -Classification $case.Classification `
+                        -Status $case.Status
+                )
+        )
+        [pscustomobject][ordered]@{
+            case = $case.Name
+            statuses = [string[]]@($resolved.status)
+            canExecute = [bool[]]@($resolved.canExecute)
+            blockingPrerequisiteIds = [string[]]@(
+                $resolved[1].blockingPrerequisiteIds
+            )
+        }
+    }
+)
+$golden = [pscustomobject][ordered]@{
+    driftErrorIds = [pscustomobject][ordered]@{
+        Source = Get-GoldenDriftError -Target Source
+        Intent = Get-GoldenDriftError -Target Intent
+        State = Get-GoldenDriftError -Target State
+    }
+    dependencyOutcomes = $dependencyOutcomes
+}
+[IO.File]::WriteAllText(
+    (Join-Path $OutputRoot 'golden-orchestration.json'),
+    (ConvertTo-TenantLifecycleCanonicalJson -InputObject $golden),
+    [Text.UTF8Encoding]::new($false)
+)
+'@
+        [IO.File]::WriteAllText(
+            $runnerPath,
+            $runner,
+            [Text.UTF8Encoding]::new($false)
+        )
+
+        $outputs = @{}
+        foreach ($hostName in @('powershell.exe', 'pwsh.exe')) {
+            $hostPath = (Get-Command $hostName -CommandType Application).Source
+            $hostKey = [IO.Path]::GetFileNameWithoutExtension($hostName)
+            $outputRoot = Join-Path $TestDrive $hostKey
+            [IO.Directory]::CreateDirectory($outputRoot) | Out-Null
+            $hostOutput = @(
+                & $hostPath `
+                    -NoProfile `
+                    -NonInteractive `
+                    -ExecutionPolicy Bypass `
+                    -File $runnerPath `
+                    -ModulePath $script:CrossHostModulePath `
+                    -OrchestratorPath $script:CrossHostOrchestratorPath `
+                    -FixturePath $script:CrossHostFixturePath `
+                    -IntentTemplatePath $script:CrossHostIntentTemplatePath `
+                    -OutputRoot $outputRoot 2>&1
+            )
+            $LASTEXITCODE |
+                Should -Be 0 -Because ($hostOutput -join [Environment]::NewLine)
+            $outputs[$hostKey] = $outputRoot
+        }
+
+        $windowsBytes = [IO.File]::ReadAllBytes((
+            Join-Path $outputs.powershell 'golden-orchestration.json'
+        ))
+        $coreBytes = [IO.File]::ReadAllBytes((
+            Join-Path $outputs.pwsh 'golden-orchestration.json'
+        ))
+        [Convert]::ToBase64String($windowsBytes) |
+            Should -BeExactly ([Convert]::ToBase64String($coreBytes))
+
+        $golden = ConvertFrom-TenantLifecycleJson -InputObject (
+            [Text.UTF8Encoding]::new($false, $true).GetString($windowsBytes)
+        )
+        $golden.driftErrorIds.Source |
+            Should -BeExactly 'TenantLifecycle.Source.Drift'
+        $golden.driftErrorIds.Intent |
+            Should -BeExactly 'TenantLifecycle.Intent.Drift'
+        $golden.driftErrorIds.State |
+            Should -BeExactly 'TenantLifecycle.State.Drift'
+        (
+            @($golden.dependencyOutcomes | ForEach-Object {
+                (
+                    '{0}:{1}:{2}:{3}' -f
+                        $_.case,
+                        ($_.statuses -join ','),
+                        ($_.canExecute -join ','),
+                        ($_.blockingPrerequisiteIds -join ',')
+                )
+            }) -join ';'
+        ) | Should -BeExactly (
+            'Passed:Passed,NotRun:True,True:;' +
+            'Failed:Failed,Blocked:True,False:Root;' +
+            'Manual:Manual,Blocked:True,False:Root;' +
+            'Blocked:Blocked,Blocked:True,False:Root;' +
+            'Refused:Refused,Blocked:True,False:Root'
+        )
+    }
+}
+
 Describe 'Tenant lifecycle approval expiry and drift' {
     BeforeAll {
         $script:ApprovalRepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path

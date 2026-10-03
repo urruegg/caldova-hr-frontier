@@ -125,6 +125,131 @@ Describe 'Runbook documentation contracts' {
         )
     }
 
+    It 'publishes the exact coordinate-only documentation and child-owned operator sequence' {
+        $paths = @(
+            'infra/docs/runbooks/README.md',
+            'infra/docs/runbooks/01-developer-workstation.md',
+            'infra/docs/runbooks/03-customer-handover.md',
+            'infra/docs/README.md',
+            'infra/README.md'
+        )
+        $documents = @{}
+        foreach ($relativePath in $paths) {
+            $documents[$relativePath] = Get-Content `
+                -Raw `
+                -LiteralPath (Join-Path $script:repositoryRoot $relativePath)
+            $documents[$relativePath] | Should -Match (
+                'Plan 1 was implemented with local synthetic tests only; ' +
+                'no live cloud, provider, or tenant operation was performed[.]'
+            )
+        }
+
+        $index = $documents['infra/docs/runbooks/README.md']
+        $index | Should -Match (
+            '\[-Mode <Assess\|Plan\|Verify>\]'
+        )
+        $index | Should -Not -Match (
+            '\[-Mode <Assess\|Plan\|Invoke>\]|' +
+            'Invoke-TenantLifecycle[.]ps1[\s\S]{0,500}-Apply'
+        )
+        $sequence = @(
+            'invoke the child directly in `Plan` mode',
+            'record the exact child approval in child `approvals.json`',
+            'invoke the child directly with `WhatIf`',
+            'invoke the child directly with `Apply`',
+            'complete child read-back',
+            'write the immutable canonical stage result',
+            'run umbrella `Verify`'
+        )
+        $lastPosition = -1
+        foreach ($step in $sequence) {
+            $position = $index.IndexOf(
+                $step,
+                [StringComparison]::Ordinal
+            )
+            $position | Should -BeGreaterThan $lastPosition
+            $lastPosition = $position
+        }
+        $index | Should -Match (
+            [regex]::Escape('<run>/stages/<stage>.json')
+        )
+        $index | Should -Match (
+            'Umbrella `Verify` never invokes a child'
+        )
+        $index | Should -Match (
+            'literal `Passed`'
+        )
+        foreach ($nonClaim in @(
+            'The umbrella did not execute a provider mutation.',
+            'Provider approvals and read-back remain child-runbook evidence.',
+            'This projection discloses no provider resource identity or raw provider response.'
+        )) {
+            $index | Should -Match ([regex]::Escape($nonClaim))
+        }
+        $index | Should -Match (
+            'stage-only projection.+does not claim provider execution, ' +
+            'provider approval, provider read-back, deployment, publication, ' +
+            'or live tenant state'
+        )
+
+        foreach ($relativePath in @(
+            'infra/docs/runbooks/01-developer-workstation.md',
+            'infra/docs/runbooks/03-customer-handover.md'
+        )) {
+            $content = $documents[$relativePath]
+            $content | Should -Match (
+                'child `Plan` -> child `approvals[.]json` -> child ' +
+                '`WhatIf` -> child `Apply` -> child read-back -> canonical ' +
+                'stage result -> umbrella `Verify`'
+            )
+            $content | Should -Match (
+                'Umbrella `Verify` never invokes'
+            )
+        }
+    }
+
+    It 'preserves the Plan 1 corrective gate and keeps Plans 2-6 Draft and blocked' {
+        $planPaths = @(
+            'docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md',
+            'docs/plans/2026-10-02-developer-workstation-runbook-refactor-implementation.md',
+            'docs/plans/2026-10-02-cloud-service-foundation-core-implementation.md',
+            'docs/plans/2026-10-02-power-platform-dev-delivery-implementation.md',
+            'docs/plans/2026-10-02-tenant-replica-handover-implementation.md',
+            'docs/plans/2026-10-02-tenant-1-end-to-end-acceptance-implementation.md',
+            'docs/plans/2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md'
+        )
+        foreach ($relativePath in $planPaths) {
+            $content = Get-Content `
+                -Raw `
+                -LiteralPath (Join-Path $script:repositoryRoot $relativePath)
+            $content | Should -Match (
+                '(?m)^\|\s+\*\*Status\*\*\s+\|\s+Draft\s+\|\s*$'
+            )
+        }
+
+        $planOne = Get-Content -Raw -LiteralPath (
+            Join-Path $script:repositoryRoot $planPaths[0]
+        )
+        $planOne | Should -Match (
+            'This amendment is controlling.+Approved coordinate-only design'
+        )
+        $planOne | Should -Match (
+            'Plan 1 is incomplete until every corrective task passes focused review'
+        )
+        $planOne | Should -Match (
+            'Until the corrective plan is merged and then-current `main` is green, ' +
+            'Plan 1 remains incomplete and blocked'
+        )
+        foreach ($relativePath in $planPaths[1..5]) {
+            $content = Get-Content `
+                -Raw `
+                -LiteralPath (Join-Path $script:repositoryRoot $relativePath)
+            $content | Should -Match (
+                'coordinate-only correction.+merged.+then-current `main` is green'
+            )
+        }
+    }
+
     It 'includes metadata-compliant infrastructure runbooks in the documentation set' {
         foreach ($relative in @(
             'README.md',

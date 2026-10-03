@@ -313,6 +313,80 @@ Describe 'Shared runbook output contracts' {
             )
         }
 
+        It 'cross-host coordinate-only golden exposes Assess Plan Verify without Apply' {
+            $probePath = Join-Path $TestDrive 'coordinate-signature-probe.ps1'
+            $probe = @'
+param([Parameter(Mandatory)][string]$Path)
+
+$tokens = $null
+$errors = $null
+$ast = [Management.Automation.Language.Parser]::ParseFile(
+    $Path,
+    [ref]$tokens,
+    [ref]$errors
+)
+if ($errors.Count -ne 0) {
+    throw 'Coordinate-only entry point did not parse.'
+}
+$parameters = @($ast.ParamBlock.Parameters)
+$names = @($parameters.Name.VariablePath.UserPath)
+$modeParameter = @(
+    $parameters |
+        Where-Object {
+            $_.Name.VariablePath.UserPath -ceq 'Mode'
+        }
+)
+$modeAttribute = @(
+    $modeParameter |
+        ForEach-Object Attributes |
+        Where-Object {
+            $_.TypeName.Name -ceq 'ValidateSet'
+        }
+)
+$modeValues = @(
+    $modeAttribute.PositionalArguments |
+        ForEach-Object Value
+)
+(
+    '{0}|{1}|Apply={2}|ShouldProcess={3}' -f
+        ($names -join ','),
+        ($modeValues -join ','),
+        ($names -ccontains 'Apply'),
+        ($ast.ParamBlock.Attributes.Extent.Text -cmatch 'SupportsShouldProcess')
+)
+'@
+            [IO.File]::WriteAllText(
+                $probePath,
+                $probe,
+                [Text.UTF8Encoding]::new($false)
+            )
+            $expected = (
+                'RunId,EvidenceRoot,RepositoryRoot,ExpectedSourceCommit,' +
+                'PublicTenantKey,TenantConfigurationPath,TenantStatePath,' +
+                'Stages,Mode,SubsystemInvoker,NowUtc|' +
+                'Assess,Plan,Verify|Apply=False|ShouldProcess=False'
+            )
+            foreach ($hostName in @('powershell.exe', 'pwsh.exe')) {
+                $hostPath = (
+                    Get-Command $hostName -CommandType Application
+                ).Source
+                $hostOutput = @(
+                    & $hostPath `
+                        -NoProfile `
+                        -NonInteractive `
+                        -ExecutionPolicy Bypass `
+                        -File $probePath `
+                        -Path $script:TenantLifecyclePath 2>&1
+                )
+                $LASTEXITCODE |
+                    Should -Be 0 -Because (
+                        $hostOutput -join [Environment]::NewLine
+                    )
+                ($hostOutput -join '').Trim() |
+                    Should -BeExactly $expected
+            }
+        }
+
         It 'closes the coordinate-only signature values at binding time' {
             $parameterText = @{}
             foreach ($parameter in $script:TenantLifecycleAst.ParamBlock.Parameters) {

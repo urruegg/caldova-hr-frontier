@@ -233,4 +233,59 @@ Describe 'Runbook static safety' {
             '\bactions?\b|payload|rawReadBack)'
         )
     }
+
+    It 'cross-host coordinate-only golden keeps Verify child-free and the projection stage-only' {
+        $tenantLifecycle = Get-Content `
+            -Raw `
+            -LiteralPath $script:TenantLifecycle
+        $verifyStart = $tenantLifecycle.IndexOf(
+            "if (`$trustedMode -ceq 'Verify') {",
+            [StringComparison]::Ordinal
+        )
+        $verifyEnd = $tenantLifecycle.IndexOf(
+            'function Test-TenantLifecycleRunPath',
+            $verifyStart,
+            [StringComparison]::Ordinal
+        )
+        $verifyStart | Should -BeGreaterThan -1
+        $verifyEnd | Should -BeGreaterThan $verifyStart
+        $verifyBlock = $tenantLifecycle.Substring(
+            $verifyStart,
+            $verifyEnd - $verifyStart
+        )
+        $verifyBlock |
+            Should -Not -Match (
+                '(?i)(SubsystemInvoker|IsolatedInvoker|ShouldProcess|' +
+                'approvals[.]json|actions/|providerPayload)'
+            )
+        $verifyBlock |
+            Should -Match 'ConvertTo-TenantLifecycleAcceptanceProjection'
+
+        $moduleRoot = Join-Path (
+            $script:RunbookRoot
+        ) '..\modules\Caldova.HrFrontier.Bootstrap'
+        $projectionPath = Join-Path (
+            $moduleRoot
+        ) 'Public\ConvertTo-TenantLifecycleAcceptanceProjection.ps1'
+        $projection = Get-Content -Raw -LiteralPath $projectionPath
+        foreach ($field in @(
+            'stage',
+            'status',
+            'classification',
+            'phaseManifestDigest',
+            'phaseSummaryDigest',
+            'sourceCommit',
+            'intentDigest',
+            'stateDigest'
+        )) {
+            $projection | Should -Match (
+                '(?m)^\s*' + [regex]::Escape($field) + '\s*='
+            )
+        }
+        $projection |
+            Should -Not -Match (
+                '(?i)(targetStableId|CurrentBindingProvider|' +
+                'actionId|providerPayload|rawReadBack|resourceUrl)'
+            )
+    }
 }
