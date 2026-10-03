@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Azure Pipeline and HR solution pack, check, publish, WIF import, attended application-user checkpoint, and DEV read-back |
-| **References** | [Approved Cloud Service Foundation Runbook Design](../specs/2026-10-02-cloud-service-foundation-runbook-design.md), [Cloud Service Foundation Core Plan](2026-10-02-cloud-service-foundation-core-implementation.md), [HR Solution Sources](../../hr/src/solutions/README.md), [Power Platform Environments and ALM](../../infra/docs/12-power-platform-environments-and-alm.md) |
+| **References** | [Approved Cloud Service Foundation Runbook Design](../specs/2026-10-02-cloud-service-foundation-runbook-design.md), [Approved Coordinate-Only Simplification Design](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Coordinate-Only Correction Plan](2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md), [Cloud Service Foundation Core Plan](2026-10-02-cloud-service-foundation-core-implementation.md), [HR Solution Sources](../../hr/src/solutions/README.md), [Power Platform Environments and ALM](../../infra/docs/12-power-platform-environments-and-alm.md) |
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -18,6 +18,16 @@
 **Tech Stack:** Azure Pipelines YAML, Power Platform Build Tools 2.0 tasks, workload identity federation, Windows PowerShell 5.1 (authoritative), Pester 5.7.1, reviewed PowerShell 7 compatibility, PAC CLI at the exact reviewed version, SHA-256, JSON Schema draft 2020-12, and `Caldova.HrFrontier.Solutions`.
 
 **Spec:** [`docs/specs/2026-10-02-cloud-service-foundation-runbook-design.md`](../specs/2026-10-02-cloud-service-foundation-runbook-design.md)
+
+## 2026-10-03 Coordinate-Only Dependency Amendment
+
+This child plan remains `Draft` and cannot begin until the [coordinate-only correction](2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md) and corrected Plans 1-3 are merged and then-current `main` is green.
+
+- The DEV-delivery child owns its execution manifest, exact child approval in `approvals.json`, capability/WhatIf gates, attended application-user and role checkpoint, pipeline Apply, import, exact artifact/provenance checks, provider-specific read-back, terminal child summary, and canonical `DevDelivery` stage result.
+- Every use of `ApprovedExecutionManifestDigest` in this plan and the pipeline means the exact approved child execution-manifest digest. It is never an umbrella digest and is never passed to `Invoke-TenantLifecycle.ps1`.
+- Pipeline definition/run IDs, application-user IDs, role IDs, environment IDs/URLs, import actions, package details, action payloads, and read-back stay in child evidence. Only stage-level status, classification, source/intent/state provenance, `phaseManifestDigest`, and `phaseSummaryDigest` enter the canonical stage result.
+- Existing Plan 1 manifest, approval, action-evidence, state, atomic-write, and read-back helpers remain shared child-library dependencies. No task below depends on umbrella Apply, umbrella approval loading, `CurrentBindingProvider`, or umbrella resource-level correlation.
+- Umbrella `Verify` reads the immutable `<run>/stages/DevDelivery.json` result and its contained canonical child summary; it never queues the pipeline, imports a solution, invokes a child, or parses provider-specific IDs/actions.
 
 ## Global Constraints
 
@@ -417,4 +427,4 @@ git commit -m "docs(pipeline): document WIF DEV delivery" -m "Co-authored-by: Co
 
 ## Completion Gate
 
-Plan 4 is complete only when Plans 1-3 remain green, the committed solution packs without component loss, all YAML/static/synthetic tests pass, one immutable artifact is proven by digest, DEV is the only writable stage, application-user/role work remains attended with independent read-back, GitHub workflows are unchanged, and no pipeline or import has executed.
+Plan 4 is complete only when corrected Plans 1-3 remain green, the committed solution packs without component loss, all YAML/static/synthetic tests pass, one immutable artifact is proven by digest, DEV is the only writable provider stage, application-user/role work remains attended with independent read-back, synthetic canonical `DevDelivery` stage-result emission passes, GitHub workflows are unchanged, and no pipeline or import has executed.

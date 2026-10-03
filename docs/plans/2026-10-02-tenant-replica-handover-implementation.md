@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Local profile-based TenantReplica and CustomerHandover export, compatibility, and independent validation |
-| **References** | [Approved Tenant Replica and Customer Handover Runbook Design](../specs/2026-10-02-tenant-replica-and-customer-handover-runbook-design.md), [Tenant Lifecycle Core Plan](2026-10-02-tenant-lifecycle-core-implementation.md), [Current Customer Handover Runbook](../../infra/docs/runbooks/03-customer-handover.md) |
+| **References** | [Approved Tenant Replica and Customer Handover Runbook Design](../specs/2026-10-02-tenant-replica-and-customer-handover-runbook-design.md), [Approved Coordinate-Only Simplification Design](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Coordinate-Only Correction Plan](2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md), [Tenant Lifecycle Core Plan](2026-10-02-tenant-lifecycle-core-implementation.md), [Current Customer Handover Runbook](../../infra/docs/runbooks/03-customer-handover.md) |
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -18,6 +18,15 @@
 **Tech Stack:** Windows PowerShell 5.1 (authoritative), Pester 5.7.1, reviewed PowerShell 7 compatibility, Git object reads, JSON Schema draft 2020-12, SHA-256, and `Caldova.HrFrontier.Bootstrap`.
 
 **Spec:** [`docs/specs/2026-10-02-tenant-replica-and-customer-handover-runbook-design.md`](../specs/2026-10-02-tenant-replica-and-customer-handover-runbook-design.md)
+
+## 2026-10-03 Coordinate-Only Dependency Amendment
+
+This child plan remains `Draft`. Tasks 1-4 cannot begin until the [coordinate-only correction](2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md) and corrected Plan 1 are merged and then-current `main` is green; the existing Plan 4 gate for final retained-pipeline acceptance also remains.
+
+- `Test-RepositoryExport.ps1`, `New-RepositoryExportPlan.ps1`, and `Invoke-RepositoryExport.ps1` own the complete local child lifecycle: child assessment, child execution manifest, child `approvals.json`, child `-WhatIf`, child `-Apply`, child `ShouldProcess`, independent full-tree read-back/validation, terminal child summary, and canonical `TenantReplica` stage result.
+- Existing `ExecutionManifestPath`, `ApprovedDigest`, and Apply behavior remain local child interfaces. They are not umbrella parameters and do not depend on umbrella approval loading, `CurrentBindingProvider`, or umbrella resource-level correlation.
+- The child writes `<run>/stages/TenantReplica.json` only after atomic destination promotion and independent validation pass, or after a terminal child outcome is truthfully recorded. Remote/provider coordinates, destination details, file payloads, action IDs, and validation output stay in child evidence.
+- Existing Plan 1 manifest, approval, action-evidence, atomic-write, and read-back helpers remain shared child-library dependencies. Umbrella `Verify` reads only the canonical stage result and contained canonical child summary and never invokes the export engine.
 
 ## Global Constraints
 
@@ -387,4 +396,4 @@ git commit -m "docs(export): publish profile-based handover runbook" -m "Co-auth
 
 ## Completion Gate
 
-Plan 5 is complete only when Plan 1 and Plan 4 assets are present, both profiles are explicit and independently validated, all old customer tests pass, the complete synthetic `TenantReplica` retains required pipeline/source/test/runbook capability, no private identifier/state/evidence/transition artifact survives, source snapshots match, and no remote, provider, publication, or Tenant 2 operation occurs.
+Plan 5 is complete only when corrected Plan 1 and Plan 4 assets are present, both profiles are explicit and independently validated, all old customer tests pass, the complete synthetic `TenantReplica` retains required pipeline/source/test/runbook capability, synthetic canonical `TenantReplica` stage-result emission passes, no private identifier/state/evidence/transition artifact survives, source snapshots match, and no remote, provider, publication, or Tenant 2 operation occurs.
