@@ -45,16 +45,37 @@ Describe 'Tenant lifecycle contracts' {
     BeforeAll {
         $script:RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
         $script:ModulePath = Join-Path $script:RepositoryRoot 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
+        Import-Module $script:ModulePath -Force
         $script:SchemaRoot = Join-Path $script:RepositoryRoot 'infra\src\config\schemas'
         $fixturePath = Join-Path $script:RepositoryRoot 'infra\tests\fixtures\runbooks\tenant-lifecycle.synthetic.json'
-        $script:Fixture = Get-Content -Raw -LiteralPath $fixturePath | ConvertFrom-Json
+        $script:Fixture = ConvertFrom-TenantLifecycleJson -InputObject (
+            Get-Content -Raw -LiteralPath $fixturePath
+        )
         & python -c 'import jsonschema' 2>&1 | Out-Null
         $script:HasJsonSchema = $LASTEXITCODE -eq 0
-        Import-Module $script:ModulePath -Force
+        if ($null -eq ('TenantLifecycleContractCodePropertyAccessor' -as [type])) {
+            Add-Type -TypeDefinition @'
+using System;
+using System.Management.Automation;
+
+public static class TenantLifecycleContractCodePropertyAccessor
+{
+    public static object Get(PSObject instance)
+    {
+        throw new InvalidOperationException("nested getter executed");
+    }
+}
+'@
+        }
+        $script:ContractCodePropertyGetter = (
+            [TenantLifecycleContractCodePropertyAccessor].GetMethod('Get')
+        )
 
         function Copy-ContractObject {
             param([Parameter(Mandatory)][object]$InputObject)
-            $InputObject | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+            ConvertFrom-TenantLifecycleJson -InputObject (
+                $InputObject | ConvertTo-Json -Depth 30
+            )
         }
 
         function Invoke-JsonSchemaValidation {
@@ -119,6 +140,44 @@ Describe 'Tenant lifecycle contracts' {
             Should -Not -BeNullOrEmpty
     }
 
+    It 'final review JSON loader preserves seven-fraction timestamps and digest parity' {
+        Get-Command `
+            -Name ConvertFrom-TenantLifecycleJson `
+            -Module Caldova.HrFrontier.Bootstrap `
+            -ErrorAction SilentlyContinue |
+            Should -Not -BeNullOrEmpty
+
+        $timestamp = '2026-10-02T12:05:00.1234567Z'
+        $expected = [pscustomobject][ordered]@{
+            generatedAtUtc = $timestamp
+            nested = [pscustomobject][ordered]@{
+                expiresAtUtc = '2026-10-02T12:35:00.7654321Z'
+            }
+        }
+        $json = $expected | ConvertTo-Json -Depth 10 -Compress
+        $loaded = ConvertFrom-TenantLifecycleJson -InputObject $json
+
+        $loaded.generatedAtUtc | Should -BeOfType [string]
+        $loaded.generatedAtUtc | Should -BeExactly $timestamp
+        $loaded.nested.expiresAtUtc | Should -BeOfType [string]
+        $loaded.nested.expiresAtUtc |
+            Should -BeExactly '2026-10-02T12:35:00.7654321Z'
+        $digest = Get-RunbookContentDigest -InputObject $loaded
+        $digest | Should -BeExactly (
+            Get-RunbookContentDigest -InputObject $expected
+        )
+        $digest | Should -BeExactly (
+            '2337364f33d0681cb791e0a666a2f554' +
+            'f4dd2f27e52019e78882473c91484073'
+        )
+        ConvertTo-TenantLifecycleCanonicalJson -InputObject $loaded |
+            Should -BeExactly (
+                '{"generatedAtUtc":"2026-10-02T12:05:00.1234567Z",' +
+                '"nested":{"expiresAtUtc":' +
+                '"2026-10-02T12:35:00.7654321Z"}}' + "`n"
+            )
+    }
+
     It 'accepts a complete synthetic <Name> contract at runtime' -TestCases $contractCases {
         param($Kind, $FixtureProperty)
         $value = $script:Fixture.PSObject.Properties[$FixtureProperty].Value
@@ -147,6 +206,51 @@ Describe 'Tenant lifecycle contracts' {
         }
         $message | Should -BeExactly "TenantLifecycle.Contract.$Kind"
         $message | Should -Not -Match 'private-marker'
+    }
+
+    It 'final review contract rejects nested <MemberType> without invoking getters' -ForEach @(
+        @{ MemberType = 'AliasProperty' }
+        @{ MemberType = 'ScriptProperty' }
+        @{ MemberType = 'CodeProperty' }
+    ) {
+        $manifest = Copy-ContractObject $script:Fixture.executionManifest
+        $getterInvoked = $false
+        switch ($MemberType) {
+            'AliasProperty' {
+                $manifest.machine.PSObject.Properties.Remove('platform')
+                $manifest.machine |
+                    Add-Member `
+                        -MemberType AliasProperty `
+                        -Name platform `
+                        -Value machineId
+            }
+            'ScriptProperty' {
+                $manifest.machine |
+                    Add-Member `
+                        -MemberType ScriptProperty `
+                        -Name hiddenRuntimeValue `
+                        -Value {
+                            $getterInvoked = $true
+                            throw 'nested getter executed'
+                        }
+            }
+            'CodeProperty' {
+                $manifest.machine |
+                    Add-Member `
+                        -MemberType CodeProperty `
+                        -Name hiddenRuntimeValue `
+                        -Value $script:ContractCodePropertyGetter
+            }
+        }
+
+        {
+            Test-TenantLifecycleContract `
+                -Kind ExecutionManifest `
+                -InputObject $manifest
+        } | Should -Throw -ExpectedMessage (
+            'TenantLifecycle.Contract.ExecutionManifest'
+        )
+        $getterInvoked | Should -BeFalse
     }
 
     It 'rejects a missing required property in <Name>' -TestCases $contractCases {
@@ -284,6 +388,25 @@ Describe 'Tenant lifecycle contracts' {
         }
     }
 
+    It 'final review state contract permits null stableId for reviewed Create adoption' {
+        $state = Copy-ContractObject $script:Fixture.state
+        $state.resources[0].stableId = $null
+
+        Test-TenantLifecycleContract -Kind State -InputObject $state |
+            Should -BeTrue
+
+        if ($script:HasJsonSchema) {
+            $result = Invoke-JsonSchemaValidation `
+                -SchemaPath (
+                    Join-Path `
+                        $script:SchemaRoot `
+                        'tenant-lifecycle-state.schema.json'
+                ) `
+                -InputObject $state
+            $result.ExitCode | Should -Be 0 -Because $result.Output
+        }
+    }
+
     It 'rejects a classification outside the six-value set' {
         $manifest = Copy-ContractObject $script:Fixture.executionManifest
         $manifest.actions[0].classification = 'Reconcile'
@@ -303,9 +426,11 @@ Describe 'Tenant lifecycle intent and state separation' {
     BeforeAll {
         $script:RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
         $script:ModulePath = Join-Path $script:RepositoryRoot 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
-        $fixturePath = Join-Path $script:RepositoryRoot 'infra\tests\fixtures\runbooks\tenant-lifecycle.synthetic.json'
-        $script:Fixture = Get-Content -Raw -LiteralPath $fixturePath | ConvertFrom-Json
         Import-Module $script:ModulePath -Force
+        $fixturePath = Join-Path $script:RepositoryRoot 'infra\tests\fixtures\runbooks\tenant-lifecycle.synthetic.json'
+        $script:Fixture = ConvertFrom-TenantLifecycleJson -InputObject (
+            Get-Content -Raw -LiteralPath $fixturePath
+        )
 
         $script:SyntheticRepositoryRoot = Join-Path $TestDrive 'repository'
         $script:SyntheticTenantRoot = Join-Path $script:SyntheticRepositoryRoot 'infra\src\config\tenants'
@@ -315,43 +440,70 @@ Describe 'Tenant lifecycle intent and state separation' {
 
         function Copy-LifecycleValue {
             param([Parameter(Mandatory)][object]$InputObject)
-            $InputObject | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+            ConvertFrom-TenantLifecycleJson -InputObject (
+                $InputObject | ConvertTo-Json -Depth 30
+            )
         }
 
-        function New-ReviewedIntentResource {
+        function Write-SyntheticReviewedIntent {
             param(
                 [Parameter(Mandatory)]
                 [ValidateSet('Existing', 'Create')]
                 [string]$Mode,
+
+                [string]$Provider = 'Synthetic',
+
+                [string]$ResourceType = 'SyntheticResource',
 
                 [string]$LogicalName = 'component-001',
 
                 [string]$Id
             )
 
-            $resource = [ordered]@{
-                provider = 'Synthetic'
-                resourceType = 'SyntheticResource'
-                logicalName = $LogicalName
-                Mode = $Mode
-            }
+            $intent = Get-Content -Raw -LiteralPath (
+                Join-Path `
+                    $script:RepositoryRoot `
+                    'infra\src\config\tenants\_template.psd1'
+            )
+            $intent = $intent.Replace(
+                "TenantAlias = 'example123456'",
+                "TenantAlias = 'privatemarker123'"
+            )
+            $intent = $intent.Replace(
+                'bootstrap-example123456',
+                'bootstrap-privatemarker123'
+            )
+            $componentLines = @(
+                "        SyntheticResource = @{"
+                "            Provider = '$Provider'"
+                "            ResourceType = '$ResourceType'"
+                "            LogicalName = '$LogicalName'"
+                "            Mode = '$Mode'"
+            )
             if ($PSBoundParameters.ContainsKey('Id')) {
-                $resource.Id = $Id
+                $componentLines += "            Id = '$Id'"
             }
-            [pscustomobject]$resource
+            $componentLines += '        }'
+            $componentBlock = (
+                "    Components = @{$([Environment]::NewLine)" +
+                ($componentLines -join [Environment]::NewLine) +
+                "$([Environment]::NewLine)    }"
+            )
+            $intent = $intent.Replace(
+                '    Components = @{}',
+                $componentBlock
+            )
+            [IO.File]::WriteAllText(
+                $script:IntentPath,
+                $intent,
+                [Text.UTF8Encoding]::new($false)
+            )
         }
 
         function Reset-SyntheticPrivatePair {
-            $intent = Get-Content -Raw -LiteralPath (
-                Join-Path $script:RepositoryRoot 'infra\src\config\tenants\_template.psd1'
-            )
-            $intent = $intent.Replace("TenantAlias = 'example123456'", "TenantAlias = 'privatemarker123'")
-            $intent = $intent.Replace('bootstrap-example123456', 'bootstrap-privatemarker123')
-            $intent = $intent.Replace(
-                '    Components = @{}',
-                "    Components = @{$([Environment]::NewLine)        SyntheticResource = @{ Mode = 'Existing'; Id = 'stable-synthetic-001' }$([Environment]::NewLine)    }"
-            )
-            [IO.File]::WriteAllText($script:IntentPath, $intent, [Text.UTF8Encoding]::new($false))
+            Write-SyntheticReviewedIntent `
+                -Mode Existing `
+                -Id 'stable-synthetic-001'
             [IO.File]::WriteAllText(
                 $script:StatePath,
                 (($script:Fixture.state | ConvertTo-Json -Depth 30 -Compress) + "`n"),
@@ -647,9 +799,6 @@ Describe 'Tenant lifecycle intent and state separation' {
 
     It 'updates only observed fields for matching Existing reviewed intent' {
         $state = Copy-LifecycleValue $script:Fixture.state
-        $reviewedIntentResource = New-ReviewedIntentResource `
-            -Mode Existing `
-            -Id 'stable-synthetic-001'
         $verifiedResource = [pscustomobject]@{
             provider = 'Synthetic'
             resourceType = 'SyntheticResource'
@@ -662,7 +811,8 @@ Describe 'Tenant lifecycle intent and state separation' {
 
         $updated = Update-TenantLifecycleState `
             -State $state `
-            -ReviewedIntentResource $reviewedIntentResource `
+            -ReviewedIntentPath $script:IntentPath `
+            -ReviewedIntentComponentName SyntheticResource `
             -VerifiedResource $verifiedResource `
             -NowUtc $now
 
@@ -678,9 +828,6 @@ Describe 'Tenant lifecycle intent and state separation' {
 
     It 'rejects a stable ID change for Existing reviewed intent' {
         $state = Copy-LifecycleValue $script:Fixture.state
-        $reviewedIntentResource = New-ReviewedIntentResource `
-            -Mode Existing `
-            -Id 'stable-synthetic-001'
         $verifiedResource = [pscustomobject]@{
             provider = 'Synthetic'
             resourceType = 'SyntheticResource'
@@ -693,13 +840,14 @@ Describe 'Tenant lifecycle intent and state separation' {
         {
             Update-TenantLifecycleState `
                 -State $state `
-                -ReviewedIntentResource $reviewedIntentResource `
+                -ReviewedIntentPath $script:IntentPath `
+                -ReviewedIntentComponentName SyntheticResource `
                 -VerifiedResource $verifiedResource `
                 -NowUtc ([datetime]::UtcNow)
         } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.Intent'
     }
 
-    It 'requires the reviewed intent resource and rejects an identity mismatch' {
+    It 'requires the reviewed intent path and rejects an identity mismatch' {
         $state = Copy-LifecycleValue $script:Fixture.state
         $verifiedResource = [pscustomobject]@{
             provider = 'Synthetic'
@@ -715,16 +863,17 @@ Describe 'Tenant lifecycle intent and state separation' {
                 -State $state `
                 -VerifiedResource $verifiedResource `
                 -NowUtc ([datetime]::UtcNow)
-        } | Should -Throw -ExpectedMessage '*ReviewedIntentResource*'
+        } | Should -Throw -ExpectedMessage '*ReviewedIntentPath*'
 
-        $wrongIntentResource = New-ReviewedIntentResource `
+        Write-SyntheticReviewedIntent `
             -Mode Existing `
             -LogicalName 'component-999' `
             -Id 'stable-synthetic-001'
         {
             Update-TenantLifecycleState `
                 -State $state `
-                -ReviewedIntentResource $wrongIntentResource `
+                -ReviewedIntentPath $script:IntentPath `
+                -ReviewedIntentComponentName SyntheticResource `
                 -VerifiedResource $verifiedResource `
                 -NowUtc ([datetime]::UtcNow)
         } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.Intent'
@@ -732,12 +881,16 @@ Describe 'Tenant lifecycle intent and state separation' {
 
     It 'rejects an inexact reviewed intent mode' {
         $state = Copy-LifecycleValue $script:Fixture.state
-        $reviewedIntentResource = [pscustomobject]@{
-            provider = 'Synthetic'
-            resourceType = 'SyntheticResource'
-            logicalName = 'component-001'
-            Mode = 'create'
-        }
+        $intent = Get-Content -Raw -LiteralPath $script:IntentPath
+        $intent = $intent.Replace(
+            "            Mode = 'Existing'",
+            "            Mode = 'create'"
+        )
+        [IO.File]::WriteAllText(
+            $script:IntentPath,
+            $intent,
+            [Text.UTF8Encoding]::new($false)
+        )
         $verifiedResource = [pscustomobject]@{
             provider = 'Synthetic'
             resourceType = 'SyntheticResource'
@@ -750,7 +903,8 @@ Describe 'Tenant lifecycle intent and state separation' {
         {
             Update-TenantLifecycleState `
                 -State $state `
-                -ReviewedIntentResource $reviewedIntentResource `
+                -ReviewedIntentPath $script:IntentPath `
+                -ReviewedIntentComponentName SyntheticResource `
                 -VerifiedResource $verifiedResource `
                 -NowUtc ([datetime]::UtcNow)
         } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.Intent'
@@ -758,7 +912,8 @@ Describe 'Tenant lifecycle intent and state separation' {
 
     It 'adopts a verified stable ID only for matching Create reviewed intent' {
         $state = Copy-LifecycleValue $script:Fixture.state
-        $reviewedIntentResource = New-ReviewedIntentResource -Mode Create
+        $state.resources[0].stableId = $null
+        Write-SyntheticReviewedIntent -Mode Create
         $unverified = [pscustomobject]@{
             provider = 'Synthetic'
             resourceType = 'SyntheticResource'
@@ -770,7 +925,8 @@ Describe 'Tenant lifecycle intent and state separation' {
         {
             Update-TenantLifecycleState `
                 -State $state `
-                -ReviewedIntentResource $reviewedIntentResource `
+                -ReviewedIntentPath $script:IntentPath `
+                -ReviewedIntentComponentName SyntheticResource `
                 -VerifiedResource $unverified `
                 -NowUtc ([datetime]::UtcNow)
         } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.ReadBack'
@@ -779,7 +935,8 @@ Describe 'Tenant lifecycle intent and state separation' {
         $verified.exactReadBack = $true
         $updated = Update-TenantLifecycleState `
             -State $state `
-            -ReviewedIntentResource $reviewedIntentResource `
+            -ReviewedIntentPath $script:IntentPath `
+            -ReviewedIntentComponentName SyntheticResource `
             -VerifiedResource $verified `
             -NowUtc (
                 [datetime]::SpecifyKind(
@@ -788,16 +945,156 @@ Describe 'Tenant lifecycle intent and state separation' {
                 )
             )
 
-        $state.resources[0].stableId | Should -BeExactly 'stable-synthetic-001'
+        $state.resources[0].stableId | Should -BeNullOrEmpty
         $updated.resources[0].stableId | Should -BeExactly 'stable-synthetic-002'
         $updated.resources[0].lastVerifiedAtUtc |
             Should -BeExactly '2026-10-02T15:30:00.0000000Z'
         $updated.resources[0].ownedPropertiesDigest | Should -BeExactly ('f' * 64)
     }
 
+    It 'final review adopts null stableId once from the exact reviewed Create component' {
+        $state = Copy-LifecycleValue $script:Fixture.state
+        $state.resources[0].stableId = $null
+        Write-SyntheticReviewedIntent -Mode Create
+        $verified = [pscustomobject][ordered]@{
+            provider = 'Synthetic'
+            resourceType = 'SyntheticResource'
+            logicalName = 'component-001'
+            stableId = 'stable-synthetic-002'
+            ownedPropertiesDigest = 'f' * 64
+            exactReadBack = $true
+        }
+        $updated = Update-TenantLifecycleState `
+            -State $state `
+            -ReviewedIntentPath $script:IntentPath `
+            -ReviewedIntentComponentName SyntheticResource `
+            -VerifiedResource $verified `
+            -NowUtc (
+                [datetime]::SpecifyKind(
+                    [datetime]'2026-10-02T15:30:00',
+                    [DateTimeKind]::Utc
+                )
+            )
+
+        $updated.resources[0].stableId |
+            Should -BeExactly 'stable-synthetic-002'
+
+        $verified.ownedPropertiesDigest = 'd' * 64
+        $refreshed = Update-TenantLifecycleState `
+            -State $updated `
+            -ReviewedIntentPath $script:IntentPath `
+            -ReviewedIntentComponentName SyntheticResource `
+            -VerifiedResource $verified `
+            -NowUtc (
+                [datetime]::SpecifyKind(
+                    [datetime]'2026-10-02T16:30:00',
+                    [DateTimeKind]::Utc
+                )
+            )
+        $refreshed.resources[0].stableId |
+            Should -BeExactly 'stable-synthetic-002'
+        $refreshed.resources[0].ownedPropertiesDigest |
+            Should -BeExactly ('d' * 64)
+    }
+
+    It 'final review keeps every non-null Create stableId immutable' {
+        $state = Copy-LifecycleValue $script:Fixture.state
+        Write-SyntheticReviewedIntent -Mode Create
+        $verified = [pscustomobject][ordered]@{
+            provider = 'Synthetic'
+            resourceType = 'SyntheticResource'
+            logicalName = 'component-001'
+            stableId = 'stable-synthetic-002'
+            ownedPropertiesDigest = 'f' * 64
+            exactReadBack = $true
+        }
+
+        {
+            Update-TenantLifecycleState `
+                -State $state `
+                -ReviewedIntentPath $script:IntentPath `
+                -ReviewedIntentComponentName SyntheticResource `
+                -VerifiedResource $verified `
+                -NowUtc ([datetime]::UtcNow)
+        } | Should -Throw -ExpectedMessage (
+            'TenantLifecycle.State.StableIdImmutable'
+        )
+    }
+
+    It 'final review rejects caller-asserted identity absent from reviewed intent' {
+        $state = Copy-LifecycleValue $script:Fixture.state
+        Write-SyntheticReviewedIntent `
+            -Mode Existing `
+            -Provider OtherProvider `
+            -Id 'stable-synthetic-001'
+        $verified = [pscustomobject][ordered]@{
+            provider = 'Synthetic'
+            resourceType = 'SyntheticResource'
+            logicalName = 'component-001'
+            stableId = 'stable-synthetic-001'
+            ownedPropertiesDigest = 'f' * 64
+            exactReadBack = $true
+        }
+        {
+            Update-TenantLifecycleState `
+                -State $state `
+                -ReviewedIntentPath $script:IntentPath `
+                -ReviewedIntentComponentName SyntheticResource `
+                -VerifiedResource $verified `
+                -NowUtc ([datetime]::UtcNow)
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.Intent'
+    }
+
+    It 'final review private boundary binds the exact reviewed component identity' {
+        Write-SyntheticReviewedIntent `
+            -Mode Existing `
+            -Provider OtherProvider `
+            -Id 'stable-synthetic-001'
+        $calls = [Collections.Generic.List[string]]::new()
+
+        {
+            Invoke-SyntheticPrivateBoundary `
+                -Runner (New-SyntheticGitBoundaryRunner -Calls $calls)
+        } | Should -Throw -ExpectedMessage (
+            'TenantLifecycle.PrivateBoundary.State'
+        )
+        $calls.Count | Should -Be 0
+    }
+
+    It 'final review private boundary permits null stableId only for unadopted Create intent' {
+        $state = Copy-LifecycleValue $script:Fixture.state
+        $state.resources[0].stableId = $null
+        [IO.File]::WriteAllText(
+            $script:StatePath,
+            (($state | ConvertTo-Json -Depth 30 -Compress) + "`n"),
+            [Text.UTF8Encoding]::new($false)
+        )
+        $existingCalls = [Collections.Generic.List[string]]::new()
+        {
+            Invoke-SyntheticPrivateBoundary `
+                -Runner (
+                    New-SyntheticGitBoundaryRunner `
+                        -Calls $existingCalls
+                )
+        } | Should -Throw -ExpectedMessage (
+            'TenantLifecycle.PrivateBoundary.State'
+        )
+        $existingCalls.Count | Should -Be 0
+
+        Write-SyntheticReviewedIntent -Mode Create
+        $createCalls = [Collections.Generic.List[string]]::new()
+        $boundary = Invoke-SyntheticPrivateBoundary `
+            -Runner (
+                New-SyntheticGitBoundaryRunner `
+                    -Calls $createCalls
+            )
+        $boundary.state.schemaValid | Should -BeTrue
+        $createCalls.Count | Should -Be 6
+    }
+
     It 'refuses state adoption without a pre-existing state resource' {
         $state = Copy-LifecycleValue $script:Fixture.state
-        $unknownIntent = New-ReviewedIntentResource `
+        Write-SyntheticReviewedIntent `
             -Mode Create `
             -LogicalName 'component-999'
         $unknown = [pscustomobject]@{
@@ -812,7 +1109,8 @@ Describe 'Tenant lifecycle intent and state separation' {
         {
             Update-TenantLifecycleState `
                 -State $state `
-                -ReviewedIntentResource $unknownIntent `
+                -ReviewedIntentPath $script:IntentPath `
+                -ReviewedIntentComponentName SyntheticResource `
                 -VerifiedResource $unknown `
                 -NowUtc ([datetime]::UtcNow)
         } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.Resource'
@@ -820,7 +1118,8 @@ Describe 'Tenant lifecycle intent and state separation' {
 
     It 'rejects fields outside the exact read-back contract' {
         $state = Copy-LifecycleValue $script:Fixture.state
-        $reviewedIntentResource = New-ReviewedIntentResource -Mode Create
+        $state.resources[0].stableId = $null
+        Write-SyntheticReviewedIntent -Mode Create
         $classificationChange = [pscustomobject]@{
             provider = 'Synthetic'
             resourceType = 'SyntheticResource'
@@ -834,7 +1133,8 @@ Describe 'Tenant lifecycle intent and state separation' {
         {
             Update-TenantLifecycleState `
                 -State $state `
-                -ReviewedIntentResource $reviewedIntentResource `
+                -ReviewedIntentPath $script:IntentPath `
+                -ReviewedIntentComponentName SyntheticResource `
                 -VerifiedResource $classificationChange `
                 -NowUtc ([datetime]::UtcNow)
         } | Should -Throw -ExpectedMessage 'TenantLifecycle.State.ReadBack'
@@ -845,13 +1145,17 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
     BeforeAll {
         $script:EvidenceRepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
         $script:EvidenceModulePath = Join-Path $script:EvidenceRepositoryRoot 'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
-        $fixturePath = Join-Path $script:EvidenceRepositoryRoot 'infra\tests\fixtures\runbooks\tenant-lifecycle.synthetic.json'
-        $script:EvidenceFixture = Get-Content -Raw -LiteralPath $fixturePath | ConvertFrom-Json
         Import-Module $script:EvidenceModulePath -Force
+        $fixturePath = Join-Path $script:EvidenceRepositoryRoot 'infra\tests\fixtures\runbooks\tenant-lifecycle.synthetic.json'
+        $script:EvidenceFixture = ConvertFrom-TenantLifecycleJson -InputObject (
+            Get-Content -Raw -LiteralPath $fixturePath
+        )
 
         function Copy-EvidenceValue {
             param([Parameter(Mandatory)][object]$InputObject)
-            $InputObject | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+            ConvertFrom-TenantLifecycleJson -InputObject (
+                $InputObject | ConvertTo-Json -Depth 30
+            )
         }
 
         function New-EvidenceManifestParameters {
@@ -889,12 +1193,12 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                     param(
                         [Parameter(Mandatory)][string]$RunDirectory,
                         [string]$ApprovedStableId = 'stable-synthetic-001',
-                        [switch]$CaseDriftReadBackComponent,
                         [switch]$CaseDriftSummaryPrerequisite,
                         [switch]$CorruptActionDigest,
                         [switch]$CorruptAssessmentDigest,
                         [switch]$CorruptReadBackDigest,
                         [switch]$IncludeUnreportedManifestAction,
+                        [switch]$OmitActionTargetReadBackComponent,
                         [switch]$OmitPrivateReadBackComponent
                     )
 
@@ -908,37 +1212,7 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                         '?token=PROHIBITED-TOKEN#private'
                     )
                     $unapprovedStableId = 'stable-private-PROHIBITED-ID'
-                    $state = [pscustomobject][ordered]@{
-                        schemaVersion = '1.0'
-                        publicTenantKey = 'tenant1'
-                        resources = @(
-                            [pscustomobject][ordered]@{
-                                provider = 'Synthetic'
-                                resourceType = 'SyntheticResource'
-                                logicalName = 'approved-component'
-                                stableId = $approvedStableId
-                                lastVerifiedAtUtc = '2026-10-02T12:09:00.0000000Z'
-                                ownedPropertiesDigest = 'e' * 64
-                            }
-                            [pscustomobject][ordered]@{
-                                provider = 'Synthetic'
-                                resourceType = 'SyntheticResource'
-                                logicalName = 'url-component'
-                                stableId = $urlStableId
-                                lastVerifiedAtUtc = '2026-10-02T12:09:00.0000000Z'
-                                ownedPropertiesDigest = 'd' * 64
-                            }
-                            [pscustomobject][ordered]@{
-                                provider = 'Synthetic'
-                                resourceType = 'SyntheticResource'
-                                logicalName = 'private-component'
-                                stableId = $unapprovedStableId
-                                lastVerifiedAtUtc = '2026-10-02T12:09:00.0000000Z'
-                                ownedPropertiesDigest = 'c' * 64
-                            }
-                        )
-                    }
-                    $stateDigest = Get-RunbookContentDigest -InputObject $state
+                    $stateDigest = '2' * 64
                     $action = [pscustomobject][ordered]@{
                         id = 'Foundation'
                         provider = 'Synthetic'
@@ -1073,24 +1347,42 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                         $actionEvidenceDigest
                     }
                     $readBackComponents = @(
-                        foreach ($resource in $state.resources) {
+                        foreach ($component in @(
+                            [pscustomobject][ordered]@{
+                                id = 'approved-component'
+                                provider = 'Synthetic'
+                                stableId = $approvedStableId
+                                ownedPropertiesDigest = 'e' * 64
+                            }
+                            [pscustomobject][ordered]@{
+                                id = 'url-component'
+                                provider = 'Synthetic'
+                                stableId = $urlStableId
+                                ownedPropertiesDigest = 'd' * 64
+                            }
+                            [pscustomobject][ordered]@{
+                                id = 'private-component'
+                                provider = 'Synthetic'
+                                stableId = $unapprovedStableId
+                                ownedPropertiesDigest = 'c' * 64
+                            }
+                        )) {
+                            if ($OmitActionTargetReadBackComponent -and
+                                [string]$component.id -ceq
+                                    'approved-component') {
+                                continue
+                            }
                             if ($OmitPrivateReadBackComponent -and
-                                [string]$resource.logicalName -ceq
+                                [string]$component.id -ceq
                                     'private-component') {
                                 continue
                             }
                             [pscustomobject][ordered]@{
-                                id = if ($CaseDriftReadBackComponent -and
-                                    [string]$resource.logicalName -ceq
-                                        'approved-component') {
-                                    'Approved-component'
-                                }
-                                else {
-                                    [string]$resource.logicalName
-                                }
-                                provider = $resource.provider
-                                stableId = $resource.stableId
-                                ownedPropertiesDigest = $resource.ownedPropertiesDigest
+                                id = [string]$component.id
+                                provider = [string]$component.provider
+                                stableId = [string]$component.stableId
+                                ownedPropertiesDigest =
+                                    [string]$component.ownedPropertiesDigest
                                 status = 'Passed'
                             }
                         }
@@ -1156,7 +1448,6 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                         @{ Path = 'execution-manifest.json'; Kind = 'ExecutionManifest'; Value = $manifest }
                         @{ Path = 'approvals.json'; Kind = 'Approval'; Value = $approval }
                         @{ Path = 'actions/Foundation.json'; Kind = 'ActionEvidence'; Value = $actionEvidence }
-                        @{ Path = 'state.json'; Kind = 'State'; Value = $state }
                         @{ Path = 'read-back.json'; Kind = 'ReadBack'; Value = $readBack }
                         @{ Path = 'summary.json'; Kind = 'Summary'; Value = $summary }
                     )) {
@@ -1233,7 +1524,8 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                     $raw | Should -Not -Match ([regex]::Escape($marker))
                 }
 
-                $projection = $raw | ConvertFrom-Json
+                $projection = ConvertFrom-TenantLifecycleJson `
+                    -InputObject $raw
                 ($projection.PSObject.Properties.Name -join ',') |
                     Should -BeExactly (
                         'actions,approvedDigests,artifactDigest,counts,' +
@@ -1280,7 +1572,6 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                     assessment = 'assessment.json'
                     executionManifest = 'execution-manifest.json'
                     approval = 'approvals.json'
-                    state = 'state.json'
                     readBack = 'read-back.json'
                     summary = 'summary.json'
                 }
@@ -1310,6 +1601,25 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                                 -Algorithm SHA256
                         ).Hash.ToLowerInvariant()
                     )
+            }
+
+            It 'final review builds the projection without private state evidence' {
+                $evidence = New-AcceptanceProjectionEvidence `
+                    -RunDirectory $script:ProjectionRunDirectory
+
+                $path = ConvertTo-TenantLifecycleAcceptanceProjection `
+                    -RunDirectory $script:ProjectionRunDirectory `
+                    -AllowedStableIds @($evidence.ApprovedStableId) `
+                    -AllowedUrlHosts @('portal.example.invalid') `
+                    -OutputPath $script:ProjectionOutputPath
+
+                $projection = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content -Raw -LiteralPath $path
+                )
+                $projection.approvedDigests.PSObject.Properties.Name |
+                    Should -Not -Contain 'state'
+                $projection.approvedDigests.readBack |
+                    Should -Match '^[0-9a-f]{64}$'
             }
 
             It 'rejects an assessment whose embedded digest does not bind its contract projection' {
@@ -1388,41 +1698,41 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                 $script:ProjectionOutputPath | Should -Not -Exist
             }
 
-            It 'rejects a partial read-back component set' {
-                New-AcceptanceProjectionEvidence `
+            It 'does not reconstruct a one-to-one private state projection' {
+                $evidence = New-AcceptanceProjectionEvidence `
                     -RunDirectory $script:ProjectionRunDirectory `
-                    -OmitPrivateReadBackComponent |
-                    Out-Null
+                    -OmitPrivateReadBackComponent
 
-                {
-                    ConvertTo-TenantLifecycleAcceptanceProjection `
-                        -RunDirectory $script:ProjectionRunDirectory `
-                        -AllowedStableIds @('stable-synthetic-001') `
-                        -AllowedUrlHosts @('portal.example.invalid') `
-                        -OutputPath $script:ProjectionOutputPath
-                } | Should -Throw -ExpectedMessage (
-                    'TenantLifecycle.Disclosure.ReadBack.Correlation'
+                $path = ConvertTo-TenantLifecycleAcceptanceProjection `
+                    -RunDirectory $script:ProjectionRunDirectory `
+                    -AllowedStableIds @($evidence.ApprovedStableId) `
+                    -AllowedUrlHosts @('portal.example.invalid') `
+                    -OutputPath $script:ProjectionOutputPath
+
+                $projection = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content -Raw -LiteralPath $path
                 )
-
-                $script:ProjectionOutputPath | Should -Not -Exist
+                @($projection.disclosedStableIds) |
+                    Should -BeExactly @($evidence.ApprovedStableId)
+                $projection.approvedDigests.PSObject.Properties.Name |
+                    Should -Not -Contain 'state'
             }
 
-            It 'rejects ordinal case drift in the read-back component set' {
+            It 'final review rejects a non-null action target absent from read-back' {
                 New-AcceptanceProjectionEvidence `
                     -RunDirectory $script:ProjectionRunDirectory `
-                    -CaseDriftReadBackComponent |
+                    -OmitActionTargetReadBackComponent |
                     Out-Null
 
                 {
                     ConvertTo-TenantLifecycleAcceptanceProjection `
                         -RunDirectory $script:ProjectionRunDirectory `
-                        -AllowedStableIds @('stable-synthetic-001') `
+                        -AllowedStableIds @() `
                         -AllowedUrlHosts @('portal.example.invalid') `
                         -OutputPath $script:ProjectionOutputPath
                 } | Should -Throw -ExpectedMessage (
                     'TenantLifecycle.Disclosure.ReadBack.Correlation'
                 )
-
                 $script:ProjectionOutputPath | Should -Not -Exist
             }
 
@@ -1532,10 +1842,11 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                     -OutputPath $script:ProjectionOutputPath |
                     Out-Null
 
-                $projection = Get-Content `
-                    -Raw `
-                    -LiteralPath $script:ProjectionOutputPath |
-                    ConvertFrom-Json
+                $projection = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content `
+                        -Raw `
+                        -LiteralPath $script:ProjectionOutputPath
+                )
                 @($projection.disclosedStableIds) |
                     Should -BeExactly @($stableId)
             }
@@ -1697,7 +2008,6 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
             @{ Kind = 'ExecutionManifest'; RelativePath = 'execution-manifest.json'; Input = $executionManifest }
             @{ Kind = 'Approval'; RelativePath = 'approvals.json'; Input = $script:EvidenceFixture.approval }
             @{ Kind = 'ActionEvidence'; RelativePath = 'actions/action-001.json'; Input = $script:EvidenceFixture.actionEvidence }
-            @{ Kind = 'State'; RelativePath = 'state.json'; Input = $script:EvidenceFixture.state }
             @{ Kind = 'ReadBack'; RelativePath = 'read-back.json'; Input = $script:EvidenceFixture.readBack }
             @{ Kind = 'Summary'; RelativePath = 'summary.json'; Input = $script:EvidenceFixture.summary }
         )
@@ -1720,6 +2030,21 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                 -Kind Summary `
                 -InputObject (Copy-EvidenceValue $script:EvidenceFixture.summary)
         } | Should -Throw -ExpectedMessage 'TenantLifecycle.Evidence.Path'
+    }
+
+    It 'final review refuses private state as run evidence' {
+        $privateStateEvidenceName = 'state' + '.json'
+        {
+            Write-TenantLifecycleEvidence `
+                -RunDirectory $script:EvidenceRunDirectory `
+                -RelativePath $privateStateEvidenceName `
+                -Kind State `
+                -InputObject (
+                    Copy-EvidenceValue $script:EvidenceFixture.state
+                )
+        } | Should -Throw
+        Join-Path $script:EvidenceRunDirectory $privateStateEvidenceName |
+            Should -Not -Exist
     }
 
     It 'rejects a digest-stale evidence manifest before writing any bytes' {

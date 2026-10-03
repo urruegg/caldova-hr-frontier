@@ -17,8 +17,9 @@ function Import-TenantLifecycleState {
             throw [IO.InvalidDataException]::new('State is absent.')
         }
 
-        $state = Get-Content -Raw -LiteralPath $fullPath -ErrorAction Stop |
-            ConvertFrom-Json -ErrorAction Stop
+        $state = ConvertFrom-TenantLifecycleJson -InputObject (
+            Get-Content -Raw -LiteralPath $fullPath -ErrorAction Stop
+        )
         Test-TenantLifecycleContract -Kind State -InputObject $state | Out-Null
     }
     catch {

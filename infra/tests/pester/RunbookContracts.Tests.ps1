@@ -310,7 +310,7 @@ Describe 'Shared runbook output contracts' {
                 'RunId,EvidenceRoot,RepositoryRoot,ExpectedSourceCommit,' +
                 'PublicTenantKey,TenantConfigurationPath,TenantStatePath,Stages,' +
                 'Mode,ExecutionManifestPath,ApprovedDigest,Apply,' +
-                'SubsystemInvoker,BindingObserver,NowUtc'
+                'SubsystemInvoker,BindingObserver,CurrentBindingProvider,NowUtc'
             )
         }
 
@@ -340,6 +340,8 @@ Describe 'Shared runbook output contracts' {
             $parameterText.SubsystemInvoker |
                 Should -Match 'Parameter\(DontShow\)'
             $parameterText.BindingObserver |
+                Should -Match 'Parameter\(DontShow\)'
+            $parameterText.CurrentBindingProvider |
                 Should -Match 'Parameter\(DontShow\)'
             $parameterText.NowUtc |
                 Should -Match '\$NowUtc\s*=\s*\[datetime\]::UtcNow'

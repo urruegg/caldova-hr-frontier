@@ -11,6 +11,8 @@ Get-ChildItem -LiteralPath $publicScriptsPath -Filter '*.ps1' | Sort-Object Name
 }
 
 Export-ModuleMember -Function @(
+    'ConvertFrom-TenantLifecycleJson',
+    'ConvertTo-TenantLifecycleCanonicalJson',
     'ConvertTo-TenantLifecycleAcceptanceProjection',
     'ConvertTo-DiscoveryEvidence',
     'Import-TenantConfiguration',

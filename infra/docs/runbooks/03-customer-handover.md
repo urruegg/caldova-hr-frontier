@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure customer repository handover |
@@ -18,6 +18,8 @@ This runbook prepares a synthetic customer-facing repository export from the reu
 The lifecycle core recognizes `TenantReplica` as a stage identifier but does not invoke [`New-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/New-CustomerRepositoryExport.ps1), [`Test-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/Test-CustomerRepositoryExport.ps1), a publication remote, or any handover provider. The local export and independent validator remain directly runnable under this runbook's separate contracts. A later reviewed replica/handover plan must define the digest binding and production subsystem invoker before the umbrella may sequence this stage.
 
 Plan 1's synthetic `TenantReplica` stage is not export, independent-validation, human-review, transfer, or publication evidence. A sanitized lifecycle projection cannot make any of those claims.
+
+Future production integration must provide both the subsystem invoker and an independently implemented current-binding provider. Umbrella `Invoke` validates fixed `approvals.json` and a fresh closed current binding immediately before `ShouldProcess` and again before the `TenantReplica` stage. Private lifecycle state remains only in the ignored local state file and is never copied into run or handover evidence.
 
 ## Roles and prerequisites
 

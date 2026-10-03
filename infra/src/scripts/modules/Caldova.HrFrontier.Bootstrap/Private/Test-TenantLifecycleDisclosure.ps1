@@ -19,7 +19,7 @@ function Test-TenantLifecycleDisclosureFields {
         [StringComparer]::Ordinal
     )
     foreach ($property in $properties) {
-        if ($property.MemberType -notin @('NoteProperty', 'Property') -or
+        if ($property.MemberType -ne 'NoteProperty' -or
             -not $actual.Add($property.Name)) {
             throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
         }
@@ -154,7 +154,6 @@ function Test-TenantLifecycleDisclosure {
             'executionManifest',
             'intent',
             'readBack',
-            'state',
             'summary'
         )
     foreach ($name in @(
@@ -163,7 +162,6 @@ function Test-TenantLifecycleDisclosure {
         'executionManifest',
         'intent',
         'readBack',
-        'state',
         'summary'
     )) {
         Test-TenantLifecycleDisclosureDigest $Projection.approvedDigests.$name
@@ -356,23 +354,6 @@ function Test-TenantLifecycleDisclosureReparsePath {
     return $false
 }
 
-function ConvertFrom-TenantLifecycleDisclosureJson {
-    [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$Json)
-
-    if ($PSVersionTable.PSVersion.Major -ge 6) {
-        $parameters = @{
-            InputObject = $Json
-            Depth = 100
-        }
-        if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) {
-            $parameters.DateKind = 'String'
-        }
-        return ConvertFrom-Json @parameters
-    }
-    return ConvertFrom-Json -InputObject $Json
-}
-
 function Import-TenantLifecycleDisclosureEvidence {
     [CmdletBinding()]
     param(
@@ -384,7 +365,6 @@ function Import-TenantLifecycleDisclosureEvidence {
             'ExecutionManifest',
             'Approval',
             'ActionEvidence',
-            'State',
             'ReadBack',
             'Summary'
         )]
@@ -412,7 +392,7 @@ function Import-TenantLifecycleDisclosureEvidence {
         }
         $bytes = [IO.File]::ReadAllBytes($candidate)
         $json = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
-        $value = ConvertFrom-TenantLifecycleDisclosureJson -Json $json
+        $value = ConvertFrom-TenantLifecycleJson -InputObject $json
         Test-TenantLifecycleContract -Kind $Kind -InputObject $value | Out-Null
         if (-not (Test-TenantLifecycleEvidencePropertyBoundary -Value $value)) {
             throw [IO.InvalidDataException]::new()

@@ -19,15 +19,16 @@ function Assert-TenantLifecycleProperties {
     Assert-TenantLifecycleCondition (-not ($InputObject -is [System.Array]))
     Assert-TenantLifecycleCondition (-not ($InputObject -is [System.Collections.IDictionary]))
 
-    $properties = @(
-        $InputObject.PSObject.Properties |
-            Where-Object { $_.MemberType -in @('NoteProperty', 'Property', 'AliasProperty') }
-    )
+    $properties = @($InputObject.PSObject.Properties)
     Assert-TenantLifecycleCondition ($properties.Count -eq $Fields.Count)
 
     $actual = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($property in $properties) {
-        [void]$actual.Add($property.Name)
+        Assert-TenantLifecycleCondition (
+            $property.MemberType -eq [Management.Automation.PSMemberTypes]::NoteProperty
+        )
+        Assert-TenantLifecycleCondition $property.IsGettable
+        Assert-TenantLifecycleCondition ($actual.Add($property.Name))
     }
     foreach ($field in $Fields) {
         Assert-TenantLifecycleCondition ($actual.Contains($field))
@@ -320,12 +321,31 @@ function Assert-TenantLifecycleStateResources {
         Assert-TenantLifecycleName $resource.provider
         Assert-TenantLifecycleName $resource.resourceType
         Assert-TenantLifecycleName $resource.logicalName
-        Assert-TenantLifecycleStableId $resource.stableId
+        if ($null -ne $resource.stableId) {
+            Assert-TenantLifecycleStableId $resource.stableId
+        }
         Assert-TenantLifecycleTimestamp $resource.lastVerifiedAtUtc
         Assert-TenantLifecycleDigest $resource.ownedPropertiesDigest
     }
-    Assert-TenantLifecycleUniqueValues -Values @($Value) -PropertyName 'logicalName'
-    Assert-TenantLifecycleUniqueValues -Values @($Value) -PropertyName 'stableId'
+    $identities = [Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::Ordinal
+    )
+    $stableIds = [Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::Ordinal
+    )
+    foreach ($resource in @($Value)) {
+        $identity = (
+            [string]$resource.provider + [char]0 +
+            [string]$resource.resourceType + [char]0 +
+            [string]$resource.logicalName
+        )
+        Assert-TenantLifecycleCondition ($identities.Add($identity))
+        if ($null -ne $resource.stableId) {
+            Assert-TenantLifecycleCondition (
+                $stableIds.Add([string]$resource.stableId)
+            )
+        }
+    }
 }
 
 function Assert-TenantLifecycleReadBackComponents {

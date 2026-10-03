@@ -61,16 +61,70 @@ function Test-TenantLifecyclePrivateBoundary {
             -Path $state `
             -PublicTenantKey $PublicTenantKey
         foreach ($resource in @($stateValue.resources)) {
-            $componentProperty = $intentValue.Components.PSObject.Properties[
-                [string]$resource.resourceType
-            ]
-            if ($null -eq $componentProperty) {
-                throw [IO.InvalidDataException]::new('Unreviewed state resource.')
+            $matchingComponents = @(
+                foreach (
+                    $componentProperty in @(
+                        $intentValue.Components.PSObject.Properties
+                    )
+                ) {
+                    $component = $componentProperty.Value
+                    $componentProperties = @(
+                        $component.PSObject.Properties
+                    )
+                    $componentNames = @(
+                        $componentProperties |
+                            ForEach-Object { [string]$_.Name }
+                    )
+                    $mode = [string]$component.Mode
+                    $expectedNames = @(
+                        'Provider',
+                        'ResourceType',
+                        'LogicalName',
+                        'Mode'
+                    )
+                    if ($mode -ceq 'Existing') {
+                        $expectedNames += 'Id'
+                    }
+                    if ($mode -cnotin @('Existing', 'Create') -or
+                        $componentProperties.Count -ne
+                            $expectedNames.Count -or
+                        @(
+                            $expectedNames |
+                                Where-Object {
+                                    $componentNames -cnotcontains $_
+                                }
+                        ).Count -ne 0) {
+                        throw [IO.InvalidDataException]::new(
+                            'Invalid reviewed component.'
+                        )
+                    }
+                    if ([string]$component.Provider -ceq
+                            [string]$resource.provider -and
+                        [string]$component.ResourceType -ceq
+                            [string]$resource.resourceType -and
+                        [string]$component.LogicalName -ceq
+                            [string]$resource.logicalName) {
+                        $component
+                    }
+                }
+            )
+            if ($matchingComponents.Count -ne 1) {
+                throw [IO.InvalidDataException]::new(
+                    'Unreviewed state resource.'
+                )
             }
-            $component = $componentProperty.Value
+            $component = $matchingComponents[0]
             if ([string]$component.Mode -ceq 'Existing' -and
-                [string]$component.Id -cne [string]$resource.stableId) {
+                ($null -eq $resource.stableId -or
+                    [string]$component.Id -cne
+                        [string]$resource.stableId)) {
                 throw [IO.InvalidDataException]::new('State changed a reviewed stable ID.')
+            }
+            if ([string]$component.Mode -ceq 'Create' -and
+                $component.PSObject.Properties.Name -ccontains 'Id') {
+                throw [IO.InvalidDataException]::new(
+                    'Create intent asserted a stable ID.'
+                )
             }
         }
     }
@@ -88,9 +142,9 @@ function Test-TenantLifecyclePrivateBoundary {
         -RepositoryRoot $root `
         -RelativeLabel $stateLabel `
         -NativeCommandRunner $NativeCommandRunner
-    $intentDigestInput = $intentValue |
-        ConvertTo-Json -Depth 30 -Compress |
-        ConvertFrom-Json
+    $intentDigestInput = ConvertFrom-TenantLifecycleJson -InputObject (
+        $intentValue | ConvertTo-Json -Depth 30 -Compress
+    )
 
     [pscustomobject][ordered]@{
         publicTenantKey = $PublicTenantKey

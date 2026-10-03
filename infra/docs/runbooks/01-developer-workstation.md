@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.3 |
+| **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Approved Windows 11 administrator workstation |
@@ -16,6 +16,8 @@ This runbook assesses and, when explicitly approved, initializes one local Windo
 The lifecycle core recognizes `Workstation` as a stage identifier but does not invoke [`Test-DeveloperWorkstation.ps1`](../../src/scripts/runbooks/Test-DeveloperWorkstation.ps1) or [`Initialize-DeveloperWorkstation.ps1`](../../src/scripts/runbooks/Initialize-DeveloperWorkstation.ps1). The workstation procedure remains independently runnable under its own manifest and evidence contract. A later reviewed plan must supply and test the production subsystem invoker before the umbrella may sequence it.
 
 Plan 1's synthetic `Workstation` stage is not workstation assessment, installation, authentication, Apply, or read-back evidence. It authorizes none of those operations and does not change the gates in this runbook.
+
+Future production integration must provide both the subsystem invoker and an independently implemented current-binding provider. In umbrella `Invoke`, fixed `approvals.json` and a freshly captured closed binding must pass approval validation immediately before `ShouldProcess` and again before the `Workstation` stage. Plan 1 supplies neither production integration and makes no workstation implementation claim.
 
 ## Authoritative installation and authentication references
 

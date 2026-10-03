@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.3 |
+| **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Shared Tenant 1 lifecycle contracts, orchestration, evidence, and synthetic tests |
@@ -32,7 +32,9 @@
 - Keep `tenant1.local.psd1` as human-reviewed intent and `tenant1.state.local.json` as observed stable state. State cannot introduce desired resources or change a `Manual`, `Blocked`, or `Refused` classification.
 - Use only `NoChange`, `Create`, `Update`, `Manual`, `Blocked`, and `Refused`. A dependent step proceeds only from a fresh successful prerequisite.
 - Canonical JSON is UTF-8 without BOM, ordinal-key-sorted, array-order-preserving, depth 30, one trailing LF, and lowercase SHA-256 over those exact bytes.
+- All lifecycle JSON reloads use the shared string-preserving loader: `ConvertFrom-Json -DateKind String` when supported and plain `ConvertFrom-Json` on Windows PowerShell 5.1. Generated timestamps use seven fractional digits and `Z`.
 - Umbrella evidence filenames are exactly `assessment.json`, `execution-manifest.json`, `approvals.json`, `actions/<stage>.json`, `read-back.json`, `pipeline.json`, `power-platform.json`, and `summary.json`.
+- Private `tenant1.state.local.json` is never copied into run evidence. Assessment and manifest bind its canonical `stateDigest`; acceptance consumes only closed read-back evidence and reviewed stable-ID disclosures.
 - Approval expires at the earlier of the manifest expiry or 30 minutes after generation. Restart, source, intent, state, machine, tool, context, prerequisite, action, or evidence-root drift invalidates it.
 - The core execution manifest is stage-level: exactly one action per selected umbrella stage in canonical selected-stage order. A provider subsystem may own multiple actions only in its own digest-bound provider manifest; only that manifest's digest may cross the umbrella stage input/evidence boundary.
 - No committed fixture may contain a real tenant ID, subscription ID, application ID, environment URL, private path, credential, token, customer data, or HR data.
@@ -49,6 +51,7 @@
 | `infra/src/config/schemas/tenant-lifecycle-state.schema.json` | Tool-owned stable-ID adoption state, never desired intent. |
 | `infra/src/config/schemas/tenant-lifecycle-read-back.schema.json` | Consolidated stable-ID and exact-property read-back. |
 | `infra/src/config/schemas/tenant-lifecycle-summary.schema.json` | Consolidated allowlisted run result. |
+| `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/ConvertFrom-TenantLifecycleJson.ps1` | Shared cross-host string-preserving lifecycle JSON load and canonical serialization helpers. |
 | `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/*TenantLifecycle*.ps1` | Public lifecycle constructors, validators, graph evaluation, and acceptance projection. |
 | `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Private/*TenantLifecycle*.ps1` | Closed-object, relative-path, atomic-write, and redaction internals. |
 | `infra/src/scripts/runbooks/Invoke-TenantLifecycle.ps1` | Provider-neutral stage sequencing only. |
@@ -62,7 +65,7 @@ The schema root fields are fixed as follows:
 - execution manifest: `schemaVersion`, `runId`, `generatedAtUtc`, `expiresAtUtc`, `sourceCommit`, `evidenceRoot`, `publicTenantKey`, `intentDigest`, `stateDigest`, `machine`, `operator`, `toolIdentities`, `providerContexts`, `prerequisites`, `actions`, `digest`;
 - action: `id`, `provider`, `classification`, `targetStableId`, `absencePredicate`, `desiredPropertiesDigest`, `preconditionDigest`, `prerequisiteActionIds`, `adapter`, `shouldProcessTarget`, `expectedPostcondition`, `recovery`, `evidenceProjection`;
 - approval: `schemaVersion`, `runId`, `executionManifestDigest`, `approverRole`, `approvedAtUtc`, `expiresAtUtc`, `scope`, `status`;
-- state resource: `provider`, `resourceType`, `logicalName`, `stableId`, `lastVerifiedAtUtc`, `ownedPropertiesDigest`;
+- state resource: `provider`, `resourceType`, `logicalName`, `stableId`, `lastVerifiedAtUtc`, `ownedPropertiesDigest`; `stableId` may be null only while the exact reviewed `Create` component remains unadopted;
 - action evidence: `schemaVersion`, `runId`, `actionId`, `classification`, `startedAtUtc`, `completedAtUtc`, `preReadDigest`, `decision`, `postReadDigest`, `status`, `errorCode`, `recovery`;
 - read-back: `schemaVersion`, `runId`, `generatedAtUtc`, `components`, `status`, `digest`; each component has `id`, `provider`, `stableId`, `ownedPropertiesDigest`, `status`;
 - summary: `schemaVersion`, `runId`, `sourceCommit`, `manifestDigest`, `startedAtUtc`, `completedAtUtc`, `status`, `counts`, `prerequisites`, `actions`, `nonClaims`.
@@ -86,7 +89,7 @@ The schema root fields are fixed as follows:
 
 - [ ] **Step 1: Write the failing contract tests**
 
-Add table-driven Pester cases that load each schema, accept a complete synthetic object, reject one unknown property, reject a missing required property, reject a non-lowercase digest, reject duplicate action IDs, reject a state resource without `stableId`, and reject classifications outside the six-value set. Assert module export of `Test-TenantLifecycleContract`.
+Add table-driven Pester cases that load each schema, accept a complete synthetic object, reject one unknown property, reject a missing required property, reject a non-lowercase digest, reject duplicate action IDs, reject a state resource without the `stableId` property, accept a null `stableId` at the schema layer, reject classifications outside the six-value set, and reject nested alias, script, code, executable, hidden, or additional runtime members without invoking getters. Assert module exports of `Test-TenantLifecycleContract` and the shared lifecycle JSON loader.
 
 - [ ] **Step 2: Run RED**
 
@@ -115,7 +118,7 @@ function Test-TenantLifecycleContract {
 }
 ```
 
-Use explicit allowed/required property arrays and type/value checks compatible with Windows PowerShell 5.1; do not make runtime correctness depend on `Test-Json`. Keep the JSON schemas as machine-readable mirrors and test them with the repository's existing Python `jsonschema` dependency where available.
+Use explicit allowed/required property arrays and type/value checks compatible with Windows PowerShell 5.1; inspect every property member before reading any value and accept only passive JSON data members. Do not make runtime correctness depend on `Test-Json`. Keep the JSON schemas as machine-readable mirrors and test them with the repository's existing Python `jsonschema` dependency where available. Implement and export `ConvertFrom-TenantLifecycleJson` for every lifecycle hashing/validation reload, preserving date strings on both required hosts.
 
 - [ ] **Step 4: Run GREEN**
 
@@ -152,7 +155,7 @@ git commit -m "feat(runbooks): add lifecycle contract schemas" -m "Co-authored-b
 - Consumes: `Import-TenantConfiguration -Path <tenant1.local.psd1>` and Task 1 state contract.
 - Produces: `Test-TenantLifecyclePrivateBoundary -PublicTenantKey tenant1 -IntentPath <absolute> -StatePath <absolute> -RepositoryRoot <absolute> -NativeCommandRunner <scriptblock>`.
 - Produces: `Import-TenantLifecycleState -Path <absolute> -PublicTenantKey tenant1`.
-- Produces: `Update-TenantLifecycleState -State <object> -ReviewedIntentResource <object> -VerifiedResource <object> -NowUtc <datetime>`; the resource must already exist in reviewed intent and state and have exact post-read proof.
+- Produces: `Update-TenantLifecycleState -State <object> -ReviewedIntentPath <absolute> -ReviewedIntentComponentName <string> -VerifiedResource <object> -NowUtc <datetime>`; the function loads the reviewed intent itself, and the exact provider/resource-type/logical-name resource must already exist in reviewed intent and state and have exact post-read proof.
 
 - [ ] **Step 1: Write failing separation tests**
 
@@ -180,11 +183,12 @@ Test-TenantLifecyclePrivateBoundary `
 Import-TenantLifecycleState -Path <string> -PublicTenantKey <string>
 
 Update-TenantLifecycleState `
-  -State <object> -ReviewedIntentResource <object> `
+  -State <object> -ReviewedIntentPath <absolute> `
+  -ReviewedIntentComponentName <string> `
   -VerifiedResource <object> -NowUtc <datetime>
 ```
 
-`ReviewedIntentResource` is a closed normalized resource with `provider`, `resourceType`, `logicalName`, and `Mode`, plus `Id` for `Existing`. Its identity must match the exact verified resource and exactly one resource already represented in state. `Existing` keeps the reviewed `Id` unchanged; `Create` may adopt the exact verified stable ID only after exact read-back.
+The function loads `ReviewedIntentPath` with `Import-TenantConfiguration` and selects the exact named reviewed component. That component explicitly binds `Provider`, `ResourceType`, `LogicalName`, and `Mode`, plus `Id` for `Existing`. Its identity must match the exact verified resource and exactly one resource already represented in state. `Existing` requires a non-null exact reviewed ID. `Create` starts with `stableId: null`, may adopt the exact verified stable ID once after exact read-back, and can never change a non-null stable ID on a later call.
 
 Return a sanitized boundary record containing only `publicTenantKey`, relative labels, existence/ignored/tracked/schema statuses, and intent/state digests. Never return private values or hash a private value into committed evidence. `Update-TenantLifecycleState` may update only `stableId` for `Create`, plus `lastVerifiedAtUtc` and `ownedPropertiesDigest`, after exact read-back.
 
@@ -291,7 +295,7 @@ Test-TenantLifecycleApproval `
 
 Write-TenantLifecycleEvidence `
   -RunDirectory <absolute> -RelativePath <allowlisted-relative-path> `
-  -Kind <Assessment|ExecutionManifest|Approval|ActionEvidence|State|ReadBack|Summary> `
+  -Kind <Assessment|ExecutionManifest|Approval|ActionEvidence|ReadBack|Summary> `
   -InputObject <object>
 ```
 
@@ -311,7 +315,7 @@ Expected: **FAIL** because the lifecycle manifest, approval validator, and write
 
 - [ ] **Step 3: Implement minimum evidence behavior**
 
-Bind every listed manifest field into `digest`. Require approval `status: Approved`, exact digest/scope/run ID, and expiry not later than the manifest expiry. `CurrentBinding` has the same binding fields as the manifest plus `sessionId`; mismatch throws `TenantLifecycle.Approval.Drift.<field>`. For this integration, `CurrentBinding.sessionId` is `[string]$PID` from the PowerShell process that captured the approval binding; callers must carry that binding forward rather than reconstructing it after restart. This invariant does not add a session field to the accepted schemas. Write to a same-directory GUID temporary file, flush and close, then atomically move only after validation. Never overwrite an existing action envelope.
+Bind every listed manifest field into `digest`. Require approval `status: Approved`, exact digest/scope/run ID, and expiry not later than the manifest expiry. `CurrentBinding` has the same binding fields as the manifest plus `sessionId`; mismatch throws `TenantLifecycle.Approval.Drift.<field>`. For this integration, `CurrentBinding.sessionId` is `[string]$PID` from the PowerShell process that captured the approval binding; callers must carry that binding forward rather than reconstructing it after restart. This invariant does not add a session field to the accepted schemas. Current binding and evidence objects are recursively closed before values are read. Write to a same-directory GUID temporary file, flush and close, then atomically move only after validation. Never overwrite an existing action envelope, and never accept private state as run evidence.
 
 - [ ] **Step 4: Run GREEN**
 
@@ -359,6 +363,7 @@ param(
     [switch]$Apply,
     [Parameter(DontShow)][scriptblock]$SubsystemInvoker,
     [Parameter(DontShow)][scriptblock]$BindingObserver,
+    [Parameter(DontShow)][scriptblock]$CurrentBindingProvider,
     [datetime]$NowUtc = [datetime]::UtcNow
 )
 ```
@@ -372,10 +377,11 @@ The execution manifest and invoker boundary are amended as follows:
 - A provider subsystem may hold multiple provider actions in its own digest-bound provider manifest. Its umbrella stage action references that provider manifest through `desiredPropertiesDigest`; the closed control record exposes only the same opaque `stageInputDigest`, never the provider manifest or its actions. The stage input digest and action evidence bind that value transitively.
 - The invoker continues to return one outcome and one umbrella action-evidence path per stage.
 - `BindingObserver` is a hidden provider-neutral test hook. It receives checkpoint and optional stage labels before revalidation and supplies no provider data, approval material, or path. Production callers omit it.
+- `CurrentBindingProvider` is hidden and required only for `Invoke`. It takes no manifest-derived values from the orchestrator and returns a fresh closed current binding at every mutation boundary.
 
 - [ ] **Step 1: Write failing orchestration and safety tests**
 
-Test stage order, exact stage-level manifest scope, linear prerequisites for full and independently selected subsets, prerequisite blocking, no `-Apply` without approved digest, `-WhatIf` dominance, no provider executable literals, no credential parameters, no direct import of subsystem scripts, no mutation when an injected stage returns `Manual`, and exact non-secret control-record properties. Add RED cases for source/intent/state drift injected after initial validation and between stages, `Assess` and `Plan` with a supplied manifest but no action evidence or read-back, `Invoke` with a null read-back digest, and a nested provider manifest represented only by its opaque digest with no provider actions in the umbrella control record.
+Test stage order, exact stage-level manifest scope, linear prerequisites for full and independently selected subsets, prerequisite blocking, no `-Apply` without approved digest, `-WhatIf` dominance, no provider executable literals, no credential parameters, no direct import of subsystem scripts, no mutation when an injected stage returns `Manual`, and exact non-secret control-record properties. Add RED cases for source/intent/state drift injected after initial validation and between stages, approval status/expiry/restart/drift/scope through the production orchestrator, missing or executable current-binding provider output, `Assess` and `Plan` with a supplied manifest but no approval/current binding/action evidence/read-back, `Invoke` with a null read-back digest, noncanonical action evidence bytes, and a nested provider manifest represented only by its opaque digest with no provider actions in the umbrella control record.
 
 - [ ] **Step 2: Run RED**
 
@@ -389,7 +395,7 @@ Expected: **FAIL** because `Invoke-TenantLifecycle.ps1` and its contract are abs
 
 - [ ] **Step 3: Implement the thin orchestrator**
 
-Resolve the run directory with `Resolve-RunbookReportPath`; validate source `HEAD`, source cleanliness, and the private boundary during initial intake. In `Invoke`, rerun those source checks and `Test-TenantLifecyclePrivateBoundary` immediately before `ShouldProcess`, compare source/intent/state to the approved manifest, and repeat the rebind immediately before every subsystem invocation. Drift introduced by an earlier stage or concurrent process blocks later invocation. Evaluate prerequisites with Task 3; pass only `runId`, run-directory label, public tenant key, source commit, machine/operator labels, tool identity records, approved digest, opaque `stageInputDigest`, and prerequisite outcomes. Gate non-null read-back validation, action-evidence correlation, and umbrella summary emission to `Invoke`; `Assess` and `Plan` may use a supplied manifest as context without those requirements. Default invoker must fail closed with `TenantLifecycle.SubsystemInvoker.Required`; it must not discover or call providers.
+Resolve the run directory with `Resolve-RunbookReportPath`; validate source `HEAD`, source cleanliness, and the private boundary during initial intake. In `Invoke`, require `CurrentBindingProvider`, load fixed `approvals.json` from the run directory through the shared lifecycle JSON loader, rerun those source checks and `Test-TenantLifecyclePrivateBoundary` immediately before `ShouldProcess`, obtain a fresh provider binding, and call `Test-TenantLifecycleApproval`. Repeat the same source/private/approval/current-binding sequence immediately before every subsystem invocation. Never populate current machine, operator, tool, provider-context, prerequisite, action, or session values from the manifest. Drift introduced by an earlier stage or concurrent process blocks later invocation. Evaluate prerequisites with Task 3; pass only `runId`, run-directory label, public tenant key, source commit, machine/operator labels, tool identity records, approved digest, opaque `stageInputDigest`, and prerequisite outcomes. Gate non-null read-back validation, canonical action-evidence byte equality, action-evidence correlation, and umbrella summary emission to `Invoke`; `Assess` and `Plan` may use a supplied manifest as context without approval, current binding, action evidence, or read-back. Default invoker must fail closed with `TenantLifecycle.SubsystemInvoker.Required`; it must not discover or call providers.
 
 - [ ] **Step 4: Run GREEN**
 
@@ -444,7 +450,7 @@ Expected: **FAIL** because the projection function does not exist.
 
 - [ ] **Step 3: Implement minimum projection**
 
-Read only known evidence filenames, validate each before use, reconstruct the projection from allowlisted properties, strip URL paths/query/fragment unless explicitly approved, and throw when prohibited material appears rather than attempting broad regex redaction. Write canonical JSON outside Git through Task 4.
+Read only known evidence filenames, validate each before use, reconstruct the projection from allowlisted properties, strip URL paths/query/fragment unless explicitly approved, and throw when prohibited material appears rather than attempting broad regex redaction. Do not read or require private state evidence. Bind assessment and manifest `stateDigest`, validate the independent read-back contract and embedded digest, correlate actual canonical action evidence, require each non-null manifest action target stable ID in read-back, and disclose only stable IDs or URL hosts present in the explicit allowlists. Write canonical JSON outside Git through Task 4.
 
 - [ ] **Step 4: Run GREEN**
 
@@ -477,7 +483,7 @@ git commit -m "feat(runbooks): add sanitized acceptance projection" -m "Co-autho
 
 - [ ] **Step 1: Write the failing end-to-end synthetic test**
 
-Add one fixture-driven lifecycle that writes assessment, manifest, approval, action envelopes, read-back, and summary; interrupts after one action; requires a new manifest after simulated restart; completes with all `NoChange`; generates a sanitized projection; and proves no provider runner was called.
+Add one fixture-driven lifecycle that writes assessment, manifest, approval, action envelopes, read-back, and summary without copying private state into evidence; interrupts after one action; requires a new manifest after simulated restart; completes with all `NoChange`; generates a sanitized projection; and proves no provider runner was called.
 
 - [ ] **Step 2: Run RED**
 

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.7 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.8 |
+| **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
@@ -31,7 +31,7 @@ Start at the [repository knowledge map](../docs/README.md), then this domain bou
 
 - [Tenant 1 Lean Platform Runbook](docs/24-tenant-1-lean-platform-runbook.md) is the active attended local Tenant 1 sequence and acceptance contract.
 - [Operational Runbooks](docs/runbooks/README.md) catalogues the shared preview, approval, evidence, read-back, and recovery procedures.
-- [`Invoke-TenantLifecycle.ps1`](src/scripts/runbooks/Invoke-TenantLifecycle.ps1) is a provider-neutral sequencing core with no production subsystem invoker; omission fails closed and no provider procedure is activated.
+- [`Invoke-TenantLifecycle.ps1`](src/scripts/runbooks/Invoke-TenantLifecycle.ps1) is a provider-neutral sequencing core with no production subsystem invoker or current-binding provider; `Invoke` reloads fixed approval evidence and requires fresh binding validation before `ShouldProcess` and every stage, while omission fails closed and no provider procedure is activated.
 - [Developer Workstation](docs/runbooks/01-developer-workstation.md) defines the approved local workstation assessment and initialization boundary.
 - [Tenant Trust Activation Runbook](docs/20-tenant-trust-activation-runbook.md) is a `Superseded stop notice`; no supported trust-activation mutation path exists.
 - [Azure Boards Population Runbook](docs/21-azure-boards-population-runbook.md) is a `Superseded stop notice`; Board synchronization remains deferred.
@@ -44,7 +44,7 @@ Public source uses stable descriptive paths under `src/`; infrastructure documen
 
 ## Current Boundary
 
-Plan 1 adds closed tenant-lifecycle schemas, private intent/state validation, deterministic prerequisites, digest-bound evidence and approval, a provider-neutral umbrella orchestrator, a sanitized acceptance projection, and synthetic verification. It adds no workstation, cloud-foundation, DEV-delivery, or handover subsystem implementation to the umbrella. It still contains no active cloud-foundation Apply step, lifecycle-driven customer export or publication flow, production deployment flow, tenant-creation flow, Power Platform solution payload, or deployed resource. The dormant cloud-foundation stop stubs remain unchanged.
+Plan 1 adds closed tenant-lifecycle schemas, private intent/state validation, one-time reviewed Create adoption, shared cross-host string-preserving JSON loading, deterministic prerequisites, digest-bound approval with a fresh current-binding provider, canonical action evidence, a provider-neutral umbrella orchestrator, a state-free sanitized acceptance projection, and synthetic verification. Private stable state remains only in ignored `tenant1.state.local.json` and is bound by `stateDigest`; it is not run evidence. Plan 1 adds no workstation, cloud-foundation, DEV-delivery, or handover subsystem implementation to the umbrella. It still contains no active cloud-foundation Apply step, lifecycle-driven customer export or publication flow, production deployment flow, tenant-creation flow, Power Platform solution payload, or deployed resource. The dormant cloud-foundation stop stubs remain unchanged.
 
 Existing independently runnable procedures retain their own explicit gates. The lifecycle core itself permits only provider-neutral validation, sequencing through an injected invoker, synthetic action evidence, and allowlisted projection. It performs no authentication, provider discovery, role mutation, trust activation, GitHub Environment creation, Azure Pipeline execution, PAC operation, solution import, deployment creation, handover publication, or provider mutation.
 

@@ -16,6 +16,7 @@ param(
     [switch]$Apply,
     [Parameter(DontShow)][scriptblock]$SubsystemInvoker,
     [Parameter(DontShow)][scriptblock]$BindingObserver,
+    [Parameter(DontShow)][scriptblock]$CurrentBindingProvider,
     [datetime]$NowUtc = [datetime]::UtcNow
 )
 
@@ -89,11 +90,7 @@ function Assert-TenantLifecycleSubsystemOutcome {
         )
         foreach ($property in $properties) {
             if (-not $property.IsGettable -or
-                $property.MemberType -notin @(
-                    'NoteProperty',
-                    'Property',
-                    'AliasProperty'
-                )) {
+                $property.MemberType -ne 'NoteProperty') {
                 throw [IO.InvalidDataException]::new()
             }
             [void]$actualProperties.Add($property.Name)
@@ -264,11 +261,21 @@ function Get-TenantLifecycleCorrelatedActionEvidence {
         }
         $bytes = [IO.File]::ReadAllBytes($candidate)
         $json = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
-        $evidence = $json | ConvertFrom-Json
+        $evidence = ConvertFrom-TenantLifecycleJson -InputObject $json
         Test-TenantLifecycleContract `
             -Kind ActionEvidence `
             -InputObject $evidence |
             Out-Null
+        $canonicalJson = ConvertTo-TenantLifecycleCanonicalJson `
+            -InputObject $evidence
+        $canonicalBytes = [Text.UTF8Encoding]::new(
+            $false,
+            $true
+        ).GetBytes($canonicalJson)
+        if ([Convert]::ToBase64String($bytes) -cne
+            [Convert]::ToBase64String($canonicalBytes)) {
+            throw [IO.InvalidDataException]::new()
+        }
         $evidenceDigest = Get-TenantLifecycleCanonicalEvidenceDigest -Bytes $bytes
     }
     catch {
@@ -351,6 +358,12 @@ if ($Mode -ceq 'Invoke' -and -not $Apply) {
 if ($Mode -ceq 'Invoke' -and
     [string]::IsNullOrWhiteSpace($ExecutionManifestPath)) {
     throw [IO.InvalidDataException]::new('TenantLifecycle.Manifest.Required')
+}
+if ($Mode -ceq 'Invoke' -and
+    $null -eq $CurrentBindingProvider) {
+    throw [IO.InvalidDataException]::new(
+        'TenantLifecycle.Approval.BindingProvider.Required'
+    )
 }
 
 try {
@@ -483,6 +496,18 @@ function Get-TenantLifecyclePrivateBinding {
 
 $sourceCommit = Get-TenantLifecycleSourceBinding
 $privateBoundary = Get-TenantLifecyclePrivateBinding
+$injectedNow = $PSBoundParameters.ContainsKey('NowUtc')
+
+function Get-TenantLifecycleValidationTime {
+    [CmdletBinding()]
+    [OutputType([datetime])]
+    param()
+
+    if ($injectedNow) {
+        return $NowUtc.ToUniversalTime()
+    }
+    return [datetime]::UtcNow
+}
 
 $manifest = $null
 if (-not [string]::IsNullOrWhiteSpace($ExecutionManifestPath)) {
@@ -491,8 +516,9 @@ if (-not [string]::IsNullOrWhiteSpace($ExecutionManifestPath)) {
         if (-not [IO.File]::Exists($manifestPath)) {
             throw [IO.InvalidDataException]::new()
         }
-        $manifest = Get-Content -Raw -LiteralPath $manifestPath |
-            ConvertFrom-Json
+        $manifest = ConvertFrom-TenantLifecycleJson -InputObject (
+            Get-Content -Raw -LiteralPath $manifestPath
+        )
         Test-TenantLifecycleContract `
             -Kind ExecutionManifest `
             -InputObject $manifest |
@@ -529,7 +555,7 @@ if (-not [string]::IsNullOrWhiteSpace($ExecutionManifestPath)) {
             throw [IO.InvalidDataException]::new()
         }
         if ($Mode -ceq 'Invoke' -and
-            $NowUtc.ToUniversalTime() -ge
+            (Get-TenantLifecycleValidationTime) -ge
                 ([DateTimeOffset]$manifest.expiresAtUtc).UtcDateTime) {
             throw [IO.InvalidDataException]::new()
         }
@@ -590,6 +616,43 @@ if ($Mode -ceq 'Invoke') {
                 )
             }
         }
+
+        try {
+            $approvalPath = Join-Path $runDirectory 'approvals.json'
+            if (-not [IO.File]::Exists($approvalPath) -or
+                (Test-TenantLifecycleOrchestratorReparsePath `
+                    -Root $runDirectory `
+                    -Candidate $approvalPath)) {
+                throw [IO.InvalidDataException]::new()
+            }
+            $approvalBytes = [IO.File]::ReadAllBytes($approvalPath)
+            $approvalJson = [Text.UTF8Encoding]::new(
+                $false,
+                $true
+            ).GetString($approvalBytes)
+            $approval = ConvertFrom-TenantLifecycleJson `
+                -InputObject $approvalJson
+        }
+        catch {
+            throw [IO.InvalidDataException]::new(
+                'TenantLifecycle.Approval.Evidence'
+            )
+        }
+
+        try {
+            $currentBinding = & $CurrentBindingProvider
+        }
+        catch {
+            throw [InvalidOperationException]::new(
+                'TenantLifecycle.Approval.BindingProvider.Failed'
+            )
+        }
+        Test-TenantLifecycleApproval `
+            -Manifest $manifest `
+            -Approval $approval `
+            -CurrentBinding $currentBinding `
+            -NowUtc (Get-TenantLifecycleValidationTime) |
+            Out-Null
     }
 
     function Invoke-TenantLifecycleBindingObserver {

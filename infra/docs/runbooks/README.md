@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.3 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.4 |
+| **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure operations |
@@ -25,8 +25,7 @@ One run uses one absolute evidence directory. The core accepts only these canoni
 |---|---|
 | `assessment.json` | Closed assessment, classifications, source, intent/state digests, tool identities, provider-context labels, and prerequisite evidence. |
 | `execution-manifest.json` | One approved umbrella action per selected stage, in canonical stage order. |
-| `approvals.json` | Human approval for the exact manifest digest, ordered scope, and expiry; the runtime validator separately binds the current process ID without writing an approval-session payload. |
-| `state.json` | Validated tool-owned stable-ID state needed by the acceptance projection; never desired intent. |
+| `approvals.json` | Human approval for the exact manifest digest, ordered scope, and expiry; `Invoke` reloads this fixed file and validates a fresh closed current binding at every mutation boundary. |
 | `actions/<stage>.json` | One verified umbrella action envelope for the named selected stage. |
 | `read-back.json` | Consolidated stable-ID and exact-owned-property read-back. |
 | `summary.json` | Consolidated statuses, six-value counts, action evidence paths and digests, prerequisites, and explicit non-claims. |
@@ -37,9 +36,11 @@ The only classifications are `NoChange`, `Create`, `Update`, `Manual`, `Blocked`
 
 ### Intent, state, and disclosure boundary
 
-Human-reviewed intent remains in ignored `infra/src/config/tenants/tenant1.local.psd1`. Tool-observed stable state remains in ignored `infra/src/config/tenants/tenant1.state.local.json`. State may re-adopt only an exact reviewed `Existing` resource ID and may not introduce desired values, classifications, credentials, or new resources. Source, intent, state, machine, tool, context, prerequisite, action, evidence-root, expiry, or process-session drift invalidates approval.
+Human-reviewed intent remains in ignored `infra/src/config/tenants/tenant1.local.psd1`. Tool-observed stable state remains only in ignored `infra/src/config/tenants/tenant1.state.local.json`; it is never copied into run evidence. Every state row binds the exact reviewed `Provider`, `ResourceType`, and `LogicalName` component identity. `Existing` requires the exact non-null reviewed ID. Unadopted reviewed `Create` intent uses `stableId: null`, permits one exact verified null-to-ID adoption, and then keeps that non-null ID immutable. State may not introduce desired values, classifications, credentials, or resources absent from reviewed intent and existing state. Source, intent, state, machine, operator, tool, provider context, prerequisite, action, evidence root, expiry, scope, status, or process-session drift invalidates approval.
 
-The acceptance projection reads only validated canonical core evidence. It reconstructs an allowlisted record containing approved digests, reviewed stable IDs, host-only URL disclosures, classifications, statuses, counts, an artifact digest, and fixed non-claims. It never promotes the raw run directory or provider output into a committed acceptance claim.
+The acceptance projection reads only validated canonical core evidence. It binds the assessment and manifest `stateDigest`, validates closed read-back and actual action evidence, requires every non-null manifest action target stable ID to appear in read-back, and reconstructs an allowlisted record containing approved evidence digests, reviewed stable IDs, host-only URL disclosures, classifications, statuses, counts, an artifact digest, and fixed non-claims. It never reads private state or promotes the raw run directory or provider output into a committed acceptance claim.
+
+All lifecycle JSON reloads use the shared cross-host string-preserving loader. Seven-fraction UTC timestamp strings remain strings on Windows PowerShell 5.1 and PowerShell 7.6.6. Runtime contracts reject alias, script, code, executable, hidden, and additional nested members before reading values. Action evidence must already be canonical UTF-8 without BOM and with exactly one trailing LF before the orchestrator correlates or hashes it.
 
 ### Umbrella signature and subsystem independence
 
@@ -61,11 +62,11 @@ Invoke-TenantLifecycle.ps1 `
   [-Apply] [-WhatIf] [-Confirm]
 ```
 
-`Invoke` requires `-Apply`, the manifest, and the approved digest; `-WhatIf` prevents invocation and evidence mutation. The hidden injected invoker has the exact shape `param([string]$Stage,[string]$Mode,[object]$ControlRecord)` and returns exactly `id`, `stage`, `classification`, `status`, `inputDigest`, `readBackDigest`, and `evidenceRelativePath`. Production callers currently have no provider invoker; omission fails closed with `TenantLifecycle.SubsystemInvoker.Required`.
+`Invoke` requires `-Apply`, the manifest, the approved digest, fixed `approvals.json`, and a hidden `[scriptblock]$CurrentBindingProvider`; `Assess` and `Plan` require neither approval nor current binding. `-WhatIf` prevents subsystem invocation and new action or summary evidence. The current-binding provider takes no orchestrator-supplied manifest values and returns a newly captured closed binding each time. The hidden injected invoker has the exact shape `param([string]$Stage,[string]$Mode,[object]$ControlRecord)` and returns exactly `id`, `stage`, `classification`, `status`, `inputDigest`, `readBackDigest`, and `evidenceRelativePath`. Production callers currently have neither a provider invoker nor a current-binding provider; omission fails closed with `TenantLifecycle.SubsystemInvoker.Required` or `TenantLifecycle.Approval.BindingProvider.Required`.
 
 The closed control record contains only `runId`, `runDirectoryLabel`, `publicTenantKey`, `sourceCommit`, `machineLabel`, `operatorLabel`, `toolIdentities`, `approvedDigest`, opaque `stageInputDigest`, and `prerequisiteOutcomes`. A provider subsystem may own a separate multi-action manifest, but only its digest may cross `stageInputDigest`. Each subsystem remains independently runnable, and an independently selected stage subset forms a linear chain across only those selected stages.
 
-Immediately before `ShouldProcess` and again before every `Invoke` stage, the core rechecks source `HEAD`, repository cleanliness, private intent, and private state. A process restart changes the approval session binding. Recovery therefore preserves evidence, starts a fresh run, creates a new manifest, and obtains new approval; it never resumes the prior approved mutation scope.
+Immediately before `ShouldProcess` and again before every `Invoke` stage, the core rechecks source `HEAD`, repository cleanliness, private intent, and private state, reloads fixed approval evidence, captures a fresh current binding, and calls `Test-TenantLifecycleApproval`. The orchestrator never fills current machine, operator, tool, provider-context, prerequisite, action, or session values from the manifest. A process restart changes the approval session binding. Recovery therefore preserves evidence, starts a fresh run, creates a new manifest, and obtains new approval; it never resumes the prior approved mutation scope.
 
 ## Audience and ownership
 

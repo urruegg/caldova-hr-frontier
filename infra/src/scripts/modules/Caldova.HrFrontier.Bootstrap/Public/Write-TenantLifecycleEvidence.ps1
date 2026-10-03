@@ -76,7 +76,7 @@ function Test-TenantLifecycleEvidencePropertyBoundary {
 
     $properties = @($Value.PSObject.Properties)
     foreach ($property in $properties) {
-        if ($property.MemberType -notin @('NoteProperty', 'Property')) {
+        if ($property.MemberType -ne 'NoteProperty') {
             return $false
         }
         if (-not (Test-TenantLifecycleEvidencePropertyBoundary -Value $property.Value -PropertyName $property.Name -Depth ($Depth + 1))) {
@@ -120,7 +120,7 @@ function Write-TenantLifecycleEvidence {
         [Parameter(Mandatory)][string]$RunDirectory,
         [Parameter(Mandatory)][string]$RelativePath,
         [Parameter(Mandatory)]
-        [ValidateSet('Assessment', 'ExecutionManifest', 'Approval', 'ActionEvidence', 'State', 'ReadBack', 'Summary')]
+        [ValidateSet('Assessment', 'ExecutionManifest', 'Approval', 'ActionEvidence', 'ReadBack', 'Summary')]
         [string]$Kind,
         [Parameter(Mandatory)][object]$InputObject
     )
@@ -143,7 +143,6 @@ function Write-TenantLifecycleEvidence {
         'ExecutionManifest' { $RelativePath -ceq 'execution-manifest.json' }
         'Approval' { $RelativePath -ceq 'approvals.json' }
         'ActionEvidence' { $RelativePath -cmatch '^actions/[A-Za-z0-9][A-Za-z0-9._:-]*\.json$' }
-        'State' { $RelativePath -ceq 'state.json' }
         'ReadBack' { $RelativePath -ceq 'read-back.json' }
         'Summary' { $RelativePath -ceq 'summary.json' }
     }

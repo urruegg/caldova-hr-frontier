@@ -111,7 +111,9 @@ function New-TenantLifecycleExecutionManifest {
     Test-TenantLifecycleContract -Kind ExecutionManifest -InputObject $candidate | Out-Null
 
     $canonical = ConvertTo-CanonicalJsonValue -Value $digestInput -RemainingDepth 30
-    $clone = ($canonical | ConvertTo-Json -Depth 30 -Compress) | ConvertFrom-Json
+    $clone = ConvertFrom-TenantLifecycleJson -InputObject (
+        $canonical | ConvertTo-Json -Depth 30 -Compress
+    )
     $digest = Get-TenantLifecycleExecutionManifestDigest -Manifest $clone
     $manifest = [pscustomobject][ordered]@{
         schemaVersion = $clone.schemaVersion

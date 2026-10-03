@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.3 |
+| **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Tenant 1 infrastructure runbooks and Power Platform DEV delivery |
@@ -122,7 +122,7 @@ The umbrella execution manifest is explicitly stage-level. It contains exactly o
 
 A provider subsystem may own a separate digest-bound provider manifest containing multiple provider actions. The corresponding umbrella stage action references only that provider-manifest digest through its desired-properties digest. The closed control record carries the same opaque value as `stageInputDigest`, and the stage outcome and action evidence bind it transitively through their input digest. Neither the provider manifest nor any provider action crosses the umbrella control record, graph, outcome, or summary. The subsystem invoker still returns exactly one outcome for the umbrella stage.
 
-In `Invoke` mode, approval is rebound to current state at every mutation boundary. The orchestrator reruns the source `HEAD` and clean-worktree checks plus the private intent/state boundary immediately before `ShouldProcess`, then repeats the same rebind immediately before each subsystem invocation. Drift introduced by a concurrent process or an earlier stage blocks every later invocation. The hidden test observer receives provider-neutral checkpoint and stage labels only and runs before revalidation; it receives no provider data, approval material, or path, and production callers omit it.
+In `Invoke` mode, approval is rebound to current state at every mutation boundary. The orchestrator reruns the source `HEAD` and clean-worktree checks plus the private intent/state boundary immediately before `ShouldProcess`, then repeats the same rebind immediately before each subsystem invocation. It also loads the fixed `approvals.json` record from the run directory and obtains a new closed current binding from the required hidden `CurrentBindingProvider` at each boundary. `Test-TenantLifecycleApproval` must pass immediately before `ShouldProcess` and immediately before every subsystem invocation. The provider supplies current machine, operator, tool, provider-context, prerequisite, source, private-boundary, action, evidence-root, and process-session values; the orchestrator never reconstructs those values from the approved manifest. Drift introduced by a concurrent process or an earlier stage blocks every later invocation. The hidden test observer receives provider-neutral checkpoint and stage labels only and runs before revalidation; it receives no provider data, approval material, or path, and production callers omit it.
 
 `Assess` and `Plan` may consume a valid execution manifest as context, but they do not require a stage action evidence file or non-null read-back digest and do not write the umbrella summary. Action-evidence correlation, non-null read-back enforcement, and summary emission apply only to `Invoke`.
 
@@ -172,6 +172,8 @@ Two ignored local artifacts separate human intent from observed stable state:
 
 State drift does not silently rewrite intent. Intent drift, state drift, or an unreviewed backup invalidates the run.
 
+Every state resource binds the exact `provider`, `resourceType`, and `logicalName` triple from one reviewed intent component. `Existing` intent requires a non-null stable ID equal to the reviewed ID. A reviewed `Create` resource is represented before adoption by `stableId: null`; exact verified read-back permits one null-to-stable-ID transition. After that transition, and for every initially non-null stable ID, the stable ID is immutable. State update cannot insert a resource absent from both reviewed intent and the existing state collection.
+
 ### 5.2 Run Evidence Layout
 
 All raw operational evidence stays outside Git under one selected root:
@@ -190,6 +192,12 @@ All raw operational evidence stays outside Git under one selected root:
 ```
 
 The execution manifest binds the run ID, source commit, machine, private tenant selector, intent digest, state digest, tool identities, provider contexts, ordered stage actions, prerequisite outcomes, expiry, and evidence root. Each umbrella action ID is the selected stage ID and `actions/<stage>.json` is the one correlated umbrella evidence envelope for that stage. Provider-owned manifests and their action evidence remain subsystem records referenced only by digest. `approvals.json` records the approved digest, approver role, timestamp, and scope without credentials or approval-session payloads.
+
+Private state is never copied into the run evidence directory. The manifest and assessment bind the canonical digest of ignored `tenant1.state.local.json`; `read-back.json` is a separate closed evidence contract and is disclosed only through the reviewed stable-ID and URL-host allowlists. Acceptance projection validates manifest/state-digest binding, action evidence, the read-back contract and embedded digest, requires every non-null manifest action target stable ID to appear in read-back, and applies the stable-ID allowlist without reconstructing private state rows.
+
+All lifecycle JSON hashing and validation paths use one cross-host loader. PowerShell hosts that support `ConvertFrom-Json -DateKind String` use it; Windows PowerShell 5.1 uses plain `ConvertFrom-Json`. Timestamp strings therefore survive reload unchanged. Generated timestamps use seven fractional digits and `Z`. Every accepted action evidence file must byte-equal canonical UTF-8 serialization with no BOM and exactly one trailing LF before correlation, hashing, or summary emission.
+
+Runtime contract validation inspects every `PSObject.Properties` member before reading values. Only passive JSON data properties are accepted; alias, script, code, adapted executable, hidden, or additional members fail closed at every nested object without invoking getters.
 
 Raw responses, private identifiers beyond the reviewed allowlist, command transcripts, generated parameters, pipeline tokens, and authentication material remain outside Git. A separately reviewed sanitized acceptance record is the only committed run output.
 

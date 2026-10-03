@@ -23,7 +23,7 @@ function Sort-TenantLifecycleGraph {
         foreach ($property in $properties) {
             if (
                 -not $property.IsGettable -or
-                $property.MemberType -notin @('NoteProperty', 'Property', 'AliasProperty')
+                $property.MemberType -ne 'NoteProperty'
             ) {
                 throw [IO.InvalidDataException]::new('TenantLifecycle.Graph.InvalidNode')
             }

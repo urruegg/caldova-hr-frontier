@@ -20,7 +20,12 @@
     "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "timestamp": { "type": "string", "format": "date-time", "pattern": "Z$" },
     "name": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
-    "stableId": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "stableId": {
+      "anyOf": [
+        { "type": "string", "minLength": 1, "maxLength": 2048 },
+        { "type": "null" }
+      ]
+    },
     "resource": {
       "type": "object",
       "additionalProperties": false,

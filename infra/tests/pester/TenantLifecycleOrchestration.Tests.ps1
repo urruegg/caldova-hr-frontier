@@ -491,8 +491,14 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                 $intent = $intent.Replace(
                     '    Components = @{}',
                     "    Components = @{$([Environment]::NewLine)" +
-                    "        SyntheticResource = @{ Mode = 'Existing'; " +
-                    "Id = 'stable-synthetic-001' }$([Environment]::NewLine)    }"
+                    "        SyntheticResource = @{$([Environment]::NewLine)" +
+                    "            Provider = 'Synthetic'$([Environment]::NewLine)" +
+                    "            ResourceType = 'SyntheticResource'$([Environment]::NewLine)" +
+                    "            LogicalName = 'component-001'$([Environment]::NewLine)" +
+                    "            Mode = 'Existing'$([Environment]::NewLine)" +
+                    "            Id = 'stable-synthetic-001'$([Environment]::NewLine)" +
+                    "        }$([Environment]::NewLine)" +
+                    "    }"
                 )
                 [IO.File]::WriteAllText(
                     $script:IntentPath,
@@ -697,6 +703,76 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                     }
                 }
 
+                function New-OrchestratorApproval {
+                    param(
+                        [Parameter(Mandatory)][object]$Manifest,
+                        [string]$Status = 'Approved',
+                        [string]$ExpiresAtUtc =
+                            '2026-10-02T19:30:00.0000000Z',
+                        [string[]]$Scope
+                    )
+
+                    if (-not $PSBoundParameters.ContainsKey('Scope')) {
+                        $Scope = @(
+                            $Manifest.actions |
+                                ForEach-Object { [string]$_.id }
+                        )
+                    }
+                    [pscustomobject][ordered]@{
+                        schemaVersion = '1.0'
+                        runId = [string]$Manifest.runId
+                        executionManifestDigest = [string]$Manifest.digest
+                        approverRole = 'TenantLifecycleApprover'
+                        approvedAtUtc = '2026-10-02T19:01:00.0000000Z'
+                        expiresAtUtc = $ExpiresAtUtc
+                        scope = [string[]]$Scope
+                        status = $Status
+                    }
+                }
+
+                function Write-OrchestratorApproval {
+                    param(
+                        [Parameter(Mandatory)][string]$RunDirectory,
+                        [Parameter(Mandatory)][object]$Approval
+                    )
+
+                    [IO.Directory]::CreateDirectory($RunDirectory) | Out-Null
+                    Write-CanonicalJson `
+                        -InputObject $Approval `
+                        -Path (Join-Path $RunDirectory 'approvals.json') |
+                        Out-Null
+                }
+
+                function New-OrchestratorCurrentBinding {
+                    param(
+                        [Parameter(Mandatory)][object]$Manifest,
+                        [string]$SessionId = [string]$PID,
+                        [string]$MachineId
+                    )
+
+                    $binding = [pscustomobject][ordered]@{
+                        runId = [string]$Manifest.runId
+                        generatedAtUtc = [string]$Manifest.generatedAtUtc
+                        expiresAtUtc = [string]$Manifest.expiresAtUtc
+                        sourceCommit = [string]$Manifest.sourceCommit
+                        evidenceRoot = [string]$Manifest.evidenceRoot
+                        publicTenantKey = [string]$Manifest.publicTenantKey
+                        intentDigest = [string]$Manifest.intentDigest
+                        stateDigest = [string]$Manifest.stateDigest
+                        machine = $Manifest.machine
+                        operator = $Manifest.operator
+                        toolIdentities = @($Manifest.toolIdentities)
+                        providerContexts = @($Manifest.providerContexts)
+                        prerequisites = @($Manifest.prerequisites)
+                        actions = @($Manifest.actions)
+                        sessionId = $SessionId
+                    }
+                    if ($PSBoundParameters.ContainsKey('MachineId')) {
+                        $binding.machine.machineId = $MachineId
+                    }
+                    $binding
+                }
+
                 function Invoke-SyntheticOrchestrator {
                     param(
                         [Parameter(Mandatory)][guid]$RunId,
@@ -707,6 +783,8 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         [string]$ApprovedDigest,
                         [switch]$Apply,
                         [scriptblock]$BindingObserver,
+                        [scriptblock]$CurrentBindingProvider,
+                        [switch]$OmitCurrentBindingProvider,
                         [switch]$WhatIf
                     )
 
@@ -737,6 +815,44 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                     }
                     if ($PSBoundParameters.ContainsKey('BindingObserver')) {
                         $parameters.BindingObserver = $BindingObserver
+                    }
+                    if ($PSBoundParameters.ContainsKey(
+                            'CurrentBindingProvider'
+                        )) {
+                        $parameters.CurrentBindingProvider =
+                            $CurrentBindingProvider
+                    }
+                    elseif ($Mode -ceq 'Invoke' -and
+                        -not $OmitCurrentBindingProvider -and
+                        -not [string]::IsNullOrWhiteSpace(
+                            $ExecutionManifestPath
+                        )) {
+                        $manifestForBinding =
+                            ConvertFrom-TenantLifecycleJson -InputObject (
+                                Get-Content `
+                                    -Raw `
+                                    -LiteralPath $ExecutionManifestPath
+                            )
+                        $runDirectory = Join-Path `
+                            $script:EvidenceRoot `
+                            $RunId.ToString('D')
+                        $approvalPath = Join-Path `
+                            $runDirectory `
+                            'approvals.json'
+                        if (-not [IO.File]::Exists($approvalPath)) {
+                            Write-OrchestratorApproval `
+                                -RunDirectory $runDirectory `
+                                -Approval (
+                                    New-OrchestratorApproval `
+                                        -Manifest $manifestForBinding
+                                )
+                        }
+                        $bindingFactory =
+                            ${function:New-OrchestratorCurrentBinding}
+                        $parameters.CurrentBindingProvider = {
+                            & $bindingFactory `
+                                -Manifest $manifestForBinding
+                        }.GetNewClosure()
                     }
                     if ($WhatIf) {
                         $parameters.WhatIf = $true
@@ -897,7 +1013,353 @@ Describe 'Tenant lifecycle approval expiry and drift' {
 
                 $result.Count | Should -Be 0
                 $calls.Count | Should -Be 0
-                $runDirectory | Should -Not -Exist
+                $runDirectory | Should -Exist
+                @(
+                    Get-ChildItem `
+                        -LiteralPath $runDirectory `
+                        -File `
+                        -Recurse |
+                        ForEach-Object { $_.Name }
+                ) | Should -BeExactly @('approvals.json')
+            }
+
+            It 'final review approval requires a current binding provider in Invoke' {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot (
+                    $runId.ToString('D')
+                )
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory
+                Write-OrchestratorApproval `
+                    -RunDirectory $runDirectory `
+                    -Approval (
+                        New-OrchestratorApproval `
+                            -Manifest $manifestRecord.Manifest
+                    )
+                $calls = [Collections.Generic.List[string]]::new()
+                $records = [Collections.Generic.List[object]]::new()
+
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId $runId `
+                        -Stages @('Foundation') `
+                        -Mode Invoke `
+                        -ExecutionManifestPath $manifestRecord.Path `
+                        -ApprovedDigest $manifestRecord.Manifest.digest `
+                        -SubsystemInvoker (
+                            New-SyntheticPassedInvoker `
+                                -Calls $calls `
+                                -ControlRecords $records
+                        ) `
+                        -OmitCurrentBindingProvider `
+                        -Apply
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Approval.BindingProvider.Required'
+                )
+                $calls.Count | Should -Be 0
+            }
+
+            It 'final review approval validates a fresh binding before ShouldProcess and every stage' {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot (
+                    $runId.ToString('D')
+                )
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory `
+                    -Stages @('Workstation', 'Foundation')
+                Write-OrchestratorApproval `
+                    -RunDirectory $runDirectory `
+                    -Approval (
+                        New-OrchestratorApproval `
+                            -Manifest $manifestRecord.Manifest
+                    )
+                $bindingCalls = [Collections.Generic.List[int]]::new()
+                $manifest = $manifestRecord.Manifest
+                $bindingFactory =
+                    ${function:New-OrchestratorCurrentBinding}
+                $provider = {
+                    [void]$bindingCalls.Add($bindingCalls.Count + 1)
+                    & $bindingFactory -Manifest $manifest
+                }.GetNewClosure()
+                $calls = [Collections.Generic.List[string]]::new()
+                $records = [Collections.Generic.List[object]]::new()
+
+                $result = @(Invoke-SyntheticOrchestrator `
+                    -RunId $runId `
+                    -Stages @('Workstation', 'Foundation') `
+                    -Mode Invoke `
+                    -ExecutionManifestPath $manifestRecord.Path `
+                    -ApprovedDigest $manifestRecord.Manifest.digest `
+                    -SubsystemInvoker (
+                        New-SyntheticPassedInvoker `
+                            -Calls $calls `
+                            -ControlRecords $records
+                    ) `
+                    -CurrentBindingProvider $provider `
+                    -Apply)
+
+                $result.Count | Should -Be 2
+                $bindingCalls.Count | Should -Be 3
+            }
+
+            It 'final review approval rejects executable nested binding members without invoking getters' {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot (
+                    $runId.ToString('D')
+                )
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory
+                Write-OrchestratorApproval `
+                    -RunDirectory $runDirectory `
+                    -Approval (
+                        New-OrchestratorApproval `
+                            -Manifest $manifestRecord.Manifest
+                    )
+                $manifest = $manifestRecord.Manifest
+                $bindingFactory =
+                    ${function:New-OrchestratorCurrentBinding}
+                $provider = {
+                    $binding = & $bindingFactory -Manifest $manifest
+                    $binding.machine |
+                        Add-Member `
+                            -MemberType ScriptProperty `
+                            -Name hiddenRuntimeValue `
+                            -Value {
+                                throw 'nested getter executed'
+                            }
+                    $binding
+                }.GetNewClosure()
+
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId $runId `
+                        -Stages @('Foundation') `
+                        -Mode Invoke `
+                        -ExecutionManifestPath $manifestRecord.Path `
+                        -ApprovedDigest $manifestRecord.Manifest.digest `
+                        -SubsystemInvoker {
+                            throw 'must not invoke'
+                        } `
+                        -CurrentBindingProvider $provider `
+                        -Apply
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Approval.Binding'
+                )
+            }
+
+            It 'final review approval rejects status through the production orchestrator' {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot (
+                    $runId.ToString('D')
+                )
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory
+                Write-OrchestratorApproval `
+                    -RunDirectory $runDirectory `
+                    -Approval (
+                        New-OrchestratorApproval `
+                            -Manifest $manifestRecord.Manifest `
+                            -Status Pending
+                    )
+                $manifest = $manifestRecord.Manifest
+                $bindingFactory =
+                    ${function:New-OrchestratorCurrentBinding}
+                $provider = {
+                    & $bindingFactory -Manifest $manifest
+                }.GetNewClosure()
+                $calls = [Collections.Generic.List[string]]::new()
+                $records = [Collections.Generic.List[object]]::new()
+
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId $runId `
+                        -Stages @('Foundation') `
+                        -Mode Invoke `
+                        -ExecutionManifestPath $manifestRecord.Path `
+                        -ApprovedDigest $manifestRecord.Manifest.digest `
+                        -SubsystemInvoker (
+                            New-SyntheticPassedInvoker `
+                                -Calls $calls `
+                                -ControlRecords $records
+                        ) `
+                        -CurrentBindingProvider $provider `
+                        -Apply
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Approval.Status'
+                )
+                $calls.Count | Should -Be 0
+            }
+
+            It 'final review approval rejects expiry through the production orchestrator' {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot (
+                    $runId.ToString('D')
+                )
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory
+                Write-OrchestratorApproval `
+                    -RunDirectory $runDirectory `
+                    -Approval (
+                        New-OrchestratorApproval `
+                            -Manifest $manifestRecord.Manifest `
+                            -ExpiresAtUtc '2026-10-02T19:05:00.0000000Z'
+                    )
+                $manifest = $manifestRecord.Manifest
+                $bindingFactory =
+                    ${function:New-OrchestratorCurrentBinding}
+                $provider = {
+                    & $bindingFactory -Manifest $manifest
+                }.GetNewClosure()
+
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId $runId `
+                        -Stages @('Foundation') `
+                        -Mode Invoke `
+                        -ExecutionManifestPath $manifestRecord.Path `
+                        -ApprovedDigest $manifestRecord.Manifest.digest `
+                        -SubsystemInvoker {
+                            throw 'must not invoke'
+                        } `
+                        -CurrentBindingProvider $provider `
+                        -Apply
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Approval.Expired'
+                )
+            }
+
+            It 'final review approval rejects restart drift through the production orchestrator' {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot (
+                    $runId.ToString('D')
+                )
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory
+                Write-OrchestratorApproval `
+                    -RunDirectory $runDirectory `
+                    -Approval (
+                        New-OrchestratorApproval `
+                            -Manifest $manifestRecord.Manifest
+                    )
+                $manifest = $manifestRecord.Manifest
+                $bindingFactory =
+                    ${function:New-OrchestratorCurrentBinding}
+                $provider = {
+                    & $bindingFactory `
+                        -Manifest $manifest `
+                        -SessionId ([string]([int]$PID + 1))
+                }.GetNewClosure()
+
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId $runId `
+                        -Stages @('Foundation') `
+                        -Mode Invoke `
+                        -ExecutionManifestPath $manifestRecord.Path `
+                        -ApprovedDigest $manifestRecord.Manifest.digest `
+                        -SubsystemInvoker {
+                            throw 'must not invoke'
+                        } `
+                        -CurrentBindingProvider $provider `
+                        -Apply
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Approval.Drift.sessionId'
+                )
+            }
+
+            It 'final review approval rejects current binding drift before stage invocation' {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot (
+                    $runId.ToString('D')
+                )
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory
+                Write-OrchestratorApproval `
+                    -RunDirectory $runDirectory `
+                    -Approval (
+                        New-OrchestratorApproval `
+                            -Manifest $manifestRecord.Manifest
+                    )
+                $bindingCalls = [Collections.Generic.List[int]]::new()
+                $manifest = $manifestRecord.Manifest
+                $bindingFactory =
+                    ${function:New-OrchestratorCurrentBinding}
+                $provider = {
+                    [void]$bindingCalls.Add($bindingCalls.Count + 1)
+                    if ($bindingCalls.Count -eq 1) {
+                        & $bindingFactory -Manifest $manifest
+                    }
+                    else {
+                        & $bindingFactory `
+                            -Manifest $manifest `
+                            -MachineId 'machine-synthetic-drift'
+                    }
+                }.GetNewClosure()
+                $calls = [Collections.Generic.List[string]]::new()
+
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId $runId `
+                        -Stages @('Foundation') `
+                        -Mode Invoke `
+                        -ExecutionManifestPath $manifestRecord.Path `
+                        -ApprovedDigest $manifestRecord.Manifest.digest `
+                        -SubsystemInvoker {
+                            param($Stage, $Mode, $ControlRecord)
+                            [void]$calls.Add($Stage)
+                        } `
+                        -CurrentBindingProvider $provider `
+                        -Apply
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Approval.Drift.machine'
+                )
+                $calls.Count | Should -Be 0
+            }
+
+            It 'final review approval rejects scope through the production orchestrator' {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot (
+                    $runId.ToString('D')
+                )
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory
+                Write-OrchestratorApproval `
+                    -RunDirectory $runDirectory `
+                    -Approval (
+                        New-OrchestratorApproval `
+                            -Manifest $manifestRecord.Manifest `
+                            -Scope @('ReadBack')
+                    )
+                $manifest = $manifestRecord.Manifest
+                $bindingFactory =
+                    ${function:New-OrchestratorCurrentBinding}
+                $provider = {
+                    & $bindingFactory -Manifest $manifest
+                }.GetNewClosure()
+
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId $runId `
+                        -Stages @('Foundation') `
+                        -Mode Invoke `
+                        -ExecutionManifestPath $manifestRecord.Path `
+                        -ApprovedDigest $manifestRecord.Manifest.digest `
+                        -SubsystemInvoker {
+                            throw 'must not invoke'
+                        } `
+                        -CurrentBindingProvider $provider `
+                        -Apply
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Approval.Scope'
+                )
             }
 
             It 'rejects <DigestField> private input drift before Invoke without leaking values or paths' -ForEach @(
@@ -1557,6 +2019,104 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                 (Join-Path $runDirectory 'summary.json') | Should -Not -Exist
             }
 
+            It 'final review rejects noncanonical action evidence bytes for <Case>' -ForEach @(
+                @{ Case = 'reordered properties' }
+                @{ Case = 'pretty whitespace' }
+                @{ Case = 'missing trailing LF' }
+            ) {
+                $runId = [guid]::NewGuid()
+                $runDirectory = Join-Path $script:EvidenceRoot (
+                    $runId.ToString('D')
+                )
+                $manifestRecord = New-OrchestratorManifest `
+                    -RunId $runId `
+                    -RunDirectory $runDirectory
+                $selectedCase = $Case
+                $evidenceRoot = $script:EvidenceRoot
+                $actionEvidenceFactory =
+                    ${function:New-SyntheticActionEvidence}
+                $invoker = {
+                    param([string]$Stage, [string]$Mode, [object]$ControlRecord)
+
+                    $inputDigest = Get-RunbookContentDigest -InputObject (
+                        [pscustomobject][ordered]@{
+                            stage = $Stage
+                            mode = $Mode
+                            controlRecord = $ControlRecord
+                        }
+                    )
+                    $evidence = & $actionEvidenceFactory `
+                        -RunId $ControlRecord.runId `
+                        -ActionId $Stage `
+                        -Classification NoChange `
+                        -InputDigest $inputDigest `
+                        -ReadBackDigest $inputDigest `
+                        -Status Passed
+                    $actionDirectory = Join-Path (
+                        Join-Path $evidenceRoot $ControlRecord.runId
+                    ) 'actions'
+                    [IO.Directory]::CreateDirectory($actionDirectory) |
+                        Out-Null
+                    if ($selectedCase -ceq 'reordered properties') {
+                        $evidence = [pscustomobject][ordered]@{
+                            status = $evidence.status
+                            schemaVersion = $evidence.schemaVersion
+                            runId = $evidence.runId
+                            recovery = $evidence.recovery
+                            postReadDigest = $evidence.postReadDigest
+                            preReadDigest = $evidence.preReadDigest
+                            errorCode = $evidence.errorCode
+                            decision = $evidence.decision
+                            completedAtUtc = $evidence.completedAtUtc
+                            classification = $evidence.classification
+                            actionId = $evidence.actionId
+                            startedAtUtc = $evidence.startedAtUtc
+                        }
+                    }
+                    $json = if ($selectedCase -ceq 'pretty whitespace') {
+                        ($evidence | ConvertTo-Json -Depth 30) + "`n"
+                    }
+                    elseif ($selectedCase -ceq 'missing trailing LF') {
+                        $evidence | ConvertTo-Json -Depth 30 -Compress
+                    }
+                    else {
+                        (
+                            $evidence |
+                                ConvertTo-Json -Depth 30 -Compress
+                        ) + "`n"
+                    }
+                    [IO.File]::WriteAllText(
+                        (Join-Path $actionDirectory "$Stage.json"),
+                        $json,
+                        [Text.UTF8Encoding]::new($false)
+                    )
+                    [pscustomobject][ordered]@{
+                        id = $Stage
+                        stage = $Stage
+                        classification = 'NoChange'
+                        status = 'Passed'
+                        inputDigest = $inputDigest
+                        readBackDigest = $inputDigest
+                        evidenceRelativePath = "actions/$Stage.json"
+                    }
+                }.GetNewClosure()
+
+                {
+                    Invoke-SyntheticOrchestrator `
+                        -RunId $runId `
+                        -Stages @('Foundation') `
+                        -Mode Invoke `
+                        -ExecutionManifestPath $manifestRecord.Path `
+                        -ApprovedDigest $manifestRecord.Manifest.digest `
+                        -SubsystemInvoker $invoker `
+                        -Apply
+                } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.Orchestrator.ActionEvidence.Invalid'
+                )
+                (Join-Path $runDirectory 'summary.json') |
+                    Should -Not -Exist
+            }
+
             It 'rejects outcome evidence that resolves outside the run evidence root' {
                 $runId = [guid]::NewGuid()
                 $runDirectory = Join-Path $script:EvidenceRoot $runId.ToString('D')
@@ -1838,16 +2398,6 @@ Describe 'Tenant lifecycle approval expiry and drift' {
 
                 $state = Get-Content -Raw -LiteralPath $script:StatePath |
                     ConvertFrom-Json
-                $approval = [pscustomobject][ordered]@{
-                    schemaVersion = '1.0'
-                    runId = $runIdText
-                    executionManifestDigest = $manifestRecord.Manifest.digest
-                    approverRole = 'TenantLifecycleApprover'
-                    approvedAtUtc = '2026-10-02T19:01:00.0000000Z'
-                    expiresAtUtc = '2026-10-02T19:30:00.0000000Z'
-                    scope = @('Foundation', 'ReadBack')
-                    status = 'Approved'
-                }
                 $assessment = $script:OrchestratorFixture.assessment |
                     ConvertTo-Json -Depth 30 |
                     ConvertFrom-Json
@@ -1899,16 +2449,6 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         Path = 'execution-manifest.json'
                         Kind = 'ExecutionManifest'
                         Value = $manifestRecord.Manifest
-                    }
-                    @{
-                        Path = 'approvals.json'
-                        Kind = 'Approval'
-                        Value = $approval
-                    }
-                    @{
-                        Path = 'state.json'
-                        Kind = 'State'
-                        Value = $state
                     }
                     @{
                         Path = 'read-back.json'
@@ -2026,8 +2566,7 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                     param(
                         [Parameter(Mandatory)][string]$RunDirectory,
                         [Parameter(Mandatory)][object]$Manifest,
-                        [Parameter(Mandatory)][object]$Approval,
-                        [Parameter(Mandatory)][object]$State
+                        [Parameter(Mandatory)][object]$Approval
                     )
 
                     foreach ($record in @(
@@ -2046,11 +2585,6 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             Path = 'approvals.json'
                             Kind = 'Approval'
                             Value = $Approval
-                        }
-                        @{
-                            Path = 'state.json'
-                            Kind = 'State'
-                            Value = $State
                         }
                     )) {
                         Write-TenantLifecycleEvidence `
@@ -2131,8 +2665,7 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                 Write-SyntheticAcceptanceInputs `
                     -RunDirectory $interruptedRunDirectory `
                     -Manifest $interruptedManifest `
-                    -Approval $interruptedApproval `
-                    -State $state
+                    -Approval $interruptedApproval
 
                 $interruptedCalls =
                     [Collections.Generic.List[string]]::new()
@@ -2215,8 +2748,7 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                 Write-SyntheticAcceptanceInputs `
                     -RunDirectory $completedRunDirectory `
                     -Manifest $completedManifest `
-                    -Approval $completedApproval `
-                    -State $state
+                    -Approval $completedApproval
 
                 $completedCalls =
                     [Collections.Generic.List[string]]::new()
@@ -2289,7 +2821,6 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                     'approvals.json',
                     'actions\Foundation.json',
                     'actions\ReadBack.json',
-                    'state.json',
                     'read-back.json',
                     'summary.json'
                 )) {

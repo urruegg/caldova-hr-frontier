@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active |
 | **Scope** | Infrastructure documentation |
@@ -15,7 +15,7 @@ This folder is the maintained catalogue for infrastructure architecture, configu
 
 ## Contains and Does Not Contain
 
-This folder contains infrastructure guidance, active attended procedures, superseded stop notices, and the operational-runbook catalogue, including the implemented provider-neutral lifecycle-core boundary. It does not contain tenant-private configuration, raw operational evidence, credentials, deployment state, or source code. The lifecycle-core documentation authorizes no provider procedure.
+This folder contains infrastructure guidance, active attended procedures, superseded stop notices, and the operational-runbook catalogue, including the implemented provider-neutral lifecycle-core boundary. It does not contain tenant-private configuration or state, raw operational evidence, credentials, deployment state, or source code. Lifecycle state remains ignored and digest-bound rather than copied into run evidence. The lifecycle-core documentation authorizes no provider procedure.
 
 ## Reading Order
 

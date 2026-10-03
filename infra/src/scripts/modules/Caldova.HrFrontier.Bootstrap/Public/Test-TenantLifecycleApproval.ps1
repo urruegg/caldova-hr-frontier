@@ -13,6 +13,60 @@ function Test-TenantLifecycleBindingValue {
     return [string]::Equals($expectedDigest, $actualDigest, [StringComparison]::Ordinal)
 }
 
+function Test-TenantLifecyclePassiveBindingValue {
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [AllowNull()][object]$Value,
+        [ValidateRange(0, 30)][int]$Depth = 0
+    )
+
+    if ($Depth -ge 30) {
+        return $false
+    }
+    if ($null -eq $Value -or
+        $Value -is [string] -or
+        $Value.GetType().IsPrimitive -or
+        $Value -is [decimal] -or
+        $Value -is [guid]) {
+        return $true
+    }
+    if ($Value -is [System.Array]) {
+        foreach ($item in @($Value)) {
+            if (-not (Test-TenantLifecyclePassiveBindingValue `
+                    -Value $item `
+                    -Depth ($Depth + 1))) {
+                return $false
+            }
+        }
+        return $true
+    }
+    if ($Value -is [Collections.IDictionary] -or
+        $Value -is [Collections.IEnumerable]) {
+        return $false
+    }
+
+    $properties = @($Value.PSObject.Properties)
+    $names = [Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::Ordinal
+    )
+    foreach ($property in $properties) {
+        if ($property.MemberType -ne 'NoteProperty' -or
+            -not $property.IsGettable -or
+            -not $names.Add($property.Name)) {
+            return $false
+        }
+    }
+    foreach ($property in $properties) {
+        if (-not (Test-TenantLifecyclePassiveBindingValue `
+                -Value $property.Value `
+                -Depth ($Depth + 1))) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-TenantLifecycleApproval {
     [CmdletBinding()]
     [OutputType([bool])]
@@ -24,9 +78,16 @@ function Test-TenantLifecycleApproval {
     )
 
     try {
+        $approvalProperties = @($Approval.PSObject.Properties)
+        foreach ($property in $approvalProperties) {
+            if ($property.MemberType -ne 'NoteProperty' -or
+                -not $property.IsGettable) {
+                throw [IO.InvalidDataException]::new()
+            }
+        }
         $statusProperty = $Approval.PSObject.Properties['status']
         if ($null -eq $statusProperty -or
-            $statusProperty.MemberType -notin @('NoteProperty', 'Property') -or
+            $statusProperty.MemberType -ne 'NoteProperty' -or
             -not [string]::Equals(
                 [string]$statusProperty.Value,
                 'Approved',
@@ -130,18 +191,33 @@ function Test-TenantLifecycleApproval {
         'actions',
         'sessionId'
     )
-    $bindingProperties = @(
-        $CurrentBinding.PSObject.Properties |
-            Where-Object { $_.MemberType -in @('NoteProperty', 'Property') }
+    $bindingProperties = @($CurrentBinding.PSObject.Properties)
+    $bindingNames = [Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::Ordinal
     )
-    $bindingNames = @($bindingProperties | ForEach-Object Name)
     if ($bindingProperties.Count -ne $bindingFields.Count) {
         throw [IO.InvalidDataException]::new('TenantLifecycle.Approval.Binding')
     }
+    foreach ($property in $bindingProperties) {
+        if ($property.MemberType -ne 'NoteProperty' -or
+            -not $property.IsGettable -or
+            -not $bindingNames.Add($property.Name)) {
+            throw [IO.InvalidDataException]::new(
+                'TenantLifecycle.Approval.Binding'
+            )
+        }
+    }
     foreach ($field in $bindingFields) {
-        if ($bindingNames -cnotcontains $field) {
+        if (-not $bindingNames.Contains($field)) {
             throw [IO.InvalidDataException]::new('TenantLifecycle.Approval.Binding')
         }
+    }
+
+    if (-not (Test-TenantLifecyclePassiveBindingValue `
+            -Value $CurrentBinding)) {
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.Approval.Binding'
+        )
     }
 
     foreach ($field in @($bindingFields | Where-Object { $_ -cne 'sessionId' })) {
