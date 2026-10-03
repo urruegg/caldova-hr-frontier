@@ -601,6 +601,12 @@ namespace Caldova.HrFrontier.Runtime
         );
 
         [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool TerminateJobObject(
+            IntPtr job,
+            uint exitCode
+        );
+
+        [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool CloseHandle(IntPtr handle);
 
         public TenantLifecycleProcessJob()
@@ -657,6 +663,20 @@ namespace Caldova.HrFrontier.Runtime
                 );
             }
             if (!AssignProcessToJobObject(handle, process.Handle))
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+        }
+
+        public void Terminate(uint exitCode)
+        {
+            if (handle == IntPtr.Zero)
+            {
+                throw new ObjectDisposedException(
+                    "TenantLifecycleProcessJob"
+                );
+            }
+            if (!TerminateJobObject(handle, exitCode))
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error());
             }
@@ -757,8 +777,8 @@ catch {
     $startInfo.UseShellExecute = $false
     $startInfo.CreateNoWindow = $true
     $startInfo.RedirectStandardInput = $true
-    $startInfo.RedirectStandardOutput = $false
-    $startInfo.RedirectStandardError = $false
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
     $startInfo.EnvironmentVariables.Clear()
     foreach ($environmentName in @('SystemRoot', 'WINDIR', 'ComSpec')) {
         $environmentValue = [Environment]::GetEnvironmentVariable(
@@ -775,6 +795,8 @@ catch {
     $child.StartInfo = $startInfo
     $processJob = $null
     $childStarted = $false
+    $stdoutDrainTask = $null
+    $stderrDrainTask = $null
     $invocationException = $null
     try {
         $processJob = New-TenantLifecycleProcessJob
@@ -783,6 +805,14 @@ catch {
         }
         $childStarted = $true
         $processJob.Assign($child)
+        $stdoutDrainTask = $child.StandardOutput.BaseStream.CopyToAsync(
+            [IO.Stream]::Null,
+            4096
+        )
+        $stderrDrainTask = $child.StandardError.BaseStream.CopyToAsync(
+            [IO.Stream]::Null,
+            4096
+        )
         $timeoutMilliseconds = 300000
         $stopwatch = [Diagnostics.Stopwatch]::StartNew()
         $writeTask = $child.StandardInput.WriteAsync($payloadJson)
@@ -807,11 +837,22 @@ catch {
         $invocationException = $_.Exception
     }
 
-    $cleanupException = $null
-    try {
-        if ($null -ne $processJob) {
+    $cleanupExceptions = [Collections.Generic.List[Exception]]::new()
+    if ($null -ne $processJob) {
+        try {
+            $processJob.Terminate(1)
+        }
+        catch {
+            [void]$cleanupExceptions.Add($_.Exception)
+        }
+        try {
             $processJob.Dispose()
         }
+        catch {
+            [void]$cleanupExceptions.Add($_.Exception)
+        }
+    }
+    try {
         if ($childStarted -and -not $child.WaitForExit(5000)) {
             $child.Kill()
             if (-not $child.WaitForExit(5000)) {
@@ -820,13 +861,38 @@ catch {
         }
     }
     catch {
-        $cleanupException = $_.Exception
+        [void]$cleanupExceptions.Add($_.Exception)
     }
-    finally {
+    foreach ($drainTask in @($stdoutDrainTask, $stderrDrainTask)) {
+        if ($null -eq $drainTask) {
+            continue
+        }
+        try {
+            if (-not $drainTask.Wait(5000)) {
+                throw [TimeoutException]::new()
+            }
+            [void]$drainTask.GetAwaiter().GetResult()
+        }
+        catch {
+            [void]$cleanupExceptions.Add($_.Exception)
+        }
+    }
+    try {
         $child.Dispose()
     }
+    catch {
+        [void]$cleanupExceptions.Add($_.Exception)
+    }
 
-    if ($null -ne $cleanupException) {
+    if ($cleanupExceptions.Count -gt 0) {
+        $cleanupException = if ($cleanupExceptions.Count -eq 1) {
+            $cleanupExceptions[0]
+        }
+        else {
+            [AggregateException]::new(
+                [Exception[]]$cleanupExceptions.ToArray()
+            )
+        }
         throw [InvalidOperationException]::new(
             'TenantLifecycle.SubsystemInvoker.Failed',
             $cleanupException

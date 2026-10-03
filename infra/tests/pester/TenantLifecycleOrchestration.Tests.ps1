@@ -1186,7 +1186,8 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             [switch]$ReturnProviderData,
                             [switch]$TamperDynamicScope,
                             [switch]$TamperAuthoritativeScope,
-                            [switch]$SpawnInheritedHandleDescendant
+                            [switch]$SpawnInheritedHandleDescendant,
+                            [switch]$WriteDirectOutput
                         )
 
                         $settings = [pscustomobject][ordered]@{
@@ -1198,6 +1199,7 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             tamperAuthoritativeScope = [bool]$TamperAuthoritativeScope
                             spawnInheritedHandleDescendant =
                                 [bool]$SpawnInheritedHandleDescendant
+                            writeDirectOutput = [bool]$WriteDirectOutput
                             fixture = $script:CoordinateFixture
                             modulePath = $script:CoordinateModulePath
                             repositoryRoot = $script:CoordinateSyntheticRepository
@@ -1324,6 +1326,30 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                                     [Text.UTF8Encoding]::new($false)
                                 )
                                 $descendant.Dispose()
+                            }
+                            if ([bool]$settings.writeDirectOutput) {
+                                $stdoutBytes = [Text.Encoding]::UTF8.GetBytes(
+                                    'UNEXPECTED_INVOKER_STDOUT'
+                                )
+                                $stderrBytes = [Text.Encoding]::UTF8.GetBytes(
+                                    'UNEXPECTED_INVOKER_STDERR'
+                                )
+                                $stdoutStream =
+                                    [Console]::OpenStandardOutput()
+                                $stderrStream =
+                                    [Console]::OpenStandardError()
+                                $stdoutStream.Write(
+                                    $stdoutBytes,
+                                    0,
+                                    $stdoutBytes.Length
+                                )
+                                $stderrStream.Write(
+                                    $stderrBytes,
+                                    0,
+                                    $stderrBytes.Length
+                                )
+                                $stdoutStream.Flush()
+                                $stderrStream.Flush()
                             }
 
                             $modeToWrite = if (
@@ -2004,6 +2030,113 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             }
                         }
                     }
+
+                    It 'discards direct invoker stdout and stderr outside PowerShell streams' {
+                            $runId = [guid]::NewGuid()
+                            $invoker = New-CoordinateArtifactInvoker `
+                                -WriteDirectOutput
+                            $wrapperPayload = [pscustomobject][ordered]@{
+                                orchestratorPath =
+                                    $script:CoordinateOrchestratorPath
+                                runId = $runId.ToString('D')
+                                evidenceRoot = $script:CoordinateEvidenceRoot
+                                repositoryRoot =
+                                    $script:CoordinateSyntheticRepository
+                                sourceCommit = $script:CoordinateSourceCommit
+                                intentPath = $script:CoordinateIntentPath
+                                statePath = $script:CoordinateStatePath
+                                invoker = [Convert]::ToBase64String(
+                                    [Text.Encoding]::UTF8.GetBytes(
+                                        $invoker.ToString()
+                                    )
+                                )
+                            }
+                            $wrapperPayloadJson = $wrapperPayload |
+                                ConvertTo-Json -Depth 30 -Compress
+                            $wrapperScript = @'
+$ErrorActionPreference = 'Stop'
+$payload = [Console]::In.ReadToEnd() | ConvertFrom-Json
+$invokerText = [Text.Encoding]::UTF8.GetString(
+    [Convert]::FromBase64String([string]$payload.invoker)
+)
+$invoker = [scriptblock]::Create($invokerText)
+& ([string]$payload.orchestratorPath) `
+    -RunId ([guid]$payload.runId) `
+    -EvidenceRoot ([string]$payload.evidenceRoot) `
+    -RepositoryRoot ([string]$payload.repositoryRoot) `
+    -ExpectedSourceCommit ([string]$payload.sourceCommit) `
+    -PublicTenantKey tenant1 `
+    -TenantConfigurationPath ([string]$payload.intentPath) `
+    -TenantStatePath ([string]$payload.statePath) `
+    -Stages @('Workstation') `
+    -Mode Assess `
+    -SubsystemInvoker $invoker `
+    -NowUtc ([datetime]'2026-10-03T08:00:00Z')
+'@
+                            $wrapperStartInfo =
+                                [Diagnostics.ProcessStartInfo]::new()
+                            $wrapperHostName = if (
+                                $PSVersionTable.PSEdition -ceq 'Core'
+                            ) {
+                                'pwsh.exe'
+                            }
+                            else {
+                                'powershell.exe'
+                            }
+                            $wrapperStartInfo.FileName = Join-Path (
+                                $PSHOME
+                            ) $wrapperHostName
+                            $wrapperStartInfo.Arguments = (
+                                '-NoLogo -NoProfile -NonInteractive ' +
+                                '-EncodedCommand ' +
+                                [Convert]::ToBase64String(
+                                    [Text.Encoding]::Unicode.GetBytes(
+                                        $wrapperScript
+                                    )
+                                )
+                            )
+                            $wrapperStartInfo.UseShellExecute = $false
+                            $wrapperStartInfo.CreateNoWindow = $true
+                            $wrapperStartInfo.RedirectStandardInput = $true
+                            $wrapperStartInfo.RedirectStandardOutput = $true
+                            $wrapperStartInfo.RedirectStandardError = $true
+                            $wrapper = [Diagnostics.Process]::new()
+                            $wrapper.StartInfo = $wrapperStartInfo
+                            $wrapperStarted = $false
+
+                            try {
+                                $wrapperStarted = $wrapper.Start()
+                                $wrapperStarted | Should -BeTrue
+                                $wrapper.StandardInput.Write($wrapperPayloadJson)
+                                $wrapper.StandardInput.Close()
+                                $stdoutTask =
+                                    $wrapper.StandardOutput.ReadToEndAsync()
+                                $stderrTask =
+                                    $wrapper.StandardError.ReadToEndAsync()
+                                $wrapper.WaitForExit(60000) | Should -BeTrue
+                                $stdout = $stdoutTask.GetAwaiter().GetResult()
+                                $stderr = $stderrTask.GetAwaiter().GetResult()
+
+                                $wrapper.ExitCode | Should -Be 0
+                                $stdout | Should -Not -Match (
+                                    'UNEXPECTED_INVOKER_STDOUT|' +
+                                    'UNEXPECTED_INVOKER_STDERR'
+                                )
+                                $stderr | Should -Not -Match (
+                                    'UNEXPECTED_INVOKER_STDOUT|' +
+                                    'UNEXPECTED_INVOKER_STDERR'
+                                )
+                            }
+                            finally {
+                                if (
+                                    $wrapperStarted -and
+                                    -not $wrapper.HasExited
+                                ) {
+                                    Stop-Process -Id $wrapper.Id -Force
+                                }
+                                $wrapper.Dispose()
+                            }
+                        }
                 }
 
                 Context 'coordinate-only Assess artifact authority' {
