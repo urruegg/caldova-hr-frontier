@@ -342,6 +342,53 @@ Describe 'Shared runbook output contracts' {
                 Should -Not -Match 'SupportsShouldProcess'
         }
 
+        It 'fails Verify closed before invoker and evidence paths until verification is implemented' {
+            $evidenceRoot = Join-Path $TestDrive 'verify-transitional-evidence'
+            $parameters = @{
+                RunId = [guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+                EvidenceRoot = $evidenceRoot
+                RepositoryRoot = (Join-Path $TestDrive 'unreachable-repository')
+                ExpectedSourceCommit = 'a' * 40
+                PublicTenantKey = 'tenant1'
+                TenantConfigurationPath = Join-Path $TestDrive 'unreachable-tenant1.local.psd1'
+                TenantStatePath = Join-Path $TestDrive 'unreachable-tenant1.state.local.json'
+                Stages = @('Foundation')
+                Mode = 'Verify'
+            }
+
+            $withoutInvokerError = try {
+                & $script:TenantLifecyclePath @parameters
+                $null
+            }
+            catch {
+                $_
+            }
+
+            $withoutInvokerError.Exception.Message |
+                Should -BeExactly 'TenantLifecycle.Verify.NotImplemented'
+            Test-Path -LiteralPath $evidenceRoot |
+                Should -BeFalse
+
+            $invokerProbe = [pscustomobject]@{ Calls = 0 }
+            $parameters.SubsystemInvoker = {
+                $invokerProbe.Calls++
+                throw 'The transitional Verify guard must remain unreachable.'
+            }.GetNewClosure()
+            $withInvokerError = try {
+                & $script:TenantLifecyclePath @parameters
+                $null
+            }
+            catch {
+                $_
+            }
+
+            $withInvokerError.Exception.Message |
+                Should -BeExactly 'TenantLifecycle.SubsystemInvoker.Prohibited'
+            $invokerProbe.Calls | Should -Be 0
+            Test-Path -LiteralPath $evidenceRoot |
+                Should -BeFalse
+        }
+
         It 'rejects retired umbrella authority during coordinate-only signature binding' -ForEach @(
             @{ ParameterName = 'Apply'; Value = $true }
             @{ ParameterName = 'ExecutionManifestPath'; Value = 'manifest.synthetic.json' }

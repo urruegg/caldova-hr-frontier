@@ -18,6 +18,22 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+if ($Mode -ceq 'Verify' -and $null -ne $SubsystemInvoker) {
+    throw [InvalidOperationException]::new(
+        'TenantLifecycle.SubsystemInvoker.Prohibited'
+    )
+}
+if ($Mode -ceq 'Verify') {
+    throw [InvalidOperationException]::new(
+        'TenantLifecycle.Verify.NotImplemented'
+    )
+}
+if ($null -eq $SubsystemInvoker) {
+    throw [InvalidOperationException]::new(
+        'TenantLifecycle.SubsystemInvoker.Required'
+    )
+}
+
 $modulePath = [IO.Path]::GetFullPath((
     Join-Path $PSScriptRoot (
         '..\modules\Caldova.HrFrontier.Bootstrap\' +
@@ -115,17 +131,6 @@ function Assert-TenantLifecycleSubsystemOutcome {
             'TenantLifecycle.Orchestrator.Outcome'
         )
     }
-}
-
-if ($Mode -cne 'Verify' -and $null -eq $SubsystemInvoker) {
-    throw [InvalidOperationException]::new(
-        'TenantLifecycle.SubsystemInvoker.Required'
-    )
-}
-if ($Mode -ceq 'Verify' -and $null -ne $SubsystemInvoker) {
-    throw [InvalidOperationException]::new(
-        'TenantLifecycle.SubsystemInvoker.Prohibited'
-    )
 }
 if (@($Stages).Count -eq 0) {
     throw [IO.InvalidDataException]::new('TenantLifecycle.Stages.Required')
