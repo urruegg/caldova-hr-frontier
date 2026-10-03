@@ -342,8 +342,8 @@ Describe 'Shared runbook output contracts' {
                 Should -Not -Match 'SupportsShouldProcess'
         }
 
-        It 'fails Verify closed before invoker and evidence paths until verification is implemented' {
-            $evidenceRoot = Join-Path $TestDrive 'verify-transitional-evidence'
+        It 'runs Verify without an invoker through the ordinary path gate' {
+            $evidenceRoot = Join-Path $TestDrive 'verify-evidence'
             $parameters = @{
                 RunId = [guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
                 EvidenceRoot = $evidenceRoot
@@ -365,14 +365,14 @@ Describe 'Shared runbook output contracts' {
             }
 
             $withoutInvokerError.Exception.Message |
-                Should -BeExactly 'TenantLifecycle.Verify.NotImplemented'
+                Should -BeExactly 'TenantLifecycle.Orchestrator.Path'
             Test-Path -LiteralPath $evidenceRoot |
                 Should -BeFalse
 
             $invokerProbe = [pscustomobject]@{ Calls = 0 }
             $parameters.SubsystemInvoker = {
                 $invokerProbe.Calls++
-                throw 'The transitional Verify guard must remain unreachable.'
+                throw 'Verify must never invoke a child.'
             }.GetNewClosure()
             $withInvokerError = try {
                 & $script:TenantLifecyclePath @parameters

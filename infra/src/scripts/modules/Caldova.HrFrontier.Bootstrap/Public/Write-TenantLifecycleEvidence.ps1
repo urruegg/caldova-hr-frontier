@@ -89,24 +89,36 @@ function Test-TenantLifecycleEvidencePropertyBoundary {
 function Test-TenantLifecycleEvidenceReparsePath {
     [CmdletBinding()]
     [OutputType([bool])]
-    param([Parameter(Mandatory)][string]$Path)
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(DontShow)]
+        [scriptblock]$FileSystemProbe
+    )
 
     $fullPath = [IO.Path]::GetFullPath($Path)
     $pathRoot = [IO.Path]::GetPathRoot($fullPath)
-    $currentPath = $pathRoot.TrimEnd(
-        [IO.Path]::DirectorySeparatorChar,
-        [IO.Path]::AltDirectorySeparatorChar
-    )
+    $currentPath = $pathRoot
     foreach ($segment in @($fullPath.Substring($pathRoot.Length) -split '[\\/]')) {
         if ([string]::IsNullOrEmpty($segment)) {
             continue
         }
         $currentPath = Join-Path $currentPath $segment
-        if (-not [IO.Directory]::Exists($currentPath) -and -not [IO.File]::Exists($currentPath)) {
-            break
+        if ($null -ne $FileSystemProbe) {
+            $probeResult = & $FileSystemProbe $currentPath
+            if ($null -eq $probeResult -or -not [bool]$probeResult.exists) {
+                break
+            }
+            $attributes = [IO.FileAttributes]$probeResult.attributes
         }
-        $item = Get-Item -LiteralPath $currentPath -Force
-        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        else {
+            if (-not [IO.Directory]::Exists($currentPath) -and
+                -not [IO.File]::Exists($currentPath)) {
+                break
+            }
+            $item = Get-Item -LiteralPath $currentPath -Force
+            $attributes = $item.Attributes
+        }
+        if (($attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
             return $true
         }
     }

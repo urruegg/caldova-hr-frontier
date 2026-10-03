@@ -63,6 +63,27 @@
     "evidenceRelativePath": "phases/Foundation/summary.json",
     "completedAtUtc": "2026-10-02T12:11:00.000Z"
   },
+  "phaseSummary": {
+    "schemaVersion": "1.0",
+    "runId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "stage": "Foundation",
+    "providerId": "provider-synthetic-001",
+    "resourceUrl": "https://example.invalid/resources/synthetic-001",
+    "actionId": "action-synthetic-001",
+    "actions": [
+      {
+        "id": "action-synthetic-001",
+        "status": "Passed"
+      }
+    ],
+    "payload": {
+      "synthetic": true
+    },
+    "readBack": {
+      "stableId": "stable-synthetic-001",
+      "status": "Passed"
+    }
+  },
   "executionManifest": {
     "schemaVersion": "1.0",
     "runId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",

@@ -71,12 +71,7 @@ if ($Mode -ceq 'Verify' -and $null -ne $SubsystemInvoker) {
         'TenantLifecycle.SubsystemInvoker.NotAllowed'
     )
 }
-if ($Mode -ceq 'Verify') {
-    throw [InvalidOperationException]::new(
-        'TenantLifecycle.Verify.NotImplemented'
-    )
-}
-if ($null -eq $SubsystemInvoker) {
+if ($Mode -cne 'Verify' -and $null -eq $SubsystemInvoker) {
     throw [InvalidOperationException]::new(
         'TenantLifecycle.SubsystemInvoker.Required'
     )
@@ -297,6 +292,67 @@ function Assert-TenantLifecycleBindings {
         intentDigest = [string]$currentPrivateBinding.intent.digest
         stateDigest = [string]$currentPrivateBinding.state.digest
     }
+}
+
+if ($trustedMode -ceq 'Verify') {
+    $verifiedCoordinates = Assert-TenantLifecycleBindings
+    $stageResults = @(
+        Test-TenantLifecycleStageResultSet `
+            -RunDirectory $runDirectory `
+            -RunId $trustedRunId `
+            -Stages $trustedStages `
+            -SourceCommit $verifiedCoordinates.sourceCommit `
+            -PublicTenantKey $trustedPublicTenantKey `
+            -IntentDigest $verifiedCoordinates.intentDigest `
+            -CurrentStateDigest $verifiedCoordinates.stateDigest
+    )
+    $verifiedCoordinates = Assert-TenantLifecycleBindings
+
+    $stageNodes = [Collections.Generic.List[object]]::new()
+    for (
+        $verifyStageIndex = 0;
+        $verifyStageIndex -lt $trustedStages.Count;
+        $verifyStageIndex++
+    ) {
+        $verifyStage = [string]$trustedStages[$verifyStageIndex]
+        [string[]]$prerequisiteIds = @()
+        if ($verifyStageIndex -gt 0) {
+            $prerequisiteIds = [string[]]@(
+                $trustedStages[$verifyStageIndex - 1]
+            )
+        }
+        $stageNodes.Add([pscustomobject][ordered]@{
+            id = $verifyStage
+            kind = 'Stage'
+            prerequisiteIds = $prerequisiteIds
+            requiredOutcome = 'Passed'
+            inputDigest = [string]$stageResults[
+                $verifyStageIndex
+            ].phaseManifestDigest
+            stage = $verifyStage
+        })
+    }
+    $resolvedStages = @(
+        Resolve-TenantLifecycleGraph `
+            -Nodes @($stageNodes.ToArray()) `
+            -ObservedOutcomes $stageResults
+    )
+    foreach ($resolvedStage in $resolvedStages) {
+        if (-not [bool]$resolvedStage.canExecute -or
+            [string]$resolvedStage.status -cne 'Passed') {
+            throw [IO.InvalidDataException]::new(
+                'TenantLifecycle.Verify.Invalid'
+            )
+        }
+    }
+    foreach ($stageResult in $stageResults) {
+        if ([string]$stageResult.status -cne 'Passed') {
+            throw [IO.InvalidDataException]::new(
+                'TenantLifecycle.Verify.Invalid'
+            )
+        }
+    }
+    return
 }
 
 function Test-TenantLifecycleRunPath {

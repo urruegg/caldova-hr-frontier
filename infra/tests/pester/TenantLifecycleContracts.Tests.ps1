@@ -42,6 +42,593 @@ foreach ($testCase in @($statusCases) + @($dateTimeCases)) {
     $testCase.HasJsonSchema = $hasJsonSchema
 }
 
+Describe 'Tenant lifecycle canonical stage result evidence' {
+    BeforeAll {
+        $script:CanonicalRepositoryRoot = (
+            Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
+        ).Path
+        $script:CanonicalModulePath = Join-Path $script:CanonicalRepositoryRoot (
+            'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\' +
+            'Caldova.HrFrontier.Bootstrap.psd1'
+        )
+        Import-Module $script:CanonicalModulePath -Force
+        $fixturePath = Join-Path $script:CanonicalRepositoryRoot (
+            'infra\tests\fixtures\runbooks\tenant-lifecycle.synthetic.json'
+        )
+        $script:CanonicalFixture = ConvertFrom-TenantLifecycleJson -InputObject (
+            Get-Content -Raw -LiteralPath $fixturePath
+        )
+        $script:CanonicalSource = 'a' * 40
+        $script:CanonicalIntent = '1' * 64
+        $script:CanonicalCurrentState = '2' * 64
+
+        function Copy-CanonicalTestValue {
+            param([Parameter(Mandatory)][object]$InputObject)
+
+            ConvertFrom-TenantLifecycleJson -InputObject (
+                $InputObject | ConvertTo-Json -Depth 30
+            )
+        }
+
+        function Write-CanonicalTestFile {
+            param(
+                [Parameter(Mandatory)][object]$InputObject,
+                [Parameter(Mandatory)][string]$Path
+            )
+
+            [IO.Directory]::CreateDirectory((Split-Path -Parent $Path)) |
+                Out-Null
+            [IO.File]::WriteAllText(
+                $Path,
+                (ConvertTo-TenantLifecycleCanonicalJson -InputObject $InputObject),
+                [Text.UTF8Encoding]::new($false)
+            )
+        }
+
+        function Get-CanonicalTestFileDigest {
+            param([Parameter(Mandatory)][string]$Path)
+
+            $algorithm = [Security.Cryptography.SHA256]::Create()
+            try {
+                -join @(
+                    $algorithm.ComputeHash([IO.File]::ReadAllBytes($Path)) |
+                        ForEach-Object { $_.ToString('x2') }
+                )
+            }
+            finally {
+                $algorithm.Dispose()
+            }
+        }
+
+        function New-CanonicalStageSet {
+            param(
+                [Parameter(Mandatory)][string]$RunDirectory,
+                [Parameter(Mandatory)][guid]$RunId,
+                [string[]]$Stages = @('Foundation'),
+                [string[]]$InputStateDigests,
+                [string[]]$OutputStateDigests,
+                [string[]]$Statuses,
+                [string[]]$Classifications
+            )
+
+            if ($null -eq $InputStateDigests) {
+                $InputStateDigests = @(
+                    foreach ($stage in $Stages) {
+                        $script:CanonicalCurrentState
+                    }
+                )
+            }
+            if ($null -eq $OutputStateDigests) {
+                $OutputStateDigests = @($InputStateDigests)
+            }
+            if ($null -eq $Statuses) {
+                $Statuses = @(foreach ($stage in $Stages) { 'Passed' })
+            }
+            if ($null -eq $Classifications) {
+                $Classifications = @(foreach ($stage in $Stages) { 'NoChange' })
+            }
+
+            $results = [Collections.Generic.List[object]]::new()
+            $manifestPaths = [Collections.Generic.List[string]]::new()
+            $summaryPaths = [Collections.Generic.List[string]]::new()
+            for ($index = 0; $index -lt $Stages.Count; $index++) {
+                $stage = [string]$Stages[$index]
+                $phaseDirectory = Join-Path $RunDirectory "phases\$stage"
+                $manifestPath = Join-Path $phaseDirectory 'execution-manifest.json'
+                $summaryPath = Join-Path $phaseDirectory 'summary.json'
+                $manifest = [pscustomobject][ordered]@{
+                    schemaVersion = '1.0'
+                    runId = $RunId.ToString('D').ToLowerInvariant()
+                    sourceCommit = $script:CanonicalSource
+                    publicTenantKey = 'tenant1'
+                    intentDigest = $script:CanonicalIntent
+                    stateDigest = [string]$InputStateDigests[$index]
+                    providerContexts = @(
+                        [pscustomobject][ordered]@{
+                            provider = 'Synthetic'
+                            contextId = 'provider-context-private'
+                        }
+                    )
+                    actions = @(
+                        [pscustomobject][ordered]@{
+                            id = 'provider-action-private'
+                            payload = 'provider-payload-private'
+                        }
+                    )
+                }
+                $summary = Copy-CanonicalTestValue (
+                    $script:CanonicalFixture.phaseSummary
+                )
+                $summary.runId = $RunId.ToString('D').ToLowerInvariant()
+                $summary.stage = $stage
+                Write-CanonicalTestFile -InputObject $manifest -Path $manifestPath
+                Write-CanonicalTestFile -InputObject $summary -Path $summaryPath
+                $result = New-TenantLifecycleStageResult `
+                    -RunId $RunId `
+                    -Stage $stage `
+                    -SourceCommit $script:CanonicalSource `
+                    -PublicTenantKey tenant1 `
+                    -IntentDigest $script:CanonicalIntent `
+                    -StateDigest ([string]$OutputStateDigests[$index]) `
+                    -PhaseManifestDigest (
+                        Get-CanonicalTestFileDigest -Path $manifestPath
+                    ) `
+                    -PhaseSummaryDigest (
+                        Get-CanonicalTestFileDigest -Path $summaryPath
+                    ) `
+                    -Status ([string]$Statuses[$index]) `
+                    -Classification ([string]$Classifications[$index]) `
+                    -EvidenceRelativePath "phases/$stage/summary.json" `
+                    -CompletedAtUtc ([datetime]'2026-10-03T08:31:00Z')
+                Write-TenantLifecycleStageResult `
+                    -RunDirectory $RunDirectory `
+                    -StageResult $result |
+                    Out-Null
+                $results.Add($result)
+                $manifestPaths.Add($manifestPath)
+                $summaryPaths.Add($summaryPath)
+            }
+
+            [pscustomobject]@{
+                Results = @($results.ToArray())
+                ManifestPaths = @($manifestPaths.ToArray())
+                SummaryPaths = @($summaryPaths.ToArray())
+            }
+        }
+
+        function Invoke-CanonicalStageSet {
+            param(
+                [Parameter(Mandatory)][string]$RunDirectory,
+                [Parameter(Mandatory)][guid]$RunId,
+                [string[]]$Stages = @('Foundation'),
+                [string]$CurrentStateDigest = $script:CanonicalCurrentState
+            )
+
+            @(
+                Test-TenantLifecycleStageResultSet `
+                    -RunDirectory $RunDirectory `
+                    -RunId $RunId `
+                    -Stages $Stages `
+                    -SourceCommit $script:CanonicalSource `
+                    -PublicTenantKey tenant1 `
+                    -IntentDigest $script:CanonicalIntent `
+                    -CurrentStateDigest $CurrentStateDigest
+            )
+        }
+    }
+
+    It 'creates and writes one immutable canonical stage result' {
+        $runId = [guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+        $runDirectory = Join-Path $TestDrive 'canonical-stage-result'
+        $set = New-CanonicalStageSet -RunDirectory $runDirectory -RunId $runId
+        $path = Join-Path $runDirectory 'stages\Foundation.json'
+        $bytes = [IO.File]::ReadAllBytes($path)
+        $text = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
+
+        ($set.Results[0].PSObject.Properties.Name -join ',') |
+            Should -BeExactly (
+                'schemaVersion,runId,stage,sourceCommit,publicTenantKey,' +
+                'intentDigest,stateDigest,phaseManifestDigest,' +
+                'phaseSummaryDigest,status,classification,' +
+                'evidenceRelativePath,completedAtUtc'
+            )
+        ($bytes[0..2] -join ',') | Should -Not -BeExactly '239,187,191'
+        $text.EndsWith("`n", [StringComparison]::Ordinal) | Should -BeTrue
+        $text.EndsWith("`n`n", [StringComparison]::Ordinal) | Should -BeFalse
+        $text.Contains("`r") | Should -BeFalse
+        $set.Results[0].phaseManifestDigest |
+            Should -Match '^[0-9a-f]{64}$'
+
+        {
+            Write-TenantLifecycleStageResult `
+                -RunDirectory $runDirectory `
+                -StageResult $set.Results[0]
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Evidence.Exists'
+    }
+
+    It 'returns the caller ordered exact stage result set without child summary properties' {
+        $runId = [guid]::NewGuid()
+        $runDirectory = Join-Path $TestDrive 'exact-stage-result-set'
+        New-CanonicalStageSet `
+            -RunDirectory $runDirectory `
+            -RunId $runId `
+            -Stages @('Workstation', 'Foundation') |
+            Out-Null
+
+        $actual = @(
+            Invoke-CanonicalStageSet `
+                -RunDirectory $runDirectory `
+                -RunId $runId `
+                -Stages @('Workstation', 'Foundation')
+        )
+
+        ($actual.stage -join ',') | Should -BeExactly 'Workstation,Foundation'
+        foreach ($result in $actual) {
+            ($result.PSObject.Properties.Name -join ',') |
+                Should -BeExactly (
+                    'schemaVersion,runId,stage,sourceCommit,publicTenantKey,' +
+                    'intentDigest,stateDigest,phaseManifestDigest,' +
+                    'phaseSummaryDigest,status,classification,' +
+                    'evidenceRelativePath,completedAtUtc'
+                )
+        }
+        ($actual | ConvertTo-Json -Depth 10) |
+            Should -Not -Match 'providerId|resourceUrl|actionId|payload|readBack'
+    }
+
+    It 'rejects a missing or extra entry from the exact stage result set' -ForEach @(
+        @{ Case = 'missing'; Mutate = 'Missing' }
+        @{ Case = 'extra'; Mutate = 'Extra' }
+        @{ Case = 'alternate filename'; Mutate = 'Alternate' }
+    ) {
+        $runId = [guid]::NewGuid()
+        $runDirectory = Join-Path $TestDrive "exact-set-$($Case.Replace(' ', '-'))"
+        New-CanonicalStageSet -RunDirectory $runDirectory -RunId $runId |
+            Out-Null
+        $resultPath = Join-Path $runDirectory 'stages\Foundation.json'
+        switch ($Mutate) {
+            'Missing' {
+                Remove-Item -LiteralPath $resultPath -Force
+            }
+            'Extra' {
+                [IO.File]::WriteAllText(
+                    (Join-Path $runDirectory 'stages\extra.json'),
+                    "{}`n",
+                    [Text.UTF8Encoding]::new($false)
+                )
+            }
+            'Alternate' {
+                $temporaryPath = Join-Path $runDirectory 'stages\temporary.json'
+                Move-Item -LiteralPath $resultPath -Destination $temporaryPath
+                Move-Item `
+                    -LiteralPath $temporaryPath `
+                    -Destination (Join-Path $runDirectory 'stages\foundation.json')
+            }
+        }
+
+        {
+            Invoke-CanonicalStageSet `
+                -RunDirectory $runDirectory `
+                -RunId $runId
+        } | Should -Throw
+    }
+
+    It 'rejects duplicate or reordered selected stages from the exact stage result set' -ForEach @(
+        @{ Case = 'duplicate'; Selected = @('Foundation', 'Foundation') }
+        @{ Case = 'reordered'; Selected = @('Foundation', 'Workstation') }
+    ) {
+        $runId = [guid]::NewGuid()
+        $runDirectory = Join-Path $TestDrive "stage-order-$Case"
+        New-CanonicalStageSet `
+            -RunDirectory $runDirectory `
+            -RunId $runId `
+            -Stages @('Workstation', 'Foundation') |
+            Out-Null
+
+        {
+            Invoke-CanonicalStageSet `
+                -RunDirectory $runDirectory `
+                -RunId $runId `
+                -Stages $Selected
+        } | Should -Throw
+    }
+
+    It 'rejects foreign or stale values from the exact stage result set for <Case>' -ForEach @(
+        @{ Case = 'run'; Field = 'runId'; Value = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff' }
+        @{ Case = 'source'; Field = 'sourceCommit'; Value = ('b' * 40) }
+        @{ Case = 'intent'; Field = 'intentDigest'; Value = ('3' * 64) }
+        @{ Case = 'tenant'; Field = 'publicTenantKey'; Value = 'tenant2' }
+        @{ Case = 'stage'; Field = 'stage'; Value = 'ReadBack' }
+        @{ Case = 'outcome pair'; Field = 'classification'; Value = 'Manual' }
+    ) {
+        $runId = [guid]::NewGuid()
+        $runDirectory = Join-Path $TestDrive "foreign-$Case"
+        $set = New-CanonicalStageSet -RunDirectory $runDirectory -RunId $runId
+        $result = Copy-CanonicalTestValue $set.Results[0]
+        $result.$Field = $Value
+        Write-CanonicalTestFile `
+            -InputObject $result `
+            -Path (Join-Path $runDirectory 'stages\Foundation.json')
+
+        {
+            Invoke-CanonicalStageSet `
+                -RunDirectory $runDirectory `
+                -RunId $runId
+        } | Should -Throw
+    }
+
+    It 'rejects noncanonical bytes from the exact stage result set for <Case>' -ForEach @(
+        @{ Case = 'UTF-8 BOM'; Mutation = 'Bom' }
+        @{ Case = 'CRLF'; Mutation = 'CrLf' }
+        @{ Case = 'zero LF'; Mutation = 'ZeroLf' }
+        @{ Case = 'two trailing LFs'; Mutation = 'TwoLf' }
+        @{ Case = 'key order'; Mutation = 'KeyOrder' }
+        @{ Case = 'whitespace'; Mutation = 'Whitespace' }
+        @{ Case = 'upper-case digest'; Mutation = 'UpperDigest' }
+        @{ Case = 'malformed JSON'; Mutation = 'Malformed' }
+        @{ Case = 'non-object root'; Mutation = 'Array' }
+        @{ Case = 'additional property'; Mutation = 'Additional' }
+        @{ Case = 'duplicate JSON property'; Mutation = 'Duplicate' }
+    ) {
+        $runId = [guid]::NewGuid()
+        $runDirectory = Join-Path $TestDrive "noncanonical-$Mutation"
+        $set = New-CanonicalStageSet -RunDirectory $runDirectory -RunId $runId
+        $path = Join-Path $runDirectory 'stages\Foundation.json'
+        $bytes = [IO.File]::ReadAllBytes($path)
+        $text = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
+        switch ($Mutation) {
+            'Bom' {
+                $bytes = [byte[]]@(0xEF, 0xBB, 0xBF) + $bytes
+            }
+            'CrLf' {
+                $bytes = [Text.UTF8Encoding]::new($false).GetBytes(
+                    $text.Replace("`n", "`r`n")
+                )
+            }
+            'ZeroLf' {
+                $bytes = [Text.UTF8Encoding]::new($false).GetBytes(
+                    $text.TrimEnd("`n")
+                )
+            }
+            'TwoLf' {
+                $bytes = [Text.UTF8Encoding]::new($false).GetBytes(
+                    $text + "`n"
+                )
+            }
+            'KeyOrder' {
+                $bytes = [Text.UTF8Encoding]::new($false).GetBytes(
+                    (($set.Results[0] | ConvertTo-Json -Depth 30 -Compress) + "`n")
+                )
+            }
+            'Whitespace' {
+                $bytes = [Text.UTF8Encoding]::new($false).GetBytes(
+                    (($set.Results[0] | ConvertTo-Json -Depth 30) + "`n")
+                )
+            }
+            'UpperDigest' {
+                $value = Copy-CanonicalTestValue $set.Results[0]
+                $value.phaseManifestDigest =
+                    $value.phaseManifestDigest.ToUpperInvariant()
+                $bytes = [Text.UTF8Encoding]::new($false).GetBytes(
+                    (
+                        ConvertTo-TenantLifecycleCanonicalJson `
+                            -InputObject $value
+                    )
+                )
+            }
+            'Malformed' {
+                $bytes = [Text.UTF8Encoding]::new($false).GetBytes("{`"x`":`n")
+            }
+            'Array' {
+                $bytes = [Text.UTF8Encoding]::new($false).GetBytes("[]`n")
+            }
+            'Additional' {
+                $value = Copy-CanonicalTestValue $set.Results[0]
+                $value | Add-Member -NotePropertyName providerId -NotePropertyValue private
+                $bytes = [Text.UTF8Encoding]::new($false).GetBytes(
+                    (
+                        ConvertTo-TenantLifecycleCanonicalJson `
+                            -InputObject $value
+                    )
+                )
+            }
+            'Duplicate' {
+                $duplicate = (
+                    '{"schemaVersion":"1.0",' +
+                    $text.Substring(1)
+                )
+                $bytes = [Text.UTF8Encoding]::new($false).GetBytes($duplicate)
+            }
+        }
+        [IO.File]::WriteAllBytes($path, $bytes)
+
+        {
+            Invoke-CanonicalStageSet `
+                -RunDirectory $runDirectory `
+                -RunId $runId
+        } | Should -Throw
+    }
+
+    It 'rejects path traversal and an outside result from canonical stage result reading' {
+        $root = Join-Path $TestDrive 'canonical-containment'
+        $external = Join-Path $TestDrive 'outside-result.json'
+        [IO.Directory]::CreateDirectory($root) | Out-Null
+        [IO.File]::WriteAllText(
+            $external,
+            "{} `n",
+            [Text.UTF8Encoding]::new($false)
+        )
+
+        InModuleScope Caldova.HrFrontier.Bootstrap -Parameters @{
+            Root = $root
+            External = $external
+        } {
+            param($Root, $External)
+
+            {
+                Read-TenantLifecycleCanonicalJsonFile `
+                    -Path $External `
+                    -ContainmentRoot $Root `
+                    -ExpectedRelativePath '../outside-result.json'
+            } | Should -Throw
+        }
+    }
+
+    It 'detects result file stages directory manifest and summary reparse paths' -ForEach @(
+        @{ Target = 'stages' }
+        @{ Target = 'stages/Foundation.json' }
+        @{ Target = 'phases/Foundation/execution-manifest.json' }
+        @{ Target = 'phases/Foundation/summary.json' }
+    ) {
+        $root = 'C:\synthetic-run'
+        $targetPath = Join-Path $root $Target.Replace('/', '\')
+        InModuleScope Caldova.HrFrontier.Bootstrap -Parameters @{
+            Root = $root
+            TargetPath = $targetPath
+        } {
+            param($Root, $TargetPath)
+
+            $probe = {
+                param([string]$Candidate)
+                [pscustomobject]@{
+                    exists = $true
+                    isContainer = -not [IO.Path]::HasExtension($Candidate)
+                    attributes = if (
+                        [StringComparer]::OrdinalIgnoreCase.Equals(
+                            $Candidate,
+                            $TargetPath
+                        )
+                    ) {
+                        [IO.FileAttributes]::ReparsePoint
+                    }
+                    else {
+                        [IO.FileAttributes]::Normal
+                    }
+                }
+            }.GetNewClosure()
+
+            Test-TenantLifecycleEvidenceReparsePath `
+                -Path $TargetPath `
+                -FileSystemProbe $probe |
+                Should -BeTrue
+        }
+    }
+
+    It 'accepts a provider-rich opaque phase summary digest without copying properties' {
+        $runId = [guid]::NewGuid()
+        $runDirectory = Join-Path $TestDrive 'opaque-phase-summary-digest'
+        New-CanonicalStageSet -RunDirectory $runDirectory -RunId $runId |
+            Out-Null
+
+        $results = @(
+            Invoke-CanonicalStageSet `
+                -RunDirectory $runDirectory `
+                -RunId $runId
+        )
+
+        $results.Count | Should -Be 1
+        ($results | ConvertTo-Json -Depth 10) |
+            Should -Not -Match 'provider-synthetic|example[.]invalid|action-synthetic|payload|readBack'
+    }
+
+    It 'rejects tampered manifest or phase summary digest bytes' -ForEach @(
+        @{ Case = 'manifest'; Index = 'ManifestPaths' }
+        @{ Case = 'summary'; Index = 'SummaryPaths' }
+    ) {
+        $runId = [guid]::NewGuid()
+        $runDirectory = Join-Path $TestDrive "tampered-$Case-digest"
+        $set = New-CanonicalStageSet -RunDirectory $runDirectory -RunId $runId
+        $path = [string]$set.$Index[0]
+        $value = ConvertFrom-TenantLifecycleJson -InputObject (
+            Get-Content -Raw -LiteralPath $path
+        )
+        $value | Add-Member `
+            -NotePropertyName tampered `
+            -NotePropertyValue $true
+        Write-CanonicalTestFile -InputObject $value -Path $path
+
+        {
+            Invoke-CanonicalStageSet `
+                -RunDirectory $runDirectory `
+                -RunId $runId
+        } | Should -Throw
+    }
+
+    It 'rejects absolute or wrong-stage phase summary digest paths' -ForEach @(
+        @{ Case = 'absolute'; Value = 'C:\outside\summary.json' }
+        @{ Case = 'wrong stage'; Value = 'phases/ReadBack/summary.json' }
+    ) {
+        $runId = [guid]::NewGuid()
+        $runDirectory = Join-Path $TestDrive "summary-path-$Case"
+        $set = New-CanonicalStageSet -RunDirectory $runDirectory -RunId $runId
+        $result = Copy-CanonicalTestValue $set.Results[0]
+        $result.evidenceRelativePath = $Value
+        Write-CanonicalTestFile `
+            -InputObject $result `
+            -Path (Join-Path $runDirectory 'stages\Foundation.json')
+
+        {
+            Invoke-CanonicalStageSet `
+                -RunDirectory $runDirectory `
+                -RunId $runId
+        } | Should -Throw
+    }
+
+    It 'accepts a changed stage state digest chain' {
+        $runId = [guid]::NewGuid()
+        $runDirectory = Join-Path $TestDrive 'changed-stage-state-digest-chain'
+        New-CanonicalStageSet `
+            -RunDirectory $runDirectory `
+            -RunId $runId `
+            -Stages @('Workstation', 'Foundation') `
+            -InputStateDigests @(('8' * 64), ('9' * 64)) `
+            -OutputStateDigests @(('9' * 64), $script:CanonicalCurrentState) `
+            -Classifications @('Changed', 'Changed') |
+            Out-Null
+
+        @(
+            Invoke-CanonicalStageSet `
+                -RunDirectory $runDirectory `
+                -RunId $runId `
+                -Stages @('Workstation', 'Foundation')
+        ).Count | Should -Be 2
+    }
+
+    It 'rejects an unexplained or final-current-state mismatch in the stage state digest chain' -ForEach @(
+        @{
+            Case = 'unexplained'
+            Input = @('8' * 64)
+            Output = @('9' * 64)
+            Classification = @('NoChange')
+            Current = '9' * 64
+        }
+        @{
+            Case = 'final current'
+            Input = @('8' * 64)
+            Output = @('9' * 64)
+            Classification = @('Changed')
+            Current = '2' * 64
+        }
+    ) {
+        $runId = [guid]::NewGuid()
+        $runDirectory = Join-Path $TestDrive "invalid-chain-$Case"
+        New-CanonicalStageSet `
+            -RunDirectory $runDirectory `
+            -RunId $runId `
+            -InputStateDigests $Input `
+            -OutputStateDigests $Output `
+            -Classifications $Classification |
+            Out-Null
+
+        {
+            Invoke-CanonicalStageSet `
+                -RunDirectory $runDirectory `
+                -RunId $runId `
+                -CurrentStateDigest $Current
+        } | Should -Throw
+    }
+}
+
 Describe 'Tenant lifecycle contracts' {
     BeforeAll {
         $script:RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path

@@ -27,6 +27,9 @@
         'Test-RunbookExecutionManifest',
         'ConvertTo-RunbookEvidenceRecord',
         'Test-TenantLifecycleContract'
+        'New-TenantLifecycleStageResult'
+        'Write-TenantLifecycleStageResult'
+        'Test-TenantLifecycleStageResultSet'
         'New-TenantLifecycleControlRecord'
         'Test-TenantLifecyclePrivateBoundary'
         'Import-TenantLifecycleState'

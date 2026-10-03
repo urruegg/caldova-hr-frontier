@@ -405,6 +405,122 @@ public static class TenantLifecycleGraphCodePropertyAccessor
         ($result.canExecute -contains $false) | Should -BeFalse
         (@($result | ForEach-Object { @($_.blockingPrerequisiteIds).Count }) -join ',') | Should -BeExactly '0,0,0'
     }
+
+    It 'requires literal Passed dependency success for <Status>/<Classification>' -ForEach @(
+        @{ Status = 'Failed'; Classification = 'NoChange' }
+        @{ Status = 'Failed'; Classification = 'Changed' }
+        @{ Status = 'Manual'; Classification = 'Manual' }
+        @{ Status = 'Blocked'; Classification = 'Blocked' }
+        @{ Status = 'Refused'; Classification = 'Refused' }
+    ) {
+        $runId = [guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+        $first = New-TenantLifecycleStageResult `
+            -RunId $runId `
+            -Stage Workstation `
+            -SourceCommit ('a' * 40) `
+            -PublicTenantKey tenant1 `
+            -IntentDigest ('1' * 64) `
+            -StateDigest ('2' * 64) `
+            -PhaseManifestDigest ('3' * 64) `
+            -PhaseSummaryDigest ('4' * 64) `
+            -Status $Status `
+            -Classification $Classification `
+            -EvidenceRelativePath 'phases/Workstation/summary.json' `
+            -CompletedAtUtc ([datetime]'2026-10-03T08:31:00Z')
+        $second = New-TenantLifecycleStageResult `
+            -RunId $runId `
+            -Stage Foundation `
+            -SourceCommit ('a' * 40) `
+            -PublicTenantKey tenant1 `
+            -IntentDigest ('1' * 64) `
+            -StateDigest ('2' * 64) `
+            -PhaseManifestDigest ('5' * 64) `
+            -PhaseSummaryDigest ('6' * 64) `
+            -Status Passed `
+            -Classification NoChange `
+            -EvidenceRelativePath 'phases/Foundation/summary.json' `
+            -CompletedAtUtc ([datetime]'2026-10-03T08:32:00Z')
+        $nodes = @(
+            New-GraphNode `
+                -Id Workstation `
+                -Kind Stage `
+                -Stage Workstation `
+                -InputDigest $first.phaseManifestDigest
+            New-GraphNode `
+                -Id Foundation `
+                -Kind Stage `
+                -Stage Foundation `
+                -PrerequisiteIds @('Workstation') `
+                -InputDigest $second.phaseManifestDigest
+        )
+
+        $resolved = @(
+            Resolve-TenantLifecycleGraph `
+                -Nodes $nodes `
+                -ObservedOutcomes @($first, $second)
+        )
+
+        $resolved[0].status | Should -BeExactly $Status
+        $resolved[1].status | Should -BeExactly 'Blocked'
+        $resolved[1].canExecute | Should -BeFalse
+        ($resolved[1].blockingPrerequisiteIds -join ',') |
+            Should -BeExactly 'Workstation'
+    }
+
+    It 'accepts literal Passed dependency success for <Classification>' -ForEach @(
+        @{ Classification = 'NoChange' }
+        @{ Classification = 'Changed' }
+    ) {
+        $runId = [guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+        $first = New-TenantLifecycleStageResult `
+            -RunId $runId `
+            -Stage Workstation `
+            -SourceCommit ('a' * 40) `
+            -PublicTenantKey tenant1 `
+            -IntentDigest ('1' * 64) `
+            -StateDigest ('2' * 64) `
+            -PhaseManifestDigest ('3' * 64) `
+            -PhaseSummaryDigest ('4' * 64) `
+            -Status Passed `
+            -Classification $Classification `
+            -EvidenceRelativePath 'phases/Workstation/summary.json' `
+            -CompletedAtUtc ([datetime]'2026-10-03T08:31:00Z')
+        $second = New-TenantLifecycleStageResult `
+            -RunId $runId `
+            -Stage Foundation `
+            -SourceCommit ('a' * 40) `
+            -PublicTenantKey tenant1 `
+            -IntentDigest ('1' * 64) `
+            -StateDigest ('2' * 64) `
+            -PhaseManifestDigest ('5' * 64) `
+            -PhaseSummaryDigest ('6' * 64) `
+            -Status Passed `
+            -Classification NoChange `
+            -EvidenceRelativePath 'phases/Foundation/summary.json' `
+            -CompletedAtUtc ([datetime]'2026-10-03T08:32:00Z')
+        $nodes = @(
+            New-GraphNode `
+                -Id Workstation `
+                -Kind Stage `
+                -Stage Workstation `
+                -InputDigest $first.phaseManifestDigest
+            New-GraphNode `
+                -Id Foundation `
+                -Kind Stage `
+                -Stage Foundation `
+                -PrerequisiteIds @('Workstation') `
+                -InputDigest $second.phaseManifestDigest
+        )
+
+        $resolved = @(
+            Resolve-TenantLifecycleGraph `
+                -Nodes $nodes `
+                -ObservedOutcomes @($first, $second)
+        )
+
+        ($resolved.status -join ',') | Should -BeExactly 'Passed,Passed'
+        $resolved[1].canExecute | Should -BeTrue
+    }
 }
 
 Describe 'Tenant lifecycle approval expiry and drift' {
@@ -1088,9 +1204,13 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                                 ) |
                                 ForEach-Object LineNumber
                         )
-                        if ($bindingLines.Count -ne 3) {
+                        if ($bindingLines.Count -lt 3) {
                             throw 'Synthetic drift breakpoint could not be located.'
                         }
+                        $bindingLines = @(
+                            $bindingLines |
+                                Select-Object -Last 3
+                        )
                         $line = if ($ContractKind -ceq 'Assessment') {
                             $bindingLines[2]
                         }
@@ -1825,14 +1945,14 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         $calls.Count | Should -Be 0
                     }
 
-                    It 'keeps Verify without an invoker on the transitional Task 3 guard' {
+                    It 'fails Verify closed when its canonical result set is absent' {
                         {
                             Invoke-CoordinateOrchestrator `
                                 -RunId ([guid]::NewGuid()) `
                                 -Stages @('Workstation') `
                                 -Mode Verify
                         } | Should -Throw -ExpectedMessage (
-                            'TenantLifecycle.Verify.NotImplemented'
+                            'TenantLifecycle.StageResultSet.Invalid'
                         )
                     }
 
@@ -2381,6 +2501,335 @@ $invoker = [scriptblock]::Create($invokerText)
                         } | Should -Throw
                         $calls = Get-CoordinateObservedCalls -RunId $runId
                         ($calls -join ',') | Should -BeExactly 'Workstation|Assess'
+                    }
+                }
+
+                Context 'canonical Verify evidence authority' {
+                    BeforeAll {
+                        function Get-CoordinateExactFileDigest {
+                            param([Parameter(Mandatory)][string]$Path)
+
+                            $algorithm = [Security.Cryptography.SHA256]::Create()
+                            try {
+                                -join @(
+                                    $algorithm.ComputeHash(
+                                        [IO.File]::ReadAllBytes($Path)
+                                    ) |
+                                        ForEach-Object { $_.ToString('x2') }
+                                )
+                            }
+                            finally {
+                                $algorithm.Dispose()
+                            }
+                        }
+
+                        function Write-CoordinateVerifySet {
+                            param(
+                                [Parameter(Mandatory)][guid]$RunId,
+                                [string[]]$Stages = @('Foundation'),
+                                [string[]]$InputStateDigests,
+                                [string[]]$OutputStateDigests,
+                                [string[]]$Statuses,
+                                [string[]]$Classifications
+                            )
+
+                            $digests = Get-CoordinatePrivateDigests
+                            if ($null -eq $InputStateDigests) {
+                                $InputStateDigests = @(
+                                    foreach ($stage in $Stages) {
+                                        $digests.state
+                                    }
+                                )
+                            }
+                            if ($null -eq $OutputStateDigests) {
+                                $OutputStateDigests = @($InputStateDigests)
+                            }
+                            if ($null -eq $Statuses) {
+                                $Statuses = @(
+                                    foreach ($stage in $Stages) { 'Passed' }
+                                )
+                            }
+                            if ($null -eq $Classifications) {
+                                $Classifications = @(
+                                    foreach ($stage in $Stages) { 'NoChange' }
+                                )
+                            }
+
+                            $runDirectory = Join-Path (
+                                $script:CoordinateEvidenceRoot
+                            ) $RunId.ToString('D').ToLowerInvariant()
+                            $artifacts = [Collections.Generic.List[object]]::new()
+                            for (
+                                $index = 0;
+                                $index -lt $Stages.Count;
+                                $index++
+                            ) {
+                                $stage = [string]$Stages[$index]
+                                $phaseDirectory = Join-Path $runDirectory (
+                                    "phases\$stage"
+                                )
+                                $action = (
+                                    $script:CoordinateFixture.executionManifest.actions[0] |
+                                        ConvertTo-Json -Depth 30 |
+                                        ConvertFrom-Json
+                                )
+                                $action.id = $stage
+                                if ($index -eq 0) {
+                                    $action.prerequisiteActionIds =
+                                        [string[]]@()
+                                }
+                                else {
+                                    $action.prerequisiteActionIds =
+                                        [string[]]@($Stages[$index - 1])
+                                }
+                                $manifest = New-TenantLifecycleExecutionManifest `
+                                    -RunId $RunId `
+                                    -SourceCommit $script:CoordinateSourceCommit `
+                                    -EvidenceRoot $phaseDirectory `
+                                    -PublicTenantKey tenant1 `
+                                    -IntentDigest $digests.intent `
+                                    -StateDigest (
+                                        [string]$InputStateDigests[$index]
+                                    ) `
+                                    -Machine (
+                                        $script:CoordinateFixture.executionManifest.machine
+                                    ) `
+                                    -Operator (
+                                        $script:CoordinateFixture.executionManifest.operator
+                                    ) `
+                                    -ToolIdentities @(
+                                        $script:CoordinateFixture.executionManifest.toolIdentities
+                                    ) `
+                                    -ProviderContexts @(
+                                        $script:CoordinateFixture.executionManifest.providerContexts
+                                    ) `
+                                    -Prerequisites @(
+                                        $script:CoordinateFixture.executionManifest.prerequisites
+                                    ) `
+                                    -Actions @($action) `
+                                    -GeneratedAtUtc (
+                                        [datetime]'2026-10-03T08:00:00Z'
+                                    ) `
+                                    -ExpiresAtUtc (
+                                        [datetime]'2026-10-03T08:30:00Z'
+                                    )
+                                $manifestPath = Join-Path $phaseDirectory (
+                                    'execution-manifest.json'
+                                )
+                                Write-CoordinateCanonicalFile `
+                                    -InputObject $manifest `
+                                    -Path $manifestPath
+
+                                $summary = (
+                                    $script:CoordinateFixture.phaseSummary |
+                                        ConvertTo-Json -Depth 30 |
+                                        ConvertFrom-Json
+                                )
+                                $summary.runId =
+                                    $RunId.ToString('D').ToLowerInvariant()
+                                $summary.stage = $stage
+                                $summary.providerId =
+                                    'provider-private-identifier'
+                                $summary.resourceUrl =
+                                    'https://example.invalid/private-resource'
+                                $summary.payload.synthetic =
+                                    'provider-private-payload'
+                                $summaryPath = Join-Path $phaseDirectory (
+                                    'summary.json'
+                                )
+                                Write-CoordinateCanonicalFile `
+                                    -InputObject $summary `
+                                    -Path $summaryPath
+
+                                $result = New-TenantLifecycleStageResult `
+                                    -RunId $RunId `
+                                    -Stage $stage `
+                                    -SourceCommit $script:CoordinateSourceCommit `
+                                    -PublicTenantKey tenant1 `
+                                    -IntentDigest $digests.intent `
+                                    -StateDigest (
+                                        [string]$OutputStateDigests[$index]
+                                    ) `
+                                    -PhaseManifestDigest (
+                                        Get-CoordinateExactFileDigest `
+                                            -Path $manifestPath
+                                    ) `
+                                    -PhaseSummaryDigest (
+                                        Get-CoordinateExactFileDigest `
+                                            -Path $summaryPath
+                                    ) `
+                                    -Status ([string]$Statuses[$index]) `
+                                    -Classification (
+                                        [string]$Classifications[$index]
+                                    ) `
+                                    -EvidenceRelativePath (
+                                        "phases/$stage/summary.json"
+                                    ) `
+                                    -CompletedAtUtc (
+                                        [datetime]'2026-10-03T08:31:00Z'
+                                    )
+                                Write-TenantLifecycleStageResult `
+                                    -RunDirectory $runDirectory `
+                                    -StageResult $result |
+                                    Out-Null
+                                $artifacts.Add([pscustomobject]@{
+                                    ManifestPath = $manifestPath
+                                    SummaryPath = $summaryPath
+                                    Result = $result
+                                })
+                            }
+                            @($artifacts.ToArray())
+                        }
+                    }
+
+                    It 'Verify never invokes a supplied child invoker' {
+                        $counter = 0
+                        $invoker = {
+                            $counter++
+                        }.GetNewClosure()
+
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId ([guid]::NewGuid()) `
+                                -Stages @('Foundation') `
+                                -Mode Verify `
+                                -SubsystemInvoker $invoker
+                        } | Should -Throw -ExpectedMessage (
+                            'TenantLifecycle.SubsystemInvoker.NotAllowed'
+                        )
+                        $counter | Should -Be 0
+                    }
+
+                    It 'Verify accepts an opaque provider-rich phase summary digest' {
+                        $runId = [guid]::NewGuid()
+                        Write-CoordinateVerifySet -RunId $runId | Out-Null
+
+                        $output = @(
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages @('Foundation') `
+                                -Mode Verify
+                        )
+
+                        $output.Count | Should -Be 0
+                        ($output | ConvertTo-Json -Depth 10) |
+                            Should -Not -Match (
+                                'provider-private|example[.]invalid|' +
+                                'action-synthetic|payload|readBack'
+                            )
+                    }
+
+                    It 'Verify rejects a mismatched <Case> phase summary digest' -ForEach @(
+                        @{ Case = 'manifest'; Property = 'ManifestPath' }
+                        @{ Case = 'summary'; Property = 'SummaryPath' }
+                    ) {
+                        $runId = [guid]::NewGuid()
+                        $artifacts = @(
+                            Write-CoordinateVerifySet -RunId $runId
+                        )
+                        $path = [string]$artifacts[0].$Property
+                        $value = Get-Content -Raw -LiteralPath $path |
+                            ConvertFrom-Json
+                        $value | Add-Member `
+                            -NotePropertyName tampered `
+                            -NotePropertyValue $true
+                        Write-CoordinateCanonicalFile `
+                            -InputObject $value `
+                            -Path $path
+
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages @('Foundation') `
+                                -Mode Verify
+                        } | Should -Throw
+                    }
+
+                    It 'Verify accepts an ordered changed stage state digest chain' {
+                        $runId = [guid]::NewGuid()
+                        $currentState = (Get-CoordinatePrivateDigests).state
+                        Write-CoordinateVerifySet `
+                            -RunId $runId `
+                            -Stages @('Workstation', 'Foundation') `
+                            -InputStateDigests @(('8' * 64), ('9' * 64)) `
+                            -OutputStateDigests @(
+                                ('9' * 64),
+                                $currentState
+                            ) `
+                            -Classifications @('Changed', 'Changed') |
+                            Out-Null
+
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages @('Workstation', 'Foundation') `
+                                -Mode Verify
+                        } | Should -Not -Throw
+                    }
+
+                    It 'Verify rejects an invalid stage state digest chain for <Case>' -ForEach @(
+                        @{
+                            Case = 'unexplained transition'
+                            Inputs = @('8' * 64)
+                            Outputs = @('9' * 64)
+                            Classifications = @('NoChange')
+                        }
+                        @{
+                            Case = 'final current mismatch'
+                            Inputs = @('8' * 64)
+                            Outputs = @('9' * 64)
+                            Classifications = @('Changed')
+                        }
+                    ) {
+                        $runId = [guid]::NewGuid()
+                        Write-CoordinateVerifySet `
+                            -RunId $runId `
+                            -InputStateDigests $Inputs `
+                            -OutputStateDigests $Outputs `
+                            -Classifications $Classifications |
+                            Out-Null
+
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages @('Foundation') `
+                                -Mode Verify
+                        } | Should -Throw
+                    }
+
+                    It 'Verify rejects a non-Passed literal dependency outcome <Status>/<Classification>' -ForEach @(
+                        @{ Status = 'Failed'; Classification = 'NoChange' }
+                        @{ Status = 'Failed'; Classification = 'Changed' }
+                        @{ Status = 'Manual'; Classification = 'Manual' }
+                        @{ Status = 'Blocked'; Classification = 'Blocked' }
+                        @{ Status = 'Refused'; Classification = 'Refused' }
+                    ) {
+                        $runId = [guid]::NewGuid()
+                        $currentState = (Get-CoordinatePrivateDigests).state
+                        Write-CoordinateVerifySet `
+                            -RunId $runId `
+                            -Stages @('Workstation', 'Foundation') `
+                            -InputStateDigests @(
+                                $currentState,
+                                $currentState
+                            ) `
+                            -OutputStateDigests @(
+                                $currentState,
+                                $currentState
+                            ) `
+                            -Statuses @($Status, 'Passed') `
+                            -Classifications @(
+                                $Classification,
+                                'NoChange'
+                            ) |
+                            Out-Null
+
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages @('Workstation', 'Foundation') `
+                                -Mode Verify
+                        } | Should -Throw
                     }
                 }
             }
