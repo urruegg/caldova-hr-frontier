@@ -13,6 +13,8 @@ function Get-TenantLifecycleExecutionManifestDigest {
         publicTenantKey = $Manifest.publicTenantKey
         intentDigest = $Manifest.intentDigest
         stateDigest = $Manifest.stateDigest
+        selectedStages = @($Manifest.selectedStages)
+        prerequisiteResults = @($Manifest.prerequisiteResults)
         machine = $Manifest.machine
         operator = $Manifest.operator
         toolIdentities = @($Manifest.toolIdentities)
@@ -33,6 +35,8 @@ function New-TenantLifecycleExecutionManifest {
         [Parameter(Mandatory)][ValidateSet('tenant1')][string]$PublicTenantKey,
         [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{64}$')][string]$IntentDigest,
         [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{64}$')][string]$StateDigest,
+        [Parameter(Mandatory)][string[]]$SelectedStages,
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$PrerequisiteResults,
         [Parameter(Mandatory)][object]$Machine,
         [Parameter(Mandatory)][object]$Operator,
         [Parameter(Mandatory)][object[]]$ToolIdentities,
@@ -82,6 +86,8 @@ function New-TenantLifecycleExecutionManifest {
         publicTenantKey = $PublicTenantKey
         intentDigest = $IntentDigest
         stateDigest = $StateDigest
+        selectedStages = [string[]]@($SelectedStages)
+        prerequisiteResults = [object[]]@($PrerequisiteResults)
         machine = $Machine
         operator = $Operator
         toolIdentities = @($ToolIdentities)
@@ -99,6 +105,10 @@ function New-TenantLifecycleExecutionManifest {
         publicTenantKey = $digestInput.publicTenantKey
         intentDigest = $digestInput.intentDigest
         stateDigest = $digestInput.stateDigest
+        selectedStages = [string[]]@($digestInput.selectedStages)
+        prerequisiteResults = [object[]]@(
+            $digestInput.prerequisiteResults
+        )
         machine = $digestInput.machine
         operator = $digestInput.operator
         toolIdentities = @($digestInput.toolIdentities)
@@ -125,6 +135,8 @@ function New-TenantLifecycleExecutionManifest {
         publicTenantKey = $clone.publicTenantKey
         intentDigest = $clone.intentDigest
         stateDigest = $clone.stateDigest
+        selectedStages = [string[]]@($clone.selectedStages)
+        prerequisiteResults = [object[]]@($clone.prerequisiteResults)
         machine = $clone.machine
         operator = $clone.operator
         toolIdentities = @($clone.toolIdentities)

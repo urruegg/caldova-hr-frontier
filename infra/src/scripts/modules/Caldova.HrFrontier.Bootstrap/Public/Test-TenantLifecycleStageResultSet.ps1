@@ -194,7 +194,9 @@ function Test-TenantLifecycleStageResultSet {
                 'sourceCommit',
                 'publicTenantKey',
                 'intentDigest',
-                'stateDigest'
+                'stateDigest',
+                'selectedStages',
+                'prerequisiteResults'
             )) {
                 $property = $manifest.PSObject.Properties[$field]
                 if ($null -eq $property -or
@@ -222,6 +224,86 @@ function Test-TenantLifecycleStageResultSet {
                 -not ([string]$manifest.stateDigest -cmatch
                     '^[0-9a-f]{64}$')) {
                 throw [IO.InvalidDataException]::new()
+            }
+            if (-not ($manifest.selectedStages -is [System.Array]) -or
+                @($manifest.selectedStages).Count -ne $Stages.Count) {
+                throw [IO.InvalidDataException]::new()
+            }
+            for (
+                $selectedIndex = 0;
+                $selectedIndex -lt $Stages.Count;
+                $selectedIndex++
+            ) {
+                if (-not [StringComparer]::Ordinal.Equals(
+                        [string]$manifest.selectedStages[$selectedIndex],
+                        [string]$Stages[$selectedIndex]
+                    )) {
+                    throw [IO.InvalidDataException]::new()
+                }
+            }
+
+            if (-not ($manifest.prerequisiteResults -is
+                    [System.Array])) {
+                throw [IO.InvalidDataException]::new()
+            }
+            $expectedPrerequisiteCount = if ($results.Count -eq 0) {
+                0
+            }
+            else {
+                1
+            }
+            if (@($manifest.prerequisiteResults).Count -ne
+                $expectedPrerequisiteCount) {
+                throw [IO.InvalidDataException]::new()
+            }
+            if ($expectedPrerequisiteCount -eq 1) {
+                $prerequisiteResult = $manifest.prerequisiteResults[0]
+                $expectedPrerequisiteFields = @(
+                    'stage',
+                    'status',
+                    'classification',
+                    'phaseManifestDigest',
+                    'phaseSummaryDigest',
+                    'intentDigest',
+                    'stateDigest'
+                )
+                $actualPrerequisiteFields =
+                    [Collections.Generic.HashSet[string]]::new(
+                        [StringComparer]::Ordinal
+                    )
+                foreach ($property in @(
+                    $prerequisiteResult.PSObject.Properties
+                )) {
+                    if ($property.MemberType -ne 'NoteProperty' -or
+                        -not $actualPrerequisiteFields.Add(
+                            $property.Name
+                        )) {
+                        throw [IO.InvalidDataException]::new()
+                    }
+                }
+                if ($actualPrerequisiteFields.Count -ne
+                    $expectedPrerequisiteFields.Count) {
+                    throw [IO.InvalidDataException]::new()
+                }
+                foreach ($field in $expectedPrerequisiteFields) {
+                    if (-not $actualPrerequisiteFields.Contains($field)) {
+                        throw [IO.InvalidDataException]::new()
+                    }
+                }
+                if ([string]$prerequisiteResult.status -cne 'Passed' -or
+                    @('NoChange', 'Changed') -cnotcontains
+                        [string]$prerequisiteResult.classification) {
+                    throw [IO.InvalidDataException]::new()
+                }
+                $previousResult = $results[$results.Count - 1]
+                foreach ($field in $expectedPrerequisiteFields) {
+                    if (-not [StringComparer]::Ordinal.Equals(
+                            [string]$prerequisiteResult.$field,
+                            [string]$previousResult.$field
+                        )) {
+                        throw [IO.InvalidDataException]::new()
+                    }
+                }
             }
 
             $summaryPath = Join-Path $runRoot (

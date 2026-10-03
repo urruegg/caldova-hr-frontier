@@ -183,6 +183,8 @@ function Test-TenantLifecycleApproval {
         'publicTenantKey',
         'intentDigest',
         'stateDigest',
+        'selectedStages',
+        'prerequisiteResults',
         'machine',
         'operator',
         'toolIdentities',

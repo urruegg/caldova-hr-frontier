@@ -544,6 +544,12 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                 -PublicTenantKey tenant1 `
                 -IntentDigest ('1' * 64) `
                 -StateDigest ('2' * 64) `
+                -SelectedStages @(
+                    $script:ApprovalFixture.executionManifest.selectedStages
+                ) `
+                -PrerequisiteResults @(
+                    $script:ApprovalFixture.executionManifest.prerequisiteResults
+                ) `
                 -Machine (Copy-ApprovalValue $script:ApprovalFixture.executionManifest.machine) `
                 -Operator (Copy-ApprovalValue $script:ApprovalFixture.executionManifest.operator) `
                 -ToolIdentities @(Copy-ApprovalValue $script:ApprovalFixture.executionManifest.toolIdentities) `
@@ -789,6 +795,8 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         -PublicTenantKey tenant1 `
                         -IntentDigest (Get-RunbookContentDigest -InputObject $intentDigestInput) `
                         -StateDigest (Get-RunbookContentDigest -InputObject $stateValue) `
+                        -SelectedStages $Stages `
+                        -PrerequisiteResults @() `
                         -Machine ([pscustomobject][ordered]@{
                             machineId = 'machine-synthetic-001'
                             platform = 'Windows 11'
@@ -875,6 +883,10 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         publicTenantKey = [string]$Manifest.publicTenantKey
                         intentDigest = [string]$Manifest.intentDigest
                         stateDigest = [string]$Manifest.stateDigest
+                        selectedStages =
+                            [string[]]@($Manifest.selectedStages)
+                        prerequisiteResults =
+                            [object[]]@($Manifest.prerequisiteResults)
                         machine = $Manifest.machine
                         operator = $Manifest.operator
                         toolIdentities = @($Manifest.toolIdentities)
@@ -1555,6 +1567,12 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                                     ) `
                                     -StateDigest (
                                         [string]$ControlRecord.stateDigest
+                                    ) `
+                                    -SelectedStages @(
+                                        $ControlRecord.selectedStages
+                                    ) `
+                                    -PrerequisiteResults @(
+                                        $ControlRecord.prerequisiteResults
                                     ) `
                                     -Machine (
                                         $settings.fixture.executionManifest.machine
@@ -2582,6 +2600,29 @@ $invoker = [scriptblock]::Create($invokerText)
                                     $action.prerequisiteActionIds =
                                         [string[]]@($Stages[$index - 1])
                                 }
+                                [object[]]$manifestPrerequisites = @()
+                                if ($index -gt 0) {
+                                    $previousResult =
+                                        $artifacts[$index - 1].Result
+                                    $manifestPrerequisites = @(
+                                        [pscustomobject][ordered]@{
+                                            stage =
+                                                [string]$previousResult.stage
+                                            status =
+                                                [string]$previousResult.status
+                                            classification =
+                                                [string]$previousResult.classification
+                                            phaseManifestDigest =
+                                                [string]$previousResult.phaseManifestDigest
+                                            phaseSummaryDigest =
+                                                [string]$previousResult.phaseSummaryDigest
+                                            intentDigest =
+                                                [string]$previousResult.intentDigest
+                                            stateDigest =
+                                                [string]$previousResult.stateDigest
+                                        }
+                                    )
+                                }
                                 $manifest = New-TenantLifecycleExecutionManifest `
                                     -RunId $RunId `
                                     -SourceCommit $script:CoordinateSourceCommit `
@@ -2591,6 +2632,8 @@ $invoker = [scriptblock]::Create($invokerText)
                                     -StateDigest (
                                         [string]$InputStateDigests[$index]
                                     ) `
+                                    -SelectedStages $Stages `
+                                    -PrerequisiteResults $manifestPrerequisites `
                                     -Machine (
                                         $script:CoordinateFixture.executionManifest.machine
                                     ) `
@@ -4794,6 +4837,12 @@ $invoker = [scriptblock]::Create($invokerText)
                 -PublicTenantKey tenant1 `
                 -IntentDigest ('1' * 64) `
                 -StateDigest ('2' * 64) `
+                -SelectedStages @(
+                    $script:ApprovalFixture.executionManifest.selectedStages
+                ) `
+                -PrerequisiteResults @(
+                    $script:ApprovalFixture.executionManifest.prerequisiteResults
+                ) `
                 -Machine (Copy-ApprovalValue $script:ApprovalFixture.executionManifest.machine) `
                 -Operator (Copy-ApprovalValue $script:ApprovalFixture.executionManifest.operator) `
                 -ToolIdentities @(Copy-ApprovalValue $script:ApprovalFixture.executionManifest.toolIdentities) `
@@ -4831,6 +4880,9 @@ $invoker = [scriptblock]::Create($invokerText)
                 publicTenantKey = $Manifest.publicTenantKey
                 intentDigest = $Manifest.intentDigest
                 stateDigest = $Manifest.stateDigest
+                selectedStages = [string[]]@($Manifest.selectedStages)
+                prerequisiteResults =
+                    [object[]]@($Manifest.prerequisiteResults)
                 machine = Copy-ApprovalValue $Manifest.machine
                 operator = Copy-ApprovalValue $Manifest.operator
                 toolIdentities = @(Copy-ApprovalValue $Manifest.toolIdentities)

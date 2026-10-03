@@ -237,6 +237,71 @@ function Assert-TenantLifecyclePrerequisites {
     Assert-TenantLifecycleUniqueValues -Values @($Value) -PropertyName 'id'
 }
 
+function Assert-TenantLifecycleSelectedStages {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][AllowNull()][object]$Value)
+
+    Assert-TenantLifecycleArray -Value $Value -MinimumCount 1
+    Assert-TenantLifecycleCondition (@($Value).Count -le 7)
+    $knownStages = @(
+        'Workstation',
+        'PrivateBoundary',
+        'Foundation',
+        'DevDelivery',
+        'ReadBack',
+        'Acceptance',
+        'TenantReplica'
+    )
+    $lastStageIndex = -1
+    foreach ($stage in @($Value)) {
+        Assert-TenantLifecycleCondition ($stage -is [string])
+        $stageIndex = [Array]::IndexOf(
+            [string[]]$knownStages,
+            [string]$stage
+        )
+        Assert-TenantLifecycleCondition ($stageIndex -gt $lastStageIndex)
+        $lastStageIndex = $stageIndex
+    }
+}
+
+function Assert-TenantLifecyclePrerequisiteResults {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][AllowNull()][object]$Value)
+
+    Assert-TenantLifecycleArray -Value $Value
+    Assert-TenantLifecycleCondition (@($Value).Count -le 1)
+    foreach ($result in @($Value)) {
+        Assert-TenantLifecycleProperties -InputObject $result -Fields @(
+            'stage',
+            'status',
+            'classification',
+            'phaseManifestDigest',
+            'phaseSummaryDigest',
+            'intentDigest',
+            'stateDigest'
+        )
+        Assert-TenantLifecycleCondition (
+            @(
+                'Workstation',
+                'PrivateBoundary',
+                'Foundation',
+                'DevDelivery',
+                'ReadBack',
+                'Acceptance',
+                'TenantReplica'
+            ) -ccontains $result.stage
+        )
+        Assert-TenantLifecycleCondition ($result.status -ceq 'Passed')
+        Assert-TenantLifecycleCondition (
+            @('NoChange', 'Changed') -ccontains $result.classification
+        )
+        Assert-TenantLifecycleDigest $result.phaseManifestDigest
+        Assert-TenantLifecycleDigest $result.phaseSummaryDigest
+        Assert-TenantLifecycleDigest $result.intentDigest
+        Assert-TenantLifecycleDigest $result.stateDigest
+    }
+}
+
 function Assert-TenantLifecycleAssessmentComponents {
     [CmdletBinding()]
     param([Parameter(Mandatory)][AllowNull()][object]$Value)
@@ -561,6 +626,8 @@ function Test-TenantLifecycleContract {
                     'publicTenantKey',
                     'intentDigest',
                     'stateDigest',
+                    'selectedStages',
+                    'prerequisiteResults',
                     'machine',
                     'operator',
                     'toolIdentities',
@@ -579,6 +646,10 @@ function Test-TenantLifecycleContract {
                 Assert-TenantLifecycleString -Value $InputObject.publicTenantKey -Pattern '^tenant[0-9]+$' -MaximumLength 64
                 Assert-TenantLifecycleDigest $InputObject.intentDigest
                 Assert-TenantLifecycleDigest $InputObject.stateDigest
+                Assert-TenantLifecycleSelectedStages `
+                    $InputObject.selectedStages
+                Assert-TenantLifecyclePrerequisiteResults `
+                    $InputObject.prerequisiteResults
                 Assert-TenantLifecycleMachine $InputObject.machine
                 Assert-TenantLifecycleOperator $InputObject.operator
                 Assert-TenantLifecycleToolIdentities $InputObject.toolIdentities

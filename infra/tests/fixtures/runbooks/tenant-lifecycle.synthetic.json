@@ -94,6 +94,10 @@
     "publicTenantKey": "tenant1",
     "intentDigest": "1111111111111111111111111111111111111111111111111111111111111111",
     "stateDigest": "2222222222222222222222222222222222222222222222222222222222222222",
+    "selectedStages": [
+      "Foundation"
+    ],
+    "prerequisiteResults": [],
     "machine": {
       "machineId": "machine-synthetic-001",
       "platform": "Windows 11"

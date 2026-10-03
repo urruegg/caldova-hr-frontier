@@ -225,6 +225,44 @@ function Assert-TenantLifecycleJsonHasUniqueProperties {
     }
 }
 
+function Resolve-TenantLifecycleOrdinalChildPath {
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)][string]$Root,
+        [Parameter(Mandatory)][string[]]$Segments
+    )
+
+    $currentPath = $Root
+    foreach ($segment in $Segments) {
+        if (-not [IO.Directory]::Exists($currentPath)) {
+            throw [IO.InvalidDataException]::new()
+        }
+        $matchingItems = @(
+            Get-ChildItem `
+                -LiteralPath $currentPath `
+                -Force `
+                -ErrorAction Stop |
+                Where-Object {
+                    [StringComparer]::OrdinalIgnoreCase.Equals(
+                        [string]$_.Name,
+                        $segment
+                    )
+                }
+        )
+        if ($matchingItems.Count -ne 1 -or
+            -not [StringComparer]::Ordinal.Equals(
+                [string]$matchingItems[0].Name,
+                $segment
+            ) -or
+            ($matchingItems[0].Attributes -band
+                [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw [IO.InvalidDataException]::new()
+        }
+        $currentPath = [string]$matchingItems[0].FullName
+    }
+    [IO.Path]::GetFullPath($currentPath)
+}
+
 function Read-TenantLifecycleCanonicalJsonFile {
     [CmdletBinding()]
     [OutputType([pscustomobject])]
@@ -283,14 +321,24 @@ function Read-TenantLifecycleCanonicalJsonFile {
                 $suppliedPath
             ) -or
             -not [IO.Directory]::Exists($root) -or
-            -not [IO.File]::Exists($suppliedPath) -or
-            (Test-TenantLifecycleEvidenceReparsePath -Path $root) -or
-            (Test-TenantLifecycleEvidenceReparsePath -Path $suppliedPath)) {
+            (Test-TenantLifecycleEvidenceReparsePath -Path $root)) {
             throw [IO.InvalidDataException]::new()
         }
         $rootItem = Get-Item -LiteralPath $root -Force -ErrorAction Stop
+        $resolvedPath = Resolve-TenantLifecycleOrdinalChildPath `
+            -Root $root `
+            -Segments $relativeSegments
+        if (-not [StringComparer]::Ordinal.Equals(
+                $expectedPath,
+                $resolvedPath
+            ) -or
+            -not [IO.File]::Exists($resolvedPath) -or
+            (Test-TenantLifecycleEvidenceReparsePath `
+                -Path $resolvedPath)) {
+            throw [IO.InvalidDataException]::new()
+        }
         $fileItem = Get-Item `
-            -LiteralPath $suppliedPath `
+            -LiteralPath $resolvedPath `
             -Force `
             -ErrorAction Stop
         if (-not [bool]$rootItem.PSIsContainer -or
@@ -302,7 +350,7 @@ function Read-TenantLifecycleCanonicalJsonFile {
             throw [IO.InvalidDataException]::new()
         }
 
-        $bytes = [IO.File]::ReadAllBytes($suppliedPath)
+        $bytes = [IO.File]::ReadAllBytes($resolvedPath)
         if ($bytes.Length -eq 0 -or
             ($bytes.Length -ge 3 -and
                 $bytes[0] -eq 0xEF -and
@@ -366,7 +414,7 @@ function Read-TenantLifecycleCanonicalJsonFile {
 
         [pscustomobject][ordered]@{
             relativePath = $ExpectedRelativePath
-            path = $suppliedPath
+            path = $resolvedPath
             digest = $digest
             value = $value
         }

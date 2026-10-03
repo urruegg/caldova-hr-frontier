@@ -136,6 +136,26 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
                 $phaseDirectory = Join-Path $RunDirectory "phases\$stage"
                 $manifestPath = Join-Path $phaseDirectory 'execution-manifest.json'
                 $summaryPath = Join-Path $phaseDirectory 'summary.json'
+                [object[]]$prerequisiteResults = @()
+                if ($index -gt 0) {
+                    $previousResult = $results[$index - 1]
+                    $prerequisiteResults = @(
+                        [pscustomobject][ordered]@{
+                            stage = [string]$previousResult.stage
+                            status = [string]$previousResult.status
+                            classification =
+                                [string]$previousResult.classification
+                            phaseManifestDigest =
+                                [string]$previousResult.phaseManifestDigest
+                            phaseSummaryDigest =
+                                [string]$previousResult.phaseSummaryDigest
+                            intentDigest =
+                                [string]$previousResult.intentDigest
+                            stateDigest =
+                                [string]$previousResult.stateDigest
+                        }
+                    )
+                }
                 $manifest = [pscustomobject][ordered]@{
                     schemaVersion = '1.0'
                     runId = $RunId.ToString('D').ToLowerInvariant()
@@ -143,6 +163,8 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
                     publicTenantKey = 'tenant1'
                     intentDigest = $script:CanonicalIntent
                     stateDigest = [string]$InputStateDigests[$index]
+                    selectedStages = [string[]]@($Stages)
+                    prerequisiteResults = $prerequisiteResults
                     providerContexts = @(
                         [pscustomobject][ordered]@{
                             provider = 'Synthetic'
@@ -274,6 +296,139 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
         }
         ($actual | ConvertTo-Json -Depth 10) |
             Should -Not -Match 'providerId|resourceUrl|actionId|payload|readBack'
+    }
+
+    It 'rejects a wrong manifest envelope from the exact stage result set for <Case>' -ForEach @(
+        @{ Case = 'missing selectedStages'; ManifestIndex = 0; Mutation = 'MissingSelected' }
+        @{ Case = 'wrong selectedStages'; ManifestIndex = 0; Mutation = 'WrongSelected' }
+        @{ Case = 'reordered selectedStages'; ManifestIndex = 0; Mutation = 'ReorderedSelected' }
+        @{ Case = 'missing prerequisiteResults'; ManifestIndex = 1; Mutation = 'MissingPrerequisites' }
+        @{ Case = 'wrong prerequisiteResults'; ManifestIndex = 1; Mutation = 'WrongPrerequisites' }
+        @{ Case = 'extra prerequisiteResults'; ManifestIndex = 0; Mutation = 'ExtraPrerequisites' }
+    ) {
+        $runId = [guid]::NewGuid()
+        $runDirectory = Join-Path $TestDrive (
+            "manifest-envelope-$Mutation"
+        )
+        $stages = @('Workstation', 'Foundation')
+        $set = New-CanonicalStageSet `
+            -RunDirectory $runDirectory `
+            -RunId $runId `
+            -Stages $stages
+        $manifestPath = [string]$set.ManifestPaths[$ManifestIndex]
+        $manifest = Get-Content -Raw -LiteralPath $manifestPath |
+            ConvertFrom-Json
+        switch ($Mutation) {
+            'MissingSelected' {
+                $manifest.PSObject.Properties.Remove('selectedStages')
+            }
+            'WrongSelected' {
+                $manifest.selectedStages =
+                    [string[]]@('Workstation', 'ReadBack')
+            }
+            'ReorderedSelected' {
+                $manifest.selectedStages =
+                    [string[]]@('Foundation', 'Workstation')
+            }
+            'MissingPrerequisites' {
+                $manifest.PSObject.Properties.Remove(
+                    'prerequisiteResults'
+                )
+            }
+            'WrongPrerequisites' {
+                $manifest.prerequisiteResults[0].stage = 'ReadBack'
+            }
+            'ExtraPrerequisites' {
+                $manifest.prerequisiteResults = @(
+                    [pscustomobject][ordered]@{
+                        stage = 'Workstation'
+                        status = 'Passed'
+                        classification = 'NoChange'
+                        phaseManifestDigest = '3' * 64
+                        phaseSummaryDigest = '4' * 64
+                        intentDigest = $script:CanonicalIntent
+                        stateDigest = $script:CanonicalCurrentState
+                    }
+                )
+            }
+        }
+        Write-CanonicalTestFile `
+            -InputObject $manifest `
+            -Path $manifestPath
+        $stage = [string]$stages[$ManifestIndex]
+        $resultPath = Join-Path $runDirectory "stages\$stage.json"
+        $result = Get-Content -Raw -LiteralPath $resultPath |
+            ConvertFrom-Json
+        $result.phaseManifestDigest =
+            Get-CanonicalTestFileDigest -Path $manifestPath
+        Write-CanonicalTestFile -InputObject $result -Path $resultPath
+
+        {
+            Invoke-CanonicalStageSet `
+                -RunDirectory $runDirectory `
+                -RunId $runId `
+                -Stages $stages
+        } | Should -Throw -ExpectedMessage (
+            'TenantLifecycle.StageResultSet.Invalid'
+        )
+    }
+
+    It 'rejects prerequisiteResults outside the exact control-record success allowlist' {
+        $runId = [guid]::NewGuid()
+        $runDirectory = Join-Path $TestDrive (
+            'manifest-envelope-failed-prerequisite'
+        )
+        $stages = @('Workstation', 'Foundation')
+        New-CanonicalStageSet `
+            -RunDirectory $runDirectory `
+            -RunId $runId `
+            -Stages $stages `
+            -Statuses @('Failed', 'Passed') `
+            -Classifications @('NoChange', 'NoChange') |
+            Out-Null
+
+        {
+            Invoke-CanonicalStageSet `
+                -RunDirectory $runDirectory `
+                -RunId $runId `
+                -Stages $stages
+        } | Should -Throw -ExpectedMessage (
+            'TenantLifecycle.StageResultSet.Invalid'
+        )
+    }
+
+    It 'rejects actual case drift in exact stage result set path segment <Segment>' -ForEach @(
+        @{ Segment = 'stages directory'; RelativePath = 'stages'; DriftedName = 'Stages' }
+        @{ Segment = 'result filename'; RelativePath = 'stages\Foundation.json'; DriftedName = 'foundation.json' }
+        @{ Segment = 'phases directory'; RelativePath = 'phases'; DriftedName = 'Phases' }
+        @{ Segment = 'phase stage directory'; RelativePath = 'phases\Foundation'; DriftedName = 'foundation' }
+        @{ Segment = 'manifest filename'; RelativePath = 'phases\Foundation\execution-manifest.json'; DriftedName = 'Execution-Manifest.json' }
+        @{ Segment = 'summary filename'; RelativePath = 'phases\Foundation\summary.json'; DriftedName = 'Summary.json' }
+    ) {
+        $runId = [guid]::NewGuid()
+        $runDirectory = Join-Path $TestDrive (
+            'case-segment-' + $Segment.Replace(' ', '-')
+        )
+        New-CanonicalStageSet `
+            -RunDirectory $runDirectory `
+            -RunId $runId |
+            Out-Null
+        $sourcePath = Join-Path $runDirectory $RelativePath
+        $parent = Split-Path -Parent $sourcePath
+        $temporaryPath = Join-Path $parent (
+            '.case-' + [guid]::NewGuid().ToString('N')
+        )
+        $driftedPath = Join-Path $parent $DriftedName
+        Move-Item -LiteralPath $sourcePath -Destination $temporaryPath
+        Move-Item -LiteralPath $temporaryPath -Destination $driftedPath
+
+        {
+            Invoke-CanonicalStageSet `
+                -RunDirectory $runDirectory `
+                -RunId $runId
+        } | Should -Throw -ExpectedMessage (
+            'TenantLifecycle.StageResultSet.Invalid'
+        )
     }
 
     It 'rejects a missing or extra entry from the exact stage result set' -ForEach @(
@@ -1930,6 +2085,8 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                 PublicTenantKey = 'tenant1'
                 IntentDigest = '1' * 64
                 StateDigest = '2' * 64
+                SelectedStages = [string[]]@('Foundation')
+                PrerequisiteResults = [object[]]@()
                 Machine = Copy-EvidenceValue $script:EvidenceFixture.executionManifest.machine
                 Operator = Copy-EvidenceValue $script:EvidenceFixture.executionManifest.operator
                 ToolIdentities = @(Copy-EvidenceValue $script:EvidenceFixture.executionManifest.toolIdentities)
@@ -2737,6 +2894,24 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
             evidenceRoot = { param($value) $value.EvidenceRoot = 'C:\other-evidence-root' }
             intentDigest = { param($value) $value.IntentDigest = '3' * 64 }
             stateDigest = { param($value) $value.StateDigest = '4' * 64 }
+            selectedStages = {
+                param($value)
+                $value.SelectedStages = [string[]]@('Workstation')
+            }
+            prerequisiteResults = {
+                param($value)
+                $value.PrerequisiteResults = @(
+                    [pscustomobject][ordered]@{
+                        stage = 'Workstation'
+                        status = 'Passed'
+                        classification = 'NoChange'
+                        phaseManifestDigest = '3' * 64
+                        phaseSummaryDigest = '4' * 64
+                        intentDigest = '1' * 64
+                        stateDigest = '2' * 64
+                    }
+                )
+            }
             machine = { param($value) $value.Machine.machineId = 'machine-synthetic-002' }
             operator = { param($value) $value.Operator.operatorId = 'operator-synthetic-002' }
             toolIdentities = { param($value) $value.ToolIdentities[0].digest = '5' * 64 }
