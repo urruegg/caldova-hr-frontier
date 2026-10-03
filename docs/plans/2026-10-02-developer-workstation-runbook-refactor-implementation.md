@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Windows 11 workstation assessment, initialization, private-boundary readiness, and restart-safe local evidence |
-| **References** | [Approved Developer Workstation Runbook Refactor Design](../specs/2026-10-02-developer-workstation-runbook-refactor-design.md), [Tenant Lifecycle Core Plan](2026-10-02-tenant-lifecycle-core-implementation.md), [Current Developer Workstation Runbook](../../infra/docs/runbooks/01-developer-workstation.md) |
+| **References** | [Approved Developer Workstation Runbook Refactor Design](../specs/2026-10-02-developer-workstation-runbook-refactor-design.md), [Approved Coordinate-Only Simplification Design](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Coordinate-Only Correction Plan](2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md), [Tenant Lifecycle Core Plan](2026-10-02-tenant-lifecycle-core-implementation.md), [Current Developer Workstation Runbook](../../infra/docs/runbooks/01-developer-workstation.md) |
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -18,6 +18,16 @@
 **Tech Stack:** Windows 11, Windows PowerShell 5.1 (authoritative), Pester 5.7.1, reviewed PowerShell 7, Git, WinGet, GitHub CLI, Azure CLI/Bicep, Azure DevOps CLI extension, PAC CLI, JSON Schema draft 2020-12, and `Caldova.HrFrontier.Bootstrap`.
 
 **Spec:** [`docs/specs/2026-10-02-developer-workstation-runbook-refactor-design.md`](../specs/2026-10-02-developer-workstation-runbook-refactor-design.md)
+
+## 2026-10-03 Coordinate-Only Dependency Amendment
+
+This child plan remains `Draft` and cannot begin until the [coordinate-only correction](2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md) is merged and then-current `main` is green.
+
+- `Test-DeveloperWorkstation.ps1` and `Initialize-DeveloperWorkstation.ps1` own the complete `Workstation` and `PrivateBoundary` child lifecycle: child assessment, child execution manifest, child `approvals.json`, child `-WhatIf`, child `-Apply`, child `ShouldProcess`, local read-back, restart handling, private-boundary proof, terminal child summary, and canonical stage result.
+- Existing `ExecutionManifestPath`, `ApprovedDigest`, and `Apply` parameters remain child parameters on `Initialize-DeveloperWorkstation.ps1`; they are not inputs to `Invoke-TenantLifecycle.ps1`.
+- After terminal child read-back or confirmed `NoChange`, the child writes the immutable canonical result at `<run>/stages/<stage>.json` through the corrected shared helper. The result exposes only stage-level status, classification, provenance, and child artifact digests.
+- Any reference below to Plan 1 approval, action, state, or read-back contracts means retained shared child-library contracts. It does not create a dependency on umbrella Apply, umbrella `ApprovedDigest`, `CurrentBindingProvider`, umbrella action evidence, or umbrella resource-level correlation.
+- Umbrella `Assess` or `Plan` may dispatch this child only in the matching non-mutating mode. Umbrella `Verify` never invokes it and accepts only exact canonical `Passed` stage results.
 
 ## Global Constraints
 
@@ -411,4 +421,4 @@ git commit -m "docs(workstation): publish exact restart-safe runbook" -m "Co-aut
 
 ## Completion Gate
 
-Plan 2 is complete only when Plan 1 contracts remain green, exact supported versions are recorded from reviewed evidence, both PowerShell hosts pass, first and second synthetic runs behave correctly, restart requires new approval, private backup/restore is proven without value leakage, and no cloud authentication or provider call occurs.
+Plan 2 is complete only when the corrected Plan 1 contracts remain green, exact supported versions are recorded from reviewed evidence, both PowerShell hosts pass, first and second synthetic child runs behave correctly, restart requires new child approval, private backup/restore is proven without value leakage, synthetic exact `Workstation` and `PrivateBoundary` stage-result emission passes, and no cloud authentication or provider call occurs.

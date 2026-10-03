@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Attended Tenant 1 execution, acceptance review, fresh-laptop continuation, local TenantReplica validation, and post-acceptance documentation disposition |
-| **References** | [Approved Tenant 1 Runbook End-to-End Design](../specs/2026-10-02-tenant-1-runbook-end-to-end-design.md), [Lifecycle Core Plan](2026-10-02-tenant-lifecycle-core-implementation.md), [Workstation Plan](2026-10-02-developer-workstation-runbook-refactor-implementation.md), [Cloud Core Plan](2026-10-02-cloud-service-foundation-core-implementation.md), [Power Platform DEV Delivery Plan](2026-10-02-power-platform-dev-delivery-implementation.md), [Tenant Replica Plan](2026-10-02-tenant-replica-handover-implementation.md) |
+| **References** | [Approved Coordinate-Only Simplification Design](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Coordinate-Only Correction Plan](2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md), [Approved Tenant 1 Runbook End-to-End Design](../specs/2026-10-02-tenant-1-runbook-end-to-end-design.md), [Lifecycle Core Plan](2026-10-02-tenant-lifecycle-core-implementation.md), [Workstation Plan](2026-10-02-developer-workstation-runbook-refactor-implementation.md), [Cloud Core Plan](2026-10-02-cloud-service-foundation-core-implementation.md), [Power Platform DEV Delivery Plan](2026-10-02-power-platform-dev-delivery-implementation.md), [Tenant Replica Plan](2026-10-02-tenant-replica-handover-implementation.md) |
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -17,7 +17,33 @@
 
 **Tech Stack:** Windows 11, Windows PowerShell 5.1 (authoritative), Pester 5.7.1, reviewed PowerShell 7, Git/GitHub CLI, Azure CLI/Bicep, Azure DevOps CLI/REST, PAC CLI, Azure Pipelines, Power Platform Build Tools 2.0 with WIF, and the accepted runbook modules/scripts from Plans 1-5.
 
-**Spec:** [`docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md`](../specs/2026-10-02-tenant-1-runbook-end-to-end-design.md)
+**Spec:** [`docs/specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md`](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), as the focused corrective authority over [`docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md`](../specs/2026-10-02-tenant-1-runbook-end-to-end-design.md)
+
+## 2026-10-03 Coordinate-Only Operator-Sequence Amendment
+
+This plan remains `Draft` and blocked until the [coordinate-only correction](2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md) and corrected Plans 1-5 are merged and then-current `main` is green. The Non-Negotiable Entry STOP, all hard attended STOPs, and controls `T1-E2E-01` through `T1-E2E-14` remain unchanged.
+
+The controlling operator sequence is:
+
+1. invoke each independently runnable child directly in Plan mode and validate its child execution manifest;
+2. obtain exact child approval in that phase's `approvals.json`;
+3. invoke that child directly with WhatIf and review the exact approved actions;
+4. invoke that child directly with Apply only after its existing hard STOP and child-specific approval;
+5. complete provider-specific or local child read-back, child state adoption where applicable, and the terminal child summary;
+6. write the immutable canonical child stage result at `<run>/stages/<stage>.json`;
+7. repeat for each dependency in the accepted order, stopping on every `Failed`, `Manual`, `Blocked`, or `Refused` result; and
+8. only after the exact selected stage-result set exists, run `Invoke-TenantLifecycle.ps1 -Mode Verify` with no `SubsystemInvoker` and require every dependency result to have literal status `Passed`.
+
+The sequence above replaces every reading of this plan that implies umbrella Apply, one umbrella approval, umbrella `ApprovedDigest`, umbrella `CurrentBindingProvider`, umbrella action evidence, or umbrella provider/resource correlation. In particular:
+
+- Task 2 owns the `Workstation` and `PrivateBoundary` child manifests, approvals, Apply/read-back, summaries, and stage results.
+- Tasks 3-5 own foundation assessment and the `Foundation` child manifest, approval, WhatIf/Apply/read-back, summary, and stage result.
+- Task 6 owns the `DevDelivery` child manifest/approval, attended checkpoint, pipeline/import Apply, read-back, summary, and stage result.
+- Task 7 owns the fresh child NoChange plan/approval/invocation/read-back and `ReadBack` stage result.
+- Task 9 owns the local `TenantReplica` child manifest/approval/WhatIf/Apply/independent read-back, summary, and stage result.
+- Task 10 records the `Acceptance` stage result only after the unchanged human acceptance gate is satisfied, then runs coordinate-only umbrella Verify before any final status or archive disposition.
+
+Provider IDs, URLs, role IDs, pipeline/action IDs, payloads, and raw read-back remain in child evidence. The umbrella summary and committed sanitized projection contain only stage-level provenance, status/classification, child manifest/summary digests, and fixed nonclaims.
 
 ## Non-Negotiable Entry STOP
 
@@ -571,4 +597,4 @@ git commit -m "docs(runbooks): accept Tenant 1 end-to-end lifecycle" -m "Co-auth
 
 ## Completion Gate
 
-This plan is complete only after all 14 specification controls pass in one traceable lifecycle, the human reviewer explicitly accepts the new sanitized review, current-main validation remains green, a fresh laptop continues safely, local `TenantReplica` validation passes, historical reviews remain intact, archive/navigation tests pass, and no unapproved live operation, TEST/PROD mutation, GitHub Actions delivery expansion, remote publication, or Tenant 2 action occurred.
+This plan is complete only after all 14 specification controls pass in one traceable lifecycle, every mutating child has its own Plan/`approvals.json`/WhatIf/Apply/read-back/canonical stage result, coordinate-only umbrella Verify accepts the exact selected ordered set with literal `Passed` dependencies, the human reviewer explicitly accepts the new sanitized review, current-main validation remains green, a fresh laptop continues safely, local `TenantReplica` validation passes, historical reviews remain intact, archive/navigation tests pass, and no unapproved live operation, TEST/PROD mutation, GitHub Actions delivery expansion, remote publication, or Tenant 2 action occurred.

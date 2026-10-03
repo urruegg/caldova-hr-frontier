@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Tenant 1 provider assessment, deterministic planning, and foundation reconciliation core |
-| **References** | [Approved Cloud Service Foundation Runbook Design](../specs/2026-10-02-cloud-service-foundation-runbook-design.md), [Tenant Lifecycle Core Plan](2026-10-02-tenant-lifecycle-core-implementation.md), [Developer Workstation Refactor Plan](2026-10-02-developer-workstation-runbook-refactor-implementation.md), [Current Cloud Stop Notice](../../infra/docs/runbooks/02-cloud-service-foundation.md) |
+| **References** | [Approved Cloud Service Foundation Runbook Design](../specs/2026-10-02-cloud-service-foundation-runbook-design.md), [Approved Coordinate-Only Simplification Design](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Coordinate-Only Correction Plan](2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md), [Tenant Lifecycle Core Plan](2026-10-02-tenant-lifecycle-core-implementation.md), [Developer Workstation Refactor Plan](2026-10-02-developer-workstation-runbook-refactor-implementation.md), [Current Cloud Stop Notice](../../infra/docs/runbooks/02-cloud-service-foundation.md) |
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -18,6 +18,16 @@
 **Tech Stack:** Windows PowerShell 5.1 (authoritative), Pester 5.7.1, reviewed PowerShell 7 compatibility, JSON Schema draft 2020-12, GitHub REST API `2022-11-28`, Microsoft Graph v1.0 where supported, Azure CLI/Bicep, Azure DevOps REST API 7.1, PAC CLI read-only context, and `Caldova.HrFrontier.Bootstrap`.
 
 **Spec:** [`docs/specs/2026-10-02-cloud-service-foundation-runbook-design.md`](../specs/2026-10-02-cloud-service-foundation-runbook-design.md)
+
+## 2026-10-03 Coordinate-Only Dependency Amendment
+
+This child plan remains `Draft` and cannot begin until the [coordinate-only correction](2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md), corrected Plan 1, and Plan 2 are merged and then-current `main` is green.
+
+- `Test-TenantFoundation.ps1`, `New-TenantFoundationPlan.ps1`, and `Invoke-TenantFoundation.ps1` own the complete foundation child lifecycle: child assessment, child execution manifest, child `approvals.json`, child Bicep/provider WhatIf, child `-Apply`, child `ShouldProcess`, exact provider pre-read/action/post-read correlation, child state adoption, terminal child summary, and canonical `Foundation` or `ReadBack` stage result.
+- Current provider bindings, provider/action/result correlation, exact provider actions, one-time Create adoption, immutable adopted stable IDs, immediate read-back, forward reconciliation, and idempotent `NoChange` are child responsibilities. They must not be delegated to the umbrella or inferred from `targetStableId` alone.
+- Existing Plan 1 manifest, approval, action-evidence, state, atomic-write, and read-back helpers remain shared child-library dependencies. No task below may call umbrella Apply, pass `ApprovedDigest` to the umbrella, use umbrella `CurrentBindingProvider`, or require umbrella resource-level correlation.
+- After a terminal child summary, the child writes the immutable canonical result at `<run>/stages/<stage>.json`. Provider IDs, URLs, action IDs, payloads, and raw read-back stay in child evidence and are never copied into the umbrella result or projection.
+- Umbrella `Assess` or `Plan` may dispatch only the matching non-mutating child mode. Umbrella `Verify` never invokes a provider adapter or this child entry point; it validates exact stage-result and phase-summary bytes/digests only.
 
 ## Global Constraints
 
@@ -477,4 +487,4 @@ git commit -m "docs(cloud): complete foundation core contracts" -m "Co-authored-
 
 ## Completion Gate
 
-Plan 3 is complete only when Plans 1-2 remain green, all provider contracts pass synthetically, capabilities that need live proof remain blocked, the second synthetic run contains no `Create`/`Update`, TEST/PROD are read-only, no pipeline is queued/imported, no live provider is contacted, and legacy entry points remain fail-closed compatibility notices.
+Plan 3 is complete only when corrected Plans 1-2 remain green, all child provider contracts pass synthetically, capabilities that need live proof remain blocked, the second synthetic run contains no `Create`/`Update`, synthetic canonical `Foundation` and applicable `ReadBack` stage-result emission passes, TEST/PROD are read-only, no pipeline is queued/imported, no live provider is contacted, and legacy entry points remain fail-closed compatibility notices.

@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Shared Tenant 1 lifecycle contracts, orchestration, evidence, and synthetic tests |
-| **References** | [Approved Tenant 1 Runbook End-to-End Design](../specs/2026-10-02-tenant-1-runbook-end-to-end-design.md), [Implementation Plan Catalogue](README.md), [Infrastructure Domain](../../infra/README.md) |
+| **References** | [Approved Coordinate-Only Simplification Design](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Coordinate-Only Correction Plan](2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md), [Approved Tenant 1 Runbook End-to-End Design](../specs/2026-10-02-tenant-1-runbook-end-to-end-design.md), [Implementation Plan Catalogue](README.md), [Infrastructure Domain](../../infra/README.md) |
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -17,7 +17,19 @@
 
 **Tech Stack:** Windows PowerShell 5.1 (authoritative host), Pester 5.7.1, reviewed PowerShell 7 compatibility, JSON Schema draft 2020-12, Git, and the existing `Caldova.HrFrontier.Bootstrap` module.
 
-**Spec:** [`docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md`](../specs/2026-10-02-tenant-1-runbook-end-to-end-design.md)
+**Spec:** [`docs/specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md`](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), as the focused corrective authority over [`docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md`](../specs/2026-10-02-tenant-1-runbook-end-to-end-design.md)
+
+## 2026-10-03 Coordinate-Only Corrective Amendment
+
+This amendment is controlling where the historical task text below conflicts with the Approved coordinate-only design.
+
+- Tasks 1-7 remain the implementation history represented by the 15 existing commits on blocked branch `feat/tenant-lifecycle-core`. Do not rewrite, amend, squash, or restate those historical task steps.
+- The [coordinate-only corrective plan](2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md) supersedes Task 5's mutation-capable umbrella signature and execution path, Task 6's provider-ID/URL projection contract, and Task 7's umbrella approval/action-evidence assumptions.
+- Tasks 1-4 remain retained shared child-library history: closed contracts, canonical JSON/digests, intent/state separation, one-time Create adoption with immutable stable IDs, prerequisite sorting, child manifests, child approvals, child action/state/read-back evidence, and atomic writes stay available to independently runnable child runbooks.
+- The corrected umbrella has only `Assess`, `Plan`, and `Verify`; it has no `Apply`, `ExecutionManifestPath`, `ApprovedDigest`, `BindingObserver`, `CurrentBindingProvider`, approval loading, provider action/result correlation, resource-level target correlation, or `SupportsShouldProcess`.
+- The corrected umbrella projection is stage-only. It contains no provider stable IDs, URLs, role IDs, action IDs, action payloads, or raw provider read-back.
+- Plan 1 is incomplete until every corrective task passes focused review, Windows PowerShell 5.1 and reviewed PowerShell 7 lifecycle coverage, full maintained Pester, safety/setup validation, all Bicep builds, documentation validation, workflow-neutral checks, and a whole-branch review.
+- Plan 1 and Plans 2-6 remain `Draft` and blocked. Plan 2 cannot begin until the corrective plan is merged and then-current `main` is green.
 
 ## Global Constraints
 
@@ -518,4 +530,4 @@ git commit -m "docs(runbooks): document lifecycle core contracts" -m "Co-authore
 
 ## Completion Gate
 
-Plan 1 is complete only when all seven task commits are reviewed, Windows PowerShell 5.1 is green, reviewed PowerShell 7 compatibility is green, the full repository-neutral validation passes, the stop stubs are unchanged, and synthetic evidence proves approval expiry, drift invalidation, restart invalidation, deterministic graph behavior, and zero provider mutation.
+Plan 1 is complete only when all seven historical task commits and the coordinate-only correction are reviewed, Windows PowerShell 5.1 is green, reviewed PowerShell 7 compatibility is green, the full repository-neutral validation passes, the stop stubs are unchanged, and synthetic evidence proves child-owned approval expiry, drift invalidation, restart invalidation, deterministic stage-result behavior, exact `Passed` dependency handling, and zero umbrella provider mutation. Until the corrective plan is merged and then-current `main` is green, Plan 1 remains incomplete and blocked.
