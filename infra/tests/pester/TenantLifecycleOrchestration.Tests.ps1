@@ -944,12 +944,6 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                     $script:CoordinateFixture = Get-Content -Raw -LiteralPath $fixturePath |
                         ConvertFrom-Json
 
-                    function Copy-CoordinateValue {
-                        param([Parameter(Mandatory)][object]$InputObject)
-
-                        $InputObject | ConvertTo-Json -Depth 30 | ConvertFrom-Json
-                    }
-
                     function Get-CoordinatePrivateDigests {
                         $intentValue = Import-TenantConfiguration `
                             -Path $script:CoordinateIntentPath `
@@ -982,108 +976,6 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             $json,
                             [Text.UTF8Encoding]::new($false)
                         )
-                    }
-
-                    function New-CoordinateAssessment {
-                        param(
-                            [Parameter(Mandatory)][string]$Stage,
-                            [Parameter(Mandatory)][object]$ControlRecord,
-                            [Parameter(Mandatory)][object]$Fixture
-                        )
-
-                        $assessment = Copy-CoordinateValue $Fixture.assessment
-                        $assessment.runId = [string]$ControlRecord.runId
-                        $assessment.sourceCommit = [string]$ControlRecord.sourceCommit
-                        $assessment.publicTenantKey = [string]$ControlRecord.publicTenantKey
-                        $assessment.intentDigest = [string]$ControlRecord.intentDigest
-                        $assessment.stateDigest = [string]$ControlRecord.stateDigest
-                        $assessment.kind = $Stage
-                        $unsigned = [ordered]@{}
-                        foreach ($property in $assessment.PSObject.Properties) {
-                            if ($property.Name -cne 'digest') {
-                                $unsigned[$property.Name] = $property.Value
-                            }
-                        }
-                        $assessment.digest = Get-RunbookContentDigest -InputObject (
-                            [pscustomobject]$unsigned
-                        )
-                        $assessment
-                    }
-
-                    function New-CoordinateExecutionManifest {
-                        param(
-                            [Parameter(Mandatory)][string]$Stage,
-                            [Parameter(Mandatory)][object]$ControlRecord,
-                            [Parameter(Mandatory)][object]$Fixture,
-                            [Parameter(Mandatory)][string]$EvidenceRoot
-                        )
-
-                        $action = Copy-CoordinateValue (
-                            $Fixture.executionManifest.actions[0]
-                        )
-                        $action.id = $Stage
-                        $action.prerequisiteActionIds = [string[]]@()
-                        New-TenantLifecycleExecutionManifest `
-                            -RunId ([guid]$ControlRecord.runId) `
-                            -SourceCommit ([string]$ControlRecord.sourceCommit) `
-                            -EvidenceRoot $EvidenceRoot `
-                            -PublicTenantKey ([string]$ControlRecord.publicTenantKey) `
-                            -IntentDigest ([string]$ControlRecord.intentDigest) `
-                            -StateDigest ([string]$ControlRecord.stateDigest) `
-                            -Machine (
-                                Copy-CoordinateValue $Fixture.executionManifest.machine
-                            ) `
-                            -Operator (
-                                Copy-CoordinateValue $Fixture.executionManifest.operator
-                            ) `
-                            -ToolIdentities @(
-                                Copy-CoordinateValue (
-                                    $Fixture.executionManifest.toolIdentities
-                                )
-                            ) `
-                            -ProviderContexts @(
-                                Copy-CoordinateValue (
-                                    $Fixture.executionManifest.providerContexts
-                                )
-                            ) `
-                            -Prerequisites @(
-                                Copy-CoordinateValue (
-                                    $Fixture.executionManifest.prerequisites
-                                )
-                            ) `
-                            -Actions @($action) `
-                            -GeneratedAtUtc ([datetime]'2026-10-03T08:00:00Z') `
-                            -ExpiresAtUtc ([datetime]'2026-10-03T08:30:00Z')
-                    }
-
-                    function Write-CoordinateChildArtifact {
-                        param(
-                            [Parameter(Mandatory)][string]$Stage,
-                            [Parameter(Mandatory)][ValidateSet('Assess', 'Plan')][string]$Mode,
-                            [Parameter(Mandatory)][object]$ControlRecord,
-                            [Parameter(Mandatory)][string]$EvidenceRoot,
-                            [Parameter(Mandatory)][object]$Fixture
-                        )
-
-                        $phaseDirectory = Join-Path $EvidenceRoot (
-                            Join-Path $ControlRecord.runId "phases\$Stage"
-                        )
-                        if ($Mode -ceq 'Assess') {
-                            $artifact = New-CoordinateAssessment `
-                                -Stage $Stage `
-                                -ControlRecord $ControlRecord `
-                                -Fixture $Fixture
-                            $path = Join-Path $phaseDirectory 'assessment.json'
-                        }
-                        else {
-                            $artifact = New-CoordinateExecutionManifest `
-                                -Stage $Stage `
-                                -ControlRecord $ControlRecord `
-                                -Fixture $Fixture `
-                                -EvidenceRoot $phaseDirectory
-                            $path = Join-Path $phaseDirectory 'execution-manifest.json'
-                        }
-                        Write-CoordinateCanonicalFile -InputObject $artifact -Path $path
                     }
 
                     function Write-CoordinateStageResult {
@@ -1187,105 +1079,355 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             [Parameter(Mandatory)][string]$StatePath
                         )
 
+                        $bindingLines = @(
+                            Select-String `
+                                -LiteralPath $script:CoordinateOrchestratorPath `
+                                -Pattern (
+                                    '^\s*\$verifiedCoordinates\s*=\s*' +
+                                    'Assert-TenantLifecycleBindings\s*$'
+                                ) |
+                                ForEach-Object LineNumber
+                        )
+                        if ($bindingLines.Count -ne 3) {
+                            throw 'Synthetic drift breakpoint could not be located.'
+                        }
+                        $line = if ($ContractKind -ceq 'Assessment') {
+                            $bindingLines[2]
+                        }
+                        else {
+                            (
+                                Select-String `
+                                    -LiteralPath $script:CoordinateOrchestratorPath `
+                                    -Pattern (
+                                        '^\s*Read-TenantLifecyclePrerequisite\s+' +
+                                        '-Stage\s+\$prerequisiteStage\s*$'
+                                    )
+                            ).LineNumber
+                        }
                         $drifter = ${function:Set-CoordinateDrift}
                         $triggered = $false
-                        $kindToIntercept = $ContractKind
-                        $targetToDrift = $DriftTarget
-                        Set-Item -Path function:global:Test-TenantLifecycleContract -Value {
-                            param(
-                                [Parameter(Mandatory)][string]$Kind,
-                                [Parameter(Mandatory)][object]$InputObject
-                            )
-
-                            $result = & (
-                                'Caldova.HrFrontier.Bootstrap\' +
-                                'Test-TenantLifecycleContract'
-                            ) -Kind $Kind -InputObject $InputObject
-                            if (-not $triggered -and $Kind -ceq $kindToIntercept) {
+                        $action = {
+                            if (-not $triggered) {
                                 $triggered = $true
                                 & $drifter `
-                                    -Target $targetToDrift `
+                                    -Target $DriftTarget `
                                     -RepositoryRoot $RepositoryRoot `
                                     -IntentPath $IntentPath `
                                     -StatePath $StatePath
                             }
-                            $result
                         }.GetNewClosure()
+                        $breakpoint = Set-PSBreakpoint `
+                            -Script $script:CoordinateOrchestratorPath `
+                            -Line $line `
+                            -Action $action
+                        $script:CoordinateBreakpoints.Add($breakpoint)
+                    }
+
+                    function Get-CoordinateObservedCalls {
+                        param([Parameter(Mandatory)][guid]$RunId)
+
+                        $path = Join-Path $script:CoordinateEvidenceRoot (
+                            Join-Path $RunId.ToString('D') (
+                                '.test-observation\calls.txt'
+                            )
+                        )
+                        if (-not [IO.File]::Exists($path)) {
+                            return @()
+                        }
+                        @([IO.File]::ReadAllLines(
+                            $path,
+                            [Text.UTF8Encoding]::new($false, $true)
+                        ))
+                    }
+
+                    function Get-CoordinateObservedRecords {
+                        param(
+                            [Parameter(Mandatory)][guid]$RunId,
+                            [Parameter(Mandatory)][string[]]$Stages
+                        )
+
+                        $records = [Collections.Generic.List[object]]::new()
+                        foreach ($stage in $Stages) {
+                            $path = Join-Path $script:CoordinateEvidenceRoot (
+                                Join-Path $RunId.ToString('D') (
+                                    ".test-observation\record-$stage.json"
+                                )
+                            )
+                            if ([IO.File]::Exists($path)) {
+                                $records.Add((
+                                    [IO.File]::ReadAllText(
+                                        $path,
+                                        [Text.UTF8Encoding]::new($false, $true)
+                                    ) | ConvertFrom-Json
+                                ))
+                            }
+                        }
+                        @($records.ToArray())
+                    }
+
+                    function Test-CoordinateProviderMarker {
+                        param([Parameter(Mandatory)][guid]$RunId)
+
+                        $path = Join-Path $script:CoordinateEvidenceRoot (
+                            Join-Path $RunId.ToString('D') (
+                                '.test-observation\provider-call.txt'
+                            )
+                        )
+                        [IO.File]::Exists($path)
                     }
 
                     function New-CoordinateArtifactInvoker {
                         param(
-                            [Parameter(Mandatory)]
-                            [AllowEmptyCollection()]
-                            [Collections.Generic.List[string]]$Calls,
-                            [Parameter(Mandatory)]
-                            [AllowEmptyCollection()]
-                            [Collections.Generic.List[object]]$Records,
                             [ValidateSet('None', 'Assess', 'Plan')]
                             [string]$ArtifactMode = 'None',
                             [ValidateSet('None', 'Source', 'Intent', 'State')]
                             [string]$DuringDrift = 'None',
-                            [ValidateSet('None', 'Source', 'Intent', 'State')]
-                            [string]$AfterArtifactDrift = 'None',
-                            [ValidateSet('None', 'Source', 'Intent', 'State')]
-                            [string]$BeforeNextDrift = 'None',
+                            [string]$ArtifactStage,
                             [switch]$ReturnProviderData,
-                            [switch]$TamperDynamicScope
+                            [switch]$TamperDynamicScope,
+                            [switch]$TamperAuthoritativeScope
                         )
 
-                        $writer = ${function:Write-CoordinateChildArtifact}
-                        $drifter = ${function:Set-CoordinateDrift}
-                        $hookInstaller = ${function:Install-CoordinateValidationDriftHook}
-                        $evidenceRoot = $script:CoordinateEvidenceRoot
-                        $fixture = $script:CoordinateFixture
-                        $repositoryRoot = $script:CoordinateSyntheticRepository
-                        $intentPath = $script:CoordinateIntentPath
-                        $statePath = $script:CoordinateStatePath
-                        {
+                        $settings = [pscustomobject][ordered]@{
+                            artifactMode = $ArtifactMode
+                            duringDrift = $DuringDrift
+                            artifactStage = $ArtifactStage
+                            returnProviderData = [bool]$ReturnProviderData
+                            tamperDynamicScope = [bool]$TamperDynamicScope
+                            tamperAuthoritativeScope = [bool]$TamperAuthoritativeScope
+                            fixture = $script:CoordinateFixture
+                            modulePath = $script:CoordinateModulePath
+                            repositoryRoot = $script:CoordinateSyntheticRepository
+                            intentPath = $script:CoordinateIntentPath
+                            statePath = $script:CoordinateStatePath
+                        }
+                        $settingsBase64 = [Convert]::ToBase64String(
+                            [Text.Encoding]::UTF8.GetBytes((
+                                $settings |
+                                    ConvertTo-Json -Depth 30 -Compress
+                            ))
+                        )
+                        $invokerText = @'
                             param(
                                 [Parameter(Mandatory)][string]$Stage,
                                 [Parameter(Mandatory)][string]$Mode,
                                 [Parameter(Mandatory)][object]$ControlRecord
                             )
 
-                            [void]$Calls.Add("$Stage|$Mode")
-                            [void]$Records.Add($ControlRecord)
-                            $modeToWrite = if ($ArtifactMode -ceq 'None') {
+                            $settings = [Text.Encoding]::UTF8.GetString(
+                                [Convert]::FromBase64String(
+                                    '__SETTINGS_BASE64__'
+                                )
+                            ) | ConvertFrom-Json
+                            Import-Module ([string]$settings.modulePath) -Force
+                            $runDirectory = [IO.Path]::GetFullPath((
+                                [IO.Path]::Combine(
+                                    [Environment]::CurrentDirectory,
+                                    [string]$ControlRecord.evidenceRunRelativePath
+                                )
+                            ))
+                            $observationDirectory = [IO.Path]::Combine(
+                                $runDirectory,
+                                '.test-observation'
+                            )
+                            [IO.Directory]::CreateDirectory(
+                                $observationDirectory
+                            ) | Out-Null
+                            [IO.File]::AppendAllText(
+                                [IO.Path]::Combine(
+                                    $observationDirectory,
+                                    'calls.txt'
+                                ),
+                                "$Stage|$Mode`n",
+                                [Text.UTF8Encoding]::new($false)
+                            )
+                            [IO.File]::WriteAllText(
+                                [IO.Path]::Combine(
+                                    $observationDirectory,
+                                    "record-$Stage.json"
+                                ),
+                                (
+                                    $ControlRecord |
+                                        ConvertTo-Json -Depth 30 -Compress
+                                ),
+                                [Text.UTF8Encoding]::new($false)
+                            )
+
+                            $modeToWrite = if (
+                                [string]$settings.artifactMode -ceq 'None'
+                            ) {
                                 $Mode
                             }
                             else {
-                                $ArtifactMode
+                                [string]$settings.artifactMode
                             }
-                            & $writer `
-                                -Stage $Stage `
-                                -Mode $modeToWrite `
-                                -ControlRecord $ControlRecord `
-                                -EvidenceRoot $evidenceRoot `
-                                -Fixture $fixture
-                            if ($DuringDrift -cne 'None') {
-                                & $drifter `
-                                    -Target $DuringDrift `
-                                    -RepositoryRoot $repositoryRoot `
-                                    -IntentPath $intentPath `
-                                    -StatePath $statePath
+                            $artifactStage = if (
+                                [string]::IsNullOrEmpty(
+                                    [string]$settings.artifactStage
+                                )
+                            ) {
+                                $Stage
                             }
-                            if ($AfterArtifactDrift -cne 'None') {
-                                & $hookInstaller `
-                                    -ContractKind Assessment `
-                                    -DriftTarget $AfterArtifactDrift `
-                                    -RepositoryRoot $repositoryRoot `
-                                    -IntentPath $intentPath `
-                                    -StatePath $statePath
+                            else {
+                                [string]$settings.artifactStage
                             }
-                            if ($BeforeNextDrift -cne 'None') {
-                                & $hookInstaller `
-                                    -ContractKind StageResult `
-                                    -DriftTarget $BeforeNextDrift `
-                                    -RepositoryRoot $repositoryRoot `
-                                    -IntentPath $intentPath `
-                                    -StatePath $statePath
+                            $phaseDirectory = [IO.Path]::Combine(
+                                $runDirectory,
+                                'phases',
+                                $Stage
+                            )
+                            [IO.Directory]::CreateDirectory(
+                                $phaseDirectory
+                            ) | Out-Null
+                            if ($modeToWrite -ceq 'Assess') {
+                                $assessment = (
+                                    $settings.fixture.assessment |
+                                        ConvertTo-Json -Depth 30 |
+                                        ConvertFrom-Json
+                                )
+                                $assessment.runId = [string]$ControlRecord.runId
+                                $assessment.sourceCommit =
+                                    [string]$ControlRecord.sourceCommit
+                                $assessment.publicTenantKey =
+                                    [string]$ControlRecord.publicTenantKey
+                                $assessment.intentDigest =
+                                    [string]$ControlRecord.intentDigest
+                                $assessment.stateDigest =
+                                    [string]$ControlRecord.stateDigest
+                                $assessment.kind = $artifactStage
+                                $unsigned = [ordered]@{}
+                                foreach (
+                                    $property in $assessment.PSObject.Properties
+                                ) {
+                                    if ($property.Name -cne 'digest') {
+                                        $unsigned[$property.Name] =
+                                            $property.Value
+                                    }
+                                }
+                                $assessment.digest =
+                                    Get-RunbookContentDigest -InputObject (
+                                        [pscustomobject]$unsigned
+                                    )
+                                $artifact = $assessment
+                                $artifactPath = [IO.Path]::Combine(
+                                    $phaseDirectory,
+                                    'assessment.json'
+                                )
                             }
-                            if ($TamperDynamicScope) {
+                            else {
+                                $action = (
+                                    $settings.fixture.executionManifest.actions[0] |
+                                        ConvertTo-Json -Depth 30 |
+                                        ConvertFrom-Json
+                                )
+                                $action.id = $artifactStage
+                                $action.prerequisiteActionIds = [string[]]@()
+                                $artifact = New-TenantLifecycleExecutionManifest `
+                                    -RunId ([guid]$ControlRecord.runId) `
+                                    -SourceCommit (
+                                        [string]$ControlRecord.sourceCommit
+                                    ) `
+                                    -EvidenceRoot $phaseDirectory `
+                                    -PublicTenantKey (
+                                        [string]$ControlRecord.publicTenantKey
+                                    ) `
+                                    -IntentDigest (
+                                        [string]$ControlRecord.intentDigest
+                                    ) `
+                                    -StateDigest (
+                                        [string]$ControlRecord.stateDigest
+                                    ) `
+                                    -Machine (
+                                        $settings.fixture.executionManifest.machine
+                                    ) `
+                                    -Operator (
+                                        $settings.fixture.executionManifest.operator
+                                    ) `
+                                    -ToolIdentities @(
+                                        $settings.fixture.executionManifest.toolIdentities
+                                    ) `
+                                    -ProviderContexts @(
+                                        $settings.fixture.executionManifest.providerContexts
+                                    ) `
+                                    -Prerequisites @(
+                                        $settings.fixture.executionManifest.prerequisites
+                                    ) `
+                                    -Actions @($action) `
+                                    -GeneratedAtUtc (
+                                        [datetime]'2026-10-03T08:00:00Z'
+                                    ) `
+                                    -ExpiresAtUtc (
+                                        [datetime]'2026-10-03T08:30:00Z'
+                                    )
+                                $artifactPath = [IO.Path]::Combine(
+                                    $phaseDirectory,
+                                    'execution-manifest.json'
+                                )
+                            }
+                            [IO.File]::WriteAllText(
+                                $artifactPath,
+                                (
+                                    ConvertTo-TenantLifecycleCanonicalJson `
+                                        -InputObject $artifact
+                                ),
+                                [Text.UTF8Encoding]::new($false)
+                            )
+
+                            switch ([string]$settings.duringDrift) {
+                                'Source' {
+                                    [IO.File]::AppendAllText(
+                                        [IO.Path]::Combine(
+                                            [string]$settings.repositoryRoot,
+                                            'tracked.txt'
+                                        ),
+                                        "drift`n",
+                                        [Text.UTF8Encoding]::new($false)
+                                    )
+                                }
+                                'Intent' {
+                                    $content = [IO.File]::ReadAllText(
+                                        [string]$settings.intentPath,
+                                        [Text.UTF8Encoding]::new(
+                                            $false,
+                                            $true
+                                        )
+                                    )
+                                    $content = [regex]::Replace(
+                                        $content,
+                                        "(?m)^\s*DisplayName\s*=\s*'[^']+'\s*$",
+                                        (
+                                            "    DisplayName = " +
+                                            "'Example123456 Drift'"
+                                        )
+                                    )
+                                    [IO.File]::WriteAllText(
+                                        [string]$settings.intentPath,
+                                        $content,
+                                        [Text.UTF8Encoding]::new($false)
+                                    )
+                                }
+                                'State' {
+                                    $state = [IO.File]::ReadAllText(
+                                        [string]$settings.statePath,
+                                        [Text.UTF8Encoding]::new(
+                                            $false,
+                                            $true
+                                        )
+                                    ) | ConvertFrom-Json
+                                    $state.resources[0].lastVerifiedAtUtc =
+                                        '2026-10-03T08:31:01.0000000Z'
+                                    [IO.File]::WriteAllText(
+                                        [string]$settings.statePath,
+                                        (
+                                            ConvertTo-TenantLifecycleCanonicalJson `
+                                                -InputObject $state
+                                        ),
+                                        [Text.UTF8Encoding]::new($false)
+                                    )
+                                }
+                            }
+
+                            if ([bool]$settings.tamperDynamicScope) {
                                 Set-Variable `
                                     -Name stage `
                                     -Scope 1 `
@@ -1299,7 +1441,58 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                                     -Scope 1 `
                                     -Value ([pscustomobject]@{ providerPayload = 'forged' })
                             }
-                            if ($ReturnProviderData) {
+                            if ([bool]$settings.tamperAuthoritativeScope) {
+                                foreach ($authoritativeName in @(
+                                    'RunId',
+                                    'EvidenceRoot',
+                                    'RepositoryRoot',
+                                    'ExpectedSourceCommit',
+                                    'PublicTenantKey',
+                                    'TenantConfigurationPath',
+                                    'TenantStatePath',
+                                    'Stages',
+                                    'Mode',
+                                    'SubsystemInvoker',
+                                    'NowUtc',
+                                    'canonicalStageOrder',
+                                    'selectedStageSet',
+                                    'lastSelectedStageIndex',
+                                    'trustedRunId',
+                                    'trustedRunIdText',
+                                    'trustedExpectedSourceCommit',
+                                    'trustedPublicTenantKey',
+                                    'trustedTenantConfigurationPath',
+                                    'trustedTenantStatePath',
+                                    'trustedStages',
+                                    'trustedMode',
+                                    'modulePath',
+                                    'repository',
+                                    'trustedEvidenceRoot',
+                                    'expectedRunDirectory',
+                                    'runDirectory',
+                                    'gitPath',
+                                    'gitBoundaryRunner',
+                                    'baselineSourceCommit',
+                                    'baselinePrivateBinding',
+                                    'baselineIntentDigest',
+                                    'baselineStateDigest',
+                                    'stageIndex',
+                                    'stage',
+                                    'prerequisiteResults',
+                                    'verifiedCoordinates',
+                                    'freshControlRecord'
+                                )) {
+                                    Set-Variable `
+                                        -Name $authoritativeName `
+                                        -Scope 1 `
+                                        -Value 'forged'
+                                }
+                            }
+                            if ([bool]$settings.returnProviderData) {
+                                $providerMarker = [IO.Path]::Combine(
+                                    $observationDirectory,
+                                    'provider-call.txt'
+                                )
                                 $returnValue = [pscustomobject][ordered]@{
                                     status = 'Passed'
                                     providerId = 'provider-private-id'
@@ -1310,14 +1503,22 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                                     -MemberType ScriptProperty `
                                     -Name rawReadBack `
                                     -Value {
-                                        [void]$script:CoordinateProviderRunnerCalls.Add(
-                                            'return-read'
+                                        [IO.File]::WriteAllText(
+                                            $providerMarker,
+                                            'called',
+                                            [Text.UTF8Encoding]::new($false)
                                         )
                                         throw 'The invoker return value was read.'
-                                    }
+                                    }.GetNewClosure()
                                 return $returnValue
                             }
-                        }.GetNewClosure()
+'@
+                        [scriptblock]::Create((
+                            $invokerText.Replace(
+                                '__SETTINGS_BASE64__',
+                                $settingsBase64
+                            )
+                        ))
                     }
 
                     function Invoke-CoordinateOrchestrator {
@@ -1436,10 +1637,15 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                     ) ('evidence-' + [guid]::NewGuid().ToString('N'))
                     $script:CoordinateProviderRunnerCalls =
                         [Collections.Generic.List[string]]::new()
+                    $script:CoordinateBreakpoints =
+                        [Collections.Generic.List[object]]::new()
                 }
 
                 AfterEach {
                     $script:CoordinateProviderRunnerCalls.Count | Should -Be 0
+                    foreach ($breakpoint in $script:CoordinateBreakpoints) {
+                        Remove-PSBreakpoint -Breakpoint $breakpoint
+                    }
                     Remove-Item `
                         -Path function:global:Test-TenantLifecycleContract `
                         -Force `
@@ -1447,6 +1653,47 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                 }
 
                 Context 'coordinate-only Assess and Plan entry guards' {
+                    It 'rejects case drift in mode <Mode> before invoker and filesystem access' -ForEach @(
+                        @{ Mode = 'assess' }
+                        @{ Mode = 'plan' }
+                        @{ Mode = 'verify' }
+                    ) {
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId ([guid]::NewGuid()) `
+                                -Stages @('Workstation') `
+                                -Mode $Mode `
+                                -RepositoryRoot 'Z:\not-a-repository' `
+                                -EvidenceRoot 'Z:\not-evidence' `
+                                -TenantConfigurationPath 'Z:\not-intent.psd1' `
+                                -TenantStatePath 'Z:\not-state.json'
+                        } | Should -Throw -ExpectedMessage (
+                            'TenantLifecycle.Mode.Invalid'
+                        )
+                    }
+
+                    It 'rejects case drift in every stage before invoker and filesystem access' -ForEach @(
+                        @{ Stage = 'workstation' }
+                        @{ Stage = 'privateBoundary' }
+                        @{ Stage = 'foundation' }
+                        @{ Stage = 'devDelivery' }
+                        @{ Stage = 'readBack' }
+                        @{ Stage = 'acceptance' }
+                        @{ Stage = 'tenantReplica' }
+                    ) {
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId ([guid]::NewGuid()) `
+                                -Stages @($Stage) `
+                                -RepositoryRoot 'Z:\not-a-repository' `
+                                -EvidenceRoot 'Z:\not-evidence' `
+                                -TenantConfigurationPath 'Z:\not-intent.psd1' `
+                                -TenantStatePath 'Z:\not-state.json'
+                        } | Should -Throw -ExpectedMessage (
+                            'TenantLifecycle.Stages.Invalid'
+                        )
+                    }
+
                     It 'requires an invoker in <Mode>' -ForEach @(
                         @{ Mode = 'Assess' }
                         @{ Mode = 'Plan' }
@@ -1477,6 +1724,17 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             'TenantLifecycle.SubsystemInvoker.NotAllowed'
                         )
                         $calls.Count | Should -Be 0
+                    }
+
+                    It 'keeps Verify without an invoker on the transitional Task 3 guard' {
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId ([guid]::NewGuid()) `
+                                -Stages @('Workstation') `
+                                -Mode Verify
+                        } | Should -Throw -ExpectedMessage (
+                            'TenantLifecycle.Verify.NotImplemented'
+                        )
                     }
 
                     It 'rejects an empty selected stage set before dispatch' {
@@ -1531,11 +1789,7 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         Write-CoordinateStageResult `
                             -RunId $runId `
                             -Stage Workstation
-                        $calls = [Collections.Generic.List[string]]::new()
-                        $records = [Collections.Generic.List[object]]::new()
-                        $invoker = New-CoordinateArtifactInvoker `
-                            -Calls $calls `
-                            -Records $records
+                        $invoker = New-CoordinateArtifactInvoker
 
                         $output = @(
                             Invoke-CoordinateOrchestrator `
@@ -1546,11 +1800,13 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         )
 
                         $output.Count | Should -Be 0
+                        $calls = Get-CoordinateObservedCalls -RunId $runId
+                        $records = Get-CoordinateObservedRecords `
+                            -RunId $runId `
+                            -Stages @('Workstation', 'Foundation')
                         ($calls -join ',') |
                             Should -BeExactly 'Workstation|Assess,Foundation|Assess'
                         $records.Count | Should -Be 2
-                        [object]::ReferenceEquals($records[0], $records[1]) |
-                            Should -BeFalse
                         foreach ($record in $records) {
                             ($record.PSObject.Properties.Name -join ',') |
                                 Should -BeExactly (
@@ -1582,18 +1838,18 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                     }
 
                     It 'excludes every private path value and provider authority' {
-                        $calls = [Collections.Generic.List[string]]::new()
-                        $records = [Collections.Generic.List[object]]::new()
-                        $invoker = New-CoordinateArtifactInvoker `
-                            -Calls $calls `
-                            -Records $records
+                        $runId = [guid]::NewGuid()
+                        $invoker = New-CoordinateArtifactInvoker
 
                         Invoke-CoordinateOrchestrator `
-                            -RunId ([guid]::NewGuid()) `
+                            -RunId $runId `
                             -Stages @('Workstation') `
                             -Mode Assess `
                             -SubsystemInvoker $invoker
 
+                        $records = Get-CoordinateObservedRecords `
+                            -RunId $runId `
+                            -Stages @('Workstation')
                         $json = $records[0] | ConvertTo-Json -Depth 20 -Compress
                         $json | Should -Not -Match (
                             [regex]::Escape($script:CoordinateIntentPath) + '|' +
@@ -1606,49 +1862,42 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         )
                     }
 
-                    It 'reconstructs trusted values after dynamic-scope tampering' {
-                        $calls = [Collections.Generic.List[string]]::new()
-                        $records = [Collections.Generic.List[object]]::new()
+                    It 'isolates every authoritative coordinator variable from invoker scope tampering' {
+                        $runId = [guid]::NewGuid()
                         $invoker = New-CoordinateArtifactInvoker `
-                            -Calls $calls `
-                            -Records $records `
-                            -TamperDynamicScope
+                            -TamperAuthoritativeScope
 
                         {
                             Invoke-CoordinateOrchestrator `
-                                -RunId ([guid]::NewGuid()) `
+                                -RunId $runId `
                                 -Stages @('Workstation') `
                                 -Mode Assess `
                                 -SubsystemInvoker $invoker
                         } | Should -Not -Throw
-                        ($calls -join ',') | Should -BeExactly 'Workstation|Assess'
+                        (
+                            Get-CoordinateObservedCalls -RunId $runId
+                        ) | Should -BeExactly @('Workstation|Assess')
                     }
                 }
 
                 Context 'coordinate-only Assess artifact authority' {
                     It 'invokes only Assess and validates only its canonical assessment path' {
-                        $calls = [Collections.Generic.List[string]]::new()
-                        $records = [Collections.Generic.List[object]]::new()
-                        $invoker = New-CoordinateArtifactInvoker `
-                            -Calls $calls `
-                            -Records $records
+                        $runId = [guid]::NewGuid()
+                        $invoker = New-CoordinateArtifactInvoker
 
                         {
                             Invoke-CoordinateOrchestrator `
-                                -RunId ([guid]::NewGuid()) `
+                                -RunId $runId `
                                 -Stages @('Foundation') `
                                 -Mode Assess `
                                 -SubsystemInvoker $invoker
                         } | Should -Not -Throw
+                        $calls = Get-CoordinateObservedCalls -RunId $runId
                         ($calls -join ',') | Should -BeExactly 'Foundation|Assess'
                     }
 
                     It 'rejects a Plan artifact substituted for the assessment' {
-                        $calls = [Collections.Generic.List[string]]::new()
-                        $records = [Collections.Generic.List[object]]::new()
                         $invoker = New-CoordinateArtifactInvoker `
-                            -Calls $calls `
-                            -Records $records `
                             -ArtifactMode Plan
 
                         {
@@ -1662,23 +1911,37 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         )
                     }
 
-                    It 'discards provider IDs actions payloads and executable return members' {
-                        $calls = [Collections.Generic.List[string]]::new()
-                        $records = [Collections.Generic.List[object]]::new()
+                    It 'rejects a canonical assessment bound to another stage' {
                         $invoker = New-CoordinateArtifactInvoker `
-                            -Calls $calls `
-                            -Records $records `
+                            -ArtifactStage Workstation
+
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId ([guid]::NewGuid()) `
+                                -Stages @('Foundation') `
+                                -Mode Assess `
+                                -SubsystemInvoker $invoker
+                        } | Should -Throw -ExpectedMessage (
+                            'TenantLifecycle.ChildArtifact.Invalid'
+                        )
+                    }
+
+                    It 'discards provider IDs actions payloads and executable return members' {
+                        $runId = [guid]::NewGuid()
+                        $invoker = New-CoordinateArtifactInvoker `
                             -ReturnProviderData
 
                         $output = @(
                             Invoke-CoordinateOrchestrator `
-                                -RunId ([guid]::NewGuid()) `
+                                -RunId $runId `
                                 -Stages @('Foundation') `
                                 -Mode Assess `
                                 -SubsystemInvoker $invoker
                         )
                         $output.Count | Should -Be 0
                         $script:CoordinateProviderRunnerCalls.Count | Should -Be 0
+                        Test-CoordinateProviderMarker -RunId $runId |
+                            Should -BeFalse
                     }
 
                     It 'rejects a returned Passed claim without a canonical child phase' {
@@ -1705,11 +1968,23 @@ Describe 'Tenant lifecycle approval expiry and drift' {
 
                 Context 'coordinate-only Plan artifact authority' {
                     It 'invokes only Plan and validates only its canonical execution manifest path' {
-                        $calls = [Collections.Generic.List[string]]::new()
-                        $records = [Collections.Generic.List[object]]::new()
+                        $runId = [guid]::NewGuid()
+                        $invoker = New-CoordinateArtifactInvoker
+
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages @('Foundation') `
+                                -Mode Plan `
+                                -SubsystemInvoker $invoker
+                        } | Should -Not -Throw
+                        $calls = Get-CoordinateObservedCalls -RunId $runId
+                        ($calls -join ',') | Should -BeExactly 'Foundation|Plan'
+                    }
+
+                    It 'rejects an Assess artifact substituted for the execution manifest' {
                         $invoker = New-CoordinateArtifactInvoker `
-                            -Calls $calls `
-                            -Records $records
+                            -ArtifactMode Assess
 
                         {
                             Invoke-CoordinateOrchestrator `
@@ -1717,17 +1992,14 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                                 -Stages @('Foundation') `
                                 -Mode Plan `
                                 -SubsystemInvoker $invoker
-                        } | Should -Not -Throw
-                        ($calls -join ',') | Should -BeExactly 'Foundation|Plan'
+                        } | Should -Throw -ExpectedMessage (
+                            'TenantLifecycle.ChildArtifact.Invalid'
+                        )
                     }
 
-                    It 'rejects an Assess artifact substituted for the execution manifest' {
-                        $calls = [Collections.Generic.List[string]]::new()
-                        $records = [Collections.Generic.List[object]]::new()
+                    It 'rejects a canonical execution manifest bound to another stage action' {
                         $invoker = New-CoordinateArtifactInvoker `
-                            -Calls $calls `
-                            -Records $records `
-                            -ArtifactMode Assess
+                            -ArtifactStage Workstation
 
                         {
                             Invoke-CoordinateOrchestrator `
@@ -1790,25 +2062,30 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         }
                     ) {
                         $runId = [guid]::NewGuid()
-                        $calls = [Collections.Generic.List[string]]::new()
-                        $records = [Collections.Generic.List[object]]::new()
-                        $parameters = @{
-                            Calls = $calls
-                            Records = $records
-                        }
+                        $parameters = @{}
                         $stages = @('Foundation')
                         if ($Timing -ceq 'before a later invocation') {
                             $stages = @('Workstation', 'Foundation')
                             Write-CoordinateStageResult `
                                 -RunId $runId `
                                 -Stage Workstation
-                            $parameters.BeforeNextDrift = $Target
+                            Install-CoordinateValidationDriftHook `
+                                -ContractKind StageResult `
+                                -DriftTarget $Target `
+                                -RepositoryRoot $script:CoordinateSyntheticRepository `
+                                -IntentPath $script:CoordinateIntentPath `
+                                -StatePath $script:CoordinateStatePath
                         }
                         elseif ($Timing -ceq 'during invocation') {
                             $parameters.DuringDrift = $Target
                         }
                         else {
-                            $parameters.AfterArtifactDrift = $Target
+                            Install-CoordinateValidationDriftHook `
+                                -ContractKind Assessment `
+                                -DriftTarget $Target `
+                                -RepositoryRoot $script:CoordinateSyntheticRepository `
+                                -IntentPath $script:CoordinateIntentPath `
+                                -StatePath $script:CoordinateStatePath
                         }
                         $invoker = New-CoordinateArtifactInvoker @parameters
 
@@ -1819,6 +2096,7 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                                 -Mode Assess `
                                 -SubsystemInvoker $invoker
                         } | Should -Throw -ExpectedMessage $Expected
+                        $calls = Get-CoordinateObservedCalls -RunId $runId
                         if ($Timing -ceq 'before a later invocation') {
                             ($calls -join ',') | Should -BeExactly 'Workstation|Assess'
                         }
@@ -1833,11 +2111,7 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             -RunId $runId `
                             -Stage Workstation `
                             -Status Failed
-                        $calls = [Collections.Generic.List[string]]::new()
-                        $records = [Collections.Generic.List[object]]::new()
-                        $invoker = New-CoordinateArtifactInvoker `
-                            -Calls $calls `
-                            -Records $records
+                        $invoker = New-CoordinateArtifactInvoker
 
                         {
                             Invoke-CoordinateOrchestrator `
@@ -1846,6 +2120,7 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                                 -Mode Assess `
                                 -SubsystemInvoker $invoker
                         } | Should -Throw
+                        $calls = Get-CoordinateObservedCalls -RunId $runId
                         ($calls -join ',') | Should -BeExactly 'Workstation|Assess'
                     }
                 }

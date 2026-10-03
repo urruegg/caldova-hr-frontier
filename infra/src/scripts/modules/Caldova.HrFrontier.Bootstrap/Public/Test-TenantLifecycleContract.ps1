@@ -526,7 +526,18 @@ function Test-TenantLifecycleContract {
                 )
                 Assert-TenantLifecycleCondition ($InputObject.schemaVersion -ceq '1.0')
                 Assert-TenantLifecycleString -Value $InputObject.runId -Pattern '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' -MaximumLength 36
-                Assert-TenantLifecycleName $InputObject.kind
+                Assert-TenantLifecycleCondition (
+                    $InputObject.kind -is [string] -and
+                    @(
+                        'Workstation',
+                        'PrivateBoundary',
+                        'Foundation',
+                        'DevDelivery',
+                        'ReadBack',
+                        'Acceptance',
+                        'TenantReplica'
+                    ) -ccontains $InputObject.kind
+                )
                 Assert-TenantLifecycleTimestamp $InputObject.generatedAtUtc
                 Assert-TenantLifecycleString -Value $InputObject.sourceCommit -Pattern '^[0-9a-f]{40}$' -MaximumLength 40
                 Assert-TenantLifecycleMachine $InputObject.machine

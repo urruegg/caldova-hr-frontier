@@ -303,10 +303,16 @@ New-TenantLifecycleControlRecord `
 - Invoker call contract:
 
 ```powershell
-& $SubsystemInvoker -Stage $stage -Mode $Mode -ControlRecord $freshControlRecord
+Invoke-TenantLifecycleIsolatedInvoker `
+  -Invoker $SubsystemInvoker `
+  -Stage $stage `
+  -Mode $Mode `
+  -ControlRecord $freshControlRecord `
+  -ExternalRunRoot $trustedEvidenceRoot
 ```
 
-- The invoker return value is discarded. Assess validates `phases/<stage>/assessment.json`; Plan validates `phases/<stage>/execution-manifest.json`. Neither mode writes or accepts a terminal stage result.
+- The adapter runs the scriptblock in a fresh no-profile PowerShell process, passes only serialized/deep-cloned `Stage`, `Mode`, and `ControlRecord`, clears inherited environment values except the Windows process bootstrap variables, and uses the external evidence root as the working directory. `SubsystemInvoker` remains a controlled dispatch seam, not a security boundary.
+- The invoker return value is discarded. Assess validates `phases/<stage>/assessment.json` and requires ordinal-exact `assessment.kind == <stage>`. Plan validates `phases/<stage>/execution-manifest.json` and requires exactly one stage action with ordinal-exact `actions[0].id == <stage>`. Neither mode writes or accepts a terminal stage result.
 
 - [ ] **Step 1: Write the failing Assess/Plan orchestration tests**
 
@@ -314,11 +320,14 @@ Add exact cases for:
 
 - missing invoker in Assess and Plan;
 - invoker supplied in Verify;
-- selected stages empty, duplicate, wrong case, unknown, or incompatible with the accepted prerequisite graph;
+- selected stages empty, duplicate, wrong case for every stage, unknown, or incompatible with the accepted prerequisite graph;
+- wrong-case Assess, Plan, or Verify mode before invoker and filesystem access;
 - stage and mode arguments exact and control record properties exactly equal to the nine-field allowlist;
 - control record excludes absolute private paths, private values, credentials, tokens, approval digests, provider contexts, stable IDs, URLs, actions, payloads, and raw read-back;
 - Assess invokes only Assess and validates only the canonical assessment path;
 - Plan invokes only Plan and validates only the canonical child execution-manifest path;
+- cross-stage assessment-kind and manifest-action substitutions;
+- adversarial `Set-Variable` attempts against every authoritative coordinator name, proving the isolated process cannot mutate coordinator state;
 - source commit changes before invocation, during invocation, or after artifact validation;
 - intent or state digest changes before invocation, during invocation, or after artifact validation;
 - invoker returns provider IDs/actions/payloads or mutates its return object after return;
@@ -342,16 +351,16 @@ Expected: **FAIL** because the old orchestrator trusts invoker results, carries 
 Implement the orchestrator in this order:
 
 1. resolve one contained run root using `Resolve-RunbookReportPath`;
-2. reject an empty/duplicate/case-drifted/unknown stage list before filesystem access;
+2. reject non-ordinal Mode and every empty/duplicate/case-drifted/unknown stage list immediately after parameter binding and before invoker or filesystem checks;
 3. verify clean exact source commit without modifying the worktree;
 4. validate ignored/untracked contained private intent/state paths and compute canonical intent/state digests;
 5. load only already completed prerequisite stage results needed for dispatch;
 6. create a new closed control record for the current stage;
-7. invoke exactly once in the same Assess or Plan mode;
+7. invoke exactly once in the same Assess or Plan mode through the isolated serialized adapter;
 8. assign the invocation result to `$null`;
 9. reconstruct source/private/stage/control values from trusted inputs rather than from dynamic-scope locals or returned objects;
 10. rerun source/private digests and reject any drift;
-11. validate the expected canonical assessment or manifest artifact from disk; and
+11. validate the expected canonical assessment or manifest artifact from disk, including ordinal stage binding through assessment `kind` or the manifest's single action `id`; and
 12. stop on the first invalid prerequisite or artifact.
 
 Do not invoke `ShouldProcess`, load `approvals.json`, read an umbrella manifest, write action evidence, update state, correlate `targetStableId`, or create a stage result. Error IDs must distinguish `TenantLifecycle.SubsystemInvoker.Required`, `TenantLifecycle.SubsystemInvoker.NotAllowed`, `TenantLifecycle.Source.Drift`, `TenantLifecycle.Intent.Drift`, `TenantLifecycle.State.Drift`, and `TenantLifecycle.ChildArtifact.Invalid`.
@@ -364,7 +373,7 @@ Expected: **PASS**. Assess/Plan dispatch only the selected non-mutating mode; re
 
 - [ ] **Step 5: Perform focused review**
 
-Trace every value passed to the invoker. Confirm the record is newly allocated per stage, has exactly nine root fields, contains only provider-neutral prerequisite projections, and is rebuilt after each invocation. Confirm no scriptblock is described as an isolation boundary and no mutable return value affects acceptance.
+Trace every value passed to the invoker. Confirm the record is newly allocated per stage, has exactly nine root fields, contains only provider-neutral prerequisite projections, and is rebuilt after each invocation. Confirm only the serialized three-argument contract and the external working directory cross the fresh-process boundary, no closure/module/environment value is inherited, the adapter is documented as state isolation rather than a security boundary, and no mutable return value affects acceptance.
 
 - [ ] **Step 6: Commit**
 

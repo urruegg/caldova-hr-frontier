@@ -116,8 +116,12 @@ Describe 'Runbook static safety' {
             'currentBinding|targetStableId|ShouldProcess)'
         )
         $content | Should -Not -Match (
-            '(?i)(ManifestAction|[.]actions\b|ActionEvidence|' +
+            '(?i)(ManifestAction|ActionEvidence|' +
             'correlatedEvidence)'
+        )
+        $content | Should -Match (
+            '(?s)@\(\$artifact[.]actions\)[.]Count\s+-ne\s+1.*' +
+            '\$artifact[.]actions\[0\][.]id'
         )
     }
 
@@ -125,13 +129,42 @@ Describe 'Runbook static safety' {
         $content = Get-Content -Raw -LiteralPath $script:TenantLifecycle
 
         $content | Should -Match (
-            '(?s)\$null\s*=\s*&\s*\$SubsystemInvoker\s+' +
-            '`\s*-Stage\s+\$stage\s+`\s*-Mode\s+\$Mode\s+`\s*' +
+            '(?s)Invoke-TenantLifecycleIsolatedInvoker\s+' +
+            '`\s*-Invoker\s+\$SubsystemInvoker\s+`\s*' +
+            '-Stage\s+\$stage\s+`\s*-Mode\s+\$Mode\s+`\s*' +
             '-ControlRecord\s+\$freshControlRecord'
+        )
+        $content | Should -Match (
+            '(?s)\$null\s*=\s*&\s*\$invoker\s+' +
+            '`\s*-Stage\s+\(\[string\]\$payload[.]stage\)\s+`\s*' +
+            '-Mode\s+\(\[string\]\$payload[.]mode\)\s+`\s*' +
+            '-ControlRecord\s+\$payload[.]controlRecord'
         )
         $content | Should -Not -Match (
             '(?i)\$(outcome|result|providerResult|returnValue)\s*=\s*' +
             '&\s*\$SubsystemInvoker'
+        )
+    }
+
+    It 'executes the controlled invoker through an isolated serialized adapter' {
+        $content = Get-Content -Raw -LiteralPath $script:TenantLifecycle
+
+        $content | Should -Match (
+            '(?s)function\s+Invoke-TenantLifecycleIsolatedInvoker\b.*' +
+            '-Stage\s+\$stage\s+`\s*-Mode\s+\$Mode\s+`\s*' +
+            '-ControlRecord\s+\$freshControlRecord'
+        )
+        $content | Should -Not -Match (
+            '(?s)\$null\s*=\s*&\s*\$SubsystemInvoker'
+        )
+        $content | Should -Match (
+            '(?i)(ConvertTo-Json|PSSerializer)'
+        )
+        $content | Should -Match (
+            '\$startInfo[.]EnvironmentVariables[.]Clear\(\)'
+        )
+        $content | Should -Match (
+            "@\('SystemRoot', 'WINDIR', 'ComSpec'\)"
         )
     }
 

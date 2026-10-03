@@ -21,7 +21,7 @@
   "properties": {
     "schemaVersion": { "const": "1.0" },
     "runId": { "$ref": "#/$defs/runId" },
-    "kind": { "$ref": "#/$defs/name" },
+    "kind": { "$ref": "#/$defs/stage" },
     "generatedAtUtc": { "$ref": "#/$defs/timestamp" },
     "sourceCommit": { "$ref": "#/$defs/sourceCommit" },
     "machine": { "$ref": "#/$defs/machine" },
@@ -61,6 +61,17 @@
     "sourceCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "timestamp": { "type": "string", "format": "date-time", "pattern": "Z$" },
     "name": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "stage": {
+      "enum": [
+        "Workstation",
+        "PrivateBoundary",
+        "Foundation",
+        "DevDelivery",
+        "ReadBack",
+        "Acceptance",
+        "TenantReplica"
+      ]
+    },
     "stableId": { "type": "string", "minLength": 1, "maxLength": 2048 },
     "publicTenantKey": { "type": "string", "pattern": "^tenant[0-9]+$" },
     "status": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z][A-Za-z0-9]*$" },

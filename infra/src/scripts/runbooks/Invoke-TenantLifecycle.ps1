@@ -18,22 +18,6 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-if ($Mode -ceq 'Verify' -and $null -ne $SubsystemInvoker) {
-    throw [InvalidOperationException]::new(
-        'TenantLifecycle.SubsystemInvoker.NotAllowed'
-    )
-}
-if ($Mode -ceq 'Verify') {
-    throw [InvalidOperationException]::new(
-        'TenantLifecycle.Verify.NotImplemented'
-    )
-}
-if ($null -eq $SubsystemInvoker) {
-    throw [InvalidOperationException]::new(
-        'TenantLifecycle.SubsystemInvoker.Required'
-    )
-}
-
 $canonicalStageOrder = @(
     'Workstation',
     'PrivateBoundary',
@@ -43,6 +27,17 @@ $canonicalStageOrder = @(
     'Acceptance',
     'TenantReplica'
 )
+$canonicalModes = @('Assess', 'Plan', 'Verify')
+$modeIsExact = $false
+foreach ($canonicalMode in $canonicalModes) {
+    if ([StringComparer]::Ordinal.Equals($canonicalMode, $Mode)) {
+        $modeIsExact = $true
+        break
+    }
+}
+if (-not $modeIsExact) {
+    throw [IO.InvalidDataException]::new('TenantLifecycle.Mode.Invalid')
+}
 if (@($Stages).Count -eq 0) {
     throw [IO.InvalidDataException]::new('TenantLifecycle.Stages.Required')
 }
@@ -69,6 +64,22 @@ foreach ($selectedStage in @($Stages)) {
         )
     }
     $lastSelectedStageIndex = $selectedStageIndex
+}
+
+if ($Mode -ceq 'Verify' -and $null -ne $SubsystemInvoker) {
+    throw [InvalidOperationException]::new(
+        'TenantLifecycle.SubsystemInvoker.NotAllowed'
+    )
+}
+if ($Mode -ceq 'Verify') {
+    throw [InvalidOperationException]::new(
+        'TenantLifecycle.Verify.NotImplemented'
+    )
+}
+if ($null -eq $SubsystemInvoker) {
+    throw [InvalidOperationException]::new(
+        'TenantLifecycle.SubsystemInvoker.Required'
+    )
 }
 
 $trustedRunId = [guid]$RunId
@@ -494,6 +505,132 @@ function Assert-TenantLifecycleChildArtifact {
             'TenantLifecycle.ChildArtifact.Invalid'
         )
     }
+    if ($DispatchMode -ceq 'Assess') {
+        if (-not [StringComparer]::Ordinal.Equals(
+                [string]$artifact.kind,
+                $Stage
+            )) {
+            throw [IO.InvalidDataException]::new(
+                'TenantLifecycle.ChildArtifact.Invalid'
+            )
+        }
+    }
+    elseif (@($artifact.actions).Count -ne 1 -or
+        -not [StringComparer]::Ordinal.Equals(
+            [string]$artifact.actions[0].id,
+            $Stage
+        )) {
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.ChildArtifact.Invalid'
+        )
+    }
+}
+
+function Invoke-TenantLifecycleIsolatedInvoker {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][scriptblock]$Invoker,
+        [Parameter(Mandatory)][string]$Stage,
+        [Parameter(Mandatory)][string]$Mode,
+        [Parameter(Mandatory)][object]$ControlRecord,
+        [Parameter(Mandatory)][string]$ExternalRunRoot
+    )
+
+    $payload = [pscustomobject][ordered]@{
+        invoker = [Convert]::ToBase64String(
+            [Text.Encoding]::UTF8.GetBytes($Invoker.ToString())
+        )
+        stage = $Stage
+        mode = $Mode
+        controlRecord = $ControlRecord
+    }
+    $payloadJson = $payload |
+        ConvertTo-Json -Depth 30 -Compress
+    $childScript = @'
+$ErrorActionPreference = 'Stop'
+try {
+    $payload = [Console]::In.ReadToEnd() | ConvertFrom-Json
+    $invokerText = [Text.Encoding]::UTF8.GetString(
+        [Convert]::FromBase64String([string]$payload.invoker)
+    )
+    $invoker = [scriptblock]::Create($invokerText)
+    $null = & $invoker `
+        -Stage ([string]$payload.stage) `
+        -Mode ([string]$payload.mode) `
+        -ControlRecord $payload.controlRecord
+    exit 0
+}
+catch {
+    exit 1
+}
+'@
+    $encodedChildScript = [Convert]::ToBase64String(
+        [Text.Encoding]::Unicode.GetBytes($childScript)
+    )
+    $hostExecutableName = if ($PSVersionTable.PSEdition -ceq 'Core') {
+        'pwsh.exe'
+    }
+    else {
+        'powershell.exe'
+    }
+    $hostExecutable = Join-Path $PSHOME $hostExecutableName
+    if (-not [IO.File]::Exists($hostExecutable)) {
+        throw [InvalidOperationException]::new(
+            'TenantLifecycle.SubsystemInvoker.Failed'
+        )
+    }
+
+    $startInfo = [Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $hostExecutable
+    $startInfo.Arguments = (
+        '-NoLogo -NoProfile -NonInteractive -EncodedCommand ' +
+        $encodedChildScript
+    )
+    [IO.Directory]::CreateDirectory($ExternalRunRoot) | Out-Null
+    $startInfo.WorkingDirectory = $ExternalRunRoot
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardInput = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $startInfo.EnvironmentVariables.Clear()
+    foreach ($environmentName in @('SystemRoot', 'WINDIR', 'ComSpec')) {
+        $environmentValue = [Environment]::GetEnvironmentVariable(
+            $environmentName,
+            [EnvironmentVariableTarget]::Process
+        )
+        if (-not [string]::IsNullOrWhiteSpace($environmentValue)) {
+            $startInfo.EnvironmentVariables[$environmentName] =
+                $environmentValue
+        }
+    }
+
+    $child = [Diagnostics.Process]::new()
+    $child.StartInfo = $startInfo
+    try {
+        if (-not $child.Start()) {
+            throw [InvalidOperationException]::new()
+        }
+        $stdoutTask = $child.StandardOutput.ReadToEndAsync()
+        $stderrTask = $child.StandardError.ReadToEndAsync()
+        $child.StandardInput.Write($payloadJson)
+        $child.StandardInput.Close()
+        $child.WaitForExit()
+        [void]$stdoutTask.GetAwaiter().GetResult()
+        [void]$stderrTask.GetAwaiter().GetResult()
+        if ($child.ExitCode -ne 0) {
+            throw [InvalidOperationException]::new()
+        }
+    }
+    catch {
+        throw [InvalidOperationException]::new(
+            'TenantLifecycle.SubsystemInvoker.Failed',
+            $_.Exception
+        )
+    }
+    finally {
+        $child.Dispose()
+    }
 }
 
 for ($stageIndex = 0; $stageIndex -lt $trustedStages.Count; $stageIndex++) {
@@ -519,10 +656,12 @@ for ($stageIndex = 0; $stageIndex -lt $trustedStages.Count; $stageIndex++) {
 
     $Mode = $trustedMode
     try {
-        $null = & $SubsystemInvoker `
+        Invoke-TenantLifecycleIsolatedInvoker `
+            -Invoker $SubsystemInvoker `
             -Stage $stage `
             -Mode $Mode `
-            -ControlRecord $freshControlRecord
+            -ControlRecord $freshControlRecord `
+            -ExternalRunRoot $trustedEvidenceRoot
     }
     catch {
         throw [InvalidOperationException]::new(

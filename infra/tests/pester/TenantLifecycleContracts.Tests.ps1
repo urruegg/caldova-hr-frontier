@@ -141,6 +141,34 @@ public static class TenantLifecycleContractCodePropertyAccessor
             Should -Not -BeNullOrEmpty
     }
 
+    It 'enforces an ordinal lifecycle stage as the assessment kind' {
+        $schemaPath = Join-Path $script:SchemaRoot (
+            'tenant-lifecycle-assessment.schema.json'
+        )
+        $valid = Copy-ContractObject $script:Fixture.assessment
+        $valid.kind = 'Foundation'
+        Test-TenantLifecycleContract -Kind Assessment -InputObject $valid |
+            Should -BeTrue
+
+        foreach ($invalidKind in @('foundation', 'TenantLifecycle')) {
+            $invalid = Copy-ContractObject $valid
+            $invalid.kind = $invalidKind
+            {
+                Test-TenantLifecycleContract `
+                    -Kind Assessment `
+                    -InputObject $invalid
+            } | Should -Throw -ExpectedMessage (
+                'TenantLifecycle.Contract.Assessment'
+            )
+            if ($script:HasJsonSchema) {
+                $result = Invoke-JsonSchemaValidation `
+                    -SchemaPath $schemaPath `
+                    -InputObject $invalid
+                $result.ExitCode | Should -Not -Be 0
+            }
+        }
+    }
+
     It 'declares the exact closed stage result schema contract' {
         $schemaPath = Join-Path $script:SchemaRoot 'tenant-lifecycle-stage-result.schema.json'
         $schemaPath | Should -Exist
@@ -1419,7 +1447,7 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                     $assessment = [pscustomobject][ordered]@{
                         schemaVersion = '1.0'
                         runId = $runIdText
-                        kind = 'TenantLifecycle'
+                        kind = 'Foundation'
                         generatedAtUtc = '2026-10-02T12:00:00.0000000Z'
                         sourceCommit = $sourceCommit
                         machine = [pscustomobject][ordered]@{
