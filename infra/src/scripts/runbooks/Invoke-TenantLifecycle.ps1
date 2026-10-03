@@ -352,6 +352,12 @@ if ($trustedMode -ceq 'Verify') {
             )
         }
     }
+    $summaryPath = Join-Path $runDirectory 'summary.json'
+    $null = ConvertTo-TenantLifecycleAcceptanceProjection `
+        -RunId $trustedRunId `
+        -PublicTenantKey $trustedPublicTenantKey `
+        -OrderedStageResults $stageResults `
+        -OutputPath $summaryPath
     return
 }
 
@@ -776,7 +782,7 @@ function Invoke-TenantLifecycleIsolatedInvoker {
         [Parameter(Mandatory)][string]$ExternalRunRoot
     )
 
-    $payload = [pscustomobject][ordered]@{
+    $invocationEnvelope = [pscustomobject][ordered]@{
         invoker = [Convert]::ToBase64String(
             [Text.Encoding]::UTF8.GetBytes($Invoker.ToString())
         )
@@ -784,22 +790,22 @@ function Invoke-TenantLifecycleIsolatedInvoker {
         mode = $Mode
         controlRecord = $ControlRecord
     }
-    $payloadJson = $payload |
+    $invocationEnvelopeJson = $invocationEnvelope |
         ConvertTo-Json -Depth 30 -Compress
     $childScript = @'
 $ErrorActionPreference = 'Stop'
 try {
     [Console]::SetOut([IO.TextWriter]::Null)
     [Console]::SetError([IO.TextWriter]::Null)
-    $payload = [Console]::In.ReadToEnd() | ConvertFrom-Json
+    $invocationEnvelope = [Console]::In.ReadToEnd() | ConvertFrom-Json
     $invokerText = [Text.Encoding]::UTF8.GetString(
-        [Convert]::FromBase64String([string]$payload.invoker)
+        [Convert]::FromBase64String([string]$invocationEnvelope.invoker)
     )
     $invoker = [scriptblock]::Create($invokerText)
     $null = & $invoker `
-        -Stage ([string]$payload.stage) `
-        -Mode ([string]$payload.mode) `
-        -ControlRecord $payload.controlRecord *> $null
+        -Stage ([string]$invocationEnvelope.stage) `
+        -Mode ([string]$invocationEnvelope.mode) `
+        -ControlRecord $invocationEnvelope.controlRecord *> $null
     exit 0
 }
 catch {
@@ -871,7 +877,9 @@ catch {
         )
         $timeoutMilliseconds = 300000
         $stopwatch = [Diagnostics.Stopwatch]::StartNew()
-        $writeTask = $child.StandardInput.WriteAsync($payloadJson)
+        $writeTask = $child.StandardInput.WriteAsync(
+            $invocationEnvelopeJson
+        )
         if (-not $writeTask.Wait($timeoutMilliseconds)) {
             throw [TimeoutException]::new()
         }

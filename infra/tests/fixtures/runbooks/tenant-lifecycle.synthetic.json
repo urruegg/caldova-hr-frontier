@@ -67,19 +67,36 @@
     "schemaVersion": "1.0",
     "runId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
     "stage": "Foundation",
-    "providerId": "provider-synthetic-001",
-    "resourceUrl": "https://example.invalid/resources/synthetic-001",
+    "tenantId": "tenant-synthetic-001",
+    "subscriptionId": "subscription-synthetic-001",
+    "applicationId": "application-synthetic-001",
+    "environmentId": "environment-synthetic-001",
+    "projectId": "project-synthetic-001",
+    "pipelineId": "pipeline-synthetic-001",
+    "objectId": "object-synthetic-001",
+    "roleId": "role-synthetic-001",
+    "resourceId": "resource-synthetic-001",
+    "resourceUrl": "https://provider.example.invalid/path?token=synthetic",
+    "provider": "SyntheticProvider",
     "actionId": "action-synthetic-001",
     "actions": [
       {
         "id": "action-synthetic-001",
-        "status": "Passed"
+        "operation": "Create",
+        "status": "Passed",
+        "result": "actionResults"
+      },
+      {
+        "id": "action-synthetic-002",
+        "operation": "Update",
+        "status": "Passed",
+        "result": "actionResults"
       }
     ],
-    "payload": {
+    "requestPayload": {
       "synthetic": true
     },
-    "readBack": {
+    "rawReadBack": {
       "stableId": "stable-synthetic-001",
       "status": "Passed"
     }

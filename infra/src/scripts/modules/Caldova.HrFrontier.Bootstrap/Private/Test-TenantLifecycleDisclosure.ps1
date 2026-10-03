@@ -9,11 +9,15 @@ function Test-TenantLifecycleDisclosureFields {
         $InputObject -is [string] -or
         $InputObject -is [System.Array] -or
         $InputObject -is [Collections.IDictionary]) {
-        throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.Disclosure.Invalid'
+        )
     }
     $properties = @($InputObject.PSObject.Properties)
     if ($properties.Count -ne $ExpectedFields.Count) {
-        throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.Disclosure.Invalid'
+        )
     }
     $actual = [Collections.Generic.HashSet[string]]::new(
         [StringComparer]::Ordinal
@@ -21,12 +25,16 @@ function Test-TenantLifecycleDisclosureFields {
     foreach ($property in $properties) {
         if ($property.MemberType -ne 'NoteProperty' -or
             -not $actual.Add($property.Name)) {
-            throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
+            throw [IO.InvalidDataException]::new(
+                'TenantLifecycle.Disclosure.Invalid'
+            )
         }
     }
     foreach ($field in $ExpectedFields) {
         if (-not $actual.Contains($field)) {
-            throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
+            throw [IO.InvalidDataException]::new(
+                'TenantLifecycle.Disclosure.Invalid'
+            )
         }
     }
 }
@@ -37,279 +45,133 @@ function Test-TenantLifecycleDisclosureDigest {
 
     if (-not ($Value -is [string]) -or
         [string]$Value -cnotmatch '^[0-9a-f]{64}$') {
-        throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
-    }
-}
-
-function Get-TenantLifecycleDisclosureByteDigest {
-    [CmdletBinding()]
-    [OutputType([string])]
-    param([Parameter(Mandatory)][byte[]]$Bytes)
-
-    $hash = [Security.Cryptography.SHA256]::Create()
-    try {
-        return [BitConverter]::ToString(
-            $hash.ComputeHash($Bytes)
-        ).Replace('-', '').ToLowerInvariant()
-    }
-    finally {
-        $hash.Dispose()
-    }
-}
-
-function Assert-TenantLifecycleDisclosureIdentifierSet {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$Expected,
-        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$Actual,
-        [Parameter(Mandatory)][string]$ErrorMessage
-    )
-
-    if ($Expected.Count -ne $Actual.Count) {
-        throw [IO.InvalidDataException]::new($ErrorMessage)
-    }
-    $expectedSet = [Collections.Generic.HashSet[string]]::new(
-        [StringComparer]::Ordinal
-    )
-    foreach ($identifier in $Expected) {
-        if (-not $expectedSet.Add($identifier)) {
-            throw [IO.InvalidDataException]::new($ErrorMessage)
-        }
-    }
-    $actualSet = [Collections.Generic.HashSet[string]]::new(
-        [StringComparer]::Ordinal
-    )
-    foreach ($identifier in $Actual) {
-        if (-not $actualSet.Add($identifier) -or
-            -not $expectedSet.Contains($identifier)) {
-            throw [IO.InvalidDataException]::new($ErrorMessage)
-        }
-    }
-}
-
-function Test-TenantLifecycleDisclosureStringSet {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)][object]$Value,
-        [Parameter(Mandatory)]
-        [AllowEmptyCollection()]
-        [Collections.Generic.HashSet[string]]$Allowed
-    )
-
-    if (-not ($Value -is [System.Array])) {
-        throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
-    }
-    $seen = [Collections.Generic.HashSet[string]]::new(
-        [StringComparer]::Ordinal
-    )
-    foreach ($item in @($Value)) {
-        if (-not ($item -is [string]) -or
-            [string]::IsNullOrWhiteSpace($item) -or
-            -not $Allowed.Contains([string]$item) -or
-            -not $seen.Add([string]$item)) {
-            throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
-        }
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.Disclosure.Invalid'
+        )
     }
 }
 
 function Test-TenantLifecycleDisclosure {
     [CmdletBinding()]
     [OutputType([bool])]
-    param(
-        [Parameter(Mandatory)][object]$Projection,
-        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$AllowedStableIds,
-        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$AllowedUrlHosts
-    )
+    param([Parameter(Mandatory)][object]$Projection)
 
     Test-TenantLifecycleDisclosureFields `
         -InputObject $Projection `
         -ExpectedFields @(
-            'actions',
-            'approvedDigests',
-            'artifactDigest',
-            'counts',
-            'disclosedStableIds',
-            'disclosedUrlHosts',
-            'nonClaims',
+            'schemaVersion',
             'runId',
-            'sourceCommit',
-            'statuses'
+            'publicTenantKey',
+            'stages',
+            'nonClaims',
+            'digest'
         )
-    if (-not ($Projection.runId -is [string]) -or
+    if ([string]$Projection.schemaVersion -cne '1.0' -or
+        -not ($Projection.runId -is [string]) -or
         [string]$Projection.runId -cnotmatch (
             '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-' +
             '[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
         ) -or
-        -not ($Projection.sourceCommit -is [string]) -or
-        [string]$Projection.sourceCommit -cnotmatch '^[0-9a-f]{40}$') {
-        throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
-    }
-
-    Test-TenantLifecycleDisclosureFields `
-        -InputObject $Projection.approvedDigests `
-        -ExpectedFields @(
-            'actions',
-            'approval',
-            'assessment',
-            'executionManifest',
-            'intent',
-            'readBack',
-            'summary'
+        [string]$Projection.publicTenantKey -cne 'tenant1' -or
+        -not ($Projection.stages -is [System.Array]) -or
+        @($Projection.stages).Count -eq 0) {
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.Disclosure.Invalid'
         )
-    foreach ($name in @(
-        'approval',
-        'assessment',
-        'executionManifest',
-        'intent',
-        'readBack',
-        'summary'
-    )) {
-        Test-TenantLifecycleDisclosureDigest $Projection.approvedDigests.$name
     }
-    if (-not ($Projection.approvedDigests.actions -is [System.Array])) {
-        throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
-    }
-    foreach ($actionDigest in @($Projection.approvedDigests.actions)) {
+
+    $canonicalStages = @(
+        'Workstation',
+        'PrivateBoundary',
+        'Foundation',
+        'DevDelivery',
+        'ReadBack',
+        'Acceptance',
+        'TenantReplica'
+    )
+    $lastStageIndex = -1
+    foreach ($stage in @($Projection.stages)) {
         Test-TenantLifecycleDisclosureFields `
-            -InputObject $actionDigest `
-            -ExpectedFields @('digest', 'id')
-        if (-not ($actionDigest.id -is [string]) -or
-            [string]$actionDigest.id -cnotmatch '^[A-Za-z0-9][A-Za-z0-9._:-]*$') {
-            throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
+            -InputObject $stage `
+            -ExpectedFields @(
+                'stage',
+                'status',
+                'classification',
+                'phaseManifestDigest',
+                'phaseSummaryDigest',
+                'sourceCommit',
+                'intentDigest',
+                'stateDigest'
+            )
+        $stageIndex = -1
+        for ($index = 0; $index -lt $canonicalStages.Count; $index++) {
+            if ([StringComparer]::Ordinal.Equals(
+                    $canonicalStages[$index],
+                    [string]$stage.stage
+                )) {
+                $stageIndex = $index
+                break
+            }
         }
-        Test-TenantLifecycleDisclosureDigest $actionDigest.digest
-    }
-
-    if (-not ($Projection.actions -is [System.Array])) {
-        throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
-    }
-    $classificationNames = @(
-        'NoChange',
-        'Create',
-        'Update',
-        'Manual',
-        'Blocked',
-        'Refused'
-    )
-    foreach ($action in @($Projection.actions)) {
-        Test-TenantLifecycleDisclosureFields `
-            -InputObject $action `
-            -ExpectedFields @('classification', 'digest', 'id', 'status')
-        if (-not ($action.id -is [string]) -or
-            [string]$action.id -cnotmatch '^[A-Za-z0-9][A-Za-z0-9._:-]*$' -or
-            $classificationNames -cnotcontains [string]$action.classification -or
-            -not ($action.status -is [string]) -or
-            [string]$action.status -cnotmatch '^[A-Za-z][A-Za-z0-9]{0,63}$') {
-            throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
+        if ($stageIndex -le $lastStageIndex -or
+            [string]$stage.status -cne 'Passed' -or
+            [string]$stage.classification -cnotin @(
+                'NoChange',
+                'Changed'
+            ) -or
+            -not ($stage.sourceCommit -is [string]) -or
+            [string]$stage.sourceCommit -cnotmatch '^[0-9a-f]{40}$') {
+            throw [IO.InvalidDataException]::new(
+                'TenantLifecycle.Disclosure.Invalid'
+            )
         }
-        Test-TenantLifecycleDisclosureDigest $action.digest
-    }
-
-    Test-TenantLifecycleDisclosureFields `
-        -InputObject $Projection.counts `
-        -ExpectedFields $classificationNames
-    foreach ($name in $classificationNames) {
-        if (-not ($Projection.counts.$name -is [int]) -or
-            [int]$Projection.counts.$name -lt 0) {
-            throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
-        }
-    }
-    Test-TenantLifecycleDisclosureFields `
-        -InputObject $Projection.statuses `
-        -ExpectedFields @('approval', 'readBack', 'summary')
-    if ([string]$Projection.statuses.approval -cne 'Approved') {
-        throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
-    }
-    foreach ($name in @('readBack', 'summary')) {
-        if (-not ($Projection.statuses.$name -is [string]) -or
-            [string]$Projection.statuses.$name -cnotmatch '^[A-Za-z][A-Za-z0-9]{0,63}$') {
-            throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
+        $lastStageIndex = $stageIndex
+        foreach ($name in @(
+            'phaseManifestDigest',
+            'phaseSummaryDigest',
+            'intentDigest',
+            'stateDigest'
+        )) {
+            Test-TenantLifecycleDisclosureDigest $stage.$name
         }
     }
-
-    $stableIdAllowlist = [Collections.Generic.HashSet[string]]::new(
-        [StringComparer]::Ordinal
-    )
-    foreach ($value in $AllowedStableIds) {
-        [void]$stableIdAllowlist.Add($value)
-    }
-    $urlHostAllowlist = [Collections.Generic.HashSet[string]]::new(
-        [StringComparer]::OrdinalIgnoreCase
-    )
-    foreach ($value in $AllowedUrlHosts) {
-        [void]$urlHostAllowlist.Add($value)
-    }
-    Test-TenantLifecycleDisclosureStringSet `
-        -Value $Projection.disclosedStableIds `
-        -Allowed $stableIdAllowlist
-    Test-TenantLifecycleDisclosureStringSet `
-        -Value $Projection.disclosedUrlHosts `
-        -Allowed $urlHostAllowlist
 
     $expectedNonClaims = @(
-        'Provider mutation was not verified by this projection.',
-        'Pipeline import was not verified by this projection.',
-        'Artifact bytes were not verified by this projection.'
+        'The umbrella did not execute a provider mutation.',
+        'Provider approvals and read-back remain child-runbook evidence.',
+        'This projection discloses no provider resource identity or raw provider response.'
     )
     if (-not ($Projection.nonClaims -is [System.Array]) -or
         @($Projection.nonClaims).Count -ne $expectedNonClaims.Count) {
-        throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.Disclosure.Invalid'
+        )
     }
     for ($index = 0; $index -lt $expectedNonClaims.Count; $index++) {
-        if ([string]$Projection.nonClaims[$index] -cne $expectedNonClaims[$index]) {
-            throw [IO.InvalidDataException]::new('TenantLifecycle.Disclosure.Invalid')
+        if ([string]$Projection.nonClaims[$index] -cne
+            $expectedNonClaims[$index]) {
+            throw [IO.InvalidDataException]::new(
+                'TenantLifecycle.Disclosure.Invalid'
+            )
         }
     }
-    Test-TenantLifecycleDisclosureDigest $Projection.artifactDigest
+
+    Test-TenantLifecycleDisclosureDigest $Projection.digest
+    $digestInput = [pscustomobject][ordered]@{
+        schemaVersion = [string]$Projection.schemaVersion
+        runId = [string]$Projection.runId
+        publicTenantKey = [string]$Projection.publicTenantKey
+        stages = [object[]]@($Projection.stages)
+        nonClaims = [string[]]@($Projection.nonClaims)
+    }
+    if ([string]$Projection.digest -cne (
+            Get-RunbookContentDigest -InputObject $digestInput
+        )) {
+        throw [IO.InvalidDataException]::new(
+            'TenantLifecycle.Disclosure.Invalid'
+        )
+    }
     return $true
-}
-
-function Assert-TenantLifecycleDisclosureAllowlists {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$AllowedStableIds,
-        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$AllowedUrlHosts
-    )
-
-    $stableIds = [Collections.Generic.HashSet[string]]::new(
-        [StringComparer]::Ordinal
-    )
-    foreach ($value in $AllowedStableIds) {
-        $uri = $null
-        $isHttpUri = [Uri]::TryCreate(
-            $value,
-            [UriKind]::Absolute,
-            [ref]$uri
-        ) -and $uri.Scheme -in @('http', 'https')
-        if ([string]::IsNullOrWhiteSpace($value) -or
-            $value.Length -gt 2048 -or
-            $value -cmatch '[\x00-\x1f]' -or
-            $value -cmatch '[\\/]' -or
-            $value -cmatch '^[A-Za-z]:' -or
-            $value -cmatch '^~' -or
-            $value -cin @('.', '..') -or
-            $isHttpUri -or
-            -not $stableIds.Add($value)) {
-            throw [IO.InvalidDataException]::new(
-                'TenantLifecycle.Disclosure.Allowlist'
-            )
-        }
-    }
-
-    $urlHosts = [Collections.Generic.HashSet[string]]::new(
-        [StringComparer]::OrdinalIgnoreCase
-    )
-    foreach ($value in $AllowedUrlHosts) {
-        if ([string]::IsNullOrWhiteSpace($value) -or
-            $value.Length -gt 253 -or
-            $value -cmatch '[\x00-\x20/:?#@]' -or
-            [Uri]::CheckHostName($value) -eq [UriHostNameType]::Unknown -or
-            -not $urlHosts.Add($value)) {
-            throw [IO.InvalidDataException]::new(
-                'TenantLifecycle.Disclosure.Allowlist'
-            )
-        }
-    }
 }
 
 function Test-TenantLifecycleDisclosureGitPath {
@@ -320,7 +182,8 @@ function Test-TenantLifecycleDisclosureGitPath {
     $current = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($Path))
     while (-not [string]::IsNullOrEmpty($current)) {
         $gitMarker = Join-Path $current '.git'
-        if ([IO.Directory]::Exists($gitMarker) -or [IO.File]::Exists($gitMarker)) {
+        if ([IO.Directory]::Exists($gitMarker) -or
+            [IO.File]::Exists($gitMarker)) {
             return $true
         }
         $parent = [IO.Directory]::GetParent($current)
@@ -340,8 +203,14 @@ function Test-TenantLifecycleDisclosureReparsePath {
     $current = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($Path))
     while (-not [string]::IsNullOrEmpty($current)) {
         if ([IO.Directory]::Exists($current)) {
-            $item = Get-Item -LiteralPath $current -Force -ErrorAction Stop
-            if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            $item = Get-Item `
+                -LiteralPath $current `
+                -Force `
+                -ErrorAction Stop
+            if (
+                ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne
+                    0
+            ) {
                 return $true
             }
         }
@@ -352,101 +221,4 @@ function Test-TenantLifecycleDisclosureReparsePath {
         $current = $parent.FullName
     }
     return $false
-}
-
-function Import-TenantLifecycleDisclosureEvidence {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)][string]$RunDirectory,
-        [Parameter(Mandatory)][string]$RelativePath,
-        [Parameter(Mandatory)]
-        [ValidateSet(
-            'Assessment',
-            'ExecutionManifest',
-            'Approval',
-            'ActionEvidence',
-            'ReadBack',
-            'Summary'
-        )]
-        [string]$Kind
-    )
-
-    try {
-        $root = [IO.Path]::GetFullPath($RunDirectory).TrimEnd('\', '/')
-        $candidate = [IO.Path]::GetFullPath((
-            Join-Path $root (
-                $RelativePath.Replace(
-                    '/',
-                    [IO.Path]::DirectorySeparatorChar
-                )
-            )
-        ))
-        $rootPrefix = $root + [IO.Path]::DirectorySeparatorChar
-        if (-not $candidate.StartsWith(
-                $rootPrefix,
-                [StringComparison]::OrdinalIgnoreCase
-            ) -or
-            -not [IO.File]::Exists($candidate) -or
-            (Test-TenantLifecycleEvidenceReparsePath -Path $candidate)) {
-            throw [IO.InvalidDataException]::new()
-        }
-        $bytes = [IO.File]::ReadAllBytes($candidate)
-        $json = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
-        $value = ConvertFrom-TenantLifecycleJson -InputObject $json
-        Test-TenantLifecycleContract -Kind $Kind -InputObject $value | Out-Null
-        if (-not (Test-TenantLifecycleEvidencePropertyBoundary -Value $value)) {
-            throw [IO.InvalidDataException]::new()
-        }
-        $canonical = ConvertTo-CanonicalJsonValue -Value $value -RemainingDepth 30
-        $canonicalJson = ($canonical | ConvertTo-Json -Depth 30 -Compress) + "`n"
-        $canonicalBytes = [Text.UTF8Encoding]::new($false, $true).GetBytes(
-            $canonicalJson
-        )
-        if ([Convert]::ToBase64String($bytes) -cne
-            [Convert]::ToBase64String($canonicalBytes)) {
-            throw [IO.InvalidDataException]::new()
-        }
-        $embeddedDigest = switch ($Kind) {
-            'Assessment' {
-                Get-RunbookContentDigest -InputObject (
-                    [pscustomobject][ordered]@{
-                        runId = [string]$value.runId
-                        sourceCommit = [string]$value.sourceCommit
-                        intentDigest = [string]$value.intentDigest
-                        stateDigest = [string]$value.stateDigest
-                    }
-                )
-            }
-            'ExecutionManifest' {
-                Get-TenantLifecycleExecutionManifestDigest -Manifest $value
-            }
-            'ReadBack' {
-                Get-RunbookContentDigest -InputObject (
-                    [pscustomobject][ordered]@{
-                        schemaVersion = [string]$value.schemaVersion
-                        runId = [string]$value.runId
-                        generatedAtUtc = $value.generatedAtUtc
-                        components = @($value.components)
-                        status = [string]$value.status
-                    }
-                )
-            }
-            default {
-                $null
-            }
-        }
-        if ($null -ne $embeddedDigest -and
-            [string]$value.digest -cne $embeddedDigest) {
-                throw [IO.InvalidDataException]::new()
-        }
-        return [pscustomobject][ordered]@{
-            Value = $value
-            ByteDigest = Get-TenantLifecycleDisclosureByteDigest -Bytes $bytes
-        }
-    }
-    catch {
-        throw [IO.InvalidDataException]::new(
-            'TenantLifecycle.Disclosure.Evidence.Invalid'
-        )
-    }
 }

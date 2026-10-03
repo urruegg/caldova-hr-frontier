@@ -125,6 +125,36 @@ Describe 'Runbook static safety' {
         )
     }
 
+    It 'removes retired umbrella correlation from all umbrella projection sources' {
+        $moduleRoot = Join-Path (
+            $script:RunbookRoot
+        ) '..\modules\Caldova.HrFrontier.Bootstrap'
+        $projectionPath = Join-Path (
+            $moduleRoot
+        ) 'Public\ConvertTo-TenantLifecycleAcceptanceProjection.ps1'
+        $disclosurePath = Join-Path (
+            $moduleRoot
+        ) 'Private\Test-TenantLifecycleDisclosure.ps1'
+        $content = @(
+            Get-Content -Raw -LiteralPath $script:TenantLifecycle
+            Get-Content -Raw -LiteralPath $projectionPath
+            Get-Content -Raw -LiteralPath $disclosurePath
+        ) -join "`n"
+
+        $content | Should -Not -Match (
+            '(?i)(CurrentBindingProvider|BindingObserver|targetStableId|' +
+            'AllowedStableIds|AllowedUrlHosts)'
+        )
+        $content | Should -Not -Match (
+            '(?i)(approvals[.]json|ActionEvidence|' +
+            'Disclosure[.]ReadBack[.]Correlation)'
+        )
+        $content | Should -Not -Match (
+            '(?i)(manifestActions|projectionActions|readBackStableIds|' +
+            'stableIdAllowlist|urlHostAllowlist)'
+        )
+    }
+
     It 'uses only named coordinate-only Assess and Plan invoker arguments and discards its return' {
         $content = Get-Content -Raw -LiteralPath $script:TenantLifecycle
 
@@ -136,9 +166,9 @@ Describe 'Runbook static safety' {
         )
         $content | Should -Match (
             '(?s)\$null\s*=\s*&\s*\$invoker\s+' +
-            '`\s*-Stage\s+\(\[string\]\$payload[.]stage\)\s+`\s*' +
-            '-Mode\s+\(\[string\]\$payload[.]mode\)\s+`\s*' +
-            '-ControlRecord\s+\$payload[.]controlRecord'
+            '`\s*-Stage\s+\(\[string\]\$invocationEnvelope[.]stage\)\s+`\s*' +
+            '-Mode\s+\(\[string\]\$invocationEnvelope[.]mode\)\s+`\s*' +
+            '-ControlRecord\s+\$invocationEnvelope[.]controlRecord'
         )
         $content | Should -Not -Match (
             '(?i)\$(outcome|result|providerResult|returnValue)\s*=\s*' +
