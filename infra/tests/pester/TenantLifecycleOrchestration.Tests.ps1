@@ -1185,7 +1185,8 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             [string]$ArtifactStage,
                             [switch]$ReturnProviderData,
                             [switch]$TamperDynamicScope,
-                            [switch]$TamperAuthoritativeScope
+                            [switch]$TamperAuthoritativeScope,
+                            [switch]$SpawnInheritedHandleDescendant
                         )
 
                         $settings = [pscustomobject][ordered]@{
@@ -1195,6 +1196,8 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             returnProviderData = [bool]$ReturnProviderData
                             tamperDynamicScope = [bool]$TamperDynamicScope
                             tamperAuthoritativeScope = [bool]$TamperAuthoritativeScope
+                            spawnInheritedHandleDescendant =
+                                [bool]$SpawnInheritedHandleDescendant
                             fixture = $script:CoordinateFixture
                             modulePath = $script:CoordinateModulePath
                             repositoryRoot = $script:CoordinateSyntheticRepository
@@ -1252,6 +1255,76 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                                 ),
                                 [Text.UTF8Encoding]::new($false)
                             )
+                            if (
+                                [bool]$settings.spawnInheritedHandleDescendant
+                            ) {
+                                $descendantMarker = [IO.Path]::Combine(
+                                    $observationDirectory,
+                                    'descendant-completed.txt'
+                                )
+                                $markerBase64 = [Convert]::ToBase64String(
+                                    [Text.Encoding]::UTF8.GetBytes(
+                                        $descendantMarker
+                                    )
+                                )
+                                $descendantScript = @(
+                                    'Start-Sleep -Seconds 4'
+                                    (
+                                        '$markerPath = ' +
+                                        '[Text.Encoding]::UTF8.GetString('
+                                    )
+                                    (
+                                        '    [Convert]::FromBase64String(' +
+                                        "'$markerBase64')"
+                                    )
+                                    ')'
+                                    '[IO.File]::WriteAllText('
+                                    '    $markerPath,'
+                                    "    'completed',"
+                                    (
+                                        '    [Text.UTF8Encoding]::new(' +
+                                        '$false)'
+                                    )
+                                    ')'
+                                ) -join "`n"
+                                $descendantHostName = if (
+                                    $PSVersionTable.PSEdition -ceq 'Core'
+                                ) {
+                                    'pwsh.exe'
+                                }
+                                else {
+                                    'powershell.exe'
+                                }
+                                $descendantStartInfo =
+                                    [Diagnostics.ProcessStartInfo]::new()
+                                $descendantStartInfo.FileName = Join-Path (
+                                    $PSHOME
+                                ) $descendantHostName
+                                $descendantStartInfo.Arguments = (
+                                    '-NoLogo -NoProfile -NonInteractive ' +
+                                    '-EncodedCommand ' +
+                                    [Convert]::ToBase64String(
+                                        [Text.Encoding]::Unicode.GetBytes(
+                                            $descendantScript
+                                        )
+                                    )
+                                )
+                                $descendantStartInfo.UseShellExecute = $false
+                                $descendantStartInfo.CreateNoWindow = $true
+                                $descendant =
+                                    [Diagnostics.Process]::Start(
+                                        $descendantStartInfo
+                                    )
+                                [IO.File]::WriteAllText(
+                                    [IO.Path]::Combine(
+                                        $observationDirectory,
+                                        'descendant-pid.txt'
+                                    ),
+                                    ([string]$descendant.Id),
+                                    [Text.UTF8Encoding]::new($false)
+                                )
+                                $descendant.Dispose()
+                            }
 
                             $modeToWrite = if (
                                 [string]$settings.artifactMode -ceq 'None'
@@ -1877,6 +1950,59 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         (
                             Get-CoordinateObservedCalls -RunId $runId
                         ) | Should -BeExactly @('Workstation|Assess')
+                    }
+
+                    It 'terminates an invoker descendant without waiting for its inherited stream handles' {
+                        $runId = [guid]::NewGuid()
+                        $invoker = New-CoordinateArtifactInvoker `
+                            -SpawnInheritedHandleDescendant
+                        $observationDirectory = Join-Path (
+                            Join-Path $script:CoordinateEvidenceRoot (
+                                $runId.ToString('D')
+                            )
+                        ) '.test-observation'
+                        $markerPath = Join-Path $observationDirectory (
+                            'descendant-completed.txt'
+                        )
+                        $pidPath = Join-Path $observationDirectory (
+                            'descendant-pid.txt'
+                        )
+                        $descendantProcess = $null
+
+                        try {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages @('Workstation') `
+                                -Mode Assess `
+                                -SubsystemInvoker $invoker
+
+                            $pidPath | Should -Exist
+                            $markerPath | Should -Not -Exist
+                            $descendantId = [int](
+                                Get-Content -Raw -LiteralPath $pidPath
+                            )
+                            $deadline = [datetime]::UtcNow.AddSeconds(2)
+                            do {
+                                $descendantProcess = Get-Process `
+                                    -Id $descendantId `
+                                    -ErrorAction SilentlyContinue
+                                if ($null -eq $descendantProcess) {
+                                    break
+                                }
+                                Start-Sleep -Milliseconds 50
+                            } while ([datetime]::UtcNow -lt $deadline)
+                            $descendantProcess | Should -BeNullOrEmpty
+                        }
+                        finally {
+                            if (
+                                $null -ne $descendantProcess -and
+                                -not $descendantProcess.HasExited
+                            ) {
+                                Stop-Process `
+                                    -Id $descendantProcess.Id `
+                                    -Force
+                            }
+                        }
                     }
                 }
 

@@ -526,6 +526,170 @@ function Assert-TenantLifecycleChildArtifact {
     }
 }
 
+function New-TenantLifecycleProcessJob {
+    if ($null -eq (
+            'Caldova.HrFrontier.Runtime.TenantLifecycleProcessJob' -as [type]
+        )) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+
+namespace Caldova.HrFrontier.Runtime
+{
+    public sealed class TenantLifecycleProcessJob : IDisposable
+    {
+        private const uint KillOnJobClose = 0x00002000;
+        private const int ExtendedLimitInformation = 9;
+        private IntPtr handle;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct BasicLimitInformation
+        {
+            public long PerProcessUserTimeLimit;
+            public long PerJobUserTimeLimit;
+            public uint LimitFlags;
+            public UIntPtr MinimumWorkingSetSize;
+            public UIntPtr MaximumWorkingSetSize;
+            public uint ActiveProcessLimit;
+            public UIntPtr Affinity;
+            public uint PriorityClass;
+            public uint SchedulingClass;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct IoCounters
+        {
+            public ulong ReadOperationCount;
+            public ulong WriteOperationCount;
+            public ulong OtherOperationCount;
+            public ulong ReadTransferCount;
+            public ulong WriteTransferCount;
+            public ulong OtherTransferCount;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ExtendedLimit
+        {
+            public BasicLimitInformation BasicLimitInformation;
+            public IoCounters IoInfo;
+            public UIntPtr ProcessMemoryLimit;
+            public UIntPtr JobMemoryLimit;
+            public UIntPtr PeakProcessMemoryUsed;
+            public UIntPtr PeakJobMemoryUsed;
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern IntPtr CreateJobObject(
+            IntPtr jobAttributes,
+            string name
+        );
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool SetInformationJobObject(
+            IntPtr job,
+            int informationClass,
+            IntPtr information,
+            uint informationLength
+        );
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool AssignProcessToJobObject(
+            IntPtr job,
+            IntPtr process
+        );
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool CloseHandle(IntPtr handle);
+
+        public TenantLifecycleProcessJob()
+        {
+            handle = CreateJobObject(IntPtr.Zero, null);
+            if (handle == IntPtr.Zero)
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+
+            ExtendedLimit information = new ExtendedLimit();
+            information.BasicLimitInformation.LimitFlags = KillOnJobClose;
+            int length = Marshal.SizeOf(typeof(ExtendedLimit));
+            IntPtr informationPointer = Marshal.AllocHGlobal(length);
+            try
+            {
+                Marshal.StructureToPtr(
+                    information,
+                    informationPointer,
+                    false
+                );
+                if (!SetInformationJobObject(
+                        handle,
+                        ExtendedLimitInformation,
+                        informationPointer,
+                        (uint)length
+                    ))
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+                }
+            }
+            catch
+            {
+                CloseHandle(handle);
+                handle = IntPtr.Zero;
+                throw;
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(informationPointer);
+            }
+        }
+
+        public void Assign(Process process)
+        {
+            if (process == null)
+            {
+                throw new ArgumentNullException("process");
+            }
+            if (handle == IntPtr.Zero)
+            {
+                throw new ObjectDisposedException(
+                    "TenantLifecycleProcessJob"
+                );
+            }
+            if (!AssignProcessToJobObject(handle, process.Handle))
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+        }
+
+        public void Dispose()
+        {
+            IntPtr currentHandle = handle;
+            handle = IntPtr.Zero;
+            if (currentHandle != IntPtr.Zero &&
+                !CloseHandle(currentHandle))
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+            GC.SuppressFinalize(this);
+        }
+
+        ~TenantLifecycleProcessJob()
+        {
+            if (handle != IntPtr.Zero)
+            {
+                CloseHandle(handle);
+                handle = IntPtr.Zero;
+            }
+        }
+    }
+}
+'@
+    }
+
+    [Caldova.HrFrontier.Runtime.TenantLifecycleProcessJob]::new()
+}
+
 function Invoke-TenantLifecycleIsolatedInvoker {
     [CmdletBinding()]
     param(
@@ -549,6 +713,8 @@ function Invoke-TenantLifecycleIsolatedInvoker {
     $childScript = @'
 $ErrorActionPreference = 'Stop'
 try {
+    [Console]::SetOut([IO.TextWriter]::Null)
+    [Console]::SetError([IO.TextWriter]::Null)
     $payload = [Console]::In.ReadToEnd() | ConvertFrom-Json
     $invokerText = [Text.Encoding]::UTF8.GetString(
         [Convert]::FromBase64String([string]$payload.invoker)
@@ -557,7 +723,7 @@ try {
     $null = & $invoker `
         -Stage ([string]$payload.stage) `
         -Mode ([string]$payload.mode) `
-        -ControlRecord $payload.controlRecord
+        -ControlRecord $payload.controlRecord *> $null
     exit 0
 }
 catch {
@@ -591,8 +757,8 @@ catch {
     $startInfo.UseShellExecute = $false
     $startInfo.CreateNoWindow = $true
     $startInfo.RedirectStandardInput = $true
-    $startInfo.RedirectStandardOutput = $true
-    $startInfo.RedirectStandardError = $true
+    $startInfo.RedirectStandardOutput = $false
+    $startInfo.RedirectStandardError = $false
     $startInfo.EnvironmentVariables.Clear()
     foreach ($environmentName in @('SystemRoot', 'WINDIR', 'ComSpec')) {
         $environmentValue = [Environment]::GetEnvironmentVariable(
@@ -607,29 +773,70 @@ catch {
 
     $child = [Diagnostics.Process]::new()
     $child.StartInfo = $startInfo
+    $processJob = $null
+    $childStarted = $false
+    $invocationException = $null
     try {
+        $processJob = New-TenantLifecycleProcessJob
         if (-not $child.Start()) {
             throw [InvalidOperationException]::new()
         }
-        $stdoutTask = $child.StandardOutput.ReadToEndAsync()
-        $stderrTask = $child.StandardError.ReadToEndAsync()
-        $child.StandardInput.Write($payloadJson)
+        $childStarted = $true
+        $processJob.Assign($child)
+        $timeoutMilliseconds = 300000
+        $stopwatch = [Diagnostics.Stopwatch]::StartNew()
+        $writeTask = $child.StandardInput.WriteAsync($payloadJson)
+        if (-not $writeTask.Wait($timeoutMilliseconds)) {
+            throw [TimeoutException]::new()
+        }
+        [void]$writeTask.GetAwaiter().GetResult()
         $child.StandardInput.Close()
-        $child.WaitForExit()
-        [void]$stdoutTask.GetAwaiter().GetResult()
-        [void]$stderrTask.GetAwaiter().GetResult()
+        $remainingMilliseconds = $timeoutMilliseconds - [int][Math]::Min(
+            $stopwatch.ElapsedMilliseconds,
+            $timeoutMilliseconds
+        )
+        if ($remainingMilliseconds -le 0 -or
+            -not $child.WaitForExit($remainingMilliseconds)) {
+            throw [TimeoutException]::new()
+        }
         if ($child.ExitCode -ne 0) {
             throw [InvalidOperationException]::new()
         }
     }
     catch {
-        throw [InvalidOperationException]::new(
-            'TenantLifecycle.SubsystemInvoker.Failed',
-            $_.Exception
-        )
+        $invocationException = $_.Exception
+    }
+
+    $cleanupException = $null
+    try {
+        if ($null -ne $processJob) {
+            $processJob.Dispose()
+        }
+        if ($childStarted -and -not $child.WaitForExit(5000)) {
+            $child.Kill()
+            if (-not $child.WaitForExit(5000)) {
+                throw [TimeoutException]::new()
+            }
+        }
+    }
+    catch {
+        $cleanupException = $_.Exception
     }
     finally {
         $child.Dispose()
+    }
+
+    if ($null -ne $cleanupException) {
+        throw [InvalidOperationException]::new(
+            'TenantLifecycle.SubsystemInvoker.Failed',
+            $cleanupException
+        )
+    }
+    if ($null -ne $invocationException) {
+        throw [InvalidOperationException]::new(
+            'TenantLifecycle.SubsystemInvoker.Failed',
+            $invocationException
+        )
     }
 }
 
