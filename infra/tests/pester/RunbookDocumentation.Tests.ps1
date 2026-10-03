@@ -177,6 +177,18 @@ Describe 'Runbook documentation contracts' {
             'Umbrella `Verify` never invokes a child'
         )
         $index | Should -Match (
+            'Child execution manifests and summaries are read-only ' +
+            'umbrella `Verify` inputs[.]'
+        )
+        $index | Should -Match (
+            'Child `approvals[.]json`, provider actions, WhatIf/Apply, ' +
+            '`ShouldProcess`, state adoption, and provider read-back remain ' +
+            'child-only and are neither umbrella authority nor umbrella output[.]'
+        )
+        $index | Should -Not -Match (
+            'Those files are not umbrella inputs or outputs[.]'
+        )
+        $index | Should -Match (
             'literal `Passed`'
         )
         foreach ($nonClaim in @(
@@ -247,6 +259,36 @@ Describe 'Runbook documentation contracts' {
             $content | Should -Match (
                 'coordinate-only correction.+merged.+then-current `main` is green'
             )
+        }
+
+        $correctivePlan = Get-Content -Raw -LiteralPath (
+            Join-Path $script:repositoryRoot $planPaths[6]
+        )
+        $correctivePlan | Should -Match (
+            '`feat/tenant-lifecycle-core` remains blocked and nonmergeable ' +
+            'until the clean review is accepted'
+        )
+        $correctivePlan | Should -Match (
+            'Plans 2-6 remain `Draft` and blocked until the corrective change ' +
+            'is merged and then-current `main` is green'
+        )
+        foreach ($unquotedCommand in @(
+            'git diff --check $MergeBase..HEAD',
+            'git diff --exit-code $MergeBase..HEAD',
+            'git diff --stat $MergeBase..HEAD'
+        )) {
+            $correctivePlan |
+                Should -Not -Match ([regex]::Escape($unquotedCommand))
+        }
+        foreach ($quotedCommand in @(
+            'git diff --check "$MergeBase..HEAD"',
+            'git diff --exit-code "$MergeBase..HEAD" -- .github/workflows',
+            'git diff --exit-code "$MergeBase..HEAD" -- `',
+            'git diff --stat "$MergeBase..HEAD"',
+            '`git diff --check "$MergeBase..HEAD"`'
+        )) {
+            $correctivePlan |
+                Should -Match ([regex]::Escape($quotedCommand))
         }
     }
 

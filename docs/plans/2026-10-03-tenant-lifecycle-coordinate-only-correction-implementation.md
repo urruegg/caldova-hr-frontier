@@ -728,11 +728,11 @@ Get-ChildItem infra/src/bicep -Filter *.bicep -File -Recurse |
         if ($LASTEXITCODE -ne 0) { throw "Bicep build failed: $($_.FullName)" }
     }
 
-git diff --check $MergeBase..HEAD
+git diff --check "$MergeBase..HEAD"
 if ($LASTEXITCODE -ne 0) { throw 'Git diff whitespace validation failed.' }
-git diff --exit-code $MergeBase..HEAD -- .github/workflows
+git diff --exit-code "$MergeBase..HEAD" -- .github/workflows
 if ($LASTEXITCODE -ne 0) { throw 'GitHub workflows changed.' }
-git diff --exit-code $MergeBase..HEAD -- `
+git diff --exit-code "$MergeBase..HEAD" -- `
   infra/src/scripts/runbooks/Get-CloudFoundationPlan.ps1 `
   infra/src/scripts/runbooks/Invoke-CloudFoundation.ps1
 if ($LASTEXITCODE -ne 0) { throw 'Dormant cloud stop stubs changed.' }
@@ -743,7 +743,7 @@ $OriginalCommits | ForEach-Object {
 }
 
 git status --short
-git diff --stat $MergeBase..HEAD
+git diff --stat "$MergeBase..HEAD"
 git log --oneline --decorate "$MergeBase..HEAD"
 ```
 
@@ -786,7 +786,7 @@ git add infra/tests/pester infra/docs infra/README.md
 git commit -m "docs(runbooks): finalize coordinate-only lifecycle correction" -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ```
 
-After the commit, rerun `git status --short`, `git diff --check $MergeBase..HEAD`, the focused lifecycle suites on both hosts, and the full final verification command block. Expected: clean worktree and the same all-green evidence.
+After the commit, rerun `git status --short`, `git diff --check "$MergeBase..HEAD"`, the focused lifecycle suites on both hosts, and the full final verification command block. Expected: clean worktree and the same all-green evidence.
 
 ## Completion Gate
 
