@@ -88,6 +88,43 @@ BeforeAll {
 }
 
 Describe 'Runbook documentation contracts' {
+    It 'records the controlling coordinate-only plan authority' {
+        $specPath = Join-Path $script:repositoryRoot (
+            'docs\specs\' +
+            '2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md'
+        )
+        $correctionPath = Join-Path $script:repositoryRoot (
+            'docs\plans\' +
+            '2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md'
+        )
+        $planOnePath = Join-Path $script:repositoryRoot (
+            'docs\plans\2026-10-02-tenant-lifecycle-core-implementation.md'
+        )
+        foreach ($path in @($specPath, $correctionPath, $planOnePath)) {
+            $path | Should -Exist
+        }
+
+        $spec = Get-Content -Raw -LiteralPath $specPath
+        $correction = Get-Content -Raw -LiteralPath $correctionPath
+        $planOne = Get-Content -Raw -LiteralPath $planOnePath
+        $spec | Should -Match (
+            '(?m)^\|\s+\*\*Status\*\*\s+\|\s+Approved\s+\|\s*$'
+        )
+        $spec | Should -Match (
+            'Plan 1.+Replace the mutation-capable umbrella contract.+exact ' +
+            'coordinate-only signature and stage-result schema'
+        )
+        $correction | Should -Match (
+            'Correct.+coordinate-only umbrella authority.+canonical child stage results'
+        )
+        $planOne | Should -Match (
+            'This amendment is controlling.+Approved coordinate-only design'
+        )
+        $planOne | Should -Match (
+            'Plan 1 is incomplete until every corrective task passes focused review'
+        )
+    }
+
     It 'includes metadata-compliant infrastructure runbooks in the documentation set' {
         foreach ($relative in @(
             'README.md',

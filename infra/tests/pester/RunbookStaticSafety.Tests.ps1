@@ -88,7 +88,7 @@ Describe 'Runbook static safety' {
         )
     }
 
-    It 'accepts no credential parameter and wraps only Invoke mode in ShouldProcess' {
+    It 'removes retired umbrella authority from the coordinate-only source' {
         $tokens = $null
         $errors = $null
         $ast = [Management.Automation.Language.Parser]::ParseFile(
@@ -104,11 +104,20 @@ Describe 'Runbook static safety' {
                 '(?i)\b(password|token|secret|credential|certificate|pat)\b'
             )
         $ast.ParamBlock.Attributes.Extent.Text |
-            Should -Match 'SupportsShouldProcess\s*=\s*\$true'
-        $ast.ParamBlock.Attributes.Extent.Text |
-            Should -Match "ConfirmImpact\s*=\s*'High'"
-        $ast.Extent.Text | Should -Match (
-            "(?s)Mode\s+-ceq\s+'Invoke'.{0,300}\`$PSCmdlet\.ShouldProcess\("
+            Should -Not -Match 'SupportsShouldProcess'
+
+        $content = Get-Content -Raw -LiteralPath $script:TenantLifecycle
+        $content | Should -Not -Match (
+            '(?i)\$(Apply|ExecutionManifestPath|ApprovedDigest|' +
+            'BindingObserver|CurrentBindingProvider)\b'
+        )
+        $content | Should -Not -Match (
+            '(?i)(approvals[.]json|Test-TenantLifecycleApproval|' +
+            'currentBinding|targetStableId|ShouldProcess)'
+        )
+        $content | Should -Not -Match (
+            '(?i)(ManifestAction|[.]actions\b|ActionEvidence|' +
+            'correlatedEvidence)'
         )
     }
 }

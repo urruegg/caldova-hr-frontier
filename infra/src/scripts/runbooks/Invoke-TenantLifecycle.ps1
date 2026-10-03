@@ -1,4 +1,4 @@
-[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
+[CmdletBinding()]
 param(
     [Parameter(Mandatory)][guid]$RunId,
     [Parameter(Mandatory)][string]$EvidenceRoot,
@@ -10,13 +10,8 @@ param(
     [Parameter(Mandatory)]
     [ValidateSet('Workstation','PrivateBoundary','Foundation','DevDelivery','ReadBack','Acceptance','TenantReplica')]
     [string[]]$Stages,
-    [ValidateSet('Assess','Plan','Invoke')][string]$Mode = 'Assess',
-    [string]$ExecutionManifestPath,
-    [ValidatePattern('^[0-9a-f]{64}$')][string]$ApprovedDigest,
-    [switch]$Apply,
+    [ValidateSet('Assess','Plan','Verify')][string]$Mode = 'Assess',
     [Parameter(DontShow)][scriptblock]$SubsystemInvoker,
-    [Parameter(DontShow)][scriptblock]$BindingObserver,
-    [Parameter(DontShow)][scriptblock]$CurrentBindingProvider,
     [datetime]$NowUtc = [datetime]::UtcNow
 )
 
@@ -30,30 +25,6 @@ $modulePath = [IO.Path]::GetFullPath((
     )
 ))
 Import-Module $modulePath -Force
-
-function Get-TenantLifecycleManifestDigest {
-    [CmdletBinding()]
-    [OutputType([string])]
-    param([Parameter(Mandatory)][object]$Manifest)
-
-    Get-RunbookContentDigest -InputObject ([pscustomobject][ordered]@{
-        schemaVersion = $Manifest.schemaVersion
-        runId = $Manifest.runId
-        generatedAtUtc = $Manifest.generatedAtUtc
-        expiresAtUtc = $Manifest.expiresAtUtc
-        sourceCommit = $Manifest.sourceCommit
-        evidenceRoot = $Manifest.evidenceRoot
-        publicTenantKey = $Manifest.publicTenantKey
-        intentDigest = $Manifest.intentDigest
-        stateDigest = $Manifest.stateDigest
-        machine = $Manifest.machine
-        operator = $Manifest.operator
-        toolIdentities = @($Manifest.toolIdentities)
-        providerContexts = @($Manifest.providerContexts)
-        prerequisites = @($Manifest.prerequisites)
-        actions = @($Manifest.actions)
-    })
-}
 
 function Assert-TenantLifecycleSubsystemOutcome {
     [CmdletBinding()]
@@ -146,224 +117,18 @@ function Assert-TenantLifecycleSubsystemOutcome {
     }
 }
 
-function Test-TenantLifecycleOrchestratorReparsePath {
-    [CmdletBinding()]
-    [OutputType([bool])]
-    param(
-        [Parameter(Mandatory)][string]$Root,
-        [Parameter(Mandatory)][string]$Candidate
-    )
-
-    $rootItem = Get-Item -LiteralPath $Root -Force -ErrorAction Stop
-    if (($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-        return $true
-    }
-    $rootPrefix = $Root + [IO.Path]::DirectorySeparatorChar
-    $currentPath = $Root
-    foreach ($segment in @($Candidate.Substring($rootPrefix.Length) -split '[\\/]')) {
-        if ([string]::IsNullOrEmpty($segment)) {
-            continue
-        }
-        $currentPath = Join-Path $currentPath $segment
-        $item = Get-Item -LiteralPath $currentPath -Force -ErrorAction Stop
-        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-            return $true
-        }
-    }
-    return $false
-}
-
-function Get-TenantLifecycleCanonicalEvidenceDigest {
-    [CmdletBinding()]
-    [OutputType([string])]
-    param([Parameter(Mandatory)][byte[]]$Bytes)
-
-    $hash = [Security.Cryptography.SHA256]::Create()
-    try {
-        return [BitConverter]::ToString(
-            $hash.ComputeHash($Bytes)
-        ).Replace('-', '').ToLowerInvariant()
-    }
-    finally {
-        $hash.Dispose()
-    }
-}
-
-function Get-TenantLifecycleCorrelatedActionEvidence {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)][string]$RunDirectory,
-        [Parameter(Mandatory)][guid]$RunId,
-        [Parameter(Mandatory)][string]$ExpectedStage,
-        [Parameter(Mandatory)][object]$ManifestAction,
-        [Parameter(Mandatory)][object]$Outcome
-    )
-
-    $expectedRelativePath = "actions/$ExpectedStage.json"
-    if (-not [StringComparer]::Ordinal.Equals(
-            [string]$Outcome.evidenceRelativePath,
-            $expectedRelativePath
-        )) {
-        throw [IO.InvalidDataException]::new(
-            'TenantLifecycle.Orchestrator.ActionEvidence.Path'
-        )
-    }
-
-    try {
-        $root = [IO.Path]::GetFullPath($RunDirectory).TrimEnd('\', '/')
-        $candidate = [IO.Path]::GetFullPath((
-            Join-Path $root (
-                $expectedRelativePath.Replace(
-                    '/',
-                    [IO.Path]::DirectorySeparatorChar
-                )
-            )
-        ))
-    }
-    catch {
-        throw [IO.InvalidDataException]::new(
-            'TenantLifecycle.Orchestrator.ActionEvidence.Path'
-        )
-    }
-    $rootPrefix = $root + [IO.Path]::DirectorySeparatorChar
-    if (-not $candidate.StartsWith(
-            $rootPrefix,
-            [StringComparison]::OrdinalIgnoreCase
-        )) {
-        throw [IO.InvalidDataException]::new(
-            'TenantLifecycle.Orchestrator.ActionEvidence.Path'
-        )
-    }
-    if (-not [IO.File]::Exists($candidate)) {
-        if ([IO.Directory]::Exists($candidate)) {
-            throw [IO.InvalidDataException]::new(
-                'TenantLifecycle.Orchestrator.ActionEvidence.File'
-            )
-        }
-        throw [IO.FileNotFoundException]::new(
-            'TenantLifecycle.Orchestrator.ActionEvidence.Missing'
-        )
-    }
-
-    try {
-        if (Test-TenantLifecycleOrchestratorReparsePath `
-                -Root $root `
-                -Candidate $candidate) {
-            throw [IO.InvalidDataException]::new(
-                'TenantLifecycle.Orchestrator.ActionEvidence.ReparsePoint'
-            )
-        }
-        $item = Get-Item -LiteralPath $candidate -Force -ErrorAction Stop
-        if ($item.PSIsContainer) {
-            throw [IO.InvalidDataException]::new(
-                'TenantLifecycle.Orchestrator.ActionEvidence.File'
-            )
-        }
-        $bytes = [IO.File]::ReadAllBytes($candidate)
-        $json = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
-        $evidence = ConvertFrom-TenantLifecycleJson -InputObject $json
-        Test-TenantLifecycleContract `
-            -Kind ActionEvidence `
-            -InputObject $evidence |
-            Out-Null
-        $canonicalJson = ConvertTo-TenantLifecycleCanonicalJson `
-            -InputObject $evidence
-        $canonicalBytes = [Text.UTF8Encoding]::new(
-            $false,
-            $true
-        ).GetBytes($canonicalJson)
-        if ([Convert]::ToBase64String($bytes) -cne
-            [Convert]::ToBase64String($canonicalBytes)) {
-            throw [IO.InvalidDataException]::new()
-        }
-        $evidenceDigest = Get-TenantLifecycleCanonicalEvidenceDigest -Bytes $bytes
-    }
-    catch {
-        if ($_.Exception.Message -cmatch (
-                '^TenantLifecycle\.Orchestrator\.ActionEvidence\.'
-            )) {
-            throw
-        }
-        throw [IO.InvalidDataException]::new(
-            'TenantLifecycle.Orchestrator.ActionEvidence.Invalid'
-        )
-    }
-
-    if (-not [StringComparer]::Ordinal.Equals(
-            [string]$evidence.runId,
-            $RunId.ToString('D').ToLowerInvariant()
-        ) -or
-        -not [StringComparer]::Ordinal.Equals(
-            [string]$evidence.actionId,
-            $ExpectedStage
-        ) -or
-        -not [StringComparer]::Ordinal.Equals(
-            [string]$ManifestAction.id,
-            $ExpectedStage
-        ) -or
-        -not [StringComparer]::Ordinal.Equals(
-            [string]$evidence.classification,
-            [string]$ManifestAction.classification
-        ) -or
-        -not [StringComparer]::Ordinal.Equals(
-            [string]$evidence.classification,
-            [string]$Outcome.classification
-        ) -or
-        -not [StringComparer]::Ordinal.Equals(
-            [string]$evidence.decision,
-            [string]$Outcome.classification
-        ) -or
-        -not [StringComparer]::Ordinal.Equals(
-            [string]$evidence.status,
-            [string]$Outcome.status
-        ) -or
-        -not [StringComparer]::Ordinal.Equals(
-            [string]$evidence.preReadDigest,
-            [string]$Outcome.inputDigest
-        ) -or
-        -not ($Outcome.readBackDigest -is [string]) -or
-        -not [StringComparer]::Ordinal.Equals(
-            [string]$evidence.postReadDigest,
-            [string]$Outcome.readBackDigest
-        )) {
-        throw [IO.InvalidDataException]::new(
-            'TenantLifecycle.Orchestrator.ActionEvidence.Correlation'
-        )
-    }
-
-    [pscustomobject][ordered]@{
-        relativePath = $expectedRelativePath
-        digest = $evidenceDigest
-        value = $evidence
-    }
-}
-
-if ($null -eq $SubsystemInvoker) {
+if ($Mode -cne 'Verify' -and $null -eq $SubsystemInvoker) {
     throw [InvalidOperationException]::new(
         'TenantLifecycle.SubsystemInvoker.Required'
     )
 }
+if ($Mode -ceq 'Verify' -and $null -ne $SubsystemInvoker) {
+    throw [InvalidOperationException]::new(
+        'TenantLifecycle.SubsystemInvoker.Prohibited'
+    )
+}
 if (@($Stages).Count -eq 0) {
     throw [IO.InvalidDataException]::new('TenantLifecycle.Stages.Required')
-}
-if ($Apply -and [string]::IsNullOrWhiteSpace($ApprovedDigest)) {
-    throw [IO.InvalidDataException]::new('TenantLifecycle.Approval.Required')
-}
-if ($Apply -and $Mode -cne 'Invoke') {
-    throw [IO.InvalidDataException]::new('TenantLifecycle.Apply.Mode')
-}
-if ($Mode -ceq 'Invoke' -and -not $Apply) {
-    throw [IO.InvalidDataException]::new('TenantLifecycle.Apply.Required')
-}
-if ($Mode -ceq 'Invoke' -and
-    [string]::IsNullOrWhiteSpace($ExecutionManifestPath)) {
-    throw [IO.InvalidDataException]::new('TenantLifecycle.Manifest.Required')
-}
-if ($Mode -ceq 'Invoke' -and
-    $null -eq $CurrentBindingProvider) {
-    throw [IO.InvalidDataException]::new(
-        'TenantLifecycle.Approval.BindingProvider.Required'
-    )
 }
 
 try {
@@ -496,186 +261,6 @@ function Get-TenantLifecyclePrivateBinding {
 
 $sourceCommit = Get-TenantLifecycleSourceBinding
 $privateBoundary = Get-TenantLifecyclePrivateBinding
-$injectedNow = $PSBoundParameters.ContainsKey('NowUtc')
-
-function Get-TenantLifecycleValidationTime {
-    [CmdletBinding()]
-    [OutputType([datetime])]
-    param()
-
-    if ($injectedNow) {
-        return $NowUtc.ToUniversalTime()
-    }
-    return [datetime]::UtcNow
-}
-
-$manifest = $null
-if (-not [string]::IsNullOrWhiteSpace($ExecutionManifestPath)) {
-    try {
-        $manifestPath = [IO.Path]::GetFullPath($ExecutionManifestPath)
-        if (-not [IO.File]::Exists($manifestPath)) {
-            throw [IO.InvalidDataException]::new()
-        }
-        $manifest = ConvertFrom-TenantLifecycleJson -InputObject (
-            Get-Content -Raw -LiteralPath $manifestPath
-        )
-        Test-TenantLifecycleContract `
-            -Kind ExecutionManifest `
-            -InputObject $manifest |
-            Out-Null
-        $calculatedManifestDigest = Get-TenantLifecycleManifestDigest `
-            -Manifest $manifest
-        if (-not [StringComparer]::Ordinal.Equals(
-                [string]$manifest.digest,
-                $calculatedManifestDigest
-            ) -or
-            -not [StringComparer]::Ordinal.Equals(
-                [string]$manifest.runId,
-                $RunId.ToString('D').ToLowerInvariant()
-            ) -or
-            -not [StringComparer]::Ordinal.Equals(
-                [string]$manifest.sourceCommit,
-                $sourceCommit
-            ) -or
-            -not [StringComparer]::Ordinal.Equals(
-                [string]$manifest.publicTenantKey,
-                $PublicTenantKey
-            ) -or
-            -not [StringComparer]::OrdinalIgnoreCase.Equals(
-                [IO.Path]::GetFullPath([string]$manifest.evidenceRoot).TrimEnd('\', '/'),
-                $runDirectory
-            )) {
-            throw [IO.InvalidDataException]::new()
-        }
-        if (-not [string]::IsNullOrWhiteSpace($ApprovedDigest) -and
-            -not [StringComparer]::Ordinal.Equals(
-                [string]$manifest.digest,
-                $ApprovedDigest
-            )) {
-            throw [IO.InvalidDataException]::new()
-        }
-        if ($Mode -ceq 'Invoke' -and
-            (Get-TenantLifecycleValidationTime) -ge
-                ([DateTimeOffset]$manifest.expiresAtUtc).UtcDateTime) {
-            throw [IO.InvalidDataException]::new()
-        }
-    }
-    catch {
-        throw [IO.InvalidDataException]::new(
-            'TenantLifecycle.Orchestrator.Manifest'
-        )
-    }
-}
-
-if ($Mode -ceq 'Invoke') {
-    foreach ($digestField in @('intentDigest', 'stateDigest')) {
-        $currentDigest = if ($digestField -ceq 'intentDigest') {
-            [string]$privateBoundary.intent.digest
-        }
-        else {
-            [string]$privateBoundary.state.digest
-        }
-        if (-not [StringComparer]::Ordinal.Equals(
-                $currentDigest,
-                [string]$manifest.$digestField
-            )) {
-            throw [IO.InvalidDataException]::new(
-                "TenantLifecycle.Orchestrator.Drift.$digestField"
-            )
-        }
-    }
-
-    function Assert-TenantLifecycleApprovedBinding {
-        [CmdletBinding()]
-        param()
-
-        $currentSourceCommit = Get-TenantLifecycleSourceBinding
-        if (-not [StringComparer]::Ordinal.Equals(
-                $currentSourceCommit,
-                [string]$manifest.sourceCommit
-            )) {
-            throw [IO.InvalidDataException]::new(
-                'TenantLifecycle.Source.Commit'
-            )
-        }
-
-        $currentPrivateBoundary = Get-TenantLifecyclePrivateBinding
-        foreach ($digestField in @('intentDigest', 'stateDigest')) {
-            $currentDigest = if ($digestField -ceq 'intentDigest') {
-                [string]$currentPrivateBoundary.intent.digest
-            }
-            else {
-                [string]$currentPrivateBoundary.state.digest
-            }
-            if (-not [StringComparer]::Ordinal.Equals(
-                    $currentDigest,
-                    [string]$manifest.$digestField
-                )) {
-                throw [IO.InvalidDataException]::new(
-                    "TenantLifecycle.Orchestrator.Drift.$digestField"
-                )
-            }
-        }
-
-        try {
-            $approvalPath = Join-Path $runDirectory 'approvals.json'
-            if (-not [IO.File]::Exists($approvalPath) -or
-                (Test-TenantLifecycleOrchestratorReparsePath `
-                    -Root $runDirectory `
-                    -Candidate $approvalPath)) {
-                throw [IO.InvalidDataException]::new()
-            }
-            $approvalBytes = [IO.File]::ReadAllBytes($approvalPath)
-            $approvalJson = [Text.UTF8Encoding]::new(
-                $false,
-                $true
-            ).GetString($approvalBytes)
-            $approval = ConvertFrom-TenantLifecycleJson `
-                -InputObject $approvalJson
-        }
-        catch {
-            throw [IO.InvalidDataException]::new(
-                'TenantLifecycle.Approval.Evidence'
-            )
-        }
-
-        try {
-            $currentBinding = & $CurrentBindingProvider
-        }
-        catch {
-            throw [InvalidOperationException]::new(
-                'TenantLifecycle.Approval.BindingProvider.Failed'
-            )
-        }
-        Test-TenantLifecycleApproval `
-            -Manifest $manifest `
-            -Approval $approval `
-            -CurrentBinding $currentBinding `
-            -NowUtc (Get-TenantLifecycleValidationTime) |
-            Out-Null
-    }
-
-    function Invoke-TenantLifecycleBindingObserver {
-        [CmdletBinding()]
-        param(
-            [Parameter(Mandatory)][string]$Checkpoint,
-            [AllowNull()][string]$Stage
-        )
-
-        if ($null -eq $BindingObserver) {
-            return
-        }
-        try {
-            & $BindingObserver $Checkpoint $Stage
-        }
-        catch {
-            throw [InvalidOperationException]::new(
-                'TenantLifecycle.BindingObserver.Failed'
-            )
-        }
-    }
-}
-
 $canonicalStageOrder = @(
     'Workstation',
     'PrivateBoundary',
@@ -696,126 +281,19 @@ $orderedStages = @(
         Where-Object { $selectedStageSet.Contains($_) }
 )
 
-if ($Mode -ceq 'Invoke') {
-    $manifestActions = @($manifest.actions)
-    if ($manifestActions.Count -ne $orderedStages.Count) {
-        throw [IO.InvalidDataException]::new(
-            'TenantLifecycle.Orchestrator.Manifest.ActionScope'
-        )
-    }
-    for ($index = 0; $index -lt $orderedStages.Count; $index++) {
-        if (-not [StringComparer]::Ordinal.Equals(
-                [string]$manifestActions[$index].id,
-                [string]$orderedStages[$index]
-            )) {
-            throw [IO.InvalidDataException]::new(
-                'TenantLifecycle.Orchestrator.Manifest.ActionScope'
-            )
-        }
-        [string[]]$expectedPrerequisiteIds = @()
-        if ($index -gt 0) {
-            $expectedPrerequisiteIds = @($orderedStages[$index - 1])
-        }
-        [string[]]$actualPrerequisiteIds = @(
-            $manifestActions[$index].prerequisiteActionIds
-        )
-        if ($actualPrerequisiteIds.Count -ne $expectedPrerequisiteIds.Count) {
-            throw [IO.InvalidDataException]::new(
-                'TenantLifecycle.Orchestrator.Manifest.PrerequisiteScope'
-            )
-        }
-        for (
-            $prerequisiteIndex = 0;
-            $prerequisiteIndex -lt $expectedPrerequisiteIds.Count;
-            $prerequisiteIndex++
-        ) {
-            if (-not [StringComparer]::Ordinal.Equals(
-                    $actualPrerequisiteIds[$prerequisiteIndex],
-                    $expectedPrerequisiteIds[$prerequisiteIndex]
-                )) {
-                throw [IO.InvalidDataException]::new(
-                    'TenantLifecycle.Orchestrator.Manifest.PrerequisiteScope'
-                )
-            }
-        }
-    }
-}
-
-if ($Mode -ceq 'Invoke') {
-    Invoke-TenantLifecycleBindingObserver `
-        -Checkpoint 'BeforeShouldProcessRebind' `
-        -Stage $null
-    Assert-TenantLifecycleApprovedBinding
-    if (-not $PSCmdlet.ShouldProcess(
-            "tenant lifecycle run $($RunId.ToString('D'))",
-            "Invoke stages: $($orderedStages -join ',')"
-        )) {
-        return
-    }
-}
-
-$machineLabel = if ($null -ne $manifest) {
-    [string]$manifest.machine.machineId
-}
-else {
-    [Environment]::MachineName
-}
-$operatorLabel = if ($null -ne $manifest) {
-    [string]$manifest.operator.operatorId
-}
-else {
-    [Environment]::UserName
-}
-$toolIdentities = if ($null -ne $manifest) {
-    @($manifest.toolIdentities)
-}
-else {
-    @()
-}
-$normalizedApprovedDigest = if (
-    [string]::IsNullOrWhiteSpace($ApprovedDigest)
-) {
-    $null
-}
-else {
-    $ApprovedDigest
-}
-
 $outcomes = [Collections.Generic.List[object]]::new()
 $nodes = [Collections.Generic.List[object]]::new()
-$correlatedEvidenceById =
-    [Collections.Generic.Dictionary[string, object]]::new(
-        [StringComparer]::Ordinal
-    )
 for ($index = 0; $index -lt $orderedStages.Count; $index++) {
     $stage = $orderedStages[$index]
-    $stageInputDigest = $null
-    if ($null -ne $manifest) {
-        $contextActions = @(
-            $manifest.actions |
-                Where-Object {
-                    [StringComparer]::Ordinal.Equals(
-                        [string]$_.id,
-                        $stage
-                    )
-                }
-        )
-        if ($contextActions.Count -eq 1) {
-            $stageInputDigest = [string](
-                $contextActions[0].desiredPropertiesDigest
-            )
-        }
-    }
     $controlRecord = [pscustomobject][ordered]@{
         runId = $RunId.ToString('D').ToLowerInvariant()
         runDirectoryLabel = $RunId.ToString('D').ToLowerInvariant()
         publicTenantKey = $PublicTenantKey
         sourceCommit = $sourceCommit
-        machineLabel = $machineLabel
-        operatorLabel = $operatorLabel
-        toolIdentities = @($toolIdentities)
-        approvedDigest = $normalizedApprovedDigest
-        stageInputDigest = $stageInputDigest
+        machineLabel = [Environment]::MachineName
+        operatorLabel = [Environment]::UserName
+        toolIdentities = @()
+        stageInputDigest = $null
         prerequisiteOutcomes = @($outcomes.ToArray())
     }
     $inputDigest = Get-RunbookContentDigest -InputObject (
@@ -851,12 +329,6 @@ for ($index = 0; $index -lt $orderedStages.Count; $index++) {
         break
     }
 
-    if ($Mode -ceq 'Invoke') {
-        Invoke-TenantLifecycleBindingObserver `
-            -Checkpoint 'BeforeStageRebind' `
-            -Stage $stage
-        Assert-TenantLifecycleApprovedBinding
-    }
     try {
         $outcome = & $SubsystemInvoker $stage $Mode $controlRecord
     }
@@ -868,31 +340,7 @@ for ($index = 0; $index -lt $orderedStages.Count; $index++) {
     Assert-TenantLifecycleSubsystemOutcome `
         -Outcome $outcome `
         -ExpectedStage $stage `
-        -ExpectedInputDigest $inputDigest `
-        -RequireReadBackDigest:($Mode -ceq 'Invoke')
-    if ($Mode -ceq 'Invoke') {
-        $matchingManifestActions = @(
-            $manifest.actions |
-                Where-Object {
-                    [StringComparer]::Ordinal.Equals(
-                        [string]$_.id,
-                        $stage
-                    )
-                }
-        )
-        if ($matchingManifestActions.Count -ne 1) {
-            throw [IO.InvalidDataException]::new(
-                'TenantLifecycle.Orchestrator.Manifest.ActionScope'
-            )
-        }
-        $correlatedEvidence = Get-TenantLifecycleCorrelatedActionEvidence `
-            -RunDirectory $runDirectory `
-            -RunId $RunId `
-            -ExpectedStage $stage `
-            -ManifestAction $matchingManifestActions[0] `
-            -Outcome $outcome
-        $correlatedEvidenceById.Add($stage, $correlatedEvidence)
-    }
+        -ExpectedInputDigest $inputDigest
     $outcomes.Add($outcome)
 
     $resolvedAfterInvocation = @(
@@ -907,90 +355,6 @@ for ($index = 0; $index -lt $orderedStages.Count; $index++) {
     if ($currentAfterInvocation.status -cne 'Passed') {
         break
     }
-}
-
-if ($Mode -ceq 'Invoke' -and $outcomes.Count -gt 0) {
-    $completedNodes = @($nodes.ToArray())[0..($outcomes.Count - 1)]
-    $resolvedOutcomes = @(
-        Resolve-TenantLifecycleGraph `
-            -Nodes $completedNodes `
-            -ObservedOutcomes $outcomes.ToArray()
-    )
-    $resolvedById = @{}
-    foreach ($resolvedOutcome in $resolvedOutcomes) {
-        $resolvedById[[string]$resolvedOutcome.id] = $resolvedOutcome
-    }
-
-    $counts = [ordered]@{
-        NoChange = 0
-        Create = 0
-        Update = 0
-        Manual = 0
-        Blocked = 0
-        Refused = 0
-    }
-    foreach ($outcome in $outcomes) {
-        $counts[[string]$outcome.classification] =
-            [int]$counts[[string]$outcome.classification] + 1
-    }
-
-    $summaryStatus = if (
-        $outcomes.Count -eq $orderedStages.Count -and
-        @($resolvedOutcomes | Where-Object { $_.status -cne 'Passed' }).Count -eq 0
-    ) {
-        'Passed'
-    }
-    else {
-        [string]$resolvedOutcomes[-1].status
-    }
-    $timestamp = $NowUtc.ToUniversalTime().ToString(
-        'yyyy-MM-ddTHH:mm:ss.fffffffZ',
-        [Globalization.CultureInfo]::InvariantCulture
-    )
-    $summary = [pscustomobject][ordered]@{
-        schemaVersion = '1.0'
-        runId = $RunId.ToString('D').ToLowerInvariant()
-        sourceCommit = $sourceCommit
-        manifestDigest = [string]$manifest.digest
-        startedAtUtc = $timestamp
-        completedAtUtc = $timestamp
-        status = $summaryStatus
-        counts = [pscustomobject]$counts
-        prerequisites = @(
-            foreach ($outcome in $outcomes) {
-                [pscustomobject][ordered]@{
-                    id = [string]$outcome.id
-                    status = [string]$resolvedById[[string]$outcome.id].status
-                    inputDigest = [string]$outcome.inputDigest
-                    evidenceDigest = [string]$correlatedEvidenceById[
-                        [string]$outcome.id
-                    ].digest
-                }
-            }
-        )
-        actions = @(
-            foreach ($outcome in $outcomes) {
-                [pscustomobject][ordered]@{
-                    id = [string]$outcome.id
-                    classification = [string]$outcome.classification
-                    status = [string]$resolvedById[[string]$outcome.id].status
-                    evidenceRelativePath = [string]$correlatedEvidenceById[
-                        [string]$outcome.id
-                    ].relativePath
-                }
-            }
-        )
-        nonClaims = @(
-            'Subsystem evidence remains owned by each independently runnable subsystem.',
-            'The umbrella supplied no authentication material or service write payload.'
-        )
-    }
-    Write-TenantLifecycleEvidence `
-        -RunDirectory $runDirectory `
-        -RelativePath 'summary.json' `
-        -Kind Summary `
-        -InputObject $summary |
-        Out-Null
 }
 
 return @($outcomes.ToArray())

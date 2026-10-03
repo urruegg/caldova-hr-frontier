@@ -2,6 +2,7 @@ Set-StrictMode -Version Latest
 
 $contractCases = @(
     @{ Name = 'assessment'; Kind = 'Assessment'; FixtureProperty = 'assessment'; SchemaFile = 'tenant-lifecycle-assessment.schema.json'; DigestPath = 'digest' }
+    @{ Name = 'stage result'; Kind = 'StageResult'; FixtureProperty = 'stageResult'; SchemaFile = 'tenant-lifecycle-stage-result.schema.json'; DigestPath = 'phaseSummaryDigest' }
     @{ Name = 'execution manifest'; Kind = 'ExecutionManifest'; FixtureProperty = 'executionManifest'; SchemaFile = 'tenant-lifecycle-execution-manifest.schema.json'; DigestPath = 'digest' }
     @{ Name = 'approval'; Kind = 'Approval'; FixtureProperty = 'approval'; SchemaFile = 'tenant-lifecycle-approval.schema.json'; DigestPath = 'executionManifestDigest' }
     @{ Name = 'action evidence'; Kind = 'ActionEvidence'; FixtureProperty = 'actionEvidence'; SchemaFile = 'tenant-lifecycle-action-evidence.schema.json'; DigestPath = 'preReadDigest' }
@@ -138,6 +139,154 @@ public static class TenantLifecycleContractCodePropertyAccessor
     It 'exports Test-TenantLifecycleContract from the module manifest' {
         Get-Command -Name Test-TenantLifecycleContract -Module Caldova.HrFrontier.Bootstrap -ErrorAction SilentlyContinue |
             Should -Not -BeNullOrEmpty
+    }
+
+    It 'declares the exact closed stage result schema contract' {
+        $schemaPath = Join-Path $script:SchemaRoot 'tenant-lifecycle-stage-result.schema.json'
+        $schemaPath | Should -Exist
+        $schema = Get-Content -Raw -LiteralPath $schemaPath | ConvertFrom-Json
+        $expectedProperties = @(
+            'schemaVersion',
+            'runId',
+            'stage',
+            'sourceCommit',
+            'publicTenantKey',
+            'intentDigest',
+            'stateDigest',
+            'phaseManifestDigest',
+            'phaseSummaryDigest',
+            'status',
+            'classification',
+            'evidenceRelativePath',
+            'completedAtUtc'
+        )
+
+        $schema.'$schema' |
+            Should -BeExactly 'https://json-schema.org/draft/2020-12/schema'
+        $schema.type | Should -BeExactly 'object'
+        $schema.additionalProperties | Should -BeFalse
+        @($schema.required) -join ',' |
+            Should -BeExactly ($expectedProperties -join ',')
+        @($schema.properties.PSObject.Properties.Name) -join ',' |
+            Should -BeExactly ($expectedProperties -join ',')
+        $schema.properties.schemaVersion.const | Should -BeExactly '1.0'
+        $schema.properties.publicTenantKey.const | Should -BeExactly 'tenant1'
+        $schema.properties.sourceCommit.pattern |
+            Should -BeExactly '^[0-9a-fA-F]{40}$'
+        foreach ($name in @(
+            'intentDigest',
+            'stateDigest',
+            'phaseManifestDigest',
+            'phaseSummaryDigest'
+        )) {
+            $schema.properties.$name.pattern |
+                Should -BeExactly '^[0-9a-f]{64}$'
+        }
+        $schema.properties.evidenceRelativePath.pattern | Should -BeExactly (
+            '^phases/(Workstation|PrivateBoundary|Foundation|DevDelivery|' +
+            'ReadBack|Acceptance|TenantReplica)/summary[.]json$'
+        )
+    }
+
+    It 'enforces stage result schema values and ordinal stage path correlation' {
+        $value = Copy-ContractObject $script:Fixture.stageResult
+        Test-TenantLifecycleContract -Kind StageResult -InputObject $value |
+            Should -BeTrue
+        if ($script:HasJsonSchema) {
+            $result = Invoke-JsonSchemaValidation `
+                -SchemaPath (
+                    Join-Path $script:SchemaRoot 'tenant-lifecycle-stage-result.schema.json'
+                ) `
+                -InputObject $value
+            $result.ExitCode | Should -Be 0 -Because $result.Output
+        }
+
+        foreach ($invalidPath in @(
+            'phases/DevDelivery/summary.json',
+            'phases/foundation/summary.json',
+            'phases/Foundation/Summary.json',
+            'phases/Foundation/summary.json/extra',
+            'https://example.invalid/phases/Foundation/summary.json'
+        )) {
+            $invalid = Copy-ContractObject $script:Fixture.stageResult
+            $invalid.evidenceRelativePath = $invalidPath
+            {
+                Test-TenantLifecycleContract `
+                    -Kind StageResult `
+                    -InputObject $invalid
+            } | Should -Throw -ExpectedMessage 'TenantLifecycle.Contract.StageResult'
+        }
+
+        foreach ($invalidTimestamp in @(
+            '2026-10-02T12:11:00.0000000Z',
+            '2026-10-02t12:11:00.000Z',
+            '2026-10-02T12:11:00.000z',
+            '2026-10-02T14:11:00.000+02:00'
+        )) {
+            $invalid = Copy-ContractObject $script:Fixture.stageResult
+            $invalid.completedAtUtc = $invalidTimestamp
+            {
+                Test-TenantLifecycleContract `
+                    -Kind StageResult `
+                    -InputObject $invalid
+            } | Should -Throw -ExpectedMessage 'TenantLifecycle.Contract.StageResult'
+        }
+    }
+
+    It 'accepts only the seven allowed stage result schema outcome pairs' {
+        $allowedPairs = @(
+            'Passed/NoChange',
+            'Passed/Changed',
+            'Failed/NoChange',
+            'Failed/Changed',
+            'Blocked/Blocked',
+            'Refused/Refused',
+            'Manual/Manual'
+        )
+        $schemaPath = Join-Path $script:SchemaRoot 'tenant-lifecycle-stage-result.schema.json'
+        foreach ($status in @('Passed', 'Failed', 'Blocked', 'Refused', 'Manual')) {
+            foreach ($classification in @(
+                'NoChange',
+                'Changed',
+                'Manual',
+                'Blocked',
+                'Refused'
+            )) {
+                $pair = "$status/$classification"
+                $value = Copy-ContractObject $script:Fixture.stageResult
+                $value.status = $status
+                $value.classification = $classification
+
+                if ($allowedPairs -ccontains $pair) {
+                    Test-TenantLifecycleContract `
+                        -Kind StageResult `
+                        -InputObject $value |
+                        Should -BeTrue -Because $pair
+                    if ($script:HasJsonSchema) {
+                        $result = Invoke-JsonSchemaValidation `
+                            -SchemaPath $schemaPath `
+                            -InputObject $value
+                        $result.ExitCode |
+                            Should -Be 0 -Because "$pair $($result.Output)"
+                    }
+                }
+                else {
+                    {
+                        Test-TenantLifecycleContract `
+                            -Kind StageResult `
+                            -InputObject $value
+                    } | Should -Throw `
+                        -ExpectedMessage 'TenantLifecycle.Contract.StageResult' `
+                        -Because $pair
+                    if ($script:HasJsonSchema) {
+                        $result = Invoke-JsonSchemaValidation `
+                            -SchemaPath $schemaPath `
+                            -InputObject $value
+                        $result.ExitCode | Should -Not -Be 0 -Because $pair
+                    }
+                }
+            }
+        }
     }
 
     It 'final review JSON loader preserves seven-fraction timestamps and digest parity' {

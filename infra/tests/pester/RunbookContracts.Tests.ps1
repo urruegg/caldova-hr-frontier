@@ -302,19 +302,18 @@ Describe 'Shared runbook output contracts' {
             )
         }
 
-        It 'exposes the exact accepted parameter surface in order' {
+        It 'exposes the exact coordinate-only signature in order' {
             $script:TenantLifecycleErrors.Count | Should -Be 0
             (
                 $script:TenantLifecycleAst.ParamBlock.Parameters.Name.VariablePath.UserPath -join ','
             ) | Should -BeExactly (
                 'RunId,EvidenceRoot,RepositoryRoot,ExpectedSourceCommit,' +
                 'PublicTenantKey,TenantConfigurationPath,TenantStatePath,Stages,' +
-                'Mode,ExecutionManifestPath,ApprovedDigest,Apply,' +
-                'SubsystemInvoker,BindingObserver,CurrentBindingProvider,NowUtc'
+                'Mode,SubsystemInvoker,NowUtc'
             )
         }
 
-        It 'closes the tenant stage mode source and approval values at binding time' {
+        It 'closes the coordinate-only signature values at binding time' {
             $parameterText = @{}
             foreach ($parameter in $script:TenantLifecycleAst.ParamBlock.Parameters) {
                 $parameterText[$parameter.Name.VariablePath.UserPath] =
@@ -332,19 +331,51 @@ Describe 'Shared runbook output contracts' {
                 "'DevDelivery','ReadBack','Acceptance','TenantReplica'\)"
             )
             $parameterText.Mode |
-                Should -Match "ValidateSet\('Assess','Plan','Invoke'\)"
+                Should -Match "ValidateSet\('Assess','Plan','Verify'\)"
             $parameterText.Mode |
                 Should -Match '\$Mode\s*=\s*''Assess'''
-            $parameterText.ApprovedDigest |
-                Should -Match "\^\[0-9a-f\]\{64\}\$"
             $parameterText.SubsystemInvoker |
-                Should -Match 'Parameter\(DontShow\)'
-            $parameterText.BindingObserver |
-                Should -Match 'Parameter\(DontShow\)'
-            $parameterText.CurrentBindingProvider |
                 Should -Match 'Parameter\(DontShow\)'
             $parameterText.NowUtc |
                 Should -Match '\$NowUtc\s*=\s*\[datetime\]::UtcNow'
+            $script:TenantLifecycleAst.ParamBlock.Attributes.Extent.Text |
+                Should -Not -Match 'SupportsShouldProcess'
+        }
+
+        It 'rejects retired umbrella authority during coordinate-only signature binding' -ForEach @(
+            @{ ParameterName = 'Apply'; Value = $true }
+            @{ ParameterName = 'ExecutionManifestPath'; Value = 'manifest.synthetic.json' }
+            @{ ParameterName = 'ApprovedDigest'; Value = ('a' * 64) }
+            @{ ParameterName = 'BindingObserver'; Value = { param($Checkpoint, $Stage) } }
+            @{ ParameterName = 'CurrentBindingProvider'; Value = { [pscustomobject]@{} } }
+        ) {
+            param($ParameterName, $Value)
+
+            $parameters = @{
+                RunId = [guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+                EvidenceRoot = $TestDrive
+                RepositoryRoot = $TestDrive
+                ExpectedSourceCommit = 'a' * 40
+                PublicTenantKey = 'tenant1'
+                TenantConfigurationPath = Join-Path $TestDrive 'tenant1.local.psd1'
+                TenantStatePath = Join-Path $TestDrive 'tenant1.state.local.json'
+                Stages = @('Foundation')
+            }
+            $parameters[$ParameterName] = $Value
+
+            $errorRecord = try {
+                & $script:TenantLifecyclePath @parameters
+                $null
+            }
+            catch {
+                $_
+            }
+
+            $errorRecord | Should -Not -BeNullOrEmpty
+            $errorRecord.Exception |
+                Should -BeOfType ([Management.Automation.ParameterBindingException])
+            $errorRecord.FullyQualifiedErrorId |
+                Should -Match 'NamedParameterNotFound'
         }
     }
 

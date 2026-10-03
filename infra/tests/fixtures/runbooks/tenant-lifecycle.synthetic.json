@@ -48,6 +48,21 @@
     ],
     "digest": "8888888888888888888888888888888888888888888888888888888888888888"
   },
+  "stageResult": {
+    "schemaVersion": "1.0",
+    "runId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "stage": "Foundation",
+    "sourceCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "publicTenantKey": "tenant1",
+    "intentDigest": "1111111111111111111111111111111111111111111111111111111111111111",
+    "stateDigest": "2222222222222222222222222222222222222222222222222222222222222222",
+    "phaseManifestDigest": "3333333333333333333333333333333333333333333333333333333333333333",
+    "phaseSummaryDigest": "4444444444444444444444444444444444444444444444444444444444444444",
+    "status": "Passed",
+    "classification": "NoChange",
+    "evidenceRelativePath": "phases/Foundation/summary.json",
+    "completedAtUtc": "2026-10-02T12:11:00.000Z"
+  },
   "executionManifest": {
     "schemaVersion": "1.0",
     "runId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
