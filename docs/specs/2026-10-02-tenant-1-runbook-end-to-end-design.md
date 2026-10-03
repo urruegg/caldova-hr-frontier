@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-03 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Tenant 1 infrastructure runbooks and Power Platform DEV delivery |
-| **References** | [Specification Catalogue](README.md), [Tenant Lifecycle Core Plan](../plans/2026-10-02-tenant-lifecycle-core-implementation.md), [Tenant 1 End-to-End Acceptance Plan](../plans/2026-10-02-tenant-1-end-to-end-acceptance-implementation.md), [Operational Runbooks Design](2026-09-26-operational-runbooks-design.md), [Tenant 1 Lean Engineering Platform Design](2026-09-28-tenant-1-lean-engineering-platform-design.md), [Active Configuration Review](../reviews/2026-09-28-tenant-1-engineering-platform-configuration-review.md), [Infrastructure Domain](../../infra/README.md) |
+| **References** | [Specification Catalogue](README.md), [Approved Coordinate-Only Companion](2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Tenant Lifecycle Core Plan](../plans/2026-10-02-tenant-lifecycle-core-implementation.md), [Tenant 1 End-to-End Acceptance Plan](../plans/2026-10-02-tenant-1-end-to-end-acceptance-implementation.md), [Operational Runbooks Design](2026-09-26-operational-runbooks-design.md), [Tenant 1 Lean Engineering Platform Design](2026-09-28-tenant-1-lean-engineering-platform-design.md), [Active Configuration Review](../reviews/2026-09-28-tenant-1-engineering-platform-configuration-review.md), [Infrastructure Domain](../../infra/README.md) |
 
 ## 1. Status and Execution Authority
 
@@ -17,6 +17,8 @@ The user approved this specification and its three companion specifications on 2
 - reactivating any cloud-foundation Apply path before its replacement passes review;
 - running a live provider assessment, pipeline, deployment, import, or tenant mutation; or
 - archiving or moving an existing document before the replacement and acceptance gates in this specification pass.
+
+The Approved [Tenant Lifecycle Coordinate-Only Simplification Design](2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md) is a corrective companion. It supersedes this specification's umbrella mutation, approval, and resource-correlation implications in sections 4.1, 5.2, 5.3, and 6 and the affected acceptance wording in section 9. It does not rewrite or weaken the child-runbook safety requirements. The six Draft plans must be amended to the companion before implementation resumes.
 
 The core responsibility split in ADR-0001, ADR-0002, and ADR-0012 remains: GitHub owns product source, Azure Boards owns the backlog, Azure Pipelines owns HR solution delivery, and each tenant has an isolated repository and project. This proposal advances the previously future Azure Pipeline into the next sprint; it does not restore the rejected private Azure Repo or GitHub OIDC bootstrap. Approval requires a targeted authority review of those ADRs' time-bound “current sprint” wording, without silently changing their architectural decisions.
 
@@ -97,6 +99,8 @@ An unvalidated item is `Blocked` or `Manual`; it is never inferred from an older
 
 ### 4.1 Composable Lifecycle Orchestrator
 
+> **Corrective authority:** The [coordinate-only companion](2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md) supersedes any implication below that the umbrella carries an approved manifest digest, provider binding, mutation control, or resource-level correlation. The umbrella may coordinate non-mutating Assess/Plan work and verify canonical child stage results only. Each child owns approval, Apply, `ShouldProcess`, provider actions, and read-back.
+
 Add a proposed `Invoke-TenantLifecycle.ps1` umbrella entry point for sequencing and evidence correlation only. It does not contain provider mutation logic and is not the only usable entry point.
 
 Three runbooks remain independently runnable:
@@ -165,10 +169,12 @@ State drift does not silently rewrite intent. Intent drift, state drift, or an u
 
 ### 5.2 Run Evidence Layout
 
+> **Corrective authority:** The layout below is child-owned phase evidence within each stage-specific contained phase root, not an umbrella execution envelope. The coordinate-only umbrella owns canonical stage results and a sanitized stage-level projection as defined by the [companion specification](2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md). Private state remains only at the ignored state path; no `state.json` is restored to run evidence.
+
 All raw operational evidence stays outside Git under one selected root:
 
 ```text
-<evidence-root>/<run-id>/
+<evidence-root>/<run-id>/phases/<stage>/
 ├── assessment.json
 ├── execution-manifest.json
 ├── approvals.json
@@ -186,6 +192,8 @@ Raw responses, private identifiers beyond the reviewed allowlist, command transc
 
 ### 5.3 Classifications and Idempotency
 
+> **Corrective authority:** The component classifications below remain child-runbook requirements. The umbrella accepts only the companion's stage-level `NoChange`, `Changed`, `Manual`, `Blocked`, or `Refused` classification and performs no target-stable-ID correlation.
+
 Every assessed component has exactly one classification:
 
 - `NoChange`
@@ -198,6 +206,8 @@ Every assessed component has exactly one classification:
 `Manual` is not success until the human action and independent read-back both pass. `Blocked` and `Refused` stop dependent actions. A second unchanged execution must contain no `Create` or `Update`.
 
 ## 6. Provider Order and Boundaries
+
+> **Corrective authority:** This provider order and every safety rule below are owned and enforced by independently runnable child runbooks. The coordinate-only umbrella receives no provider binding, resource ID, provider action, payload, or read-back and has no mutation authority.
 
 Every mutation rereads the exact target immediately before action and performs stable-ID and exact-property read-back afterward. Missing, unauthorized, unavailable, stale, or ambiguous state blocks. There is no first-match behavior.
 
@@ -239,18 +249,20 @@ The approved authority model requires a new sprint-specific acceptance review fo
 
 All mandatory controls must pass in one traceable lifecycle. `Manual`, `Blocked`, `Refused`, `Not Run`, stale, or ambiguous outcomes cannot be accepted.
 
+The umbrella does not Apply. For every mutating subsystem, acceptance requires an explicit child Plan, child `approvals.json`, child WhatIf/Apply, and child provider-specific read-back, followed by coordinate-only umbrella `Verify` over exact canonical stage results. The [companion specification](2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md) governs this sequence.
+
 | ID | Control | Required proof |
 |---|---|---|
 | `T1-E2E-01` | Source and tests | Focused and full repository tests pass on the execution source commit; current-main repository CI is green at final acceptance. |
 | `T1-E2E-02` | Workstation first Apply | Current Windows 11 assessment, plan, digest approval, Apply, exact read-back, and restart-safe evidence pass. |
 | `T1-E2E-03` | Private intent and state recovery | Tenant 1 intent and state remain ignored and outside Git; encrypted backup and separate restore prove schema and equality without exposing values. |
 | `T1-E2E-04` | Provider assessment | Fresh exact-context inventory covers GitHub, Entra, Azure, Azure DevOps, and Power Platform; ambiguity and missing permission are blocking. |
-| `T1-E2E-05` | Plan and approval | The deterministic action set and subscription `what-if` are bound to one execution-manifest digest approved by a human. |
+| `T1-E2E-05` | Plan and approval | Each deterministic child action set and the subscription `what-if` are bound to the exact child execution-manifest digest recorded in that child's `approvals.json`. |
 | `T1-E2E-06` | Azure deployment | Incremental Bicep Apply uses the exact approved template and parameters; resulting creates/updates match the sanitized `what-if`; no implicit deletion occurs. |
-| `T1-E2E-07` | Pipeline provenance | The pipeline run identifies the exact GitHub SHA and approved digest and publishes one immutable HR solution artifact with a recorded digest. |
+| `T1-E2E-07` | Pipeline provenance | The pipeline run identifies the exact GitHub SHA and approved child-manifest digest and publishes one immutable HR solution artifact with a recorded digest. |
 | `T1-E2E-08` | DEV deployment | The same published artifact is imported to the exact DEV environment; supported stable solution properties, import result, application user, and minimum role read back exactly. |
 | `T1-E2E-09` | Pipeline rerun | Rerunning with unchanged source and intent is idempotent and does not rebuild a different deployment artifact or create duplicate resources. |
-| `T1-E2E-10` | Foundation second run | Fresh assessment and Apply against unchanged intent produce no `Create` or `Update`. |
+| `T1-E2E-10` | Foundation second run | Fresh child assessment and child Apply against unchanged intent produce no `Create` or `Update`; umbrella Verify then accepts the resulting `Passed`/`NoChange` stage result. |
 | `T1-E2E-11` | TEST and PROD safety | TEST and PROD stable IDs and lifecycle roles are read back; no mutation or promotion occurs. |
 | `T1-E2E-12` | Fresh laptop | A fresh Windows 11 laptop clones then-current `main`, performs workstation assess/Apply, restores Tenant 1 intent/state, authenticates interactively, gets foundation `NoChange`, and proves the pipeline/read-back path. |
 | `T1-E2E-13` | TenantReplica | A local profile export from the exact source commit passes independent byte-level and policy validation with no Tenant 1 private state, identifiers, or evidence. |
