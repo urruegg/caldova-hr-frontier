@@ -218,5 +218,29 @@
       "No provider mutation was performed.",
       "No live tenant value is represented."
     ]
+  },
+  "controlRecord": {
+    "schemaVersion": "1.0",
+    "runId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "sourceCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "publicTenantKey": "tenant1",
+    "intentDigest": "1111111111111111111111111111111111111111111111111111111111111111",
+    "stateDigest": "2222222222222222222222222222222222222222222222222222222222222222",
+    "selectedStages": [
+      "Workstation",
+      "Foundation"
+    ],
+    "prerequisiteResults": [
+      {
+        "stage": "Workstation",
+        "status": "Passed",
+        "classification": "NoChange",
+        "phaseManifestDigest": "3333333333333333333333333333333333333333333333333333333333333333",
+        "phaseSummaryDigest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "intentDigest": "1111111111111111111111111111111111111111111111111111111111111111",
+        "stateDigest": "2222222222222222222222222222222222222222222222222222222222222222"
+      }
+    ],
+    "evidenceRunRelativePath": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
   }
 }

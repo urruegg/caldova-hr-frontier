@@ -30,6 +30,7 @@ Export-ModuleMember -Function @(
     'Test-RunbookExecutionManifest',
     'ConvertTo-RunbookEvidenceRecord',
     'Test-TenantLifecycleContract'
+    'New-TenantLifecycleControlRecord'
     'Test-TenantLifecyclePrivateBoundary'
     'Import-TenantLifecycleState'
     'Update-TenantLifecycleState'

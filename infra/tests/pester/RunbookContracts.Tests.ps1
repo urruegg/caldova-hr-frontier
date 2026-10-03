@@ -383,7 +383,7 @@ Describe 'Shared runbook output contracts' {
             }
 
             $withInvokerError.Exception.Message |
-                Should -BeExactly 'TenantLifecycle.SubsystemInvoker.Prohibited'
+                Should -BeExactly 'TenantLifecycle.SubsystemInvoker.NotAllowed'
             $invokerProbe.Calls | Should -Be 0
             Test-Path -LiteralPath $evidenceRoot |
                 Should -BeFalse

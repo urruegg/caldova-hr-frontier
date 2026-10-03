@@ -120,4 +120,54 @@ Describe 'Runbook static safety' {
             'correlatedEvidence)'
         )
     }
+
+    It 'uses only named coordinate-only Assess and Plan invoker arguments and discards its return' {
+        $content = Get-Content -Raw -LiteralPath $script:TenantLifecycle
+
+        $content | Should -Match (
+            '(?s)\$null\s*=\s*&\s*\$SubsystemInvoker\s+' +
+            '`\s*-Stage\s+\$stage\s+`\s*-Mode\s+\$Mode\s+`\s*' +
+            '-ControlRecord\s+\$freshControlRecord'
+        )
+        $content | Should -Not -Match (
+            '(?i)\$(outcome|result|providerResult|returnValue)\s*=\s*' +
+            '&\s*\$SubsystemInvoker'
+        )
+    }
+
+    It 'defines the exact closed control record allowlist' {
+        $helperPath = Join-Path (
+            Split-Path -Parent $script:TenantLifecycle
+        ) (
+            '..\modules\Caldova.HrFrontier.Bootstrap\Private\' +
+            'New-TenantLifecycleControlRecord.ps1'
+        )
+        $helperPath | Should -Exist
+        if (-not (Test-Path -LiteralPath $helperPath -PathType Leaf)) {
+            return
+        }
+        $content = Get-Content -Raw -LiteralPath $helperPath
+        $fields = @(
+            'schemaVersion',
+            'runId',
+            'sourceCommit',
+            'publicTenantKey',
+            'intentDigest',
+            'stateDigest',
+            'selectedStages',
+            'prerequisiteResults',
+            'evidenceRunRelativePath'
+        )
+
+        foreach ($field in $fields) {
+            $content | Should -Match (
+                '(?m)^\s*' + [regex]::Escape($field) + '\s*='
+            )
+        }
+        $content | Should -Not -Match (
+            '(?i)(absolute|TenantConfigurationPath|TenantStatePath|' +
+            'credential|token|approval|providerContext|stableId|url|' +
+            '\bactions?\b|payload|rawReadBack)'
+        )
+    }
 }
