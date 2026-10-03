@@ -834,7 +834,12 @@ $golden = [pscustomobject][ordered]@{
 
         $outputs = @{}
         foreach ($hostName in @('powershell.exe', 'pwsh.exe')) {
-            $hostPath = (Get-Command $hostName -CommandType Application).Source
+            $hostCommand = Get-Command `
+                $hostName `
+                -CommandType Application `
+                -ErrorAction Stop |
+                Select-Object -First 1
+            $hostPath = $hostCommand.Source
             $hostKey = [IO.Path]::GetFileNameWithoutExtension($hostName)
             $outputRoot = Join-Path $TestDrive $hostKey
             [IO.Directory]::CreateDirectory($outputRoot) | Out-Null

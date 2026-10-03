@@ -367,9 +367,12 @@ $modeValues = @(
                 'Assess,Plan,Verify|Apply=False|ShouldProcess=False'
             )
             foreach ($hostName in @('powershell.exe', 'pwsh.exe')) {
-                $hostPath = (
-                    Get-Command $hostName -CommandType Application
-                ).Source
+                $hostCommand = Get-Command `
+                    $hostName `
+                    -CommandType Application `
+                    -ErrorAction Stop |
+                    Select-Object -First 1
+                $hostPath = $hostCommand.Source
                 $hostOutput = @(
                     & $hostPath `
                         -NoProfile `
