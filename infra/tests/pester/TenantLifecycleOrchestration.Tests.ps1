@@ -1003,13 +1003,34 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         )
                     }
 
+                    function Get-CoordinateExactFileDigest {
+                        param([Parameter(Mandatory)][string]$Path)
+
+                        $algorithm = [Security.Cryptography.SHA256]::Create()
+                        try {
+                            -join @(
+                                $algorithm.ComputeHash(
+                                    [IO.File]::ReadAllBytes($Path)
+                                ) |
+                                    ForEach-Object { $_.ToString('x2') }
+                            )
+                        }
+                        finally {
+                            $algorithm.Dispose()
+                        }
+                    }
+
                     function Write-CoordinateStageResult {
                         param(
                             [Parameter(Mandatory)][guid]$RunId,
                             [Parameter(Mandatory)][string]$Stage,
+                            [string[]]$SelectedStages,
                             [ValidateSet('Passed', 'Failed')][string]$Status = 'Passed'
                         )
 
+                        if ($null -eq $SelectedStages) {
+                            $SelectedStages = [string[]]@($Stage)
+                        }
                         $digests = Get-CoordinatePrivateDigests
                         $classification = if ($Status -ceq 'Passed') {
                             'NoChange'
@@ -1017,23 +1038,137 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         else {
                             'Changed'
                         }
-                        $result = [pscustomobject][ordered]@{
-                            schemaVersion = '1.0'
-                            runId = $RunId.ToString('D').ToLowerInvariant()
-                            stage = $Stage
-                            sourceCommit = $script:CoordinateSourceCommit
-                            publicTenantKey = 'tenant1'
-                            intentDigest = $digests.intent
-                            stateDigest = $digests.state
-                            phaseManifestDigest = '3' * 64
-                            phaseSummaryDigest = '4' * 64
-                            status = $Status
-                            classification = $classification
-                            evidenceRelativePath = "phases/$Stage/summary.json"
-                            completedAtUtc = '2026-10-03T08:31:00.000Z'
+                        $runDirectory = Join-Path (
+                            $script:CoordinateEvidenceRoot
+                        ) $RunId.ToString('D').ToLowerInvariant()
+                        $phaseDirectory = Join-Path $runDirectory (
+                            "phases\$Stage"
+                        )
+                        $stageIndex = [Array]::IndexOf(
+                            [string[]]$SelectedStages,
+                            $Stage
+                        )
+                        if ($stageIndex -lt 0) {
+                            throw 'Stage must be present in SelectedStages.'
                         }
-                        $path = Join-Path $script:CoordinateEvidenceRoot (
-                            Join-Path $RunId.ToString('D') "stages\$Stage.json"
+                        [object[]]$prerequisiteResults = @()
+                        if ($stageIndex -gt 0) {
+                            $prerequisiteStage = [string]$SelectedStages[
+                                $stageIndex - 1
+                            ]
+                            $prerequisitePath = Join-Path $runDirectory (
+                                "stage-results\$prerequisiteStage.json"
+                            )
+                            $prerequisite = Get-Content `
+                                -Raw `
+                                -LiteralPath $prerequisitePath |
+                                ConvertFrom-Json
+                            $prerequisiteResults = @(
+                                [pscustomobject][ordered]@{
+                                    stage = [string]$prerequisite.stage
+                                    status = [string]$prerequisite.status
+                                    classification =
+                                        [string]$prerequisite.classification
+                                    phaseManifestDigest =
+                                        [string]$prerequisite.phaseManifestDigest
+                                    phaseSummaryDigest =
+                                        [string]$prerequisite.phaseSummaryDigest
+                                    intentDigest =
+                                        [string]$prerequisite.intentDigest
+                                    stateDigest =
+                                        [string]$prerequisite.stateDigest
+                                }
+                            )
+                        }
+                        $action = (
+                            $script:CoordinateFixture.executionManifest.actions[0] |
+                                ConvertTo-Json -Depth 30 |
+                                ConvertFrom-Json
+                        )
+                        $action.id = $Stage
+                        $action.prerequisiteActionIds = [string[]]@()
+                        $manifest = New-TenantLifecycleExecutionManifest `
+                            -RunId $RunId `
+                            -SourceCommit $script:CoordinateSourceCommit `
+                            -EvidenceRoot $phaseDirectory `
+                            -PublicTenantKey tenant1 `
+                            -IntentDigest $digests.intent `
+                            -StateDigest $digests.state `
+                            -SelectedStages $SelectedStages `
+                            -PrerequisiteResults $prerequisiteResults `
+                            -Machine (
+                                $script:CoordinateFixture.executionManifest.machine
+                            ) `
+                            -Operator (
+                                $script:CoordinateFixture.executionManifest.operator
+                            ) `
+                            -ToolIdentities @(
+                                $script:CoordinateFixture.executionManifest.toolIdentities
+                            ) `
+                            -ProviderContexts @(
+                                $script:CoordinateFixture.executionManifest.providerContexts
+                            ) `
+                            -Prerequisites @(
+                                $script:CoordinateFixture.executionManifest.prerequisites
+                            ) `
+                            -Actions @($action) `
+                            -GeneratedAtUtc ([datetime]'2026-10-03T08:00:00Z') `
+                            -ExpiresAtUtc ([datetime]'2026-10-03T08:30:00Z')
+                        $manifestPath = Join-Path $phaseDirectory (
+                            'execution-manifest.json'
+                        )
+                        Write-CoordinateCanonicalFile `
+                            -InputObject $manifest `
+                            -Path $manifestPath
+                        $summary = (
+                            $script:CoordinateFixture.phaseSummary |
+                                ConvertTo-Json -Depth 30 |
+                                ConvertFrom-Json
+                        )
+                        $summary.runId =
+                            $RunId.ToString('D').ToLowerInvariant()
+                        $summary.stage = $Stage
+                        $summaryPath = Join-Path $phaseDirectory 'summary.json'
+                        Write-CoordinateCanonicalFile `
+                            -InputObject $summary `
+                            -Path $summaryPath
+
+                        $algorithm = [Security.Cryptography.SHA256]::Create()
+                        try {
+                            $manifestDigest = -join @(
+                                $algorithm.ComputeHash(
+                                    [IO.File]::ReadAllBytes($manifestPath)
+                                ) |
+                                    ForEach-Object { $_.ToString('x2') }
+                            )
+                            $algorithm.Initialize()
+                            $summaryDigest = -join @(
+                                $algorithm.ComputeHash(
+                                    [IO.File]::ReadAllBytes($summaryPath)
+                                ) |
+                                    ForEach-Object { $_.ToString('x2') }
+                            )
+                        }
+                        finally {
+                            $algorithm.Dispose()
+                        }
+                        $result = New-TenantLifecycleStageResult `
+                            -RunId $RunId `
+                            -Stage $Stage `
+                            -SourceCommit $script:CoordinateSourceCommit `
+                            -PublicTenantKey tenant1 `
+                            -IntentDigest $digests.intent `
+                            -StateDigest $digests.state `
+                            -PhaseManifestDigest $manifestDigest `
+                            -PhaseSummaryDigest $summaryDigest `
+                            -Status $Status `
+                            -Classification $classification `
+                            -EvidenceRelativePath "phases/$Stage/summary.json" `
+                            -CompletedAtUtc (
+                                [datetime]'2026-10-03T08:31:00Z'
+                            )
+                        $path = Join-Path $runDirectory (
+                            "stage-results\$Stage.json"
                         )
                         Write-CoordinateCanonicalFile -InputObject $result -Path $path
                     }
@@ -1152,6 +1287,123 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         $script:CoordinateBreakpoints.Add($breakpoint)
                     }
 
+                    function Install-CoordinateEvidenceMutationHook {
+                        param(
+                            [Parameter(Mandatory)]
+                            [ValidateSet(
+                                'Result',
+                                'Manifest',
+                                'Summary',
+                                'Extra',
+                                'Missing',
+                                'Path'
+                            )]
+                            [string]$Mutation,
+                            [Parameter(Mandatory)][guid]$RunId,
+                            [string]$Stage = 'Foundation'
+                        )
+
+                        $line = (
+                            Select-String `
+                                -LiteralPath $script:CoordinateOrchestratorPath `
+                                -Pattern (
+                                    '^\s*\$stageNodes\s*=\s*' +
+                                    '\[Collections[.]Generic[.]List\[object\]\]'
+                                )
+                        ).LineNumber
+                        if (@($line).Count -ne 1) {
+                            throw (
+                                'Synthetic evidence mutation breakpoint ' +
+                                'could not be located.'
+                            )
+                        }
+                        $runDirectory = Join-Path (
+                            $script:CoordinateEvidenceRoot
+                        ) $RunId.ToString('D').ToLowerInvariant()
+                        $writer =
+                            ${function:Write-CoordinateCanonicalFile}
+                        $triggered = $false
+                        $action = {
+                            if ($triggered) {
+                                return
+                            }
+                            $triggered = $true
+                            $resultDirectory = Join-Path $runDirectory (
+                                'stage-results'
+                            )
+                            $resultPath = Join-Path $resultDirectory (
+                                "$Stage.json"
+                            )
+                            $manifestPath = Join-Path $runDirectory (
+                                "phases\$Stage\execution-manifest.json"
+                            )
+                            $summaryPath = Join-Path $runDirectory (
+                                "phases\$Stage\summary.json"
+                            )
+                            switch ($Mutation) {
+                                'Result' {
+                                    $result = Get-Content `
+                                        -Raw `
+                                        -LiteralPath $resultPath |
+                                        ConvertFrom-Json
+                                    $result.completedAtUtc =
+                                        '2026-10-03T08:31:00.001Z'
+                                    & $writer `
+                                        -InputObject $result `
+                                        -Path $resultPath
+                                }
+                                'Manifest' {
+                                    [IO.File]::AppendAllText(
+                                        $manifestPath,
+                                        ' ',
+                                        [Text.UTF8Encoding]::new($false)
+                                    )
+                                }
+                                'Summary' {
+                                    [IO.File]::AppendAllText(
+                                        $summaryPath,
+                                        ' ',
+                                        [Text.UTF8Encoding]::new($false)
+                                    )
+                                }
+                                'Extra' {
+                                    [IO.File]::WriteAllText(
+                                        (Join-Path $resultDirectory (
+                                            'extra.json'
+                                        )),
+                                        "{}`n",
+                                        [Text.UTF8Encoding]::new($false)
+                                    )
+                                }
+                                'Missing' {
+                                    Remove-Item `
+                                        -LiteralPath $resultPath `
+                                        -Force
+                                }
+                                'Path' {
+                                    $temporaryPath = Join-Path $runDirectory (
+                                        '.case-stage-results'
+                                    )
+                                    Move-Item `
+                                        -LiteralPath $resultDirectory `
+                                        -Destination $temporaryPath
+                                    Move-Item `
+                                        -LiteralPath $temporaryPath `
+                                        -Destination (
+                                            Join-Path $runDirectory (
+                                                'Stage-Results'
+                                            )
+                                        )
+                                }
+                            }
+                        }.GetNewClosure()
+                        $breakpoint = Set-PSBreakpoint `
+                            -Script $script:CoordinateOrchestratorPath `
+                            -Line $line `
+                            -Action $action
+                        $script:CoordinateBreakpoints.Add($breakpoint)
+                    }
+
                     function Get-CoordinateObservedCalls {
                         param([Parameter(Mandatory)][guid]$RunId)
 
@@ -1216,7 +1468,13 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             [switch]$TamperDynamicScope,
                             [switch]$TamperAuthoritativeScope,
                             [switch]$SpawnInheritedHandleDescendant,
-                            [switch]$WriteDirectOutput
+                            [switch]$WriteDirectOutput,
+                            [ValidateSet(
+                                'None',
+                                'SelectedStages',
+                                'PrerequisiteResults'
+                            )]
+                            [string]$PlanBindingMutation = 'None'
                         )
 
                         $settings = [pscustomobject][ordered]@{
@@ -1229,6 +1487,7 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             spawnInheritedHandleDescendant =
                                 [bool]$SpawnInheritedHandleDescendant
                             writeDirectOutput = [bool]$WriteDirectOutput
+                            planBindingMutation = $PlanBindingMutation
                             fixture = $script:CoordinateFixture
                             modulePath = $script:CoordinateModulePath
                             repositoryRoot = $script:CoordinateSyntheticRepository
@@ -1493,6 +1752,49 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                                     -ExpiresAtUtc (
                                         [datetime]'2026-10-03T08:30:00Z'
                                     )
+                                switch (
+                                    [string]$settings.planBindingMutation
+                                ) {
+                                    'SelectedStages' {
+                                        $artifact.selectedStages =
+                                            [string[]]@(
+                                                'Foundation',
+                                                'ReadBack'
+                                            )
+                                    }
+                                    'PrerequisiteResults' {
+                                        if (
+                                            @(
+                                                $artifact.prerequisiteResults
+                                            ).Count -gt 0
+                                        ) {
+                                            $artifact.prerequisiteResults[
+                                                0
+                                            ].stateDigest = 'f' * 64
+                                        }
+                                    }
+                                }
+                                if (
+                                    [string]$settings.planBindingMutation -cne
+                                    'None'
+                                ) {
+                                    $unsignedManifest = [ordered]@{}
+                                    foreach (
+                                        $property in
+                                            $artifact.PSObject.Properties
+                                    ) {
+                                        if ($property.Name -cne 'digest') {
+                                            $unsignedManifest[
+                                                $property.Name
+                                            ] = $property.Value
+                                        }
+                                    }
+                                    $artifact.digest =
+                                        Get-RunbookContentDigest `
+                                            -InputObject (
+                                                [pscustomobject]$unsignedManifest
+                                            )
+                                }
                                 $artifactPath = [IO.Path]::Combine(
                                     $phaseDirectory,
                                     'execution-manifest.json'
@@ -1922,7 +2224,11 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         $runId = [guid]::NewGuid()
                         Write-CoordinateStageResult `
                             -RunId $runId `
-                            -Stage Workstation
+                            -Stage Workstation `
+                            -SelectedStages @(
+                                'Workstation',
+                                'Foundation'
+                            )
                         $invoker = New-CoordinateArtifactInvoker
 
                         $output = @(
@@ -2305,6 +2611,42 @@ $invoker = [scriptblock]::Create($invokerText)
                             'TenantLifecycle.ChildArtifact.Invalid'
                         )
                     }
+
+                    It 'rejects Plan selectedStages substituted from its fresh control record' {
+                        $invoker = New-CoordinateArtifactInvoker `
+                            -PlanBindingMutation SelectedStages
+
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId ([guid]::NewGuid()) `
+                                -Stages @('Foundation') `
+                                -Mode Plan `
+                                -SubsystemInvoker $invoker
+                        } | Should -Throw -ExpectedMessage (
+                            'TenantLifecycle.ChildArtifact.Invalid'
+                        )
+                    }
+
+                    It 'rejects Plan prerequisiteResults substituted from its fresh control record' {
+                        $runId = [guid]::NewGuid()
+                        $selectedStages = @('Workstation', 'Foundation')
+                        Write-CoordinateStageResult `
+                            -RunId $runId `
+                            -Stage Workstation `
+                            -SelectedStages $selectedStages
+                        $invoker = New-CoordinateArtifactInvoker `
+                            -PlanBindingMutation PrerequisiteResults
+
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages $selectedStages `
+                                -Mode Plan `
+                                -SubsystemInvoker $invoker
+                        } | Should -Throw -ExpectedMessage (
+                            'TenantLifecycle.ChildArtifact.Invalid'
+                        )
+                    }
                 }
 
                 Context 'source and private drift gates' {
@@ -2362,7 +2704,8 @@ $invoker = [scriptblock]::Create($invokerText)
                             $stages = @('Workstation', 'Foundation')
                             Write-CoordinateStageResult `
                                 -RunId $runId `
-                                -Stage Workstation
+                                -Stage Workstation `
+                                -SelectedStages $stages
                             Install-CoordinateValidationDriftHook `
                                 -ContractKind StageResult `
                                 -DriftTarget $Target `
@@ -2399,18 +2742,153 @@ $invoker = [scriptblock]::Create($invokerText)
                         }
                     }
 
-                    It 'stops before later dispatch on the first invalid prerequisite' {
+                    It 'rejects a <Mutation> prerequisite artifact before later dispatch' -ForEach @(
+                        @{ Mutation = 'missing result'; Target = 'Result'; Change = 'Missing' }
+                        @{ Mutation = 'substituted result'; Target = 'Result'; Change = 'Substituted' }
+                        @{ Mutation = 'tampered result'; Target = 'Result'; Change = 'Tampered' }
+                        @{ Mutation = 'case-drifted result path'; Target = 'Result'; Change = 'Path' }
+                        @{ Mutation = 'missing manifest'; Target = 'Manifest'; Change = 'Missing' }
+                        @{ Mutation = 'substituted manifest'; Target = 'Manifest'; Change = 'Substituted' }
+                        @{ Mutation = 'tampered manifest'; Target = 'Manifest'; Change = 'Tampered' }
+                        @{ Mutation = 'missing summary'; Target = 'Summary'; Change = 'Missing' }
+                        @{ Mutation = 'substituted summary'; Target = 'Summary'; Change = 'Substituted' }
+                        @{ Mutation = 'tampered summary'; Target = 'Summary'; Change = 'Tampered' }
+                    ) {
                         $runId = [guid]::NewGuid()
+                        $selectedStages = @('Workstation', 'Foundation')
                         Write-CoordinateStageResult `
                             -RunId $runId `
                             -Stage Workstation `
+                            -SelectedStages $selectedStages
+                        $runDirectory = Join-Path (
+                            $script:CoordinateEvidenceRoot
+                        ) $runId.ToString('D').ToLowerInvariant()
+                        $resultPath = Join-Path $runDirectory (
+                            'stage-results\Workstation.json'
+                        )
+                        $manifestPath = Join-Path $runDirectory (
+                            'phases\Workstation\execution-manifest.json'
+                        )
+                        $summaryPath = Join-Path $runDirectory (
+                            'phases\Workstation\summary.json'
+                        )
+                        $targetPath = switch ($Target) {
+                            'Result' { $resultPath }
+                            'Manifest' { $manifestPath }
+                            'Summary' { $summaryPath }
+                        }
+                        switch ($Change) {
+                            'Missing' {
+                                Remove-Item -LiteralPath $targetPath -Force
+                            }
+                            'Tampered' {
+                                [IO.File]::AppendAllText(
+                                    $targetPath,
+                                    ' ',
+                                    [Text.UTF8Encoding]::new($false)
+                                )
+                            }
+                            'Path' {
+                                $temporaryPath = Join-Path (
+                                    Split-Path -Parent $targetPath
+                                ) '.case-prerequisite-result'
+                                Move-Item `
+                                    -LiteralPath $targetPath `
+                                    -Destination $temporaryPath
+                                Move-Item `
+                                    -LiteralPath $temporaryPath `
+                                    -Destination (
+                                        Join-Path (
+                                            Split-Path -Parent $targetPath
+                                        ) 'workstation.json'
+                                    )
+                            }
+                            'Substituted' {
+                                $value = Get-Content `
+                                    -Raw `
+                                    -LiteralPath $targetPath |
+                                    ConvertFrom-Json
+                                if ($Target -ceq 'Result') {
+                                    $value.runId = (
+                                        [guid]::NewGuid()
+                                    ).ToString('D').ToLowerInvariant()
+                                }
+                                elseif ($Target -ceq 'Manifest') {
+                                    $value.runId = (
+                                        [guid]::NewGuid()
+                                    ).ToString('D').ToLowerInvariant()
+                                    $unsigned = [ordered]@{}
+                                    foreach (
+                                        $property in
+                                            $value.PSObject.Properties
+                                    ) {
+                                        if ($property.Name -cne 'digest') {
+                                            $unsigned[$property.Name] =
+                                                $property.Value
+                                        }
+                                    }
+                                    $value.digest =
+                                        Get-RunbookContentDigest `
+                                            -InputObject (
+                                                [pscustomobject]$unsigned
+                                            )
+                                }
+                                else {
+                                    $value.runId = (
+                                        [guid]::NewGuid()
+                                    ).ToString('D').ToLowerInvariant()
+                                }
+                                Write-CoordinateCanonicalFile `
+                                    -InputObject $value `
+                                    -Path $targetPath
+                                if ($Target -ceq 'Manifest') {
+                                    $result = Get-Content `
+                                        -Raw `
+                                        -LiteralPath $resultPath |
+                                        ConvertFrom-Json
+                                    $result.phaseManifestDigest =
+                                        Get-CoordinateExactFileDigest `
+                                            -Path $manifestPath
+                                    Write-CoordinateCanonicalFile `
+                                        -InputObject $result `
+                                        -Path $resultPath
+                                }
+                            }
+                        }
+                        $invoker = New-CoordinateArtifactInvoker
+
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages $selectedStages `
+                                -Mode Assess `
+                                -SubsystemInvoker $invoker
+                        } | Should -Throw -ExpectedMessage (
+                            'TenantLifecycle.ChildArtifact.Invalid'
+                        )
+                        (
+                            Get-CoordinateObservedCalls -RunId $runId
+                        ) -join ',' | Should -BeExactly 'Workstation|Assess'
+                    }
+
+                    It 'stops before later dispatch on the first invalid prerequisite' {
+                        $runId = [guid]::NewGuid()
+                        $selectedStages = @(
+                            'Workstation',
+                            'Foundation',
+                            'DevDelivery'
+                        )
+                        Write-CoordinateStageResult `
+                            -RunId $runId `
+                            -Stage Workstation `
+                            -SelectedStages $selectedStages `
                             -Status Failed
                         $invoker = New-CoordinateArtifactInvoker
 
                         {
                             Invoke-CoordinateOrchestrator `
                                 -RunId $runId `
-                                -Stages @('Workstation', 'Foundation', 'DevDelivery') `
+                                -Stages $selectedStages `
                                 -Mode Assess `
                                 -SubsystemInvoker $invoker
                         } | Should -Throw
@@ -2421,23 +2899,6 @@ $invoker = [scriptblock]::Create($invokerText)
 
                 Context 'canonical Verify evidence authority' {
                     BeforeAll {
-                        function Get-CoordinateExactFileDigest {
-                            param([Parameter(Mandatory)][string]$Path)
-
-                            $algorithm = [Security.Cryptography.SHA256]::Create()
-                            try {
-                                -join @(
-                                    $algorithm.ComputeHash(
-                                        [IO.File]::ReadAllBytes($Path)
-                                    ) |
-                                        ForEach-Object { $_.ToString('x2') }
-                                )
-                            }
-                            finally {
-                                $algorithm.Dispose()
-                            }
-                        }
-
                         function Write-CoordinateVerifySet {
                             param(
                                 [Parameter(Mandatory)][guid]$RunId,
@@ -2672,6 +3133,34 @@ $invoker = [scriptblock]::Create($invokerText)
                         $projection = $projectionBytes | ConvertFrom-Json
                         ($projection.stages.stage -join ',') |
                             Should -BeExactly 'Foundation'
+                    }
+
+                    It 'Verify rejects <Mutation> evidence mutation between validation passes without writing projection' -ForEach @(
+                        @{ Mutation = 'Result' }
+                        @{ Mutation = 'Manifest' }
+                        @{ Mutation = 'Summary' }
+                        @{ Mutation = 'Extra' }
+                        @{ Mutation = 'Missing' }
+                        @{ Mutation = 'Path' }
+                    ) {
+                        $runId = [guid]::NewGuid()
+                        Write-CoordinateVerifySet -RunId $runId | Out-Null
+                        Install-CoordinateEvidenceMutationHook `
+                            -Mutation $Mutation `
+                            -RunId $runId
+                        $summaryPath = Join-Path (
+                            Join-Path $script:CoordinateEvidenceRoot (
+                                $runId.ToString('D').ToLowerInvariant()
+                            )
+                        ) 'summary.json'
+
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages @('Foundation') `
+                                -Mode Verify
+                        } | Should -Throw
+                        $summaryPath | Should -Not -Exist
                     }
 
                     It 'Verify rejects a mismatched <Case> phase summary digest' -ForEach @(

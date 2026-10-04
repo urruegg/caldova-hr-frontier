@@ -50,7 +50,7 @@ param(
 - The closed `ControlRecord` fields are exactly `schemaVersion`, `runId`, `sourceCommit`, `publicTenantKey`, `intentDigest`, `stateDigest`, `selectedStages`, `prerequisiteResults`, and `evidenceRunRelativePath`. Each `prerequisiteResults` item contains only `stage`, `status`, `classification`, `phaseManifestDigest`, `phaseSummaryDigest`, `intentDigest`, and `stateDigest`.
 - Add closed JSON Schema draft 2020-12 contract `tenant-lifecycle-stage-result.schema.json` with exactly `schemaVersion`, `runId`, `stage`, `sourceCommit`, `publicTenantKey`, `intentDigest`, `stateDigest`, `phaseManifestDigest`, `phaseSummaryDigest`, `status`, `classification`, `evidenceRelativePath`, and `completedAtUtc`.
 - `status` is exactly `Passed`, `Failed`, `Blocked`, `Refused`, or `Manual`. `classification` is exactly `NoChange`, `Changed`, `Manual`, `Blocked`, or `Refused`. Allowed pairs are `Passed/NoChange`, `Passed/Changed`, `Failed/NoChange`, `Failed/Changed`, `Blocked/Blocked`, `Refused/Refused`, and `Manual/Manual`.
-- A stage result is canonical UTF-8 without BOM, one trailing LF, immutable, a regular non-reparse file, and contained at `<run>/stages/<stage>.json`. Use ordinal stage and filename comparison; case-only drift is invalid.
+- A stage result is canonical UTF-8 without BOM, one trailing LF, immutable, a regular non-reparse file, and contained at `<run>/stage-results/<stage>.json`. Use ordinal stage and filename comparison; case-only drift is invalid.
 - Verify requires the exact selected ordered stage-result set with no missing, extra, duplicate, case-drifted, stale, tampered, foreign, reordered, noncanonical, noncontained, or reparse entry.
 - Verify correlates exact run ID, source commit, public tenant key, intent digest, state digest chain, stage token, phase manifest digest, phase summary digest, and child evidence path. It validates the contained canonical child summary file and computes `phaseSummaryDigest` over its exact bytes.
 - Verify does not parse provider-specific IDs, URLs, action IDs, actions, payloads, or read-back from a child summary. A future shared child-summary schema requires a separately reviewed contract before the umbrella can interpret additional fields.
@@ -70,7 +70,7 @@ param(
 | `infra/src/scripts/runbooks/Invoke-TenantLifecycle.ps1` | Exact Assess/Plan/Verify coordinate-only public surface. |
 | `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Test-TenantLifecycleContract.ps1` | Adds exact `StageResult` runtime validation. |
 | `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/New-TenantLifecycleStageResult.ps1` | Builds the closed child-owned terminal result object. |
-| `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Write-TenantLifecycleStageResult.ps1` | Writes one immutable canonical result at `stages/<stage>.json`. |
+| `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Write-TenantLifecycleStageResult.ps1` | Writes one immutable canonical result at `stage-results/<stage>.json`. |
 | `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Test-TenantLifecycleStageResultSet.ps1` | Reads and validates the exact selected ordered result/manifest/summary set. |
 | `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Resolve-TenantLifecycleGraph.ps1` | Evaluates umbrella dependencies from literal stage-result `Passed` status while preserving child action-helper availability. |
 | `infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/ConvertTo-TenantLifecycleAcceptanceProjection.ps1` | Produces the strict stage-only umbrella summary/projection. |
@@ -435,7 +435,7 @@ Create table-driven tests for:
 - valid canonical UTF-8 without BOM, exactly one LF, lower-case digest, immutable first write, and same-object second write refusal;
 - missing result, extra entry, duplicate selected stage, duplicate JSON property, alternate/case-drifted filename, reordered selected stages, stale source/intent/state, tampered bytes, foreign run, foreign tenant, foreign stage, and unsupported outcome pair;
 - BOM, CRLF, zero LF, two trailing LFs, noncanonical key order, noncanonical whitespace, upper-case digest, malformed JSON, non-object root, additional property, and path traversal;
-- result file, `stages` directory, manifest, or child summary implemented as symlink/junction/reparse point;
+- result file, `stage-results` directory, manifest, or child summary implemented as symlink/junction/reparse point;
 - result or summary outside the run root, absolute `evidenceRelativePath`, wrong summary stage segment, and manifest/summary digest mismatch;
 - child phase summary containing synthetic provider IDs, URLs, action IDs, actions, payloads, and read-back: Verify must digest the canonical bytes but must neither copy nor interpret those properties;
 - supplied Verify invoker with a counter that must remain zero;
@@ -474,7 +474,7 @@ Implement Verify in this order:
 
 1. reject a non-null `SubsystemInvoker`;
 2. re-run exact source and private-path/digest gates;
-3. enumerate every direct entry under `<run>/stages` and require an ordinal one-to-one filename match with `-Stages`;
+3. enumerate every direct entry under `<run>/stage-results` and require an ordinal one-to-one filename match with `-Stages`;
 4. read results in caller-supplied order and verify exact run/source/tenant/intent/stage values;
 5. read fixed `phases/<stage>/execution-manifest.json`, validate only its shared run/source/tenant/intent/input-state/selected-stage/prerequisite envelope, compute its exact canonical byte digest, and match `phaseManifestDigest` without enumerating provider contexts, targets, or actions;
 6. resolve only the exact `evidenceRelativePath`, require `phases/<stage>/summary.json`, compute exact canonical byte digest, and match `phaseSummaryDigest`;
@@ -637,7 +637,7 @@ Add documentation assertions requiring:
 
 - exact Assess/Plan/Verify signature and no Apply;
 - explicit child Plan -> child `approvals.json` -> child WhatIf/Apply -> child read-back -> canonical stage result -> umbrella Verify sequence;
-- `<run>/stages/<stage>.json`;
+- `<run>/stage-results/<stage>.json`;
 - Verify never invoking children;
 - literal `Passed` dependency success;
 - exact stage-only projection nonclaims;

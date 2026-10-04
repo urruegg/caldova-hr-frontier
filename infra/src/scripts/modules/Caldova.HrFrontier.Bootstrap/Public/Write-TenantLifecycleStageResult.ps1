@@ -73,24 +73,27 @@ function Write-TenantLifecycleStageResult {
         )
     }
 
-    $stagesDirectory = Join-Path $runRoot 'stages'
+    $stageResultsDirectory = Join-Path $runRoot 'stage-results'
     try {
-        if ([IO.File]::Exists($stagesDirectory)) {
+        if ([IO.File]::Exists($stageResultsDirectory)) {
             throw [IO.InvalidDataException]::new()
         }
-        if (-not [IO.Directory]::Exists($stagesDirectory)) {
-            [IO.Directory]::CreateDirectory($stagesDirectory) | Out-Null
+        if (-not [IO.Directory]::Exists($stageResultsDirectory)) {
+            [IO.Directory]::CreateDirectory(
+                $stageResultsDirectory
+            ) | Out-Null
         }
-        $stagesItem = Get-Item `
-            -LiteralPath $stagesDirectory `
+        $stageResultsItem = Get-Item `
+            -LiteralPath $stageResultsDirectory `
             -Force `
             -ErrorAction Stop
-        if (-not [bool]$stagesItem.PSIsContainer) {
+        if (-not [bool]$stageResultsItem.PSIsContainer) {
             throw [IO.InvalidDataException]::new()
         }
-        if (($stagesItem.Attributes -band
+        if (($stageResultsItem.Attributes -band
                 [IO.FileAttributes]::ReparsePoint) -ne 0 -or
-            (Test-TenantLifecycleEvidenceReparsePath -Path $stagesDirectory)) {
+            (Test-TenantLifecycleEvidenceReparsePath `
+                -Path $stageResultsDirectory)) {
             throw [IO.InvalidDataException]::new(
                 'TenantLifecycle.Evidence.ReparsePoint'
             )
@@ -106,7 +109,7 @@ function Write-TenantLifecycleStageResult {
         )
     }
 
-    $targetPath = Join-Path $stagesDirectory (
+    $targetPath = Join-Path $stageResultsDirectory (
         ([string]$StageResult.stage) + '.json'
     )
     if ([IO.File]::Exists($targetPath) -or

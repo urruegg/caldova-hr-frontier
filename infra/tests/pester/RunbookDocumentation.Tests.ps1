@@ -171,7 +171,7 @@ Describe 'Runbook documentation contracts' {
             $lastPosition = $position
         }
         $index | Should -Match (
-            [regex]::Escape('<run>/stages/<stage>.json')
+            [regex]::Escape('<run>/stage-results/<stage>.json')
         )
         $index | Should -Match (
             'Umbrella `Verify` never invokes a child'

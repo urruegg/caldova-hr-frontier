@@ -45,5 +45,35 @@
     { "properties": { "status": { "const": "Blocked" }, "classification": { "const": "Blocked" } } },
     { "properties": { "status": { "const": "Refused" }, "classification": { "const": "Refused" } } },
     { "properties": { "status": { "const": "Manual" }, "classification": { "const": "Manual" } } }
+  ],
+  "allOf": [
+    {
+      "if": { "properties": { "stage": { "const": "Workstation" } } },
+      "then": { "properties": { "evidenceRelativePath": { "const": "phases/Workstation/summary.json" } } }
+    },
+    {
+      "if": { "properties": { "stage": { "const": "PrivateBoundary" } } },
+      "then": { "properties": { "evidenceRelativePath": { "const": "phases/PrivateBoundary/summary.json" } } }
+    },
+    {
+      "if": { "properties": { "stage": { "const": "Foundation" } } },
+      "then": { "properties": { "evidenceRelativePath": { "const": "phases/Foundation/summary.json" } } }
+    },
+    {
+      "if": { "properties": { "stage": { "const": "DevDelivery" } } },
+      "then": { "properties": { "evidenceRelativePath": { "const": "phases/DevDelivery/summary.json" } } }
+    },
+    {
+      "if": { "properties": { "stage": { "const": "ReadBack" } } },
+      "then": { "properties": { "evidenceRelativePath": { "const": "phases/ReadBack/summary.json" } } }
+    },
+    {
+      "if": { "properties": { "stage": { "const": "Acceptance" } } },
+      "then": { "properties": { "evidenceRelativePath": { "const": "phases/Acceptance/summary.json" } } }
+    },
+    {
+      "if": { "properties": { "stage": { "const": "TenantReplica" } } },
+      "then": { "properties": { "evidenceRelativePath": { "const": "phases/TenantReplica/summary.json" } } }
+    }
   ]
 }

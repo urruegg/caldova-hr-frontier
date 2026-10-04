@@ -30,7 +30,7 @@ The controlling operator sequence is:
 3. invoke that child directly with WhatIf and review the exact approved actions;
 4. invoke that child directly with Apply only after its existing hard STOP and child-specific approval;
 5. complete provider-specific or local child read-back, child state adoption where applicable, and the terminal child summary;
-6. write the immutable canonical child stage result at `<run>/stages/<stage>.json`;
+6. write the immutable canonical child stage result at `<run>/stage-results/<stage>.json`;
 7. repeat for each dependency in the accepted order, stopping on every `Failed`, `Manual`, `Blocked`, or `Refused` result; and
 8. only after the exact selected stage-result set exists, run `Invoke-TenantLifecycle.ps1 -Mode Verify` with no `SubsystemInvoker` and require every dependency result to have literal status `Passed`.
 

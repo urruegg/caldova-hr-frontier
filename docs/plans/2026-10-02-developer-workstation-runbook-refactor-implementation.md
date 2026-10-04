@@ -25,7 +25,7 @@ This child plan remains `Draft` and cannot begin until the [coordinate-only corr
 
 - `Test-DeveloperWorkstation.ps1` and `Initialize-DeveloperWorkstation.ps1` own the complete `Workstation` and `PrivateBoundary` child lifecycle: child assessment, child execution manifest, child `approvals.json`, child `-WhatIf`, child `-Apply`, child `ShouldProcess`, local read-back, restart handling, private-boundary proof, terminal child summary, and canonical stage result.
 - Existing `ExecutionManifestPath`, `ApprovedDigest`, and `Apply` parameters remain child parameters on `Initialize-DeveloperWorkstation.ps1`; they are not inputs to `Invoke-TenantLifecycle.ps1`.
-- After terminal child read-back or confirmed `NoChange`, the child writes the immutable canonical result at `<run>/stages/<stage>.json` through the corrected shared helper. The result exposes only stage-level status, classification, provenance, and child artifact digests.
+- After terminal child read-back or confirmed `NoChange`, the child writes the immutable canonical result at `<run>/stage-results/<stage>.json` through the corrected shared helper. The result exposes only stage-level status, classification, provenance, and child artifact digests.
 - Any reference below to Plan 1 approval, action, state, or read-back contracts means retained shared child-library contracts. It does not create a dependency on umbrella Apply, umbrella `ApprovedDigest`, `CurrentBindingProvider`, umbrella action evidence, or umbrella resource-level correlation.
 - Umbrella `Assess` or `Plan` may dispatch this child only in the matching non-mutating mode. Umbrella `Verify` never invokes it and accepts only exact canonical `Passed` stage results.
 

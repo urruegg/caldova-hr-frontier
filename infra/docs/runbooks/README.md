@@ -26,7 +26,7 @@ One run uses one absolute evidence directory outside Git. The coordinate-only um
 | `phases/<stage>/assessment.json` | Canonical non-mutating output produced by that child during umbrella `Assess`. |
 | `phases/<stage>/execution-manifest.json` | Canonical non-mutating output produced by that child during umbrella `Plan`. Its required root includes `selectedStages` and `prerequisiteResults`; both are validated ordinally. |
 | `phases/<stage>/summary.json` | Immutable canonical terminal child summary. Provider details remain here as child-owned evidence and are validated only by exact bytes and digest during umbrella `Verify`. |
-| `<run>/stages/<stage>.json` | Immutable canonical stage result containing only stage status, classification, source/intent/state provenance, child manifest/summary digests, its canonical summary path, and completion time. |
+| `<run>/stage-results/<stage>.json` | Immutable canonical stage result containing only stage status, classification, source/intent/state provenance, child manifest/summary digests, its canonical summary path, and completion time. |
 | `<run>/summary.json` | Stage-only projection written by umbrella `Verify` after the exact selected stage-result set succeeds. |
 
 Child execution manifests and summaries are read-only umbrella `Verify` inputs. They remain child-owned evidence, and the umbrella validates only their canonical coordinates and exact bytes/digests; it acquires no authority from provider content. Child `approvals.json`, provider actions, WhatIf/Apply, `ShouldProcess`, state adoption, and provider read-back remain child-only and are neither umbrella authority nor umbrella output. The umbrella validates `selectedStages` and `prerequisiteResults` in exact ordinal order and never reads provider actions to derive topology. `pipeline.json` and `power-platform.json` remain provider-child evidence names; Plan 1 does not create or consume them as proof of pipeline execution, artifact import, or provider mutation.
@@ -81,7 +81,7 @@ For every selected stage, the operator follows this order:
 3. invoke the child directly with `WhatIf`;
 4. pass the child-specific hard stop and invoke the child directly with `Apply`;
 5. complete child read-back, child state adoption where applicable, and the terminal child summary;
-6. write the immutable canonical stage result at `<run>/stages/<stage>.json`;
+6. write the immutable canonical stage result at `<run>/stage-results/<stage>.json`;
 7. stop if the result is `Failed`, `Manual`, `Blocked`, or `Refused`, otherwise repeat for the next selected dependency; and
 8. after all selected results have literal `Passed`, run umbrella `Verify` without `SubsystemInvoker`.
 

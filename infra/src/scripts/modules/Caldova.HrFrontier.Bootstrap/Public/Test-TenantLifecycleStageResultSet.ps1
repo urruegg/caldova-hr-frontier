@@ -83,24 +83,24 @@ function Test-TenantLifecycleStageResultSet {
                 [IO.FileAttributes]::ReparsePoint) -ne 0) {
             throw [IO.InvalidDataException]::new()
         }
-        $stagesDirectory = Join-Path $runRoot 'stages'
-        if (-not [IO.Directory]::Exists($stagesDirectory) -or
+        $stageResultsDirectory = Join-Path $runRoot 'stage-results'
+        if (-not [IO.Directory]::Exists($stageResultsDirectory) -or
             (Test-TenantLifecycleEvidenceReparsePath `
-                -Path $stagesDirectory)) {
+                -Path $stageResultsDirectory)) {
             throw [IO.InvalidDataException]::new()
         }
-        $stagesItem = Get-Item `
-            -LiteralPath $stagesDirectory `
+        $stageResultsItem = Get-Item `
+            -LiteralPath $stageResultsDirectory `
             -Force `
             -ErrorAction Stop
-        if (-not [bool]$stagesItem.PSIsContainer -or
-            ($stagesItem.Attributes -band
+        if (-not [bool]$stageResultsItem.PSIsContainer -or
+            ($stageResultsItem.Attributes -band
                 [IO.FileAttributes]::ReparsePoint) -ne 0) {
             throw [IO.InvalidDataException]::new()
         }
         $entries = @(
             Get-ChildItem `
-                -LiteralPath $stagesDirectory `
+                -LiteralPath $stageResultsDirectory `
                 -Force `
                 -ErrorAction Stop
         )
@@ -133,7 +133,7 @@ function Test-TenantLifecycleStageResultSet {
     $previousOutputStateDigest = $null
     foreach ($stage in @($Stages)) {
         try {
-            $resultRelativePath = "stages/$stage.json"
+            $resultRelativePath = "stage-results/$stage.json"
             $resultPath = Join-Path $runRoot (
                 $resultRelativePath.Replace(
                     '/',
@@ -329,8 +329,8 @@ function Test-TenantLifecycleStageResultSet {
                 [string]$manifest.stateDigest,
                 [string]$result.stateDigest
             )
-            $claimsChanged = [string]$result.classification -ceq 'Changed'
-            if ($stateChanged -ne $claimsChanged) {
+            if ($stateChanged -and
+                [string]$result.classification -cne 'Changed') {
                 throw [IO.InvalidDataException]::new()
             }
             $previousOutputStateDigest = [string]$result.stateDigest

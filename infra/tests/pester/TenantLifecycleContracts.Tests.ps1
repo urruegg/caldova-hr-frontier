@@ -243,7 +243,7 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
         $runId = [guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
         $runDirectory = Join-Path $TestDrive 'canonical-stage-result'
         $set = New-CanonicalStageSet -RunDirectory $runDirectory -RunId $runId
-        $path = Join-Path $runDirectory 'stages\Foundation.json'
+        $path = Join-Path $runDirectory 'stage-results\Foundation.json'
         $bytes = [IO.File]::ReadAllBytes($path)
         $text = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
 
@@ -356,7 +356,7 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
             -InputObject $manifest `
             -Path $manifestPath
         $stage = [string]$stages[$ManifestIndex]
-        $resultPath = Join-Path $runDirectory "stages\$stage.json"
+        $resultPath = Join-Path $runDirectory "stage-results\$stage.json"
         $result = Get-Content -Raw -LiteralPath $resultPath |
             ConvertFrom-Json
         $result.phaseManifestDigest =
@@ -398,8 +398,8 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
     }
 
     It 'rejects actual case drift in exact stage result set path segment <Segment>' -ForEach @(
-        @{ Segment = 'stages directory'; RelativePath = 'stages'; DriftedName = 'Stages' }
-        @{ Segment = 'result filename'; RelativePath = 'stages\Foundation.json'; DriftedName = 'foundation.json' }
+        @{ Segment = 'stage-results directory'; RelativePath = 'stage-results'; DriftedName = 'Stage-Results' }
+        @{ Segment = 'result filename'; RelativePath = 'stage-results\Foundation.json'; DriftedName = 'foundation.json' }
         @{ Segment = 'phases directory'; RelativePath = 'phases'; DriftedName = 'Phases' }
         @{ Segment = 'phase stage directory'; RelativePath = 'phases\Foundation'; DriftedName = 'foundation' }
         @{ Segment = 'manifest filename'; RelativePath = 'phases\Foundation\execution-manifest.json'; DriftedName = 'Execution-Manifest.json' }
@@ -440,24 +440,24 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
         $runDirectory = Join-Path $TestDrive "exact-set-$($Case.Replace(' ', '-'))"
         New-CanonicalStageSet -RunDirectory $runDirectory -RunId $runId |
             Out-Null
-        $resultPath = Join-Path $runDirectory 'stages\Foundation.json'
+        $resultPath = Join-Path $runDirectory 'stage-results\Foundation.json'
         switch ($Mutate) {
             'Missing' {
                 Remove-Item -LiteralPath $resultPath -Force
             }
             'Extra' {
                 [IO.File]::WriteAllText(
-                    (Join-Path $runDirectory 'stages\extra.json'),
+                    (Join-Path $runDirectory 'stage-results\extra.json'),
                     "{}`n",
                     [Text.UTF8Encoding]::new($false)
                 )
             }
             'Alternate' {
-                $temporaryPath = Join-Path $runDirectory 'stages\temporary.json'
+                $temporaryPath = Join-Path $runDirectory 'stage-results\temporary.json'
                 Move-Item -LiteralPath $resultPath -Destination $temporaryPath
                 Move-Item `
                     -LiteralPath $temporaryPath `
-                    -Destination (Join-Path $runDirectory 'stages\foundation.json')
+                    -Destination (Join-Path $runDirectory 'stage-results\foundation.json')
             }
         }
 
@@ -503,7 +503,7 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
         $result.$Field = $Value
         Write-CanonicalTestFile `
             -InputObject $result `
-            -Path (Join-Path $runDirectory 'stages\Foundation.json')
+            -Path (Join-Path $runDirectory 'stage-results\Foundation.json')
 
         {
             Invoke-CanonicalStageSet `
@@ -528,7 +528,7 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
         $runId = [guid]::NewGuid()
         $runDirectory = Join-Path $TestDrive "noncanonical-$Mutation"
         $set = New-CanonicalStageSet -RunDirectory $runDirectory -RunId $runId
-        $path = Join-Path $runDirectory 'stages\Foundation.json'
+        $path = Join-Path $runDirectory 'stage-results\Foundation.json'
         $bytes = [IO.File]::ReadAllBytes($path)
         $text = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
         switch ($Mutation) {
@@ -629,9 +629,9 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
         }
     }
 
-    It 'detects result file stages directory manifest and summary reparse paths' -ForEach @(
-        @{ Target = 'stages' }
-        @{ Target = 'stages/Foundation.json' }
+    It 'detects result file stage-results directory manifest and summary reparse paths' -ForEach @(
+        @{ Target = 'stage-results' }
+        @{ Target = 'stage-results/Foundation.json' }
         @{ Target = 'phases/Foundation/execution-manifest.json' }
         @{ Target = 'phases/Foundation/summary.json' }
     ) {
@@ -720,7 +720,7 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
         $result.evidenceRelativePath = $Value
         Write-CanonicalTestFile `
             -InputObject $result `
-            -Path (Join-Path $runDirectory 'stages\Foundation.json')
+            -Path (Join-Path $runDirectory 'stage-results\Foundation.json')
 
         {
             Invoke-CanonicalStageSet `
@@ -747,6 +747,59 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
                 -RunId $runId `
                 -Stages @('Workstation', 'Foundation')
         ).Count | Should -Be 2
+    }
+
+    It 'accepts Changed with either retained or advanced state and rejects NoChange with advanced state' -ForEach @(
+        @{
+            Case = 'Changed retained'
+            InputDigests = @('2' * 64)
+            OutputDigests = @('2' * 64)
+            Classifications = @('Changed')
+            Accepted = $true
+        }
+        @{
+            Case = 'Changed advanced'
+            InputDigests = @('8' * 64)
+            OutputDigests = @('2' * 64)
+            Classifications = @('Changed')
+            Accepted = $true
+        }
+        @{
+            Case = 'NoChange advanced'
+            InputDigests = @('8' * 64)
+            OutputDigests = @('2' * 64)
+            Classifications = @('NoChange')
+            Accepted = $false
+        }
+    ) {
+        $runId = [guid]::NewGuid()
+        $runDirectory = Join-Path $TestDrive (
+            'classification-state-' + $Case.Replace(' ', '-')
+        )
+        New-CanonicalStageSet `
+            -RunDirectory $runDirectory `
+            -RunId $runId `
+            -InputStateDigests $InputDigests `
+            -OutputStateDigests $OutputDigests `
+            -Classifications $Classifications |
+            Out-Null
+
+        if ($Accepted) {
+            {
+                Invoke-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+            } | Should -Not -Throw
+        }
+        else {
+            {
+                Invoke-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+            } | Should -Throw -ExpectedMessage (
+                'TenantLifecycle.StageResultSet.Invalid'
+            )
+        }
     }
 
     It 'rejects an unexplained or final-current-state mismatch in the stage state digest chain' -ForEach @(
@@ -881,10 +934,10 @@ $summary = ConvertFrom-TenantLifecycleJson -InputObject (
 $golden = [pscustomobject][ordered]@{
     stageFileDigests = [pscustomobject][ordered]@{
         Foundation = Get-GoldenFileDigest -Path (
-            Join-Path $runDirectory 'stages\Foundation.json'
+            Join-Path $runDirectory 'stage-results\Foundation.json'
         )
         ReadBack = Get-GoldenFileDigest -Path (
-            Join-Path $runDirectory 'stages\ReadBack.json'
+            Join-Path $runDirectory 'stage-results\ReadBack.json'
         )
     }
     summaryDigest = [string]$summary.digest
@@ -928,8 +981,8 @@ $golden = [pscustomobject][ordered]@{
         }
 
         foreach ($relativePath in @(
-            '11111111-2222-4333-8444-555555555555\stages\Foundation.json',
-            '11111111-2222-4333-8444-555555555555\stages\ReadBack.json',
+            '11111111-2222-4333-8444-555555555555\stage-results\Foundation.json',
+            '11111111-2222-4333-8444-555555555555\stage-results\ReadBack.json',
             '11111111-2222-4333-8444-555555555555\summary.json',
             'golden.json'
         )) {
@@ -1171,6 +1224,16 @@ public static class TenantLifecycleContractCodePropertyAccessor
                     -Kind StageResult `
                     -InputObject $invalid
             } | Should -Throw -ExpectedMessage 'TenantLifecycle.Contract.StageResult'
+            if ($script:HasJsonSchema) {
+                $result = Invoke-JsonSchemaValidation `
+                    -SchemaPath (
+                        Join-Path $script:SchemaRoot (
+                            'tenant-lifecycle-stage-result.schema.json'
+                        )
+                    ) `
+                    -InputObject $invalid
+                $result.ExitCode | Should -Not -Be 0
+            }
         }
 
         foreach ($invalidTimestamp in @(

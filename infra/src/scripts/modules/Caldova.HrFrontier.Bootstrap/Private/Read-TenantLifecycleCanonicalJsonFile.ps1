@@ -375,7 +375,7 @@ function Read-TenantLifecycleCanonicalJsonFile {
             throw [IO.InvalidDataException]::new()
         }
         if ($ExpectedRelativePath -cmatch (
-                '^stages/(Workstation|PrivateBoundary|Foundation|' +
+                '^stage-results/(Workstation|PrivateBoundary|Foundation|' +
                 'DevDelivery|ReadBack|Acceptance|TenantReplica)[.]json$'
             )) {
             Test-TenantLifecycleContract `

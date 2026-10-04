@@ -27,7 +27,7 @@ This child plan remains `Draft` and cannot begin until the [coordinate-only corr
 - Every use of `ApprovedExecutionManifestDigest` in this plan and the pipeline means the exact approved child execution-manifest digest. It is never an umbrella digest and is never passed to `Invoke-TenantLifecycle.ps1`.
 - Pipeline definition/run IDs, application-user IDs, role IDs, environment IDs/URLs, import actions, package details, action payloads, and read-back stay in child evidence. Only stage-level status, classification, source/intent/state provenance, `phaseManifestDigest`, and `phaseSummaryDigest` enter the canonical stage result.
 - Existing Plan 1 manifest, approval, action-evidence, state, atomic-write, and read-back helpers remain shared child-library dependencies. No task below depends on umbrella Apply, umbrella approval loading, `CurrentBindingProvider`, or umbrella resource-level correlation.
-- Umbrella `Verify` reads the immutable `<run>/stages/DevDelivery.json` result and its contained canonical child summary; it never queues the pipeline, imports a solution, invokes a child, or parses provider-specific IDs/actions.
+- Umbrella `Verify` reads the immutable `<run>/stage-results/DevDelivery.json` result and its contained canonical child summary; it never queues the pipeline, imports a solution, invokes a child, or parses provider-specific IDs/actions.
 
 ## Global Constraints
 

@@ -25,7 +25,7 @@ This child plan remains `Draft`. Tasks 1-4 cannot begin until the [coordinate-on
 
 - `Test-RepositoryExport.ps1`, `New-RepositoryExportPlan.ps1`, and `Invoke-RepositoryExport.ps1` own the complete local child lifecycle: child assessment, child execution manifest, child `approvals.json`, child `-WhatIf`, child `-Apply`, child `ShouldProcess`, independent full-tree read-back/validation, terminal child summary, and canonical `TenantReplica` stage result.
 - Existing `ExecutionManifestPath`, `ApprovedDigest`, and Apply behavior remain local child interfaces. They are not umbrella parameters and do not depend on umbrella approval loading, `CurrentBindingProvider`, or umbrella resource-level correlation.
-- The child writes `<run>/stages/TenantReplica.json` only after atomic destination promotion and independent validation pass, or after a terminal child outcome is truthfully recorded. Remote/provider coordinates, destination details, file payloads, action IDs, and validation output stay in child evidence.
+- The child writes `<run>/stage-results/TenantReplica.json` only after atomic destination promotion and independent validation pass, or after a terminal child outcome is truthfully recorded. Remote/provider coordinates, destination details, file payloads, action IDs, and validation output stay in child evidence.
 - Existing Plan 1 manifest, approval, action-evidence, atomic-write, and read-back helpers remain shared child-library dependencies. Umbrella `Verify` reads only the canonical stage result and contained canonical child summary and never invokes the export engine.
 
 ## Global Constraints
