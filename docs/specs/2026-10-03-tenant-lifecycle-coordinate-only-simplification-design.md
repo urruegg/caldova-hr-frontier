@@ -2,18 +2,20 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-10-03 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-19 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Tenant 1 lifecycle umbrella authority, child-runbook ownership, stage-result evidence, and corrective migration |
-| **References** | [Specification Catalogue](README.md), [Tenant 1 Runbook End-to-End Design](2026-10-02-tenant-1-runbook-end-to-end-design.md), [Tenant Lifecycle Core Plan](../plans/2026-10-02-tenant-lifecycle-core-implementation.md), [Cloud Service Foundation Design](2026-10-02-cloud-service-foundation-runbook-design.md), [Developer Workstation Design](2026-10-02-developer-workstation-runbook-refactor-design.md), [Tenant Replica and Customer Handover Design](2026-10-02-tenant-replica-and-customer-handover-runbook-design.md) |
+| **References** | [Specification Catalogue](README.md), [Proposed Child Summary Envelope Companion](2026-10-03-tenant-lifecycle-child-summary-envelope-design.md), [Tenant 1 Runbook End-to-End Design](2026-10-02-tenant-1-runbook-end-to-end-design.md), [Tenant Lifecycle Core Plan](../plans/2026-10-02-tenant-lifecycle-core-implementation.md), [Cloud Service Foundation Design](2026-10-02-cloud-service-foundation-runbook-design.md), [Developer Workstation Design](2026-10-02-developer-workstation-runbook-refactor-design.md), [Tenant Replica and Customer Handover Design](2026-10-02-tenant-replica-and-customer-handover-runbook-design.md) |
 
 ## 1. Approval, Authority, and Entry Gate
 
 The user explicitly approved every design section represented here on 2026-10-03. This specification is therefore the focused Approved companion to the [Tenant 1 Runbook End-to-End Design](2026-10-02-tenant-1-runbook-end-to-end-design.md).
 
-Where the two specifications conflict, this companion supersedes only:
+The [Tenant Lifecycle Child Summary Envelope Design](2026-10-03-tenant-lifecycle-child-summary-envelope-design.md) is the Proposed, review-pending companion authority for the shared summary envelope and its exact manifest, summary, and stage-result correlation. It does not override this Approved specification unless and until the user approves the written file.
+
+Where this coordinate-only specification and the Tenant 1 Runbook End-to-End Design conflict, this coordinate-only companion supersedes only:
 
 - the mutation-capable, approval-carrying, or provider-binding implications of section 4.1;
 - the umbrella evidence and resource-correlation implications of sections 5.2 and 5.3;

@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.0 |
-| **Date** | 2026-10-03 |
+| **Version** | 2.1 |
+| **Date** | 2026-10-19 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
 | **Scope** | docs/specs |
-| **References** | [Documentation Policy](../README.md), [Tenant Lifecycle Coordinate-Only Simplification Design](2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Documentation Knowledge Architecture Cleanup Design](2026-10-02-documentation-knowledge-architecture-cleanup-design.md), [HR Frontier Copilot Repository-Agent Portfolio Governance Design](2026-10-02-hr-frontier-copilot-agent-portfolio-governance-design.md) |
+| **References** | [Documentation Policy](../README.md), [Proposed Tenant Lifecycle Child Summary Envelope Design](2026-10-03-tenant-lifecycle-child-summary-envelope-design.md), [Tenant Lifecycle Coordinate-Only Simplification Design](2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Documentation Knowledge Architecture Cleanup Design](2026-10-02-documentation-knowledge-architecture-cleanup-design.md), [HR Frontier Copilot Repository-Agent Portfolio Governance Design](2026-10-02-hr-frontier-copilot-agent-portfolio-governance-design.md) |
 
 ## Purpose and Authority
 
@@ -64,6 +64,7 @@ A specification is created from a selected idea or approved problem. It precedes
 | [Cloud core plan](../plans/2026-10-02-cloud-service-foundation-core-implementation.md), then [Power Platform DEV delivery plan](../plans/2026-10-02-power-platform-dev-delivery-implementation.md) | [`2026-10-02-cloud-service-foundation-runbook-design.md`](2026-10-02-cloud-service-foundation-runbook-design.md) | Approved | Defines Tenant 1 provider reconciliation, an Azure Pipeline using Power Platform Build Tools 2.0 and WIF, and exact DEV deployment. | Approved implementation authority for the two local build plans; current cloud public entry points remain unsupported stop stubs and live execution remains gated. |
 | [Tenant replica and handover implementation plan](../plans/2026-10-02-tenant-replica-handover-implementation.md) | [`2026-10-02-tenant-replica-and-customer-handover-runbook-design.md`](2026-10-02-tenant-replica-and-customer-handover-runbook-design.md) | Approved | Defines local `TenantReplica` and stricter `CustomerHandover` export profiles with independent validation. | Approved local implementation authority; it authorizes no publication, destination repository, or Tenant 2 live action. |
 | Amend the six 2026-10-02 runbook plans, then add a reviewed corrective commit on `feat/tenant-lifecycle-core` | [`2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md`](2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md) | Approved | Defines the coordinate-only lifecycle umbrella, child-owned mutation and approval, canonical stage results, and the lifecycle-core blocker correction. | Approved corrective authority; supersedes the umbrella mutation, approval, and resource-correlation implications identified in its authority section. It authorizes no implementation or live operation. |
+| User file review, then amendment of the Draft corrective plan | [`2026-10-03-tenant-lifecycle-child-summary-envelope-design.md`](2026-10-03-tenant-lifecycle-child-summary-envelope-design.md) | Proposed Baseline | Defines the reserved canonical child-summary envelope, exact digest meanings, write order, and equivalent Verify/prerequisite enforcement. | Proposed companion authority only; it does not override the Approved coordinate-only design or authorize implementation before user review and approval. |
 
 ## Domain Links
 

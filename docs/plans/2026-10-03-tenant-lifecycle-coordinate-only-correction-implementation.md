@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-10-03 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-19 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Corrective implementation on the existing blocked Tenant 1 lifecycle-core branch: coordinate-only umbrella authority, canonical child stage results, exact verification, and stage-only projection |
-| **References** | [Approved Tenant Lifecycle Coordinate-Only Simplification Design](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Tenant Lifecycle Core Plan](2026-10-02-tenant-lifecycle-core-implementation.md), [Approved Tenant 1 Runbook End-to-End Design](../specs/2026-10-02-tenant-1-runbook-end-to-end-design.md), [Implementation Plan Catalogue](README.md) |
+| **References** | [Approved Tenant Lifecycle Coordinate-Only Simplification Design](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Proposed Tenant Lifecycle Child Summary Envelope Design](../specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md), [Tenant Lifecycle Core Plan](2026-10-02-tenant-lifecycle-core-implementation.md), [Approved Tenant 1 Runbook End-to-End Design](../specs/2026-10-02-tenant-1-runbook-end-to-end-design.md), [Implementation Plan Catalogue](README.md) |
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -17,7 +17,7 @@
 
 **Tech Stack:** Windows PowerShell 5.1 (authoritative), Pester 5.7.1, reviewed PowerShell 7 compatibility, JSON Schema draft 2020-12, canonical UTF-8 JSON without BOM, SHA-256, Git, and the existing `Caldova.HrFrontier.Bootstrap` module.
 
-**Spec:** [`docs/specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md`](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md)
+**Specs:** [Approved Coordinate-Only Simplification Design](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md) and [Proposed Child Summary Envelope Design](../specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md). The proposed companion awaits user file review and approval; this plan remains `Draft` and blocked from execution.
 
 ## Global Constraints
 
@@ -53,7 +53,7 @@ param(
 - A stage result is canonical UTF-8 without BOM, one trailing LF, immutable, a regular non-reparse file, and contained at `<run>/stage-results/<stage>.json`. Use ordinal stage and filename comparison; case-only drift is invalid.
 - Verify requires the exact selected ordered stage-result set with no missing, extra, duplicate, case-drifted, stale, tampered, foreign, reordered, noncanonical, noncontained, or reparse entry.
 - Verify correlates exact run ID, source commit, public tenant key, intent digest, state digest chain, stage token, phase manifest digest, phase summary digest, and child evidence path. It validates the contained canonical child summary file and computes `phaseSummaryDigest` over its exact bytes.
-- Verify does not parse provider-specific IDs, URLs, action IDs, actions, payloads, or read-back from a child summary. A future shared child-summary schema requires a separately reviewed contract before the umbrella can interpret additional fields.
+- Verify does not parse provider-specific IDs, URLs, action IDs, actions, payloads, or read-back from a child summary. The [Proposed Child Summary Envelope Design](../specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md) reserves only shared correlation fields and leaves provider-specific root properties opaque; implementation remains blocked until that written contract is reviewed, approved, and incorporated into this plan.
 - Dependency success is literal stage-result status `Passed`. `Failed`, `Manual`, `Blocked`, and `Refused` always block dependents and final acceptance regardless of classification or otherwise valid evidence.
 - The umbrella summary/projection contains only root correlation, ordered stage entries with `stage`, `status`, `classification`, `phaseManifestDigest`, `phaseSummaryDigest`, `sourceCommit`, `intentDigest`, and `stateDigest`, plus the three fixed nonclaims from the Approved design. It contains no provider stable IDs, URLs, role IDs, action IDs, action payloads, or raw provider read-back.
 - Keep state private-path validation, child-owned Create adoption, immutable stable IDs, and all shared manifest/approval/action/state/read-back/evidence helpers available to child runbooks. Removal from the umbrella path is not deletion from the shared library.
