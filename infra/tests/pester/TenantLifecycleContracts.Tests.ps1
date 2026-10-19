@@ -150,10 +150,16 @@ Describe 'Tenant lifecycle child summary envelope contract' {
         function Write-SummaryTestFile {
             param(
                 [Parameter(Mandatory)][string]$Root,
-                [Parameter(Mandatory)][string]$Text
+                [Parameter(Mandatory)][string]$Text,
+                [string]$RelativePath = 'phases/Foundation/summary.json'
             )
 
-            $path = Join-Path $Root 'phases\Foundation\summary.json'
+            $path = Join-Path $Root (
+                $RelativePath.Replace(
+                    '/',
+                    [IO.Path]::DirectorySeparatorChar
+                )
+            )
             [IO.Directory]::CreateDirectory((Split-Path -Parent $path)) |
                 Out-Null
             [IO.File]::WriteAllText(
@@ -451,8 +457,21 @@ Describe 'Tenant lifecycle child summary envelope contract' {
         }
     }
 
-    It 'reads a valid canonical summary through the Summary contract kind' {
-        $root = Join-Path $TestDrive 'valid-summary-reader'
+    It 'reads a valid canonical summary through <ContractKind>' -ForEach @(
+        @{
+            ContractKind = 'Summary'
+            RootName = 'valid-summary-reader-canonical'
+        }
+        @{
+            ContractKind = 'summary'
+            RootName = 'valid-summary-reader-lowercase'
+        }
+        @{
+            ContractKind = 'SuMmArY'
+            RootName = 'valid-summary-reader-mixed-case'
+        }
+    ) {
+        $root = Join-Path $TestDrive $RootName
         $path = Write-SummaryTestFile `
             -Root $root `
             -Text (
@@ -464,37 +483,113 @@ Describe 'Tenant lifecycle child summary envelope contract' {
             -Parameters @{
                 Path = $path
                 Root = $root
+                ContractKind = $ContractKind
             } {
-                param($Path, $Root)
+                param($Path, $Root, $ContractKind)
 
                 Read-TenantLifecycleCanonicalJsonFile `
                     -Path $Path `
                     -ContainmentRoot $Root `
                     -ExpectedRelativePath 'phases/Foundation/summary.json' `
-                    -ContractKind Summary
+                    -ContractKind $ContractKind
             }
 
         $record.value.runId |
             Should -BeExactly $script:ValidSummary.runId
     }
 
-    It 'rejects and redacts a raw summary root collision for <Case>' -ForEach @(
+    It 'treats <ContractKind> as the None path' -ForEach @(
         @{
+            ContractKind = 'none'
+            RootName = 'none-reader-lowercase'
+        }
+        @{
+            ContractKind = 'nOnE'
+            RootName = 'none-reader-mixed-case'
+        }
+    ) {
+        $root = Join-Path $TestDrive $RootName
+        $value = [pscustomobject][ordered]@{
+            synthetic = 'No lifecycle contract requested.'
+        }
+        $path = Write-SummaryTestFile `
+            -Root $root `
+            -RelativePath 'misc/value.json' `
+            -Text (
+                ConvertTo-TenantLifecycleCanonicalJson `
+                    -InputObject $value
+            )
+        $record = InModuleScope `
+            Caldova.HrFrontier.Bootstrap `
+            -Parameters @{
+                Path = $path
+                Root = $root
+                ContractKind = $ContractKind
+            } {
+                param($Path, $Root, $ContractKind)
+
+                Read-TenantLifecycleCanonicalJsonFile `
+                    -Path $Path `
+                    -ContainmentRoot $Root `
+                    -ExpectedRelativePath 'misc/value.json' `
+                    -ContractKind $ContractKind
+            }
+
+        $record.value.synthetic |
+            Should -BeExactly 'No lifecycle contract requested.'
+    }
+
+    It 'rejects and redacts a raw <ContractKind> root collision for <Case>' -ForEach @(
+        @{
+            ContractKind = 'Summary'
             Case = 'run identifier'
+            RootName = 'canonical-summary-collision-run-id'
             PropertyJson = (
                 '"RunId":"private-marker-do-not-disclose"'
             )
         },
         @{
+            ContractKind = 'Summary'
             Case = 'actions'
+            RootName = 'canonical-summary-collision-actions'
+            PropertyJson = (
+                '"Actions":"private-marker-do-not-disclose"'
+            )
+        },
+        @{
+            ContractKind = 'summary'
+            Case = 'run identifier'
+            RootName = 'lowercase-summary-collision-run-id'
+            PropertyJson = (
+                '"RunId":"private-marker-do-not-disclose"'
+            )
+        },
+        @{
+            ContractKind = 'summary'
+            Case = 'actions'
+            RootName = 'lowercase-summary-collision-actions'
+            PropertyJson = (
+                '"Actions":"private-marker-do-not-disclose"'
+            )
+        },
+        @{
+            ContractKind = 'SuMmArY'
+            Case = 'run identifier'
+            RootName = 'mixed-case-summary-collision-run-id'
+            PropertyJson = (
+                '"RunId":"private-marker-do-not-disclose"'
+            )
+        },
+        @{
+            ContractKind = 'SuMmArY'
+            Case = 'actions'
+            RootName = 'mixed-case-summary-collision-actions'
             PropertyJson = (
                 '"Actions":"private-marker-do-not-disclose"'
             )
         }
     ) {
-        $root = Join-Path $TestDrive (
-            'summary-collision-' + $Case.Replace(' ', '-')
-        )
+        $root = Join-Path $TestDrive $RootName
         $canonical = ConvertTo-TenantLifecycleCanonicalJson `
             -InputObject $script:ValidSummary
         $collision = '{' + $PropertyJson + ',' + $canonical.Substring(1)
@@ -507,8 +602,9 @@ Describe 'Tenant lifecycle child summary envelope contract' {
                 -Parameters @{
                     Path = $path
                     Root = $root
+                    ContractKind = $ContractKind
                 } {
-                    param($Path, $Root)
+                    param($Path, $Root, $ContractKind)
 
                     Read-TenantLifecycleCanonicalJsonFile `
                         -Path $Path `
@@ -516,7 +612,7 @@ Describe 'Tenant lifecycle child summary envelope contract' {
                         -ExpectedRelativePath (
                             'phases/Foundation/summary.json'
                         ) `
-                        -ContractKind Summary
+                        -ContractKind $ContractKind
                 } |
                 Out-Null
         }
@@ -527,6 +623,88 @@ Describe 'Tenant lifecycle child summary envelope contract' {
         $message |
             Should -BeExactly 'TenantLifecycle.CanonicalJson.Invalid'
         $message | Should -Not -Match 'RunId|Actions|private-marker'
+    }
+
+    It 'rejects a <ContractKind> collision before deserialization for <Case>' -ForEach @(
+        @{
+            ContractKind = 'summary'
+            Case = 'run identifier'
+            RootName = 'lowercase-summary-ordering-run-id'
+            PropertyJson = (
+                '"RunId":"private-marker-do-not-disclose"'
+            )
+        },
+        @{
+            ContractKind = 'summary'
+            Case = 'actions'
+            RootName = 'lowercase-summary-ordering-actions'
+            PropertyJson = (
+                '"Actions":"private-marker-do-not-disclose"'
+            )
+        },
+        @{
+            ContractKind = 'SuMmArY'
+            Case = 'run identifier'
+            RootName = 'mixed-case-summary-ordering-run-id'
+            PropertyJson = (
+                '"RunId":"private-marker-do-not-disclose"'
+            )
+        },
+        @{
+            ContractKind = 'SuMmArY'
+            Case = 'actions'
+            RootName = 'mixed-case-summary-ordering-actions'
+            PropertyJson = (
+                '"Actions":"private-marker-do-not-disclose"'
+            )
+        }
+    ) {
+        $root = Join-Path $TestDrive $RootName
+        $canonical = ConvertTo-TenantLifecycleCanonicalJson `
+            -InputObject $script:ValidSummary
+        $collision = '{' + $PropertyJson + ',' + $canonical.Substring(1)
+        $path = Write-SummaryTestFile -Root $root -Text $collision
+
+        $result = InModuleScope `
+            Caldova.HrFrontier.Bootstrap `
+            -Parameters @{
+                Path = $path
+                Root = $root
+                ContractKind = $ContractKind
+            } {
+                param($Path, $Root, $ContractKind)
+
+                $script:SummaryDeserializerInvoked = $false
+                Mock ConvertFrom-TenantLifecycleJson {
+                    $script:SummaryDeserializerInvoked = $true
+                    throw 'Deserializer invoked.'
+                }
+                $message = $null
+                try {
+                    Read-TenantLifecycleCanonicalJsonFile `
+                        -Path $Path `
+                        -ContainmentRoot $Root `
+                        -ExpectedRelativePath (
+                            'phases/Foundation/summary.json'
+                        ) `
+                        -ContractKind $ContractKind |
+                        Out-Null
+                }
+                catch {
+                    $message = $_.Exception.Message
+                }
+                [pscustomobject]@{
+                    DeserializerInvoked =
+                        $script:SummaryDeserializerInvoked
+                    Message = $message
+                }
+            }
+
+        $result.DeserializerInvoked | Should -BeFalse
+        $result.Message |
+            Should -BeExactly 'TenantLifecycle.CanonicalJson.Invalid'
+        $result.Message |
+            Should -Not -Match 'RunId|Actions|private-marker|Deserializer'
     }
 
     It 'rejects non-note root extensions without invoking getters' {

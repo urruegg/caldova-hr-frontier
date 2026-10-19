@@ -303,6 +303,13 @@ function Read-TenantLifecycleCanonicalJsonFile {
         [string]$ContractKind = 'None'
     )
 
+    $canonicalContractKind = switch ($ContractKind.ToLowerInvariant()) {
+        'none' { 'None' }
+        'stageresult' { 'StageResult' }
+        'executionmanifest' { 'ExecutionManifest' }
+        'summary' { 'Summary' }
+    }
+
     try {
         if (-not [IO.Path]::IsPathRooted($ContainmentRoot) -or
             -not [IO.Path]::IsPathRooted($Path) -or
@@ -394,7 +401,7 @@ function Read-TenantLifecycleCanonicalJsonFile {
             $false,
             $true
         ).GetString($bytes)
-        if ($ContractKind -ceq 'Summary') {
+        if ($canonicalContractKind -ceq 'Summary') {
             $summarySharedPropertyNames = @(
                 'schemaVersion',
                 'runId',
@@ -428,9 +435,9 @@ function Read-TenantLifecycleCanonicalJsonFile {
             $value.GetType().IsPrimitive) {
             throw [IO.InvalidDataException]::new()
         }
-        if ($ContractKind -cne 'None') {
+        if ($canonicalContractKind -cne 'None') {
             Test-TenantLifecycleContract `
-                -Kind $ContractKind `
+                -Kind $canonicalContractKind `
                 -InputObject $value |
                 Out-Null
         }
