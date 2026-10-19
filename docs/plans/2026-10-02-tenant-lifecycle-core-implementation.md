@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.3 |
-| **Date** | 2026-10-03 |
+| **Version** | 1.4 |
+| **Date** | 2026-10-19 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Shared Tenant 1 lifecycle contracts, orchestration, evidence, and synthetic tests |
-| **References** | [Approved Coordinate-Only Simplification Design](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Coordinate-Only Correction Plan](2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md), [Approved Tenant 1 Runbook End-to-End Design](../specs/2026-10-02-tenant-1-runbook-end-to-end-design.md), [Implementation Plan Catalogue](README.md), [Infrastructure Domain](../../infra/README.md) |
+| **References** | [Approved Coordinate-Only Simplification Design](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Approved Child Summary Envelope Design](../specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md), [Coordinate-Only Correction Plan](2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md), [Draft Child Summary Envelope Implementation Plan](2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md), [Approved Tenant 1 Runbook End-to-End Design](../specs/2026-10-02-tenant-1-runbook-end-to-end-design.md), [Implementation Plan Catalogue](README.md), [Infrastructure Domain](../../infra/README.md) |
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -25,10 +25,12 @@ This amendment is controlling where the historical task text below conflicts wit
 
 - Tasks 1-7 remain the implementation history represented by the 15 existing commits on blocked branch `feat/tenant-lifecycle-core`. Do not rewrite, amend, squash, or restate those historical task steps.
 - The [coordinate-only corrective plan](2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md) supersedes Task 5's mutation-capable umbrella signature and execution path, Task 6's provider-ID/URL projection contract, and Task 7's umbrella approval/action-evidence assumptions.
+- The [child-summary envelope implementation plan](2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md) controls the residual digest-only summary and manifest embedded-digest gaps. Shared reserved summary fields must be correlated while provider-specific root extras remain opaque.
 - Tasks 1-4 remain retained shared child-library history: closed contracts, canonical JSON/digests, intent/state separation, one-time Create adoption with immutable stable IDs, prerequisite sorting, child manifests, child approvals, child action/state/read-back evidence, and atomic writes stay available to independently runnable child runbooks.
 - The corrected umbrella has only `Assess`, `Plan`, and `Verify`; it has no `Apply`, `ExecutionManifestPath`, `ApprovedDigest`, `BindingObserver`, `CurrentBindingProvider`, approval loading, provider action/result correlation, resource-level target correlation, or `SupportsShouldProcess`.
 - The corrected umbrella projection is stage-only. It contains no provider stable IDs, URLs, role IDs, action IDs, action payloads, or raw provider read-back.
 - Plan 1 is incomplete until every corrective task passes focused review, Windows PowerShell 5.1 and reviewed PowerShell 7 lifecycle coverage, full maintained Pester, safety/setup validation, all Bicep builds, documentation validation, workflow-neutral checks, and a whole-branch review.
+- Corrective tasks include both the coordinate-only correction and the child-summary envelope implementation.
 - Plan 1 and Plans 2-6 remain `Draft` and blocked. Plan 2 cannot begin until the corrective plan is merged and then-current `main` is green.
 
 ## Global Constraints

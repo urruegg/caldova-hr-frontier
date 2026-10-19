@@ -2,22 +2,28 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Date** | 2026-10-19 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Corrective implementation on the existing blocked Tenant 1 lifecycle-core branch: coordinate-only umbrella authority, canonical child stage results, exact verification, and stage-only projection |
-| **References** | [Approved Tenant Lifecycle Coordinate-Only Simplification Design](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Proposed Tenant Lifecycle Child Summary Envelope Design](../specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md), [Tenant Lifecycle Core Plan](2026-10-02-tenant-lifecycle-core-implementation.md), [Approved Tenant 1 Runbook End-to-End Design](../specs/2026-10-02-tenant-1-runbook-end-to-end-design.md), [Implementation Plan Catalogue](README.md) |
+| **References** | [Approved Tenant Lifecycle Coordinate-Only Simplification Design](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Approved Tenant Lifecycle Child Summary Envelope Design](../specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md), [Draft Child Summary Envelope Implementation Plan](2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md), [Tenant Lifecycle Core Plan](2026-10-02-tenant-lifecycle-core-implementation.md), [Approved Tenant 1 Runbook End-to-End Design](../specs/2026-10-02-tenant-1-runbook-end-to-end-design.md), [Implementation Plan Catalogue](README.md) |
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Correct the existing `feat/tenant-lifecycle-core` implementation in place so `Invoke-TenantLifecycle.ps1` can coordinate non-mutating Assess/Plan work and verify exact child-owned stage results, but can never approve, execute, correlate, or project provider mutations.
 
-**Architecture:** Preserve the existing 15-commit Plan 1 history and retained child-library helpers, then remove mutation authority only from the umbrella execution path. Independently runnable children keep manifest, approval, WhatIf/Apply, `ShouldProcess`, provider correlation, state adoption, and read-back; the umbrella accepts immutable canonical stage results, evaluates literal `Passed` dependencies, validates child summary bytes/digests without interpreting provider details, and emits a strict stage-level projection.
+**Architecture:** Preserve the existing 15-commit Plan 1 history and retained child-library helpers, then remove mutation authority only from the umbrella execution path. Independently runnable children keep manifest, approval, WhatIf/Apply, `ShouldProcess`, provider correlation, state adoption, and read-back; the umbrella accepts immutable canonical stage results, evaluates literal `Passed` dependencies, validates the Approved shared child-summary envelope while leaving provider extras opaque, and emits a strict stage-level projection.
 
 **Tech Stack:** Windows PowerShell 5.1 (authoritative), Pester 5.7.1, reviewed PowerShell 7 compatibility, JSON Schema draft 2020-12, canonical UTF-8 JSON without BOM, SHA-256, Git, and the existing `Caldova.HrFrontier.Bootstrap` module.
 
-**Specs:** [Approved Coordinate-Only Simplification Design](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md) and [Proposed Child Summary Envelope Design](../specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md). The proposed companion awaits user file review and approval; this plan remains `Draft` and blocked from execution.
+**Specs:** [Approved Coordinate-Only Simplification Design](../specs/2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md) and [Approved Child Summary Envelope Design](../specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md). This plan remains `Draft`; the residual summary-envelope work is controlled by the [Draft Child Summary Envelope Implementation Plan](2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md).
+
+## Controlling Residual Blocker
+
+The Approved child-summary design and its Draft implementation plan control any conflict with this plan's earlier digest-only or fully opaque summary wording. Shared reserved summary fields must be parsed and correlated; only provider-specific extra root properties remain opaque. The existing corrective task text is retained as implementation history, not as authority to waive the residual envelope or embedded manifest-digest work.
+
+The branch remains blocked until the child-summary implementation plan is reviewed, implemented with its independent task gates, re-reviewed across the whole branch, merged, and followed by a green then-current `main`. Approval of the design does not prove implementation completion or merge readiness.
 
 ## Global Constraints
 
@@ -53,7 +59,7 @@ param(
 - A stage result is canonical UTF-8 without BOM, one trailing LF, immutable, a regular non-reparse file, and contained at `<run>/stage-results/<stage>.json`. Use ordinal stage and filename comparison; case-only drift is invalid.
 - Verify requires the exact selected ordered stage-result set with no missing, extra, duplicate, case-drifted, stale, tampered, foreign, reordered, noncanonical, noncontained, or reparse entry.
 - Verify correlates exact run ID, source commit, public tenant key, intent digest, state digest chain, stage token, phase manifest digest, phase summary digest, and child evidence path. It validates the contained canonical child summary file and computes `phaseSummaryDigest` over its exact bytes.
-- Verify does not parse provider-specific IDs, URLs, action IDs, actions, payloads, or read-back from a child summary. The [Proposed Child Summary Envelope Design](../specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md) reserves only shared correlation fields and leaves provider-specific root properties opaque; implementation remains blocked until that written contract is reviewed, approved, and incorporated into this plan.
+- Verify parses and correlates only the shared fields reserved by the [Approved Child Summary Envelope Design](../specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md). It does not parse provider-specific IDs, URLs, action IDs, payloads, or read-back; provider-specific extra root properties remain opaque. The branch remains blocked until the [Draft child-summary implementation plan](2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md) is reviewed and implemented.
 - Dependency success is literal stage-result status `Passed`. `Failed`, `Manual`, `Blocked`, and `Refused` always block dependents and final acceptance regardless of classification or otherwise valid evidence.
 - The umbrella summary/projection contains only root correlation, ordered stage entries with `stage`, `status`, `classification`, `phaseManifestDigest`, `phaseSummaryDigest`, `sourceCommit`, `intentDigest`, and `stateDigest`, plus the three fixed nonclaims from the Approved design. It contains no provider stable IDs, URLs, role IDs, action IDs, action payloads, or raw provider read-back.
 - Keep state private-path validation, child-owned Create adoption, immutable stable IDs, and all shared manifest/approval/action/state/read-back/evidence helpers available to child runbooks. Removal from the umbrella path is not deletion from the shared library.
@@ -764,7 +770,7 @@ Expected:
 
 Review the complete `$MergeBase..HEAD` diff, not only the five corrective commits. Use this exact checklist:
 
-1. every Approved design requirement maps to a focused test and implementation path;
+1. every requirement from both Approved lifecycle companion designs maps to a focused test and implementation path, including the reserved summary envelope and embedded manifest-digest recomputation;
 2. exact signature/types/modes match in source, plan, docs, and tests;
 3. old parameters and aliases are rejected;
 4. Verify never invokes `SubsystemInvoker` or a child;
@@ -775,7 +781,7 @@ Review the complete `$MergeBase..HEAD` diff, not only the five corrective commit
 9. child manifest/approval/action/state/adoption/read-back helpers and tests remain;
 10. private intent/state paths and adoption contracts remain unchanged;
 11. no placeholder, broad catch, silent fallback, provider command, workflow change, stop-stub change, or live-execution claim exists; and
-12. all six amended plans and this corrective plan remain `Draft` and blocked until the corrective branch merges and then-current `main` is green.
+12. all six amended plans, this corrective plan, and the child-summary implementation plan remain `Draft` and blocked until the reviewed corrective branch merges and then-current `main` is green.
 
 Any failed item keeps the branch blocked and returns to the owning task; do not waive or defer it.
 
@@ -790,4 +796,4 @@ After the commit, rerun `git status --short`, `git diff --check "$MergeBase..HEA
 
 ## Completion Gate
 
-This correction is complete only when all five corrective commits follow the unchanged 15-commit history, focused lifecycle coverage passes on Windows PowerShell 5.1 and reviewed PowerShell 7, all maintained Pester/safety/setup/documentation/Bicep/workflow-neutral checks pass, dormant cloud stubs are byte-unchanged, no live/provider call occurred, and a broad review of the whole implementation branch finds no remaining umbrella Apply/approval/current-binding/provider-correlation authority or provider detail in the stage projection. Even then, `feat/tenant-lifecycle-core` remains blocked and nonmergeable until the clean review is accepted; Plans 2-6 remain `Draft` and blocked until the corrective change is merged and then-current `main` is green.
+This correction is complete only when all five original corrective commits and the reviewed child-summary implementation commits follow the unchanged 15-commit history, focused lifecycle coverage passes on Windows PowerShell 5.1 and reviewed PowerShell 7, all maintained Pester/safety/setup/documentation/Bicep/workflow-neutral checks pass, dormant cloud stubs are byte-unchanged, no live/provider call occurred, and a broad review of the whole implementation branch closes the summary-envelope residual blocker and finds no remaining umbrella Apply/approval/current-binding/provider-correlation authority or provider detail in the stage projection. Even then, `feat/tenant-lifecycle-core` remains blocked and nonmergeable until the clean review is accepted; Plans 2-6 remain `Draft` and blocked until the corrective change is merged and then-current `main` is green.

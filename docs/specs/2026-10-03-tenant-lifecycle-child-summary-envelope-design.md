@@ -2,27 +2,22 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-10-19 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed Baseline |
+| **Status** | Approved |
 | **Scope** | Tenant lifecycle canonical child-summary envelope, stage-result correlation, prerequisite validation, and evidence-digest authority |
-| **References** | [Specification Catalogue](README.md), [Approved Tenant Lifecycle Coordinate-Only Simplification Design](2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Draft Tenant Lifecycle Coordinate-Only Correction Plan](../plans/2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md), [Approved Tenant 1 Runbook End-to-End Design](2026-10-02-tenant-1-runbook-end-to-end-design.md) |
+| **References** | [Specification Catalogue](README.md), [Draft Child Summary Envelope Implementation Plan](../plans/2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md), [Approved Tenant Lifecycle Coordinate-Only Simplification Design](2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md), [Draft Tenant Lifecycle Coordinate-Only Correction Plan](../plans/2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md), [Approved Tenant 1 Runbook End-to-End Design](2026-10-02-tenant-1-runbook-end-to-end-design.md) |
 
 ## 1. Review Status, Authority, and Entry Gate
 
-The design direction and required content were approved for capture, but this written specification awaits the user's file review. Its status is therefore `Proposed Baseline`, not `Approved`.
+The user explicitly approved all three design sections and the full design in chat. Their later unavailability applied only to a second review of this faithful written capture, so the prior explicit full-design approval is accepted and this specification is `Approved`.
 
-If approved, this specification becomes the focused architectural companion to the [Tenant Lifecycle Coordinate-Only Simplification Design](2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md) and the governing summary-envelope authority for the [Tenant Lifecycle Coordinate-Only Correction Plan](../plans/2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md). It adds exact shared `Summary` envelope, digest, write-order, and validation requirements. The Approved coordinate-only design remains authoritative for umbrella and child ownership, stage-result shape, outcome pairs, projection, and all unaffected behavior.
+This specification is the focused architectural companion to the [Tenant Lifecycle Coordinate-Only Simplification Design](2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md) and the governing summary-envelope authority for the [Tenant Lifecycle Coordinate-Only Correction Plan](../plans/2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md). It adds exact shared `Summary` envelope, digest, write-order, and validation requirements. The Approved coordinate-only design remains authoritative for umbrella and child ownership, stage-result shape, outcome pairs, projection, and all unaffected behavior.
 
-Until that review and approval occur:
+Approval authorizes the [Draft implementation plan](../plans/2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md) to define the corrective work; it does not prove that implementation has occurred or make the branch merge-ready. The implementation, corrective plan, and every downstream plan remain `Draft` and blocked until the plan is reviewed, its implementation is reviewed and merged, and then-current `main` is green.
 
-- this proposal does not override an Approved specification;
-- no implementation task may treat this proposal as executable authority;
-- the corrective plan and every downstream plan remain `Draft` and blocked; and
-- no source change, test change, provider call, live execution, tenant mutation, or merge-readiness claim is authorized.
-
-After approval, implementation still remains blocked until the plan incorporates this contract, the implementation is reviewed and merged, and then-current `main` is green.
+No provider call, live execution, tenant mutation, or merge-readiness claim is authorized by this approval.
 
 ## 2. Problem and Root Cause
 
