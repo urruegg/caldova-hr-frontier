@@ -102,7 +102,8 @@ function Assert-TenantLifecycleJsonValueToken {
     param(
         [Parameter(Mandatory)][string]$Text,
         [Parameter(Mandatory)][ref]$Index,
-        [ValidateRange(0, 100)][int]$Depth = 0
+        [ValidateRange(0, 100)][int]$Depth = 0,
+        [string[]]$RootReservedPropertyNames = @()
     )
 
     if ($Depth -ge 100) {
@@ -132,6 +133,21 @@ function Assert-TenantLifecycleJsonValueToken {
             if (-not $propertyNames.Add($propertyName)) {
                 throw [IO.InvalidDataException]::new()
             }
+            if ($Depth -eq 0) {
+                foreach ($reservedPropertyName in
+                    $RootReservedPropertyNames) {
+                    if ([StringComparer]::OrdinalIgnoreCase.Equals(
+                            $propertyName,
+                            $reservedPropertyName
+                        ) -and
+                        -not [StringComparer]::Ordinal.Equals(
+                            $propertyName,
+                            $reservedPropertyName
+                        )) {
+                        throw [IO.InvalidDataException]::new()
+                    }
+                }
+            }
             Skip-TenantLifecycleJsonWhitespace -Text $Text -Index $Index
             if ($Index.Value -ge $Text.Length -or
                 $Text[$Index.Value] -ne ':') {
@@ -141,7 +157,8 @@ function Assert-TenantLifecycleJsonValueToken {
             Assert-TenantLifecycleJsonValueToken `
                 -Text $Text `
                 -Index $Index `
-                -Depth ($Depth + 1)
+                -Depth ($Depth + 1) `
+                -RootReservedPropertyNames $RootReservedPropertyNames
             Skip-TenantLifecycleJsonWhitespace -Text $Text -Index $Index
             if ($Index.Value -ge $Text.Length) {
                 throw [IO.InvalidDataException]::new()
@@ -168,7 +185,8 @@ function Assert-TenantLifecycleJsonValueToken {
             Assert-TenantLifecycleJsonValueToken `
                 -Text $Text `
                 -Index $Index `
-                -Depth ($Depth + 1)
+                -Depth ($Depth + 1) `
+                -RootReservedPropertyNames $RootReservedPropertyNames
             Skip-TenantLifecycleJsonWhitespace -Text $Text -Index $Index
             if ($Index.Value -ge $Text.Length) {
                 throw [IO.InvalidDataException]::new()
@@ -211,12 +229,16 @@ function Assert-TenantLifecycleJsonValueToken {
 }
 
 function Assert-TenantLifecycleJsonHasUniqueProperties {
-    param([Parameter(Mandatory)][string]$Text)
+    param(
+        [Parameter(Mandatory)][string]$Text,
+        [string[]]$RootReservedPropertyNames = @()
+    )
 
     $index = 0
     Assert-TenantLifecycleJsonValueToken `
         -Text $Text `
-        -Index ([ref]$index)
+        -Index ([ref]$index) `
+        -RootReservedPropertyNames $RootReservedPropertyNames
     Skip-TenantLifecycleJsonWhitespace `
         -Text $Text `
         -Index ([ref]$index)
@@ -271,7 +293,14 @@ function Read-TenantLifecycleCanonicalJsonFile {
         [Parameter(Mandatory)][string]$ContainmentRoot,
         [Parameter(Mandatory)][string]$ExpectedRelativePath,
         [ValidatePattern('^[0-9a-f]{64}$')]
-        [string]$ExpectedDigest
+        [string]$ExpectedDigest,
+        [ValidateSet(
+            'None',
+            'StageResult',
+            'ExecutionManifest',
+            'Summary'
+        )]
+        [string]$ContractKind = 'None'
     )
 
     try {
@@ -365,7 +394,32 @@ function Read-TenantLifecycleCanonicalJsonFile {
             $false,
             $true
         ).GetString($bytes)
-        Assert-TenantLifecycleJsonHasUniqueProperties -Text $text
+        if ($ContractKind -ceq 'Summary') {
+            $summarySharedPropertyNames = @(
+                'schemaVersion',
+                'runId',
+                'stage',
+                'sourceCommit',
+                'publicTenantKey',
+                'intentDigest',
+                'stateDigest',
+                'phaseManifestDigest',
+                'status',
+                'classification',
+                'startedAtUtc',
+                'completedAtUtc',
+                'counts',
+                'prerequisites',
+                'actions',
+                'nonClaims'
+            )
+            Assert-TenantLifecycleJsonHasUniqueProperties `
+                -Text $text `
+                -RootReservedPropertyNames $summarySharedPropertyNames
+        }
+        else {
+            Assert-TenantLifecycleJsonHasUniqueProperties -Text $text
+        }
         $value = ConvertFrom-TenantLifecycleJson -InputObject $text
         if ($null -eq $value -or
             $value -is [string] -or
@@ -374,7 +428,13 @@ function Read-TenantLifecycleCanonicalJsonFile {
             $value.GetType().IsPrimitive) {
             throw [IO.InvalidDataException]::new()
         }
-        if ($ExpectedRelativePath -cmatch (
+        if ($ContractKind -cne 'None') {
+            Test-TenantLifecycleContract `
+                -Kind $ContractKind `
+                -InputObject $value |
+                Out-Null
+        }
+        elseif ($ExpectedRelativePath -cmatch (
                 '^stage-results/(Workstation|PrivateBoundary|Foundation|' +
                 'DevDelivery|ReadBack|Acceptance|TenantReplica)[.]json$'
             )) {

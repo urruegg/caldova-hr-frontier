@@ -35,6 +35,66 @@ function Assert-TenantLifecycleProperties {
     }
 }
 
+function Assert-TenantLifecycleRequiredPropertiesWithRootExtensions {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][AllowNull()][object]$InputObject,
+        [Parameter(Mandatory)][string[]]$Fields
+    )
+
+    Assert-TenantLifecycleCondition ($null -ne $InputObject)
+    Assert-TenantLifecycleCondition (-not ($InputObject -is [string]))
+    Assert-TenantLifecycleCondition (-not ($InputObject -is [System.Array]))
+    Assert-TenantLifecycleCondition (
+        -not ($InputObject -is [System.Collections.IDictionary])
+    )
+
+    $properties = @($InputObject.PSObject.Properties)
+    $requiredOrdinal = [Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::Ordinal
+    )
+    $requiredOrdinalIgnoreCase =
+        [Collections.Generic.HashSet[string]]::new(
+            [StringComparer]::OrdinalIgnoreCase
+        )
+    foreach ($field in $Fields) {
+        Assert-TenantLifecycleCondition ($requiredOrdinal.Add($field))
+        Assert-TenantLifecycleCondition (
+            $requiredOrdinalIgnoreCase.Add($field)
+        )
+        $matches = @(
+            $properties |
+                Where-Object {
+                    [StringComparer]::Ordinal.Equals($_.Name, $field)
+                }
+        )
+        Assert-TenantLifecycleCondition ($matches.Count -eq 1)
+        Assert-TenantLifecycleCondition (
+            $matches[0].MemberType -eq
+                [Management.Automation.PSMemberTypes]::NoteProperty
+        )
+        Assert-TenantLifecycleCondition $matches[0].IsGettable
+    }
+
+    $actual = [Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::Ordinal
+    )
+    foreach ($property in $properties) {
+        Assert-TenantLifecycleCondition (
+            $property.MemberType -eq
+                [Management.Automation.PSMemberTypes]::NoteProperty
+        )
+        Assert-TenantLifecycleCondition $property.IsGettable
+        Assert-TenantLifecycleCondition ($actual.Add($property.Name))
+        if ($requiredOrdinal.Contains($property.Name)) {
+            continue
+        }
+        Assert-TenantLifecycleCondition (
+            -not $requiredOrdinalIgnoreCase.Contains($property.Name)
+        )
+    }
+}
+
 function Assert-TenantLifecycleString {
     [CmdletBinding()]
     param(
@@ -130,7 +190,7 @@ function Assert-TenantLifecycleArray {
 function Assert-TenantLifecycleUniqueValues {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)][object[]]$Values,
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Values,
         [Parameter(Mandatory)][string]$PropertyName
     )
 
@@ -737,14 +797,21 @@ function Test-TenantLifecycleContract {
                 Assert-TenantLifecycleDigest $InputObject.digest
             }
             'Summary' {
-                Assert-TenantLifecycleProperties -InputObject $InputObject -Fields @(
+                Assert-TenantLifecycleRequiredPropertiesWithRootExtensions `
+                    -InputObject $InputObject `
+                    -Fields @(
                     'schemaVersion',
                     'runId',
+                    'stage',
                     'sourceCommit',
-                    'manifestDigest',
+                    'publicTenantKey',
+                    'intentDigest',
+                    'stateDigest',
+                    'phaseManifestDigest',
+                    'status',
+                    'classification',
                     'startedAtUtc',
                     'completedAtUtc',
-                    'status',
                     'counts',
                     'prerequisites',
                     'actions',
@@ -752,12 +819,77 @@ function Test-TenantLifecycleContract {
                 )
                 Assert-TenantLifecycleCondition ($InputObject.schemaVersion -ceq '1.0')
                 Assert-TenantLifecycleString -Value $InputObject.runId -Pattern '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' -MaximumLength 36
-                Assert-TenantLifecycleString -Value $InputObject.sourceCommit -Pattern '^[0-9a-f]{40}$' -MaximumLength 40
-                Assert-TenantLifecycleDigest $InputObject.manifestDigest
+                $stages = @(
+                    'Workstation',
+                    'PrivateBoundary',
+                    'Foundation',
+                    'DevDelivery',
+                    'ReadBack',
+                    'Acceptance',
+                    'TenantReplica'
+                )
+                Assert-TenantLifecycleCondition (
+                    $InputObject.stage -is [string] -and
+                    $stages -ccontains $InputObject.stage
+                )
+                Assert-TenantLifecycleString `
+                    -Value $InputObject.sourceCommit `
+                    -Pattern '^[0-9a-f]{40}$' `
+                    -MaximumLength 40
+                Assert-TenantLifecycleCondition (
+                    $InputObject.publicTenantKey -ceq 'tenant1'
+                )
+                Assert-TenantLifecycleDigest $InputObject.intentDigest
+                Assert-TenantLifecycleDigest $InputObject.stateDigest
+                Assert-TenantLifecycleDigest $InputObject.phaseManifestDigest
+
+                $allowedOutcomes = @(
+                    'Passed/NoChange',
+                    'Passed/Changed',
+                    'Failed/NoChange',
+                    'Failed/Changed',
+                    'Blocked/Blocked',
+                    'Refused/Refused',
+                    'Manual/Manual'
+                )
+                Assert-TenantLifecycleCondition (
+                    $InputObject.status -is [string] -and
+                    $InputObject.classification -is [string] -and
+                    $allowedOutcomes -ccontains (
+                        '{0}/{1}' -f
+                            $InputObject.status,
+                            $InputObject.classification
+                    )
+                )
+
+                Assert-TenantLifecycleCondition (
+                    $InputObject.startedAtUtc -is [string]
+                )
                 Assert-TenantLifecycleTimestamp $InputObject.startedAtUtc
-                Assert-TenantLifecycleTimestamp $InputObject.completedAtUtc
-                Assert-TenantLifecycleCondition (([DateTimeOffset]$InputObject.completedAtUtc) -ge ([DateTimeOffset]$InputObject.startedAtUtc))
-                Assert-TenantLifecycleStatus $InputObject.status
+                Assert-TenantLifecycleCondition (
+                    $InputObject.completedAtUtc -is [string] -and
+                    $InputObject.completedAtUtc -cmatch (
+                        '^[0-9]{4}-[0-9]{2}-[0-9]{2}T' +
+                        '[0-9]{2}:[0-9]{2}:[0-9]{2}[.][0-9]{3}Z$'
+                    )
+                )
+                $completedAtUtc = [datetime]::ParseExact(
+                    $InputObject.completedAtUtc,
+                    "yyyy-MM-dd'T'HH:mm:ss.fff'Z'",
+                    [Globalization.CultureInfo]::InvariantCulture,
+                    [Globalization.DateTimeStyles]::AssumeUniversal -bor
+                        [Globalization.DateTimeStyles]::AdjustToUniversal
+                )
+                Assert-TenantLifecycleCondition (
+                    $completedAtUtc.ToString(
+                        "yyyy-MM-dd'T'HH:mm:ss.fff'Z'",
+                        [Globalization.CultureInfo]::InvariantCulture
+                    ) -ceq $InputObject.completedAtUtc
+                )
+                Assert-TenantLifecycleCondition (
+                    ([DateTimeOffset]$completedAtUtc) -ge
+                        ([DateTimeOffset]$InputObject.startedAtUtc)
+                )
                 Assert-TenantLifecycleCounts $InputObject.counts
                 Assert-TenantLifecyclePrerequisites $InputObject.prerequisites
                 Assert-TenantLifecycleSummaryActions $InputObject.actions

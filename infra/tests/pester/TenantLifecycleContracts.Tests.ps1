@@ -8,7 +8,10 @@ $contractCases = @(
     @{ Name = 'action evidence'; Kind = 'ActionEvidence'; FixtureProperty = 'actionEvidence'; SchemaFile = 'tenant-lifecycle-action-evidence.schema.json'; DigestPath = 'preReadDigest' }
     @{ Name = 'state'; Kind = 'State'; FixtureProperty = 'state'; SchemaFile = 'tenant-lifecycle-state.schema.json'; DigestPath = 'resources.ownedPropertiesDigest' }
     @{ Name = 'read-back'; Kind = 'ReadBack'; FixtureProperty = 'readBack'; SchemaFile = 'tenant-lifecycle-read-back.schema.json'; DigestPath = 'digest' }
-    @{ Name = 'summary'; Kind = 'Summary'; FixtureProperty = 'summary'; SchemaFile = 'tenant-lifecycle-summary.schema.json'; DigestPath = 'manifestDigest' }
+    @{ Name = 'summary'; Kind = 'Summary'; FixtureProperty = 'summary'; SchemaFile = 'tenant-lifecycle-summary.schema.json'; DigestPath = 'phaseManifestDigest' }
+)
+$closedRootContractCases = @(
+    $contractCases | Where-Object Kind -cne 'Summary'
 )
 $statusCases = @(
     @{ Name = 'assessment provider context'; Kind = 'Assessment'; FixtureProperty = 'assessment'; SchemaFile = 'tenant-lifecycle-assessment.schema.json'; FieldPath = 'providerContexts.0.status' }
@@ -40,6 +43,546 @@ $pythonResult = & python -c 'import jsonschema' 2>&1
 $hasJsonSchema = $LASTEXITCODE -eq 0
 foreach ($testCase in @($statusCases) + @($dateTimeCases)) {
     $testCase.HasJsonSchema = $hasJsonSchema
+}
+
+Describe 'Tenant lifecycle child summary envelope contract' {
+    BeforeAll {
+        $script:SummaryRepositoryRoot = (
+            Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
+        ).Path
+        $script:SummaryModulePath = Join-Path (
+            $script:SummaryRepositoryRoot
+        ) (
+            'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\' +
+            'Caldova.HrFrontier.Bootstrap.psd1'
+        )
+        Import-Module $script:SummaryModulePath -Force
+        $script:SummarySchemaPath = Join-Path (
+            $script:SummaryRepositoryRoot
+        ) 'infra\src\config\schemas\tenant-lifecycle-summary.schema.json'
+        $script:SummaryHasJsonSchema = $hasJsonSchema
+        $script:SummarySharedPropertyNames = @(
+            'schemaVersion',
+            'runId',
+            'stage',
+            'sourceCommit',
+            'publicTenantKey',
+            'intentDigest',
+            'stateDigest',
+            'phaseManifestDigest',
+            'status',
+            'classification',
+            'startedAtUtc',
+            'completedAtUtc',
+            'counts',
+            'prerequisites',
+            'actions',
+            'nonClaims'
+        )
+        $script:ValidSummary = [pscustomobject][ordered]@{
+            schemaVersion = '1.0'
+            runId = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+            stage = 'Foundation'
+            sourceCommit = 'a' * 40
+            publicTenantKey = 'tenant1'
+            intentDigest = '1' * 64
+            stateDigest = '2' * 64
+            phaseManifestDigest = '3' * 64
+            status = 'Passed'
+            classification = 'NoChange'
+            startedAtUtc = '2026-10-02T12:00:00.0000000Z'
+            completedAtUtc = '2026-10-02T12:11:00.000Z'
+            counts = [pscustomobject][ordered]@{
+                NoChange = 1
+                Create = 0
+                Update = 0
+                Manual = 0
+                Blocked = 0
+                Refused = 0
+            }
+            prerequisites = @()
+            actions = @()
+            nonClaims = @('Synthetic evidence only.')
+            syntheticProviderExtension = [pscustomobject][ordered]@{
+                resultCode = 'SyntheticPassed'
+            }
+        }
+
+        function Copy-SummaryTestValue {
+            param([Parameter(Mandatory)][object]$InputObject)
+
+            ConvertFrom-TenantLifecycleJson -InputObject (
+                $InputObject | ConvertTo-Json -Depth 30
+            )
+        }
+
+        function Invoke-SummaryJsonSchemaValidation {
+            param([Parameter(Mandatory)][object]$InputObject)
+
+            $json = $InputObject | ConvertTo-Json -Depth 30 -Compress
+            $encoded = [Convert]::ToBase64String(
+                [Text.Encoding]::UTF8.GetBytes($json)
+            )
+            $program = (
+                "import base64,json,jsonschema,sys; " +
+                "schema=json.load(open(sys.argv[1],encoding='utf-8')); " +
+                "instance=json.loads(base64.b64decode(sys.argv[2]).decode('utf-8')); " +
+                "jsonschema.Draft202012Validator(" +
+                "schema,format_checker=jsonschema.FormatChecker()).validate(instance)"
+            )
+            $previousErrorActionPreference = $ErrorActionPreference
+            try {
+                $ErrorActionPreference = 'Continue'
+                $output = & python -c $program (
+                    $script:SummarySchemaPath
+                ) $encoded 2>&1
+                $exitCode = $LASTEXITCODE
+            }
+            finally {
+                $ErrorActionPreference = $previousErrorActionPreference
+            }
+            [pscustomobject]@{
+                ExitCode = $exitCode
+                Output = ($output -join [Environment]::NewLine)
+            }
+        }
+
+        function Write-SummaryTestFile {
+            param(
+                [Parameter(Mandatory)][string]$Root,
+                [Parameter(Mandatory)][string]$Text
+            )
+
+            $path = Join-Path $Root 'phases\Foundation\summary.json'
+            [IO.Directory]::CreateDirectory((Split-Path -Parent $path)) |
+                Out-Null
+            [IO.File]::WriteAllText(
+                $path,
+                $Text,
+                [Text.UTF8Encoding]::new($false)
+            )
+            $path
+        }
+    }
+
+    It 'declares the open root and exact sixteen-field shared schema' {
+        $schema = Get-Content `
+            -Raw `
+            -LiteralPath $script:SummarySchemaPath |
+            ConvertFrom-Json
+
+        $schema.additionalProperties | Should -BeTrue
+        @($schema.required) -join ',' |
+            Should -BeExactly (
+                $script:SummarySharedPropertyNames -join ','
+            )
+        @($schema.properties.PSObject.Properties.Name) -join ',' |
+            Should -BeExactly (
+                $script:SummarySharedPropertyNames -join ','
+            )
+        @($schema.properties.PSObject.Properties.Name) |
+            Should -Not -Contain 'manifestDigest'
+        $schema.properties.phaseManifestDigest.'$ref' |
+            Should -BeExactly '#/$defs/digest'
+        foreach ($definition in @(
+            'counts',
+            'prerequisite',
+            'actionSummary'
+        )) {
+            $schema.'$defs'.$definition.additionalProperties |
+                Should -BeFalse -Because "$definition remains closed"
+        }
+    }
+
+    It 'accepts the exact shared envelope and an opaque root extension' {
+        Test-TenantLifecycleContract `
+            -Kind Summary `
+            -InputObject $script:ValidSummary |
+            Should -BeTrue
+
+        if ($script:SummaryHasJsonSchema) {
+            $result = Invoke-SummaryJsonSchemaValidation `
+                -InputObject $script:ValidSummary
+            $result.ExitCode | Should -Be 0 -Because $result.Output
+        }
+    }
+
+    It 'rejects missing wrong-case wrong-type and malformed shared members' {
+        $cases = @(
+            @{
+                Name = 'missing runId'
+                Mutate = {
+                    param($Value)
+                    $Value.PSObject.Properties.Remove('runId')
+                }
+            },
+            @{
+                Name = 'wrong-case runId'
+                Mutate = {
+                    param($Value)
+                    $Value.PSObject.Properties.Remove('runId')
+                    $Value |
+                        Add-Member `
+                            -NotePropertyName RunId `
+                            -NotePropertyValue (
+                                'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+                            )
+                }
+            },
+            @{
+                Name = 'wrong-type stage'
+                Mutate = {
+                    param($Value)
+                    $Value.stage = 7
+                }
+            },
+            @{
+                Name = 'malformed digest'
+                Mutate = {
+                    param($Value)
+                    $Value.intentDigest = 'x' * 64
+                }
+            }
+        )
+
+        foreach ($case in $cases) {
+            $value = Copy-SummaryTestValue $script:ValidSummary
+            & $case.Mutate $value
+            {
+                Test-TenantLifecycleContract `
+                    -Kind Summary `
+                    -InputObject $value
+            } | Should -Throw `
+                -ExpectedMessage 'TenantLifecycle.Contract.Summary' `
+                -Because $case.Name
+        }
+    }
+
+    It 'accepts only the seven stage-result outcome pairs' {
+        $allowedPairs = @(
+            'Passed/NoChange',
+            'Passed/Changed',
+            'Failed/NoChange',
+            'Failed/Changed',
+            'Blocked/Blocked',
+            'Refused/Refused',
+            'Manual/Manual'
+        )
+        foreach ($status in @(
+            'Passed',
+            'Failed',
+            'Blocked',
+            'Refused',
+            'Manual'
+        )) {
+            foreach ($classification in @(
+                'NoChange',
+                'Changed',
+                'Manual',
+                'Blocked',
+                'Refused'
+            )) {
+                $pair = "$status/$classification"
+                $value = Copy-SummaryTestValue $script:ValidSummary
+                $value.status = $status
+                $value.classification = $classification
+                if ($allowedPairs -ccontains $pair) {
+                    Test-TenantLifecycleContract `
+                        -Kind Summary `
+                        -InputObject $value |
+                        Should -BeTrue -Because $pair
+                    if ($script:SummaryHasJsonSchema) {
+                        $result = Invoke-SummaryJsonSchemaValidation `
+                            -InputObject $value
+                        $result.ExitCode |
+                            Should -Be 0 -Because "$pair $($result.Output)"
+                    }
+                }
+                else {
+                    {
+                        Test-TenantLifecycleContract `
+                            -Kind Summary `
+                            -InputObject $value
+                    } | Should -Throw `
+                        -ExpectedMessage 'TenantLifecycle.Contract.Summary' `
+                        -Because $pair
+                    if ($script:SummaryHasJsonSchema) {
+                        $result = Invoke-SummaryJsonSchemaValidation `
+                            -InputObject $value
+                        $result.ExitCode | Should -Not -Be 0 -Because $pair
+                    }
+                }
+            }
+        }
+    }
+
+    It 'requires an exact ordered millisecond completion string' {
+        $valid = Copy-SummaryTestValue $script:ValidSummary
+        $valid.completedAtUtc | Should -BeOfType [string]
+        Test-TenantLifecycleContract -Kind Summary -InputObject $valid |
+            Should -BeTrue
+
+        $invalidValues = @(
+            '2026-10-02T12:11:00.0000000Z',
+            '2026-10-02T12:11:00Z',
+            '2026-10-02T12:11:00.000z',
+            '2026-02-30T12:11:00.000Z'
+        )
+        foreach ($invalidValue in $invalidValues) {
+            $value = Copy-SummaryTestValue $script:ValidSummary
+            $value.completedAtUtc = $invalidValue
+            {
+                Test-TenantLifecycleContract `
+                    -Kind Summary `
+                    -InputObject $value
+            } | Should -Throw `
+                -ExpectedMessage 'TenantLifecycle.Contract.Summary'
+            if ($script:SummaryHasJsonSchema) {
+                $result = Invoke-SummaryJsonSchemaValidation `
+                    -InputObject $value
+                $result.ExitCode | Should -Not -Be 0
+            }
+        }
+
+        $earlier = Copy-SummaryTestValue $script:ValidSummary
+        $earlier.startedAtUtc = '2026-10-02T12:12:00.0000000Z'
+        {
+            Test-TenantLifecycleContract `
+                -Kind Summary `
+                -InputObject $earlier
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Contract.Summary'
+
+        $nonString = Copy-SummaryTestValue $script:ValidSummary
+        $nonString.completedAtUtc = [datetime]'2026-10-02T12:11:00Z'
+        {
+            Test-TenantLifecycleContract `
+                -Kind Summary `
+                -InputObject $nonString
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Contract.Summary'
+    }
+
+    It 'rejects provider properties inside each shared nested object' {
+        $cases = @(
+            @{
+                Name = 'counts'
+                Mutate = {
+                    param($Value)
+                    $Value.counts |
+                        Add-Member `
+                            -NotePropertyName providerCount `
+                            -NotePropertyValue 1
+                }
+            },
+            @{
+                Name = 'prerequisite'
+                Mutate = {
+                    param($Value)
+                    $Value.prerequisites = @(
+                        [pscustomobject][ordered]@{
+                            id = 'prerequisite-001'
+                            status = 'Passed'
+                            inputDigest = '4' * 64
+                            evidenceDigest = '5' * 64
+                            providerResult = 'SyntheticPassed'
+                        }
+                    )
+                }
+            },
+            @{
+                Name = 'action'
+                Mutate = {
+                    param($Value)
+                    $Value.actions = @(
+                        [pscustomobject][ordered]@{
+                            id = 'action-001'
+                            classification = 'NoChange'
+                            status = 'Passed'
+                            evidenceRelativePath = 'actions/action-001.json'
+                            providerResult = 'SyntheticPassed'
+                        }
+                    )
+                }
+            }
+        )
+
+        foreach ($case in $cases) {
+            $value = Copy-SummaryTestValue $script:ValidSummary
+            & $case.Mutate $value
+            {
+                Test-TenantLifecycleContract `
+                    -Kind Summary `
+                    -InputObject $value
+            } | Should -Throw `
+                -ExpectedMessage 'TenantLifecycle.Contract.Summary' `
+                -Because $case.Name
+            if ($script:SummaryHasJsonSchema) {
+                $result = Invoke-SummaryJsonSchemaValidation `
+                    -InputObject $value
+                $result.ExitCode | Should -Not -Be 0 -Because $case.Name
+            }
+        }
+    }
+
+    It 'rejects duplicate JSON names at every depth before conversion' {
+        InModuleScope Caldova.HrFrontier.Bootstrap {
+            {
+                Assert-TenantLifecycleJsonHasUniqueProperties `
+                    -Text '{"outer":{"name":"first","name":"second"}}'
+            } | Should -Throw
+        }
+    }
+
+    It 'rejects case-insensitive reserved root collisions in the tokenizer' {
+        InModuleScope Caldova.HrFrontier.Bootstrap -Parameters @{
+            ReservedNames = $script:SummarySharedPropertyNames
+        } {
+            param($ReservedNames)
+
+            foreach ($text in @(
+                '{"runId":"first","RunId":"second"}',
+                '{"actions":[],"Actions":"private-marker-do-not-disclose"}'
+            )) {
+                {
+                    Assert-TenantLifecycleJsonHasUniqueProperties `
+                        -Text $text `
+                        -RootReservedPropertyNames $ReservedNames
+                } | Should -Throw
+            }
+        }
+    }
+
+    It 'reads a valid canonical summary through the Summary contract kind' {
+        $root = Join-Path $TestDrive 'valid-summary-reader'
+        $path = Write-SummaryTestFile `
+            -Root $root `
+            -Text (
+                ConvertTo-TenantLifecycleCanonicalJson `
+                    -InputObject $script:ValidSummary
+            )
+        $record = InModuleScope `
+            Caldova.HrFrontier.Bootstrap `
+            -Parameters @{
+                Path = $path
+                Root = $root
+            } {
+                param($Path, $Root)
+
+                Read-TenantLifecycleCanonicalJsonFile `
+                    -Path $Path `
+                    -ContainmentRoot $Root `
+                    -ExpectedRelativePath 'phases/Foundation/summary.json' `
+                    -ContractKind Summary
+            }
+
+        $record.value.runId |
+            Should -BeExactly $script:ValidSummary.runId
+    }
+
+    It 'rejects and redacts a raw summary root collision for <Case>' -ForEach @(
+        @{
+            Case = 'run identifier'
+            PropertyJson = (
+                '"RunId":"private-marker-do-not-disclose"'
+            )
+        },
+        @{
+            Case = 'actions'
+            PropertyJson = (
+                '"Actions":"private-marker-do-not-disclose"'
+            )
+        }
+    ) {
+        $root = Join-Path $TestDrive (
+            'summary-collision-' + $Case.Replace(' ', '-')
+        )
+        $canonical = ConvertTo-TenantLifecycleCanonicalJson `
+            -InputObject $script:ValidSummary
+        $collision = '{' + $PropertyJson + ',' + $canonical.Substring(1)
+        $path = Write-SummaryTestFile -Root $root -Text $collision
+        $message = $null
+
+        try {
+            InModuleScope `
+                Caldova.HrFrontier.Bootstrap `
+                -Parameters @{
+                    Path = $path
+                    Root = $root
+                } {
+                    param($Path, $Root)
+
+                    Read-TenantLifecycleCanonicalJsonFile `
+                        -Path $Path `
+                        -ContainmentRoot $Root `
+                        -ExpectedRelativePath (
+                            'phases/Foundation/summary.json'
+                        ) `
+                        -ContractKind Summary
+                } |
+                Out-Null
+        }
+        catch {
+            $message = $_.Exception.Message
+        }
+
+        $message |
+            Should -BeExactly 'TenantLifecycle.CanonicalJson.Invalid'
+        $message | Should -Not -Match 'RunId|Actions|private-marker'
+    }
+
+    It 'rejects non-note root extensions without invoking getters' {
+        $value = Copy-SummaryTestValue $script:ValidSummary
+        $probe = [pscustomobject]@{ Invoked = $false }
+        $getter = {
+            $probe.Invoked = $true
+            throw 'private-marker-do-not-disclose'
+        }.GetNewClosure()
+        $value |
+            Add-Member `
+                -MemberType ScriptProperty `
+                -Name privateProviderGetter `
+                -Value $getter
+
+        {
+            Test-TenantLifecycleContract `
+                -Kind Summary `
+                -InputObject $value
+        } | Should -Throw -ExpectedMessage 'TenantLifecycle.Contract.Summary'
+        $probe.Invoked | Should -BeFalse
+    }
+
+    It 'keeps recursive prohibited data checks on opaque root extensions' {
+        foreach ($prohibitedName in @('rawOutput', 'credential')) {
+            $value = Copy-SummaryTestValue $script:ValidSummary
+            $nested = [pscustomobject][ordered]@{
+                safe = 'Synthetic'
+            }
+            $nested |
+                Add-Member `
+                    -NotePropertyName $prohibitedName `
+                    -NotePropertyValue 'private-marker-do-not-disclose'
+            $value.syntheticProviderExtension = [pscustomobject][ordered]@{
+                nested = $nested
+            }
+            Test-TenantLifecycleContract `
+                -Kind Summary `
+                -InputObject $value |
+                Should -BeTrue
+
+            $runDirectory = Join-Path (
+                $TestDrive
+            ) "prohibited-summary-$prohibitedName"
+            {
+                Write-TenantLifecycleEvidence `
+                    -RunDirectory $runDirectory `
+                    -RelativePath 'summary.json' `
+                    -Kind Summary `
+                    -InputObject $value
+            } | Should -Throw `
+                -ExpectedMessage 'TenantLifecycle.Evidence.Invalid'
+            Join-Path $runDirectory 'summary.json' |
+                Should -Not -Exist
+        }
+    }
 }
 
 Describe 'Tenant lifecycle canonical stage result evidence' {
@@ -1361,7 +1904,7 @@ public static class TenantLifecycleContractCodePropertyAccessor
         $result.ExitCode | Should -Be 0 -Because $result.Output
     }
 
-    It 'rejects an unknown property in <Name> without disclosing its value' -TestCases $contractCases {
+    It 'rejects an unknown property in <Name> without disclosing its value' -TestCases $closedRootContractCases {
         param($Kind, $FixtureProperty)
         $value = Copy-ContractObject $script:Fixture.PSObject.Properties[$FixtureProperty].Value
         $value | Add-Member -NotePropertyName unexpectedProperty -NotePropertyValue 'private-marker-do-not-disclose'
@@ -1503,7 +2046,7 @@ public static class TenantLifecycleContractCodePropertyAccessor
         }
     }
 
-    It 'keeps each <Name> schema closed' -TestCases $contractCases -Skip:(-not $hasJsonSchema) {
+    It 'keeps each <Name> schema closed' -TestCases $closedRootContractCases -Skip:(-not $hasJsonSchema) {
         param($FixtureProperty, $SchemaFile)
         $schemaPath = Join-Path $script:SchemaRoot $SchemaFile
         Test-Path -LiteralPath $schemaPath -PathType Leaf | Should -BeTrue
