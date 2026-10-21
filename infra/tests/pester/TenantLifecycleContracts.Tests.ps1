@@ -1006,6 +1006,345 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
         }
     }
 
+    Describe 'Tenant lifecycle shared summary envelope enforcement' {
+        It 'returns only the four provider-free shared fields for valid completed evidence' {
+            $runId = [guid]::NewGuid()
+            $runDirectory = Join-Path $TestDrive 'shared-envelope-valid'
+            $set = New-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+
+            $actual = Test-TenantLifecycleSummaryEnvelope `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId `
+                    -Stage Foundation `
+                    -SourceCommit $script:CanonicalSource `
+                    -PublicTenantKey tenant1 `
+                    -IntentDigest $script:CanonicalIntent `
+                    -StageResult $set.Results[0]
+
+            ($actual.PSObject.Properties.Name -join ',') |
+                    Should -BeExactly (
+                        'stage,manifestStateDigest,selectedStages,' +
+                        'prerequisiteResults'
+                    )
+            $actual.stage | Should -BeExactly 'Foundation'
+            $actual.manifestStateDigest |
+                    Should -BeExactly $script:CanonicalCurrentState
+            ($actual.selectedStages -join ',') |
+                    Should -BeExactly 'Foundation'
+            @($actual.prerequisiteResults).Count | Should -Be 0
+            ($actual | ConvertTo-Json -Depth 30) |
+                    Should -Not -Match (
+                        'summary|syntheticProviderEvidence|provider-private|' +
+                        'tenant-private|example[.]invalid|requestProjection'
+                    )
+        }
+
+        It 'rejects a StageResult mismatch for current <Coordinate>' -ForEach @(
+            @{ Coordinate = 'runId' }
+            @{ Coordinate = 'stage' }
+            @{ Coordinate = 'sourceCommit' }
+            @{ Coordinate = 'publicTenantKey' }
+            @{ Coordinate = 'intentDigest' }
+            @{ Coordinate = 'evidenceRelativePath' }
+        ) {
+            $runId = [guid]::NewGuid()
+            $runDirectory = Join-Path $TestDrive (
+                    "shared-envelope-stage-result-$Coordinate"
+            )
+            $set = New-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+            $result = Copy-CanonicalTestValue $set.Results[0]
+            $parameters = @{
+                    RunDirectory = $runDirectory
+                    RunId = $runId
+                    Stage = 'Foundation'
+                    SourceCommit = $script:CanonicalSource
+                    PublicTenantKey = 'tenant1'
+                    IntentDigest = $script:CanonicalIntent
+                    StageResult = $result
+            }
+            switch ($Coordinate) {
+                    'runId' {
+                        $parameters.RunId =
+                            [guid]'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
+                    }
+                    'stage' {
+                        $result.stage = 'ReadBack'
+                        $result.evidenceRelativePath =
+                            'phases/ReadBack/summary.json'
+                    }
+                    'sourceCommit' {
+                        $parameters.SourceCommit = 'b' * 40
+                    }
+                    'publicTenantKey' {
+                        $result.publicTenantKey = 'tenant2'
+                    }
+                    'intentDigest' {
+                        $parameters.IntentDigest = '9' * 64
+                    }
+                    'evidenceRelativePath' {
+                        $result.evidenceRelativePath =
+                            'phases/Foundation/other.json'
+                    }
+            }
+
+            $caught = $null
+            try {
+                    Test-TenantLifecycleSummaryEnvelope @parameters |
+                        Out-Null
+            }
+            catch {
+                    $caught = $_
+            }
+
+            $caught | Should -Not -BeNullOrEmpty
+            $caught.Exception.Message | Should -BeExactly (
+                    'TenantLifecycle.SummaryEnvelope.StageResult.Invalid'
+            )
+            $caught.Exception.InnerException | Should -BeNullOrEmpty
+        }
+
+        It 'maps a summary <Field> mismatch to its fixed provider-free error' -ForEach @(
+            @{
+                    Field = 'schemaVersion'
+                    Value = '2.0'
+                    Error = 'TenantLifecycle.SummaryEnvelope.Summary.FileInvalid'
+            }
+            @{
+                    Field = 'runId'
+                    Value = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
+                    Error = 'TenantLifecycle.SummaryEnvelope.runId.Mismatch'
+            }
+            @{
+                    Field = 'stage'
+                    Value = 'ReadBack'
+                    Error = 'TenantLifecycle.SummaryEnvelope.stage.Mismatch'
+            }
+            @{
+                    Field = 'sourceCommit'
+                    Value = ('b' * 40)
+                    Error = 'TenantLifecycle.SummaryEnvelope.sourceCommit.Mismatch'
+            }
+            @{
+                    Field = 'publicTenantKey'
+                    Value = 'tenant2'
+                    Error = 'TenantLifecycle.SummaryEnvelope.Summary.FileInvalid'
+            }
+            @{
+                    Field = 'intentDigest'
+                    Value = ('9' * 64)
+                    Error = 'TenantLifecycle.SummaryEnvelope.intentDigest.Mismatch'
+            }
+            @{
+                    Field = 'stateDigest'
+                    Value = ('8' * 64)
+                    Error = 'TenantLifecycle.SummaryEnvelope.stateDigest.Mismatch'
+            }
+            @{
+                    Field = 'phaseManifestDigest'
+                    Value = ('7' * 64)
+                    Error = 'TenantLifecycle.SummaryEnvelope.phaseManifestDigest.Mismatch'
+            }
+            @{
+                    Field = 'status'
+                    Value = 'Failed'
+                    Error = 'TenantLifecycle.SummaryEnvelope.status.Mismatch'
+            }
+            @{
+                    Field = 'classification'
+                    Value = 'Changed'
+                    Error = 'TenantLifecycle.SummaryEnvelope.classification.Mismatch'
+            }
+            @{
+                    Field = 'completedAtUtc'
+                    Value = '2026-10-03T08:31:01.000Z'
+                    Error = 'TenantLifecycle.SummaryEnvelope.completedAtUtc.Mismatch'
+            }
+        ) {
+            $runId = [guid]::NewGuid()
+            $runDirectory = Join-Path $TestDrive (
+                    "shared-envelope-summary-$Field"
+            )
+            $set = New-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+            $summaryPath = [string]$set.SummaryPaths[0]
+            $summary = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content -Raw -LiteralPath $summaryPath
+            )
+            $summary.$Field = $Value
+            Write-CanonicalTestFile `
+                    -InputObject $summary `
+                    -Path $summaryPath
+            $result = Copy-CanonicalTestValue $set.Results[0]
+            $result.phaseSummaryDigest =
+                    Get-CanonicalTestFileDigest -Path $summaryPath
+
+            $caught = $null
+            try {
+                    Test-TenantLifecycleSummaryEnvelope `
+                        -RunDirectory $runDirectory `
+                        -RunId $runId `
+                        -Stage Foundation `
+                        -SourceCommit $script:CanonicalSource `
+                        -PublicTenantKey tenant1 `
+                        -IntentDigest $script:CanonicalIntent `
+                        -StageResult $result |
+                        Out-Null
+            }
+            catch {
+                    $caught = $_
+            }
+
+            $caught | Should -Not -BeNullOrEmpty
+            $caught.Exception.Message | Should -BeExactly $Error
+            $caught.Exception.InnerException | Should -BeNullOrEmpty
+            $caught.Exception.Message |
+                    Should -Not -Match 'syntheticProvider|private-marker'
+        }
+
+        It 'rejects a <Artifact> exact-file digest mismatch with its fixed error' -ForEach @(
+            @{
+                    Artifact = 'manifest'
+                    ResultField = 'phaseManifestDigest'
+                    Error =
+                        'TenantLifecycle.SummaryEnvelope.Manifest.FileInvalid'
+            }
+            @{
+                    Artifact = 'summary'
+                    ResultField = 'phaseSummaryDigest'
+                    Error =
+                        'TenantLifecycle.SummaryEnvelope.Summary.FileInvalid'
+            }
+        ) {
+            $runId = [guid]::NewGuid()
+            $runDirectory = Join-Path $TestDrive (
+                    "shared-envelope-$Artifact-file-digest"
+            )
+            $set = New-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+            $result = Copy-CanonicalTestValue $set.Results[0]
+            $result.$ResultField = 'f' * 64
+
+            {
+                    Test-TenantLifecycleSummaryEnvelope `
+                        -RunDirectory $runDirectory `
+                        -RunId $runId `
+                        -Stage Foundation `
+                        -SourceCommit $script:CanonicalSource `
+                        -PublicTenantKey tenant1 `
+                        -IntentDigest $script:CanonicalIntent `
+                        -StageResult $result
+            } | Should -Throw -ExpectedMessage $Error
+        }
+
+        It 'rejects an invalid embedded manifest digest after both exact file digests are updated' {
+            $runId = [guid]::NewGuid()
+            $runDirectory = Join-Path $TestDrive (
+                    'shared-envelope-manifest-embedded'
+            )
+            $set = New-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+            $manifestPath = [string]$set.ManifestPaths[0]
+            $manifest = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content -Raw -LiteralPath $manifestPath
+            )
+            $manifest.digest = 'f' * 64
+            Write-CanonicalTestFile `
+                    -InputObject $manifest `
+                    -Path $manifestPath
+            $newManifestFileDigest =
+                    Get-CanonicalTestFileDigest -Path $manifestPath
+
+            $summaryPath = [string]$set.SummaryPaths[0]
+            $summary = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content -Raw -LiteralPath $summaryPath
+            )
+            $summary.phaseManifestDigest = $newManifestFileDigest
+            Write-CanonicalTestFile `
+                    -InputObject $summary `
+                    -Path $summaryPath
+
+            $result = Copy-CanonicalTestValue $set.Results[0]
+            $result.phaseManifestDigest = $newManifestFileDigest
+            $result.phaseSummaryDigest =
+                    Get-CanonicalTestFileDigest -Path $summaryPath
+
+            $caught = $null
+            try {
+                    Test-TenantLifecycleSummaryEnvelope `
+                        -RunDirectory $runDirectory `
+                        -RunId $runId `
+                        -Stage Foundation `
+                        -SourceCommit $script:CanonicalSource `
+                        -PublicTenantKey tenant1 `
+                        -IntentDigest $script:CanonicalIntent `
+                        -StageResult $result |
+                        Out-Null
+            }
+            catch {
+                    $caught = $_
+            }
+
+            $caught.Exception.Message | Should -BeExactly (
+                    'TenantLifecycle.SummaryEnvelope.' +
+                    'Manifest.EmbeddedDigestMismatch'
+            )
+            $caught.Exception.InnerException | Should -BeNullOrEmpty
+        }
+
+        It 'maps prohibited provider data to the fixed summary file error without disclosure' {
+            $runId = [guid]::NewGuid()
+            $runDirectory = Join-Path $TestDrive (
+                    'shared-envelope-prohibited-provider-data'
+            )
+            $set = New-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+            $summaryPath = [string]$set.SummaryPaths[0]
+            $summary = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content -Raw -LiteralPath $summaryPath
+            )
+            $summary | Add-Member `
+                    -NotePropertyName token `
+                    -NotePropertyValue 'private-marker-do-not-disclose'
+            Write-CanonicalTestFile `
+                    -InputObject $summary `
+                    -Path $summaryPath
+            $result = Copy-CanonicalTestValue $set.Results[0]
+            $result.phaseSummaryDigest =
+                    Get-CanonicalTestFileDigest -Path $summaryPath
+
+            $caught = $null
+            try {
+                    Test-TenantLifecycleSummaryEnvelope `
+                        -RunDirectory $runDirectory `
+                        -RunId $runId `
+                        -Stage Foundation `
+                        -SourceCommit $script:CanonicalSource `
+                        -PublicTenantKey tenant1 `
+                        -IntentDigest $script:CanonicalIntent `
+                        -StageResult $result |
+                        Out-Null
+            }
+            catch {
+                    $caught = $_
+            }
+
+            $caught.Exception.Message | Should -BeExactly (
+                    'TenantLifecycle.SummaryEnvelope.Summary.FileInvalid'
+            )
+            $caught.Exception.InnerException | Should -BeNullOrEmpty
+            $caught.Exception.Message |
+                    Should -Not -Match 'token|private-marker|do-not-disclose'
+        }
+    }
+
     It 'creates and writes one immutable canonical stage result' {
         $runId = [guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
         $runDirectory = Join-Path $TestDrive 'canonical-stage-result'

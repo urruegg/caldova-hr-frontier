@@ -612,39 +612,23 @@ function Read-TenantLifecyclePrerequisite {
             'TenantLifecycle.ChildArtifact.Invalid'
         )
     }
-    $manifestRelativePath =
-        "phases/$Stage/execution-manifest.json"
-    $manifestRecord = Read-TenantLifecycleCanonicalArtifact `
-        -RelativePath $manifestRelativePath `
-        -Kind ExecutionManifest `
-        -PassThruRecord
-    $manifest = $manifestRecord.value
-    if (-not [StringComparer]::Ordinal.Equals(
-            [string]$manifestRecord.digest,
-            [string]$prerequisite.phaseManifestDigest
-        ) -or
-        -not [StringComparer]::Ordinal.Equals(
-            [string]$manifest.runId,
-            $trustedRunIdText
-        ) -or
-        -not [StringComparer]::Ordinal.Equals(
-            [string]$manifest.sourceCommit,
-            $baselineSourceCommit
-        ) -or
-        -not [StringComparer]::Ordinal.Equals(
-            [string]$manifest.publicTenantKey,
-            $trustedPublicTenantKey
-        ) -or
-        -not [StringComparer]::Ordinal.Equals(
-            [string]$manifest.intentDigest,
-            $baselineIntentDigest
-        )) {
+    try {
+        $envelope = Test-TenantLifecycleSummaryEnvelope `
+            -RunDirectory $runDirectory `
+            -RunId $trustedRunId `
+            -Stage $Stage `
+            -SourceCommit $baselineSourceCommit `
+            -PublicTenantKey $trustedPublicTenantKey `
+            -IntentDigest $baselineIntentDigest `
+            -StageResult $prerequisite
+    }
+    catch {
         throw [IO.InvalidDataException]::new(
             'TenantLifecycle.ChildArtifact.Invalid'
         )
     }
-    if (-not ($manifest.selectedStages -is [System.Array]) -or
-        @($manifest.selectedStages).Count -ne $trustedStages.Count) {
+    if (-not ($envelope.selectedStages -is [System.Array]) -or
+        @($envelope.selectedStages).Count -ne $trustedStages.Count) {
         throw [IO.InvalidDataException]::new(
             'TenantLifecycle.ChildArtifact.Invalid'
         )
@@ -655,7 +639,7 @@ function Read-TenantLifecyclePrerequisite {
         $selectedIndex++
     ) {
         if (-not [StringComparer]::Ordinal.Equals(
-                [string]$manifest.selectedStages[$selectedIndex],
+                [string]$envelope.selectedStages[$selectedIndex],
                 [string]$trustedStages[$selectedIndex]
             )) {
             throw [IO.InvalidDataException]::new(
@@ -669,7 +653,9 @@ function Read-TenantLifecyclePrerequisite {
         $previousStage = [string]$trustedStages[$stageIndex - 1]
         $previousResult = Read-TenantLifecyclePrerequisite `
             -Stage $previousStage `
-            -ExpectedOutputStateDigest ([string]$manifest.stateDigest)
+            -ExpectedOutputStateDigest (
+                [string]$envelope.manifestStateDigest
+            )
         $expectedManifestPrerequisites = @(
             [pscustomobject][ordered]@{
                 stage = [string]$previousResult.stage
@@ -684,8 +670,8 @@ function Read-TenantLifecyclePrerequisite {
             }
         )
     }
-    if (-not ($manifest.prerequisiteResults -is [System.Array]) -or
-        @($manifest.prerequisiteResults).Count -ne
+    if (-not ($envelope.prerequisiteResults -is [System.Array]) -or
+        @($envelope.prerequisiteResults).Count -ne
             $expectedManifestPrerequisites.Count) {
         throw [IO.InvalidDataException]::new(
             'TenantLifecycle.ChildArtifact.Invalid'
@@ -706,7 +692,7 @@ function Read-TenantLifecyclePrerequisite {
         $prerequisiteIndex++
     ) {
         $actualManifestPrerequisite =
-            $manifest.prerequisiteResults[$prerequisiteIndex]
+            $envelope.prerequisiteResults[$prerequisiteIndex]
         $expectedManifestPrerequisite =
             $expectedManifestPrerequisites[$prerequisiteIndex]
         foreach ($field in $prerequisiteFields) {
@@ -722,7 +708,7 @@ function Read-TenantLifecyclePrerequisite {
     }
 
     $stateAdvanced = -not [StringComparer]::Ordinal.Equals(
-        [string]$manifest.stateDigest,
+        [string]$envelope.manifestStateDigest,
         [string]$prerequisite.stateDigest
     )
     if ($stateAdvanced -and
@@ -732,27 +718,6 @@ function Read-TenantLifecyclePrerequisite {
         )
     }
 
-    $expectedSummaryRelativePath = "phases/$Stage/summary.json"
-    if (-not [StringComparer]::Ordinal.Equals(
-            [string]$prerequisite.evidenceRelativePath,
-            $expectedSummaryRelativePath
-        )) {
-        throw [IO.InvalidDataException]::new(
-            'TenantLifecycle.ChildArtifact.Invalid'
-        )
-    }
-    $summaryRecord = Read-TenantLifecycleCanonicalArtifact `
-        -RelativePath $expectedSummaryRelativePath `
-        -Kind Opaque `
-        -PassThruRecord
-    if (-not [StringComparer]::Ordinal.Equals(
-            [string]$summaryRecord.digest,
-            [string]$prerequisite.phaseSummaryDigest
-        )) {
-        throw [IO.InvalidDataException]::new(
-            'TenantLifecycle.ChildArtifact.Invalid'
-        )
-    }
     $prerequisite
 }
 

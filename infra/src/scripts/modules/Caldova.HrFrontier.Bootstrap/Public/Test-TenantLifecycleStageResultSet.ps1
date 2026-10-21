@@ -174,59 +174,16 @@ function Test-TenantLifecycleStageResultSet {
                 throw [IO.InvalidDataException]::new()
             }
 
-            $manifestRelativePath =
-                "phases/$stage/execution-manifest.json"
-            $manifestPath = Join-Path $runRoot (
-                $manifestRelativePath.Replace(
-                    '/',
-                    [IO.Path]::DirectorySeparatorChar
-                )
-            )
-            $manifestRecord = Read-TenantLifecycleCanonicalJsonFile `
-                -Path $manifestPath `
-                -ContainmentRoot $runRoot `
-                -ExpectedRelativePath $manifestRelativePath `
-                -ExpectedDigest ([string]$result.phaseManifestDigest)
-            $manifest = $manifestRecord.value
-            foreach ($field in @(
-                'schemaVersion',
-                'runId',
-                'sourceCommit',
-                'publicTenantKey',
-                'intentDigest',
-                'stateDigest',
-                'selectedStages',
-                'prerequisiteResults'
-            )) {
-                $property = $manifest.PSObject.Properties[$field]
-                if ($null -eq $property -or
-                    $property.MemberType -ne 'NoteProperty') {
-                    throw [IO.InvalidDataException]::new()
-                }
-            }
-            if ([string]$manifest.schemaVersion -cne '1.0' -or
-                -not [StringComparer]::Ordinal.Equals(
-                    [string]$manifest.runId,
-                    $runIdText
-                ) -or
-                -not [StringComparer]::Ordinal.Equals(
-                    [string]$manifest.sourceCommit,
-                    $SourceCommit
-                ) -or
-                -not [StringComparer]::Ordinal.Equals(
-                    [string]$manifest.publicTenantKey,
-                    $PublicTenantKey
-                ) -or
-                -not [StringComparer]::Ordinal.Equals(
-                    [string]$manifest.intentDigest,
-                    $IntentDigest
-                ) -or
-                -not ([string]$manifest.stateDigest -cmatch
-                    '^[0-9a-f]{64}$')) {
-                throw [IO.InvalidDataException]::new()
-            }
-            if (-not ($manifest.selectedStages -is [System.Array]) -or
-                @($manifest.selectedStages).Count -ne $Stages.Count) {
+            $envelope = Test-TenantLifecycleSummaryEnvelope `
+                -RunDirectory $runRoot `
+                -RunId $RunId `
+                -Stage $stage `
+                -SourceCommit $SourceCommit `
+                -PublicTenantKey $PublicTenantKey `
+                -IntentDigest $IntentDigest `
+                -StageResult $result
+            if (-not ($envelope.selectedStages -is [System.Array]) -or
+                @($envelope.selectedStages).Count -ne $Stages.Count) {
                 throw [IO.InvalidDataException]::new()
             }
             for (
@@ -235,14 +192,14 @@ function Test-TenantLifecycleStageResultSet {
                 $selectedIndex++
             ) {
                 if (-not [StringComparer]::Ordinal.Equals(
-                        [string]$manifest.selectedStages[$selectedIndex],
+                        [string]$envelope.selectedStages[$selectedIndex],
                         [string]$Stages[$selectedIndex]
                     )) {
                     throw [IO.InvalidDataException]::new()
                 }
             }
 
-            if (-not ($manifest.prerequisiteResults -is
+            if (-not ($envelope.prerequisiteResults -is
                     [System.Array])) {
                 throw [IO.InvalidDataException]::new()
             }
@@ -252,12 +209,12 @@ function Test-TenantLifecycleStageResultSet {
             else {
                 1
             }
-            if (@($manifest.prerequisiteResults).Count -ne
+            if (@($envelope.prerequisiteResults).Count -ne
                 $expectedPrerequisiteCount) {
                 throw [IO.InvalidDataException]::new()
             }
             if ($expectedPrerequisiteCount -eq 1) {
-                $prerequisiteResult = $manifest.prerequisiteResults[0]
+                $prerequisiteResult = $envelope.prerequisiteResults[0]
                 $expectedPrerequisiteFields = @(
                     'stage',
                     'status',
@@ -306,27 +263,15 @@ function Test-TenantLifecycleStageResultSet {
                 }
             }
 
-            $summaryPath = Join-Path $runRoot (
-                $expectedEvidenceRelativePath.Replace(
-                    '/',
-                    [IO.Path]::DirectorySeparatorChar
-                )
-            )
-            $null = Read-TenantLifecycleCanonicalJsonFile `
-                -Path $summaryPath `
-                -ContainmentRoot $runRoot `
-                -ExpectedRelativePath $expectedEvidenceRelativePath `
-                -ExpectedDigest ([string]$result.phaseSummaryDigest)
-
             if ($null -ne $previousOutputStateDigest -and
                 -not [StringComparer]::Ordinal.Equals(
                     $previousOutputStateDigest,
-                    [string]$manifest.stateDigest
+                    [string]$envelope.manifestStateDigest
                 )) {
                 throw [IO.InvalidDataException]::new()
             }
             $stateChanged = -not [StringComparer]::Ordinal.Equals(
-                [string]$manifest.stateDigest,
+                [string]$envelope.manifestStateDigest,
                 [string]$result.stateDigest
             )
             if ($stateChanged -and

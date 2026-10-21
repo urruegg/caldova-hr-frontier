@@ -1184,6 +1184,47 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             Out-Null
                     }
 
+                    function Set-CoordinateSummaryEnvelopeMismatch {
+                        param(
+                            [Parameter(Mandatory)][guid]$RunId,
+                            [Parameter(Mandatory)][string]$Stage
+                        )
+
+                        $runDirectory = Join-Path (
+                            $script:CoordinateEvidenceRoot
+                        ) $RunId.ToString('D').ToLowerInvariant()
+                        $summaryPath = Join-Path $runDirectory (
+                            "phases\$Stage\summary.json"
+                        )
+                        $summary =
+                            ConvertFrom-TenantLifecycleJson -InputObject (
+                                Get-Content `
+                                    -Raw `
+                                    -LiteralPath $summaryPath
+                            )
+                        $summary.runId =
+                            'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
+                        Write-CoordinateCanonicalFile `
+                            -InputObject $summary `
+                            -Path $summaryPath
+
+                        $resultPath = Join-Path $runDirectory (
+                            "stage-results\$Stage.json"
+                        )
+                        $result =
+                            ConvertFrom-TenantLifecycleJson -InputObject (
+                                Get-Content `
+                                    -Raw `
+                                    -LiteralPath $resultPath
+                            )
+                        $result.phaseSummaryDigest =
+                            Get-CoordinateExactFileDigest `
+                                -Path $summaryPath
+                        Write-CoordinateCanonicalFile `
+                            -InputObject $result `
+                            -Path $resultPath
+                    }
+
                     function Set-CoordinateDrift {
                         param(
                             [Parameter(Mandatory)]
@@ -1413,6 +1454,49 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             -Line $line `
                             -Action $action
                         $script:CoordinateBreakpoints.Add($breakpoint)
+                    }
+
+                    function Install-CoordinateVerifyPassCounter {
+                        param([Parameter(Mandatory)][guid]$RunId)
+
+                        $lines = @(
+                            Select-String `
+                                -LiteralPath $script:CoordinateOrchestratorPath `
+                                -Pattern (
+                                    '^\s*Test-TenantLifecycleStageResultSet\s*'
+                                ) |
+                                ForEach-Object LineNumber
+                        )
+                        if ($lines.Count -ne 2) {
+                            throw (
+                                'Synthetic Verify pass breakpoints ' +
+                                'could not be located.'
+                            )
+                        }
+                        $runDirectory = Join-Path (
+                            $script:CoordinateEvidenceRoot
+                        ) $RunId.ToString('D').ToLowerInvariant()
+                        $counterPath = Join-Path $runDirectory (
+                            '.test-observation\verify-passes.txt'
+                        )
+                        foreach ($line in $lines) {
+                            $action = {
+                                [IO.Directory]::CreateDirectory(
+                                    (Split-Path -Parent $counterPath)
+                                ) | Out-Null
+                                [IO.File]::AppendAllText(
+                                    $counterPath,
+                                    "pass`n",
+                                    [Text.UTF8Encoding]::new($false)
+                                )
+                            }.GetNewClosure()
+                            $breakpoint = Set-PSBreakpoint `
+                                -Script $script:CoordinateOrchestratorPath `
+                                -Line $line `
+                                -Action $action
+                            $script:CoordinateBreakpoints.Add($breakpoint)
+                        }
+                        $counterPath
                     }
 
                     function Get-CoordinateObservedCalls {
@@ -2753,6 +2837,48 @@ $invoker = [scriptblock]::Create($invokerText)
                         }
                     }
 
+                    It 'blocks a prerequisite summary envelope mismatch before later <Mode> dispatch' -ForEach @(
+                        @{ Mode = 'Assess' }
+                        @{ Mode = 'Plan' }
+                    ) {
+                        $runId = [guid]::NewGuid()
+                        $selectedStages = @(
+                            'Workstation',
+                            'Foundation'
+                        )
+                        Write-CoordinateStageResult `
+                            -RunId $runId `
+                            -Stage Workstation `
+                            -SelectedStages $selectedStages
+                        Set-CoordinateSummaryEnvelopeMismatch `
+                            -RunId $runId `
+                            -Stage Workstation
+                        $invoker = New-CoordinateArtifactInvoker
+                        $projectionPath = Join-Path (
+                            Join-Path $script:CoordinateEvidenceRoot (
+                                $runId.ToString('D').ToLowerInvariant()
+                            )
+                        ) 'summary.json'
+
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages $selectedStages `
+                                -Mode $Mode `
+                                -SubsystemInvoker $invoker
+                        } | Should -Throw -ExpectedMessage (
+                            'TenantLifecycle.ChildArtifact.Invalid'
+                        )
+                        (
+                            Get-CoordinateObservedCalls -RunId $runId
+                        ) -join ',' | Should -BeExactly (
+                            "Workstation|$Mode"
+                        )
+                        $projectionPath | Should -Not -Exist
+                        $script:CoordinateProviderRunnerCalls.Count |
+                            Should -Be 0
+                    }
+
                     It 'rejects a <Mutation> prerequisite artifact before later dispatch' -ForEach @(
                         @{ Mutation = 'missing result'; Target = 'Result'; Change = 'Missing' }
                         @{ Mutation = 'substituted result'; Target = 'Result'; Change = 'Substituted' }
@@ -3131,6 +3257,52 @@ $invoker = [scriptblock]::Create($invokerText)
                         }
                     }
 
+                    It 'Verify shared summary envelope enforcement rejects coordinate substitution without invocation or projection' {
+                        $runId = [guid]::NewGuid()
+                        Write-CoordinateVerifySet -RunId $runId |
+                            Out-Null
+                        Set-CoordinateSummaryEnvelopeMismatch `
+                            -RunId $runId `
+                            -Stage Foundation
+                        $projectionPath = Join-Path (
+                            Join-Path $script:CoordinateEvidenceRoot (
+                                $runId.ToString('D').ToLowerInvariant()
+                            )
+                        ) 'summary.json'
+
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages @('Foundation') `
+                                -Mode Verify
+                        } | Should -Throw -ExpectedMessage (
+                            'TenantLifecycle.StageResultSet.Invalid'
+                        )
+                        $projectionPath | Should -Not -Exist
+                        $script:CoordinateProviderRunnerCalls.Count |
+                            Should -Be 0
+                    }
+
+                    It 'Verify second Verify pass validates the stage result set exactly twice on success' {
+                        $runId = [guid]::NewGuid()
+                        Write-CoordinateVerifySet -RunId $runId |
+                            Out-Null
+                        $counterPath =
+                            Install-CoordinateVerifyPassCounter `
+                                -RunId $runId
+
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages @('Foundation') `
+                                -Mode Verify
+                        } | Should -Not -Throw
+                        [IO.File]::ReadAllLines($counterPath).Count |
+                            Should -Be 2
+                        $script:CoordinateProviderRunnerCalls.Count |
+                            Should -Be 0
+                    }
+
                     It 'Verify never invokes a supplied child invoker' {
                         $counter = 0
                         $invoker = {
@@ -3181,7 +3353,7 @@ $invoker = [scriptblock]::Create($invokerText)
                             Should -BeExactly 'Foundation'
                     }
 
-                    It 'Verify rejects <Mutation> evidence mutation between validation passes without writing projection' -ForEach @(
+                    It 'Verify second Verify pass rejects <Mutation> evidence drift without writing projection' -ForEach @(
                         @{ Mutation = 'Result' }
                         @{ Mutation = 'Manifest' }
                         @{ Mutation = 'Summary' }
@@ -3191,6 +3363,9 @@ $invoker = [scriptblock]::Create($invokerText)
                     ) {
                         $runId = [guid]::NewGuid()
                         Write-CoordinateVerifySet -RunId $runId | Out-Null
+                        $counterPath =
+                            Install-CoordinateVerifyPassCounter `
+                                -RunId $runId
                         Install-CoordinateEvidenceMutationHook `
                             -Mutation $Mutation `
                             -RunId $runId
@@ -3207,6 +3382,8 @@ $invoker = [scriptblock]::Create($invokerText)
                                 -Mode Verify
                         } | Should -Throw
                         $summaryPath | Should -Not -Exist
+                        [IO.File]::ReadAllLines($counterPath).Count |
+                            Should -Be 2
                     }
 
                     It 'Verify rejects a mismatched <Case> phase summary digest' -ForEach @(
