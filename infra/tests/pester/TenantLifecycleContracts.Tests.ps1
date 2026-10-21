@@ -1917,9 +1917,15 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
                     Get-Content -Raw -LiteralPath $summaryPath
             )
             $summary.$SummaryField = $Value
+            $summaryWritePath = $summaryPath
+            if ($Coordinate -ceq 'stage') {
+                    $summaryWritePath = Join-Path $runDirectory (
+                        'phases\ReadBack\summary.json'
+                    )
+            }
             Write-CanonicalTestFile `
                     -InputObject $summary `
-                    -Path $summaryPath
+                    -Path $summaryWritePath
 
             $result = Copy-CanonicalTestValue $set.Results[0]
             $result.$ResultField = $Value
@@ -1928,7 +1934,7 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
                         'phases/ReadBack/summary.json'
             }
             $result.phaseSummaryDigest =
-                    Get-CanonicalTestFileDigest -Path $summaryPath
+                    Get-CanonicalTestFileDigest -Path $summaryWritePath
             $resultPath = Join-Path $runDirectory (
                     'stage-results\Foundation.json'
             )
@@ -1937,8 +1943,26 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
                     -Path $resultPath
             $result.phaseSummaryDigest |
                     Should -BeExactly (
-                        Get-CanonicalTestFileDigest -Path $summaryPath
+                        Get-CanonicalTestFileDigest -Path $summaryWritePath
                     )
+            if ($Coordinate -ceq 'stage') {
+                    $referencedSummaryPath = Join-Path $runDirectory (
+                        $result.evidenceRelativePath.Replace(
+                            '/',
+                            [IO.Path]::DirectorySeparatorChar
+                        )
+                    )
+                    $referencedSummaryPath | Should -Exist
+                    $referencedSummaryPath |
+                        Should -BeExactly $summaryWritePath
+                    $referencedSummaryPath |
+                        Should -Not -BeExactly $summaryPath
+                    Get-CanonicalTestFileDigest `
+                        -Path $referencedSummaryPath |
+                        Should -BeExactly $result.phaseSummaryDigest
+                    Get-CanonicalTestFileDigest -Path $summaryPath |
+                        Should -Not -BeExactly $result.phaseSummaryDigest
+            }
 
             {
                     Invoke-CanonicalStageSet `
