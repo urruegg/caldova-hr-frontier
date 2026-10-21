@@ -898,6 +898,40 @@ $golden = [pscustomobject][ordered]@{
     }
 }
 
+$coordinateMixedCaseProhibitedCases = @(
+    @{
+        Family = 'token'
+        PropertyName = 'ToKeN'
+    }
+    @{
+        Family = 'credential'
+        PropertyName = 'CrEdEnTiAl'
+    }
+    @{
+        Family = 'raw'
+        PropertyName = 'RaWoUtPuT'
+    }
+    @{
+        Family = 'private'
+        PropertyName = 'PrIvAtEpAtH'
+    }
+    @{
+        Family = 'output'
+        PropertyName = 'CoMmAnDoUtPuT'
+    }
+)
+$coordinateMixedCasePrerequisiteCases = @(
+    foreach ($case in $coordinateMixedCaseProhibitedCases) {
+        foreach ($mode in @('Assess', 'Plan')) {
+            @{
+                Family = $case.Family
+                PropertyName = $case.PropertyName
+                Mode = $mode
+            }
+        }
+    }
+)
+
 Describe 'Tenant lifecycle approval expiry and drift' {
     BeforeAll {
         $script:ApprovalRepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
@@ -1264,6 +1298,64 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                                         }
                                     }
                                 )
+                        Write-CoordinateCanonicalFile `
+                            -InputObject $summary `
+                            -Path $summaryPath
+
+                        $resultPath = Join-Path $runDirectory (
+                            "stage-results\$Stage.json"
+                        )
+                        $result =
+                            ConvertFrom-TenantLifecycleJson -InputObject (
+                                Get-Content `
+                                    -Raw `
+                                    -LiteralPath $resultPath
+                            )
+                        $result.phaseSummaryDigest =
+                            Get-CoordinateExactFileDigest `
+                                -Path $summaryPath
+                        Write-CoordinateCanonicalFile `
+                            -InputObject $result `
+                            -Path $resultPath
+                        $result.phaseSummaryDigest |
+                            Should -BeExactly (
+                                Get-CoordinateExactFileDigest `
+                                    -Path $summaryPath
+                            )
+                    }
+
+                    function Set-CoordinateMixedCaseProhibitedSummary {
+                        param(
+                            [Parameter(Mandatory)][guid]$RunId,
+                            [Parameter(Mandatory)][string]$Stage,
+                            [Parameter(Mandatory)][string]$PropertyName,
+                            [Parameter(Mandatory)][string]$Marker
+                        )
+
+                        $runDirectory = Join-Path (
+                            $script:CoordinateEvidenceRoot
+                        ) $RunId.ToString('D').ToLowerInvariant()
+                        $summaryPath = Join-Path $runDirectory (
+                            "phases\$Stage\summary.json"
+                        )
+                        $summary =
+                            ConvertFrom-TenantLifecycleJson -InputObject (
+                                Get-Content `
+                                    -Raw `
+                                    -LiteralPath $summaryPath
+                            )
+                        $summary |
+                            Add-Member `
+                                -NotePropertyName syntheticBoundaryMutation `
+                                -NotePropertyValue (
+                                    [pscustomobject][ordered]@{
+                                        safe = 'Synthetic'
+                                    }
+                                )
+                        $summary.syntheticBoundaryMutation |
+                            Add-Member `
+                                -NotePropertyName $PropertyName `
+                                -NotePropertyValue $Marker
                         Write-CoordinateCanonicalFile `
                             -InputObject $summary `
                             -Path $summaryPath
@@ -2992,6 +3084,64 @@ $invoker = [scriptblock]::Create($invokerText)
                             Should -Be 0
                     }
 
+                    It 'blocks mixed-case prohibited <Family> summary data before later <Mode> dispatch without disclosure or projection' -ForEach $coordinateMixedCasePrerequisiteCases {
+                        $runId = [guid]::NewGuid()
+                        $selectedStages = @(
+                            'Workstation',
+                            'Foundation'
+                        )
+                        Write-CoordinateStageResult `
+                            -RunId $runId `
+                            -Stage Workstation `
+                            -SelectedStages $selectedStages
+                        $marker =
+                            "private-$Family-prerequisite-marker-do-not-disclose"
+                        Set-CoordinateMixedCaseProhibitedSummary `
+                            -RunId $runId `
+                            -Stage Workstation `
+                            -PropertyName $PropertyName `
+                            -Marker $marker
+                        $invoker = New-CoordinateArtifactInvoker
+                        $projectionPath = Join-Path (
+                            Join-Path $script:CoordinateEvidenceRoot (
+                                $runId.ToString('D').ToLowerInvariant()
+                            )
+                        ) 'summary.json'
+                        $caught = $null
+
+                        try {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages $selectedStages `
+                                -Mode $Mode `
+                                -SubsystemInvoker $invoker
+                        }
+                        catch {
+                            $caught = $_
+                        }
+
+                        $caught | Should -Not -BeNullOrEmpty
+                        $caught.Exception.Message |
+                            Should -BeExactly (
+                                'TenantLifecycle.ChildArtifact.Invalid'
+                            )
+                        $caught.Exception.InnerException |
+                            Should -BeNullOrEmpty
+                        $caught.Exception.Message |
+                            Should -Not -Match (
+                                [regex]::Escape($PropertyName) + '|' +
+                                [regex]::Escape($marker)
+                            )
+                        (
+                            Get-CoordinateObservedCalls -RunId $runId
+                        ) -join ',' | Should -BeExactly (
+                            "Workstation|$Mode"
+                        )
+                        $projectionPath | Should -Not -Exist
+                        $script:CoordinateProviderRunnerCalls.Count |
+                            Should -Be 0
+                    }
+
                     It 'rejects a <Mutation> prerequisite artifact before later dispatch' -ForEach @(
                         @{ Mutation = 'missing result'; Target = 'Result'; Change = 'Missing' }
                         @{ Mutation = 'substituted result'; Target = 'Result'; Change = 'Substituted' }
@@ -3522,6 +3672,56 @@ $invoker = [scriptblock]::Create($invokerText)
                             'TenantLifecycle.StageResultSet.Invalid'
                         )
                         $projectionPath | Should -Not -Exist
+                        $script:CoordinateProviderRunnerCalls.Count |
+                            Should -Be 0
+                    }
+
+                    It 'Verify rejects mixed-case prohibited <Family> summary data without invocation disclosure or projection' -ForEach $coordinateMixedCaseProhibitedCases {
+                        $runId = [guid]::NewGuid()
+                        Write-CoordinateVerifySet -RunId $runId |
+                            Out-Null
+                        $marker =
+                            "private-$Family-verify-marker-do-not-disclose"
+                        Set-CoordinateMixedCaseProhibitedSummary `
+                            -RunId $runId `
+                            -Stage Foundation `
+                            -PropertyName $PropertyName `
+                            -Marker $marker
+                        $runDirectory = Join-Path (
+                            $script:CoordinateEvidenceRoot
+                        ) $runId.ToString('D').ToLowerInvariant()
+                        $projectionPath =
+                            Join-Path $runDirectory 'summary.json'
+                        $caught = $null
+
+                        try {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages @('Foundation') `
+                                -Mode Verify
+                        }
+                        catch {
+                            $caught = $_
+                        }
+
+                        $caught | Should -Not -BeNullOrEmpty
+                        $caught.Exception.Message |
+                            Should -BeExactly (
+                                'TenantLifecycle.StageResultSet.Invalid'
+                            )
+                        $caught.Exception.InnerException |
+                            Should -BeNullOrEmpty
+                        $caught.Exception.Message |
+                            Should -Not -Match (
+                                [regex]::Escape($PropertyName) + '|' +
+                                [regex]::Escape($marker)
+                            )
+                        $projectionPath | Should -Not -Exist
+                        @(
+                            Get-CoordinateObservedCalls -RunId $runId
+                        ).Count | Should -Be 0
+                        Test-CoordinateProviderMarker -RunId $runId |
+                            Should -BeFalse
                         $script:CoordinateProviderRunnerCalls.Count |
                             Should -Be 0
                     }

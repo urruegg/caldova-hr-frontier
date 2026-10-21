@@ -488,13 +488,22 @@ catch {
 }
 
 Describe 'Customer export pre-execution identity gates across PowerShell hosts' {
+    $windowsPowerShell =
+        Get-Command powershell.exe `
+            -CommandType Application `
+            -ErrorAction Stop |
+            Select-Object -First 1
     $powerShellHosts = @(
         @{
             HostName = 'Windows PowerShell 5.1'
-            HostPath = (Get-Command powershell.exe -CommandType Application -ErrorAction Stop).Source
+            HostPath = $windowsPowerShell.Source
         }
     )
-    $pwsh = Get-Command pwsh.exe -CommandType Application -ErrorAction SilentlyContinue
+    $pwsh =
+        Get-Command pwsh.exe `
+            -CommandType Application `
+            -ErrorAction SilentlyContinue |
+            Select-Object -First 1
     if ($null -ne $pwsh) {
         $powerShellHosts += @{
             HostName = 'PowerShell 7'
@@ -543,15 +552,46 @@ Describe 'Customer export pre-execution identity gates across PowerShell hosts' 
     }
 }
 
+Describe 'Customer export cross-host test harness resolution' {
+    It 'selects one deterministic scalar HostPath from multiple application resolutions' {
+        $applications = @(
+            [pscustomobject]@{
+                Source = 'C:\synthetic\first\pwsh.exe'
+            }
+            [pscustomobject]@{
+                Source = 'C:\synthetic\second\pwsh.exe'
+            }
+        )
+        $selected = $applications | Select-Object -First 1
+        $hostCase = @{
+            HostPath = $selected.Source
+        }
+
+        @($hostCase.HostPath).Count | Should -Be 1
+        $hostCase.HostPath | Should -BeOfType [string]
+        $hostCase.HostPath |
+            Should -BeExactly 'C:\synthetic\first\pwsh.exe'
+    }
+}
+
 Describe 'Customer export production default native command runners' {
+    $windowsPowerShell =
+        Get-Command powershell.exe `
+            -CommandType Application `
+            -ErrorAction Stop |
+            Select-Object -First 1
     $powerShellHosts = @(
         @{
             HostName = 'Windows PowerShell 5.1'
-            HostPath = (Get-Command powershell.exe -CommandType Application -ErrorAction Stop).Source
+            HostPath = $windowsPowerShell.Source
             EnableNativeErrorPreference = $false
         }
     )
-    $pwsh = Get-Command pwsh.exe -CommandType Application -ErrorAction SilentlyContinue
+    $pwsh =
+        Get-Command pwsh.exe `
+            -CommandType Application `
+            -ErrorAction SilentlyContinue |
+            Select-Object -First 1
     if ($null -ne $pwsh) {
         $powerShellHosts += @{
             HostName = 'PowerShell 7'

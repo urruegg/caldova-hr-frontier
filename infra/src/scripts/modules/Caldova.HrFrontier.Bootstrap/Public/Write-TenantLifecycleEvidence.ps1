@@ -15,33 +15,36 @@ function Test-TenantLifecycleEvidencePropertyBoundary {
     }
 
     $clientCredentialPropertyName = 'client' + 'Secret'
-    $prohibitedNames = @(
-        'accessToken',
-        'approvalSession',
-        'approvalSessionPayload',
-        'authorization',
-        $clientCredentialPropertyName,
-        'command',
-        'commandLine',
-        'commandOutput',
-        'commandTranscript',
-        'credential',
-        'credentials',
-        'generatedParameters',
-        'password',
-        'privateKey',
-        'privatePath',
-        'providerPayload',
-        'raw',
-        'rawCommand',
-        'rawCommandOutput',
-        'rawOutput',
-        'secret',
-        'stderr',
-        'stdout',
-        'token'
+    $prohibitedNames = [Collections.Generic.HashSet[string]]::new(
+        [string[]]@(
+            'accessToken',
+            'approvalSession',
+            'approvalSessionPayload',
+            'authorization',
+            $clientCredentialPropertyName,
+            'command',
+            'commandLine',
+            'commandOutput',
+            'commandTranscript',
+            'credential',
+            'credentials',
+            'generatedParameters',
+            'password',
+            'privateKey',
+            'privatePath',
+            'providerPayload',
+            'raw',
+            'rawCommand',
+            'rawCommandOutput',
+            'rawOutput',
+            'secret',
+            'stderr',
+            'stdout',
+            'token'
+        ),
+        [StringComparer]::OrdinalIgnoreCase
     )
-    if ($prohibitedNames -ccontains $PropertyName) {
+    if ($prohibitedNames.Contains($PropertyName)) {
         return $false
     }
 
@@ -162,18 +165,10 @@ function Write-TenantLifecycleEvidence {
         throw [IO.InvalidDataException]::new('TenantLifecycle.Evidence.Path')
     }
     try {
-        if ($Kind -ceq 'Summary') {
-            Test-TenantLifecycleContract `
-                -Kind Summary `
-                -InputObject $InputObject |
-                Out-Null
-        }
-        else {
-            Test-TenantLifecycleContract `
-                -Kind $Kind `
-                -InputObject $InputObject |
-                Out-Null
-        }
+        Test-TenantLifecycleContract `
+            -Kind $Kind `
+            -InputObject $InputObject |
+            Out-Null
         if (-not (Test-TenantLifecycleEvidencePropertyBoundary -Value $InputObject)) {
             throw [IO.InvalidDataException]::new('TenantLifecycle.Evidence.Invalid')
         }
