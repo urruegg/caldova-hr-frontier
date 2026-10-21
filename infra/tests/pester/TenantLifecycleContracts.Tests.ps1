@@ -39,6 +39,189 @@ $dateTimeCases = @(
     @{ Name = 'summary startedAtUtc'; Kind = 'Summary'; FixtureProperty = 'summary'; SchemaFile = 'tenant-lifecycle-summary.schema.json'; FieldPath = 'startedAtUtc'; LowercaseValue = '2026-10-02T12:00:00z' }
     @{ Name = 'summary completedAtUtc'; Kind = 'Summary'; FixtureProperty = 'summary'; SchemaFile = 'tenant-lifecycle-summary.schema.json'; FieldPath = 'completedAtUtc'; LowercaseValue = '2026-10-02T12:11:00z' }
 )
+$summaryEnvelopeReservedFieldCases = @(
+    @{
+        Field = 'schemaVersion'
+        Malformed = 1
+        MalformedError =
+            'TenantLifecycle.SummaryEnvelope.schemaVersion.Mismatch'
+        Mismatch = '2.0'
+        MismatchError =
+            'TenantLifecycle.SummaryEnvelope.Summary.FileInvalid'
+    }
+    @{
+        Field = 'runId'
+        Malformed = 'not-a-guid'
+        Mismatch = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
+        MismatchError = 'TenantLifecycle.SummaryEnvelope.runId.Mismatch'
+    }
+    @{
+        Field = 'stage'
+        Malformed = 'Unknown'
+        Mismatch = 'ReadBack'
+        MismatchError = 'TenantLifecycle.SummaryEnvelope.stage.Mismatch'
+    }
+    @{
+        Field = 'sourceCommit'
+        Malformed = 'g' * 40
+        Mismatch = 'b' * 40
+        MismatchError =
+            'TenantLifecycle.SummaryEnvelope.sourceCommit.Mismatch'
+    }
+    @{
+        Field = 'publicTenantKey'
+        Malformed = 'tenant/1'
+        Mismatch = 'tenant2'
+        MismatchError =
+            'TenantLifecycle.SummaryEnvelope.Summary.FileInvalid'
+    }
+    @{
+        Field = 'intentDigest'
+        Malformed = 'g' * 64
+        Mismatch = '4' * 64
+        MismatchError =
+            'TenantLifecycle.SummaryEnvelope.intentDigest.Mismatch'
+    }
+    @{
+        Field = 'stateDigest'
+        Malformed = 'g' * 64
+        Mismatch = '5' * 64
+        MismatchError =
+            'TenantLifecycle.SummaryEnvelope.stateDigest.Mismatch'
+    }
+    @{
+        Field = 'phaseManifestDigest'
+        Malformed = 'g' * 64
+        Mismatch = '6' * 64
+        MismatchError = (
+            'TenantLifecycle.SummaryEnvelope.' +
+            'phaseManifestDigest.Mismatch'
+        )
+    }
+    @{
+        Field = 'status'
+        Malformed = 'Ready'
+        Mismatch = 'Failed'
+        MismatchError = 'TenantLifecycle.SummaryEnvelope.status.Mismatch'
+    }
+    @{
+        Field = 'classification'
+        Malformed = 'Create'
+        Mismatch = 'Changed'
+        MismatchError = (
+            'TenantLifecycle.SummaryEnvelope.classification.Mismatch'
+        )
+    }
+    @{
+        Field = 'completedAtUtc'
+        Malformed = '2026-10-03T08:31:00.0000000Z'
+        Mismatch = '2026-10-03T08:31:00.001Z'
+        MismatchError = (
+            'TenantLifecycle.SummaryEnvelope.completedAtUtc.Mismatch'
+        )
+    }
+)
+$summaryEnvelopeMutationCases = @(
+    foreach ($fieldCase in $summaryEnvelopeReservedFieldCases) {
+        foreach ($failure in @(
+            'missing',
+            'malformed',
+            'case drift',
+            'semantic mismatch'
+        )) {
+            $value = switch ($failure) {
+                'malformed' { $fieldCase.Malformed }
+                'semantic mismatch' { $fieldCase.Mismatch }
+                default { $null }
+            }
+            $error = if ($failure -ceq 'semantic mismatch') {
+                $fieldCase.MismatchError
+            }
+            elseif (
+                $failure -ceq 'malformed' -and
+                $fieldCase.ContainsKey('MalformedError')
+            ) {
+                $fieldCase.MalformedError
+            }
+            else {
+                'TenantLifecycle.SummaryEnvelope.Summary.FileInvalid'
+            }
+            @{
+                Field = $fieldCase.Field
+                Failure = $failure
+                Value = $value
+                Error = $error
+            }
+        }
+    }
+)
+$summaryEnvelopeReservedPropertyNames = @(
+    'schemaVersion',
+    'runId',
+    'stage',
+    'sourceCommit',
+    'publicTenantKey',
+    'intentDigest',
+    'stateDigest',
+    'phaseManifestDigest',
+    'status',
+    'classification',
+    'completedAtUtc'
+)
+$summaryEnvelopeSharedPropertyNames = @(
+    $summaryEnvelopeReservedPropertyNames
+    'startedAtUtc'
+    'counts'
+    'prerequisites'
+    'actions'
+    'nonClaims'
+)
+$summaryEnvelopeReservedPropertyCases = @(
+    $summaryEnvelopeReservedPropertyNames |
+        ForEach-Object { @{ Field = $_ } }
+)
+$summaryEnvelopeSharedPropertyCases = @(
+    $summaryEnvelopeSharedPropertyNames |
+        ForEach-Object { @{ Field = $_ } }
+)
+$summaryEnvelopeSubstitutionCases = @(
+    @{
+        Coordinate = 'runId'
+        SummaryField = 'runId'
+        ResultField = 'runId'
+        Value = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
+    }
+    @{
+        Coordinate = 'source'
+        SummaryField = 'sourceCommit'
+        ResultField = 'sourceCommit'
+        Value = 'b' * 40
+    }
+    @{
+        Coordinate = 'tenant'
+        SummaryField = 'publicTenantKey'
+        ResultField = 'publicTenantKey'
+        Value = 'tenant2'
+    }
+    @{
+        Coordinate = 'intent'
+        SummaryField = 'intentDigest'
+        ResultField = 'intentDigest'
+        Value = '4' * 64
+    }
+    @{
+        Coordinate = 'stage'
+        SummaryField = 'stage'
+        ResultField = 'stage'
+        Value = 'ReadBack'
+    }
+    @{
+        Coordinate = 'private state'
+        SummaryField = 'stateDigest'
+        ResultField = 'stateDigest'
+        Value = '5' * 64
+    }
+)
 $pythonResult = & python -c 'import jsonschema' 2>&1
 $hasJsonSchema = $LASTEXITCODE -eq 0
 foreach ($testCase in @($statusCases) + @($dateTimeCases)) {
@@ -1487,6 +1670,426 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
             $caught.Exception.InnerException | Should -BeNullOrEmpty
             $caught.Exception.Message |
                     Should -Not -Match 'token|private-marker|do-not-disclose'
+        }
+
+        It 'summary envelope adversarial rejects <Failure> <Field> after exact outer digest recomputation' -ForEach $summaryEnvelopeMutationCases {
+            $runId = [guid]::NewGuid()
+            $runDirectory = Join-Path $TestDrive (
+                    "summary-adversarial-$Field-" +
+                    $Failure.Replace(' ', '-')
+            )
+            $set = New-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+            $summaryPath = [string]$set.SummaryPaths[0]
+            $summary = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content -Raw -LiteralPath $summaryPath
+            )
+            switch ($Failure) {
+                'missing' {
+                    $summary.PSObject.Properties.Remove($Field)
+                }
+                'case drift' {
+                    $caseDriftedName = (
+                        $Field.Substring(0, 1).ToUpperInvariant() +
+                        $Field.Substring(1)
+                    )
+                    $caseDriftedValue = $summary.$Field
+                    $summary.PSObject.Properties.Remove($Field)
+                    $summary |
+                        Add-Member `
+                            -NotePropertyName $caseDriftedName `
+                            -NotePropertyValue $caseDriftedValue
+                }
+                default {
+                    $summary.$Field = $Value
+                }
+            }
+
+            $originalDigest = [string]$set.Results[0].phaseSummaryDigest
+            Write-CanonicalTestFile `
+                    -InputObject $summary `
+                    -Path $summaryPath
+            $newDigest = Get-CanonicalTestFileDigest -Path $summaryPath
+            $newDigest | Should -Not -BeExactly $originalDigest
+            $result = Copy-CanonicalTestValue $set.Results[0]
+            $result.phaseSummaryDigest = $newDigest
+            $result.phaseSummaryDigest |
+                    Should -BeExactly (
+                        Get-CanonicalTestFileDigest -Path $summaryPath
+                    )
+
+            $caught = $null
+            try {
+                    Test-TenantLifecycleSummaryEnvelope `
+                        -RunDirectory $runDirectory `
+                        -RunId $runId `
+                        -Stage Foundation `
+                        -SourceCommit $script:CanonicalSource `
+                        -PublicTenantKey tenant1 `
+                        -IntentDigest $script:CanonicalIntent `
+                        -StageResult $result |
+                        Out-Null
+            }
+            catch {
+                    $caught = $_
+            }
+
+            $caught | Should -Not -BeNullOrEmpty
+            $caught.Exception.Message | Should -BeExactly $Error
+            $caught.Exception.InnerException | Should -BeNullOrEmpty
+        }
+
+        It 'summary envelope adversarial rejects duplicate reserved property <Field> after exact outer digest recomputation' -ForEach $summaryEnvelopeReservedPropertyCases {
+            $runId = [guid]::NewGuid()
+            $runDirectory = Join-Path $TestDrive (
+                    "summary-duplicate-$Field"
+            )
+            $set = New-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+            $summaryPath = [string]$set.SummaryPaths[0]
+            $summary = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content -Raw -LiteralPath $summaryPath
+            )
+            $canonical = ConvertTo-TenantLifecycleCanonicalJson `
+                    -InputObject $summary
+            $propertyJson = ConvertTo-Json `
+                    -InputObject $summary.$Field `
+                    -Depth 30 `
+                    -Compress
+            $duplicate = (
+                '{"' + $Field + '":' + $propertyJson + ',' +
+                $canonical.Substring(1)
+            )
+            [IO.File]::WriteAllText(
+                $summaryPath,
+                $duplicate,
+                [Text.UTF8Encoding]::new($false)
+            )
+            $result = Copy-CanonicalTestValue $set.Results[0]
+            $result.phaseSummaryDigest =
+                    Get-CanonicalTestFileDigest -Path $summaryPath
+            $result.phaseSummaryDigest |
+                    Should -BeExactly (
+                        Get-CanonicalTestFileDigest -Path $summaryPath
+                    )
+
+            {
+                    Test-TenantLifecycleSummaryEnvelope `
+                        -RunDirectory $runDirectory `
+                        -RunId $runId `
+                        -Stage Foundation `
+                        -SourceCommit $script:CanonicalSource `
+                        -PublicTenantKey tenant1 `
+                        -IntentDigest $script:CanonicalIntent `
+                        -StageResult $result
+            } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.SummaryEnvelope.Summary.FileInvalid'
+            )
+        }
+
+        It 'summary envelope adversarial rejects ordinal collision for shared root <Field> after exact outer digest recomputation' -ForEach $summaryEnvelopeSharedPropertyCases {
+            $runId = [guid]::NewGuid()
+            $runDirectory = Join-Path $TestDrive (
+                    "summary-collision-$Field"
+            )
+            $set = New-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+            $summaryPath = [string]$set.SummaryPaths[0]
+            $summary = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content -Raw -LiteralPath $summaryPath
+            )
+            $canonical = ConvertTo-TenantLifecycleCanonicalJson `
+                    -InputObject $summary
+            $caseDriftedName = (
+                $Field.Substring(0, 1).ToUpperInvariant() +
+                $Field.Substring(1)
+            )
+            $collision = (
+                '{"' + $caseDriftedName +
+                '":"provider-collision-do-not-disclose",' +
+                $canonical.Substring(1)
+            )
+            [IO.File]::WriteAllText(
+                $summaryPath,
+                $collision,
+                [Text.UTF8Encoding]::new($false)
+            )
+            $result = Copy-CanonicalTestValue $set.Results[0]
+            $result.phaseSummaryDigest =
+                    Get-CanonicalTestFileDigest -Path $summaryPath
+            $result.phaseSummaryDigest |
+                    Should -BeExactly (
+                        Get-CanonicalTestFileDigest -Path $summaryPath
+                    )
+            $message = $null
+
+            try {
+                    Test-TenantLifecycleSummaryEnvelope `
+                        -RunDirectory $runDirectory `
+                        -RunId $runId `
+                        -Stage Foundation `
+                        -SourceCommit $script:CanonicalSource `
+                        -PublicTenantKey tenant1 `
+                        -IntentDigest $script:CanonicalIntent `
+                        -StageResult $result |
+                        Out-Null
+            }
+            catch {
+                    $message = $_.Exception.Message
+            }
+
+            $message | Should -BeExactly (
+                    'TenantLifecycle.SummaryEnvelope.Summary.FileInvalid'
+            )
+            $message |
+                    Should -Not -Match (
+                        [regex]::Escape($caseDriftedName) +
+                        '|provider-collision|do-not-disclose'
+                    )
+        }
+
+        It 'summary envelope adversarial rejects a complete legacy summary with its coordinated result digest' {
+            $runId = [guid]::NewGuid()
+            $runDirectory = Join-Path $TestDrive (
+                    'summary-adversarial-legacy'
+            )
+            $set = New-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+            $summaryPath = [string]$set.SummaryPaths[0]
+            $summary = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content -Raw -LiteralPath $summaryPath
+            )
+            foreach ($field in @(
+                'schemaVersion',
+                'runId',
+                'stage',
+                'sourceCommit',
+                'publicTenantKey',
+                'intentDigest',
+                'stateDigest',
+                'phaseManifestDigest',
+                'status',
+                'classification',
+                'completedAtUtc'
+            )) {
+                    $summary.PSObject.Properties.Remove($field)
+            }
+            Write-CanonicalTestFile `
+                    -InputObject $summary `
+                    -Path $summaryPath
+            $result = Copy-CanonicalTestValue $set.Results[0]
+            $result.phaseSummaryDigest =
+                    Get-CanonicalTestFileDigest -Path $summaryPath
+            $result.phaseSummaryDigest |
+                    Should -BeExactly (
+                        Get-CanonicalTestFileDigest -Path $summaryPath
+                    )
+
+            {
+                    Test-TenantLifecycleSummaryEnvelope `
+                        -RunDirectory $runDirectory `
+                        -RunId $runId `
+                        -Stage Foundation `
+                        -SourceCommit $script:CanonicalSource `
+                        -PublicTenantKey tenant1 `
+                        -IntentDigest $script:CanonicalIntent `
+                        -StageResult $result
+            } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.SummaryEnvelope.Summary.FileInvalid'
+            )
+        }
+
+        It 'coordinated summary substitution rejects foreign <Coordinate> after both artifacts and outer digest are updated' -ForEach $summaryEnvelopeSubstitutionCases {
+            $runId = [guid]::NewGuid()
+            $runDirectory = Join-Path $TestDrive (
+                    'coordinated-substitution-' +
+                    $Coordinate.Replace(' ', '-')
+            )
+            $set = New-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+            $summaryPath = [string]$set.SummaryPaths[0]
+            $summary = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content -Raw -LiteralPath $summaryPath
+            )
+            $summary.$SummaryField = $Value
+            Write-CanonicalTestFile `
+                    -InputObject $summary `
+                    -Path $summaryPath
+
+            $result = Copy-CanonicalTestValue $set.Results[0]
+            $result.$ResultField = $Value
+            if ($Coordinate -ceq 'stage') {
+                    $result.evidenceRelativePath =
+                        'phases/ReadBack/summary.json'
+            }
+            $result.phaseSummaryDigest =
+                    Get-CanonicalTestFileDigest -Path $summaryPath
+            $resultPath = Join-Path $runDirectory (
+                    'stage-results\Foundation.json'
+            )
+            Write-CanonicalTestFile `
+                    -InputObject $result `
+                    -Path $resultPath
+            $result.phaseSummaryDigest |
+                    Should -BeExactly (
+                        Get-CanonicalTestFileDigest -Path $summaryPath
+                    )
+
+            {
+                    Invoke-CanonicalStageSet `
+                        -RunDirectory $runDirectory `
+                        -RunId $runId |
+                        Out-Null
+            } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.StageResultSet.Invalid'
+            )
+        }
+
+        It 'embedded manifest digest tamper rejects changed content after every outer digest is updated' {
+            $runId = [guid]::NewGuid()
+            $runDirectory = Join-Path $TestDrive (
+                    'embedded-manifest-digest-tamper'
+            )
+            $set = New-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+            $manifestPath = [string]$set.ManifestPaths[0]
+            $manifest = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content -Raw -LiteralPath $manifestPath
+            )
+            $embeddedDigest = [string]$manifest.digest
+            $originalManifestFileDigest =
+                    [string]$set.Results[0].phaseManifestDigest
+            $manifest.expiresAtUtc = '2026-10-03T08:31:00.0000000Z'
+            $manifest.digest | Should -BeExactly $embeddedDigest
+            Write-CanonicalTestFile `
+                    -InputObject $manifest `
+                    -Path $manifestPath
+            $newManifestFileDigest =
+                    Get-CanonicalTestFileDigest -Path $manifestPath
+            $newManifestFileDigest |
+                    Should -Not -BeExactly $originalManifestFileDigest
+
+            $summaryPath = [string]$set.SummaryPaths[0]
+            $summary = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content -Raw -LiteralPath $summaryPath
+            )
+            $summary.phaseManifestDigest = $newManifestFileDigest
+            Write-CanonicalTestFile `
+                    -InputObject $summary `
+                    -Path $summaryPath
+            $newSummaryFileDigest =
+                    Get-CanonicalTestFileDigest -Path $summaryPath
+
+            $result = Copy-CanonicalTestValue $set.Results[0]
+            $result.phaseManifestDigest = $newManifestFileDigest
+            $result.phaseSummaryDigest = $newSummaryFileDigest
+            Write-CanonicalTestFile `
+                    -InputObject $result `
+                    -Path (
+                        Join-Path $runDirectory (
+                            'stage-results\Foundation.json'
+                        )
+                    )
+            $summary.phaseManifestDigest |
+                    Should -BeExactly $result.phaseManifestDigest
+            $result.phaseSummaryDigest |
+                    Should -BeExactly (
+                        Get-CanonicalTestFileDigest -Path $summaryPath
+                    )
+
+            {
+                    Test-TenantLifecycleSummaryEnvelope `
+                        -RunDirectory $runDirectory `
+                        -RunId $runId `
+                        -Stage Foundation `
+                        -SourceCommit $script:CanonicalSource `
+                        -PublicTenantKey tenant1 `
+                        -IntentDigest $script:CanonicalIntent `
+                        -StageResult $result
+            } | Should -Throw -ExpectedMessage (
+                    'TenantLifecycle.SummaryEnvelope.' +
+                    'Manifest.EmbeddedDigestMismatch'
+            )
+        }
+
+        It 'opaque provider extras remain absent from the shared return and exact result set' {
+            $runId = [guid]::NewGuid()
+            $runDirectory = Join-Path $TestDrive (
+                    'opaque-provider-extras-shared-boundary'
+            )
+            $set = New-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+            $summaryPath = [string]$set.SummaryPaths[0]
+            $summary = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content -Raw -LiteralPath $summaryPath
+            )
+            $summary |
+                    Add-Member `
+                        -NotePropertyName opaqueProviderExtras `
+                        -NotePropertyValue (
+                            [pscustomobject][ordered]@{
+                                providerId = 'provider-id-synthetic-001'
+                                providerName = 'Synthetic Provider'
+                                providerUrl = (
+                                    'https://provider.example.invalid/' +
+                                    'resources/synthetic-001'
+                                )
+                                actions = @('inspect', 'report')
+                                nested = [pscustomobject][ordered]@{
+                                    values = @(
+                                        'nested-provider-value-synthetic'
+                                    )
+                                }
+                            }
+                        )
+            Write-CanonicalTestFile `
+                    -InputObject $summary `
+                    -Path $summaryPath
+            $result = Copy-CanonicalTestValue $set.Results[0]
+            $result.phaseSummaryDigest =
+                    Get-CanonicalTestFileDigest -Path $summaryPath
+            Write-CanonicalTestFile `
+                    -InputObject $result `
+                    -Path (
+                        Join-Path $runDirectory (
+                            'stage-results\Foundation.json'
+                        )
+                    )
+
+            $shared = Test-TenantLifecycleSummaryEnvelope `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId `
+                    -Stage Foundation `
+                    -SourceCommit $script:CanonicalSource `
+                    -PublicTenantKey tenant1 `
+                    -IntentDigest $script:CanonicalIntent `
+                    -StageResult $result
+            $exactSet = @(
+                    Invoke-CanonicalStageSet `
+                        -RunDirectory $runDirectory `
+                        -RunId $runId
+            )
+            $shared.PSObject.Properties.Name -join ',' |
+                    Should -BeExactly (
+                        'stage,manifestStateDigest,selectedStages,' +
+                        'prerequisiteResults'
+                    )
+            $exactSet.Count | Should -Be 1
+            (
+                @($shared, $exactSet) |
+                    ConvertTo-Json -Depth 30
+            ) | Should -Not -Match (
+                    'opaqueProviderExtras|provider-id-synthetic-001|' +
+                    'Synthetic Provider|provider[.]example[.]invalid|' +
+                    'nested-provider-value-synthetic'
+            )
         }
     }
 

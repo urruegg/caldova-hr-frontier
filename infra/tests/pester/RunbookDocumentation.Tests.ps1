@@ -220,6 +220,112 @@ Describe 'Runbook documentation contracts' {
         }
     }
 
+    It 'publishes the Approved child summary envelope and residual implementation gate' {
+        $documentCases = @(
+            @{
+                Path = 'infra/docs/runbooks/README.md'
+                Version = '1.6'
+            }
+            @{
+                Path = 'infra/docs/runbooks/01-developer-workstation.md'
+                Version = '1.5'
+            }
+            @{
+                Path = 'infra/docs/runbooks/03-customer-handover.md'
+                Version = '1.4'
+            }
+            @{
+                Path = 'infra/docs/README.md'
+                Version = '1.4'
+            }
+            @{
+                Path = 'infra/README.md'
+                Version = '1.10'
+            }
+        )
+        $requiredStatements = @(
+            (
+                'The shared child summary envelope reserves exactly ' +
+                '`schemaVersion`, `runId`, `stage`, `sourceCommit`, ' +
+                '`publicTenantKey`, `intentDigest`, `stateDigest`, ' +
+                '`phaseManifestDigest`, `status`, `classification`, and ' +
+                '`completedAtUtc`, and retains the five standard fields ' +
+                '`startedAtUtc`, `counts`, `prerequisites`, `actions`, and ' +
+                '`nonClaims`.'
+            ),
+            (
+                'Provider-specific extras are root-only and opaque, are ' +
+                'absent from projections and errors, and cannot enter the ' +
+                'closed shared nested structures.'
+            ),
+            (
+                'The manifest embedded `digest`, exact-file ' +
+                '`phaseManifestDigest`, and exact-file ' +
+                '`phaseSummaryDigest` are three distinct checks.'
+            ),
+            (
+                'The child writes the summary before the stage result, and ' +
+                'the summary has no self-digest.'
+            ),
+            (
+                'Umbrella `Verify` and `Assess`/`Plan` prerequisite dispatch ' +
+                'enforce the same envelope and embedded manifest digest.'
+            ),
+            (
+                'Legacy evidence fails closed and requires a new run; there ' +
+                'is no compatibility, inference, or repair path.'
+            ),
+            (
+                'Umbrella authority remains exactly `Assess`, `Plan`, and ' +
+                '`Verify`; `stage-results` remains authoritative and the ' +
+                'second `Verify` pass remains required.'
+            ),
+            (
+                'Plan 1 and the child summary envelope implementation remain ' +
+                'synthetic, `Draft`, and blocked until reviewed merge and ' +
+                'then-current green `main`.'
+            ),
+            (
+                'No live, provider, or tenant operation was performed, and ' +
+                'no merge-readiness claim is made.'
+            )
+        )
+
+        foreach ($documentCase in $documentCases) {
+            $content = Get-Content `
+                -Raw `
+                -LiteralPath (
+                    Join-Path $script:repositoryRoot $documentCase.Path
+                )
+            $content | Should -Match (
+                '(?m)^\|\s+\*\*Version\*\*\s+\|\s+' +
+                [regex]::Escape($documentCase.Version) +
+                '\s+\|\s*$'
+            )
+            $content | Should -Match (
+                '(?m)^\|\s+\*\*Date\*\*\s+\|\s+2026-10-19\s+\|\s*$'
+            )
+            $content | Should -Match (
+                'Approved Child Summary Envelope Design.+child-summary-' +
+                'envelope-design[.]md'
+            )
+            $content | Should -Match (
+                'Draft Child Summary Envelope Implementation Plan.+' +
+                'child-summary-envelope-implementation[.]md'
+            )
+            foreach ($statement in $requiredStatements) {
+                $content |
+                    Should -Match ([regex]::Escape($statement)) -Because (
+                        "$($documentCase.Path) publishes the full boundary"
+                    )
+            }
+            $content | Should -Not -Match (
+                'summar(?:y|ies).{0,120}validated only by exact bytes and digest|' +
+                'validates only their canonical coordinates and exact bytes/digests'
+            )
+        }
+    }
+
     It 'preserves the Plan 1 corrective gate and keeps Plans 2-6 Draft and blocked' {
         $planPaths = @(
             'docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md',

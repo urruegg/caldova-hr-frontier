@@ -1225,6 +1225,119 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             -Path $resultPath
                     }
 
+                    function Add-CoordinateOpaqueProviderExtras {
+                        param(
+                            [Parameter(Mandatory)][guid]$RunId,
+                            [Parameter(Mandatory)][string]$Stage
+                        )
+
+                        $runDirectory = Join-Path (
+                            $script:CoordinateEvidenceRoot
+                        ) $RunId.ToString('D').ToLowerInvariant()
+                        $summaryPath = Join-Path $runDirectory (
+                            "phases\$Stage\summary.json"
+                        )
+                        $summary =
+                            ConvertFrom-TenantLifecycleJson -InputObject (
+                                Get-Content `
+                                    -Raw `
+                                    -LiteralPath $summaryPath
+                            )
+                        $summary |
+                            Add-Member `
+                                -NotePropertyName opaqueProviderExtras `
+                                -NotePropertyValue (
+                                    [pscustomobject][ordered]@{
+                                        providerId =
+                                            'provider-id-synthetic-001'
+                                        providerName =
+                                            'Synthetic Provider'
+                                        providerUrl = (
+                                            'https://provider.example.invalid/' +
+                                            'resources/synthetic-001'
+                                        )
+                                        actions = @('inspect', 'report')
+                                        nested = [pscustomobject][ordered]@{
+                                            values = @(
+                                                'nested-provider-value-synthetic'
+                                            )
+                                        }
+                                    }
+                                )
+                        Write-CoordinateCanonicalFile `
+                            -InputObject $summary `
+                            -Path $summaryPath
+
+                        $resultPath = Join-Path $runDirectory (
+                            "stage-results\$Stage.json"
+                        )
+                        $result =
+                            ConvertFrom-TenantLifecycleJson -InputObject (
+                                Get-Content `
+                                    -Raw `
+                                    -LiteralPath $resultPath
+                            )
+                        $result.phaseSummaryDigest =
+                            Get-CoordinateExactFileDigest `
+                                -Path $summaryPath
+                        Write-CoordinateCanonicalFile `
+                            -InputObject $result `
+                            -Path $resultPath
+                        $result.phaseSummaryDigest |
+                            Should -BeExactly (
+                                Get-CoordinateExactFileDigest `
+                                    -Path $summaryPath
+                            )
+                    }
+
+                    function Set-CoordinateCoordinatedSummarySubstitution {
+                        param(
+                            [Parameter(Mandatory)][guid]$RunId,
+                            [Parameter(Mandatory)][string]$Stage
+                        )
+
+                        $foreignRunId =
+                            'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
+                        $runDirectory = Join-Path (
+                            $script:CoordinateEvidenceRoot
+                        ) $RunId.ToString('D').ToLowerInvariant()
+                        $summaryPath = Join-Path $runDirectory (
+                            "phases\$Stage\summary.json"
+                        )
+                        $summary =
+                            ConvertFrom-TenantLifecycleJson -InputObject (
+                                Get-Content `
+                                    -Raw `
+                                    -LiteralPath $summaryPath
+                            )
+                        $summary.runId = $foreignRunId
+                        Write-CoordinateCanonicalFile `
+                            -InputObject $summary `
+                            -Path $summaryPath
+
+                        $resultPath = Join-Path $runDirectory (
+                            "stage-results\$Stage.json"
+                        )
+                        $result =
+                            ConvertFrom-TenantLifecycleJson -InputObject (
+                                Get-Content `
+                                    -Raw `
+                                    -LiteralPath $resultPath
+                            )
+                        $result.runId = $foreignRunId
+                        $result.phaseSummaryDigest =
+                            Get-CoordinateExactFileDigest `
+                                -Path $summaryPath
+                        Write-CoordinateCanonicalFile `
+                            -InputObject $result `
+                            -Path $resultPath
+                        $result.phaseSummaryDigest |
+                            Should -BeExactly (
+                                Get-CoordinateExactFileDigest `
+                                    -Path $summaryPath
+                            )
+                    }
+
                     function Set-CoordinateDrift {
                         param(
                             [Parameter(Mandatory)]
@@ -3032,6 +3145,136 @@ $invoker = [scriptblock]::Create($invokerText)
                         $calls = Get-CoordinateObservedCalls -RunId $runId
                         ($calls -join ',') | Should -BeExactly 'Workstation|Assess'
                     }
+
+                    It 'opaque provider extras stay out of <Mode> prerequisite control records and permit later dispatch' -ForEach @(
+                        @{ Mode = 'Assess' }
+                        @{ Mode = 'Plan' }
+                    ) {
+                        $runId = [guid]::NewGuid()
+                        $selectedStages = @(
+                            'Workstation',
+                            'Foundation'
+                        )
+                        Write-CoordinateStageResult `
+                            -RunId $runId `
+                            -Stage Workstation `
+                            -SelectedStages $selectedStages
+                        Add-CoordinateOpaqueProviderExtras `
+                            -RunId $runId `
+                            -Stage Workstation
+                        $invoker = New-CoordinateArtifactInvoker
+                        $projectionPath = Join-Path (
+                            Join-Path $script:CoordinateEvidenceRoot (
+                                $runId.ToString('D').ToLowerInvariant()
+                            )
+                        ) 'summary.json'
+
+                        {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages $selectedStages `
+                                -Mode $Mode `
+                                -SubsystemInvoker $invoker
+                        } | Should -Not -Throw
+                        (
+                            Get-CoordinateObservedCalls -RunId $runId
+                        ) -join ',' | Should -BeExactly (
+                            "Workstation|$Mode,Foundation|$Mode"
+                        )
+                        $controlRecordPath = Join-Path (
+                            Split-Path -Parent $projectionPath
+                        ) '.test-observation\record-Foundation.json'
+                        $controlRecord = Get-Content `
+                            -Raw `
+                            -LiteralPath $controlRecordPath
+                        $controlRecord |
+                            Should -Not -Match (
+                                'opaqueProviderExtras|' +
+                                'provider-id-synthetic-001|' +
+                                'Synthetic Provider|' +
+                                'provider[.]example[.]invalid|' +
+                                'nested-provider-value-synthetic'
+                            )
+                        $projectionPath | Should -Not -Exist
+                        $script:CoordinateProviderRunnerCalls.Count |
+                            Should -Be 0
+                    }
+
+                    It 'coordinated summary substitution fails closed before later <Mode> dispatch without disclosure or projection' -ForEach @(
+                        @{ Mode = 'Assess' }
+                        @{ Mode = 'Plan' }
+                    ) {
+                        $runId = [guid]::NewGuid()
+                        $selectedStages = @(
+                            'Workstation',
+                            'Foundation'
+                        )
+                        Write-CoordinateStageResult `
+                            -RunId $runId `
+                            -Stage Workstation `
+                            -SelectedStages $selectedStages
+                        Add-CoordinateOpaqueProviderExtras `
+                            -RunId $runId `
+                            -Stage Workstation
+                        Set-CoordinateCoordinatedSummarySubstitution `
+                            -RunId $runId `
+                            -Stage Workstation
+                        $invoker = New-CoordinateArtifactInvoker
+                        $runDirectory = Join-Path (
+                            $script:CoordinateEvidenceRoot
+                        ) $runId.ToString('D').ToLowerInvariant()
+                        $projectionPath = Join-Path $runDirectory 'summary.json'
+                        $caught = $null
+
+                        try {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages $selectedStages `
+                                -Mode $Mode `
+                                -SubsystemInvoker $invoker
+                        }
+                        catch {
+                            $caught = $_
+                        }
+
+                        $caught | Should -Not -BeNullOrEmpty
+                        $caught.Exception.Message |
+                            Should -BeExactly (
+                                'TenantLifecycle.ChildArtifact.Invalid'
+                            )
+                        $caught.Exception.Message |
+                            Should -Not -Match (
+                                'opaqueProviderExtras|' +
+                                'provider-id-synthetic-001|' +
+                                'Synthetic Provider|' +
+                                'provider[.]example[.]invalid|' +
+                                'nested-provider-value-synthetic'
+                            )
+                        (
+                            Get-CoordinateObservedCalls -RunId $runId
+                        ) -join ',' | Should -BeExactly (
+                            "Workstation|$Mode"
+                        )
+                        $controlRecord = Get-Content `
+                            -Raw `
+                            -LiteralPath (
+                                Join-Path $runDirectory (
+                                    '.test-observation\' +
+                                    'record-Workstation.json'
+                                )
+                            )
+                        $controlRecord |
+                            Should -Not -Match (
+                                'opaqueProviderExtras|' +
+                                'provider-id-synthetic-001|' +
+                                'Synthetic Provider|' +
+                                'provider[.]example[.]invalid|' +
+                                'nested-provider-value-synthetic'
+                            )
+                        $projectionPath | Should -Not -Exist
+                        $script:CoordinateProviderRunnerCalls.Count |
+                            Should -Be 0
+                    }
                 }
 
                 Context 'canonical Verify evidence authority' {
@@ -3351,6 +3594,102 @@ $invoker = [scriptblock]::Create($invokerText)
                         $projection = $projectionBytes | ConvertFrom-Json
                         ($projection.stages.stage -join ',') |
                             Should -BeExactly 'Foundation'
+                    }
+
+                    It 'opaque provider extras stay out of Verify projection and invoke no child or provider path' {
+                        $runId = [guid]::NewGuid()
+                        Write-CoordinateVerifySet -RunId $runId | Out-Null
+                        Add-CoordinateOpaqueProviderExtras `
+                            -RunId $runId `
+                            -Stage Foundation
+
+                        $output = @(
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages @('Foundation') `
+                                -Mode Verify
+                        )
+
+                        $output.Count | Should -Be 0
+                        $runDirectory = Join-Path (
+                            $script:CoordinateEvidenceRoot
+                        ) $runId.ToString('D').ToLowerInvariant()
+                        $projectionPath = Join-Path $runDirectory 'summary.json'
+                        $projectionBytes = Get-Content `
+                            -Raw `
+                            -LiteralPath $projectionPath
+                        $projectionBytes |
+                            Should -Not -Match (
+                                'opaqueProviderExtras|' +
+                                'provider-id-synthetic-001|' +
+                                'Synthetic Provider|' +
+                                'provider[.]example[.]invalid|' +
+                                'nested-provider-value-synthetic'
+                            )
+                        @(
+                            Get-CoordinateObservedCalls -RunId $runId
+                        ).Count | Should -Be 0
+                        Test-CoordinateProviderMarker -RunId $runId |
+                            Should -BeFalse
+                        $script:CoordinateProviderRunnerCalls.Count |
+                            Should -Be 0
+                    }
+
+                    It 'coordinated summary substitution preserves an existing Verify projection and discloses no opaque provider extras' {
+                        $runId = [guid]::NewGuid()
+                        Write-CoordinateVerifySet -RunId $runId | Out-Null
+                        Add-CoordinateOpaqueProviderExtras `
+                            -RunId $runId `
+                            -Stage Foundation
+                        Set-CoordinateCoordinatedSummarySubstitution `
+                            -RunId $runId `
+                            -Stage Foundation
+                        $runDirectory = Join-Path (
+                            $script:CoordinateEvidenceRoot
+                        ) $runId.ToString('D').ToLowerInvariant()
+                        $projectionPath = Join-Path $runDirectory 'summary.json'
+                        $sentinel = "sentinel-projection-must-survive`n"
+                        [IO.File]::WriteAllText(
+                            $projectionPath,
+                            $sentinel,
+                            [Text.UTF8Encoding]::new($false)
+                        )
+                        $caught = $null
+
+                        try {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId $runId `
+                                -Stages @('Foundation') `
+                                -Mode Verify
+                        }
+                        catch {
+                            $caught = $_
+                        }
+
+                        $caught | Should -Not -BeNullOrEmpty
+                        $caught.Exception.Message |
+                            Should -BeExactly (
+                                'TenantLifecycle.StageResultSet.Invalid'
+                            )
+                        $caught.Exception.Message |
+                            Should -Not -Match (
+                                'opaqueProviderExtras|' +
+                                'provider-id-synthetic-001|' +
+                                'Synthetic Provider|' +
+                                'provider[.]example[.]invalid|' +
+                                'nested-provider-value-synthetic'
+                            )
+                        [IO.File]::ReadAllText(
+                            $projectionPath,
+                            [Text.UTF8Encoding]::new($false, $true)
+                        ) | Should -BeExactly $sentinel
+                        @(
+                            Get-CoordinateObservedCalls -RunId $runId
+                        ).Count | Should -Be 0
+                        Test-CoordinateProviderMarker -RunId $runId |
+                            Should -BeFalse
+                        $script:CoordinateProviderRunnerCalls.Count |
+                            Should -Be 0
                     }
 
                     It 'Verify second Verify pass rejects <Mutation> evidence drift without writing projection' -ForEach @(

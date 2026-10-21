@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.3 |
-| **Date** | 2026-10-03 |
+| **Version** | 1.4 |
+| **Date** | 2026-10-19 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active |
 | **Scope** | Infrastructure documentation |
-| **References** | [Infrastructure Domain](../README.md), [Documentation Policy](../../docs/README.md), [Approved Tenant 1 Runbook End-to-End Design](../../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md), [Tenant Lifecycle Core Implementation Plan](../../docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md), [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md) |
+| **References** | [Infrastructure Domain](../README.md), [Documentation Policy](../../docs/README.md), [Approved Tenant 1 Runbook End-to-End Design](../../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md), [Approved Child Summary Envelope Design](../../docs/specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md), [Draft Child Summary Envelope Implementation Plan](../../docs/plans/2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md), [Tenant Lifecycle Core Implementation Plan](../../docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md), [Tenant 1 Lean Engineering Platform Design](../../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md) |
 
 ## Purpose and Authority
 
@@ -18,6 +18,26 @@ This folder is the maintained catalogue for infrastructure architecture, configu
 This folder contains infrastructure guidance, active attended procedures, superseded stop notices, and the operational-runbook catalogue, including the implemented provider-neutral coordinate-only lifecycle-core boundary. The umbrella exposes only Assess/Plan/Verify: child runbooks retain manifest approval, WhatIf/Apply, `ShouldProcess`, provider read-back, state adoption, and immutable canonical stage-result ownership. Umbrella `Verify` never invokes a child and publishes only the stage-only projection. It does not contain tenant-private configuration or state, raw operational evidence, credentials, deployment state, or source code. Lifecycle state remains ignored and digest-bound rather than copied into run evidence. The lifecycle-core documentation authorizes no provider procedure.
 
 Plan 1 was implemented with local synthetic tests only; no live cloud, provider, or tenant operation was performed. Plan 1 remains incomplete and Plans 2-6 remain `Draft` and blocked until the coordinate-only correction is merged and then-current `main` is green.
+
+## Approved Child Summary Envelope and Residual Gate
+
+The shared child summary envelope reserves exactly `schemaVersion`, `runId`, `stage`, `sourceCommit`, `publicTenantKey`, `intentDigest`, `stateDigest`, `phaseManifestDigest`, `status`, `classification`, and `completedAtUtc`, and retains the five standard fields `startedAtUtc`, `counts`, `prerequisites`, `actions`, and `nonClaims`.
+
+Provider-specific extras are root-only and opaque, are absent from projections and errors, and cannot enter the closed shared nested structures.
+
+The manifest embedded `digest`, exact-file `phaseManifestDigest`, and exact-file `phaseSummaryDigest` are three distinct checks.
+
+The child writes the summary before the stage result, and the summary has no self-digest.
+
+Umbrella `Verify` and `Assess`/`Plan` prerequisite dispatch enforce the same envelope and embedded manifest digest.
+
+Legacy evidence fails closed and requires a new run; there is no compatibility, inference, or repair path.
+
+Umbrella authority remains exactly `Assess`, `Plan`, and `Verify`; `stage-results` remains authoritative and the second `Verify` pass remains required.
+
+Plan 1 and the child summary envelope implementation remain synthetic, `Draft`, and blocked until reviewed merge and then-current green `main`.
+
+No live, provider, or tenant operation was performed, and no merge-readiness claim is made.
 
 ## Reading Order
 

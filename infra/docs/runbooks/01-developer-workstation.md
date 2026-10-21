@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.4 |
-| **Date** | 2026-10-03 |
+| **Version** | 1.5 |
+| **Date** | 2026-10-19 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Approved Windows 11 administrator workstation |
-| **References** | [Infrastructure Operational Runbooks](README.md); [Approved Tenant 1 Runbook End-to-End Design](../../../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md); [Tenant Lifecycle Core Implementation Plan](../../../docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md); [Operational Runbooks Design](../../../docs/specs/2026-09-26-operational-runbooks-design.md) |
+| **References** | [Infrastructure Operational Runbooks](README.md); [Approved Tenant 1 Runbook End-to-End Design](../../../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md); [Approved Child Summary Envelope Design](../../../docs/specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md); [Draft Child Summary Envelope Implementation Plan](../../../docs/plans/2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md); [Tenant Lifecycle Core Implementation Plan](../../../docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md); [Operational Runbooks Design](../../../docs/specs/2026-09-26-operational-runbooks-design.md) |
 
 This runbook assesses and, when explicitly approved, initializes one local Windows 11 administrator workstation for later attended infrastructure operations. It does not authenticate to cloud services, deploy infrastructure, create tenants, install repository-bundled skills, or mutate vendored content.
 
@@ -20,6 +20,26 @@ Plan 1's synthetic `Workstation` stage is not workstation assessment, installati
 The workstation child owns its assessment, execution manifest, approval, WhatIf/Apply, `ShouldProcess`, local read-back, terminal summary, and immutable `<run>/stage-results/Workstation.json` result. Existing `ExecutionManifestPath`, `ApprovedDigest`, and `Apply` parameters remain child interfaces on `Initialize-DeveloperWorkstation.ps1`; they are not umbrella parameters. The exact future sequence is child `Plan` -> child `approvals.json` -> child `WhatIf` -> child `Apply` -> child read-back -> canonical stage result -> umbrella `Verify`.
 
 Umbrella `Assess` or `Plan` may later dispatch only the matching non-mutating workstation child mode through a reviewed invoker. Umbrella `Verify` never invokes the workstation child, never installs software, and never interprets workstation actions; it accepts only an exact canonical stage result with literal `Passed` status. Plan 1 was implemented with local synthetic tests only; no live cloud, provider, or tenant operation was performed.
+
+### Approved child summary envelope and residual gate
+
+The shared child summary envelope reserves exactly `schemaVersion`, `runId`, `stage`, `sourceCommit`, `publicTenantKey`, `intentDigest`, `stateDigest`, `phaseManifestDigest`, `status`, `classification`, and `completedAtUtc`, and retains the five standard fields `startedAtUtc`, `counts`, `prerequisites`, `actions`, and `nonClaims`.
+
+Provider-specific extras are root-only and opaque, are absent from projections and errors, and cannot enter the closed shared nested structures.
+
+The manifest embedded `digest`, exact-file `phaseManifestDigest`, and exact-file `phaseSummaryDigest` are three distinct checks.
+
+The child writes the summary before the stage result, and the summary has no self-digest.
+
+Umbrella `Verify` and `Assess`/`Plan` prerequisite dispatch enforce the same envelope and embedded manifest digest.
+
+Legacy evidence fails closed and requires a new run; there is no compatibility, inference, or repair path.
+
+Umbrella authority remains exactly `Assess`, `Plan`, and `Verify`; `stage-results` remains authoritative and the second `Verify` pass remains required.
+
+Plan 1 and the child summary envelope implementation remain synthetic, `Draft`, and blocked until reviewed merge and then-current green `main`.
+
+No live, provider, or tenant operation was performed, and no merge-readiness claim is made.
 
 ## Authoritative installation and authentication references
 

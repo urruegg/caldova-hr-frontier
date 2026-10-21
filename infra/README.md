@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.9 |
-| **Date** | 2026-10-03 |
+| **Version** | 1.10 |
+| **Date** | 2026-10-19 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
-| **References** | [Approved Tenant 1 Runbook End-to-End Design](../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md), [Tenant Lifecycle Core Implementation Plan](../docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md), [Tenant 1 Lean Engineering Platform Design](../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Tenant 1 Lean Platform Runbook](docs/24-tenant-1-lean-platform-runbook.md), [Approved Intake Design](../docs/specs/2026-09-17-architecture-baseline-intake-design.md) |
+| **References** | [Approved Tenant 1 Runbook End-to-End Design](../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md), [Approved Child Summary Envelope Design](../docs/specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md), [Draft Child Summary Envelope Implementation Plan](../docs/plans/2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md), [Tenant Lifecycle Core Implementation Plan](../docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md), [Tenant 1 Lean Engineering Platform Design](../docs/specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Tenant 1 Lean Platform Runbook](docs/24-tenant-1-lean-platform-runbook.md), [Approved Intake Design](../docs/specs/2026-09-17-architecture-baseline-intake-design.md) |
 
 This source-derived Proposed Baseline describes intended infrastructure architecture and operations. It does not prove that any tenant, Azure resource, Azure DevOps object, Power Platform environment, GitHub governance control, pipeline, identity, or service is currently deployed or configured.
 
@@ -49,6 +49,26 @@ Plan 1 adds closed tenant-lifecycle schemas, private intent/state validation, on
 Existing independently runnable procedures retain their own explicit gates: child Plan, child `approvals.json`, child WhatIf/Apply, child `ShouldProcess`, child read-back/state adoption, terminal summary, and `<run>/stage-results/<stage>.json`. A dependency succeeds at the umbrella only with literal `Passed`; `Failed`, `Manual`, `Blocked`, and `Refused` stop the chain. The lifecycle core itself permits only provider-neutral validation, non-mutating Assess/Plan sequencing through an injected invoker, exact Verify validation without child invocation, and a stage-only projection. It performs no authentication, provider discovery, role mutation, trust activation, GitHub Environment creation, Azure Pipeline execution, PAC operation, solution import, deployment creation, handover publication, or provider mutation.
 
 Plan 1 was implemented with local synthetic tests only; no live cloud, provider, or tenant operation was performed. Its projection explicitly makes no provider execution, approval, read-back, deployment, publication, or live-state claim. Plan 1 remains incomplete and Plans 2-6 remain `Draft` and blocked until the coordinate-only correction is merged and then-current `main` is green.
+
+## Approved Child Summary Envelope and Residual Gate
+
+The shared child summary envelope reserves exactly `schemaVersion`, `runId`, `stage`, `sourceCommit`, `publicTenantKey`, `intentDigest`, `stateDigest`, `phaseManifestDigest`, `status`, `classification`, and `completedAtUtc`, and retains the five standard fields `startedAtUtc`, `counts`, `prerequisites`, `actions`, and `nonClaims`.
+
+Provider-specific extras are root-only and opaque, are absent from projections and errors, and cannot enter the closed shared nested structures.
+
+The manifest embedded `digest`, exact-file `phaseManifestDigest`, and exact-file `phaseSummaryDigest` are three distinct checks.
+
+The child writes the summary before the stage result, and the summary has no self-digest.
+
+Umbrella `Verify` and `Assess`/`Plan` prerequisite dispatch enforce the same envelope and embedded manifest digest.
+
+Legacy evidence fails closed and requires a new run; there is no compatibility, inference, or repair path.
+
+Umbrella authority remains exactly `Assess`, `Plan`, and `Verify`; `stage-results` remains authoritative and the second `Verify` pass remains required.
+
+Plan 1 and the child summary envelope implementation remain synthetic, `Draft`, and blocked until reviewed merge and then-current green `main`.
+
+No live, provider, or tenant operation was performed, and no merge-readiness claim is made.
 
 No resource group, Log Analytics workspace, custom role, policy, Key Vault, storage account, application runtime, Power Platform environment, Azure DevOps project, repository, pipeline, solution, or GitHub ruleset is created or deployed by Task 1.
 

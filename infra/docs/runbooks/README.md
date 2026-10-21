@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.5 |
-| **Date** | 2026-10-03 |
+| **Version** | 1.6 |
+| **Date** | 2026-10-19 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure operations |
-| **References** | [Approved Tenant 1 Runbook End-to-End Design](../../../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md); [Tenant Lifecycle Core Implementation Plan](../../../docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md); [Operational Runbooks Design](../../../docs/specs/2026-09-26-operational-runbooks-design.md); [Tenant 1 Lean Platform Runbook](../24-tenant-1-lean-platform-runbook.md); [Infrastructure Domain](../../README.md) |
+| **References** | [Approved Tenant 1 Runbook End-to-End Design](../../../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md); [Approved Child Summary Envelope Design](../../../docs/specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md); [Draft Child Summary Envelope Implementation Plan](../../../docs/plans/2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md); [Tenant Lifecycle Core Implementation Plan](../../../docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md); [Operational Runbooks Design](../../../docs/specs/2026-09-26-operational-runbooks-design.md); [Tenant 1 Lean Platform Runbook](../24-tenant-1-lean-platform-runbook.md); [Infrastructure Domain](../../README.md) |
 
 These runbooks govern attended, local operations for the infrastructure domain. They define how an operator proves readiness, previews reviewed intent, receives a digest for approval, executes only the approved changes, records redacted evidence, and closes with recovery when anything remains unresolved.
 
@@ -25,11 +25,31 @@ One run uses one absolute evidence directory outside Git. The coordinate-only um
 |---|---|
 | `phases/<stage>/assessment.json` | Canonical non-mutating output produced by that child during umbrella `Assess`. |
 | `phases/<stage>/execution-manifest.json` | Canonical non-mutating output produced by that child during umbrella `Plan`. Its required root includes `selectedStages` and `prerequisiteResults`; both are validated ordinally. |
-| `phases/<stage>/summary.json` | Immutable canonical terminal child summary. Provider details remain here as child-owned evidence and are validated only by exact bytes and digest during umbrella `Verify`. |
+| `phases/<stage>/summary.json` | Immutable canonical terminal child summary. Its shared envelope is validated semantically and correlated with current coordinates, the exact manifest, and the stage result; provider-specific root extras remain opaque child-owned evidence. |
 | `<run>/stage-results/<stage>.json` | Immutable canonical stage result containing only stage status, classification, source/intent/state provenance, child manifest/summary digests, its canonical summary path, and completion time. |
 | `<run>/summary.json` | Stage-only projection written by umbrella `Verify` after the exact selected stage-result set succeeds. |
 
-Child execution manifests and summaries are read-only umbrella `Verify` inputs. They remain child-owned evidence, and the umbrella validates only their canonical coordinates and exact bytes/digests; it acquires no authority from provider content. Child `approvals.json`, provider actions, WhatIf/Apply, `ShouldProcess`, state adoption, and provider read-back remain child-only and are neither umbrella authority nor umbrella output. The umbrella validates `selectedStages` and `prerequisiteResults` in exact ordinal order and never reads provider actions to derive topology. `pipeline.json` and `power-platform.json` remain provider-child evidence names; Plan 1 does not create or consume them as proof of pipeline execution, artifact import, or provider mutation.
+Child execution manifests and summaries are read-only umbrella `Verify` inputs. They remain child-owned evidence. The umbrella validates canonical coordinates, exact bytes and file digests, the shared summary envelope, and the manifest's independent embedded digest; it acquires no authority from provider content. Child `approvals.json`, provider actions, WhatIf/Apply, `ShouldProcess`, state adoption, and provider read-back remain child-only and are neither umbrella authority nor umbrella output. The umbrella validates `selectedStages` and `prerequisiteResults` in exact ordinal order and never reads provider actions to derive topology. `pipeline.json` and `power-platform.json` remain provider-child evidence names; Plan 1 does not create or consume them as proof of pipeline execution, artifact import, or provider mutation.
+
+### Approved child summary envelope and residual gate
+
+The shared child summary envelope reserves exactly `schemaVersion`, `runId`, `stage`, `sourceCommit`, `publicTenantKey`, `intentDigest`, `stateDigest`, `phaseManifestDigest`, `status`, `classification`, and `completedAtUtc`, and retains the five standard fields `startedAtUtc`, `counts`, `prerequisites`, `actions`, and `nonClaims`.
+
+Provider-specific extras are root-only and opaque, are absent from projections and errors, and cannot enter the closed shared nested structures.
+
+The manifest embedded `digest`, exact-file `phaseManifestDigest`, and exact-file `phaseSummaryDigest` are three distinct checks.
+
+The child writes the summary before the stage result, and the summary has no self-digest.
+
+Umbrella `Verify` and `Assess`/`Plan` prerequisite dispatch enforce the same envelope and embedded manifest digest.
+
+Legacy evidence fails closed and requires a new run; there is no compatibility, inference, or repair path.
+
+Umbrella authority remains exactly `Assess`, `Plan`, and `Verify`; `stage-results` remains authoritative and the second `Verify` pass remains required.
+
+Plan 1 and the child summary envelope implementation remain synthetic, `Draft`, and blocked until reviewed merge and then-current green `main`.
+
+No live, provider, or tenant operation was performed, and no merge-readiness claim is made.
 
 The retained child classifications are `NoChange`, `Create`, `Update`, `Manual`, `Blocked`, and `Refused`. At the umbrella boundary, a dependency succeeds only when its canonical stage result has literal `Passed` status and a `NoChange` or `Changed` classification. `Failed`, `Manual`, `Blocked`, and `Refused` all block dependants. A completed unchanged synthetic run does not prove a live provider is unchanged.
 
