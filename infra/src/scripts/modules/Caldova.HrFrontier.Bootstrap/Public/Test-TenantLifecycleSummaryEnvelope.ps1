@@ -72,13 +72,13 @@ function Test-TenantLifecycleSummaryEnvelope {
 
     $manifestRelativePath =
         "phases/$Stage/execution-manifest.json"
-    $manifestPath = Join-Path $RunDirectory (
-        $manifestRelativePath.Replace(
-            '/',
-            [IO.Path]::DirectorySeparatorChar
-        )
-    )
     try {
+        $manifestPath = Join-Path $RunDirectory (
+            $manifestRelativePath.Replace(
+                '/',
+                [IO.Path]::DirectorySeparatorChar
+            )
+        )
         $manifestRecord = Read-TenantLifecycleCanonicalJsonFile `
             -Path $manifestPath `
             -ContainmentRoot $RunDirectory `
@@ -147,13 +147,13 @@ function Test-TenantLifecycleSummaryEnvelope {
         )
     }
 
-    $summaryPath = Join-Path $RunDirectory (
-        $expectedSummaryRelativePath.Replace(
-            '/',
-            [IO.Path]::DirectorySeparatorChar
-        )
-    )
     try {
+        $summaryPath = Join-Path $RunDirectory (
+            $expectedSummaryRelativePath.Replace(
+                '/',
+                [IO.Path]::DirectorySeparatorChar
+            )
+        )
         $summaryRecord = Read-TenantLifecycleCanonicalJsonFile `
             -Path $summaryPath `
             -ContainmentRoot $RunDirectory `

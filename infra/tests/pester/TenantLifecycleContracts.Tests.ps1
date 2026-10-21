@@ -1041,6 +1041,151 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
                     )
         }
 
+        It 'maps manifest path construction failures to the fixed file error without disclosure' {
+            $runId = [guid]::NewGuid()
+            $runDirectory = Join-Path $TestDrive (
+                    'shared-envelope-manifest-path-boundary'
+            )
+            $set = New-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+            $providerRunDirectory =
+                'ManifestProviderMarker:\private-path-marker'
+            $caught = $null
+            $originalErrorActionPreference = $ErrorActionPreference
+            try {
+                    $ErrorActionPreference = 'Stop'
+                    try {
+                        Test-TenantLifecycleSummaryEnvelope `
+                            -RunDirectory $providerRunDirectory `
+                            -RunId $runId `
+                            -Stage Foundation `
+                            -SourceCommit $script:CanonicalSource `
+                            -PublicTenantKey tenant1 `
+                            -IntentDigest $script:CanonicalIntent `
+                            -StageResult $set.Results[0] `
+                            -ErrorAction Stop |
+                            Out-Null
+                    }
+                    catch {
+                        $caught = $_
+                    }
+            }
+            finally {
+                    $ErrorActionPreference =
+                        $originalErrorActionPreference
+            }
+
+            $caught | Should -Not -BeNullOrEmpty
+            $caught.Exception.Message | Should -BeExactly (
+                    'TenantLifecycle.SummaryEnvelope.Manifest.FileInvalid'
+            )
+            $caught.Exception.InnerException | Should -BeNullOrEmpty
+            $caught.Exception.Message | Should -Not -Match (
+                    'ManifestProviderMarker|private-path-marker|' +
+                    'Cannot find drive'
+            )
+        }
+
+        It 'maps summary path construction failures to the fixed file error without disclosure' {
+            $runId = [guid]::NewGuid()
+            $runDirectory = Join-Path $TestDrive (
+                    'shared-envelope-summary-path-boundary'
+            )
+            $set = New-CanonicalStageSet `
+                    -RunDirectory $runDirectory `
+                    -RunId $runId
+            $manifest = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content `
+                        -Raw `
+                        -LiteralPath $set.ManifestPaths[0]
+            )
+
+            $actual = InModuleScope `
+                Caldova.HrFrontier.Bootstrap `
+                -Parameters @{
+                    RunId = $runId
+                    StageResult = $set.Results[0]
+                    SourceCommit = $script:CanonicalSource
+                    IntentDigest = $script:CanonicalIntent
+                    Manifest = $manifest
+                } {
+                    param(
+                        $RunId,
+                        $StageResult,
+                        $SourceCommit,
+                        $IntentDigest,
+                        $Manifest
+                    )
+
+                    $script:SummaryPathJoinCount = 0
+                    Mock Join-Path {
+                        param($Path, $ChildPath)
+
+                        $script:SummaryPathJoinCount++
+                        if ($script:SummaryPathJoinCount -eq 1) {
+                            return 'C:\synthetic-manifest.json'
+                        }
+                        throw (
+                            'SummaryProviderMarker:\private-path-marker ' +
+                            'Cannot find drive.'
+                        )
+                    }
+                    Mock Read-TenantLifecycleCanonicalJsonFile {
+                        [pscustomobject][ordered]@{
+                            value = $Manifest
+                        }
+                    } -ParameterFilter {
+                        $ContractKind -ceq 'ExecutionManifest'
+                    }
+
+                    $caught = $null
+                    $originalErrorActionPreference =
+                        $ErrorActionPreference
+                    try {
+                        $ErrorActionPreference = 'Stop'
+                        try {
+                            Test-TenantLifecycleSummaryEnvelope `
+                                -RunDirectory (
+                                    'SummaryProviderMarker:' +
+                                    '\private-path-marker'
+                                ) `
+                                -RunId $RunId `
+                                -Stage Foundation `
+                                -SourceCommit $SourceCommit `
+                                -PublicTenantKey tenant1 `
+                                -IntentDigest $IntentDigest `
+                                -StageResult $StageResult |
+                                Out-Null
+                        }
+                        catch {
+                            $caught = $_
+                        }
+                    }
+                    finally {
+                        $ErrorActionPreference =
+                            $originalErrorActionPreference
+                    }
+
+                    [pscustomobject][ordered]@{
+                        message = $caught.Exception.Message
+                        innerException =
+                            $caught.Exception.InnerException
+                        joinCount = $script:SummaryPathJoinCount
+                    }
+                }
+
+            $actual.joinCount | Should -Be 2
+            $actual.message | Should -BeExactly (
+                    'TenantLifecycle.SummaryEnvelope.Summary.FileInvalid'
+            )
+            $actual.innerException | Should -BeNullOrEmpty
+            $actual.message | Should -Not -Match (
+                    'SummaryProviderMarker|private-path-marker|' +
+                    'Cannot find drive'
+            )
+        }
+
         It 'rejects a StageResult mismatch for current <Coordinate>' -ForEach @(
             @{ Coordinate = 'runId' }
             @{ Coordinate = 'stage' }
