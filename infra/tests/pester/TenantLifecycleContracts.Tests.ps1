@@ -3167,6 +3167,20 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                     }
                 }
 
+                function Get-ExpectedChildSummaryDigest {
+                    param([Parameter(Mandatory)][byte[]]$Bytes)
+
+                    $algorithm = [Security.Cryptography.SHA256]::Create()
+                    try {
+                        [BitConverter]::ToString(
+                            $algorithm.ComputeHash($Bytes)
+                        ).Replace('-', '').ToLowerInvariant()
+                    }
+                    finally {
+                        $algorithm.Dispose()
+                    }
+                }
+
                 function New-ChildSummaryManifest {
                     param(
                         [Parameter(Mandatory)][guid]$RunId,
@@ -3459,7 +3473,44 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                     Should -BeExactly $phaseSummaryDigest
             }
 
-            It 'summary write protocol changes exact bytes and requires a new run' {
+            It 'summary write protocol hashes isolates and recreates <Name> mutation' -ForEach @(
+                @{
+                    Name = 'timestamp'
+                    FreshRunId = '21111111-2222-4333-8444-555555555551'
+                    Mutation = {
+                        param($Value)
+                        $Value.completedAtUtc = '2026-10-03T08:32:00.000Z'
+                    }
+                },
+                @{
+                    Name = 'outcome'
+                    FreshRunId = '21111111-2222-4333-8444-555555555552'
+                    Mutation = {
+                        param($Value)
+                        $Value.status = 'Failed'
+                        $Value.classification = 'Changed'
+                        $Value.actions[0].status = 'Failed'
+                        $Value.actions[0].classification = 'Update'
+                    }
+                },
+                @{
+                    Name = 'output state digest'
+                    FreshRunId = '21111111-2222-4333-8444-555555555553'
+                    Mutation = {
+                        param($Value)
+                        $Value.stateDigest = '4' * 64
+                    }
+                },
+                @{
+                    Name = 'opaque provider extension'
+                    FreshRunId = '21111111-2222-4333-8444-555555555554'
+                    Mutation = {
+                        param($Value)
+                        $Value.syntheticProviderEvidence.actionDetails[0].
+                            resultCategory = 'SyntheticChanged'
+                    }
+                }
+            ) {
                 $runId = [guid]'11111111-2222-4333-8444-555555555555'
                 $base = New-ChildSummaryEnvelope `
                     -RunId $runId `
@@ -3467,82 +3518,110 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
                 $baseBytes = [Text.UTF8Encoding]::new($false).GetBytes(
                     (ConvertTo-TenantLifecycleCanonicalJson -InputObject $base)
                 )
-                $cases = @(
-                    @{
-                        Name = 'timestamp'
-                        Mutate = {
-                            param($Value)
-                            $Value.completedAtUtc = '2026-10-03T08:32:00.000Z'
-                        }
-                    },
-                    @{
-                        Name = 'outcome'
-                        Mutate = {
-                            param($Value)
-                            $Value.status = 'Failed'
-                            $Value.classification = 'Changed'
-                            $Value.actions[0].status = 'Failed'
-                            $Value.actions[0].classification = 'Update'
-                        }
-                    },
-                    @{
-                        Name = 'state digest'
-                        Mutate = {
-                            param($Value)
-                            $Value.stateDigest = '4' * 64
-                        }
-                    },
-                    @{
-                        Name = 'provider extension'
-                        Mutate = {
-                            param($Value)
-                            $Value.syntheticProviderEvidence.actionDetails[0].
-                                resultCategory = 'SyntheticChanged'
-                        }
-                    }
-                )
+                $baseDigest = Get-ExpectedChildSummaryDigest -Bytes $baseBytes
+                [regex]::IsMatch($baseDigest, '^[0-9a-f]{64}$') |
+                    Should -BeTrue
 
-                foreach ($case in $cases) {
-                    $variant = Copy-ChildSummaryValue $base
-                    & $case.Mutate $variant
-                    $variantBytes = [Text.UTF8Encoding]::new($false).GetBytes(
-                        (ConvertTo-TenantLifecycleCanonicalJson -InputObject $variant)
+                $sameRunMutation = Copy-ChildSummaryValue $base
+                & $Mutation $sameRunMutation
+                $sameRunMutationBytes = [Text.UTF8Encoding]::new($false).
+                    GetBytes(
+                        (
+                            ConvertTo-TenantLifecycleCanonicalJson `
+                                -InputObject $sameRunMutation
+                        )
                     )
-                    [Convert]::ToBase64String($variantBytes) |
-                        Should -Not -BeExactly (
-                            [Convert]::ToBase64String($baseBytes)
-                        ) -Because $case.Name
-                    $path = Write-TenantLifecycleEvidence `
-                        -RunDirectory (
-                            Join-Path $TestDrive (
-                                'variant-' + $case.Name.Replace(' ', '-')
-                            )
-                        ) `
-                        -RelativePath 'summary.json' `
-                        -Kind Summary `
-                        -InputObject $variant
-                    [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) |
-                        Should -BeExactly ([Convert]::ToBase64String($variantBytes))
-                }
+                $sameRunMutationDigest = Get-ExpectedChildSummaryDigest `
+                    -Bytes $sameRunMutationBytes
+                [regex]::IsMatch(
+                    $sameRunMutationDigest,
+                    '^[0-9a-f]{64}$'
+                ) | Should -BeTrue -Because $Name
+                $sameRunMutationDigest |
+                    Should -Not -BeExactly $baseDigest -Because $Name
 
-                $sameRun = Join-Path $TestDrive 'immutable-summary'
-                $path = Write-TenantLifecycleEvidence `
-                    -RunDirectory $sameRun `
+                $sameRunDirectory = Join-Path (
+                    Join-Path $TestDrive (
+                        'same-run-' + $Name.Replace(' ', '-')
+                    )
+                ) $runId.ToString('D').ToLowerInvariant()
+                $basePath = Write-TenantLifecycleEvidence `
+                    -RunDirectory $sameRunDirectory `
                     -RelativePath 'summary.json' `
                     -Kind Summary `
                     -InputObject $base
-                $before = [IO.File]::ReadAllBytes($path)
-                $changed = Copy-ChildSummaryValue $base
-                $changed.completedAtUtc = '2026-10-03T08:32:00.000Z'
+                $persistedBaseBytes = [IO.File]::ReadAllBytes($basePath)
+                [Convert]::ToBase64String($persistedBaseBytes) |
+                    Should -BeExactly (
+                        [Convert]::ToBase64String($baseBytes)
+                    ) -Because $Name
+                Get-ChildSummaryFileDigest -Path $basePath |
+                    Should -BeExactly $baseDigest -Because $Name
+
                 {
                     Write-TenantLifecycleEvidence `
-                        -RunDirectory $sameRun `
+                        -RunDirectory $sameRunDirectory `
                         -RelativePath 'summary.json' `
                         -Kind Summary `
-                        -InputObject $changed
-                } | Should -Throw -ExpectedMessage 'TenantLifecycle.Evidence.Exists'
-                [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) |
-                    Should -BeExactly ([Convert]::ToBase64String($before))
+                        -InputObject $sameRunMutation
+                } | Should -Throw `
+                    -ExpectedMessage 'TenantLifecycle.Evidence.Exists' `
+                    -Because $Name
+                [Convert]::ToBase64String(
+                    [IO.File]::ReadAllBytes($basePath)
+                ) | Should -BeExactly (
+                    [Convert]::ToBase64String($persistedBaseBytes)
+                ) -Because $Name
+                Get-ChildSummaryFileDigest -Path $basePath |
+                    Should -BeExactly $baseDigest -Because $Name
+
+                $freshRun = [guid]$FreshRunId
+                $freshMutation = New-ChildSummaryEnvelope `
+                    -RunId $freshRun `
+                    -PhaseManifestDigest ('3' * 64)
+                & $Mutation $freshMutation
+                $freshMutation.runId |
+                    Should -BeExactly (
+                        $freshRun.ToString('D').ToLowerInvariant()
+                    ) -Because $Name
+                $freshMutationBytes = [Text.UTF8Encoding]::new($false).
+                    GetBytes(
+                        (
+                            ConvertTo-TenantLifecycleCanonicalJson `
+                                -InputObject $freshMutation
+                        )
+                    )
+                $freshMutationDigest = Get-ExpectedChildSummaryDigest `
+                    -Bytes $freshMutationBytes
+                [regex]::IsMatch(
+                    $freshMutationDigest,
+                    '^[0-9a-f]{64}$'
+                ) | Should -BeTrue -Because $Name
+                $freshMutationDigest |
+                    Should -Not -BeExactly $baseDigest -Because $Name
+                $freshMutationDigest |
+                    Should -Not -BeExactly $sameRunMutationDigest `
+                    -Because "$Name has a fresh runId"
+
+                $freshRunDirectory = Join-Path (
+                    Join-Path $TestDrive (
+                        'fresh-run-' + $Name.Replace(' ', '-')
+                    )
+                ) $freshRun.ToString('D').ToLowerInvariant()
+                [IO.Path]::GetFileName($freshRunDirectory) |
+                    Should -BeExactly $freshMutation.runId -Because $Name
+                $freshPath = Write-TenantLifecycleEvidence `
+                    -RunDirectory $freshRunDirectory `
+                    -RelativePath 'summary.json' `
+                    -Kind Summary `
+                    -InputObject $freshMutation
+                [Convert]::ToBase64String(
+                    [IO.File]::ReadAllBytes($freshPath)
+                ) | Should -BeExactly (
+                    [Convert]::ToBase64String($freshMutationBytes)
+                ) -Because $Name
+                Get-ChildSummaryFileDigest -Path $freshPath |
+                    Should -BeExactly $freshMutationDigest -Because $Name
             }
 
             It 'child summary writer rejects manifestDigest and incomplete legacy summaries' {
