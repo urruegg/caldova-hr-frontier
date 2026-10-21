@@ -162,7 +162,18 @@ function Write-TenantLifecycleEvidence {
         throw [IO.InvalidDataException]::new('TenantLifecycle.Evidence.Path')
     }
     try {
-        Test-TenantLifecycleContract -Kind $Kind -InputObject $InputObject | Out-Null
+        if ($Kind -ceq 'Summary') {
+            Test-TenantLifecycleContract `
+                -Kind Summary `
+                -InputObject $InputObject |
+                Out-Null
+        }
+        else {
+            Test-TenantLifecycleContract `
+                -Kind $Kind `
+                -InputObject $InputObject |
+                Out-Null
+        }
         if (-not (Test-TenantLifecycleEvidencePropertyBoundary -Value $InputObject)) {
             throw [IO.InvalidDataException]::new('TenantLifecycle.Evidence.Invalid')
         }

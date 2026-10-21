@@ -1117,8 +1117,12 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         $manifestPath = Join-Path $phaseDirectory (
                             'execution-manifest.json'
                         )
-                        Write-CoordinateCanonicalFile `
-                            -InputObject $manifest `
+                        $manifestPath = Write-TenantLifecycleEvidence `
+                            -RunDirectory $phaseDirectory `
+                            -RelativePath 'execution-manifest.json' `
+                            -Kind ExecutionManifest `
+                            -InputObject $manifest
+                        $manifestDigest = Get-CoordinateExactFileDigest `
                             -Path $manifestPath
                         $summary = (
                             $script:CoordinateFixture.phaseSummary |
@@ -1128,30 +1132,37 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         $summary.runId =
                             $RunId.ToString('D').ToLowerInvariant()
                         $summary.stage = $Stage
-                        $summaryPath = Join-Path $phaseDirectory 'summary.json'
-                        Write-CoordinateCanonicalFile `
-                            -InputObject $summary `
+                        $summary.sourceCommit =
+                            $script:CoordinateSourceCommit
+                        $summary.publicTenantKey = 'tenant1'
+                        $summary.intentDigest = $digests.intent
+                        $summary.stateDigest = $digests.state
+                        $summary.phaseManifestDigest = $manifestDigest
+                        $summary.status = $Status
+                        $summary.classification = $classification
+                        $summary.startedAtUtc =
+                            '2026-10-03T08:30:00.0000000Z'
+                        $summary.completedAtUtc =
+                            '2026-10-03T08:31:00.000Z'
+                        $summary.actions[0].id = $Stage
+                        $summary.actions[0].classification = if (
+                            $classification -ceq 'Changed'
+                        ) {
+                            'Update'
+                        }
+                        else {
+                            $classification
+                        }
+                        $summary.actions[0].status = $Status
+                        $summary.actions[0].evidenceRelativePath =
+                            "actions/$Stage.json"
+                        $summaryPath = Write-TenantLifecycleEvidence `
+                            -RunDirectory $phaseDirectory `
+                            -RelativePath 'summary.json' `
+                            -Kind Summary `
+                            -InputObject $summary
+                        $summaryDigest = Get-CoordinateExactFileDigest `
                             -Path $summaryPath
-
-                        $algorithm = [Security.Cryptography.SHA256]::Create()
-                        try {
-                            $manifestDigest = -join @(
-                                $algorithm.ComputeHash(
-                                    [IO.File]::ReadAllBytes($manifestPath)
-                                ) |
-                                    ForEach-Object { $_.ToString('x2') }
-                            )
-                            $algorithm.Initialize()
-                            $summaryDigest = -join @(
-                                $algorithm.ComputeHash(
-                                    [IO.File]::ReadAllBytes($summaryPath)
-                                ) |
-                                    ForEach-Object { $_.ToString('x2') }
-                            )
-                        }
-                        finally {
-                            $algorithm.Dispose()
-                        }
                         $result = New-TenantLifecycleStageResult `
                             -RunId $RunId `
                             -Stage $Stage `
@@ -1167,10 +1178,10 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             -CompletedAtUtc (
                                 [datetime]'2026-10-03T08:31:00Z'
                             )
-                        $path = Join-Path $runDirectory (
-                            "stage-results\$Stage.json"
-                        )
-                        Write-CoordinateCanonicalFile -InputObject $result -Path $path
+                        Write-TenantLifecycleStageResult `
+                            -RunDirectory $runDirectory `
+                            -StageResult $result |
+                            Out-Null
                     }
 
                     function Set-CoordinateDrift {
@@ -3017,9 +3028,14 @@ $invoker = [scriptblock]::Create($invokerText)
                                 $manifestPath = Join-Path $phaseDirectory (
                                     'execution-manifest.json'
                                 )
-                                Write-CoordinateCanonicalFile `
-                                    -InputObject $manifest `
-                                    -Path $manifestPath
+                                $manifestPath = Write-TenantLifecycleEvidence `
+                                    -RunDirectory $phaseDirectory `
+                                    -RelativePath 'execution-manifest.json' `
+                                    -Kind ExecutionManifest `
+                                    -InputObject $manifest
+                                $phaseManifestDigest =
+                                    Get-CoordinateExactFileDigest `
+                                        -Path $manifestPath
 
                                 $summary = (
                                     $script:CoordinateFixture.phaseSummary |
@@ -3029,20 +3045,52 @@ $invoker = [scriptblock]::Create($invokerText)
                                 $summary.runId =
                                     $RunId.ToString('D').ToLowerInvariant()
                                 $summary.stage = $stage
-                                $summary.tenantId =
+                                $summary.sourceCommit =
+                                    $script:CoordinateSourceCommit
+                                $summary.publicTenantKey = 'tenant1'
+                                $summary.intentDigest = $digests.intent
+                                $summary.stateDigest =
+                                    [string]$OutputStateDigests[$index]
+                                $summary.phaseManifestDigest =
+                                    $phaseManifestDigest
+                                $summary.status =
+                                    [string]$Statuses[$index]
+                                $summary.classification =
+                                    [string]$Classifications[$index]
+                                $summary.startedAtUtc =
+                                    '2026-10-03T08:30:00.0000000Z'
+                                $summary.completedAtUtc =
+                                    '2026-10-03T08:31:00.000Z'
+                                $summary.actions[0].id = $stage
+                                $summary.actions[0].classification = if (
+                                    $summary.classification -ceq 'Changed'
+                                ) {
+                                    'Update'
+                                }
+                                else {
+                                    $summary.classification
+                                }
+                                $summary.actions[0].status = $summary.status
+                                $summary.actions[0].evidenceRelativePath =
+                                    "actions/$stage.json"
+                                $summary.syntheticProviderEvidence.tenantId =
                                     'tenant-private-identifier'
-                                $summary.provider =
+                                $summary.syntheticProviderEvidence.provider =
                                     'provider-private-identifier'
-                                $summary.resourceUrl =
+                                $summary.syntheticProviderEvidence.resourceUrl =
                                     'https://example.invalid/private-resource'
-                                $summary.requestPayload.synthetic =
+                                $summary.syntheticProviderEvidence.
+                                    requestProjection.synthetic =
                                     'provider-private-payload'
-                                $summaryPath = Join-Path $phaseDirectory (
-                                    'summary.json'
-                                )
-                                Write-CoordinateCanonicalFile `
-                                    -InputObject $summary `
-                                    -Path $summaryPath
+                                $summaryPath =
+                                    Write-TenantLifecycleEvidence `
+                                        -RunDirectory $phaseDirectory `
+                                        -RelativePath 'summary.json' `
+                                        -Kind Summary `
+                                        -InputObject $summary
+                                $phaseSummaryDigest =
+                                    Get-CoordinateExactFileDigest `
+                                        -Path $summaryPath
 
                                 $result = New-TenantLifecycleStageResult `
                                     -RunId $RunId `
@@ -3054,12 +3102,10 @@ $invoker = [scriptblock]::Create($invokerText)
                                         [string]$OutputStateDigests[$index]
                                     ) `
                                     -PhaseManifestDigest (
-                                        Get-CoordinateExactFileDigest `
-                                            -Path $manifestPath
+                                        $phaseManifestDigest
                                     ) `
                                     -PhaseSummaryDigest (
-                                        Get-CoordinateExactFileDigest `
-                                            -Path $summaryPath
+                                        $phaseSummaryDigest
                                     ) `
                                     -Status ([string]$Statuses[$index]) `
                                     -Classification (
@@ -3071,13 +3117,13 @@ $invoker = [scriptblock]::Create($invokerText)
                                     -CompletedAtUtc (
                                         [datetime]'2026-10-03T08:31:00Z'
                                     )
-                                Write-TenantLifecycleStageResult `
+                                $resultPath = Write-TenantLifecycleStageResult `
                                     -RunDirectory $runDirectory `
-                                    -StageResult $result |
-                                    Out-Null
+                                    -StageResult $result
                                 $artifacts.Add([pscustomobject]@{
                                     ManifestPath = $manifestPath
                                     SummaryPath = $summaryPath
+                                    ResultPath = $resultPath
                                     Result = $result
                                 })
                             }

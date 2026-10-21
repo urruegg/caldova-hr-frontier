@@ -877,35 +877,85 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
                         }
                     )
                 }
-                $manifest = [pscustomobject][ordered]@{
-                    schemaVersion = '1.0'
-                    runId = $RunId.ToString('D').ToLowerInvariant()
-                    sourceCommit = $script:CanonicalSource
-                    publicTenantKey = 'tenant1'
-                    intentDigest = $script:CanonicalIntent
-                    stateDigest = [string]$InputStateDigests[$index]
-                    selectedStages = [string[]]@($Stages)
-                    prerequisiteResults = $prerequisiteResults
-                    providerContexts = @(
-                        [pscustomobject][ordered]@{
-                            provider = 'Synthetic'
-                            contextId = 'provider-context-private'
-                        }
-                    )
-                    actions = @(
-                        [pscustomobject][ordered]@{
-                            id = 'provider-action-private'
-                            payload = 'provider-payload-private'
-                        }
-                    )
+                $manifestAction = Copy-CanonicalTestValue (
+                    $script:CanonicalFixture.executionManifest.actions[0]
+                )
+                $manifestAction.id = $stage
+                if ($index -eq 0) {
+                    $manifestAction.prerequisiteActionIds =
+                        [string[]]@()
                 }
+                else {
+                    $manifestAction.prerequisiteActionIds =
+                        [string[]]@($Stages[$index - 1])
+                }
+                $manifest = New-TenantLifecycleExecutionManifest `
+                    -RunId $RunId `
+                    -SourceCommit $script:CanonicalSource `
+                    -EvidenceRoot $phaseDirectory `
+                    -PublicTenantKey tenant1 `
+                    -IntentDigest $script:CanonicalIntent `
+                    -StateDigest ([string]$InputStateDigests[$index]) `
+                    -SelectedStages $Stages `
+                    -PrerequisiteResults $prerequisiteResults `
+                    -Machine (
+                        $script:CanonicalFixture.executionManifest.machine
+                    ) `
+                    -Operator (
+                        $script:CanonicalFixture.executionManifest.operator
+                    ) `
+                    -ToolIdentities @(
+                        $script:CanonicalFixture.executionManifest.toolIdentities
+                    ) `
+                    -ProviderContexts @(
+                        $script:CanonicalFixture.executionManifest.providerContexts
+                    ) `
+                    -Prerequisites @(
+                        $script:CanonicalFixture.executionManifest.prerequisites
+                    ) `
+                    -Actions @($manifestAction) `
+                    -GeneratedAtUtc ([datetime]'2026-10-03T08:00:00Z') `
+                    -ExpiresAtUtc ([datetime]'2026-10-03T08:30:00Z')
+                $manifestPath = Write-TenantLifecycleEvidence `
+                    -RunDirectory $phaseDirectory `
+                    -RelativePath 'execution-manifest.json' `
+                    -Kind ExecutionManifest `
+                    -InputObject $manifest
+                $phaseManifestDigest = Get-CanonicalTestFileDigest `
+                    -Path $manifestPath
                 $summary = Copy-CanonicalTestValue (
                     $script:CanonicalFixture.phaseSummary
                 )
                 $summary.runId = $RunId.ToString('D').ToLowerInvariant()
                 $summary.stage = $stage
-                Write-CanonicalTestFile -InputObject $manifest -Path $manifestPath
-                Write-CanonicalTestFile -InputObject $summary -Path $summaryPath
+                $summary.sourceCommit = $script:CanonicalSource
+                $summary.publicTenantKey = 'tenant1'
+                $summary.intentDigest = $script:CanonicalIntent
+                $summary.stateDigest = [string]$OutputStateDigests[$index]
+                $summary.phaseManifestDigest = $phaseManifestDigest
+                $summary.status = [string]$Statuses[$index]
+                $summary.classification = [string]$Classifications[$index]
+                $summary.startedAtUtc = '2026-10-03T08:30:00.0000000Z'
+                $summary.completedAtUtc = '2026-10-03T08:31:00.000Z'
+                $summary.actions[0].id = $stage
+                $summary.actions[0].classification = if (
+                    $summary.classification -ceq 'Changed'
+                ) {
+                    'Update'
+                }
+                else {
+                    $summary.classification
+                }
+                $summary.actions[0].status = $summary.status
+                $summary.actions[0].evidenceRelativePath =
+                    "actions/$stage.json"
+                $summaryPath = Write-TenantLifecycleEvidence `
+                    -RunDirectory $phaseDirectory `
+                    -RelativePath 'summary.json' `
+                    -Kind Summary `
+                    -InputObject $summary
+                $phaseSummaryDigest = Get-CanonicalTestFileDigest `
+                    -Path $summaryPath
                 $result = New-TenantLifecycleStageResult `
                     -RunId $RunId `
                     -Stage $stage `
@@ -913,12 +963,8 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
                     -PublicTenantKey tenant1 `
                     -IntentDigest $script:CanonicalIntent `
                     -StateDigest ([string]$OutputStateDigests[$index]) `
-                    -PhaseManifestDigest (
-                        Get-CanonicalTestFileDigest -Path $manifestPath
-                    ) `
-                    -PhaseSummaryDigest (
-                        Get-CanonicalTestFileDigest -Path $summaryPath
-                    ) `
+                    -PhaseManifestDigest $phaseManifestDigest `
+                    -PhaseSummaryDigest $phaseSummaryDigest `
                     -Status ([string]$Statuses[$index]) `
                     -Classification ([string]$Classifications[$index]) `
                     -EvidenceRelativePath "phases/$stage/summary.json" `
@@ -1100,21 +1146,16 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
             'manifest-envelope-failed-prerequisite'
         )
         $stages = @('Workstation', 'Foundation')
-        New-CanonicalStageSet `
-            -RunDirectory $runDirectory `
-            -RunId $runId `
-            -Stages $stages `
-            -Statuses @('Failed', 'Passed') `
-            -Classifications @('NoChange', 'NoChange') |
-            Out-Null
-
         {
-            Invoke-CanonicalStageSet `
+            New-CanonicalStageSet `
                 -RunDirectory $runDirectory `
                 -RunId $runId `
-                -Stages $stages
+                -Stages $stages `
+                -Statuses @('Failed', 'Passed') `
+                -Classifications @('NoChange', 'NoChange') |
+                Out-Null
         } | Should -Throw -ExpectedMessage (
-            'TenantLifecycle.StageResultSet.Invalid'
+            'TenantLifecycle.Contract.ExecutionManifest'
         )
     }
 
@@ -1526,16 +1567,16 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
     It 'rejects an unexplained or final-current-state mismatch in the stage state digest chain' -ForEach @(
         @{
             Case = 'unexplained'
-            Input = @('8' * 64)
-            Output = @('9' * 64)
-            Classification = @('NoChange')
+            InputDigests = @('8' * 64)
+            OutputDigests = @('9' * 64)
+            Classifications = @('NoChange')
             Current = '9' * 64
         }
         @{
             Case = 'final current'
-            Input = @('8' * 64)
-            Output = @('9' * 64)
-            Classification = @('Changed')
+            InputDigests = @('8' * 64)
+            OutputDigests = @('9' * 64)
+            Classifications = @('Changed')
             Current = '2' * 64
         }
     ) {
@@ -1544,9 +1585,9 @@ Describe 'Tenant lifecycle canonical stage result evidence' {
         New-CanonicalStageSet `
             -RunDirectory $runDirectory `
             -RunId $runId `
-            -InputStateDigests $Input `
-            -OutputStateDigests $Output `
-            -Classifications $Classification |
+            -InputStateDigests $InputDigests `
+            -OutputStateDigests $OutputDigests `
+            -Classifications $Classifications |
             Out-Null
 
         {
@@ -3047,6 +3088,21 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
             )
         }
 
+        function Get-EvidenceFileDigest {
+            param([Parameter(Mandatory)][string]$Path)
+
+            $algorithm = [Security.Cryptography.SHA256]::Create()
+            try {
+                -join @(
+                    $algorithm.ComputeHash([IO.File]::ReadAllBytes($Path)) |
+                        ForEach-Object { $_.ToString('x2') }
+                )
+            }
+            finally {
+                $algorithm.Dispose()
+            }
+        }
+
         function New-EvidenceManifestParameters {
             @{
                 RunId = [guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
@@ -3068,6 +3124,781 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
             }
         }
     }
+
+        Describe 'Tenant lifecycle child summary writer and cross-host golden' {
+            BeforeAll {
+                $script:ChildSummaryRepositoryRoot = (
+                    Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
+                ).Path
+                $script:ChildSummaryModulePath = Join-Path (
+                    $script:ChildSummaryRepositoryRoot
+                ) (
+                    'infra\src\scripts\modules\Caldova.HrFrontier.Bootstrap\' +
+                    'Caldova.HrFrontier.Bootstrap.psd1'
+                )
+                $script:ChildSummaryFixturePath = Join-Path (
+                    $script:ChildSummaryRepositoryRoot
+                ) 'infra\tests\fixtures\runbooks\tenant-lifecycle.synthetic.json'
+                Import-Module $script:ChildSummaryModulePath -Force
+                $script:ChildSummaryFixture = ConvertFrom-TenantLifecycleJson -InputObject (
+                    Get-Content -Raw -LiteralPath $script:ChildSummaryFixturePath
+                )
+
+                function Copy-ChildSummaryValue {
+                    param([Parameter(Mandatory)][object]$InputObject)
+
+                    ConvertFrom-TenantLifecycleJson -InputObject (
+                        $InputObject | ConvertTo-Json -Depth 30
+                    )
+                }
+
+                function Get-ChildSummaryFileDigest {
+                    param([Parameter(Mandatory)][string]$Path)
+
+                    $algorithm = [Security.Cryptography.SHA256]::Create()
+                    try {
+                        -join @(
+                            $algorithm.ComputeHash([IO.File]::ReadAllBytes($Path)) |
+                                ForEach-Object { $_.ToString('x2') }
+                        )
+                    }
+                    finally {
+                        $algorithm.Dispose()
+                    }
+                }
+
+                function New-ChildSummaryManifest {
+                    param(
+                        [Parameter(Mandatory)][guid]$RunId,
+                        [Parameter(Mandatory)][string]$PhaseDirectory
+                    )
+
+                    New-TenantLifecycleExecutionManifest `
+                        -RunId $RunId `
+                        -SourceCommit ('a' * 40) `
+                        -EvidenceRoot $PhaseDirectory `
+                        -PublicTenantKey tenant1 `
+                        -IntentDigest ('1' * 64) `
+                        -StateDigest ('2' * 64) `
+                        -SelectedStages @('Foundation') `
+                        -PrerequisiteResults @() `
+                        -Machine (
+                            Copy-ChildSummaryValue (
+                                $script:ChildSummaryFixture.executionManifest.machine
+                            )
+                        ) `
+                        -Operator (
+                            Copy-ChildSummaryValue (
+                                $script:ChildSummaryFixture.executionManifest.operator
+                            )
+                        ) `
+                        -ToolIdentities @(
+                            Copy-ChildSummaryValue (
+                                $script:ChildSummaryFixture.executionManifest.toolIdentities
+                            )
+                        ) `
+                        -ProviderContexts @(
+                            Copy-ChildSummaryValue (
+                                $script:ChildSummaryFixture.executionManifest.providerContexts
+                            )
+                        ) `
+                        -Prerequisites @(
+                            Copy-ChildSummaryValue (
+                                $script:ChildSummaryFixture.executionManifest.prerequisites
+                            )
+                        ) `
+                        -Actions @(
+                            Copy-ChildSummaryValue (
+                                $script:ChildSummaryFixture.executionManifest.actions
+                            )
+                        ) `
+                        -GeneratedAtUtc ([datetime]'2026-10-03T08:00:00Z') `
+                        -ExpiresAtUtc ([datetime]'2026-10-03T08:30:00Z')
+                }
+
+                function New-ChildSummaryEnvelope {
+                    param(
+                        [Parameter(Mandatory)][guid]$RunId,
+                        [Parameter(Mandatory)][string]$PhaseManifestDigest,
+                        [string]$StateDigest = ('2' * 64),
+                        [ValidateSet('Passed', 'Failed')][string]$Status = 'Passed',
+                        [ValidateSet('NoChange', 'Changed')]
+                        [string]$Classification = 'NoChange',
+                        [string]$CompletedAtUtc = '2026-10-03T08:31:00.000Z',
+                        [string]$ProviderResult = 'SyntheticNoChange'
+                    )
+
+                    [pscustomobject][ordered]@{
+                        schemaVersion = '1.0'
+                        runId = $RunId.ToString('D').ToLowerInvariant()
+                        stage = 'Foundation'
+                        sourceCommit = 'a' * 40
+                        publicTenantKey = 'tenant1'
+                        intentDigest = '1' * 64
+                        stateDigest = $StateDigest
+                        phaseManifestDigest = $PhaseManifestDigest
+                        status = $Status
+                        classification = $Classification
+                        startedAtUtc = '2026-10-03T08:30:00.0000000Z'
+                        completedAtUtc = $CompletedAtUtc
+                        counts = [pscustomobject][ordered]@{
+                            NoChange = 1
+                            Create = 0
+                            Update = 0
+                            Manual = 0
+                            Blocked = 0
+                            Refused = 0
+                        }
+                        prerequisites = [object[]]@(
+                            [pscustomobject][ordered]@{
+                                id = 'prerequisite-001'
+                                status = 'Passed'
+                                inputDigest = '6' * 64
+                                evidenceDigest = '7' * 64
+                            }
+                        )
+                        actions = [object[]]@(
+                            [pscustomobject][ordered]@{
+                                id = 'action-001'
+                                classification = $Classification
+                                status = $Status
+                                evidenceRelativePath = 'actions/action-001.json'
+                            }
+                        )
+                        nonClaims = @('Synthetic evidence only.')
+                        syntheticProviderEvidence = [pscustomobject][ordered]@{
+                            provider = 'SyntheticProvider'
+                            actionDetails = [object[]]@(
+                                [pscustomobject][ordered]@{
+                                    id = 'action-001'
+                                    operation = 'Inspect'
+                                    resultCategory = $ProviderResult
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            It 'child summary writer fixtures expose complete envelopes and closed shared actions' {
+                $required = @(
+                    'schemaVersion',
+                    'runId',
+                    'stage',
+                    'sourceCommit',
+                    'publicTenantKey',
+                    'intentDigest',
+                    'stateDigest',
+                    'phaseManifestDigest',
+                    'status',
+                    'classification',
+                    'startedAtUtc',
+                    'completedAtUtc',
+                    'counts',
+                    'prerequisites',
+                    'actions',
+                    'nonClaims'
+                )
+
+                foreach ($fixtureName in @('phaseSummary', 'summary')) {
+                    $fixture = $script:ChildSummaryFixture.$fixtureName
+                    foreach ($name in $required) {
+                        @($fixture.PSObject.Properties.Name) |
+                            Should -Contain $name -Because "$fixtureName requires $name"
+                    }
+                    @($fixture.PSObject.Properties.Name) |
+                        Should -Contain 'syntheticProviderEvidence'
+                    (
+                        @($fixture.actions[0].PSObject.Properties.Name) |
+                            Sort-Object
+                    ) -join ',' | Should -BeExactly (
+                        'classification,evidenceRelativePath,id,status'
+                    )
+                    $fixture.phaseManifestDigest |
+                        Should -BeExactly (
+                            [string]$script:ChildSummaryFixture.stageResult.
+                                phaseManifestDigest
+                        )
+                    $fixture.phaseManifestDigest |
+                        Should -Not -BeExactly (
+                            [string]$script:ChildSummaryFixture.executionManifest.
+                                digest
+                        )
+                }
+            }
+
+            It 'summary write protocol writes manifest summary and result in order with exact digests' {
+                $runId = [guid]'11111111-2222-4333-8444-555555555555'
+                $runDirectory = Join-Path $TestDrive 'summary-write-protocol'
+                $phaseDirectory = Join-Path $runDirectory 'phases\Foundation'
+                $resultPath = Join-Path (
+                    $runDirectory
+                ) 'stage-results\Foundation.json'
+                $manifest = New-ChildSummaryManifest `
+                    -RunId $runId `
+                    -PhaseDirectory $phaseDirectory
+                $manifestPath = Write-TenantLifecycleEvidence `
+                    -RunDirectory $phaseDirectory `
+                    -RelativePath 'execution-manifest.json' `
+                    -Kind ExecutionManifest `
+                    -InputObject $manifest
+
+                $manifestPath | Should -Exist
+                Join-Path $phaseDirectory 'summary.json' | Should -Not -Exist
+                $resultPath | Should -Not -Exist
+                $phaseManifestDigest = Get-ChildSummaryFileDigest -Path $manifestPath
+                $phaseManifestDigest |
+                    Should -Not -BeExactly ([string]$manifest.digest)
+
+                $summary = New-ChildSummaryEnvelope `
+                    -RunId $runId `
+                    -PhaseManifestDigest $phaseManifestDigest
+                $summaryPath = Write-TenantLifecycleEvidence `
+                    -RunDirectory $phaseDirectory `
+                    -RelativePath 'summary.json' `
+                    -Kind Summary `
+                    -InputObject $summary
+
+                $summaryPath | Should -Exist
+                $resultPath | Should -Not -Exist
+                $summary.phaseManifestDigest |
+                    Should -BeExactly $phaseManifestDigest
+                @($summary.PSObject.Properties.Name) |
+                    Should -Not -Contain 'phaseSummaryDigest'
+                [Text.UTF8Encoding]::new(
+                    $false,
+                    $true
+                ).GetString([IO.File]::ReadAllBytes($summaryPath)) |
+                    Should -Not -Match '"phaseSummaryDigest"'
+
+                $expectedSummary = [pscustomobject][ordered]@{
+                    schemaVersion = '1.0'
+                    runId = '11111111-2222-4333-8444-555555555555'
+                    stage = 'Foundation'
+                    sourceCommit = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+                    publicTenantKey = 'tenant1'
+                    intentDigest =
+                        '1111111111111111111111111111111111111111111111111111111111111111'
+                    stateDigest =
+                        '2222222222222222222222222222222222222222222222222222222222222222'
+                    phaseManifestDigest = $phaseManifestDigest
+                    status = 'Passed'
+                    classification = 'NoChange'
+                    startedAtUtc = '2026-10-03T08:30:00.0000000Z'
+                    completedAtUtc = '2026-10-03T08:31:00.000Z'
+                    counts = [pscustomobject][ordered]@{
+                        NoChange = 1
+                        Create = 0
+                        Update = 0
+                        Manual = 0
+                        Blocked = 0
+                        Refused = 0
+                    }
+                    prerequisites = [object[]]@(
+                        [pscustomobject][ordered]@{
+                            id = 'prerequisite-001'
+                            status = 'Passed'
+                            inputDigest =
+                                '6666666666666666666666666666666666666666666666666666666666666666'
+                            evidenceDigest =
+                                '7777777777777777777777777777777777777777777777777777777777777777'
+                        }
+                    )
+                    actions = [object[]]@(
+                        [pscustomobject][ordered]@{
+                            id = 'action-001'
+                            classification = 'NoChange'
+                            status = 'Passed'
+                            evidenceRelativePath = 'actions/action-001.json'
+                        }
+                    )
+                    nonClaims = @('Synthetic evidence only.')
+                    syntheticProviderEvidence = [pscustomobject][ordered]@{
+                        provider = 'SyntheticProvider'
+                        actionDetails = [object[]]@(
+                            [pscustomobject][ordered]@{
+                                id = 'action-001'
+                                operation = 'Inspect'
+                                resultCategory = 'SyntheticNoChange'
+                            }
+                        )
+                    }
+                }
+                $expectedSummaryBytes = [Text.UTF8Encoding]::new($false).GetBytes(
+                    (ConvertTo-TenantLifecycleCanonicalJson -InputObject $expectedSummary)
+                )
+                [Convert]::ToBase64String(
+                    [IO.File]::ReadAllBytes($summaryPath)
+                ) | Should -BeExactly (
+                    [Convert]::ToBase64String($expectedSummaryBytes)
+                )
+
+                $phaseSummaryDigest = Get-ChildSummaryFileDigest -Path $summaryPath
+                $result = New-TenantLifecycleStageResult `
+                    -RunId $runId `
+                    -Stage Foundation `
+                    -SourceCommit ('a' * 40) `
+                    -PublicTenantKey tenant1 `
+                    -IntentDigest ('1' * 64) `
+                    -StateDigest ('2' * 64) `
+                    -PhaseManifestDigest $phaseManifestDigest `
+                    -PhaseSummaryDigest $phaseSummaryDigest `
+                    -Status Passed `
+                    -Classification NoChange `
+                    -EvidenceRelativePath 'phases/Foundation/summary.json' `
+                    -CompletedAtUtc ([datetime]'2026-10-03T08:31:00Z')
+                $writtenResultPath = Write-TenantLifecycleStageResult `
+                    -RunDirectory $runDirectory `
+                    -StageResult $result
+
+                $writtenResultPath | Should -BeExactly $resultPath
+                $writtenResultPath | Should -Exist
+                $result.phaseManifestDigest |
+                    Should -BeExactly $phaseManifestDigest
+                $result.phaseSummaryDigest |
+                    Should -BeExactly $phaseSummaryDigest
+            }
+
+            It 'summary write protocol changes exact bytes and requires a new run' {
+                $runId = [guid]'11111111-2222-4333-8444-555555555555'
+                $base = New-ChildSummaryEnvelope `
+                    -RunId $runId `
+                    -PhaseManifestDigest ('3' * 64)
+                $baseBytes = [Text.UTF8Encoding]::new($false).GetBytes(
+                    (ConvertTo-TenantLifecycleCanonicalJson -InputObject $base)
+                )
+                $cases = @(
+                    @{
+                        Name = 'timestamp'
+                        Mutate = {
+                            param($Value)
+                            $Value.completedAtUtc = '2026-10-03T08:32:00.000Z'
+                        }
+                    },
+                    @{
+                        Name = 'outcome'
+                        Mutate = {
+                            param($Value)
+                            $Value.status = 'Failed'
+                            $Value.classification = 'Changed'
+                            $Value.actions[0].status = 'Failed'
+                            $Value.actions[0].classification = 'Update'
+                        }
+                    },
+                    @{
+                        Name = 'state digest'
+                        Mutate = {
+                            param($Value)
+                            $Value.stateDigest = '4' * 64
+                        }
+                    },
+                    @{
+                        Name = 'provider extension'
+                        Mutate = {
+                            param($Value)
+                            $Value.syntheticProviderEvidence.actionDetails[0].
+                                resultCategory = 'SyntheticChanged'
+                        }
+                    }
+                )
+
+                foreach ($case in $cases) {
+                    $variant = Copy-ChildSummaryValue $base
+                    & $case.Mutate $variant
+                    $variantBytes = [Text.UTF8Encoding]::new($false).GetBytes(
+                        (ConvertTo-TenantLifecycleCanonicalJson -InputObject $variant)
+                    )
+                    [Convert]::ToBase64String($variantBytes) |
+                        Should -Not -BeExactly (
+                            [Convert]::ToBase64String($baseBytes)
+                        ) -Because $case.Name
+                    $path = Write-TenantLifecycleEvidence `
+                        -RunDirectory (
+                            Join-Path $TestDrive (
+                                'variant-' + $case.Name.Replace(' ', '-')
+                            )
+                        ) `
+                        -RelativePath 'summary.json' `
+                        -Kind Summary `
+                        -InputObject $variant
+                    [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) |
+                        Should -BeExactly ([Convert]::ToBase64String($variantBytes))
+                }
+
+                $sameRun = Join-Path $TestDrive 'immutable-summary'
+                $path = Write-TenantLifecycleEvidence `
+                    -RunDirectory $sameRun `
+                    -RelativePath 'summary.json' `
+                    -Kind Summary `
+                    -InputObject $base
+                $before = [IO.File]::ReadAllBytes($path)
+                $changed = Copy-ChildSummaryValue $base
+                $changed.completedAtUtc = '2026-10-03T08:32:00.000Z'
+                {
+                    Write-TenantLifecycleEvidence `
+                        -RunDirectory $sameRun `
+                        -RelativePath 'summary.json' `
+                        -Kind Summary `
+                        -InputObject $changed
+                } | Should -Throw -ExpectedMessage 'TenantLifecycle.Evidence.Exists'
+                [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) |
+                    Should -BeExactly ([Convert]::ToBase64String($before))
+            }
+
+            It 'child summary writer rejects manifestDigest and incomplete legacy summaries' {
+                $runId = [guid]'11111111-2222-4333-8444-555555555555'
+                $oldDigest = New-ChildSummaryEnvelope `
+                    -RunId $runId `
+                    -PhaseManifestDigest ('3' * 64)
+                $oldDigest.PSObject.Properties.Remove('phaseManifestDigest')
+                $oldDigest |
+                    Add-Member `
+                        -NotePropertyName manifestDigest `
+                        -NotePropertyValue ('3' * 64)
+                $legacy = [pscustomobject][ordered]@{
+                    schemaVersion = '1.0'
+                    stage = 'Foundation'
+                    startedAtUtc = '2026-10-03T08:30:00.0000000Z'
+                    completedAtUtc = '2026-10-03T08:31:00.000Z'
+                    counts = [pscustomobject][ordered]@{
+                        NoChange = 1
+                        Create = 0
+                        Update = 0
+                        Manual = 0
+                        Blocked = 0
+                        Refused = 0
+                    }
+                    prerequisites = @()
+                    actions = @()
+                    nonClaims = @('Synthetic evidence only.')
+                }
+
+                foreach ($case in @(
+                    @{ Name = 'manifestDigest'; Value = $oldDigest },
+                    @{ Name = 'incomplete legacy'; Value = $legacy }
+                )) {
+                    $runDirectory = Join-Path (
+                        $TestDrive
+                    ) ('legacy-' + $case.Name.Replace(' ', '-'))
+                    {
+                        Write-TenantLifecycleEvidence `
+                            -RunDirectory $runDirectory `
+                            -RelativePath 'summary.json' `
+                            -Kind Summary `
+                            -InputObject $case.Value
+                    } | Should -Throw `
+                        -ExpectedMessage 'TenantLifecycle.Evidence.Invalid' `
+                        -Because $case.Name
+                    Join-Path $runDirectory 'summary.json' |
+                        Should -Not -Exist
+                }
+            }
+
+            It 'cross-host summary golden writes byte-identical manifest summary and result' {
+                $runnerPath = Join-Path $TestDrive 'child-summary-cross-host.ps1'
+                $runner = {
+        [CmdletBinding()]
+        param(
+            [Parameter(Mandatory)][string]$ModulePath,
+            [Parameter(Mandatory)][string]$FixturePath,
+            [Parameter(Mandatory)][string]$OutputRoot
+        )
+
+        $ErrorActionPreference = 'Stop'
+        Set-StrictMode -Version Latest
+        Import-Module $ModulePath -Force
+
+        function Get-ExactDigest {
+            param([Parameter(Mandatory)][string]$Path)
+
+            $algorithm = [Security.Cryptography.SHA256]::Create()
+            try {
+                -join @(
+                    $algorithm.ComputeHash([IO.File]::ReadAllBytes($Path)) |
+                        ForEach-Object { $_.ToString('x2') }
+                )
+            }
+            finally {
+                $algorithm.Dispose()
+            }
+        }
+
+        $fixture = ConvertFrom-TenantLifecycleJson -InputObject (
+            Get-Content -Raw -LiteralPath $FixturePath
+        )
+        $runId = [guid]'11111111-2222-4333-8444-555555555555'
+        $runDirectory = Join-Path $OutputRoot $runId.ToString('D')
+        $phaseDirectory = Join-Path $runDirectory 'phases\Foundation'
+        $manifest = New-TenantLifecycleExecutionManifest `
+            -RunId $runId `
+            -SourceCommit ('a' * 40) `
+            -EvidenceRoot (
+                'C:\synthetic-evidence\' +
+                '11111111-2222-4333-8444-555555555555\phases\Foundation'
+            ) `
+            -PublicTenantKey tenant1 `
+            -IntentDigest ('1' * 64) `
+            -StateDigest ('2' * 64) `
+            -SelectedStages @('Foundation') `
+            -PrerequisiteResults @() `
+            -Machine $fixture.executionManifest.machine `
+            -Operator $fixture.executionManifest.operator `
+            -ToolIdentities @($fixture.executionManifest.toolIdentities) `
+            -ProviderContexts @($fixture.executionManifest.providerContexts) `
+            -Prerequisites @($fixture.executionManifest.prerequisites) `
+            -Actions @($fixture.executionManifest.actions) `
+            -GeneratedAtUtc ([datetime]'2026-10-03T08:00:00Z') `
+            -ExpiresAtUtc ([datetime]'2026-10-03T08:30:00Z')
+        $manifestPath = Write-TenantLifecycleEvidence `
+            -RunDirectory $phaseDirectory `
+            -RelativePath 'execution-manifest.json' `
+            -Kind ExecutionManifest `
+            -InputObject $manifest
+        $phaseManifestDigest = Get-ExactDigest -Path $manifestPath
+        $summary = [pscustomobject][ordered]@{
+            schemaVersion = '1.0'
+            runId = '11111111-2222-4333-8444-555555555555'
+            stage = 'Foundation'
+            sourceCommit = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+            publicTenantKey = 'tenant1'
+            intentDigest =
+                '1111111111111111111111111111111111111111111111111111111111111111'
+            stateDigest =
+                '2222222222222222222222222222222222222222222222222222222222222222'
+            phaseManifestDigest = $phaseManifestDigest
+            status = 'Passed'
+            classification = 'NoChange'
+            startedAtUtc = '2026-10-03T08:30:00.0000000Z'
+            completedAtUtc = '2026-10-03T08:31:00.000Z'
+            counts = [pscustomobject][ordered]@{
+                NoChange = 1
+                Create = 0
+                Update = 0
+                Manual = 0
+                Blocked = 0
+                Refused = 0
+            }
+            prerequisites = [object[]]@(
+                [pscustomobject][ordered]@{
+                    id = 'prerequisite-001'
+                    status = 'Passed'
+                    inputDigest =
+                        '6666666666666666666666666666666666666666666666666666666666666666'
+                    evidenceDigest =
+                        '7777777777777777777777777777777777777777777777777777777777777777'
+                }
+            )
+            actions = [object[]]@(
+                [pscustomobject][ordered]@{
+                    id = 'action-001'
+                    classification = 'NoChange'
+                    status = 'Passed'
+                    evidenceRelativePath = 'actions/action-001.json'
+                }
+            )
+            nonClaims = @('Synthetic evidence only.')
+            syntheticProviderEvidence = [pscustomobject][ordered]@{
+                provider = 'SyntheticProvider'
+                actionDetails = [object[]]@(
+                    [pscustomobject][ordered]@{
+                        id = 'action-001'
+                        operation = 'Inspect'
+                        resultCategory = 'SyntheticNoChange'
+                    }
+                )
+            }
+        }
+        $summaryPath = Write-TenantLifecycleEvidence `
+            -RunDirectory $phaseDirectory `
+            -RelativePath 'summary.json' `
+            -Kind Summary `
+            -InputObject $summary
+        $phaseSummaryDigest = Get-ExactDigest -Path $summaryPath
+        $result = New-TenantLifecycleStageResult `
+            -RunId $runId `
+            -Stage Foundation `
+            -SourceCommit ('a' * 40) `
+            -PublicTenantKey tenant1 `
+            -IntentDigest ('1' * 64) `
+            -StateDigest ('2' * 64) `
+            -PhaseManifestDigest $phaseManifestDigest `
+            -PhaseSummaryDigest $phaseSummaryDigest `
+            -Status Passed `
+            -Classification NoChange `
+            -EvidenceRelativePath 'phases/Foundation/summary.json' `
+            -CompletedAtUtc ([datetime]'2026-10-03T08:31:00Z')
+        $resultPath = Write-TenantLifecycleStageResult `
+            -RunDirectory $runDirectory `
+            -StageResult $result
+        $golden = [pscustomobject][ordered]@{
+            manifestEmbeddedDigest = [string]$manifest.digest
+            phaseManifestDigest = $phaseManifestDigest
+            phaseSummaryDigest = $phaseSummaryDigest
+            stageResultDigest = Get-ExactDigest -Path $resultPath
+        }
+        [IO.File]::WriteAllText(
+            (Join-Path $OutputRoot 'golden.json'),
+            (ConvertTo-TenantLifecycleCanonicalJson -InputObject $golden),
+            [Text.UTF8Encoding]::new($false)
+        )
+        }
+                [IO.File]::WriteAllText(
+                    $runnerPath,
+                    $runner.ToString(),
+                    [Text.UTF8Encoding]::new($false)
+                )
+
+                $outputs = @{}
+                foreach ($hostName in @('powershell.exe', 'pwsh.exe')) {
+                    $hostCommand = Get-Command `
+                        -Name $hostName `
+                        -CommandType Application `
+                        -ErrorAction Stop |
+                        Select-Object -First 1
+                    $hostKey = [IO.Path]::GetFileNameWithoutExtension($hostName)
+                    $outputRoot = Join-Path $TestDrive $hostKey
+                    [IO.Directory]::CreateDirectory($outputRoot) | Out-Null
+                    $hostOutput = @(
+                        & $hostCommand.Source `
+                            -NoProfile `
+                            -NonInteractive `
+                            -ExecutionPolicy Bypass `
+                            -File $runnerPath `
+                            -ModulePath $script:ChildSummaryModulePath `
+                            -FixturePath $script:ChildSummaryFixturePath `
+                            -OutputRoot $outputRoot 2>&1
+                    )
+                    $LASTEXITCODE |
+                        Should -Be 0 -Because ($hostOutput -join [Environment]::NewLine)
+                    $outputs[$hostKey] = $outputRoot
+                }
+
+                $artifactPaths = @(
+                    (
+                        '11111111-2222-4333-8444-555555555555\' +
+                        'phases\Foundation\execution-manifest.json'
+                    ),
+                    (
+                        '11111111-2222-4333-8444-555555555555\' +
+                        'phases\Foundation\summary.json'
+                    ),
+                    (
+                        '11111111-2222-4333-8444-555555555555\' +
+                        'stage-results\Foundation.json'
+                    )
+                )
+                foreach ($relativePath in $artifactPaths) {
+                    [Convert]::ToBase64String(
+                        [IO.File]::ReadAllBytes(
+                            (Join-Path $outputs.powershell $relativePath)
+                        )
+                    ) | Should -BeExactly (
+                        [Convert]::ToBase64String(
+                            [IO.File]::ReadAllBytes(
+                                (Join-Path $outputs.pwsh $relativePath)
+                            )
+                        )
+                    )
+                }
+
+                $goldens = @{}
+                foreach ($hostKey in @('powershell', 'pwsh')) {
+                    $goldens[$hostKey] = ConvertFrom-TenantLifecycleJson -InputObject (
+                        Get-Content `
+                            -Raw `
+                            -LiteralPath (Join-Path $outputs[$hostKey] 'golden.json')
+                    )
+                }
+                foreach ($field in @(
+                    'manifestEmbeddedDigest',
+                    'phaseManifestDigest',
+                    'phaseSummaryDigest',
+                    'stageResultDigest'
+                )) {
+                    $goldens.powershell.$field |
+                        Should -BeExactly $goldens.pwsh.$field
+                }
+                $goldens.powershell.manifestEmbeddedDigest |
+                    Should -BeExactly (
+                        '1c2294fb2e3e90cc937b85aa6a880b54' +
+                        'f0d9891d0150f08dbef37acfa0c3758f'
+                    )
+                $goldens.powershell.phaseManifestDigest |
+                    Should -BeExactly (
+                        '14c6d957db5615163ef59cb6843a7418' +
+                        '352be711c7757c45a9b988aada058a23'
+                    )
+
+                $expectedSummary = [pscustomobject][ordered]@{
+                    schemaVersion = '1.0'
+                    runId = '11111111-2222-4333-8444-555555555555'
+                    stage = 'Foundation'
+                    sourceCommit = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+                    publicTenantKey = 'tenant1'
+                    intentDigest =
+                        '1111111111111111111111111111111111111111111111111111111111111111'
+                    stateDigest =
+                        '2222222222222222222222222222222222222222222222222222222222222222'
+                    phaseManifestDigest =
+                        '14c6d957db5615163ef59cb6843a7418352be711c7757c45a9b988aada058a23'
+                    status = 'Passed'
+                    classification = 'NoChange'
+                    startedAtUtc = '2026-10-03T08:30:00.0000000Z'
+                    completedAtUtc = '2026-10-03T08:31:00.000Z'
+                    counts = [pscustomobject][ordered]@{
+                        NoChange = 1
+                        Create = 0
+                        Update = 0
+                        Manual = 0
+                        Blocked = 0
+                        Refused = 0
+                    }
+                    prerequisites = [object[]]@(
+                        [pscustomobject][ordered]@{
+                            id = 'prerequisite-001'
+                            status = 'Passed'
+                            inputDigest =
+                                '6666666666666666666666666666666666666666666666666666666666666666'
+                            evidenceDigest =
+                                '7777777777777777777777777777777777777777777777777777777777777777'
+                        }
+                    )
+                    actions = [object[]]@(
+                        [pscustomobject][ordered]@{
+                            id = 'action-001'
+                            classification = 'NoChange'
+                            status = 'Passed'
+                            evidenceRelativePath = 'actions/action-001.json'
+                        }
+                    )
+                    nonClaims = @('Synthetic evidence only.')
+                    syntheticProviderEvidence = [pscustomobject][ordered]@{
+                        provider = 'SyntheticProvider'
+                        actionDetails = [object[]]@(
+                            [pscustomobject][ordered]@{
+                                id = 'action-001'
+                                operation = 'Inspect'
+                                resultCategory = 'SyntheticNoChange'
+                            }
+                        )
+                    }
+                }
+                $expectedSummaryBytes = [Text.UTF8Encoding]::new($false).GetBytes(
+                    (ConvertTo-TenantLifecycleCanonicalJson -InputObject $expectedSummary)
+                )
+                foreach ($hostKey in @('powershell', 'pwsh')) {
+                    $summaryPath = Join-Path $outputs[$hostKey] (
+                        '11111111-2222-4333-8444-555555555555\' +
+                        'phases\Foundation\summary.json'
+                    )
+                    [Convert]::ToBase64String(
+                        [IO.File]::ReadAllBytes($summaryPath)
+                    ) | Should -BeExactly (
+                        [Convert]::ToBase64String($expectedSummaryBytes)
+                    )
+                }
+            }
+        }
 
     Describe 'Tenant lifecycle stage-only projection contracts' {
         BeforeEach {
@@ -3109,44 +3940,72 @@ Describe 'Tenant lifecycle evidence manifest and writer' {
             )
             $script:StageProjectionResults = @(
                 foreach ($definition in $stageDefinitions) {
-                    New-TenantLifecycleStageResult `
-                        -RunId $script:StageProjectionRunId `
-                        -Stage $definition.Stage `
-                        -SourceCommit $definition.SourceCommit `
-                        -PublicTenantKey tenant1 `
-                        -IntentDigest $definition.IntentDigest `
-                        -StateDigest $definition.StateDigest `
-                        -PhaseManifestDigest (
-                            $definition.PhaseManifestDigest
-                        ) `
-                        -PhaseSummaryDigest (
-                            $definition.PhaseSummaryDigest
-                        ) `
-                        -Status Passed `
-                        -Classification $definition.Classification `
-                        -EvidenceRelativePath (
-                            "phases/$($definition.Stage)/summary.json"
-                        ) `
-                        -CompletedAtUtc $definition.CompletedAtUtc
-                }
-            )
-
-            foreach ($stage in @('Foundation', 'ReadBack')) {
+                $stage = $definition.Stage
                 $phaseDirectory = Join-Path (
                     $script:StageProjectionRunDirectory
                 ) "phases\$stage"
-                [IO.Directory]::CreateDirectory($phaseDirectory) | Out-Null
                 $childSummary = Copy-EvidenceValue (
                     $script:EvidenceFixture.phaseSummary
                 )
+                $childSummary.runId =
+                    $script:StageProjectionRunId.ToString(
+                        'D'
+                    ).ToLowerInvariant()
                 $childSummary.stage = $stage
-                $childSummary | ConvertTo-Json -Depth 30 |
-                    Set-Content `
-                        -LiteralPath (
-                            Join-Path $phaseDirectory 'summary.json'
-                        ) `
-                        -Encoding UTF8
-            }
+                $childSummary.sourceCommit = $definition.SourceCommit
+                $childSummary.publicTenantKey = 'tenant1'
+                $childSummary.intentDigest = $definition.IntentDigest
+                $childSummary.stateDigest = $definition.StateDigest
+                $childSummary.phaseManifestDigest =
+                    $definition.PhaseManifestDigest
+                $childSummary.status = 'Passed'
+                $childSummary.classification =
+                    $definition.Classification
+                $childSummary.completedAtUtc = $definition.CompletedAtUtc.
+                    ToUniversalTime().ToString(
+                        "yyyy-MM-dd'T'HH:mm:ss.fff'Z'",
+                        [Globalization.CultureInfo]::InvariantCulture
+                    )
+                $childSummary.actions[0].id = $stage
+                $childSummary.actions[0].classification = if (
+                    $definition.Classification -ceq 'Changed'
+                ) {
+                    'Update'
+                }
+                else {
+                    $definition.Classification
+                }
+                $childSummary.actions[0].status = 'Passed'
+                $childSummary.actions[0].evidenceRelativePath =
+                    "actions/$stage.json"
+                $childSummaryPath = Write-TenantLifecycleEvidence `
+                    -RunDirectory $phaseDirectory `
+                    -RelativePath 'summary.json' `
+                    -Kind Summary `
+                    -InputObject $childSummary
+
+                New-TenantLifecycleStageResult `
+                    -RunId $script:StageProjectionRunId `
+                    -Stage $stage `
+                    -SourceCommit $definition.SourceCommit `
+                    -PublicTenantKey tenant1 `
+                    -IntentDigest $definition.IntentDigest `
+                    -StateDigest $definition.StateDigest `
+                    -PhaseManifestDigest (
+                        $definition.PhaseManifestDigest
+                    ) `
+                    -PhaseSummaryDigest (
+                        Get-EvidenceFileDigest `
+                            -Path $childSummaryPath
+                    ) `
+                    -Status Passed `
+                    -Classification $definition.Classification `
+                    -EvidenceRelativePath (
+                        "phases/$stage/summary.json"
+                    ) `
+                    -CompletedAtUtc $definition.CompletedAtUtc
+                }
+            )
         }
 
         It 'writes an exact ordered stage-only projection' {

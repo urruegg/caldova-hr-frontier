@@ -67,38 +67,73 @@
     "schemaVersion": "1.0",
     "runId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
     "stage": "Foundation",
-    "tenantId": "tenant-synthetic-001",
-    "subscriptionId": "subscription-synthetic-001",
-    "applicationId": "application-synthetic-001",
-    "environmentId": "environment-synthetic-001",
-    "projectId": "project-synthetic-001",
-    "pipelineId": "pipeline-synthetic-001",
-    "objectId": "object-synthetic-001",
-    "roleId": "role-synthetic-001",
-    "resourceId": "resource-synthetic-001",
-    "resourceUrl": "https://provider.example.invalid/path?token=synthetic",
-    "provider": "SyntheticProvider",
-    "actionId": "action-synthetic-001",
-    "actions": [
+    "sourceCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "publicTenantKey": "tenant1",
+    "intentDigest": "1111111111111111111111111111111111111111111111111111111111111111",
+    "stateDigest": "2222222222222222222222222222222222222222222222222222222222222222",
+    "phaseManifestDigest": "3333333333333333333333333333333333333333333333333333333333333333",
+    "status": "Passed",
+    "classification": "NoChange",
+    "startedAtUtc": "2026-10-02T12:00:00.0000000Z",
+    "completedAtUtc": "2026-10-02T12:11:00.000Z",
+    "counts": {
+      "NoChange": 1,
+      "Create": 0,
+      "Update": 0,
+      "Manual": 0,
+      "Blocked": 0,
+      "Refused": 0
+    },
+    "prerequisites": [
       {
-        "id": "action-synthetic-001",
-        "operation": "Create",
+        "id": "prerequisite-001",
         "status": "Passed",
-        "result": "actionResults"
-      },
-      {
-        "id": "action-synthetic-002",
-        "operation": "Update",
-        "status": "Passed",
-        "result": "actionResults"
+        "inputDigest": "6666666666666666666666666666666666666666666666666666666666666666",
+        "evidenceDigest": "7777777777777777777777777777777777777777777777777777777777777777"
       }
     ],
-    "requestPayload": {
-      "synthetic": true
-    },
-    "rawReadBack": {
-      "stableId": "stable-synthetic-001",
-      "status": "Passed"
+    "actions": [
+      {
+        "id": "action-001",
+        "classification": "NoChange",
+        "status": "Passed",
+        "evidenceRelativePath": "actions/action-001.json"
+      }
+    ],
+    "nonClaims": [
+      "Synthetic evidence only."
+    ],
+    "syntheticProviderEvidence": {
+      "provider": "SyntheticProvider",
+      "tenantId": "tenant-synthetic-001",
+      "subscriptionId": "subscription-synthetic-001",
+      "applicationId": "application-synthetic-001",
+      "environmentId": "environment-synthetic-001",
+      "projectId": "project-synthetic-001",
+      "pipelineId": "pipeline-synthetic-001",
+      "objectId": "object-synthetic-001",
+      "roleId": "role-synthetic-001",
+      "resourceId": "resource-synthetic-001",
+      "resourceUrl": "https://provider.example.invalid/synthetic-resource",
+      "actionDetails": [
+        {
+          "id": "action-synthetic-001",
+          "operation": "Create",
+          "resultCategory": "SyntheticNoChange"
+        },
+        {
+          "id": "action-synthetic-002",
+          "operation": "Update",
+          "resultCategory": "SyntheticNoChange"
+        }
+      ],
+      "requestProjection": {
+        "synthetic": true
+      },
+      "readBackProjection": {
+        "stableId": "stable-synthetic-001",
+        "status": "Passed"
+      }
     }
   },
   "executionManifest": {
@@ -232,7 +267,7 @@
     "publicTenantKey": "tenant1",
     "intentDigest": "1111111111111111111111111111111111111111111111111111111111111111",
     "stateDigest": "2222222222222222222222222222222222222222222222222222222222222222",
-    "phaseManifestDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "phaseManifestDigest": "3333333333333333333333333333333333333333333333333333333333333333",
     "status": "Passed",
     "classification": "NoChange",
     "startedAtUtc": "2026-10-02T12:00:00.0000000Z",
@@ -264,7 +299,17 @@
     "nonClaims": [
       "No provider mutation was performed.",
       "No live tenant value is represented."
-    ]
+    ],
+    "syntheticProviderEvidence": {
+      "provider": "SyntheticProvider",
+      "actionDetails": [
+        {
+          "id": "action-001",
+          "operation": "Inspect",
+          "resultCategory": "SyntheticNoChange"
+        }
+      ]
+    }
   },
   "controlRecord": {
     "schemaVersion": "1.0",
