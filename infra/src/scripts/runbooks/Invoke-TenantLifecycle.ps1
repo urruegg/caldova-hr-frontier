@@ -1027,14 +1027,17 @@ function Invoke-TenantLifecycleIsolatedInvoker {
         ConvertTo-Json -Depth 30 -Compress
     $childScript = @'
 $ErrorActionPreference = 'Stop'
+$failureExitCode = 10
 try {
     [Console]::SetOut([IO.TextWriter]::Null)
     [Console]::SetError([IO.TextWriter]::Null)
     $invocationEnvelope = [Console]::In.ReadToEnd() | ConvertFrom-Json
+    $failureExitCode = 11
     $invokerText = [Text.Encoding]::UTF8.GetString(
         [Convert]::FromBase64String([string]$invocationEnvelope.invoker)
     )
     $invoker = [scriptblock]::Create($invokerText)
+    $failureExitCode = 20
     $null = & $invoker `
         -Stage ([string]$invocationEnvelope.stage) `
         -Mode ([string]$invocationEnvelope.mode) `
@@ -1042,7 +1045,44 @@ try {
     exit 0
 }
 catch {
-    exit 1
+    if ($failureExitCode -eq 20) {
+        $invocationException = $_.Exception
+        while ($null -ne $invocationException.InnerException) {
+            $invocationException = $invocationException.InnerException
+        }
+        $failureExitCode = switch -Regex (
+            $invocationException.GetType().FullName
+        ) {
+            '(?:DirectoryNotFound|DriveNotFound|FileNotFound)Exception$' {
+                21
+                break
+            }
+            'CommandNotFoundException$' {
+                22
+                break
+            }
+            '(?:Security|UnauthorizedAccess)Exception$' {
+                23
+                break
+            }
+            'InvalidDataException$' {
+                24
+                break
+            }
+            '(?:ParameterBinding|Argument)Exception$' {
+                25
+                break
+            }
+            'InvalidOperationException$' {
+                26
+                break
+            }
+            default {
+                29
+            }
+        }
+    }
+    exit $failureExitCode
 }
 '@
     $encodedChildScript = [Convert]::ToBase64String(
@@ -1129,7 +1169,32 @@ catch {
         }
         $childExited = $true
         if ($child.ExitCode -ne 0) {
-            throw [InvalidOperationException]::new()
+            $childFailure = switch ($child.ExitCode) {
+                10 { 'TenantLifecycle.SubsystemInvoker.Child.Payload' }
+                11 { 'TenantLifecycle.SubsystemInvoker.Child.Script' }
+                21 {
+                    'TenantLifecycle.SubsystemInvoker.Child.Invocation.Path'
+                }
+                22 {
+                    'TenantLifecycle.SubsystemInvoker.Child.Invocation.Command'
+                }
+                23 {
+                    'TenantLifecycle.SubsystemInvoker.Child.Invocation.Security'
+                }
+                24 {
+                    'TenantLifecycle.SubsystemInvoker.Child.Invocation.Data'
+                }
+                25 {
+                    'TenantLifecycle.SubsystemInvoker.Child.Invocation.Argument'
+                }
+                26 {
+                    'TenantLifecycle.SubsystemInvoker.Child.Invocation.State'
+                }
+                default {
+                    'TenantLifecycle.SubsystemInvoker.Child.Invocation.Other'
+                }
+            }
+            throw [InvalidOperationException]::new($childFailure)
         }
     }
     catch {

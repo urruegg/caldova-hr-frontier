@@ -2535,6 +2535,43 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         }
                     }
 
+                    It 'classifies child invocation failures without disclosing their message' {
+                        $errorRecord = try {
+                            Invoke-CoordinateOrchestrator `
+                                -RunId ([guid]::NewGuid()) `
+                                -Stages @('Workstation') `
+                                -Mode Assess `
+                                -SubsystemInvoker {
+                                    throw [IO.DirectoryNotFoundException]::new(
+                                        'private-provider-path-marker'
+                                    )
+                                }
+                            $null
+                        }
+                        catch {
+                            $_
+                        }
+
+                        $errorRecord.Exception.Message |
+                            Should -BeExactly (
+                                'TenantLifecycle.SubsystemInvoker.Failed'
+                            )
+                        $messages =
+                            [Collections.Generic.List[string]]::new()
+                        $exception = $errorRecord.Exception
+                        while ($null -ne $exception) {
+                            [void]$messages.Add($exception.Message)
+                            $exception = $exception.InnerException
+                        }
+                        ($messages -join '|') | Should -Match (
+                            'TenantLifecycle[.]SubsystemInvoker[.]' +
+                            'Child[.]Invocation[.]Path'
+                        )
+                        ($messages -join '|') | Should -Not -Match (
+                            'private-provider-path-marker'
+                        )
+                    }
+
                     It 'rejects an empty selected stage set before dispatch' {
                         {
                             Invoke-CoordinateOrchestrator `

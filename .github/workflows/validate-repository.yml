@@ -30,6 +30,20 @@ jobs:
           python -m pip install --disable-pip-version-check --requirement hr/tests/requirements.txt
           if ($LASTEXITCODE -ne 0) { throw 'Python schema test dependency installation failed.' }
 
+      - name: Run lifecycle dispatch smoke test
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $result = Invoke-Pester `
+            -Path 'infra/tests/pester/TenantLifecycleOrchestration.Tests.ps1' `
+            -FullNameFilter '*passes exact named arguments and a fresh nine-field control record*' `
+            -Output Detailed `
+            -CI `
+            -PassThru
+          if ($result.FailedCount -gt 0) {
+            throw "$($result.FailedCount) lifecycle dispatch smoke test(s) failed."
+          }
+
       - name: Run all maintained tests
         shell: powershell
         run: |
