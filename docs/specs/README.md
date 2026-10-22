@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.3 |
+| **Version** | 2.4 |
 | **Date** | 2026-10-22 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
@@ -65,7 +65,7 @@ A specification is created from a selected idea or approved problem. It precedes
 | [Tenant replica and handover implementation plan](../plans/2026-10-02-tenant-replica-handover-implementation.md) | [`2026-10-02-tenant-replica-and-customer-handover-runbook-design.md`](2026-10-02-tenant-replica-and-customer-handover-runbook-design.md) | Approved | Defines local `TenantReplica` and stricter `CustomerHandover` export profiles with independent validation. | Approved local implementation authority; it authorizes no publication, destination repository, or Tenant 2 live action. |
 | [Coordinate-only correction plan](../plans/2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md), then [child-summary implementation plan](../plans/2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md) | [`2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md`](2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md) | Approved | Defines the coordinate-only lifecycle umbrella, child-owned mutation and approval, canonical stage results, and the lifecycle-core blocker correction. | Approved corrective authority; supersedes the umbrella mutation, approval, and resource-correlation implications identified in its authority section. It authorizes no implementation or live operation. |
 | [Draft implementation plan](../plans/2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md) | [`2026-10-03-tenant-lifecycle-child-summary-envelope-design.md`](2026-10-03-tenant-lifecycle-child-summary-envelope-design.md) | Approved | Defines the reserved canonical child-summary envelope, exact digest meanings, write order, and equivalent Verify/prerequisite enforcement. | Approved companion authority for its stated scope; implementation remains Draft and blocked until reviewed, merged, and then-current `main` is green. |
-| Written-file review, then implementation planning | [`2026-10-22-parallel-repository-validation-design.md`](2026-10-22-parallel-repository-validation-design.md) | Proposed Baseline (pending written-file review) | Defines four parallel test domains with exclusive ownership and a stable final validation aggregator. | Proposed only; it changes no workflow, test, branch protection, or operational authority until reviewed and implemented. |
+| Written-file review, then implementation planning | [`2026-10-22-parallel-repository-validation-design.md`](2026-10-22-parallel-repository-validation-design.md) | Proposed Baseline (pending written-file review) | Defines four fail-closed parallel validation domains, recursive exclusive test ownership, and a pure stable final aggregator. | Proposed only; it changes no workflow, test, branch protection, or operational authority until reviewed and implemented. |
 
 ## Domain Links
 
