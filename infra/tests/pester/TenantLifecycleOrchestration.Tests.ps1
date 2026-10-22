@@ -2676,6 +2676,42 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             Should -BeExactly 'Workstation'
                     }
 
+                    It 'transports the control envelope independently of console input encoding' {
+                        $runId = [guid]::NewGuid()
+                        $invoker = New-CoordinateArtifactInvoker
+                        $originalInputEncoding = [Console]::InputEncoding
+                        try {
+                            [Console]::InputEncoding =
+                                [Text.UTF8Encoding]::new($true)
+                            $errorRecord = try {
+                                Invoke-CoordinateOrchestrator `
+                                    -RunId $runId `
+                                    -Stages @('Workstation') `
+                                    -Mode Assess `
+                                    -SubsystemInvoker $invoker
+                                $null
+                            }
+                            catch {
+                                $_
+                            }
+                        }
+                        finally {
+                            [Console]::InputEncoding =
+                                $originalInputEncoding
+                        }
+                        $because = if ($null -eq $errorRecord) {
+                            'the raw Base64 transport is encoding-independent'
+                        }
+                        else {
+                            $errorRecord.Exception.ToString()
+                        }
+                        $errorRecord |
+                            Should -BeNullOrEmpty -Because $because
+                        (
+                            Get-CoordinateObservedCalls -RunId $runId
+                        ) | Should -BeExactly @('Workstation|Assess')
+                    }
+
                     It 'excludes every private path value and provider authority' {
                         $runId = [guid]::NewGuid()
                         $invoker = New-CoordinateArtifactInvoker

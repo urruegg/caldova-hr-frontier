@@ -1025,14 +1025,62 @@ function Invoke-TenantLifecycleIsolatedInvoker {
     }
     $invocationEnvelopeJson = $invocationEnvelope |
         ConvertTo-Json -Depth 30 -Compress
+    $invocationEnvelopeTransport = [Convert]::ToBase64String(
+        [Text.Encoding]::UTF8.GetBytes($invocationEnvelopeJson)
+    )
+    $invocationEnvelopeBytes = [Text.Encoding]::ASCII.GetBytes(
+        $invocationEnvelopeTransport
+    )
     $childScript = @'
 $ErrorActionPreference = 'Stop'
 $failureExitCode = 10
 try {
-    $invocationEnvelopeJson = [Console]::In.ReadToEnd()
+    $inputBuffer = [IO.MemoryStream]::new()
+    try {
+        [Console]::OpenStandardInput().CopyTo($inputBuffer)
+        [byte[]]$inputBytes = $inputBuffer.ToArray()
+    }
+    finally {
+        $inputBuffer.Dispose()
+    }
+    $inputOffset = if (
+        $inputBytes.Length -ge 3 -and
+        $inputBytes[0] -eq 0xEF -and
+        $inputBytes[1] -eq 0xBB -and
+        $inputBytes[2] -eq 0xBF
+    ) {
+        3
+    }
+    elseif (
+        $inputBytes.Length -ge 2 -and
+        (
+            (
+                $inputBytes[0] -eq 0xFF -and
+                $inputBytes[1] -eq 0xFE
+            ) -or
+            (
+                $inputBytes[0] -eq 0xFE -and
+                $inputBytes[1] -eq 0xFF
+            )
+        )
+    ) {
+        2
+    }
+    else {
+        0
+    }
+    $invocationEnvelopeTransport = [Text.Encoding]::ASCII.GetString(
+        $inputBytes,
+        $inputOffset,
+        $inputBytes.Length - $inputOffset
+    )
     $failureExitCode = 11
-    $invocationEnvelope = $invocationEnvelopeJson | ConvertFrom-Json
+    $invocationEnvelopeJson = [Text.Encoding]::UTF8.GetString(
+        [Convert]::FromBase64String($invocationEnvelopeTransport)
+    )
     $failureExitCode = 12
+    $invocationEnvelope = $invocationEnvelopeJson | ConvertFrom-Json
+    $failureExitCode = 13
     $invokerText = [Text.Encoding]::UTF8.GetString(
         [Convert]::FromBase64String([string]$invocationEnvelope.invoker)
     )
@@ -1151,14 +1199,16 @@ catch {
         )
         $timeoutMilliseconds = 300000
         $stopwatch = [Diagnostics.Stopwatch]::StartNew()
-        $writeTask = $child.StandardInput.WriteAsync(
-            $invocationEnvelopeJson
+        $writeTask = $child.StandardInput.BaseStream.WriteAsync(
+            $invocationEnvelopeBytes,
+            0,
+            $invocationEnvelopeBytes.Length
         )
         if (-not $writeTask.Wait($timeoutMilliseconds)) {
             throw [TimeoutException]::new()
         }
         [void]$writeTask.GetAwaiter().GetResult()
-        $child.StandardInput.Close()
+        $child.StandardInput.BaseStream.Close()
         $remainingMilliseconds = $timeoutMilliseconds - [int][Math]::Min(
             $stopwatch.ElapsedMilliseconds,
             $timeoutMilliseconds
@@ -1171,8 +1221,9 @@ catch {
         if ($child.ExitCode -ne 0) {
             $childFailure = switch ($child.ExitCode) {
                 10 { 'TenantLifecycle.SubsystemInvoker.Child.Input' }
-                11 { 'TenantLifecycle.SubsystemInvoker.Child.Payload' }
-                12 { 'TenantLifecycle.SubsystemInvoker.Child.Script' }
+                11 { 'TenantLifecycle.SubsystemInvoker.Child.Transport' }
+                12 { 'TenantLifecycle.SubsystemInvoker.Child.Payload' }
+                13 { 'TenantLifecycle.SubsystemInvoker.Child.Script' }
                 21 {
                     'TenantLifecycle.SubsystemInvoker.Child.Invocation.Path'
                 }
