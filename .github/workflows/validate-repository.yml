@@ -35,7 +35,7 @@ jobs:
       - name: Run repository safety validation
         shell: powershell
         run: |
-          powershell.exe -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-safety.ps1
+          & .github/cli/verify-repository-safety.ps1
           if ($LASTEXITCODE -ne 0) { throw 'Repository safety validation failed.' }
       - name: Check branch whitespace
         shell: powershell

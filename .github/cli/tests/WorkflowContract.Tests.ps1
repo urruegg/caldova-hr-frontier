@@ -99,31 +99,115 @@ BeforeAll {
             }
         }
 
-        $run = $null
-        $runIndex = -1
+        $runRows = [Collections.Generic.List[object]]::new()
         for ($index = 0; $index -lt $Lines.Count; $index++) {
-            if ($Lines[$index] -cmatch '^        run:\s*\|\s*$') {
-                if ($runIndex -ne -1) {
-                    throw "Workflow contract parser found duplicate run blocks in '$name'."
-                }
-                $runIndex = $index
+            $line = $Lines[$index]
+            if ($line -cmatch '^        run:\s*(?<scalar>.*?)\s*$') {
+                [void]$runRows.Add([pscustomobject]@{
+                    Index = $index
+                    Scalar = $Matches['scalar']
+                })
+            }
+            elseif ($line -cmatch '^        run\b') {
+                throw "Workflow contract parser found a malformed run scalar in '$name'."
             }
         }
-        if ($runIndex -ne -1) {
-            $runRows = [Collections.Generic.List[string]]::new()
-            for ($index = $runIndex + 1; $index -lt $Lines.Count; $index++) {
+        if ($runRows.Count -gt 1) {
+            throw "Workflow contract parser found duplicate run scalars in '$name'."
+        }
+
+        $run = $null
+        if ($runRows.Count -eq 1) {
+            $runRow = $runRows[0]
+            $contentRows = [Collections.Generic.List[string]]::new()
+            for ($index = $runRow.Index + 1; $index -lt $Lines.Count; $index++) {
                 $line = $Lines[$index]
                 if (-not [string]::IsNullOrEmpty($line) -and $line -cnotmatch '^          ') {
                     break
                 }
                 if ($line.Length -ge 10) {
-                    [void]$runRows.Add($line.Substring(10))
+                    [void]$contentRows.Add($line.Substring(10))
                 }
                 else {
-                    [void]$runRows.Add('')
+                    [void]$contentRows.Add('')
                 }
             }
-            $run = $runRows -join "`n"
+
+            if ($runRow.Scalar -cin @('|', '>')) {
+                if (
+                    $contentRows.Count -eq 0 -or
+                    [string]::IsNullOrWhiteSpace(($contentRows -join "`n"))
+                ) {
+                    throw "Workflow contract parser found an empty run block in '$name'."
+                }
+
+                if ($runRow.Scalar -ceq '|') {
+                    $run = $contentRows -join "`n"
+                }
+                else {
+                    $builder = [Text.StringBuilder]::new()
+                    for ($index = 0; $index -lt $contentRows.Count; $index++) {
+                        $current = $contentRows[$index]
+                        if ($index -gt 0) {
+                            $previous = $contentRows[$index - 1]
+                            $separator = if (
+                                [string]::IsNullOrEmpty($previous) -or
+                                [string]::IsNullOrEmpty($current) -or
+                                $previous.StartsWith(' ', [StringComparison]::Ordinal) -or
+                                $current.StartsWith(' ', [StringComparison]::Ordinal)
+                            ) {
+                                "`n"
+                            }
+                            else {
+                                ' '
+                            }
+                            [void]$builder.Append($separator)
+                        }
+                        [void]$builder.Append($current)
+                    }
+                    $run = $builder.ToString()
+                }
+            }
+            else {
+                if (
+                    [string]::IsNullOrWhiteSpace($runRow.Scalar) -or
+                    $runRow.Scalar -cmatch '^[|>]' -or
+                    $contentRows.Count -ne 0 -or
+                    $runRow.Scalar -cin @('null', 'Null', 'NULL', '~') -or
+                    $runRow.Scalar -cmatch '^[\[\{&*!]'
+                ) {
+                    throw "Workflow contract parser found an unsupported run scalar in '$name'."
+                }
+                $scalar = [string]$runRow.Scalar
+                if ($scalar.StartsWith("'", [StringComparison]::Ordinal)) {
+                    if (
+                        $scalar.Length -lt 2 -or
+                        -not $scalar.EndsWith("'", [StringComparison]::Ordinal)
+                    ) {
+                        throw "Workflow contract parser found malformed single-quoted run text in '$name'."
+                    }
+                    $inner = $scalar.Substring(1, $scalar.Length - 2)
+                    if ($inner.Replace("''", '').Contains("'")) {
+                        throw "Workflow contract parser found malformed single-quoted run text in '$name'."
+                    }
+                    $run = $inner.Replace("''", "'")
+                }
+                elseif ($scalar.StartsWith('"', [StringComparison]::Ordinal)) {
+                    try {
+                        $decoded = ConvertFrom-Json -InputObject $scalar -ErrorAction Stop
+                    }
+                    catch {
+                        throw "Workflow contract parser found malformed double-quoted run text in '$name'."
+                    }
+                    if ($decoded -isnot [string]) {
+                        throw "Workflow contract parser found a non-string run scalar in '$name'."
+                    }
+                    $run = [string]$decoded
+                }
+                else {
+                    $run = $scalar
+                }
+            }
         }
 
         [pscustomobject]@{
@@ -371,7 +455,7 @@ BeforeAll {
                 '.github/cli/Invoke-MaintainedTestGroup.ps1'
             )
             'repository::Run repository safety validation' = @(
-                'powershell.exe'
+                '.github/cli/verify-repository-safety.ps1'
             )
             'repository::Check branch whitespace' = @(
                 'git'
@@ -400,6 +484,35 @@ BeforeAll {
             'validate::Require every validation domain' = @(
                 'Where-Object'
                 'ForEach-Object'
+            )
+        }
+        $approvedHelpers = [Collections.Generic.HashSet[string]]::new(
+            [string[]]@(
+                '.github/cli/Install-CiTestDependencies.ps1'
+                '.github/cli/Get-MaintainedTestGroups.ps1'
+                '.github/cli/Invoke-MaintainedTestGroup.ps1'
+                '.github/cli/verify-repository-safety.ps1'
+            ),
+            [StringComparer]::OrdinalIgnoreCase
+        )
+        $memberOwners = @{
+            'repository::Run repository tests' = @(
+                'True:[IO.Path]::GetFullPath'
+            )
+            'repository::Check branch whitespace' = @(
+                'True:[string]::IsNullOrWhiteSpace'
+            )
+            'infrastructure::Run infrastructure tests' = @(
+                'True:[IO.Path]::GetFullPath'
+            )
+            'hr::Run HR tests' = @(
+                'True:[IO.Path]::GetFullPath'
+            )
+            'lifecycle::Run lifecycle tests' = @(
+                'True:[IO.Path]::GetFullPath'
+            )
+            'validate::Require every validation domain' = @(
+                'False:$results::GetEnumerator'
             )
         }
 
@@ -439,6 +552,54 @@ BeforeAll {
                         throw "Workflow command is not owned by ${owner}: $commandName"
                     }
 
+                    if (
+                        $command.InvocationOperator -eq (
+                            [Management.Automation.Language.TokenKind]::Ampersand
+                        )
+                    ) {
+                        $literal = $command.CommandElements[0]
+                        if (
+                            -not $approvedHelpers.Contains($commandName) -or
+                            $literal -isnot (
+                                [Management.Automation.Language.StringConstantExpressionAst]
+                            ) -or
+                            [string]$literal.Value -cne $commandName
+                        ) {
+                            throw "Workflow call operator target is not an approved literal helper: $owner"
+                        }
+                    }
+                    elseif ($approvedHelpers.Contains($commandName)) {
+                        throw "Approved helper must use the call operator: ${owner}: $commandName"
+                    }
+
+                    if ($commandName -ieq 'git') {
+                        if ($owner -cne 'repository::Check branch whitespace') {
+                            throw "Git is not owned by ${owner}."
+                        }
+                        [string[]]$elements = @(
+                            $command.CommandElements |
+                                ForEach-Object { $_.Extent.Text }
+                        )
+                        [string[]]$shape = @(
+                            $elements | ForEach-Object {
+                                $_.Trim('"')
+                            }
+                        )
+                        $mergeBase = @('git', 'merge-base', '$baseRef', 'HEAD')
+                        $diffCheck = @(
+                            'git'
+                            'diff'
+                            '--check'
+                            '$mergeBase...HEAD'
+                        )
+                        if (
+                            ($shape -join "`n") -cne ($mergeBase -join "`n") -and
+                            ($shape -join "`n") -cne ($diffCheck -join "`n")
+                        ) {
+                            throw 'Repository Git invocation is not an approved read-only whitespace operation.'
+                        }
+                    }
+
                     if ($commandName -ieq 'az') {
                         if (
                             $owner -cne (
@@ -463,6 +624,31 @@ BeforeAll {
                         if (($elements -join "`n") -cne ($expected -join "`n")) {
                             throw 'Infrastructure Azure CLI invocation is not the reviewed local Bicep build.'
                         }
+                    }
+                }
+
+                $members = @($ast.FindAll({
+                    param($node)
+                    $node -is (
+                        [Management.Automation.Language.InvokeMemberExpressionAst]
+                    )
+                }, $true))
+                $allowedMembers = [Collections.Generic.HashSet[string]]::new(
+                    [StringComparer]::OrdinalIgnoreCase
+                )
+                if ($memberOwners.ContainsKey($owner)) {
+                    foreach ($memberOwner in $memberOwners[$owner]) {
+                        [void]$allowedMembers.Add([string]$memberOwner)
+                    }
+                }
+                foreach ($member in $members) {
+                    $memberKey = '{0}:{1}::{2}' -f (
+                        $member.Static,
+                        $member.Expression.Extent.Text,
+                        $member.Member.Extent.Text
+                    )
+                    if (-not $allowedMembers.Contains($memberKey)) {
+                        throw "Workflow member invocation is not owned by ${owner}: $memberKey"
                     }
                 }
             }
@@ -513,7 +699,9 @@ BeforeAll {
         param(
             [Parameter(Mandatory)][string]$JobId,
             [Parameter(Mandatory)][string]$StepName,
-            [Parameter(Mandatory)][string]$Command
+            [Parameter(Mandatory)][AllowEmptyString()][string]$Command,
+            [ValidateSet('Literal', 'Folded', 'Inline', 'Raw')]
+            [string]$Style = 'Literal'
         )
 
         $lines = [Collections.Generic.List[string]]::new()
@@ -563,7 +751,49 @@ BeforeAll {
             throw "Command mutation could not find a run block in '$JobId/$StepName'."
         }
 
-        $lines.Insert($runIndex + 1, "          $Command")
+        $contentEnd = $runIndex
+        for ($index = $runIndex + 1; $index -le $stepEnd; $index++) {
+            if (
+                [string]::IsNullOrEmpty($lines[$index]) -or
+                $lines[$index] -cmatch '^          '
+            ) {
+                $contentEnd = $index
+                continue
+            }
+            break
+        }
+        for ($index = $contentEnd; $index -gt $runIndex; $index--) {
+            $lines.RemoveAt($index)
+        }
+
+        switch ($Style) {
+            'Literal' {
+                $lines[$runIndex] = '        run: |'
+                [string[]]$commandLines = @($Command -split '\r?\n')
+                for ($index = 0; $index -lt $commandLines.Count; $index++) {
+                    $lines.Insert(
+                        $runIndex + 1 + $index,
+                        "          $($commandLines[$index])"
+                    )
+                }
+            }
+            'Folded' {
+                $lines[$runIndex] = '        run: >'
+                [string[]]$commandLines = @($Command -split '\r?\n')
+                for ($index = 0; $index -lt $commandLines.Count; $index++) {
+                    $lines.Insert(
+                        $runIndex + 1 + $index,
+                        "          $($commandLines[$index])"
+                    )
+                }
+            }
+            'Inline' {
+                $lines[$runIndex] = "        run: $Command"
+            }
+            'Raw' {
+                $lines[$runIndex] = "        run:$Command"
+            }
+        }
         ConvertFrom-WorkflowLines -Lines ([string[]]$lines)
     }
 
@@ -1049,6 +1279,133 @@ Describe 'Parallel repository validation workflow' {
         {
             Assert-WorkflowCommandOwnership -Workflow $mutated
         } | Should -Throw
+    }
+
+    It 'routes <Style> run scalar through command ownership' -TestCases @(
+        @{ Style = 'Literal'; Command = 'az login'; Expected = 'az login' }
+        @{ Style = 'Folded'; Command = "az`nlogin"; Expected = 'az login' }
+        @{ Style = 'Inline'; Command = 'az login'; Expected = 'az login' }
+    ) {
+        param(
+            [string]$Style,
+            [string]$Command,
+            [string]$Expected
+        )
+
+        $mutated = New-RunCommandMutatedWorkflow `
+            -JobId 'repository' `
+            -StepName 'Run repository tests' `
+            -Command $Command `
+            -Style $Style
+        (Get-NamedStep `
+            -Job $mutated.Jobs.repository `
+            -Name 'Run repository tests').Run |
+                Should -BeExactly $Expected
+        {
+            Assert-WorkflowCommandOwnership -Workflow $mutated
+        } | Should -Throw
+    }
+
+    It 'rejects unsupported run scalar <Scalar>' -TestCases @(
+        @{ Scalar = ' |+' }
+        @{ Scalar = ' >-' }
+        @{ Scalar = '' }
+        @{ Scalar = ' [az, login]' }
+        @{ Scalar = ' {command: az login}' }
+        @{ Scalar = ' &anchor az login' }
+    ) {
+        param([AllowEmptyString()][string]$Scalar)
+
+        {
+            New-RunCommandMutatedWorkflow `
+                -JobId 'repository' `
+                -StepName 'Run repository tests' `
+                -Command $Scalar `
+                -Style Raw
+        } | Should -Throw
+    }
+
+    It 'routes quoted inline run scalar <Scalar> through command ownership' -TestCases @(
+        @{ Scalar = ' "az login"' }
+        @{ Scalar = " 'az login'" }
+    ) {
+        param([string]$Scalar)
+
+        $mutated = New-RunCommandMutatedWorkflow `
+            -JobId 'repository' `
+            -StepName 'Run repository tests' `
+            -Command $Scalar `
+            -Style Raw
+        (Get-NamedStep `
+            -Job $mutated.Jobs.repository `
+            -Name 'Run repository tests').Run |
+                Should -BeExactly 'az login'
+        {
+            Assert-WorkflowCommandOwnership -Workflow $mutated
+        } | Should -Throw
+    }
+
+    It 'rejects launch bypass <Command> in <JobId>' -TestCases @(
+        @{
+            JobId = 'repository'
+            StepName = 'Run repository safety validation'
+            Command = 'powershell.exe -Command "az login"'
+        }
+        @{
+            JobId = 'repository'
+            StepName = 'Run repository tests'
+            Command = 'pwsh -Command "az login"'
+        }
+        @{
+            JobId = 'repository'
+            StepName = 'Check branch whitespace'
+            Command = 'git push origin main'
+        }
+        @{
+            JobId = 'repository'
+            StepName = 'Run repository tests'
+            Command = 'cmd /c "az login"'
+        }
+        @{
+            JobId = 'repository'
+            StepName = 'Run repository tests'
+            Command = 'Start-Process az -ArgumentList login'
+        }
+        @{
+            JobId = 'repository'
+            StepName = 'Run repository tests'
+            Command = 'Invoke-Expression "az login"'
+        }
+        @{
+            JobId = 'repository'
+            StepName = 'Run repository tests'
+            Command = '[Diagnostics.Process]::Start("az", "login")'
+        }
+        @{
+            JobId = 'repository'
+            StepName = 'Run repository tests'
+            Command = '& $command'
+        }
+    ) {
+        param(
+            [string]$JobId,
+            [string]$StepName,
+            [string]$Command
+        )
+
+        $mutated = New-RunCommandMutatedWorkflow `
+            -JobId $JobId `
+            -StepName $StepName `
+            -Command $Command
+        {
+            Assert-WorkflowCommandOwnership -Workflow $mutated
+        } | Should -Throw
+    }
+
+    It 'accepts approved helper read-only git and exact local Bicep commands' {
+        {
+            Assert-WorkflowCommandOwnership -Workflow $script:workflow
+        } | Should -Not -Throw
     }
 
     It 'allows provider command names in prose and error messages' {
