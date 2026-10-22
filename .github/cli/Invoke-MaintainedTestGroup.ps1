@@ -23,7 +23,10 @@ param(
     [scriptblock]$ApplicationResolver,
 
     [Parameter(DontShow)]
-    [scriptblock]$Clock
+    [scriptblock]$Clock,
+
+    [Parameter(DontShow)]
+    [scriptblock]$FileSystemProbe
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,6 +48,157 @@ function Test-RepositoryContainedPath {
         $repositoryPrefix,
         [StringComparison]::OrdinalIgnoreCase
     )
+}
+
+if ($null -eq $FileSystemProbe) {
+    $FileSystemProbe = {
+        param([string]$LiteralPath)
+
+        try {
+            $attributes = [IO.File]::GetAttributes($LiteralPath)
+        }
+        catch [IO.FileNotFoundException] {
+            return [pscustomobject]@{
+                Exists = [bool]$false
+                IsContainer = [bool]$false
+                IsLeaf = [bool]$false
+                Attributes = [IO.FileAttributes]::Normal
+            }
+        }
+        catch [IO.DirectoryNotFoundException] {
+            return [pscustomobject]@{
+                Exists = [bool]$false
+                IsContainer = [bool]$false
+                IsLeaf = [bool]$false
+                Attributes = [IO.FileAttributes]::Normal
+            }
+        }
+
+        $isContainer = (
+            $attributes -band [IO.FileAttributes]::Directory
+        ) -ne 0
+        [pscustomobject]@{
+            Exists = [bool]$true
+            IsContainer = [bool]$isContainer
+            IsLeaf = [bool](-not $isContainer)
+            Attributes = [IO.FileAttributes]$attributes
+        }
+    }
+}
+
+function Get-FileSystemState {
+    param(
+        [Parameter(Mandatory)]
+        [string]$LiteralPath,
+
+        [Parameter(Mandatory)]
+        [ValidateSet('repository root', 'selected test path', 'output path')]
+        [string]$Context
+    )
+
+    try {
+        $responses = @(& $FileSystemProbe ([string]$LiteralPath))
+    }
+    catch {
+        throw "CiPester.FileSystemProbe: cannot inspect the $Context."
+    }
+    if (
+        $responses.Count -ne 1 -or
+        $null -eq $responses[0].PSObject.Properties['Exists'] -or
+        $null -eq $responses[0].PSObject.Properties['IsContainer'] -or
+        $null -eq $responses[0].PSObject.Properties['IsLeaf'] -or
+        $null -eq $responses[0].PSObject.Properties['Attributes']
+    ) {
+        throw "CiPester.FileSystemProbe: invalid state for the $Context."
+    }
+
+    try {
+        [pscustomobject]@{
+            Exists = [bool]$responses[0].Exists
+            IsContainer = [bool]$responses[0].IsContainer
+            IsLeaf = [bool]$responses[0].IsLeaf
+            Attributes = [IO.FileAttributes]$responses[0].Attributes
+        }
+    }
+    catch {
+        throw "CiPester.FileSystemProbe: invalid state for the $Context."
+    }
+}
+
+function Assert-NormalPathSegments {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Candidate,
+
+        [Parameter(Mandatory)]
+        [ValidateSet('selected test path', 'output path')]
+        [string]$Context,
+
+        [switch]$AllowMissing,
+
+        [ValidateSet('Any', 'Container', 'Leaf')]
+        [string]$FinalKind = 'Any'
+    )
+
+    $rootState = Get-FileSystemState `
+        -LiteralPath $repositoryRoot `
+        -Context 'repository root'
+    if (-not $rootState.Exists -or -not $rootState.IsContainer) {
+        throw 'CiPester.RepositoryRoot: repository root is not a normal directory.'
+    }
+    if (
+        ($rootState.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0
+    ) {
+        throw 'CiPester.ReparsePoint: repository root is not a normal directory.'
+    }
+
+    $relativePath = $Candidate.Substring($repositoryPrefix.Length)
+    [string[]]$segments = @(
+        $relativePath.Split(
+            [char[]]@(
+                [IO.Path]::DirectorySeparatorChar,
+                [IO.Path]::AltDirectorySeparatorChar
+            ),
+            [StringSplitOptions]::RemoveEmptyEntries
+        )
+    )
+    $currentPath = $repositoryRoot
+    $missingSegmentSeen = $false
+    for ($index = 0; $index -lt $segments.Count; $index++) {
+        $currentPath = Join-Path $currentPath $segments[$index]
+        if ($missingSegmentSeen) {
+            continue
+        }
+
+        $state = Get-FileSystemState `
+            -LiteralPath $currentPath `
+            -Context $Context
+        if (-not $state.Exists) {
+            if ($AllowMissing) {
+                $missingSegmentSeen = $true
+                continue
+            }
+            throw "CiPester.PathState: required $Context segment is missing."
+        }
+        if (
+            ($state.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0
+        ) {
+            throw "CiPester.ReparsePoint: $Context contains a reparse point."
+        }
+
+        $isFinalSegment = $index -eq ($segments.Count - 1)
+        if (-not $isFinalSegment -and -not $state.IsContainer) {
+            throw "CiPester.PathState: $Context has a non-directory ancestor."
+        }
+        if ($isFinalSegment) {
+            if ($FinalKind -ceq 'Container' -and -not $state.IsContainer) {
+                throw "CiPester.PathState: $Context is not a directory."
+            }
+            if ($FinalKind -ceq 'Leaf' -and -not $state.IsLeaf) {
+                throw "CiPester.PathState: $Context is not a leaf."
+            }
+        }
+    }
 }
 
 if ($Path.Count -eq 0) {
@@ -69,9 +223,10 @@ if ($Path.Count -eq 0) {
         if (-not $candidate.EndsWith('.Tests.ps1', [StringComparison]::Ordinal)) {
             throw "CiPester.Path: '$selectedPath' is not a canonical test file."
         }
-        if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
-            throw "CiPester.Path: '$selectedPath' is not an existing leaf."
-        }
+        Assert-NormalPathSegments `
+            -Candidate $candidate `
+            -Context 'selected test path' `
+            -FinalKind Leaf
         [string]$candidate
     }
 )
@@ -86,6 +241,10 @@ if (-not (Test-RepositoryContainedPath -Candidate $resolvedOutputPath)) {
 if (-not $resolvedOutputPath.EndsWith('.xml', [StringComparison]::OrdinalIgnoreCase)) {
     throw 'CiPester.OutputPath: the result path must end in .xml.'
 }
+Assert-NormalPathSegments `
+    -Candidate $resolvedOutputPath `
+    -Context 'output path' `
+    -AllowMissing
 
 Import-Module Pester -RequiredVersion 5.7.1 -Force -ErrorAction Stop
 $loadedPesterModules = @(Get-Module -Name Pester)
@@ -150,6 +309,14 @@ if (
 
 $resultParent = Split-Path -Parent $resolvedOutputPath
 [void](New-Item -ItemType Directory -Path $resultParent -Force)
+Assert-NormalPathSegments `
+    -Candidate $resultParent `
+    -Context 'output path' `
+    -FinalKind Container
+Assert-NormalPathSegments `
+    -Candidate $resolvedOutputPath `
+    -Context 'output path' `
+    -AllowMissing
 if (Test-Path -LiteralPath $resolvedOutputPath) {
     Remove-Item -LiteralPath $resolvedOutputPath -Force
 }
@@ -210,8 +377,17 @@ finally {
     Write-Host ('CI Pester finish={0:o}' -f $finishedAtUtc)
 }
 
-if (-not (Test-Path -LiteralPath $resolvedOutputPath -PathType Leaf)) {
-    throw 'CiPester.ResultFileMissing'
+try {
+    Assert-NormalPathSegments `
+        -Candidate $resolvedOutputPath `
+        -Context 'output path' `
+        -FinalKind Leaf
+}
+catch {
+    if ($_.Exception.Message -like 'CiPester.PathState: required*') {
+        throw 'CiPester.ResultFileMissing'
+    }
+    throw
 }
 
 [pscustomobject][ordered]@{

@@ -208,6 +208,58 @@ BeforeAll {
             Clock = $Probe.Clock
         }
     }
+
+    function script:New-InjectedFileSystemProbe {
+        param(
+            [Parameter(Mandatory)]
+            [string[]]$ReparsePaths
+        )
+
+        [string[]]$markedPaths = @(
+            $ReparsePaths |
+                ForEach-Object { [IO.Path]::GetFullPath($_) }
+        )
+        $fileSystemProbe = {
+            param([string]$LiteralPath)
+
+            $item = Get-Item `
+                -LiteralPath $LiteralPath `
+                -Force `
+                -ErrorAction SilentlyContinue
+            if ($null -eq $item) {
+                return [pscustomobject]@{
+                    Exists = [bool]$false
+                    IsContainer = [bool]$false
+                    IsLeaf = [bool]$false
+                    Attributes = [IO.FileAttributes]::Normal
+                }
+            }
+
+            $attributes = [IO.FileAttributes]$item.Attributes
+            if (
+                @(
+                    $markedPaths |
+                        Where-Object {
+                            [string]::Equals(
+                                $_,
+                                [IO.Path]::GetFullPath($LiteralPath),
+                                [StringComparison]::OrdinalIgnoreCase
+                            )
+                        }
+                ).Count -ne 0
+            ) {
+                $attributes = $attributes -bor [IO.FileAttributes]::ReparsePoint
+            }
+            [pscustomobject]@{
+                Exists = [bool]$true
+                IsContainer = [bool]$item.PSIsContainer
+                IsLeaf = [bool](-not $item.PSIsContainer)
+                Attributes = [IO.FileAttributes]$attributes
+            }
+        }.GetNewClosure()
+
+        $fileSystemProbe
+    }
 }
 
 AfterAll {
@@ -700,6 +752,77 @@ Describe 'Fail-closed maintained Pester execution' {
         & $script:runnerPath @parameters | Out-Null
 
         $probe.State.ParentExisted | Should -BeTrue
+        Test-Path -LiteralPath $script:outputPath -PathType Leaf |
+            Should -BeTrue
+    }
+
+    It 'rejects an injected reparse selected test file' {
+        Assert-RunnerExists
+        $probe = New-RunnerProbe -Result (New-PesterResult)
+        $parameters = New-RunnerParameters -Probe $probe -OutputPath $script:outputPath
+        $selectedTest = [IO.Path]::GetFullPath((
+            Join-Path $script:repositoryRoot $script:testLeaf
+        ))
+        $parameters.FileSystemProbe = New-InjectedFileSystemProbe `
+            -ReparsePaths @($selectedTest)
+
+        {
+            & $script:runnerPath @parameters
+        } | Should -Throw -ExpectedMessage '*CiPester.ReparsePoint*'
+        $probe.State.InvokeCount | Should -Be 0
+    }
+
+    It 'rejects an injected reparse selected test ancestor' {
+        Assert-RunnerExists
+        $probe = New-RunnerProbe -Result (New-PesterResult)
+        $parameters = New-RunnerParameters -Probe $probe -OutputPath $script:outputPath
+        $selectedAncestor = Join-Path $script:repositoryRoot '.github\cli\tests'
+        $parameters.FileSystemProbe = New-InjectedFileSystemProbe `
+            -ReparsePaths @($selectedAncestor)
+
+        {
+            & $script:runnerPath @parameters
+        } | Should -Throw -ExpectedMessage '*CiPester.ReparsePoint*'
+        $probe.State.InvokeCount | Should -Be 0
+    }
+
+    It 'rejects an injected reparse output ancestor after creating result directories' {
+        Assert-RunnerExists
+        $outputAncestor = Join-Path $script:resultRoot 'reparse-parent'
+        $outputPath = Join-Path $outputAncestor 'case\pester.xml'
+        $probe = New-RunnerProbe -Result (New-PesterResult)
+        $parameters = New-RunnerParameters -Probe $probe -OutputPath $outputPath
+        $parameters.FileSystemProbe = New-InjectedFileSystemProbe `
+            -ReparsePaths @($outputAncestor)
+
+        {
+            & $script:runnerPath @parameters
+        } | Should -Throw -ExpectedMessage '*CiPester.ReparsePoint*'
+        $probe.State.InvokeCount | Should -Be 0
+        Test-Path -LiteralPath (Split-Path -Parent $outputPath) |
+            Should -BeTrue
+    }
+
+    It 'rejects an injected reparse existing output target' {
+        Assert-RunnerExists
+        [void](New-Item `
+            -ItemType Directory `
+            -Path (Split-Path -Parent $script:outputPath) `
+            -Force)
+        [IO.File]::WriteAllText(
+            $script:outputPath,
+            '<existing />',
+            [Text.UTF8Encoding]::new($false)
+        )
+        $probe = New-RunnerProbe -Result (New-PesterResult)
+        $parameters = New-RunnerParameters -Probe $probe -OutputPath $script:outputPath
+        $parameters.FileSystemProbe = New-InjectedFileSystemProbe `
+            -ReparsePaths @($script:outputPath)
+
+        {
+            & $script:runnerPath @parameters
+        } | Should -Throw -ExpectedMessage '*CiPester.ReparsePoint*'
+        $probe.State.InvokeCount | Should -Be 0
         Test-Path -LiteralPath $script:outputPath -PathType Leaf |
             Should -BeTrue
     }
