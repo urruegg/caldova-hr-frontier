@@ -1029,10 +1029,10 @@ function Invoke-TenantLifecycleIsolatedInvoker {
 $ErrorActionPreference = 'Stop'
 $failureExitCode = 10
 try {
-    [Console]::SetOut([IO.TextWriter]::Null)
-    [Console]::SetError([IO.TextWriter]::Null)
-    $invocationEnvelope = [Console]::In.ReadToEnd() | ConvertFrom-Json
+    $invocationEnvelopeJson = [Console]::In.ReadToEnd()
     $failureExitCode = 11
+    $invocationEnvelope = $invocationEnvelopeJson | ConvertFrom-Json
+    $failureExitCode = 12
     $invokerText = [Text.Encoding]::UTF8.GetString(
         [Convert]::FromBase64String([string]$invocationEnvelope.invoker)
     )
@@ -1170,8 +1170,9 @@ catch {
         $childExited = $true
         if ($child.ExitCode -ne 0) {
             $childFailure = switch ($child.ExitCode) {
-                10 { 'TenantLifecycle.SubsystemInvoker.Child.Payload' }
-                11 { 'TenantLifecycle.SubsystemInvoker.Child.Script' }
+                10 { 'TenantLifecycle.SubsystemInvoker.Child.Input' }
+                11 { 'TenantLifecycle.SubsystemInvoker.Child.Payload' }
+                12 { 'TenantLifecycle.SubsystemInvoker.Child.Script' }
                 21 {
                     'TenantLifecycle.SubsystemInvoker.Child.Invocation.Path'
                 }
