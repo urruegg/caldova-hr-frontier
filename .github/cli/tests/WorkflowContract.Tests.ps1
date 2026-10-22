@@ -102,14 +102,73 @@ BeforeAll {
         $runRows = [Collections.Generic.List[object]]::new()
         for ($index = 0; $index -lt $Lines.Count; $index++) {
             $line = $Lines[$index]
-            if ($line -cmatch '^        run:\s*(?<scalar>.*?)\s*$') {
-                [void]$runRows.Add([pscustomobject]@{
-                    Index = $index
-                    Scalar = $Matches['scalar']
-                })
+            if (
+                $line -cmatch (
+                    '^        (?<rawKey>\S[^:]*?):\s*' +
+                    '(?<scalar>.*?)\s*$'
+                )
+            ) {
+                $rawKey = $Matches['rawKey'].Trim()
+                $scalar = $Matches['scalar']
+                try {
+                    if ($rawKey.StartsWith("'", [StringComparison]::Ordinal)) {
+                        if (
+                            $rawKey.Length -lt 2 -or
+                            -not $rawKey.EndsWith(
+                                "'",
+                                [StringComparison]::Ordinal
+                            )
+                        ) {
+                            throw 'Malformed single-quoted key.'
+                        }
+                        $innerKey = $rawKey.Substring(
+                            1,
+                            $rawKey.Length - 2
+                        )
+                        if ($innerKey.Replace("''", '').Contains("'")) {
+                            throw 'Malformed single-quoted key.'
+                        }
+                        $decodedKey = $innerKey.Replace("''", "'")
+                    }
+                    elseif (
+                        $rawKey.StartsWith(
+                            '"',
+                            [StringComparison]::Ordinal
+                        )
+                    ) {
+                        $decodedKey = ConvertFrom-Json `
+                            -InputObject $rawKey `
+                            -ErrorAction Stop
+                        if ($decodedKey -isnot [string]) {
+                            throw 'Non-string key.'
+                        }
+                    }
+                    elseif ($rawKey -cmatch '[''"]') {
+                        throw 'Malformed quoted key.'
+                    }
+                    else {
+                        $decodedKey = $rawKey
+                    }
+                }
+                catch {
+                    throw "Workflow contract parser found a malformed step key in '$name'."
+                }
+
+                if ([string]$decodedKey -ceq 'run') {
+                    [void]$runRows.Add([pscustomobject]@{
+                        Index = $index
+                        Scalar = $scalar
+                    })
+                }
+                elseif (
+                    [string]$decodedKey -imatch '^run' -or
+                    $rawKey -imatch 'run'
+                ) {
+                    throw "Workflow contract parser rejects alternate run key '$rawKey' in '$name'."
+                }
             }
-            elseif ($line -cmatch '^        run\b') {
-                throw "Workflow contract parser found a malformed run scalar in '$name'."
+            elseif ($line -cmatch '^        [''"]?run') {
+                throw "Workflow contract parser found a malformed run key in '$name'."
             }
         }
         if ($runRows.Count -gt 1) {
@@ -145,27 +204,23 @@ BeforeAll {
                     $run = $contentRows -join "`n"
                 }
                 else {
-                    $builder = [Text.StringBuilder]::new()
-                    for ($index = 0; $index -lt $contentRows.Count; $index++) {
-                        $current = $contentRows[$index]
-                        if ($index -gt 0) {
-                            $previous = $contentRows[$index - 1]
-                            $separator = if (
-                                [string]::IsNullOrEmpty($previous) -or
-                                [string]::IsNullOrEmpty($current) -or
-                                $previous.StartsWith(' ', [StringComparison]::Ordinal) -or
-                                $current.StartsWith(' ', [StringComparison]::Ordinal)
-                            ) {
-                                "`n"
-                            }
-                            else {
-                                ' '
-                            }
-                            [void]$builder.Append($separator)
+                    foreach ($contentRow in $contentRows) {
+                        if (
+                            [string]::IsNullOrEmpty($contentRow) -or
+                            $contentRow.StartsWith(
+                                ' ',
+                                [StringComparison]::Ordinal
+                            ) -or
+                            $contentRow.StartsWith(
+                                "`t",
+                                [StringComparison]::Ordinal
+                            ) -or
+                            $contentRow -cmatch '`\s*$'
+                        ) {
+                            throw "Workflow contract parser cannot prove folded run semantics in '$name'."
                         }
-                        [void]$builder.Append($current)
                     }
-                    $run = $builder.ToString()
+                    $run = $contentRows -join ' '
                 }
             }
             else {
@@ -535,6 +590,13 @@ BeforeAll {
                 if ($parseErrors.Count -ne 0) {
                     throw "Workflow run block is not valid PowerShell: $owner"
                 }
+                $usingStatements = @($ast.FindAll({
+                    param($node)
+                    $node -is [Management.Automation.Language.UsingStatementAst]
+                }, $true))
+                if ($usingStatements.Count -ne 0) {
+                    throw "Workflow run block contains a using statement: $owner"
+                }
                 $commands = @($ast.FindAll({
                     param($node)
                     $node -is [Management.Automation.Language.CommandAst]
@@ -701,7 +763,8 @@ BeforeAll {
             [Parameter(Mandatory)][string]$StepName,
             [Parameter(Mandatory)][AllowEmptyString()][string]$Command,
             [ValidateSet('Literal', 'Folded', 'Inline', 'Raw')]
-            [string]$Style = 'Literal'
+            [string]$Style = 'Literal',
+            [string]$RunKey = 'run'
         )
 
         $lines = [Collections.Generic.List[string]]::new()
@@ -768,7 +831,7 @@ BeforeAll {
 
         switch ($Style) {
             'Literal' {
-                $lines[$runIndex] = '        run: |'
+                $lines[$runIndex] = "        ${RunKey}: |"
                 [string[]]$commandLines = @($Command -split '\r?\n')
                 for ($index = 0; $index -lt $commandLines.Count; $index++) {
                     $lines.Insert(
@@ -778,7 +841,7 @@ BeforeAll {
                 }
             }
             'Folded' {
-                $lines[$runIndex] = '        run: >'
+                $lines[$runIndex] = "        ${RunKey}: >"
                 [string[]]$commandLines = @($Command -split '\r?\n')
                 for ($index = 0; $index -lt $commandLines.Count; $index++) {
                     $lines.Insert(
@@ -788,10 +851,10 @@ BeforeAll {
                 }
             }
             'Inline' {
-                $lines[$runIndex] = "        run: $Command"
+                $lines[$runIndex] = "        ${RunKey}: $Command"
             }
             'Raw' {
-                $lines[$runIndex] = "        run:$Command"
+                $lines[$runIndex] = "        ${RunKey}:$Command"
             }
         }
         ConvertFrom-WorkflowLines -Lines ([string[]]$lines)
@@ -1309,6 +1372,7 @@ Describe 'Parallel repository validation workflow' {
     It 'rejects unsupported run scalar <Scalar>' -TestCases @(
         @{ Scalar = ' |+' }
         @{ Scalar = ' >-' }
+        @{ Scalar = ' >2' }
         @{ Scalar = '' }
         @{ Scalar = ' [az, login]' }
         @{ Scalar = ' {command: az login}' }
@@ -1340,6 +1404,137 @@ Describe 'Parallel repository validation workflow' {
             -Job $mutated.Jobs.repository `
             -Name 'Run repository tests').Run |
                 Should -BeExactly 'az login'
+        {
+            Assert-WorkflowCommandOwnership -Workflow $mutated
+        } | Should -Throw
+    }
+
+    It 'routes quoted key <RunKey> <Style> scalar through command ownership' -TestCases @(
+        @{
+            RunKey = "'run'"
+            Style = 'Literal'
+            Command = 'az login'
+            Expected = 'az login'
+        }
+        @{
+            RunKey = '"run"'
+            Style = 'Folded'
+            Command = "az`nlogin"
+            Expected = 'az login'
+        }
+        @{
+            RunKey = '"run"'
+            Style = 'Inline'
+            Command = 'az login'
+            Expected = 'az login'
+        }
+    ) {
+        param(
+            [string]$RunKey,
+            [string]$Style,
+            [string]$Command,
+            [string]$Expected
+        )
+
+        $mutated = New-RunCommandMutatedWorkflow `
+            -JobId 'repository' `
+            -StepName 'Run repository tests' `
+            -Command $Command `
+            -Style $Style `
+            -RunKey $RunKey
+        (Get-NamedStep `
+            -Job $mutated.Jobs.repository `
+            -Name 'Run repository tests').Run |
+                Should -BeExactly $Expected
+        {
+            Assert-WorkflowCommandOwnership -Workflow $mutated
+        } | Should -Throw
+    }
+
+    It 'rejects alternate or malformed run key <RunKey>' -TestCases @(
+        @{ RunKey = 'Run' }
+        @{ RunKey = "'Run'" }
+        @{ RunKey = '"RUN"' }
+        @{ RunKey = 'runs' }
+        @{ RunKey = "'runs'" }
+        @{ RunKey = "'run" }
+    ) {
+        param([string]$RunKey)
+
+        {
+            New-RunCommandMutatedWorkflow `
+                -JobId 'repository' `
+                -StepName 'Run repository tests' `
+                -Command 'az login' `
+                -Style Inline `
+                -RunKey $RunKey
+        } | Should -Throw
+    }
+
+    It 'rejects unsupported folded run form <Reason>' -TestCases @(
+        @{
+            Reason = 'blank paragraph'
+            Command = "az`n`nlogin"
+        }
+        @{
+            Reason = 'more-indented content'
+            Command = "az`n  login"
+        }
+        @{
+            Reason = 'backtick paragraph ambiguity'
+            Command = (
+                'git merge-base $baseRef HEAD `' + "`n`n" +
+                'git diff --check "$mergeBase...HEAD"'
+            )
+        }
+    ) {
+        param(
+            [string]$Reason,
+            [string]$Command
+        )
+
+        {
+            New-RunCommandMutatedWorkflow `
+                -JobId 'repository' `
+                -StepName 'Check branch whitespace' `
+                -Command $Command `
+                -Style Folded
+        } | Should -Throw
+    }
+
+    It 'rejects using statement in <Style> run scalar' -TestCases @(
+        @{
+            Style = 'Literal'
+            Command = (
+                "using module .\evil.psm1`n" +
+                '& .github/cli/Get-MaintainedTestGroups.ps1 -Group Repository'
+            )
+        }
+        @{
+            Style = 'Folded'
+            Command = (
+                "using module .\evil.psm1;`n" +
+                '& .github/cli/Get-MaintainedTestGroups.ps1 -Group Repository'
+            )
+        }
+        @{
+            Style = 'Inline'
+            Command = (
+                'using module .\evil.psm1; ' +
+                '& .github/cli/Get-MaintainedTestGroups.ps1 -Group Repository'
+            )
+        }
+    ) {
+        param(
+            [string]$Style,
+            [string]$Command
+        )
+
+        $mutated = New-RunCommandMutatedWorkflow `
+            -JobId 'repository' `
+            -StepName 'Run repository tests' `
+            -Command $Command `
+            -Style $Style
         {
             Assert-WorkflowCommandOwnership -Workflow $mutated
         } | Should -Throw
