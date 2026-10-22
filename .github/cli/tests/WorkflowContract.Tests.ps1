@@ -30,6 +30,11 @@ Describe 'Lean repository validation workflow' {
         $content | Should -Not -Match 'HEAD~\d+'
     }
 
+    It 'budgets enough time for the complete maintained Windows suite' {
+        $content = Get-Content -Raw -LiteralPath $script:workflowPath
+        $content | Should -Match '(?m)^\s{4}timeout-minutes:\s+60\r?$'
+    }
+
     It 'does not require tracked Tenant 1 artifacts after the attended removal commit' {
         $tokens = $null
         $parseErrors = $null
