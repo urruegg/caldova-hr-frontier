@@ -2,16 +2,46 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-26 |
+| **Version** | 1.4 |
+| **Date** | 2026-10-19 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure customer repository handover |
-| **References** | [Operational Runbooks](README.md); [Operational Runbooks Design](../../../docs/specs/2026-09-26-operational-runbooks-design.md); [`New-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/New-CustomerRepositoryExport.ps1); [`Test-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/Test-CustomerRepositoryExport.ps1); [`customer-export.schema.json`](../../src/config/schemas/customer-export.schema.json); [`customer-export.sample.json`](../../src/config/runbooks/customer-export.sample.json) |
+| **References** | [Operational Runbooks](README.md); [Approved Tenant 1 Runbook End-to-End Design](../../../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md); [Approved Child Summary Envelope Design](../../../docs/specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md); [Draft Child Summary Envelope Implementation Plan](../../../docs/plans/2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md); [Tenant Lifecycle Core Implementation Plan](../../../docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md); [Operational Runbooks Design](../../../docs/specs/2026-09-26-operational-runbooks-design.md); [`New-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/New-CustomerRepositoryExport.ps1); [`Test-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/Test-CustomerRepositoryExport.ps1); [`customer-export.schema.json`](../../src/config/schemas/customer-export.schema.json); [`customer-export.sample.json`](../../src/config/runbooks/customer-export.sample.json) |
 
 ## Purpose
 
 This runbook prepares a synthetic customer-facing repository export from the reusable source without mutating the source tree. Execution is local, attended, and limited to Windows 11 PowerShell 5.1 or 7. Authentication is `NotApplicable`. Evidence is written only outside Git. Publication is not implemented here and remains a separate attended procedure.
+
+## Lifecycle-core integration boundary
+
+The lifecycle core recognizes `TenantReplica` as a stage identifier but does not invoke [`New-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/New-CustomerRepositoryExport.ps1), [`Test-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/Test-CustomerRepositoryExport.ps1), a publication remote, or any handover provider. The local export and independent validator remain directly runnable under this runbook's separate contracts. A later reviewed replica/handover plan must define the digest binding and production subsystem invoker before the umbrella may sequence this stage.
+
+Plan 1's synthetic `TenantReplica` stage is not export, independent-validation, human-review, transfer, or publication evidence. A sanitized lifecycle projection cannot make any of those claims.
+
+The replica/handover child owns its assessment, execution manifest, approval, WhatIf/Apply, `ShouldProcess`, independent full-tree read-back, terminal summary, and immutable `<run>/stage-results/TenantReplica.json` result. Existing `ExecutionManifestPath`, `ApprovedDigest`, and Apply behavior remain child interfaces. The exact future sequence is child `Plan` -> child `approvals.json` -> child `WhatIf` -> child `Apply` -> child read-back -> canonical stage result -> umbrella `Verify`.
+
+Umbrella `Assess` or `Plan` may later dispatch only the matching non-mutating replica child mode through a reviewed invoker. Umbrella `Verify` never invokes the export engine, never publishes a repository, and never interprets destination or file-level evidence; it accepts only an exact canonical stage result with literal `Passed` status. Private lifecycle state remains only in the ignored local state file and is never copied into run or handover evidence. Plan 1 was implemented with local synthetic tests only; no live cloud, provider, or tenant operation was performed.
+
+### Approved child summary envelope and residual gate
+
+The shared child summary envelope reserves exactly `schemaVersion`, `runId`, `stage`, `sourceCommit`, `publicTenantKey`, `intentDigest`, `stateDigest`, `phaseManifestDigest`, `status`, `classification`, and `completedAtUtc`, and retains the five standard fields `startedAtUtc`, `counts`, `prerequisites`, `actions`, and `nonClaims`.
+
+Provider-specific extras are root-only and opaque, are absent from projections and errors, and cannot enter the closed shared nested structures.
+
+The manifest embedded `digest`, exact-file `phaseManifestDigest`, and exact-file `phaseSummaryDigest` are three distinct checks.
+
+The child writes the summary before the stage result, and the summary has no self-digest.
+
+Umbrella `Verify` and `Assess`/`Plan` prerequisite dispatch enforce the same envelope and embedded manifest digest.
+
+Legacy evidence fails closed and requires a new run; there is no compatibility, inference, or repair path.
+
+Umbrella authority remains exactly `Assess`, `Plan`, and `Verify`; `stage-results` remains authoritative and the second `Verify` pass remains required.
+
+Plan 1 and the child summary envelope implementation remain synthetic, `Draft`, and blocked until reviewed merge and then-current green `main`.
+
+No live, provider, or tenant operation was performed, and no merge-readiness claim is made.
 
 ## Roles and prerequisites
 
@@ -95,7 +125,7 @@ The report directory may contain `customer-export-assessment.json`, `customer-ex
 
 ## Failure and recovery
 
-Failure leaves the source untouched and does not produce a publish-ready destination. The only removable path is the explicitly named disposable or customer staging directory after a human path review. Any failed validation, digest mismatch, executable-identity change, residual detection, or source-state change requires a new assessment and approval. Recovery never broadens scope and never treats a failed or manual item as verified.
+Failure leaves the source untouched and does not produce a publish-ready destination. The only removable path is the explicitly named disposable or customer staging directory after a human path review. Any restart, failed validation, digest mismatch, executable-identity change, residual detection, or source-state change requires a new assessment, manifest, and approval. Prior evidence is preserved but cannot resume an approval bound to the earlier process session. Recovery never broadens scope and never treats a failed or manual item as verified.
 
 ## Definition of Done
 

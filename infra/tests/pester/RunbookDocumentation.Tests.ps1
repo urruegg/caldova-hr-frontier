@@ -88,6 +88,316 @@ BeforeAll {
 }
 
 Describe 'Runbook documentation contracts' {
+    It 'records the controlling coordinate-only plan authority' {
+        $specPath = Join-Path $script:repositoryRoot (
+            'docs\specs\' +
+            '2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md'
+        )
+        $correctionPath = Join-Path $script:repositoryRoot (
+            'docs\plans\' +
+            '2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md'
+        )
+        $planOnePath = Join-Path $script:repositoryRoot (
+            'docs\plans\2026-10-02-tenant-lifecycle-core-implementation.md'
+        )
+        foreach ($path in @($specPath, $correctionPath, $planOnePath)) {
+            $path | Should -Exist
+        }
+
+        $spec = Get-Content -Raw -LiteralPath $specPath
+        $correction = Get-Content -Raw -LiteralPath $correctionPath
+        $planOne = Get-Content -Raw -LiteralPath $planOnePath
+        $spec | Should -Match (
+            '(?m)^\|\s+\*\*Status\*\*\s+\|\s+Approved\s+\|\s*$'
+        )
+        $spec | Should -Match (
+            'Plan 1.+Replace the mutation-capable umbrella contract.+exact ' +
+            'coordinate-only signature and stage-result schema'
+        )
+        $correction | Should -Match (
+            'Correct.+coordinate-only umbrella authority.+canonical child stage results'
+        )
+        $planOne | Should -Match (
+            'This amendment is controlling.+Approved coordinate-only design'
+        )
+        $planOne | Should -Match (
+            'Plan 1 is incomplete until every corrective task passes focused review'
+        )
+    }
+
+    It 'publishes the exact coordinate-only documentation and child-owned operator sequence' {
+        $paths = @(
+            'infra/docs/runbooks/README.md',
+            'infra/docs/runbooks/01-developer-workstation.md',
+            'infra/docs/runbooks/03-customer-handover.md',
+            'infra/docs/README.md',
+            'infra/README.md'
+        )
+        $documents = @{}
+        foreach ($relativePath in $paths) {
+            $documents[$relativePath] = Get-Content `
+                -Raw `
+                -LiteralPath (Join-Path $script:repositoryRoot $relativePath)
+            $documents[$relativePath] | Should -Match (
+                'Plan 1 was implemented with local synthetic tests only; ' +
+                'no live cloud, provider, or tenant operation was performed[.]'
+            )
+        }
+
+        $index = $documents['infra/docs/runbooks/README.md']
+        $index | Should -Match (
+            '\[-Mode <Assess\|Plan\|Verify>\]'
+        )
+        $index | Should -Not -Match (
+            '\[-Mode <Assess\|Plan\|Invoke>\]|' +
+            'Invoke-TenantLifecycle[.]ps1[\s\S]{0,500}-Apply'
+        )
+        $sequence = @(
+            'invoke the child directly in `Plan` mode',
+            'record the exact child approval in child `approvals.json`',
+            'invoke the child directly with `WhatIf`',
+            'invoke the child directly with `Apply`',
+            'complete child read-back',
+            'write the immutable canonical stage result',
+            'run umbrella `Verify`'
+        )
+        $lastPosition = -1
+        foreach ($step in $sequence) {
+            $position = $index.IndexOf(
+                $step,
+                [StringComparison]::Ordinal
+            )
+            $position | Should -BeGreaterThan $lastPosition
+            $lastPosition = $position
+        }
+        $index | Should -Match (
+            [regex]::Escape('<run>/stage-results/<stage>.json')
+        )
+        $index | Should -Match (
+            'Umbrella `Verify` never invokes a child'
+        )
+        $index | Should -Match (
+            'Child execution manifests and summaries are read-only ' +
+            'umbrella `Verify` inputs[.]'
+        )
+        $index | Should -Match (
+            'Child `approvals[.]json`, provider actions, WhatIf/Apply, ' +
+            '`ShouldProcess`, state adoption, and provider read-back remain ' +
+            'child-only and are neither umbrella authority nor umbrella output[.]'
+        )
+        $index | Should -Not -Match (
+            'Those files are not umbrella inputs or outputs[.]'
+        )
+        $index | Should -Match (
+            'literal `Passed`'
+        )
+        foreach ($nonClaim in @(
+            'The umbrella did not execute a provider mutation.',
+            'Provider approvals and read-back remain child-runbook evidence.',
+            'This projection discloses no provider resource identity or raw provider response.'
+        )) {
+            $index | Should -Match ([regex]::Escape($nonClaim))
+        }
+        $index | Should -Match (
+            'stage-only projection.+does not claim provider execution, ' +
+            'provider approval, provider read-back, deployment, publication, ' +
+            'or live tenant state'
+        )
+
+        foreach ($relativePath in @(
+            'infra/docs/runbooks/01-developer-workstation.md',
+            'infra/docs/runbooks/03-customer-handover.md'
+        )) {
+            $content = $documents[$relativePath]
+            $content | Should -Match (
+                'child `Plan` -> child `approvals[.]json` -> child ' +
+                '`WhatIf` -> child `Apply` -> child read-back -> canonical ' +
+                'stage result -> umbrella `Verify`'
+            )
+            $content | Should -Match (
+                'Umbrella `Verify` never invokes'
+            )
+        }
+    }
+
+    It 'publishes the Approved child summary envelope and residual implementation gate' {
+        $documentCases = @(
+            @{
+                Path = 'infra/docs/runbooks/README.md'
+                Version = '1.6'
+            }
+            @{
+                Path = 'infra/docs/runbooks/01-developer-workstation.md'
+                Version = '1.5'
+            }
+            @{
+                Path = 'infra/docs/runbooks/03-customer-handover.md'
+                Version = '1.4'
+            }
+            @{
+                Path = 'infra/docs/README.md'
+                Version = '1.4'
+            }
+            @{
+                Path = 'infra/README.md'
+                Version = '1.10'
+            }
+        )
+        $requiredStatements = @(
+            (
+                'The shared child summary envelope reserves exactly ' +
+                '`schemaVersion`, `runId`, `stage`, `sourceCommit`, ' +
+                '`publicTenantKey`, `intentDigest`, `stateDigest`, ' +
+                '`phaseManifestDigest`, `status`, `classification`, and ' +
+                '`completedAtUtc`, and retains the five standard fields ' +
+                '`startedAtUtc`, `counts`, `prerequisites`, `actions`, and ' +
+                '`nonClaims`.'
+            ),
+            (
+                'Provider-specific extras are root-only and opaque, are ' +
+                'absent from projections and errors, and cannot enter the ' +
+                'closed shared nested structures.'
+            ),
+            (
+                'The manifest embedded `digest`, exact-file ' +
+                '`phaseManifestDigest`, and exact-file ' +
+                '`phaseSummaryDigest` are three distinct checks.'
+            ),
+            (
+                'The child writes the summary before the stage result, and ' +
+                'the summary has no self-digest.'
+            ),
+            (
+                'Umbrella `Verify` and `Assess`/`Plan` prerequisite dispatch ' +
+                'enforce the same envelope and embedded manifest digest.'
+            ),
+            (
+                'Legacy evidence fails closed and requires a new run; there ' +
+                'is no compatibility, inference, or repair path.'
+            ),
+            (
+                'Umbrella authority remains exactly `Assess`, `Plan`, and ' +
+                '`Verify`; `stage-results` remains authoritative and the ' +
+                'second `Verify` pass remains required.'
+            ),
+            (
+                'Plan 1 and the child summary envelope implementation remain ' +
+                'synthetic, `Draft`, and blocked until reviewed merge and ' +
+                'then-current green `main`.'
+            ),
+            (
+                'No live, provider, or tenant operation was performed, and ' +
+                'no merge-readiness claim is made.'
+            )
+        )
+
+        foreach ($documentCase in $documentCases) {
+            $content = Get-Content `
+                -Raw `
+                -LiteralPath (
+                    Join-Path $script:repositoryRoot $documentCase.Path
+                )
+            $content | Should -Match (
+                '(?m)^\|\s+\*\*Version\*\*\s+\|\s+' +
+                [regex]::Escape($documentCase.Version) +
+                '\s+\|\s*$'
+            )
+            $content | Should -Match (
+                '(?m)^\|\s+\*\*Date\*\*\s+\|\s+2026-10-19\s+\|\s*$'
+            )
+            $content | Should -Match (
+                'Approved Child Summary Envelope Design.+child-summary-' +
+                'envelope-design[.]md'
+            )
+            $content | Should -Match (
+                'Draft Child Summary Envelope Implementation Plan.+' +
+                'child-summary-envelope-implementation[.]md'
+            )
+            foreach ($statement in $requiredStatements) {
+                $content |
+                    Should -Match ([regex]::Escape($statement)) -Because (
+                        "$($documentCase.Path) publishes the full boundary"
+                    )
+            }
+            $content | Should -Not -Match (
+                'summar(?:y|ies).{0,120}validated only by exact bytes and digest|' +
+                'validates only their canonical coordinates and exact bytes/digests'
+            )
+        }
+    }
+
+    It 'preserves the Plan 1 corrective gate and keeps Plans 2-6 Draft and blocked' {
+        $planPaths = @(
+            'docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md',
+            'docs/plans/2026-10-02-developer-workstation-runbook-refactor-implementation.md',
+            'docs/plans/2026-10-02-cloud-service-foundation-core-implementation.md',
+            'docs/plans/2026-10-02-power-platform-dev-delivery-implementation.md',
+            'docs/plans/2026-10-02-tenant-replica-handover-implementation.md',
+            'docs/plans/2026-10-02-tenant-1-end-to-end-acceptance-implementation.md',
+            'docs/plans/2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md'
+        )
+        foreach ($relativePath in $planPaths) {
+            $content = Get-Content `
+                -Raw `
+                -LiteralPath (Join-Path $script:repositoryRoot $relativePath)
+            $content | Should -Match (
+                '(?m)^\|\s+\*\*Status\*\*\s+\|\s+Draft\s+\|\s*$'
+            )
+        }
+
+        $planOne = Get-Content -Raw -LiteralPath (
+            Join-Path $script:repositoryRoot $planPaths[0]
+        )
+        $planOne | Should -Match (
+            'This amendment is controlling.+Approved coordinate-only design'
+        )
+        $planOne | Should -Match (
+            'Plan 1 is incomplete until every corrective task passes focused review'
+        )
+        $planOne | Should -Match (
+            'Until the corrective plan is merged and then-current `main` is green, ' +
+            'Plan 1 remains incomplete and blocked'
+        )
+        foreach ($relativePath in $planPaths[1..5]) {
+            $content = Get-Content `
+                -Raw `
+                -LiteralPath (Join-Path $script:repositoryRoot $relativePath)
+            $content | Should -Match (
+                'coordinate-only correction.+merged.+then-current `main` is green'
+            )
+        }
+
+        $correctivePlan = Get-Content -Raw -LiteralPath (
+            Join-Path $script:repositoryRoot $planPaths[6]
+        )
+        $correctivePlan | Should -Match (
+            '`feat/tenant-lifecycle-core` remains blocked and nonmergeable ' +
+            'until the clean review is accepted'
+        )
+        $correctivePlan | Should -Match (
+            'Plans 2-6 remain `Draft` and blocked until the corrective change ' +
+            'is merged and then-current `main` is green'
+        )
+        foreach ($unquotedCommand in @(
+            'git diff --check $MergeBase..HEAD',
+            'git diff --exit-code $MergeBase..HEAD',
+            'git diff --stat $MergeBase..HEAD'
+        )) {
+            $correctivePlan |
+                Should -Not -Match ([regex]::Escape($unquotedCommand))
+        }
+        foreach ($quotedCommand in @(
+            'git diff --check "$MergeBase..HEAD"',
+            'git diff --exit-code "$MergeBase..HEAD" -- .github/workflows',
+            'git diff --exit-code "$MergeBase..HEAD" -- `',
+            'git diff --stat "$MergeBase..HEAD"',
+            '`git diff --check "$MergeBase..HEAD"`'
+        )) {
+            $correctivePlan |
+                Should -Match ([regex]::Escape($quotedCommand))
+        }
+    }
+
     It 'includes metadata-compliant infrastructure runbooks in the documentation set' {
         foreach ($relative in @(
             'README.md',

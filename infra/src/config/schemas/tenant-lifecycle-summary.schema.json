@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "stage",
+    "sourceCommit",
+    "publicTenantKey",
+    "intentDigest",
+    "stateDigest",
+    "phaseManifestDigest",
+    "status",
+    "classification",
+    "startedAtUtc",
+    "completedAtUtc",
+    "counts",
+    "prerequisites",
+    "actions",
+    "nonClaims"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "runId": { "$ref": "#/$defs/runId" },
+    "stage": { "$ref": "#/$defs/stage" },
+    "sourceCommit": { "$ref": "#/$defs/sourceCommit" },
+    "publicTenantKey": { "const": "tenant1" },
+    "intentDigest": { "$ref": "#/$defs/digest" },
+    "stateDigest": { "$ref": "#/$defs/digest" },
+    "phaseManifestDigest": { "$ref": "#/$defs/digest" },
+    "status": { "enum": ["Passed", "Failed", "Blocked", "Refused", "Manual"] },
+    "classification": { "enum": ["NoChange", "Changed", "Manual", "Blocked", "Refused"] },
+    "startedAtUtc": { "$ref": "#/$defs/timestamp" },
+    "completedAtUtc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[.][0-9]{3}Z$"
+    },
+    "counts": { "$ref": "#/$defs/counts" },
+    "prerequisites": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/prerequisite" }
+    },
+    "actions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/actionSummary" }
+    },
+    "nonClaims": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 512 }
+    }
+  },
+  "oneOf": [
+    { "properties": { "status": { "const": "Passed" }, "classification": { "enum": ["NoChange", "Changed"] } } },
+    { "properties": { "status": { "const": "Failed" }, "classification": { "enum": ["NoChange", "Changed"] } } },
+    { "properties": { "status": { "const": "Blocked" }, "classification": { "const": "Blocked" } } },
+    { "properties": { "status": { "const": "Refused" }, "classification": { "const": "Refused" } } },
+    { "properties": { "status": { "const": "Manual" }, "classification": { "const": "Manual" } } }
+  ],
+  "$defs": {
+    "runId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "stage": {
+      "enum": ["Workstation", "PrivateBoundary", "Foundation", "DevDelivery", "ReadBack", "Acceptance", "TenantReplica"]
+    },
+    "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "sourceCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "timestamp": { "type": "string", "format": "date-time", "pattern": "Z$" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "status": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z][A-Za-z0-9]*$" },
+    "classification": {
+      "enum": ["NoChange", "Create", "Update", "Manual", "Blocked", "Refused"]
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["NoChange", "Create", "Update", "Manual", "Blocked", "Refused"],
+      "properties": {
+        "NoChange": { "type": "integer", "minimum": 0 },
+        "Create": { "type": "integer", "minimum": 0 },
+        "Update": { "type": "integer", "minimum": 0 },
+        "Manual": { "type": "integer", "minimum": 0 },
+        "Blocked": { "type": "integer", "minimum": 0 },
+        "Refused": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "prerequisite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "inputDigest", "evidenceDigest"],
+      "properties": {
+        "id": { "$ref": "#/$defs/name" },
+        "status": { "$ref": "#/$defs/status" },
+        "inputDigest": { "$ref": "#/$defs/digest" },
+        "evidenceDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "actionSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "classification", "status", "evidenceRelativePath"],
+      "properties": {
+        "id": { "$ref": "#/$defs/name" },
+        "classification": { "$ref": "#/$defs/classification" },
+        "status": { "$ref": "#/$defs/status" },
+        "evidenceRelativePath": {
+          "type": "string",
+          "pattern": "^actions/[A-Za-z0-9][A-Za-z0-9._:-]*\\.json$"
+        }
+      }
+    }
+  }
+}

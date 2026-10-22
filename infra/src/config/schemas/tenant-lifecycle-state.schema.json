@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "publicTenantKey",
+    "resources"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "publicTenantKey": { "type": "string", "pattern": "^tenant[0-9]+$" },
+    "resources": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/resource" }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "timestamp": { "type": "string", "format": "date-time", "pattern": "Z$" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "stableId": {
+      "anyOf": [
+        { "type": "string", "minLength": 1, "maxLength": 2048 },
+        { "type": "null" }
+      ]
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "resourceType",
+        "logicalName",
+        "stableId",
+        "lastVerifiedAtUtc",
+        "ownedPropertiesDigest"
+      ],
+      "properties": {
+        "provider": { "$ref": "#/$defs/name" },
+        "resourceType": { "$ref": "#/$defs/name" },
+        "logicalName": { "$ref": "#/$defs/name" },
+        "stableId": { "$ref": "#/$defs/stableId" },
+        "lastVerifiedAtUtc": { "$ref": "#/$defs/timestamp" },
+        "ownedPropertiesDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}
