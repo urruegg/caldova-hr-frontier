@@ -9,73 +9,34 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  validate:
-    name: Repository setup validation
+  repository:
+    name: Repository/documentation validation
     runs-on: windows-2025
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-
-      - name: Install pinned Pester
-        shell: powershell
-        run: Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck
-
-      - name: Install Python schema test dependencies
-        shell: powershell
-        run: |
-          python -m pip install --disable-pip-version-check --requirement hr/tests/requirements.txt
-          if ($LASTEXITCODE -ne 0) { throw 'Python schema test dependency installation failed.' }
-
-      - name: Run lifecycle dispatch smoke test
+      - name: Run repository tests
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          $result = Invoke-Pester `
-            -Path 'infra/tests/pester/TenantLifecycleOrchestration.Tests.ps1' `
-            -FullNameFilter '*passes exact named arguments and a fresh nine-field control record*' `
-            -Output Detailed `
-            -CI `
-            -PassThru
-          if ($result.FailedCount -gt 0) {
-            throw "$($result.FailedCount) lifecycle dispatch smoke test(s) failed."
-          }
-
-      - name: Run all maintained tests
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $githubTests = @(
-            Get-ChildItem -LiteralPath '.github\cli\tests' -Filter '*.Tests.ps1' -File |
-              Sort-Object FullName |
-              Select-Object -ExpandProperty FullName
-          )
-          $result = Invoke-Pester -Path @($githubTests + @('infra\tests\pester', 'hr\tests\pester')) -Output Detailed -CI -PassThru
-          if ($result.FailedCount -gt 0) {
-            throw "$($result.FailedCount) maintained test(s) failed."
-          }
-
+          & .github/cli/Install-CiTestDependencies.ps1 -Group Repository -MaxAttempts 3
+          $paths = @(& .github/cli/Get-MaintainedTestGroups.ps1 -Group Repository)
+          & .github/cli/Invoke-MaintainedTestGroup.ps1 `
+            -Path $paths `
+            -OutputPath ([IO.Path]::GetFullPath('test-results/repository/pester.xml'))
       - name: Run repository safety validation
         shell: powershell
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-safety.ps1
-
-      - name: Build every maintained Bicep entry point
-        shell: powershell
         run: |
-          $ErrorActionPreference = 'Stop'
-          $entryPoints = @(
-            Get-ChildItem -LiteralPath 'infra\src\bicep' -Filter '*.bicep' -File -Recurse |
-              Sort-Object FullName
-          )
-          if ($entryPoints.Count -eq 0) { throw 'No maintained Bicep entry point was found.' }
-          foreach ($entryPoint in $entryPoints) {
-            az bicep build --file $entryPoint.FullName --stdout | Out-Null
-            if ($LASTEXITCODE -ne 0) { throw "Bicep build failed: $($entryPoint.FullName)" }
-          }
-
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File .github/cli/verify-repository-safety.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Repository safety validation failed.' }
       - name: Check branch whitespace
         shell: powershell
         run: |
@@ -85,3 +46,128 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($mergeBase)) { throw 'Cannot resolve whitespace merge base.' }
           git diff --check "$mergeBase...HEAD"
           if ($LASTEXITCODE -ne 0) { throw 'Whitespace validation failed.' }
+      - name: Upload repository test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: repository-validation-test-results
+          path: test-results/repository
+          if-no-files-found: warn
+          retention-days: 14
+
+  infrastructure:
+    name: Infrastructure validation
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Run infrastructure tests
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .github/cli/Install-CiTestDependencies.ps1 -Group Infrastructure -MaxAttempts 3
+          $paths = @(& .github/cli/Get-MaintainedTestGroups.ps1 -Group Infrastructure)
+          & .github/cli/Invoke-MaintainedTestGroup.ps1 `
+            -Path $paths `
+            -OutputPath ([IO.Path]::GetFullPath('test-results/infrastructure/pester.xml'))
+      - name: Build every maintained Bicep entry point
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $entryPoints = @(Get-ChildItem -LiteralPath 'infra/src/bicep' -Filter '*.bicep' -File -Recurse | Sort-Object FullName)
+          if ($entryPoints.Count -eq 0) { throw 'No maintained Bicep entry point was found.' }
+          foreach ($entryPoint in $entryPoints) {
+            az bicep build --file $entryPoint.FullName --stdout | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "Bicep build failed: $($entryPoint.FullName)" }
+          }
+      - name: Upload infrastructure test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: infrastructure-validation-test-results
+          path: test-results/infrastructure
+          if-no-files-found: warn
+          retention-days: 14
+
+  hr:
+    name: HR solution validation
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Run HR tests
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .github/cli/Install-CiTestDependencies.ps1 -Group Hr -MaxAttempts 3
+          $paths = @(& .github/cli/Get-MaintainedTestGroups.ps1 -Group Hr)
+          & .github/cli/Invoke-MaintainedTestGroup.ps1 `
+            -Path $paths `
+            -OutputPath ([IO.Path]::GetFullPath('test-results/hr/pester.xml'))
+      - name: Upload HR test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hr-validation-test-results
+          path: test-results/hr
+          if-no-files-found: warn
+          retention-days: 14
+
+  lifecycle:
+    name: Lifecycle/runbook validation
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Run lifecycle tests
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .github/cli/Install-CiTestDependencies.ps1 -Group Lifecycle -MaxAttempts 3
+          $paths = @(& .github/cli/Get-MaintainedTestGroups.ps1 -Group Lifecycle)
+          & .github/cli/Invoke-MaintainedTestGroup.ps1 `
+            -Path $paths `
+            -OutputPath ([IO.Path]::GetFullPath('test-results/lifecycle/smoke.xml')) `
+            -Tag CICompatibilitySmoke
+          & .github/cli/Invoke-MaintainedTestGroup.ps1 `
+            -Path $paths `
+            -OutputPath ([IO.Path]::GetFullPath('test-results/lifecycle/remainder.xml')) `
+            -ExcludeTag CICompatibilitySmoke
+      - name: Upload lifecycle test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lifecycle-validation-test-results
+          path: test-results/lifecycle
+          if-no-files-found: warn
+          retention-days: 14
+
+  validate:
+    name: Repository setup validation
+    needs: [repository, infrastructure, hr, lifecycle]
+    if: always()
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Require every validation domain
+        shell: powershell
+        run: |
+          $results = [ordered]@{
+            repository = '${{ needs.repository.result }}'
+            infrastructure = '${{ needs.infrastructure.result }}'
+            hr = '${{ needs.hr.result }}'
+            lifecycle = '${{ needs.lifecycle.result }}'
+          }
+          $unsuccessful = @($results.GetEnumerator() | Where-Object Value -cne 'success')
+          if ($unsuccessful.Count -ne 0) {
+            throw "Validation domain did not succeed: $(($unsuccessful | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ', ')"
+          }

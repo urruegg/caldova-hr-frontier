@@ -15,6 +15,7 @@ BeforeAll {
             [string]$WorkflowContent = @'
 steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
 '@,
             [string]$ManifestContent = @'
 {
@@ -23,6 +24,10 @@ steps:
         "actions/checkout": {
             "sourceRef": "v7.0.1",
             "sha": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+        },
+        "actions/upload-artifact": {
+            "sourceRef": "v4.6.2",
+            "sha": "ea165f8d65b6e75b540449e92b4886f43607fa02"
         }
     }
 }
@@ -246,11 +251,42 @@ Describe 'Core repository safety validation' {
         $fixtureRoot = New-SafetyFixture -WorkflowContent @'
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
   - uses: ./.github/actions/local
 '@
 
         $output = @(& $script:validatorPath -RepositoryRoot $fixtureRoot)
 
+        $output | Should -Be @('Repository safety validation passed.')
+    }
+
+    It 'records the two exact reviewed external action pins' {
+        $manifest = Get-Content -Raw -LiteralPath (
+            Join-Path $script:repositoryRoot 'infra\src\config\github\action-pins.json'
+        ) | ConvertFrom-Json
+
+        [string]$manifest.schemaVersion | Should -BeExactly '1.0'
+        @($manifest.actions.PSObject.Properties.Name) | Should -Be @(
+            'actions/checkout'
+            'actions/upload-artifact'
+        )
+        [string]$manifest.actions.'actions/checkout'.sourceRef |
+            Should -BeExactly 'v7.0.1'
+        [string]$manifest.actions.'actions/checkout'.sha |
+            Should -BeExactly '3d3c42e5aac5ba805825da76410c181273ba90b1'
+        [string]$manifest.actions.'actions/upload-artifact'.sourceRef |
+            Should -BeExactly 'v4.6.2'
+        [string]$manifest.actions.'actions/upload-artifact'.sha |
+            Should -BeExactly 'ea165f8d65b6e75b540449e92b4886f43607fa02'
+    }
+
+    It 'has no unused manifest entry in repository workflows' {
+        $output = @(
+            & $script:validatorPath -RepositoryRoot $script:repositoryRoot 2>&1 |
+                ForEach-Object { $_.ToString() }
+        )
+
+        $LASTEXITCODE | Should -Be 0
         $output | Should -Be @('Repository safety validation passed.')
     }
 
@@ -324,30 +360,34 @@ steps:
         @{
             Reason = 'an unknown external action'
             WorkflowContent = 'steps:
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
   - uses: owner/unknown@1111111111111111111111111111111111111111'
-            ManifestContent = '{"schemaVersion":"1.0","actions":{"actions/checkout":{"sourceRef":"v7.0.1","sha":"3d3c42e5aac5ba805825da76410c181273ba90b1"},"owner/known":{"sourceRef":"v1.0.0","sha":"2222222222222222222222222222222222222222"}}}'
+            ManifestContent = '{"schemaVersion":"1.0","actions":{"actions/checkout":{"sourceRef":"v7.0.1","sha":"3d3c42e5aac5ba805825da76410c181273ba90b1"},"actions/upload-artifact":{"sourceRef":"v4.6.2","sha":"ea165f8d65b6e75b540449e92b4886f43607fa02"}}}'
             Expected = 'Unknown external action owner/unknown'
         }
         @{
             Reason = 'a mutable action reference'
             WorkflowContent = 'steps:
-  - uses: actions/checkout@v7'
-            ManifestContent = '{"schemaVersion":"1.0","actions":{"actions/checkout":{"sourceRef":"v7.0.1","sha":"3d3c42e5aac5ba805825da76410c181273ba90b1"}}}'
+  - uses: actions/checkout@v7
+  - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02'
+            ManifestContent = '{"schemaVersion":"1.0","actions":{"actions/checkout":{"sourceRef":"v7.0.1","sha":"3d3c42e5aac5ba805825da76410c181273ba90b1"},"actions/upload-artifact":{"sourceRef":"v4.6.2","sha":"ea165f8d65b6e75b540449e92b4886f43607fa02"}}}'
             Expected = 'must use a lowercase 40-character SHA'
         }
         @{
             Reason = 'a mismatched action SHA'
             WorkflowContent = 'steps:
-  - uses: actions/checkout@1111111111111111111111111111111111111111'
-            ManifestContent = '{"schemaVersion":"1.0","actions":{"actions/checkout":{"sourceRef":"v7.0.1","sha":"3d3c42e5aac5ba805825da76410c181273ba90b1"}}}'
+  - uses: actions/checkout@1111111111111111111111111111111111111111
+  - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02'
+            ManifestContent = '{"schemaVersion":"1.0","actions":{"actions/checkout":{"sourceRef":"v7.0.1","sha":"3d3c42e5aac5ba805825da76410c181273ba90b1"},"actions/upload-artifact":{"sourceRef":"v4.6.2","sha":"ea165f8d65b6e75b540449e92b4886f43607fa02"}}}'
             Expected = 'does not match reviewed SHA'
         }
         @{
-            Reason = 'an unused manifest entry'
+            Reason = 'a reviewed manifest action that no workflow uses'
             WorkflowContent = 'steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-            ManifestContent = '{"schemaVersion":"1.0","actions":{"actions/checkout":{"sourceRef":"v7.0.1","sha":"3d3c42e5aac5ba805825da76410c181273ba90b1"},"owner/unused":{"sourceRef":"v1.0.0","sha":"2222222222222222222222222222222222222222"}}}'
-            Expected = 'Manifest action is unused: owner/unused'
+            ManifestContent = '{"schemaVersion":"1.0","actions":{"actions/checkout":{"sourceRef":"v7.0.1","sha":"3d3c42e5aac5ba805825da76410c181273ba90b1"},"actions/upload-artifact":{"sourceRef":"v4.6.2","sha":"ea165f8d65b6e75b540449e92b4886f43607fa02"}}}'
+            Expected = 'Manifest action is unused: actions/upload-artifact'
         }
     ) {
         param([string]$WorkflowContent, [string]$ManifestContent, [string]$Expected)

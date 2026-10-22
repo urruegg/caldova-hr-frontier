@@ -2473,7 +2473,8 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         )
                     }
 
-                    It 'uses the first deterministic Git application when PATH exposes aliases' {
+                    It 'uses the first deterministic Git application when PATH exposes aliases' `
+                        -Tag 'CICompatibilitySmoke' {
                         $gitSource = (
                             Get-Command git.exe `
                                 -CommandType Application `
@@ -2619,7 +2620,8 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                 }
 
                 Context 'closed control record contract' {
-                    It 'passes exact named arguments and a fresh nine-field control record' {
+                    It 'passes exact named arguments and a fresh nine-field control record' `
+                        -Tag 'CICompatibilitySmoke' {
                         $runId = [guid]::NewGuid()
                         Write-CoordinateStageResult `
                             -RunId $runId `
@@ -2676,7 +2678,8 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             Should -BeExactly 'Workstation'
                     }
 
-                    It 'transports the control envelope independently of console input encoding' {
+                    It 'transports the control envelope independently of console input encoding' `
+                        -Tag 'CICompatibilitySmoke' {
                         $runId = [guid]::NewGuid()
                         $invoker = New-CoordinateArtifactInvoker
                         $originalInputEncoding = [Console]::InputEncoding
