@@ -62,10 +62,41 @@ BeforeAll {
         [string[]]$rows
     }
 
+    function script:Assert-NoUnsupportedMappingKeySyntax {
+        param(
+            [Parameter(Mandatory)][AllowEmptyString()][string[]]$Lines,
+            [Parameter(Mandatory)][int[]]$Indent,
+            [Parameter(Mandatory)][string]$Context
+        )
+
+        foreach ($width in $Indent) {
+            $prefix = ' ' * $width
+            foreach ($line in $Lines) {
+                if (
+                    $line -cmatch (
+                        '^{0}(?:\?(?:\s|$)|-\s+\?(?:\s|$))' -f (
+                            [regex]::Escape($prefix)
+                        )
+                    )
+                ) {
+                    throw (
+                        'Workflow contract parser rejects an explicit or ' +
+                        "multiline mapping key in $Context."
+                    )
+                }
+            }
+        }
+    }
+
     function script:ConvertFrom-StepLines {
         param(
             [Parameter(Mandatory)][AllowEmptyString()][string[]]$Lines
         )
+
+        Assert-NoUnsupportedMappingKeySyntax `
+            -Lines $Lines `
+            -Indent 8 `
+            -Context 'a step'
 
         $name = Get-ScalarValue -Lines $Lines -Indent 8 -Key 'name'
         if ([string]::IsNullOrWhiteSpace($name)) {
@@ -88,6 +119,10 @@ BeforeAll {
                 if ([string]::IsNullOrWhiteSpace($line)) {
                     continue
                 }
+                Assert-NoUnsupportedMappingKeySyntax `
+                    -Lines @($line) `
+                    -Indent 10 `
+                    -Context "the with block in '$name'"
                 if ($line -cnotmatch '^          (?<key>[A-Za-z0-9_-]+):\s*(?<value>.*?)\s*$') {
                     break
                 }
@@ -282,6 +317,11 @@ BeforeAll {
             [Parameter(Mandatory)][AllowEmptyString()][string[]]$Lines
         )
 
+        Assert-NoUnsupportedMappingKeySyntax `
+            -Lines $Lines `
+            -Indent @(4, 6) `
+            -Context "job '$Id'"
+
         $permissionRows = @(
             for ($index = 0; $index -lt $Lines.Count; $index++) {
                 if ($Lines[$index] -cmatch '^    permissions:\s*(?<inline>.*?)\s*$') {
@@ -385,6 +425,11 @@ BeforeAll {
         param(
             [Parameter(Mandatory)][AllowEmptyString()][string[]]$Lines
         )
+
+        Assert-NoUnsupportedMappingKeySyntax `
+            -Lines $Lines `
+            -Indent @(0, 2) `
+            -Context 'the workflow'
 
         $jobsBlock = Get-TopLevelBlock -Lines $Lines -Key 'jobs'
         $jobStarts = @(
@@ -590,6 +635,9 @@ BeforeAll {
                 if ($parseErrors.Count -ne 0) {
                     throw "Workflow run block is not valid PowerShell: $owner"
                 }
+                if ($null -ne $ast.ScriptRequirements) {
+                    throw "Workflow run block contains script requirements: $owner"
+                }
                 $usingStatements = @($ast.FindAll({
                     param($node)
                     $node -is [Management.Automation.Language.UsingStatementAst]
@@ -762,7 +810,16 @@ BeforeAll {
             [Parameter(Mandatory)][string]$JobId,
             [Parameter(Mandatory)][string]$StepName,
             [Parameter(Mandatory)][AllowEmptyString()][string]$Command,
-            [ValidateSet('Literal', 'Folded', 'Inline', 'Raw')]
+            [ValidateSet(
+                'Literal',
+                'Folded',
+                'Inline',
+                'Raw',
+                'ExplicitPlain',
+                'ExplicitSingleQuoted',
+                'ExplicitDoubleQuoted',
+                'ExplicitMultilineDoubleQuoted'
+            )]
             [string]$Style = 'Literal',
             [string]$RunKey = 'run'
         )
@@ -855,6 +912,54 @@ BeforeAll {
             }
             'Raw' {
                 $lines[$runIndex] = "        ${RunKey}:$Command"
+            }
+            'ExplicitPlain' {
+                $lines[$runIndex] = "        ? $RunKey"
+                $lines.Insert($runIndex + 1, '        : |')
+                [string[]]$commandLines = @($Command -split '\r?\n')
+                for ($index = 0; $index -lt $commandLines.Count; $index++) {
+                    $lines.Insert(
+                        $runIndex + 2 + $index,
+                        "          $($commandLines[$index])"
+                    )
+                }
+            }
+            'ExplicitSingleQuoted' {
+                $lines[$runIndex] = "        ? '$RunKey'"
+                $lines.Insert($runIndex + 1, '        : |')
+                [string[]]$commandLines = @($Command -split '\r?\n')
+                for ($index = 0; $index -lt $commandLines.Count; $index++) {
+                    $lines.Insert(
+                        $runIndex + 2 + $index,
+                        "          $($commandLines[$index])"
+                    )
+                }
+            }
+            'ExplicitDoubleQuoted' {
+                $lines[$runIndex] = "        ? `"$RunKey`""
+                $lines.Insert($runIndex + 1, '        : |')
+                [string[]]$commandLines = @($Command -split '\r?\n')
+                for ($index = 0; $index -lt $commandLines.Count; $index++) {
+                    $lines.Insert(
+                        $runIndex + 2 + $index,
+                        "          $($commandLines[$index])"
+                    )
+                }
+            }
+            'ExplicitMultilineDoubleQuoted' {
+                if ($RunKey -cne 'run') {
+                    throw 'Multiline explicit mutation supports only the run key.'
+                }
+                $lines[$runIndex] = '        ? "r\'
+                $lines.Insert($runIndex + 1, '          un"')
+                $lines.Insert($runIndex + 2, '        : |')
+                [string[]]$commandLines = @($Command -split '\r?\n')
+                for ($index = 0; $index -lt $commandLines.Count; $index++) {
+                    $lines.Insert(
+                        $runIndex + 3 + $index,
+                        "          $($commandLines[$index])"
+                    )
+                }
             }
         }
         ConvertFrom-WorkflowLines -Lines ([string[]]$lines)
@@ -1471,6 +1576,66 @@ Describe 'Parallel repository validation workflow' {
         } | Should -Throw
     }
 
+    It 'rejects unsupported mapping key syntax <Case>' -TestCases @(
+        @{
+            Case = 'plain explicit run'
+            Style = 'ExplicitPlain'
+            RunKey = 'run'
+            Command = 'az login'
+        }
+        @{
+            Case = 'single-quoted explicit run'
+            Style = 'ExplicitSingleQuoted'
+            RunKey = 'run'
+            Command = 'az login'
+        }
+        @{
+            Case = 'double-quoted explicit run'
+            Style = 'ExplicitDoubleQuoted'
+            RunKey = 'run'
+            Command = 'az login'
+        }
+        @{
+            Case = 'multiline double-quoted explicit run'
+            Style = 'ExplicitMultilineDoubleQuoted'
+            RunKey = 'run'
+            Command = 'az login'
+        }
+        @{
+            Case = 'explicit alternate key'
+            Style = 'ExplicitPlain'
+            RunKey = 'script'
+            Command = (
+                '& .github/cli/Get-MaintainedTestGroups.ps1 ' +
+                "-Group Repository`naz login"
+            )
+        }
+    ) {
+        param(
+            [string]$Case,
+            [string]$Style,
+            [string]$RunKey,
+            [string]$Command
+        )
+
+        {
+            New-RunCommandMutatedWorkflow `
+                -JobId 'repository' `
+                -StepName 'Run repository tests' `
+                -Command $Command `
+                -Style $Style `
+                -RunKey $RunKey
+        } | Should -Throw -ExpectedMessage (
+            '*explicit or multiline mapping key*'
+        )
+    }
+
+    It 'accepts current workflow mapping key syntax' {
+        {
+            ConvertFrom-WorkflowLines -Lines $script:workflowLines
+        } | Should -Not -Throw
+    }
+
     It 'rejects unsupported folded run form <Reason>' -TestCases @(
         @{
             Reason = 'blank paragraph'
@@ -1538,6 +1703,25 @@ Describe 'Parallel repository validation workflow' {
         {
             Assert-WorkflowCommandOwnership -Workflow $mutated
         } | Should -Throw
+    }
+
+    It 'rejects PowerShell script requirement <Requirement>' -TestCases @(
+        @{ Requirement = '#requires -Modules .\evil.psm1' }
+        @{ Requirement = '#requires -Assembly .\evil.dll' }
+        @{ Requirement = '#requires -RunAsAdministrator' }
+    ) {
+        param([string]$Requirement)
+
+        $mutated = New-RunCommandMutatedWorkflow `
+            -JobId 'repository' `
+            -StepName 'Run repository tests' `
+            -Command (
+                "$Requirement`n" +
+                '& .github/cli/Get-MaintainedTestGroups.ps1 -Group Repository'
+            )
+        {
+            Assert-WorkflowCommandOwnership -Workflow $mutated
+        } | Should -Throw -ExpectedMessage '*script requirements*'
     }
 
     It 'rejects launch bypass <Command> in <JobId>' -TestCases @(
