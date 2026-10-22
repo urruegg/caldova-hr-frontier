@@ -2473,6 +2473,68 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                         )
                     }
 
+                    It 'uses the first deterministic Git application when PATH exposes aliases' {
+                        $gitSource = (
+                            Get-Command git.exe `
+                                -CommandType Application `
+                                -ErrorAction Stop |
+                                Select-Object -First 1
+                        ).Source
+                        $gitRoot = Split-Path -Parent (
+                            Split-Path -Parent $gitSource
+                        )
+                        $junctionRoot = Join-Path (
+                            $TestDrive
+                        ) ([guid]::NewGuid().ToString('N'))
+                        [IO.Directory]::CreateDirectory(
+                            $junctionRoot
+                        ) | Out-Null
+                        $gitOne = Join-Path $junctionRoot 'git-one'
+                        $gitTwo = Join-Path $junctionRoot 'git-two'
+                        New-Item `
+                            -ItemType Junction `
+                            -Path $gitOne `
+                            -Target $gitRoot |
+                            Out-Null
+                        New-Item `
+                            -ItemType Junction `
+                            -Path $gitTwo `
+                            -Target $gitRoot |
+                            Out-Null
+                        $originalPath = $env:PATH
+
+                        try {
+                            $env:PATH = (
+                                (Join-Path $gitOne 'cmd'),
+                                (Join-Path $gitTwo 'cmd'),
+                                $originalPath
+                            ) -join ';'
+                            @(
+                                Get-Command git.exe `
+                                    -CommandType Application `
+                                    -ErrorAction Stop
+                            ).Count | Should -BeGreaterThan 1
+
+                            $runId = [guid]::NewGuid()
+                            $invoker = New-CoordinateArtifactInvoker
+                            {
+                                Invoke-CoordinateOrchestrator `
+                                    -RunId $runId `
+                                    -Stages @('Workstation') `
+                                    -Mode Assess `
+                                    -SubsystemInvoker $invoker
+                            } | Should -Not -Throw
+                            (
+                                Get-CoordinateObservedCalls -RunId $runId
+                            ) | Should -BeExactly @('Workstation|Assess')
+                        }
+                        finally {
+                            $env:PATH = $originalPath
+                            [IO.Directory]::Delete($gitOne, $false)
+                            [IO.Directory]::Delete($gitTwo, $false)
+                        }
+                    }
+
                     It 'rejects an empty selected stage set before dispatch' {
                         {
                             Invoke-CoordinateOrchestrator `

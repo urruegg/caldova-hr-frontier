@@ -124,14 +124,16 @@ catch {
     throw [IO.InvalidDataException]::new('TenantLifecycle.Orchestrator.Path')
 }
 
-$gitCommand = @(
-    Get-Command git.exe -CommandType Application -ErrorAction SilentlyContinue
-)
-if ($gitCommand.Count -ne 1 -or
-    [string]::IsNullOrWhiteSpace([string]$gitCommand[0].Source)) {
+$gitCommand = Get-Command `
+    git.exe `
+    -CommandType Application `
+    -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+if ($null -eq $gitCommand -or
+    [string]::IsNullOrWhiteSpace([string]$gitCommand.Source)) {
     throw [InvalidOperationException]::new('TenantLifecycle.Source.Command')
 }
-$gitPath = [string]$gitCommand[0].Source
+$gitPath = [string]$gitCommand.Source
 
 function Invoke-TenantLifecycleGit {
     [CmdletBinding()]
