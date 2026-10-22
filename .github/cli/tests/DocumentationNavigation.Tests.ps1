@@ -376,7 +376,11 @@ Describe 'Authoritative documentation catalogues' {
 
         $expectedTargets = @(Get-ExpectedDirectCatalogueTargets -Directory $fullRoot)
         $rows = @(Get-CatalogueRows -ReadmePath $readmePath)
-        $actualTargets = @($rows.Target | Sort-Object -Unique)
+        $actualTargets = @(
+            $rows |
+                ForEach-Object Target |
+                Sort-Object -Unique
+        )
         $actualTargets | Should -Be $expectedTargets
 
         foreach ($file in Get-DirectMarkdownChildren -Directory $fullRoot) {
@@ -510,6 +514,7 @@ Describe 'Final migration boundaries' {
         ($workflowChanges -join ',') | Should -BeIn @(
             ''
             '.github/workflows/validate-repository.yml'
+            '.github/workflows/README.md,.github/workflows/validate-repository.yml'
         )
     }
 }
