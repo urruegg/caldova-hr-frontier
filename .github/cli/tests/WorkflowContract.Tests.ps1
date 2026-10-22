@@ -62,7 +62,7 @@ BeforeAll {
         [string[]]$rows
     }
 
-    function script:ConvertFrom-StepMappingKey {
+    function script:ConvertFrom-ImplicitMappingKey {
         param(
             [Parameter(Mandatory)][string]$RawKey,
             [Parameter(Mandatory)][string]$Context
@@ -101,10 +101,32 @@ BeforeAll {
             }
         }
         catch {
-            throw "Workflow contract parser found a malformed step key in $Context."
+            throw "Workflow contract parser found a malformed mapping key in $Context."
         }
 
         [string]$decodedKey
+    }
+
+    function script:Get-ImplicitMappingKeys {
+        param(
+            [Parameter(Mandatory)][AllowEmptyString()][string]$Line
+        )
+
+        $pattern = [regex]::new(
+            '(?:^\s*(?:-\s+)?|[\{\[,]\s*)' +
+            '(?<rawKey>' +
+            "'(?:[^']|'')*'" +
+            '|' +
+            '"(?:\\.|[^"\\])*"' +
+            '|' +
+            '[A-Za-z0-9_-]+' +
+            ')\s*:(?=\s|$|[\[\]\{\},])'
+        )
+        foreach ($mappingMatch in $pattern.Matches($Line)) {
+            ConvertFrom-ImplicitMappingKey `
+                -RawKey $mappingMatch.Groups['rawKey'].Value `
+                -Context 'the workflow structural scan'
+        }
     }
 
     function script:Test-IsSupportedRunBlockContentLine {
@@ -128,7 +150,7 @@ BeforeAll {
         ) {
             return $false
         }
-        $decodedKey = ConvertFrom-StepMappingKey `
+        $decodedKey = ConvertFrom-ImplicitMappingKey `
             -RawKey $Matches['rawKey'].Trim() `
             -Context 'the workflow structural scan'
         [string]$decodedKey -ceq 'run'
@@ -265,6 +287,25 @@ BeforeAll {
                     'multiline mapping key in the workflow.'
                 )
             }
+            foreach ($decodedKey in @(Get-ImplicitMappingKeys -Line $line)) {
+                if (
+                    [string]::Equals(
+                        [string]$decodedKey,
+                        'paths',
+                        [StringComparison]::OrdinalIgnoreCase
+                    ) -or
+                    [string]::Equals(
+                        [string]$decodedKey,
+                        'paths-ignore',
+                        [StringComparison]::OrdinalIgnoreCase
+                    )
+                ) {
+                    throw (
+                        "Workflow contract parser rejects path-filter mapping key " +
+                        "'$decodedKey'."
+                    )
+                }
+            }
         }
     }
 
@@ -316,7 +357,7 @@ BeforeAll {
             ) {
                 $rawKey = $Matches['rawKey'].Trim()
                 $scalar = $Matches['scalar']
-                $decodedKey = ConvertFrom-StepMappingKey `
+                $decodedKey = ConvertFrom-ImplicitMappingKey `
                     -RawKey $rawKey `
                     -Context "'$name'"
 
@@ -1873,6 +1914,177 @@ Describe 'Parallel repository validation workflow' {
         } | Should -Throw -ExpectedMessage (
             '*explicit or multiline mapping key*'
         )
+    }
+
+    It 'rejects decoded path-filter mapping key <Case>' -TestCases @(
+        @{
+            Case = 'plain paths'
+            OnLines = @(
+                '  pull_request:'
+                '    paths: [docs/**]'
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+            )
+        }
+        @{
+            Case = 'single-quoted paths'
+            OnLines = @(
+                '  pull_request:'
+                "    'paths': [docs/**]"
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+            )
+        }
+        @{
+            Case = 'double-quoted paths'
+            OnLines = @(
+                '  pull_request:'
+                '    "paths": [docs/**]'
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+            )
+        }
+        @{
+            Case = 'escaped double-quoted paths'
+            OnLines = @(
+                '  pull_request:'
+                '    "pa\u0074hs": [docs/**]'
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+            )
+        }
+        @{
+            Case = 'single-quoted paths-ignore'
+            OnLines = @(
+                '  pull_request:'
+                "    'paths-ignore': [docs/**]"
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+            )
+        }
+        @{
+            Case = 'double-quoted paths-ignore'
+            OnLines = @(
+                '  pull_request:'
+                '    "paths-ignore": [docs/**]'
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+            )
+        }
+        @{
+            Case = 'single-quoted mixed-case paths'
+            OnLines = @(
+                '  pull_request:'
+                "    'PaThS': [docs/**]"
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+            )
+        }
+        @{
+            Case = 'double-quoted mixed-case paths-ignore'
+            OnLines = @(
+                '  pull_request:'
+                '    "PaThS-IgNoRe": [docs/**]'
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+            )
+        }
+        @{
+            Case = 'nested single-quoted paths'
+            OnLines = @(
+                '  pull_request:'
+                '    synthetic:'
+                '      deeper:'
+                "        'paths': [docs/**]"
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+            )
+        }
+        @{
+            Case = 'nested double-quoted paths-ignore'
+            OnLines = @(
+                '  pull_request:'
+                '    synthetic:'
+                '      deeper:'
+                '        "paths-ignore": [docs/**]'
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+            )
+        }
+        @{
+            Case = 'flow single-quoted paths'
+            OnLines = @(
+                "  pull_request: { 'paths': [docs/**] }"
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+            )
+        }
+        @{
+            Case = 'nested flow double-quoted paths-ignore'
+            OnLines = @(
+                '  pull_request: { synthetic: { "paths-ignore": [docs/**] } }'
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+            )
+        }
+    ) {
+        param(
+            [string]$Case,
+            [string[]]$OnLines
+        )
+
+        {
+            New-TriggerMappingMutatedWorkflow -OnLines $OnLines
+        } | Should -Throw -ExpectedMessage '*path-filter mapping key*'
+    }
+
+    It 'does not treat key-shaped <Style> run content as YAML structure' -TestCases @(
+        @{
+            Style = 'Literal'
+            Marker = "'paths': [docs/**]"
+        }
+        @{
+            Style = 'Literal'
+            Marker = '"paths-ignore": [docs/**]'
+        }
+        @{
+            Style = 'Folded'
+            Marker = "'paths': [docs/**]"
+        }
+        @{
+            Style = 'Folded'
+            Marker = '"paths-ignore": [docs/**]'
+        }
+    ) {
+        param(
+            [string]$Style,
+            [string]$Marker
+        )
+
+        $mutated = New-RunCommandMutatedWorkflow `
+            -JobId 'repository' `
+            -StepName 'Run repository tests' `
+            -Command (
+                "$Marker`n" +
+                '& .github/cli/Get-MaintainedTestGroups.ps1 -Group Repository'
+            ) `
+            -Style $Style
+        (Get-NamedStep `
+            -Job $mutated.Jobs.repository `
+            -Name 'Run repository tests').Run |
+                Should -Match ([regex]::Escape($Marker))
     }
 
     It 'routes literal run line beginning with <Marker> through script parsing' -TestCases @(
