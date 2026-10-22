@@ -152,6 +152,23 @@ function Assert-NormalPathSegments {
         throw 'CiPester.ReparsePoint: repository root is not a normal directory.'
     }
 
+    if (
+        [string]::Equals(
+            $Candidate,
+            $repositoryRoot,
+            [StringComparison]::OrdinalIgnoreCase
+        )
+    ) {
+        if ($FinalKind -ceq 'Leaf') {
+            throw "CiPester.PathState: $Context is not a leaf."
+        }
+        $rootState
+        return
+    }
+    if (-not (Test-RepositoryContainedPath -Candidate $Candidate)) {
+        throw "CiPester.PathState: $Context is outside the repository."
+    }
+
     $relativePath = $Candidate.Substring($repositoryPrefix.Length)
     [string[]]$segments = @(
         $relativePath.Split(
@@ -163,6 +180,7 @@ function Assert-NormalPathSegments {
         )
     )
     $currentPath = $repositoryRoot
+    $finalState = $rootState
     $missingSegmentSeen = $false
     for ($index = 0; $index -lt $segments.Count; $index++) {
         $currentPath = Join-Path $currentPath $segments[$index]
@@ -173,6 +191,7 @@ function Assert-NormalPathSegments {
         $state = Get-FileSystemState `
             -LiteralPath $currentPath `
             -Context $Context
+        $finalState = $state
         if (-not $state.Exists) {
             if ($AllowMissing) {
                 $missingSegmentSeen = $true
@@ -199,6 +218,7 @@ function Assert-NormalPathSegments {
             }
         }
     }
+    $finalState
 }
 
 if ($Path.Count -eq 0) {
@@ -223,7 +243,7 @@ if ($Path.Count -eq 0) {
         if (-not $candidate.EndsWith('.Tests.ps1', [StringComparison]::Ordinal)) {
             throw "CiPester.Path: '$selectedPath' is not a canonical test file."
         }
-        Assert-NormalPathSegments `
+        $null = Assert-NormalPathSegments `
             -Candidate $candidate `
             -Context 'selected test path' `
             -FinalKind Leaf
@@ -241,11 +261,6 @@ if (-not (Test-RepositoryContainedPath -Candidate $resolvedOutputPath)) {
 if (-not $resolvedOutputPath.EndsWith('.xml', [StringComparison]::OrdinalIgnoreCase)) {
     throw 'CiPester.OutputPath: the result path must end in .xml.'
 }
-Assert-NormalPathSegments `
-    -Candidate $resolvedOutputPath `
-    -Context 'output path' `
-    -AllowMissing
-
 Import-Module Pester -RequiredVersion 5.7.1 -Force -ErrorAction Stop
 $loadedPesterModules = @(Get-Module -Name Pester)
 if (
@@ -307,34 +322,6 @@ if (
 [string]$gitApplication = $gitApplications[0]
 [string]$pwshApplication = $pwshApplications[0]
 
-$resultParent = Split-Path -Parent $resolvedOutputPath
-[void](New-Item -ItemType Directory -Path $resultParent -Force)
-Assert-NormalPathSegments `
-    -Candidate $resultParent `
-    -Context 'output path' `
-    -FinalKind Container
-Assert-NormalPathSegments `
-    -Candidate $resolvedOutputPath `
-    -Context 'output path' `
-    -AllowMissing
-if (Test-Path -LiteralPath $resolvedOutputPath) {
-    Remove-Item -LiteralPath $resolvedOutputPath -Force
-}
-
-$startedAtUtc = & $Clock
-Write-Host ('CI Pester selected paths={0}' -f ($resolvedPaths -join ';'))
-Write-Host (
-    'CI Pester host={0} {1}' -f
-    [string]$PSVersionTable.PSEdition,
-    [string]$PSVersionTable.PSVersion
-)
-Write-Host ('CI Pester version={0}' -f $loadedPesterVersion)
-Write-Host ('CI Pester git applications={0}' -f ($gitApplications -join ';'))
-Write-Host ('CI Pester pwsh applications={0}' -f ($pwshApplications -join ';'))
-Write-Host ('CI Pester selected git application={0}' -f $gitApplication)
-Write-Host ('CI Pester selected pwsh application={0}' -f $pwshApplication)
-Write-Host ('CI Pester start={0:o}' -f $startedAtUtc)
-
 $configuration = New-PesterConfiguration
 $configuration.Run.Path = [string[]]$resolvedPaths
 $configuration.Run.Throw = $true
@@ -351,9 +338,74 @@ elseif ($PSCmdlet.ParameterSetName -ceq 'ExcludeTag') {
     $configuration.Filter.ExcludeTag = [string[]]@($ExcludeTag)
 }
 
+$initialOutputState = Assert-NormalPathSegments `
+    -Candidate $resolvedOutputPath `
+    -Context 'output path' `
+    -AllowMissing `
+    -FinalKind Leaf
+if ($initialOutputState.Exists) {
+    try {
+        Remove-Item `
+            -LiteralPath $resolvedOutputPath `
+            -Force `
+            -ErrorAction Stop
+    }
+    catch {
+        throw 'CiPester.OutputPathState: validated output target could not be removed.'
+    }
+}
+
+$postRemovalState = Assert-NormalPathSegments `
+    -Candidate $resolvedOutputPath `
+    -Context 'output path' `
+    -AllowMissing `
+    -FinalKind Leaf
+if ($postRemovalState.Exists) {
+    throw 'CiPester.OutputPathState: output target remains after removal.'
+}
+
+$resultParent = Split-Path -Parent $resolvedOutputPath
+try {
+    [void](New-Item `
+        -ItemType Directory `
+        -Path $resultParent `
+        -Force `
+        -ErrorAction Stop)
+}
+catch {
+    throw 'CiPester.OutputPathState: output parent could not be created.'
+}
+$null = Assert-NormalPathSegments `
+    -Candidate $resultParent `
+    -Context 'output path' `
+    -FinalKind Container
+
+$startedAtUtc = & $Clock
+Write-Host ('CI Pester selected paths={0}' -f ($resolvedPaths -join ';'))
+Write-Host (
+    'CI Pester host={0} {1}' -f
+    [string]$PSVersionTable.PSEdition,
+    [string]$PSVersionTable.PSVersion
+)
+Write-Host ('CI Pester version={0}' -f $loadedPesterVersion)
+Write-Host ('CI Pester git applications={0}' -f ($gitApplications -join ';'))
+Write-Host ('CI Pester pwsh applications={0}' -f ($pwshApplications -join ';'))
+Write-Host ('CI Pester selected git application={0}' -f $gitApplication)
+Write-Host ('CI Pester selected pwsh application={0}' -f $pwshApplication)
+Write-Host ('CI Pester start={0:o}' -f $startedAtUtc)
+
 $result = $null
 $finishedAtUtc = $null
 try {
+    $preInvocationState = Assert-NormalPathSegments `
+        -Candidate $resolvedOutputPath `
+        -Context 'output path' `
+        -AllowMissing `
+        -FinalKind Leaf
+    if ($preInvocationState.Exists) {
+        throw 'CiPester.OutputPathState: output target must be missing before Pester.'
+    }
+
     $invocationResults = @(& $PesterInvoker $configuration)
     if ($invocationResults.Count -ne 1) {
         throw 'CiPester.ResultObject'
@@ -377,17 +429,13 @@ finally {
     Write-Host ('CI Pester finish={0:o}' -f $finishedAtUtc)
 }
 
-try {
-    Assert-NormalPathSegments `
-        -Candidate $resolvedOutputPath `
-        -Context 'output path' `
-        -FinalKind Leaf
-}
-catch {
-    if ($_.Exception.Message -like 'CiPester.PathState: required*') {
-        throw 'CiPester.ResultFileMissing'
-    }
-    throw
+$finalOutputState = Assert-NormalPathSegments `
+    -Candidate $resolvedOutputPath `
+    -Context 'output path' `
+    -AllowMissing `
+    -FinalKind Leaf
+if (-not $finalOutputState.Exists) {
+    throw 'CiPester.ResultFileMissing'
 }
 
 [pscustomobject][ordered]@{

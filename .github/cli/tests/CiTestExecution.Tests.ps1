@@ -260,6 +260,79 @@ BeforeAll {
 
         $fileSystemProbe
     }
+
+    function script:New-PostRemovalReparseProbe {
+        param(
+            [Parameter(Mandatory)]
+            [string]$OutputPath,
+
+            [Parameter(Mandatory)]
+            [string]$ReparsePath
+        )
+
+        $resolvedOutputPath = [IO.Path]::GetFullPath($OutputPath)
+        $resolvedReparsePath = [IO.Path]::GetFullPath($ReparsePath)
+        $state = [pscustomobject]@{
+            SawExistingOutput = [bool]$false
+        }
+        $fileSystemProbe = {
+            param([string]$LiteralPath)
+
+            $resolvedLiteralPath = [IO.Path]::GetFullPath($LiteralPath)
+            $item = Get-Item `
+                -LiteralPath $resolvedLiteralPath `
+                -Force `
+                -ErrorAction SilentlyContinue
+            if (
+                [string]::Equals(
+                    $resolvedLiteralPath,
+                    $resolvedOutputPath,
+                    [StringComparison]::OrdinalIgnoreCase
+                ) -and
+                $null -ne $item
+            ) {
+                $state.SawExistingOutput = $true
+            }
+
+            $currentOutput = Get-Item `
+                -LiteralPath $resolvedOutputPath `
+                -Force `
+                -ErrorAction SilentlyContinue
+            $afterRemoval = $state.SawExistingOutput -and $null -eq $currentOutput
+            $markAsReparse = $afterRemoval -and [string]::Equals(
+                $resolvedLiteralPath,
+                $resolvedReparsePath,
+                [StringComparison]::OrdinalIgnoreCase
+            )
+            if ($null -eq $item -and -not $markAsReparse) {
+                return [pscustomobject]@{
+                    Exists = [bool]$false
+                    IsContainer = [bool]$false
+                    IsLeaf = [bool]$false
+                    Attributes = [IO.FileAttributes]::Normal
+                }
+            }
+
+            $isContainer = $null -ne $item -and [bool]$item.PSIsContainer
+            $attributes = if ($null -eq $item) {
+                [IO.FileAttributes]::Normal
+            }
+            else {
+                [IO.FileAttributes]$item.Attributes
+            }
+            if ($markAsReparse) {
+                $attributes = $attributes -bor [IO.FileAttributes]::ReparsePoint
+            }
+            [pscustomobject]@{
+                Exists = [bool]$true
+                IsContainer = [bool]$isContainer
+                IsLeaf = [bool](-not $isContainer)
+                Attributes = [IO.FileAttributes]$attributes
+            }
+        }.GetNewClosure()
+
+        $fileSystemProbe
+    }
 }
 
 AfterAll {
@@ -756,6 +829,29 @@ Describe 'Fail-closed maintained Pester execution' {
             Should -BeTrue
     }
 
+    It 'allows an output file directly under the repository root' {
+        Assert-RunnerExists
+        $outputPath = Join-Path $script:repositoryRoot (
+            'task2-root-output-{0}.xml' -f [guid]::NewGuid().ToString('N')
+        )
+        $probe = New-RunnerProbe -Result (New-PesterResult)
+        $parameters = New-RunnerParameters -Probe $probe -OutputPath $outputPath
+
+        try {
+            $summary = & $script:runnerPath @parameters
+
+            $summary.Result | Should -BeExactly 'Passed'
+            $summary.OutputPath |
+                Should -BeExactly ([IO.Path]::GetFullPath($outputPath))
+            $probe.State.InvokeCount | Should -Be 1
+        }
+        finally {
+            if (Test-Path -LiteralPath $outputPath) {
+                Remove-Item -LiteralPath $outputPath -Force
+            }
+        }
+    }
+
     It 'rejects an injected reparse selected test file' {
         Assert-RunnerExists
         $probe = New-RunnerProbe -Result (New-PesterResult)
@@ -825,6 +921,51 @@ Describe 'Fail-closed maintained Pester execution' {
         $probe.State.InvokeCount | Should -Be 0
         Test-Path -LiteralPath $script:outputPath -PathType Leaf |
             Should -BeTrue
+    }
+
+    It 'rejects an output ancestor changed to reparse after target removal' {
+        Assert-RunnerExists
+        $outputAncestor = Join-Path $script:resultRoot 'post-removal-ancestor'
+        [void](New-Item -ItemType Directory -Path $outputAncestor -Force)
+        $outputPath = Join-Path $outputAncestor 'pester.xml'
+        [IO.File]::WriteAllText(
+            $outputPath,
+            '<existing />',
+            [Text.UTF8Encoding]::new($false)
+        )
+        $probe = New-RunnerProbe -Result (New-PesterResult)
+        $parameters = New-RunnerParameters -Probe $probe -OutputPath $outputPath
+        $parameters.FileSystemProbe = New-PostRemovalReparseProbe `
+            -OutputPath $outputPath `
+            -ReparsePath $outputAncestor
+
+        {
+            & $script:runnerPath @parameters
+        } | Should -Throw -ExpectedMessage '*CiPester.ReparsePoint*'
+        $probe.State.InvokeCount | Should -Be 0
+    }
+
+    It 'rejects an output target boundary changed to reparse after removal' {
+        Assert-RunnerExists
+        [void](New-Item `
+            -ItemType Directory `
+            -Path (Split-Path -Parent $script:outputPath) `
+            -Force)
+        [IO.File]::WriteAllText(
+            $script:outputPath,
+            '<existing />',
+            [Text.UTF8Encoding]::new($false)
+        )
+        $probe = New-RunnerProbe -Result (New-PesterResult)
+        $parameters = New-RunnerParameters -Probe $probe -OutputPath $script:outputPath
+        $parameters.FileSystemProbe = New-PostRemovalReparseProbe `
+            -OutputPath $script:outputPath `
+            -ReparsePath $script:outputPath
+
+        {
+            & $script:runnerPath @parameters
+        } | Should -Throw -ExpectedMessage '*CiPester.ReparsePoint*'
+        $probe.State.InvokeCount | Should -Be 0
     }
 
     It 'rejects a relative output path and a path outside the repository' {
