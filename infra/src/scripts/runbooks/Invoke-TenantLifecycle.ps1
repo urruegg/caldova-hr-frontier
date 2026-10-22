@@ -916,12 +916,6 @@ namespace Caldova.HrFrontier.Runtime
         );
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool TerminateJobObject(
-            IntPtr job,
-            uint exitCode
-        );
-
-        [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool CloseHandle(IntPtr handle);
 
         public TenantLifecycleProcessJob()
@@ -978,20 +972,6 @@ namespace Caldova.HrFrontier.Runtime
                 );
             }
             if (!AssignProcessToJobObject(handle, process.Handle))
-            {
-                throw new Win32Exception(Marshal.GetLastWin32Error());
-            }
-        }
-
-        public void Terminate(uint exitCode)
-        {
-            if (handle == IntPtr.Zero)
-            {
-                throw new ObjectDisposedException(
-                    "TenantLifecycleProcessJob"
-                );
-            }
-            if (!TerminateJobObject(handle, exitCode))
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error());
             }
@@ -1110,6 +1090,7 @@ catch {
     $child.StartInfo = $startInfo
     $processJob = $null
     $childStarted = $false
+    $childExited = $false
     $stdoutDrainTask = $null
     $stderrDrainTask = $null
     $invocationException = $null
@@ -1146,6 +1127,7 @@ catch {
             -not $child.WaitForExit($remainingMilliseconds)) {
             throw [TimeoutException]::new()
         }
+        $childExited = $true
         if ($child.ExitCode -ne 0) {
             throw [InvalidOperationException]::new()
         }
@@ -1157,12 +1139,6 @@ catch {
     $cleanupExceptions = [Collections.Generic.List[Exception]]::new()
     if ($null -ne $processJob) {
         try {
-            $processJob.Terminate(1)
-        }
-        catch {
-            [void]$cleanupExceptions.Add($_.Exception)
-        }
-        try {
             $processJob.Dispose()
         }
         catch {
@@ -1170,11 +1146,14 @@ catch {
         }
     }
     try {
-        if ($childStarted -and -not $child.WaitForExit(5000)) {
+        if ($childStarted -and
+            -not $childExited -and
+            -not $child.WaitForExit(5000)) {
             $child.Kill()
             if (-not $child.WaitForExit(5000)) {
                 throw [TimeoutException]::new()
             }
+            $childExited = $true
         }
     }
     catch {
