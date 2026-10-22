@@ -2,18 +2,18 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Date** | 2026-10-22 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed Baseline (pending written-file review) |
+| **Status** | Approved |
 | **Scope** | Repository CI validation topology |
-| **References** | [Specification Catalogue](README.md), [Documentation Policy](../README.md), [Workflow Guide](../../.github/workflows/README.md) |
+| **References** | [Specification Catalogue](README.md), [Draft Implementation Plan](../plans/2026-10-22-parallel-repository-validation-implementation.md), [Documentation Policy](../README.md), [Workflow Guide](../../.github/workflows/README.md) |
 
 ## 1. Status and Authority
 
-The parallel validation design and its cross-repository challenge were approved for recording. This amended written artifact remains a Proposed Baseline pending review of the file itself. It defines the intended repository CI validation topology but does not authorize implementation until that written-file review is complete and an implementation plan is reviewed.
+The user approved this amended written specification. It is authoritative for implementation planning within its stated repository CI validation scope.
 
-This specification changes no production source, test, workflow, branch-protection setting, tenant, provider, or deployment state. The current workflow remains authoritative until a proposed implementation is reviewed and merged.
+Approval makes no claim that the implementation exists, that any workflow or test change is live, that provider, deployment, or runtime behavior changed, or that an implementation branch is reviewed, merged, or current on `main`. This specification changes no production source, test, workflow, branch-protection setting, tenant, provider, deployment, or runtime state. The current workflow remains authoritative until a separately reviewed implementation is merged and then-current `main` is green.
 
 ## 2. Problem and Intended Outcome
 
