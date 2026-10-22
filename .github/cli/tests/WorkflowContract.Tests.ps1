@@ -143,6 +143,48 @@ BeforeAll {
             [Parameter(Mandatory)][AllowEmptyString()][string[]]$Lines
         )
 
+        $permissionRows = @(
+            for ($index = 0; $index -lt $Lines.Count; $index++) {
+                if ($Lines[$index] -cmatch '^    permissions:\s*(?<inline>.*?)\s*$') {
+                    [pscustomobject]@{
+                        Index = $index
+                        Inline = $Matches['inline']
+                    }
+                }
+            }
+        )
+        if ($permissionRows.Count -gt 1) {
+            throw "Workflow contract parser found duplicate permissions blocks in '$Id'."
+        }
+        $permissions = [ordered]@{}
+        if ($permissionRows.Count -eq 1) {
+            if (-not [string]::IsNullOrWhiteSpace($permissionRows[0].Inline)) {
+                throw "Workflow contract parser rejects inline job permissions in '$Id'."
+            }
+            for (
+                $index = $permissionRows[0].Index + 1;
+                $index -lt $Lines.Count;
+                $index++
+            ) {
+                $line = $Lines[$index]
+                if ([string]::IsNullOrWhiteSpace($line)) {
+                    continue
+                }
+                if ($line -cmatch '^      (?<key>[A-Za-z0-9_-]+):\s*(?<value>\S+)\s*$') {
+                    $key = $Matches['key']
+                    if ($permissions.Contains($key)) {
+                        throw "Workflow contract parser found duplicate job permission '$key' in '$Id'."
+                    }
+                    $permissions[$key] = $Matches['value']
+                    continue
+                }
+                if ($line -cmatch '^      (?!-)') {
+                    throw "Workflow contract parser found malformed job permissions in '$Id'."
+                }
+                break
+            }
+        }
+
         $stepStarts = @(
             for ($index = 0; $index -lt $Lines.Count; $index++) {
                 if ($Lines[$index] -cmatch '^      - ') {
@@ -193,6 +235,8 @@ BeforeAll {
             TimeoutMinutes = Get-ScalarValue -Lines $Lines -Indent 4 -Key 'timeout-minutes'
             If = Get-ScalarValue -Lines $Lines -Indent 4 -Key 'if'
             Needs = $needs
+            HasPermissions = $permissionRows.Count -eq 1
+            Permissions = $permissions
             Steps = [object[]]$steps
             Lines = [string[]]$Lines
         }
@@ -286,6 +330,243 @@ BeforeAll {
         $steps[0]
     }
 
+    function script:Assert-WorkflowPermissions {
+        param(
+            [Parameter(Mandatory)][object]$Workflow
+        )
+
+        @($Workflow.Permissions.Keys) | Should -Be @('contents')
+        $Workflow.Permissions['contents'] | Should -BeExactly 'read'
+        foreach ($job in $Workflow.Jobs.Values) {
+            $job.PSObject.Properties.Name |
+                Should -Contain 'HasPermissions'
+            $job.HasPermissions |
+                Should -BeFalse -Because "job '$($job.Id)' must inherit global read-only permissions"
+            $job.Permissions.Count | Should -Be 0
+        }
+    }
+
+    function script:Assert-WorkflowCommandOwnership {
+        param(
+            [Parameter(Mandatory)][object]$Workflow
+        )
+
+        $actionUses = @(
+            foreach ($job in $Workflow.Jobs.Values) {
+                $job.Steps.Uses |
+                    Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+            }
+        )
+        foreach ($actionUse in $actionUses) {
+            $actionUse | Should -BeIn @(
+                "actions/checkout@$($script:checkoutSha)"
+                "actions/upload-artifact@$($script:uploadSha)"
+            )
+        }
+
+        $commandOwners = @{
+            'repository::Run repository tests' = @(
+                '.github/cli/Install-CiTestDependencies.ps1'
+                '.github/cli/Get-MaintainedTestGroups.ps1'
+                '.github/cli/Invoke-MaintainedTestGroup.ps1'
+            )
+            'repository::Run repository safety validation' = @(
+                'powershell.exe'
+            )
+            'repository::Check branch whitespace' = @(
+                'git'
+            )
+            'infrastructure::Run infrastructure tests' = @(
+                '.github/cli/Install-CiTestDependencies.ps1'
+                '.github/cli/Get-MaintainedTestGroups.ps1'
+                '.github/cli/Invoke-MaintainedTestGroup.ps1'
+            )
+            'infrastructure::Build every maintained Bicep entry point' = @(
+                'Get-ChildItem'
+                'Sort-Object'
+                'az'
+                'Out-Null'
+            )
+            'hr::Run HR tests' = @(
+                '.github/cli/Install-CiTestDependencies.ps1'
+                '.github/cli/Get-MaintainedTestGroups.ps1'
+                '.github/cli/Invoke-MaintainedTestGroup.ps1'
+            )
+            'lifecycle::Run lifecycle tests' = @(
+                '.github/cli/Install-CiTestDependencies.ps1'
+                '.github/cli/Get-MaintainedTestGroups.ps1'
+                '.github/cli/Invoke-MaintainedTestGroup.ps1'
+            )
+            'validate::Require every validation domain' = @(
+                'Where-Object'
+                'ForEach-Object'
+            )
+        }
+
+        foreach ($job in $Workflow.Jobs.Values) {
+            foreach ($step in @($job.Steps | Where-Object {
+                -not [string]::IsNullOrWhiteSpace($_.Run)
+            })) {
+                $owner = "$($job.Id)::$($step.Name)"
+                if (-not $commandOwners.ContainsKey($owner)) {
+                    throw "Workflow command owner is not reviewed: $owner"
+                }
+
+                $tokens = $null
+                $parseErrors = $null
+                $ast = [Management.Automation.Language.Parser]::ParseInput(
+                    $step.Run,
+                    [ref]$tokens,
+                    [ref]$parseErrors
+                )
+                if ($parseErrors.Count -ne 0) {
+                    throw "Workflow run block is not valid PowerShell: $owner"
+                }
+                $commands = @($ast.FindAll({
+                    param($node)
+                    $node -is [Management.Automation.Language.CommandAst]
+                }, $true))
+                $allowed = [Collections.Generic.HashSet[string]]::new(
+                    [string[]]$commandOwners[$owner],
+                    [StringComparer]::OrdinalIgnoreCase
+                )
+                foreach ($command in $commands) {
+                    $commandName = $command.GetCommandName()
+                    if (
+                        [string]::IsNullOrWhiteSpace($commandName) -or
+                        -not $allowed.Contains($commandName)
+                    ) {
+                        throw "Workflow command is not owned by ${owner}: $commandName"
+                    }
+
+                    if ($commandName -ieq 'az') {
+                        if (
+                            $owner -cne (
+                                'infrastructure::' +
+                                'Build every maintained Bicep entry point'
+                            )
+                        ) {
+                            throw "Azure CLI is not owned by ${owner}."
+                        }
+                        [string[]]$elements = @(
+                            $command.CommandElements |
+                                ForEach-Object { $_.Extent.Text }
+                        )
+                        [string[]]$expected = @(
+                            'az'
+                            'bicep'
+                            'build'
+                            '--file'
+                            '$entryPoint.FullName'
+                            '--stdout'
+                        )
+                        if (($elements -join "`n") -cne ($expected -join "`n")) {
+                            throw 'Infrastructure Azure CLI invocation is not the reviewed local Bicep build.'
+                        }
+                    }
+                }
+            }
+        }
+
+        ($Workflow.Lines -join "`n") | Should -Not -Match (
+            '(?m)^\s*(?:environment|secrets):'
+        )
+    }
+
+    function script:New-PermissionMutatedWorkflow {
+        param(
+            [Parameter(Mandatory)][ValidateSet('TopLevel', 'Job')][string]$Scope,
+            [Parameter(Mandatory)][string]$Permission,
+            [Parameter(Mandatory)][string]$JobId
+        )
+
+        $lines = [Collections.Generic.List[string]]::new()
+        foreach ($line in $script:workflowLines) {
+            [void]$lines.Add($line)
+        }
+
+        if ($Scope -ceq 'TopLevel') {
+            $contentsIndex = $lines.IndexOf('  contents: read')
+            if ($contentsIndex -lt 0) {
+                throw 'Permission mutation could not find global contents read.'
+            }
+            if ($Permission -ceq 'contents') {
+                $lines[$contentsIndex] = '  contents: write'
+            }
+            else {
+                $lines.Insert($contentsIndex + 1, "  ${Permission}: write")
+            }
+        }
+        else {
+            $jobIndex = $lines.IndexOf("  ${JobId}:")
+            if ($jobIndex -lt 0) {
+                throw "Permission mutation could not find job '$JobId'."
+            }
+            $lines.Insert($jobIndex + 1, '    permissions:')
+            $lines.Insert($jobIndex + 2, "      ${Permission}: write")
+        }
+
+        ConvertFrom-WorkflowLines -Lines ([string[]]$lines)
+    }
+
+    function script:New-RunCommandMutatedWorkflow {
+        param(
+            [Parameter(Mandatory)][string]$JobId,
+            [Parameter(Mandatory)][string]$StepName,
+            [Parameter(Mandatory)][string]$Command
+        )
+
+        $lines = [Collections.Generic.List[string]]::new()
+        foreach ($line in $script:workflowLines) {
+            [void]$lines.Add($line)
+        }
+
+        $jobStart = $lines.IndexOf("  ${JobId}:")
+        if ($jobStart -lt 0) {
+            throw "Command mutation could not find job '$JobId'."
+        }
+        $jobEnd = $lines.Count - 1
+        for ($index = $jobStart + 1; $index -lt $lines.Count; $index++) {
+            if ($lines[$index] -cmatch '^  [a-z][a-z0-9_-]*:\s*$') {
+                $jobEnd = $index - 1
+                break
+            }
+        }
+
+        $stepStart = -1
+        $stepHeader = "      - name: $StepName"
+        for ($index = $jobStart + 1; $index -le $jobEnd; $index++) {
+            if ($lines[$index] -ceq $stepHeader) {
+                $stepStart = $index
+                break
+            }
+        }
+        if ($stepStart -lt 0) {
+            throw "Command mutation could not find step '$StepName' in '$JobId'."
+        }
+
+        $stepEnd = $jobEnd
+        for ($index = $stepStart + 1; $index -le $jobEnd; $index++) {
+            if ($lines[$index] -cmatch '^      - ') {
+                $stepEnd = $index - 1
+                break
+            }
+        }
+        $runIndex = -1
+        for ($index = $stepStart + 1; $index -le $stepEnd; $index++) {
+            if ($lines[$index] -cmatch '^        run:\s*\|\s*$') {
+                $runIndex = $index
+                break
+            }
+        }
+        if ($runIndex -lt 0) {
+            throw "Command mutation could not find a run block in '$JobId/$StepName'."
+        }
+
+        $lines.Insert($runIndex + 1, "          $Command")
+        ConvertFrom-WorkflowLines -Lines ([string[]]$lines)
+    }
+
     function script:Get-DiscoveredLifecycleCaseId {
         param(
             [Parameter(Mandatory)][string[]]$Path,
@@ -356,8 +637,7 @@ Describe 'Parallel repository validation workflow' {
         )
         $workflowNames | Should -Be @('validate-repository.yml')
         $script:workflow.Name | Should -BeExactly 'Validate repository'
-        @($script:workflow.Permissions.Keys) | Should -Be @('contents')
-        $script:workflow.Permissions['contents'] | Should -BeExactly 'read'
+        Assert-WorkflowPermissions -Workflow $script:workflow
 
         $eventNames = @(
             $script:workflow.OnLines |
@@ -392,6 +672,35 @@ Describe 'Parallel repository validation workflow' {
                 'validate'
             )
         }
+    }
+
+    It 'rejects <Permission> write at <Scope> permissions' -TestCases @(
+        @{ Permission = 'contents'; Scope = 'TopLevel'; JobId = 'repository' }
+        @{ Permission = 'packages'; Scope = 'TopLevel'; JobId = 'repository' }
+        @{ Permission = 'deployments'; Scope = 'TopLevel'; JobId = 'repository' }
+        @{ Permission = 'actions'; Scope = 'TopLevel'; JobId = 'repository' }
+        @{ Permission = 'pull-requests'; Scope = 'TopLevel'; JobId = 'repository' }
+        @{ Permission = 'id-token'; Scope = 'TopLevel'; JobId = 'repository' }
+        @{ Permission = 'contents'; Scope = 'Job'; JobId = 'repository' }
+        @{ Permission = 'packages'; Scope = 'Job'; JobId = 'infrastructure' }
+        @{ Permission = 'deployments'; Scope = 'Job'; JobId = 'hr' }
+        @{ Permission = 'actions'; Scope = 'Job'; JobId = 'lifecycle' }
+        @{ Permission = 'pull-requests'; Scope = 'Job'; JobId = 'validate' }
+        @{ Permission = 'id-token'; Scope = 'Job'; JobId = 'repository' }
+    ) {
+        param(
+            [string]$Permission,
+            [string]$Scope,
+            [string]$JobId
+        )
+
+        $mutated = New-PermissionMutatedWorkflow `
+            -Scope $Scope `
+            -Permission $Permission `
+            -JobId $JobId
+        {
+            Assert-WorkflowPermissions -Workflow $mutated
+        } | Should -Throw
     }
 
     It 'defines exactly repository infrastructure hr lifecycle and validate jobs' {
@@ -692,33 +1001,67 @@ Describe 'Parallel repository validation workflow' {
         ($script:workflow.OnLines -join "`n") |
             Should -Not -Match '(?m)^\s+paths(?:-ignore)?:'
 
-        $actionUses = @(
-            foreach ($job in $script:workflow.Jobs.Values) {
-                $job.Steps.Uses |
-                    Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-            }
-        )
-        foreach ($actionUse in $actionUses) {
-            $actionUse | Should -BeIn @(
-                "actions/checkout@$($script:checkoutSha)"
-                "actions/upload-artifact@$($script:uploadSha)"
-            )
-        }
+        Assert-WorkflowCommandOwnership -Workflow $script:workflow
+    }
 
-        $allRunBlocks = @(
-            foreach ($job in $script:workflow.Jobs.Values) {
-                $job.Steps.Run |
-                    Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-            }
-        ) -join "`n"
-        $allRunBlocks | Should -Not -Match (
-            '(?i)\b(?:az\s+(?:login|account|deployment|group|rest)|' +
-            'Connect-AzAccount|New-Az\w+|terraform|azd|kubectl|' +
-            'Publish-TestResults|cache)\b'
+    It 'rejects unowned provider command <Command> in <JobId>' -TestCases @(
+        @{
+            JobId = 'repository'
+            StepName = 'Run repository tests'
+            Command = 'az vm create'
+        }
+        @{
+            JobId = 'infrastructure'
+            StepName = 'Build every maintained Bicep entry point'
+            Command = 'az storage account list'
+        }
+        @{
+            JobId = 'hr'
+            StepName = 'Run HR tests'
+            Command = 'Set-AzContext -Subscription synthetic'
+        }
+        @{
+            JobId = 'lifecycle'
+            StepName = 'Run lifecycle tests'
+            Command = 'Invoke-AzRestMethod -Path /subscriptions'
+        }
+        @{
+            JobId = 'repository'
+            StepName = 'Run repository safety validation'
+            Command = 'azd up'
+        }
+        @{
+            JobId = 'validate'
+            StepName = 'Require every validation domain'
+            Command = 'pac solution import'
+        }
+    ) {
+        param(
+            [string]$JobId,
+            [string]$StepName,
+            [string]$Command
         )
-        ($script:workflowLines -join "`n") | Should -Not -Match (
-            '(?m)^\s*(?:checks|id-token|actions|pull-requests):\s+write\s*$|' +
-            '^\s*(?:environment|secrets):'
-        )
+
+        $mutated = New-RunCommandMutatedWorkflow `
+            -JobId $JobId `
+            -StepName $StepName `
+            -Command $Command
+        {
+            Assert-WorkflowCommandOwnership -Workflow $mutated
+        } | Should -Throw
+    }
+
+    It 'allows provider command names in prose and error messages' {
+        $mutated = New-RunCommandMutatedWorkflow `
+            -JobId 'repository' `
+            -StepName 'Run repository safety validation' `
+            -Command (
+                "throw 'az vm create, Set-AzContext, Invoke-AzRestMethod, " +
+                "azd up, and pac solution import are blocked.'"
+            )
+
+        {
+            Assert-WorkflowCommandOwnership -Workflow $mutated
+        } | Should -Not -Throw
     }
 }
