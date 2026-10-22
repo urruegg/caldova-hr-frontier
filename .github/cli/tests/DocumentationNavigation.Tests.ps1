@@ -493,7 +493,7 @@ Describe 'Final migration boundaries' {
         )
     }
 
-    It 'keeps workflow changes limited to the reviewed validation timeout' {
+    It 'keeps workflow changes limited to the reviewed validation budget and smoke gate' {
         Push-Location $script:repositoryRoot
         try {
             $workflowChanges = @(
@@ -526,23 +526,31 @@ Describe 'Final migration boundaries' {
             finally {
                 Pop-Location
             }
-            @(
-                $workflowDiff |
-                    Where-Object {
-                        $_ -cmatch '^[+-]\s+timeout-minutes:'
-                    }
-            ) | Should -Be @(
-                '-    timeout-minutes: 15'
-                '+    timeout-minutes: 60'
-            )
-            @(
+            $changedLines = @(
                 $workflowDiff |
                     Where-Object {
                         $_ -cmatch '^[+-]' -and
-                        $_ -cnotmatch '^(?:---|\+\+\+)' -and
-                        $_ -cnotmatch '^[+-]\s+timeout-minutes:'
+                        $_ -cnotmatch '^(?:---|\+\+\+)'
                     }
-            ) | Should -BeNullOrEmpty
+            )
+            $changedLines | Should -Be @(
+                '-    timeout-minutes: 15'
+                '+    timeout-minutes: 60'
+                '+      - name: Run lifecycle dispatch smoke test'
+                '+        shell: powershell'
+                '+        run: |'
+                '+          $ErrorActionPreference = ''Stop'''
+                '+          $result = Invoke-Pester `'
+                '+            -Path ''infra/tests/pester/TenantLifecycleOrchestration.Tests.ps1'' `'
+                '+            -FullNameFilter ''*passes exact named arguments and a fresh nine-field control record*'' `'
+                '+            -Output Detailed `'
+                '+            -CI `'
+                '+            -PassThru'
+                '+          if ($result.FailedCount -gt 0) {'
+                '+            throw "$($result.FailedCount) lifecycle dispatch smoke test(s) failed."'
+                '+          }'
+                '+'
+            )
         }
     }
 }

@@ -2829,9 +2829,61 @@ Describe 'Tenant lifecycle approval expiry and drift' {
                             }
                             $wrapperPayloadJson = $wrapperPayload |
                                 ConvertTo-Json -Depth 30 -Compress
+                            $wrapperPayloadTransport =
+                                [Convert]::ToBase64String(
+                                    [Text.Encoding]::UTF8.GetBytes(
+                                        $wrapperPayloadJson
+                                    )
+                                )
+                            $wrapperPayloadBytes =
+                                [Text.Encoding]::ASCII.GetBytes(
+                                    $wrapperPayloadTransport
+                                )
                             $wrapperScript = @'
 $ErrorActionPreference = 'Stop'
-$payload = [Console]::In.ReadToEnd() | ConvertFrom-Json
+$inputBuffer = [IO.MemoryStream]::new()
+try {
+    [Console]::OpenStandardInput().CopyTo($inputBuffer)
+    [byte[]]$inputBytes = $inputBuffer.ToArray()
+}
+finally {
+    $inputBuffer.Dispose()
+}
+$inputOffset = if (
+    $inputBytes.Length -ge 3 -and
+    $inputBytes[0] -eq 0xEF -and
+    $inputBytes[1] -eq 0xBB -and
+    $inputBytes[2] -eq 0xBF
+) {
+    3
+}
+elseif (
+    $inputBytes.Length -ge 2 -and
+    (
+        (
+            $inputBytes[0] -eq 0xFF -and
+            $inputBytes[1] -eq 0xFE
+        ) -or
+        (
+            $inputBytes[0] -eq 0xFE -and
+            $inputBytes[1] -eq 0xFF
+        )
+    )
+) {
+    2
+}
+else {
+    0
+}
+$payloadTransport = [Text.Encoding]::ASCII.GetString(
+    $inputBytes,
+    $inputOffset,
+    $inputBytes.Length - $inputOffset
+)
+$payloadJson = [Text.Encoding]::UTF8.GetString(
+    [Convert]::FromBase64String($payloadTransport)
+)
+$payload = $payloadJson | ConvertFrom-Json
 $invokerText = [Text.Encoding]::UTF8.GetString(
     [Convert]::FromBase64String([string]$payload.invoker)
 )
@@ -2883,8 +2935,12 @@ $invoker = [scriptblock]::Create($invokerText)
                             try {
                                 $wrapperStarted = $wrapper.Start()
                                 $wrapperStarted | Should -BeTrue
-                                $wrapper.StandardInput.Write($wrapperPayloadJson)
-                                $wrapper.StandardInput.Close()
+                                $wrapper.StandardInput.BaseStream.Write(
+                                    $wrapperPayloadBytes,
+                                    0,
+                                    $wrapperPayloadBytes.Length
+                                )
+                                $wrapper.StandardInput.BaseStream.Close()
                                 $stdoutTask =
                                     $wrapper.StandardOutput.ReadToEndAsync()
                                 $stderrTask =
