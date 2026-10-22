@@ -62,28 +62,208 @@ BeforeAll {
         [string[]]$rows
     }
 
-    function script:Assert-NoUnsupportedMappingKeySyntax {
+    function script:ConvertFrom-StepMappingKey {
         param(
-            [Parameter(Mandatory)][AllowEmptyString()][string[]]$Lines,
-            [Parameter(Mandatory)][int[]]$Indent,
+            [Parameter(Mandatory)][string]$RawKey,
             [Parameter(Mandatory)][string]$Context
         )
 
-        foreach ($width in $Indent) {
-            $prefix = ' ' * $width
-            foreach ($line in $Lines) {
+        try {
+            if ($RawKey.StartsWith("'", [StringComparison]::Ordinal)) {
                 if (
-                    $line -cmatch (
-                        '^{0}(?:\?(?:\s|$)|-\s+\?(?:\s|$))' -f (
-                            [regex]::Escape($prefix)
-                        )
+                    $RawKey.Length -lt 2 -or
+                    -not $RawKey.EndsWith(
+                        "'",
+                        [StringComparison]::Ordinal
                     )
                 ) {
-                    throw (
-                        'Workflow contract parser rejects an explicit or ' +
-                        "multiline mapping key in $Context."
-                    )
+                    throw 'Malformed single-quoted key.'
                 }
+                $innerKey = $RawKey.Substring(1, $RawKey.Length - 2)
+                if ($innerKey.Replace("''", '').Contains("'")) {
+                    throw 'Malformed single-quoted key.'
+                }
+                $decodedKey = $innerKey.Replace("''", "'")
+            }
+            elseif ($RawKey.StartsWith('"', [StringComparison]::Ordinal)) {
+                $decodedKey = ConvertFrom-Json `
+                    -InputObject $RawKey `
+                    -ErrorAction Stop
+                if ($decodedKey -isnot [string]) {
+                    throw 'Non-string key.'
+                }
+            }
+            elseif ($RawKey -cmatch '[''"]') {
+                throw 'Malformed quoted key.'
+            }
+            else {
+                $decodedKey = $RawKey
+            }
+        }
+        catch {
+            throw "Workflow contract parser found a malformed step key in $Context."
+        }
+
+        [string]$decodedKey
+    }
+
+    function script:Test-IsSupportedRunBlockContentLine {
+        param(
+            [Parameter(Mandatory)][AllowEmptyString()][string]$Line
+        )
+
+        [string]::IsNullOrEmpty($Line) -or $Line -cmatch '^          '
+    }
+
+    function script:Test-IsSupportedRunBlockHeader {
+        param(
+            [Parameter(Mandatory)][AllowEmptyString()][string]$Line
+        )
+
+        if (
+            $Line -cnotmatch (
+                '^        (?<rawKey>\S[^:]*?):\s*' +
+                '(?<scalar>[|>])\s*$'
+            )
+        ) {
+            return $false
+        }
+        $decodedKey = ConvertFrom-StepMappingKey `
+            -RawKey $Matches['rawKey'].Trim() `
+            -Context 'the workflow structural scan'
+        [string]$decodedKey -ceq 'run'
+    }
+
+    function script:Test-ContainsExplicitMappingKeyIndicator {
+        param(
+            [Parameter(Mandatory)][AllowEmptyString()][string]$Line
+        )
+
+        function Test-IsStructuralTokenStart {
+            param([Parameter(Mandatory)][int]$Index)
+
+            $previousIndex = $Index - 1
+            while (
+                $previousIndex -ge 0 -and
+                [char]::IsWhiteSpace($Line[$previousIndex])
+            ) {
+                $previousIndex--
+            }
+            if (
+                $previousIndex -lt 0 -or
+                '{[,:'.Contains([string]$Line[$previousIndex])
+            ) {
+                return $true
+            }
+            if ($Line[$previousIndex] -cne '-') {
+                return $false
+            }
+
+            $beforeDash = $previousIndex - 1
+            while (
+                $beforeDash -ge 0 -and
+                [char]::IsWhiteSpace($Line[$beforeDash])
+            ) {
+                $beforeDash--
+            }
+            $beforeDash -lt 0
+        }
+
+        $insideSingleQuote = $false
+        $insideDoubleQuote = $false
+        for ($index = 0; $index -lt $Line.Length; $index++) {
+            $character = $Line[$index]
+            if ($insideSingleQuote) {
+                if ($character -ceq "'") {
+                    if (
+                        $index + 1 -lt $Line.Length -and
+                        $Line[$index + 1] -ceq "'"
+                    ) {
+                        $index++
+                    }
+                    else {
+                        $insideSingleQuote = $false
+                    }
+                }
+                continue
+            }
+            if ($insideDoubleQuote) {
+                if (
+                    $character -ceq '\' -and
+                    $index + 1 -lt $Line.Length
+                ) {
+                    $index++
+                }
+                elseif ($character -ceq '"') {
+                    $insideDoubleQuote = $false
+                }
+                continue
+            }
+            if (
+                $character -ceq "'" -and
+                (Test-IsStructuralTokenStart -Index $index)
+            ) {
+                $insideSingleQuote = $true
+                continue
+            }
+            if (
+                $character -ceq '"' -and
+                (Test-IsStructuralTokenStart -Index $index)
+            ) {
+                $insideDoubleQuote = $true
+                continue
+            }
+            if (
+                $character -ceq '#' -and
+                (
+                    $index -eq 0 -or
+                    [char]::IsWhiteSpace($Line[$index - 1])
+                )
+            ) {
+                return $false
+            }
+            if ($character -cne '?') {
+                continue
+            }
+
+            $nextIsSeparation = (
+                $index + 1 -eq $Line.Length -or
+                [char]::IsWhiteSpace($Line[$index + 1]) -or
+                ',[]{}:'.Contains([string]$Line[$index + 1])
+            )
+            if (-not $nextIsSeparation) {
+                continue
+            }
+            if (Test-IsStructuralTokenStart -Index $index) {
+                return $true
+            }
+        }
+
+        $false
+    }
+
+    function script:Assert-NoUnsupportedMappingKeySyntax {
+        param(
+            [Parameter(Mandatory)][AllowEmptyString()][string[]]$Lines
+        )
+
+        $insideSupportedRunBlock = $false
+        foreach ($line in $Lines) {
+            if ($insideSupportedRunBlock) {
+                if (Test-IsSupportedRunBlockContentLine -Line $line) {
+                    continue
+                }
+                $insideSupportedRunBlock = $false
+            }
+            if (Test-IsSupportedRunBlockHeader -Line $line) {
+                $insideSupportedRunBlock = $true
+                continue
+            }
+            if (Test-ContainsExplicitMappingKeyIndicator -Line $line) {
+                throw (
+                    'Workflow contract parser rejects an explicit or ' +
+                    'multiline mapping key in the workflow.'
+                )
             }
         }
     }
@@ -92,11 +272,6 @@ BeforeAll {
         param(
             [Parameter(Mandatory)][AllowEmptyString()][string[]]$Lines
         )
-
-        Assert-NoUnsupportedMappingKeySyntax `
-            -Lines $Lines `
-            -Indent 8 `
-            -Context 'a step'
 
         $name = Get-ScalarValue -Lines $Lines -Indent 8 -Key 'name'
         if ([string]::IsNullOrWhiteSpace($name)) {
@@ -119,10 +294,6 @@ BeforeAll {
                 if ([string]::IsNullOrWhiteSpace($line)) {
                     continue
                 }
-                Assert-NoUnsupportedMappingKeySyntax `
-                    -Lines @($line) `
-                    -Indent 10 `
-                    -Context "the with block in '$name'"
                 if ($line -cnotmatch '^          (?<key>[A-Za-z0-9_-]+):\s*(?<value>.*?)\s*$') {
                     break
                 }
@@ -145,49 +316,9 @@ BeforeAll {
             ) {
                 $rawKey = $Matches['rawKey'].Trim()
                 $scalar = $Matches['scalar']
-                try {
-                    if ($rawKey.StartsWith("'", [StringComparison]::Ordinal)) {
-                        if (
-                            $rawKey.Length -lt 2 -or
-                            -not $rawKey.EndsWith(
-                                "'",
-                                [StringComparison]::Ordinal
-                            )
-                        ) {
-                            throw 'Malformed single-quoted key.'
-                        }
-                        $innerKey = $rawKey.Substring(
-                            1,
-                            $rawKey.Length - 2
-                        )
-                        if ($innerKey.Replace("''", '').Contains("'")) {
-                            throw 'Malformed single-quoted key.'
-                        }
-                        $decodedKey = $innerKey.Replace("''", "'")
-                    }
-                    elseif (
-                        $rawKey.StartsWith(
-                            '"',
-                            [StringComparison]::Ordinal
-                        )
-                    ) {
-                        $decodedKey = ConvertFrom-Json `
-                            -InputObject $rawKey `
-                            -ErrorAction Stop
-                        if ($decodedKey -isnot [string]) {
-                            throw 'Non-string key.'
-                        }
-                    }
-                    elseif ($rawKey -cmatch '[''"]') {
-                        throw 'Malformed quoted key.'
-                    }
-                    else {
-                        $decodedKey = $rawKey
-                    }
-                }
-                catch {
-                    throw "Workflow contract parser found a malformed step key in '$name'."
-                }
+                $decodedKey = ConvertFrom-StepMappingKey `
+                    -RawKey $rawKey `
+                    -Context "'$name'"
 
                 if ([string]$decodedKey -ceq 'run') {
                     [void]$runRows.Add([pscustomobject]@{
@@ -216,7 +347,7 @@ BeforeAll {
             $contentRows = [Collections.Generic.List[string]]::new()
             for ($index = $runRow.Index + 1; $index -lt $Lines.Count; $index++) {
                 $line = $Lines[$index]
-                if (-not [string]::IsNullOrEmpty($line) -and $line -cnotmatch '^          ') {
+                if (-not (Test-IsSupportedRunBlockContentLine -Line $line)) {
                     break
                 }
                 if ($line.Length -ge 10) {
@@ -316,11 +447,6 @@ BeforeAll {
             [Parameter(Mandatory)][string]$Id,
             [Parameter(Mandatory)][AllowEmptyString()][string[]]$Lines
         )
-
-        Assert-NoUnsupportedMappingKeySyntax `
-            -Lines $Lines `
-            -Indent @(4, 6) `
-            -Context "job '$Id'"
 
         $permissionRows = @(
             for ($index = 0; $index -lt $Lines.Count; $index++) {
@@ -426,10 +552,7 @@ BeforeAll {
             [Parameter(Mandatory)][AllowEmptyString()][string[]]$Lines
         )
 
-        Assert-NoUnsupportedMappingKeySyntax `
-            -Lines $Lines `
-            -Indent @(0, 2) `
-            -Context 'the workflow'
+        Assert-NoUnsupportedMappingKeySyntax -Lines $Lines
 
         $jobsBlock = Get-TopLevelBlock -Lines $Lines -Key 'jobs'
         $jobStarts = @(
@@ -873,10 +996,7 @@ BeforeAll {
 
         $contentEnd = $runIndex
         for ($index = $runIndex + 1; $index -le $stepEnd; $index++) {
-            if (
-                [string]::IsNullOrEmpty($lines[$index]) -or
-                $lines[$index] -cmatch '^          '
-            ) {
+            if (Test-IsSupportedRunBlockContentLine -Line $lines[$index]) {
                 $contentEnd = $index
                 continue
             }
@@ -962,6 +1082,35 @@ BeforeAll {
                 }
             }
         }
+        ConvertFrom-WorkflowLines -Lines ([string[]]$lines)
+    }
+
+    function script:New-TriggerMappingMutatedWorkflow {
+        param(
+            [Parameter(Mandatory)][AllowEmptyString()][string[]]$OnLines
+        )
+
+        $lines = [Collections.Generic.List[string]]::new()
+        foreach ($line in $script:workflowLines) {
+            [void]$lines.Add($line)
+        }
+
+        $onIndex = $lines.IndexOf('on:')
+        $permissionsIndex = $lines.IndexOf('permissions:')
+        if (
+            $onIndex -lt 0 -or
+            $permissionsIndex -le $onIndex
+        ) {
+            throw 'Trigger mutation could not find the workflow event block.'
+        }
+        for ($index = $permissionsIndex - 1; $index -gt $onIndex; $index--) {
+            $lines.RemoveAt($index)
+        }
+        for ($index = 0; $index -lt $OnLines.Count; $index++) {
+            $lines.Insert($onIndex + 1 + $index, $OnLines[$index])
+        }
+        $lines.Insert($onIndex + 1 + $OnLines.Count, '')
+
         ConvertFrom-WorkflowLines -Lines ([string[]]$lines)
     }
 
@@ -1634,6 +1783,130 @@ Describe 'Parallel repository validation workflow' {
         {
             ConvertFrom-WorkflowLines -Lines $script:workflowLines
         } | Should -Not -Throw
+    }
+
+    It 'rejects nested explicit trigger key <Case>' -TestCases @(
+        @{
+            Case = 'pull_request paths'
+            OnLines = @(
+                '  pull_request:'
+                '    ? paths'
+                '    : [docs/**]'
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+            )
+        }
+        @{
+            Case = 'push paths-ignore'
+            OnLines = @(
+                '  pull_request:'
+                '  push:'
+                '    branches: [main]'
+                '    ? paths-ignore'
+                '    : [docs/**]'
+                '  workflow_dispatch:'
+            )
+        }
+        @{
+            Case = 'workflow_dispatch alternate'
+            OnLines = @(
+                '  pull_request:'
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+                '    ? alternate'
+                '    : true'
+            )
+        }
+        @{
+            Case = 'quoted paths'
+            OnLines = @(
+                '  pull_request:'
+                '    ? "paths"'
+                '    : [docs/**]'
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+            )
+        }
+        @{
+            Case = 'flow explicit paths'
+            OnLines = @(
+                '  pull_request: { ? paths : [docs/**] }'
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+            )
+        }
+        @{
+            Case = 'flow explicit paths after plain apostrophe'
+            OnLines = @(
+                "  pull_request: { note: repo's, ? paths : [docs/**] }"
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+            )
+        }
+        @{
+            Case = 'deep workflow_dispatch input'
+            OnLines = @(
+                '  pull_request:'
+                '  push:'
+                '    branches: [main]'
+                '  workflow_dispatch:'
+                '    inputs:'
+                '      environment:'
+                '        description: Target'
+                '        ? required'
+                '        : true'
+            )
+        }
+    ) {
+        param(
+            [string]$Case,
+            [string[]]$OnLines
+        )
+
+        {
+            New-TriggerMappingMutatedWorkflow -OnLines $OnLines
+        } | Should -Throw -ExpectedMessage (
+            '*explicit or multiline mapping key*'
+        )
+    }
+
+    It 'routes literal run line beginning with <Marker> through script parsing' -TestCases @(
+        @{
+            Marker = '?'
+            Command = (
+                "? { `$true }`n" +
+                '& .github/cli/Get-MaintainedTestGroups.ps1 -Group Repository'
+            )
+        }
+        @{
+            Marker = ':'
+            Command = (
+                ": synthetic`n" +
+                '& .github/cli/Get-MaintainedTestGroups.ps1 -Group Repository'
+            )
+        }
+    ) {
+        param(
+            [string]$Marker,
+            [string]$Command
+        )
+
+        $mutated = New-RunCommandMutatedWorkflow `
+            -JobId 'repository' `
+            -StepName 'Run repository tests' `
+            -Command $Command
+        (Get-NamedStep `
+            -Job $mutated.Jobs.repository `
+            -Name 'Run repository tests').Run |
+                Should -BeExactly $Command
+        {
+            Assert-WorkflowCommandOwnership -Workflow $mutated
+        } | Should -Throw -ExpectedMessage '*Workflow command is not owned*'
     }
 
     It 'rejects unsupported folded run form <Reason>' -TestCases @(
