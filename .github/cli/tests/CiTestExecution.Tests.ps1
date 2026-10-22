@@ -774,6 +774,42 @@ Describe 'Fail-closed maintained Pester execution' {
             Should -BeExactly ([IO.Path]::GetFullPath($script:outputPath))
     }
 
+    It 'does not impose helper strict mode on real Pester tests' {
+        Assert-RunnerExists
+        $fixturePath = Join-Path $script:resultRoot (
+            'strict-mode-fixture.Tests.ps1'
+        )
+        $fixtureOutput = Join-Path $script:resultRoot (
+            'strict-mode-fixture.xml'
+        )
+        [void](New-Item `
+            -ItemType Directory `
+            -Path (Split-Path -Parent $fixturePath) `
+            -Force)
+        [IO.File]::WriteAllText(
+            $fixturePath,
+            @'
+Describe 'Strict mode compatibility fixture' {
+    It 'allows ordinary optional-property access' {
+        ([pscustomobject]@{}).OptionalProperty | Should -BeNullOrEmpty
+    }
+}
+'@,
+            [Text.UTF8Encoding]::new($false)
+        )
+        $probe = New-RunnerProbe -Result (New-PesterResult)
+        $parameters = @{
+            Path = [string[]]@($fixturePath)
+            OutputPath = $fixtureOutput
+            ApplicationResolver = $probe.ApplicationResolver
+            Clock = $probe.Clock
+        }
+
+        $summary = & $script:runnerPath @parameters
+
+        $summary.Result | Should -BeExactly 'Passed'
+    }
+
     It 'applies only the CICompatibilitySmoke include tag' {
         Assert-RunnerExists
         $probe = New-RunnerProbe -Result (New-PesterResult)

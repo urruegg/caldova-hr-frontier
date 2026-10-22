@@ -275,6 +275,7 @@ if ($null -eq $PesterInvoker) {
     $PesterInvoker = {
         param([PesterConfiguration]$Configuration)
 
+        Set-StrictMode -Off
         Invoke-Pester -Configuration $Configuration
     }
 }
