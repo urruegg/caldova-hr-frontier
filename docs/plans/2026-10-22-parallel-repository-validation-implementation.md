@@ -202,12 +202,12 @@ Use the following implementation sequence before selecting `-Group`:
 2. Recursively enumerate real leaf files below the three exact roots.
 3. Normalize each full path by subtracting the exact root prefix and replacing `\` with `/`.
 4. Invoke the canonical tracked-path provider once.
-5. Reject provider duplicates with `HashSet[string](StringComparer.Ordinal)`.
+5. Reject provider duplicates with an ordinal generic string set.
 6. Reject every discovered maintained leaf with no exact canonical provider match; if an ordinal-ignore-case match exists, report case drift without returning paths.
 7. Reject every tracked `*.Tests.ps1` path outside the three roots.
 8. Build all four groups, validate every path is a real leaf, and prove all groups nonempty.
 9. Prove each group has no ordinal duplicate, every pair is disjoint, Lifecycle equals the exact allowlist, and the four-group union equals the recursive maintained inventory.
-10. Copy the selected strings to a `[string[]]`, call `[Array]::Sort($selected, [StringComparer]::Ordinal)`, and emit that array only.
+10. Copy the selected strings to a string array, apply the ordinal array-sort overload shown in the code block below, and emit that array only.
 
 The critical public boundary begins:
 
