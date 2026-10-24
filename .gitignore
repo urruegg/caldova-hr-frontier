@@ -478,3 +478,4 @@ testResults.xml
 
 # Private tenant configuration — local operator-owned, never tracked
 infra/src/config/tenants/*.local.psd1
+infra/src/config/tenants/*.state.local.json

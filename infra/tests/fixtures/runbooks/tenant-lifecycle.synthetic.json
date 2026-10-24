@@ -1,0 +1,338 @@
+{
+  "assessment": {
+    "schemaVersion": "1.0",
+    "runId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "kind": "Foundation",
+    "generatedAtUtc": "2026-10-02T12:00:00.0000000Z",
+    "sourceCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "machine": {
+      "machineId": "machine-synthetic-001",
+      "platform": "Windows 11"
+    },
+    "publicTenantKey": "tenant1",
+    "intentDigest": "1111111111111111111111111111111111111111111111111111111111111111",
+    "stateDigest": "2222222222222222222222222222222222222222222222222222222222222222",
+    "toolIdentities": [
+      {
+        "id": "PowerShell",
+        "version": "5.1",
+        "digest": "3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    ],
+    "providerContexts": [
+      {
+        "provider": "Synthetic",
+        "contextId": "context-synthetic-001",
+        "status": "Verified",
+        "digest": "4444444444444444444444444444444444444444444444444444444444444444"
+      }
+    ],
+    "components": [
+      {
+        "id": "component-001",
+        "provider": "Synthetic",
+        "resourceType": "SyntheticResource",
+        "classification": "NoChange",
+        "targetStableId": "stable-synthetic-001",
+        "ownedPropertiesDigest": "5555555555555555555555555555555555555555555555555555555555555555",
+        "status": "Passed"
+      }
+    ],
+    "prerequisites": [
+      {
+        "id": "prerequisite-001",
+        "status": "Passed",
+        "inputDigest": "6666666666666666666666666666666666666666666666666666666666666666",
+        "evidenceDigest": "7777777777777777777777777777777777777777777777777777777777777777"
+      }
+    ],
+    "digest": "8888888888888888888888888888888888888888888888888888888888888888"
+  },
+  "stageResult": {
+    "schemaVersion": "1.0",
+    "runId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "stage": "Foundation",
+    "sourceCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "publicTenantKey": "tenant1",
+    "intentDigest": "1111111111111111111111111111111111111111111111111111111111111111",
+    "stateDigest": "2222222222222222222222222222222222222222222222222222222222222222",
+    "phaseManifestDigest": "3333333333333333333333333333333333333333333333333333333333333333",
+    "phaseSummaryDigest": "4444444444444444444444444444444444444444444444444444444444444444",
+    "status": "Passed",
+    "classification": "NoChange",
+    "evidenceRelativePath": "phases/Foundation/summary.json",
+    "completedAtUtc": "2026-10-02T12:11:00.000Z"
+  },
+  "phaseSummary": {
+    "schemaVersion": "1.0",
+    "runId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "stage": "Foundation",
+    "sourceCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "publicTenantKey": "tenant1",
+    "intentDigest": "1111111111111111111111111111111111111111111111111111111111111111",
+    "stateDigest": "2222222222222222222222222222222222222222222222222222222222222222",
+    "phaseManifestDigest": "3333333333333333333333333333333333333333333333333333333333333333",
+    "status": "Passed",
+    "classification": "NoChange",
+    "startedAtUtc": "2026-10-02T12:00:00.0000000Z",
+    "completedAtUtc": "2026-10-02T12:11:00.000Z",
+    "counts": {
+      "NoChange": 1,
+      "Create": 0,
+      "Update": 0,
+      "Manual": 0,
+      "Blocked": 0,
+      "Refused": 0
+    },
+    "prerequisites": [
+      {
+        "id": "prerequisite-001",
+        "status": "Passed",
+        "inputDigest": "6666666666666666666666666666666666666666666666666666666666666666",
+        "evidenceDigest": "7777777777777777777777777777777777777777777777777777777777777777"
+      }
+    ],
+    "actions": [
+      {
+        "id": "action-001",
+        "classification": "NoChange",
+        "status": "Passed",
+        "evidenceRelativePath": "actions/action-001.json"
+      }
+    ],
+    "nonClaims": [
+      "Synthetic evidence only."
+    ],
+    "syntheticProviderEvidence": {
+      "provider": "SyntheticProvider",
+      "tenantId": "tenant-synthetic-001",
+      "subscriptionId": "subscription-synthetic-001",
+      "applicationId": "application-synthetic-001",
+      "environmentId": "environment-synthetic-001",
+      "projectId": "project-synthetic-001",
+      "pipelineId": "pipeline-synthetic-001",
+      "objectId": "object-synthetic-001",
+      "roleId": "role-synthetic-001",
+      "resourceId": "resource-synthetic-001",
+      "resourceUrl": "https://provider.example.invalid/synthetic-resource",
+      "actionDetails": [
+        {
+          "id": "action-synthetic-001",
+          "operation": "Create",
+          "resultCategory": "SyntheticNoChange"
+        },
+        {
+          "id": "action-synthetic-002",
+          "operation": "Update",
+          "resultCategory": "SyntheticNoChange"
+        }
+      ],
+      "requestProjection": {
+        "synthetic": true
+      },
+      "readBackProjection": {
+        "stableId": "stable-synthetic-001",
+        "status": "Passed"
+      }
+    }
+  },
+  "executionManifest": {
+    "schemaVersion": "1.0",
+    "runId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "generatedAtUtc": "2026-10-02T12:05:00.0000000Z",
+    "expiresAtUtc": "2026-10-02T12:35:00.0000000Z",
+    "sourceCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "evidenceRoot": "evidence-synthetic",
+    "publicTenantKey": "tenant1",
+    "intentDigest": "1111111111111111111111111111111111111111111111111111111111111111",
+    "stateDigest": "2222222222222222222222222222222222222222222222222222222222222222",
+    "selectedStages": [
+      "Foundation"
+    ],
+    "prerequisiteResults": [],
+    "machine": {
+      "machineId": "machine-synthetic-001",
+      "platform": "Windows 11"
+    },
+    "operator": {
+      "operatorId": "operator-synthetic-001",
+      "role": "RunbookOperator"
+    },
+    "toolIdentities": [
+      {
+        "id": "PowerShell",
+        "version": "5.1",
+        "digest": "3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    ],
+    "providerContexts": [
+      {
+        "provider": "Synthetic",
+        "contextId": "context-synthetic-001",
+        "status": "Verified",
+        "digest": "4444444444444444444444444444444444444444444444444444444444444444"
+      }
+    ],
+    "prerequisites": [
+      {
+        "id": "prerequisite-001",
+        "status": "Passed",
+        "inputDigest": "6666666666666666666666666666666666666666666666666666666666666666",
+        "evidenceDigest": "7777777777777777777777777777777777777777777777777777777777777777"
+      }
+    ],
+    "actions": [
+      {
+        "id": "action-001",
+        "provider": "Synthetic",
+        "classification": "NoChange",
+        "targetStableId": "stable-synthetic-001",
+        "absencePredicate": "NotPresent",
+        "desiredPropertiesDigest": "9999999999999999999999999999999999999999999999999999999999999999",
+        "preconditionDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "prerequisiteActionIds": [],
+        "adapter": "SyntheticAdapter",
+        "shouldProcessTarget": "SyntheticResource/component-001",
+        "expectedPostcondition": "MatchesDesiredProperties",
+        "recovery": "Reassess",
+        "evidenceProjection": [
+          "classification",
+          "status"
+        ]
+      }
+    ],
+    "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "approval": {
+    "schemaVersion": "1.0",
+    "runId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "executionManifestDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "approverRole": "TenantLifecycleApprover",
+    "approvedAtUtc": "2026-10-02T12:06:00.0000000Z",
+    "expiresAtUtc": "2026-10-02T12:35:00.0000000Z",
+    "scope": [
+      "action-001"
+    ],
+    "status": "Approved"
+  },
+  "actionEvidence": {
+    "schemaVersion": "1.0",
+    "runId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "actionId": "action-001",
+    "classification": "NoChange",
+    "startedAtUtc": "2026-10-02T12:07:00.0000000Z",
+    "completedAtUtc": "2026-10-02T12:08:00.0000000Z",
+    "preReadDigest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "decision": "NoChange",
+    "postReadDigest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "status": "Passed",
+    "errorCode": null,
+    "recovery": "NotRequired"
+  },
+  "state": {
+    "schemaVersion": "1.0",
+    "publicTenantKey": "tenant1",
+    "resources": [
+      {
+        "provider": "Synthetic",
+        "resourceType": "SyntheticResource",
+        "logicalName": "component-001",
+        "stableId": "stable-synthetic-001",
+        "lastVerifiedAtUtc": "2026-10-02T12:09:00.0000000Z",
+        "ownedPropertiesDigest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      }
+    ]
+  },
+  "readBack": {
+    "schemaVersion": "1.0",
+    "runId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "generatedAtUtc": "2026-10-02T12:10:00.0000000Z",
+    "components": [
+      {
+        "id": "component-001",
+        "provider": "Synthetic",
+        "stableId": "stable-synthetic-001",
+        "ownedPropertiesDigest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "status": "Passed"
+      }
+    ],
+    "status": "Passed",
+    "digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "summary": {
+    "schemaVersion": "1.0",
+    "runId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "stage": "Foundation",
+    "sourceCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "publicTenantKey": "tenant1",
+    "intentDigest": "1111111111111111111111111111111111111111111111111111111111111111",
+    "stateDigest": "2222222222222222222222222222222222222222222222222222222222222222",
+    "phaseManifestDigest": "3333333333333333333333333333333333333333333333333333333333333333",
+    "status": "Passed",
+    "classification": "NoChange",
+    "startedAtUtc": "2026-10-02T12:00:00.0000000Z",
+    "completedAtUtc": "2026-10-02T12:11:00.000Z",
+    "counts": {
+      "NoChange": 1,
+      "Create": 0,
+      "Update": 0,
+      "Manual": 0,
+      "Blocked": 0,
+      "Refused": 0
+    },
+    "prerequisites": [
+      {
+        "id": "prerequisite-001",
+        "status": "Passed",
+        "inputDigest": "6666666666666666666666666666666666666666666666666666666666666666",
+        "evidenceDigest": "7777777777777777777777777777777777777777777777777777777777777777"
+      }
+    ],
+    "actions": [
+      {
+        "id": "action-001",
+        "classification": "NoChange",
+        "status": "Passed",
+        "evidenceRelativePath": "actions/action-001.json"
+      }
+    ],
+    "nonClaims": [
+      "No provider mutation was performed.",
+      "No live tenant value is represented."
+    ],
+    "syntheticProviderEvidence": {
+      "provider": "SyntheticProvider",
+      "actionDetails": [
+        {
+          "id": "action-001",
+          "operation": "Inspect",
+          "resultCategory": "SyntheticNoChange"
+        }
+      ]
+    }
+  },
+  "controlRecord": {
+    "schemaVersion": "1.0",
+    "runId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "sourceCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "publicTenantKey": "tenant1",
+    "intentDigest": "1111111111111111111111111111111111111111111111111111111111111111",
+    "stateDigest": "2222222222222222222222222222222222222222222222222222222222222222",
+    "selectedStages": [
+      "Workstation",
+      "Foundation"
+    ],
+    "prerequisiteResults": [
+      {
+        "stage": "Workstation",
+        "status": "Passed",
+        "classification": "NoChange",
+        "phaseManifestDigest": "3333333333333333333333333333333333333333333333333333333333333333",
+        "phaseSummaryDigest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "intentDigest": "1111111111111111111111111111111111111111111111111111111111111111",
+        "stateDigest": "2222222222222222222222222222222222222222222222222222222222222222"
+      }
+    ],
+    "evidenceRunRelativePath": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+  }
+}

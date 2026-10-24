@@ -288,6 +288,221 @@ Describe 'Shared runbook output contracts' {
         }
     }
 
+    Describe 'Tenant lifecycle umbrella public contract' {
+        BeforeAll {
+            $script:TenantLifecyclePath = Join-Path $PSScriptRoot (
+                '..\..\src\scripts\runbooks\Invoke-TenantLifecycle.ps1'
+            )
+            $script:TenantLifecycleTokens = $null
+            $script:TenantLifecycleErrors = $null
+            $script:TenantLifecycleAst = [Management.Automation.Language.Parser]::ParseFile(
+                $script:TenantLifecyclePath,
+                [ref]$script:TenantLifecycleTokens,
+                [ref]$script:TenantLifecycleErrors
+            )
+        }
+
+        It 'exposes the exact coordinate-only signature in order' {
+            $script:TenantLifecycleErrors.Count | Should -Be 0
+            (
+                $script:TenantLifecycleAst.ParamBlock.Parameters.Name.VariablePath.UserPath -join ','
+            ) | Should -BeExactly (
+                'RunId,EvidenceRoot,RepositoryRoot,ExpectedSourceCommit,' +
+                'PublicTenantKey,TenantConfigurationPath,TenantStatePath,Stages,' +
+                'Mode,SubsystemInvoker,NowUtc'
+            )
+        }
+
+        It 'cross-host coordinate-only golden exposes Assess Plan Verify without Apply' {
+            $probePath = Join-Path $TestDrive 'coordinate-signature-probe.ps1'
+            $probe = @'
+param([Parameter(Mandatory)][string]$Path)
+
+$tokens = $null
+$errors = $null
+$ast = [Management.Automation.Language.Parser]::ParseFile(
+    $Path,
+    [ref]$tokens,
+    [ref]$errors
+)
+if ($errors.Count -ne 0) {
+    throw 'Coordinate-only entry point did not parse.'
+}
+$parameters = @($ast.ParamBlock.Parameters)
+$names = @($parameters.Name.VariablePath.UserPath)
+$modeParameter = @(
+    $parameters |
+        Where-Object {
+            $_.Name.VariablePath.UserPath -ceq 'Mode'
+        }
+)
+$modeAttribute = @(
+    $modeParameter |
+        ForEach-Object Attributes |
+        Where-Object {
+            $_.TypeName.Name -ceq 'ValidateSet'
+        }
+)
+$modeValues = @(
+    $modeAttribute.PositionalArguments |
+        ForEach-Object Value
+)
+(
+    '{0}|{1}|Apply={2}|ShouldProcess={3}' -f
+        ($names -join ','),
+        ($modeValues -join ','),
+        ($names -ccontains 'Apply'),
+        ($ast.ParamBlock.Attributes.Extent.Text -cmatch 'SupportsShouldProcess')
+)
+'@
+            [IO.File]::WriteAllText(
+                $probePath,
+                $probe,
+                [Text.UTF8Encoding]::new($false)
+            )
+            $expected = (
+                'RunId,EvidenceRoot,RepositoryRoot,ExpectedSourceCommit,' +
+                'PublicTenantKey,TenantConfigurationPath,TenantStatePath,' +
+                'Stages,Mode,SubsystemInvoker,NowUtc|' +
+                'Assess,Plan,Verify|Apply=False|ShouldProcess=False'
+            )
+            foreach ($hostName in @('powershell.exe', 'pwsh.exe')) {
+                $hostCommand = Get-Command `
+                    $hostName `
+                    -CommandType Application `
+                    -ErrorAction Stop |
+                    Select-Object -First 1
+                $hostPath = $hostCommand.Source
+                $hostOutput = @(
+                    & $hostPath `
+                        -NoProfile `
+                        -NonInteractive `
+                        -ExecutionPolicy Bypass `
+                        -File $probePath `
+                        -Path $script:TenantLifecyclePath 2>&1
+                )
+                $LASTEXITCODE |
+                    Should -Be 0 -Because (
+                        $hostOutput -join [Environment]::NewLine
+                    )
+                ($hostOutput -join '').Trim() |
+                    Should -BeExactly $expected
+            }
+        }
+
+        It 'closes the coordinate-only signature values at binding time' {
+            $parameterText = @{}
+            foreach ($parameter in $script:TenantLifecycleAst.ParamBlock.Parameters) {
+                $parameterText[$parameter.Name.VariablePath.UserPath] =
+                    $parameter.Extent.Text
+            }
+
+            $parameterText.RunId |
+                Should -Match '\[guid\]\$RunId'
+            $parameterText.ExpectedSourceCommit |
+                Should -Match "\^\[0-9a-fA-F\]\{40\}\$"
+            $parameterText.PublicTenantKey |
+                Should -Match "ValidateSet\('tenant1'\)"
+            $parameterText.Stages | Should -Match (
+                "ValidateSet\('Workstation','PrivateBoundary','Foundation'," +
+                "'DevDelivery','ReadBack','Acceptance','TenantReplica'\)"
+            )
+            $parameterText.Mode |
+                Should -Match "ValidateSet\('Assess','Plan','Verify'\)"
+            $parameterText.Mode |
+                Should -Match '\$Mode\s*=\s*''Assess'''
+            $parameterText.SubsystemInvoker |
+                Should -Match 'Parameter\(DontShow\)'
+            $parameterText.NowUtc |
+                Should -Match '\$NowUtc\s*=\s*\[datetime\]::UtcNow'
+            $script:TenantLifecycleAst.ParamBlock.Attributes.Extent.Text |
+                Should -Not -Match 'SupportsShouldProcess'
+        }
+
+        It 'runs Verify without an invoker through the ordinary path gate' {
+            $evidenceRoot = Join-Path $TestDrive 'verify-evidence'
+            $parameters = @{
+                RunId = [guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+                EvidenceRoot = $evidenceRoot
+                RepositoryRoot = (Join-Path $TestDrive 'unreachable-repository')
+                ExpectedSourceCommit = 'a' * 40
+                PublicTenantKey = 'tenant1'
+                TenantConfigurationPath = Join-Path $TestDrive 'unreachable-tenant1.local.psd1'
+                TenantStatePath = Join-Path $TestDrive 'unreachable-tenant1.state.local.json'
+                Stages = @('Foundation')
+                Mode = 'Verify'
+            }
+
+            $withoutInvokerError = try {
+                & $script:TenantLifecyclePath @parameters
+                $null
+            }
+            catch {
+                $_
+            }
+
+            $withoutInvokerError.Exception.Message |
+                Should -BeExactly 'TenantLifecycle.Orchestrator.Path'
+            Test-Path -LiteralPath $evidenceRoot |
+                Should -BeFalse
+
+            $invokerProbe = [pscustomobject]@{ Calls = 0 }
+            $parameters.SubsystemInvoker = {
+                $invokerProbe.Calls++
+                throw 'Verify must never invoke a child.'
+            }.GetNewClosure()
+            $withInvokerError = try {
+                & $script:TenantLifecyclePath @parameters
+                $null
+            }
+            catch {
+                $_
+            }
+
+            $withInvokerError.Exception.Message |
+                Should -BeExactly 'TenantLifecycle.SubsystemInvoker.NotAllowed'
+            $invokerProbe.Calls | Should -Be 0
+            Test-Path -LiteralPath $evidenceRoot |
+                Should -BeFalse
+        }
+
+        It 'rejects retired umbrella authority during coordinate-only signature binding' -ForEach @(
+            @{ ParameterName = 'Apply'; Value = $true }
+            @{ ParameterName = 'ExecutionManifestPath'; Value = 'manifest.synthetic.json' }
+            @{ ParameterName = 'ApprovedDigest'; Value = ('a' * 64) }
+            @{ ParameterName = 'BindingObserver'; Value = { param($Checkpoint, $Stage) } }
+            @{ ParameterName = 'CurrentBindingProvider'; Value = { [pscustomobject]@{} } }
+        ) {
+            param($ParameterName, $Value)
+
+            $parameters = @{
+                RunId = [guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+                EvidenceRoot = $TestDrive
+                RepositoryRoot = $TestDrive
+                ExpectedSourceCommit = 'a' * 40
+                PublicTenantKey = 'tenant1'
+                TenantConfigurationPath = Join-Path $TestDrive 'tenant1.local.psd1'
+                TenantStatePath = Join-Path $TestDrive 'tenant1.state.local.json'
+                Stages = @('Foundation')
+            }
+            $parameters[$ParameterName] = $Value
+
+            $errorRecord = try {
+                & $script:TenantLifecyclePath @parameters
+                $null
+            }
+            catch {
+                $_
+            }
+
+            $errorRecord | Should -Not -BeNullOrEmpty
+            $errorRecord.Exception |
+                Should -BeOfType ([Management.Automation.ParameterBindingException])
+            $errorRecord.FullyQualifiedErrorId |
+                Should -Match 'NamedParameterNotFound'
+        }
+    }
+
     It 'refuses report paths in a Git working tree or staging root' {
         $repo = Join-Path $TestDrive 'repo'
         $stage = Join-Path $TestDrive 'stage'

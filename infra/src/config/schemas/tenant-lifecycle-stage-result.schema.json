@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tenant-lifecycle-stage-result.schema.json",
+  "title": "Tenant lifecycle stage result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "stage",
+    "sourceCommit",
+    "publicTenantKey",
+    "intentDigest",
+    "stateDigest",
+    "phaseManifestDigest",
+    "phaseSummaryDigest",
+    "status",
+    "classification",
+    "evidenceRelativePath",
+    "completedAtUtc"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "runId": { "type": "string", "format": "uuid" },
+    "stage": {
+      "enum": ["Workstation", "PrivateBoundary", "Foundation", "DevDelivery", "ReadBack", "Acceptance", "TenantReplica"]
+    },
+    "sourceCommit": { "type": "string", "pattern": "^[0-9a-fA-F]{40}$" },
+    "publicTenantKey": { "const": "tenant1" },
+    "intentDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "stateDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "phaseManifestDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "phaseSummaryDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "status": { "enum": ["Passed", "Failed", "Blocked", "Refused", "Manual"] },
+    "classification": { "enum": ["NoChange", "Changed", "Manual", "Blocked", "Refused"] },
+    "evidenceRelativePath": {
+      "type": "string",
+      "pattern": "^phases/(Workstation|PrivateBoundary|Foundation|DevDelivery|ReadBack|Acceptance|TenantReplica)/summary[.]json$"
+    },
+    "completedAtUtc": { "type": "string", "format": "date-time" }
+  },
+  "oneOf": [
+    { "properties": { "status": { "const": "Passed" }, "classification": { "enum": ["NoChange", "Changed"] } } },
+    { "properties": { "status": { "const": "Failed" }, "classification": { "enum": ["NoChange", "Changed"] } } },
+    { "properties": { "status": { "const": "Blocked" }, "classification": { "const": "Blocked" } } },
+    { "properties": { "status": { "const": "Refused" }, "classification": { "const": "Refused" } } },
+    { "properties": { "status": { "const": "Manual" }, "classification": { "const": "Manual" } } }
+  ],
+  "allOf": [
+    {
+      "if": { "properties": { "stage": { "const": "Workstation" } } },
+      "then": { "properties": { "evidenceRelativePath": { "const": "phases/Workstation/summary.json" } } }
+    },
+    {
+      "if": { "properties": { "stage": { "const": "PrivateBoundary" } } },
+      "then": { "properties": { "evidenceRelativePath": { "const": "phases/PrivateBoundary/summary.json" } } }
+    },
+    {
+      "if": { "properties": { "stage": { "const": "Foundation" } } },
+      "then": { "properties": { "evidenceRelativePath": { "const": "phases/Foundation/summary.json" } } }
+    },
+    {
+      "if": { "properties": { "stage": { "const": "DevDelivery" } } },
+      "then": { "properties": { "evidenceRelativePath": { "const": "phases/DevDelivery/summary.json" } } }
+    },
+    {
+      "if": { "properties": { "stage": { "const": "ReadBack" } } },
+      "then": { "properties": { "evidenceRelativePath": { "const": "phases/ReadBack/summary.json" } } }
+    },
+    {
+      "if": { "properties": { "stage": { "const": "Acceptance" } } },
+      "then": { "properties": { "evidenceRelativePath": { "const": "phases/Acceptance/summary.json" } } }
+    },
+    {
+      "if": { "properties": { "stage": { "const": "TenantReplica" } } },
+      "then": { "properties": { "evidenceRelativePath": { "const": "phases/TenantReplica/summary.json" } } }
+    }
+  ]
+}

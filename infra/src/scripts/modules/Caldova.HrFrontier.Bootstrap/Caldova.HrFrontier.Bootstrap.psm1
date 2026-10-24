@@ -11,6 +11,9 @@ Get-ChildItem -LiteralPath $publicScriptsPath -Filter '*.ps1' | Sort-Object Name
 }
 
 Export-ModuleMember -Function @(
+    'ConvertFrom-TenantLifecycleJson',
+    'ConvertTo-TenantLifecycleCanonicalJson',
+    'ConvertTo-TenantLifecycleAcceptanceProjection',
     'ConvertTo-DiscoveryEvidence',
     'Import-TenantConfiguration',
     'New-TenantSuffix',
@@ -25,7 +28,20 @@ Export-ModuleMember -Function @(
     'Update-RunbookProcessPath',
     'New-RunbookExecutionManifest',
     'Test-RunbookExecutionManifest',
-    'ConvertTo-RunbookEvidenceRecord'
+    'ConvertTo-RunbookEvidenceRecord',
+    'Test-TenantLifecycleContract'
+    'Test-TenantLifecycleSummaryEnvelope'
+    'New-TenantLifecycleStageResult'
+    'Write-TenantLifecycleStageResult'
+    'Test-TenantLifecycleStageResultSet'
+    'New-TenantLifecycleControlRecord'
+    'Test-TenantLifecyclePrivateBoundary'
+    'Import-TenantLifecycleState'
+    'Update-TenantLifecycleState'
+    'Resolve-TenantLifecycleGraph'
+    'New-TenantLifecycleExecutionManifest'
+    'Test-TenantLifecycleApproval'
+    'Write-TenantLifecycleEvidence'
     'Resolve-CloudNativeTool'
     'Test-CloudDelegatedContext'
     'Get-CloudFoundationAssessment'

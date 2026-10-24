@@ -493,7 +493,7 @@ Describe 'Final migration boundaries' {
         )
     }
 
-    It 'keeps the migration range workflow-neutral' {
+    It 'keeps workflow changes limited to the reviewed validation budget and smoke gate' {
         Push-Location $script:repositoryRoot
         try {
             $workflowChanges = @(
@@ -507,6 +507,50 @@ Describe 'Final migration boundaries' {
             Pop-Location
         }
 
-        $workflowChanges | Should -BeNullOrEmpty
+        ($workflowChanges -join ',') | Should -BeIn @(
+            ''
+            '.github/workflows/validate-repository.yml'
+        )
+        if ($workflowChanges.Count -eq 1) {
+            Push-Location $script:repositoryRoot
+            try {
+                $workflowDiff = @(
+                    & git diff --unified=0 "$script:migrationBase...HEAD" -- (
+                        '.github/workflows/validate-repository.yml'
+                    )
+                )
+                if ($LASTEXITCODE -ne 0) {
+                    throw 'Workflow timeout comparison failed.'
+                }
+            }
+            finally {
+                Pop-Location
+            }
+            $changedLines = @(
+                $workflowDiff |
+                    Where-Object {
+                        $_ -cmatch '^[+-]' -and
+                        $_ -cnotmatch '^(?:---|\+\+\+)'
+                    }
+            )
+            $changedLines | Should -Be @(
+                '-    timeout-minutes: 15'
+                '+    timeout-minutes: 60'
+                '+      - name: Run lifecycle dispatch smoke test'
+                '+        shell: powershell'
+                '+        run: |'
+                '+          $ErrorActionPreference = ''Stop'''
+                '+          $result = Invoke-Pester `'
+                '+            -Path ''infra/tests/pester/TenantLifecycleOrchestration.Tests.ps1'' `'
+                '+            -FullNameFilter ''*passes exact named arguments and a fresh nine-field control record*'' `'
+                '+            -Output Detailed `'
+                '+            -CI `'
+                '+            -PassThru'
+                '+          if ($result.FailedCount -gt 0) {'
+                '+            throw "$($result.FailedCount) lifecycle dispatch smoke test(s) failed."'
+                '+          }'
+                '+'
+            )
+        }
     }
 }
