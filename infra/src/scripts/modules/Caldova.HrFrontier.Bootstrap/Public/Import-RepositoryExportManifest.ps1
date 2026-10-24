@@ -79,7 +79,7 @@ function Import-RepositoryExportManifest {
     if (-not [IO.Path]::IsPathRooted($Path) -or $Path -notmatch '^[A-Za-z]:[\\/]') {
         throw 'Repository export manifest requires an absolute local file path.'
     }
-    $manifest = ConvertFrom-CustomerExportJson -Text (Read-CustomerExportUtf8Text -Path $Path)
+    $manifest = ConvertFrom-CustomerExportJson -Text (Read-CustomerExportUtf8Text -Path $Path) -RequireObjectRoot
     Assert-RepositoryExportManifestContract -Manifest $manifest -ExpectedProfile $ExpectedProfile
     return $manifest
 }

@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.5 |
+| **Version** | 1.6 |
 | **Date** | 2026-10-24 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -41,7 +41,10 @@ It rejects nonempty additional `deniedPaths`, rather than passing rules the
 existing customer export engine cannot enforce. The historical
 [`customer-export.schema.json`](../../src/config/schemas/customer-export.schema.json)
 and invalid fixture are unchanged; the previous customer sample is preserved as
-a v1 test fixture. JSON fields are closed and typed, duplicate properties and IDs
+a v1 test fixture. Both file importers require a JSON object at the root, and the
+adapter requires an object before normalization; root arrays (including singleton
+arrays), primitives, and null are rejected. Nested literal replacement arrays
+remain supported. JSON fields are closed and typed, duplicate properties and IDs
 are rejected, and input files must be UTF-8 without BOM.
 
 The [customer sample](../../src/config/runbooks/customer-export.sample.json)

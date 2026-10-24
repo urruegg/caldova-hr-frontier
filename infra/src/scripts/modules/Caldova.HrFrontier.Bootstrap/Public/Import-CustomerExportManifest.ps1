@@ -304,7 +304,14 @@ function ConvertTo-CustomerExportJsonValue {
 }
 
 function ConvertFrom-CustomerExportJson {
-    param([Parameter(Mandatory)][string]$Text)
+    param(
+        [Parameter(Mandatory)][string]$Text,
+        [switch]$RequireObjectRoot
+    )
+
+    if ($RequireObjectRoot -and -not $Text.TrimStart().StartsWith('{', [StringComparison]::Ordinal)) {
+        throw 'Customer export manifest root must be a JSON object.'
+    }
 
     $index = 0
     Test-CustomerExportJsonValue -Text $Text -Index ([ref]$index)
@@ -630,7 +637,7 @@ function Import-CustomerExportManifest {
     [OutputType([pscustomobject])]
     param([Parameter(Mandatory)][string]$Path)
 
-    $manifest = ConvertFrom-CustomerExportJson -Text (Read-CustomerExportUtf8Text -Path $Path)
+    $manifest = ConvertFrom-CustomerExportJson -Text (Read-CustomerExportUtf8Text -Path $Path) -RequireObjectRoot
     $names = @(Get-RunbookObjectPropertyNames -InputObject $manifest)
     if (@($names | Where-Object { $_ -in @('profile', 'profilePolicy', 'deniedPaths') }).Count -gt 0) {
         Assert-RepositoryExportManifestContract -Manifest $manifest -ExpectedProfile CustomerHandover

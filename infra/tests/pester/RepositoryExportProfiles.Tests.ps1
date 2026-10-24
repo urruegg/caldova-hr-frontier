@@ -31,6 +31,95 @@ Describe 'Explicit repository export profile contract' {
             [IO.File]::WriteAllText($path, ($Value | ConvertTo-Json -Depth 50), [Text.UTF8Encoding]::new($false))
             return $path
         }
+
+        function Write-ManifestRoot {
+            param([string]$ObjectJson, [string]$Shape)
+            $json = switch ($Shape) {
+                'empty array' { '[]' }
+                'singleton array' { '[' + $ObjectJson + ']' }
+                'multiple array' { '[' + $ObjectJson + ',' + $ObjectJson + ']' }
+                'string' { '"synthetic-value"' }
+                'number' { '1' }
+                'true' { 'true' }
+                'false' { 'false' }
+                'null' { 'null' }
+            }
+            $path = Join-Path $TestDrive (([guid]::NewGuid().ToString('N')) + '.json')
+            [IO.File]::WriteAllText($path, (" `t`r`n" + $json + "`r`n"), [Text.UTF8Encoding]::new($false))
+            return $path
+        }
+    }
+
+    It 'rejects a <Shape> root through the canonical file importer for <Profile>' -ForEach @(
+        foreach ($profile in @('CustomerHandover', 'TenantReplica')) {
+            foreach ($shape in @('empty array', 'singleton array', 'multiple array', 'string', 'number', 'true', 'false', 'null')) {
+                @{ Profile = $profile; Shape = $shape }
+            }
+        }
+    ) {
+        $json = ConvertTo-Json -InputObject (New-ProfileValue -Profile $Profile) -Depth 50
+        $path = Write-ManifestRoot -ObjectJson $json -Shape $Shape
+        { Import-RepositoryExportManifest -Path $path -ExpectedProfile $Profile } | Should -Throw
+    }
+
+    It 'rejects a <Shape> root through the customer compatibility file importer for <Format>' -ForEach @(
+        foreach ($format in @('legacy', 'canonical')) {
+            foreach ($shape in @('empty array', 'singleton array', 'multiple array', 'string', 'number', 'true', 'false', 'null')) {
+                @{ Format = $format; Shape = $shape }
+            }
+        }
+    ) {
+        $source = if ($Format -eq 'legacy') { $script:LegacyPath } else { $script:CustomerSample }
+        $path = Write-ManifestRoot -ObjectJson ([IO.File]::ReadAllText($source)) -Shape $Shape
+        { Import-CustomerExportManifest -Path $path } | Should -Throw
+    }
+
+    It 'rejects a <Shape> root before the legacy adapter can normalize it' -ForEach @(
+        @{ Shape = 'empty array' }, @{ Shape = 'singleton array' }, @{ Shape = 'multiple array' }
+        @{ Shape = 'string' }, @{ Shape = 'number' }, @{ Shape = 'true' }, @{ Shape = 'false' }, @{ Shape = 'null' }
+    ) {
+        $legacy = [IO.File]::ReadAllText($script:LegacyPath) | ConvertFrom-Json
+        $inputValue = $null
+        switch ($Shape) {
+            'empty array' { $inputValue = [object[]]@() }
+            'singleton array' { $inputValue = [object[]]@($legacy) }
+            'multiple array' { $inputValue = [object[]]@($legacy, $legacy) }
+            'string' { $inputValue = 'synthetic-value' }
+            'number' { $inputValue = 1 }
+            'true' { $inputValue = $true }
+            'false' { $inputValue = $false }
+            'null' { $inputValue = $null }
+        }
+        { ConvertTo-CustomerHandoverManifest -LegacyManifest $inputValue } | Should -Throw
+    }
+
+    It 'preserves literal replacement arrays in a plain object through <EntryPoint>' -ForEach @(
+        @{ EntryPoint = 'adapter object' }, @{ EntryPoint = 'adapter dictionary' }
+        @{ EntryPoint = 'legacy file' }, @{ EntryPoint = 'canonical file' }
+    ) {
+        $value = [IO.File]::ReadAllText($script:LegacyPath) | ConvertFrom-Json
+        $value.replacements[0].expectedOldValue = ('{"items":[null,["synthetic-value"],[],false,1]}' | ConvertFrom-Json).items
+        $value.replacements[0].newValue = '{"items":[null,"synthetic-new-value"]}' | ConvertFrom-Json
+        switch ($EntryPoint) {
+            'adapter object' { $manifest = ConvertTo-CustomerHandoverManifest -LegacyManifest $value }
+            'adapter dictionary' {
+                $dictionary = @{}
+                foreach ($property in $value.PSObject.Properties) {
+                    $dictionary[$property.Name] = $property.Value
+                }
+                $manifest = ConvertTo-CustomerHandoverManifest -LegacyManifest $dictionary
+            }
+            'legacy file' { $manifest = Import-CustomerExportManifest -Path (Write-ProfileValue $value) }
+            'canonical file' {
+                $value | Add-Member NoteProperty profile 'CustomerHandover'
+                $value | Add-Member NoteProperty profilePolicy (New-ProfileValue).profilePolicy
+                $value | Add-Member NoteProperty deniedPaths @()
+                $manifest = Import-CustomerExportManifest -Path (Write-ProfileValue $value)
+            }
+        }
+        $manifest.profile | Should -BeExactly 'CustomerHandover'
+        (ConvertTo-Json -InputObject $manifest.replacements[0].expectedOldValue -Depth 20 -Compress) | Should -BeExactly '[null,["synthetic-value"],[],false,1]'
+        (ConvertTo-Json -InputObject $manifest.replacements[0].newValue -Depth 20 -Compress) | Should -BeExactly '{"items":[null,"synthetic-new-value"]}'
     }
 
     It 'accepts explicit <Profile> without reading referenced source files' -ForEach @(
