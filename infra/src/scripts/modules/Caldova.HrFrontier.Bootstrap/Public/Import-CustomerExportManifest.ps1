@@ -38,7 +38,9 @@ function Assert-CustomerExportRelativePath {
     }
 
     foreach ($segment in $segments) {
-        if ($segment.IndexOfAny([IO.Path]::GetInvalidFileNameChars()) -ge 0) {
+        if ($segment.IndexOfAny([IO.Path]::GetInvalidFileNameChars()) -ge 0 -or
+            $segment -match '[. ]$' -or
+            $segment -match '^(?i:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.|$)') {
             throw $ErrorMessage
         }
     }
@@ -275,17 +277,6 @@ function ConvertTo-CustomerExportJsonValue {
     param([AllowNull()][object]$Value)
 
     if ($null -eq $Value) { return $null }
-    if ($Value -is [psobject] -and $Value.PSObject.Properties.Count -gt 0 -and $Value -isnot [string]) {
-        $ordered = [ordered]@{}
-        foreach ($property in $Value.PSObject.Properties) {
-            if ($property.MemberType -in @('NoteProperty', 'Property', 'ScriptProperty')) {
-                $ordered[$property.Name] = ConvertTo-CustomerExportJsonValue -Value $property.Value
-            }
-        }
-        if ($ordered.Count -gt 0) {
-            return [pscustomobject]$ordered
-        }
-    }
     if ($Value -is [System.Collections.IDictionary]) {
         $ordered = [ordered]@{}
         foreach ($key in $Value.Keys) {
@@ -294,11 +285,20 @@ function ConvertTo-CustomerExportJsonValue {
         return [pscustomobject]$ordered
     }
     if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [string]) {
-        return @(
+        return ,@(
             foreach ($item in @($Value)) {
                 ConvertTo-CustomerExportJsonValue -Value $item
             }
         )
+    }
+    if ($Value -is [pscustomobject]) {
+        $ordered = [ordered]@{}
+        foreach ($property in $Value.PSObject.Properties) {
+            if ($property.MemberType -eq 'NoteProperty') {
+                $ordered[$property.Name] = ConvertTo-CustomerExportJsonValue -Value $property.Value
+            }
+        }
+        return [pscustomobject]$ordered
     }
     return $Value
 }
@@ -313,12 +313,7 @@ function ConvertFrom-CustomerExportJson {
         throw 'Customer export manifest is not valid JSON.'
     }
 
-    $json = if ($PSVersionTable.PSVersion.Major -ge 6) {
-        ConvertFrom-Json -InputObject $Text -Depth 100
-    }
-    else {
-        ConvertFrom-Json -InputObject $Text
-    }
+    $json = ConvertFrom-TenantLifecycleJson -InputObject $Text
     return ConvertTo-CustomerExportJsonValue -Value $json
 }
 
@@ -327,22 +322,61 @@ function Test-CustomerExportPathHasEvidenceSegment {
     @($Path -split '/') | Where-Object { [string]::Equals($_, 'evidence', [StringComparison]::OrdinalIgnoreCase) } | Select-Object -First 1
 }
 
-function Import-CustomerExportManifest {
-    [CmdletBinding()]
-    [OutputType([pscustomobject])]
-    param(
-        [Parameter(Mandatory)][string]$Path
-    )
-
-    $manifest = ConvertFrom-CustomerExportJson -Text (Read-CustomerExportUtf8Text -Path $Path)
-    $rootEntries = Get-ObjectEntryTable -InputObject $manifest
-    $requiredRootProperties = @(
+function Get-CustomerExportManifestFields {
+    @(
         'schemaVersion', 'tenantAlias', 'customerScope', 'retainedTenantArtifacts',
         'replacements', 'residualMarkers', 'sourceMarkerCatalog', 'residualDispositions',
         'syntheticDataPolicy', 'fileClassifications', 'inspectableBinaries', 'validationSuites'
     )
-    Assert-RunbookClosedObject -InputObject $manifest -AllowedProperties $requiredRootProperties `
+}
+
+function Assert-CustomerExportClosedObject {
+    param(
+        [Parameter(Mandatory)][object]$InputObject,
+        [Parameter(Mandatory)][string[]]$AllowedProperties,
+        [Parameter(Mandatory)][string[]]$RequiredProperties,
+        [Parameter(Mandatory)][string]$ErrorMessage
+    )
+
+    Assert-RunbookClosedObject @PSBoundParameters
+    try {
+        Assert-TenantLifecycleProperties -InputObject $InputObject -Fields $RequiredProperties
+    }
+    catch {
+        throw $ErrorMessage
+    }
+}
+
+function Assert-CustomerExportStrings {
+    param(
+        [Parameter(Mandatory)][object]$InputObject,
+        [Parameter(Mandatory)][string[]]$Names
+    )
+
+    foreach ($name in $Names) {
+        Assert-SchemaString -Value $InputObject.$name -Schema ([pscustomobject]@{ minLength = 1 }) -Path "Export.$name"
+    }
+}
+
+function Assert-CustomerExportPositiveInteger {
+    param([Parameter(Mandatory)][object]$Value)
+    if (($Value -isnot [int] -and $Value -isnot [long]) -or $Value -lt 1) {
+        throw 'Export occurrence counts must be positive integers.'
+    }
+}
+
+function Assert-CustomerExportManifestContract {
+    param([Parameter(Mandatory)][object]$Manifest)
+
+    $requiredRootProperties = @(Get-CustomerExportManifestFields)
+    Assert-CustomerExportClosedObject -InputObject $manifest -AllowedProperties $requiredRootProperties `
         -RequiredProperties $requiredRootProperties -ErrorMessage 'Customer export manifest is not closed.'
+    Assert-CustomerExportStrings -InputObject $manifest -Names @('schemaVersion', 'tenantAlias', 'customerScope')
+    foreach ($name in @($requiredRootProperties | Where-Object { $_ -notin @('schemaVersion', 'tenantAlias', 'customerScope', 'syntheticDataPolicy') })) {
+        if ($manifest.$name -isnot [array]) {
+            throw "Customer export $name must be an array."
+        }
+    }
     if ([string]$manifest.schemaVersion -cne '1.0') {
         throw 'Customer export manifest schema version is not supported.'
     }
@@ -355,10 +389,11 @@ function Import-CustomerExportManifest {
     $allowedReservedDomains = @('example.com', 'example.org', 'example.net', 'example.invalid')
 
     foreach ($artifact in @($manifest.retainedTenantArtifacts)) {
-        Assert-RunbookClosedObject -InputObject $artifact `
+        Assert-CustomerExportClosedObject -InputObject $artifact `
             -AllowedProperties @('path', 'artifactKind', 'customerScope') `
             -RequiredProperties @('path', 'artifactKind', 'customerScope') `
             -ErrorMessage 'Customer export retainedTenantArtifacts entry is not closed.'
+        Assert-CustomerExportStrings -InputObject $artifact -Names @('path', 'artifactKind', 'customerScope')
         $artifact.path = Assert-CustomerExportRelativePath -Path ([string]$artifact.path)
         if ((Test-CustomerExportPathHasEvidenceSegment -Path $artifact.path) -or
             $artifact.path.StartsWith('infra/evidence/', [StringComparison]::OrdinalIgnoreCase)) {
@@ -370,18 +405,22 @@ function Import-CustomerExportManifest {
     }
 
     foreach ($rule in @($manifest.replacements)) {
+        Assert-CustomerExportStrings -InputObject $rule -Names @('id', 'path', 'format')
         $format = [string]$rule.format
-        switch ($format) {
+        switch -CaseSensitive ($format) {
             'Json' {
-                Assert-RunbookClosedObject -InputObject $rule `
+                Assert-CustomerExportClosedObject -InputObject $rule `
                     -AllowedProperties @('id', 'path', 'format', 'selector', 'expectedOldValue', 'newValue', 'requiredCount') `
                     -RequiredProperties @('id', 'path', 'format', 'selector', 'expectedOldValue', 'newValue', 'requiredCount') `
                     -ErrorMessage 'Customer export replacement is not closed.'
+                Assert-CustomerExportStrings -InputObject $rule -Names @('selector')
+                Assert-CustomerExportPositiveInteger -Value $rule.requiredCount
                 $rule.path = Assert-CustomerExportRelativePath -Path ([string]$rule.path)
                 if (-not $rule.path.EndsWith('.json', [StringComparison]::Ordinal)) {
                     throw 'Customer export Json replacements require an exact .json path.'
                 }
-                if ([string]$rule.selector -notmatch '^/' -or [string]$rule.selector -match '\*$|\?' ) {
+                if ([string]$rule.selector -notmatch '^/.+' -or
+                    [string]$rule.selector -match '[*?\[\]]|~(?![01])') {
                     throw 'Customer export Json selector must be an RFC 6901 JSON Pointer.'
                 }
                 if ([int]$rule.requiredCount -ne 1) {
@@ -389,10 +428,12 @@ function Import-CustomerExportManifest {
                 }
             }
             'MarkdownExact' {
-                Assert-RunbookClosedObject -InputObject $rule `
+                Assert-CustomerExportClosedObject -InputObject $rule `
                     -AllowedProperties @('id', 'path', 'format', 'expectedOldText', 'newText', 'requiredCount') `
                     -RequiredProperties @('id', 'path', 'format', 'expectedOldText', 'newText', 'requiredCount') `
                     -ErrorMessage 'Customer export replacement is not closed.'
+                Assert-CustomerExportStrings -InputObject $rule -Names @('expectedOldText', 'newText')
+                Assert-CustomerExportPositiveInteger -Value $rule.requiredCount
                 $rule.path = Assert-CustomerExportRelativePath -Path ([string]$rule.path)
                 if (-not $rule.path.EndsWith('.md', [StringComparison]::Ordinal)) {
                     throw 'Customer export MarkdownExact replacements require an exact .md path.'
@@ -439,12 +480,13 @@ function Import-CustomerExportManifest {
     }
 
     foreach ($marker in @($manifest.residualMarkers)) {
-        Assert-RunbookClosedObject -InputObject $marker `
+        Assert-CustomerExportClosedObject -InputObject $marker `
             -AllowedProperties @('id', 'category', 'value', 'comparison') `
             -RequiredProperties @('id', 'category', 'value', 'comparison') `
             -ErrorMessage 'Customer export residual marker is not closed.'
-        if ($allowedMarkerCategories -notcontains [string]$marker.category -or
-            $allowedComparisons -notcontains [string]$marker.comparison) {
+        Assert-CustomerExportStrings -InputObject $marker -Names @('id', 'category', 'value', 'comparison')
+        if ($allowedMarkerCategories -cnotcontains [string]$marker.category -or
+            $allowedComparisons -cnotcontains [string]$marker.comparison) {
             throw 'Customer export residual marker uses an unsupported category or comparison.'
         }
         if ([string]$marker.value -in $genericTerms) {
@@ -453,20 +495,24 @@ function Import-CustomerExportManifest {
     }
 
     foreach ($entry in @($manifest.sourceMarkerCatalog)) {
-        Assert-RunbookClosedObject -InputObject $entry `
+        Assert-CustomerExportClosedObject -InputObject $entry `
             -AllowedProperties @('id', 'category', 'value', 'comparison', 'sources') `
             -RequiredProperties @('id', 'category', 'value', 'comparison', 'sources') `
             -ErrorMessage 'Customer export sourceMarkerCatalog entry is not closed.'
-        if ($allowedMarkerCategories -notcontains [string]$entry.category -or
-            $allowedComparisons -notcontains [string]$entry.comparison -or
+        Assert-CustomerExportStrings -InputObject $entry -Names @('id', 'category', 'value', 'comparison')
+        if ($entry.sources -isnot [array] -or
+            $allowedMarkerCategories -cnotcontains [string]$entry.category -or
+            $allowedComparisons -cnotcontains [string]$entry.comparison -or
             @($entry.sources).Count -lt 1) {
             throw 'Customer export sourceMarkerCatalog entry is invalid.'
         }
         foreach ($source in @($entry.sources)) {
-            Assert-RunbookClosedObject -InputObject $source `
+            Assert-CustomerExportClosedObject -InputObject $source `
                 -AllowedProperties @('path', 'blobSha256', 'occurrenceCount') `
                 -RequiredProperties @('path', 'blobSha256', 'occurrenceCount') `
                 -ErrorMessage 'Customer export sourceMarkerCatalog source is not closed.'
+            Assert-CustomerExportStrings -InputObject $source -Names @('path', 'blobSha256')
+            Assert-CustomerExportPositiveInteger -Value $source.occurrenceCount
             $source.path = Assert-CustomerExportRelativePath -Path ([string]$source.path)
             if ([string]$source.blobSha256 -notmatch '^[0-9a-f]{64}$' -or [int]$source.occurrenceCount -lt 1) {
                 throw 'Customer export sourceMarkerCatalog source is invalid.'
@@ -488,20 +534,29 @@ function Import-CustomerExportManifest {
 
     $markerIds = @($manifest.residualMarkers | ForEach-Object { [string]$_.id })
     foreach ($disposition in @($manifest.residualDispositions)) {
-        Assert-RunbookClosedObject -InputObject $disposition `
+        Assert-CustomerExportClosedObject -InputObject $disposition `
             -AllowedProperties @('path', 'markerId', 'reason') `
             -RequiredProperties @('path', 'markerId', 'reason') `
             -ErrorMessage 'Customer export residual disposition is not closed.'
+        Assert-CustomerExportStrings -InputObject $disposition -Names @('path', 'markerId', 'reason')
         $disposition.path = Assert-CustomerExportRelativePath -Path ([string]$disposition.path) -ErrorMessage 'Customer export residual dispositions require an exact path.'
         if ($markerIds -notcontains [string]$disposition.markerId) {
             throw 'Customer export residual disposition references an unknown marker ID.'
         }
     }
 
-    Assert-RunbookClosedObject -InputObject $manifest.syntheticDataPolicy `
+    Assert-CustomerExportClosedObject -InputObject $manifest.syntheticDataPolicy `
         -AllowedProperties @('reservedNames', 'reservedDomains', 'reservedIdPrefixes') `
         -RequiredProperties @('reservedNames', 'reservedDomains', 'reservedIdPrefixes') `
         -ErrorMessage 'Customer export syntheticDataPolicy is not closed.'
+    foreach ($name in @('reservedNames', 'reservedDomains', 'reservedIdPrefixes')) {
+        if ($manifest.syntheticDataPolicy.$name -isnot [array]) {
+            throw 'Customer export synthetic policy lists must be arrays.'
+        }
+        foreach ($value in $manifest.syntheticDataPolicy.$name) {
+            Assert-SchemaString -Value $value -Schema ([pscustomobject]@{ minLength = 1 }) -Path "Export.$name"
+        }
+    }
     if (@($manifest.syntheticDataPolicy.reservedNames | Select-Object -Unique).Count -ne @($manifest.syntheticDataPolicy.reservedNames).Count) {
         throw 'Customer export reservedNames must be unique.'
     }
@@ -518,10 +573,11 @@ function Import-CustomerExportManifest {
 
     $classificationPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     foreach ($classification in @($manifest.fileClassifications)) {
-        Assert-RunbookClosedObject -InputObject $classification `
+        Assert-CustomerExportClosedObject -InputObject $classification `
             -AllowedProperties @('path', 'sourceBlobSha256', 'expectedOutputSha256', 'classification', 'reason') `
             -RequiredProperties @('path', 'sourceBlobSha256', 'expectedOutputSha256', 'classification', 'reason') `
             -ErrorMessage 'Customer export fileClassifications entry is not closed.'
+        Assert-CustomerExportStrings -InputObject $classification -Names @('path', 'sourceBlobSha256', 'expectedOutputSha256', 'classification', 'reason')
         $classification.path = Assert-CustomerExportRelativePath -Path ([string]$classification.path)
         if (-not $classificationPaths.Add($classification.path)) {
             throw 'Customer export fileClassifications must use unique exact paths.'
@@ -530,7 +586,7 @@ function Import-CustomerExportManifest {
             [string]$classification.expectedOutputSha256 -notmatch '^[0-9a-f]{64}$') {
             throw 'Customer export fileClassifications require exact source and expected output digests.'
         }
-        switch ([string]$classification.classification) {
+        switch -CaseSensitive ([string]$classification.classification) {
             'SyntheticFixture' {
                 if (-not $classification.path.StartsWith('infra/tests/fixtures/', [StringComparison]::Ordinal)) {
                     throw 'Customer export SyntheticFixture classifications are allowed only below infra/tests/fixtures/.'
@@ -551,10 +607,11 @@ function Import-CustomerExportManifest {
     }
 
     foreach ($binary in @($manifest.inspectableBinaries)) {
-        Assert-RunbookClosedObject -InputObject $binary `
+        Assert-CustomerExportClosedObject -InputObject $binary `
             -AllowedProperties @('path', 'sha256', 'reason') `
             -RequiredProperties @('path', 'sha256', 'reason') `
             -ErrorMessage 'Customer export inspectable binary entry is not closed.'
+        Assert-CustomerExportStrings -InputObject $binary -Names @('path', 'sha256', 'reason')
         $binary.path = Assert-CustomerExportRelativePath -Path ([string]$binary.path)
         if ([string]$binary.sha256 -notmatch '^[0-9a-f]{64}$') {
             throw 'Customer export inspectable binaries require lowercase SHA-256 digests.'
@@ -566,5 +623,23 @@ function Import-CustomerExportManifest {
         throw 'Customer export validationSuites must exactly match the fixed local suite IDs.'
     }
 
-    return $manifest
+}
+
+function Import-CustomerExportManifest {
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param([Parameter(Mandatory)][string]$Path)
+
+    $manifest = ConvertFrom-CustomerExportJson -Text (Read-CustomerExportUtf8Text -Path $Path)
+    $names = @(Get-RunbookObjectPropertyNames -InputObject $manifest)
+    if (@($names | Where-Object { $_ -in @('profile', 'profilePolicy', 'deniedPaths') }).Count -gt 0) {
+        Assert-RepositoryExportManifestContract -Manifest $manifest -ExpectedProfile CustomerHandover
+        # The existing customer engine cannot enforce additional caller-defined deny rules.
+        if (@($manifest.deniedPaths).Count -ne 0) {
+            throw 'Customer export legacy consumers do not support additional deniedPaths.'
+        }
+        return $manifest
+    }
+
+    return ConvertTo-CustomerHandoverManifest -LegacyManifest $manifest
 }

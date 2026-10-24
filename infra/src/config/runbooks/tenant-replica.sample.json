@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0",
+  "profile": "TenantReplica",
+  "profilePolicy": {
+    "denyWorkflows": false,
+    "denyEvidence": true,
+    "denyTenantTransitions": true,
+    "denyPrivateState": true,
+    "denySourceHistory": true,
+    "denyUntrackedFiles": true
+  },
+  "deniedPaths": [],
+  "tenantAlias": "source-lab",
+  "customerScope": "Synthetic profile-contract example only; not an operational replica manifest",
+  "retainedTenantArtifacts": [],
+  "replacements": [],
+  "residualMarkers": [],
+  "sourceMarkerCatalog": [],
+  "residualDispositions": [],
+  "syntheticDataPolicy": {
+    "reservedNames": ["Synthetic Operator"],
+    "reservedDomains": ["example.invalid"],
+    "reservedIdPrefixes": ["synthetic-"]
+  },
+  "fileClassifications": [],
+  "inspectableBinaries": [],
+  "validationSuites": ["Pester", "RepositorySafety", "BicepBuild"]
+}

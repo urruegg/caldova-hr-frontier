@@ -1,5 +1,15 @@
 {
   "schemaVersion": "1.0",
+  "profile": "CustomerHandover",
+  "profilePolicy": {
+    "denyWorkflows": true,
+    "denyEvidence": true,
+    "denyTenantTransitions": true,
+    "denyPrivateState": true,
+    "denySourceHistory": true,
+    "denyUntrackedFiles": true
+  },
+  "deniedPaths": [],
   "tenantAlias": "source-lab",
   "customerScope": "Synthetic customer repository export",
   "retainedTenantArtifacts": [

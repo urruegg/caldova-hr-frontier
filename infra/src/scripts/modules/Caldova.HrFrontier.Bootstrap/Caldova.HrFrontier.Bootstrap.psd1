@@ -45,6 +45,8 @@
         'New-CloudFoundationActionPlan'
         'Invoke-CloudFoundationAction'
         'Import-CustomerExportManifest'
+        'Import-RepositoryExportManifest'
+        'ConvertTo-CustomerHandoverManifest'
         'Resolve-CustomerExportExecutable'
         'Get-CustomerExportSourceSnapshot'
         'Get-CustomerSourceMarkerCatalog'

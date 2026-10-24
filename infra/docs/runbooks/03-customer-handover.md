@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.4 |
-| **Date** | 2026-10-19 |
+| **Version** | 1.5 |
+| **Date** | 2026-10-24 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure customer repository handover |
@@ -12,6 +12,46 @@
 ## Purpose
 
 This runbook prepares a synthetic customer-facing repository export from the reusable source without mutating the source tree. Execution is local, attended, and limited to Windows 11 PowerShell 5.1 or 7. Authentication is `NotApplicable`. Evidence is written only outside Git. Publication is not implemented here and remains a separate attended procedure.
+
+## Profile-contract slice (Plan 5, Task 1 only)
+
+[`repository-export.schema.json`](../../src/config/schemas/repository-export.schema.json)
+adds explicit `TenantReplica` and `CustomerHandover` intent profiles.
+`Import-RepositoryExportManifest -Path <absolute-local-file> -ExpectedProfile
+<TenantReplica|CustomerHandover>` rejects absent, unknown, case-mismatched, or
+conflicting profiles. It reads only the manifest, not its referenced source
+files, marker sources, private intent, or state.
+
+The canonical `1.0` object reuses the historical manifest fields and adds
+`profile`, `profilePolicy`, and `deniedPaths`. Policy values are fixed assertions,
+not permission switches: `denyEvidence`, `denyTenantTransitions`,
+`denyPrivateState`, `denySourceHistory`, and `denyUntrackedFiles` are always
+`true`; `denyWorkflows` is `true` for customer handover and `false` for replica
+intent. The latter is not an implemented workflow-retention path. Exact denied
+paths include their descendants; duplicate paths and contradictions with
+retained artifacts, replacements, residual dispositions, classifications, or
+binary exceptions fail closed, including Windows case and path aliases.
+
+`ConvertTo-CustomerHandoverManifest -LegacyManifest <object>` accepts only the
+recognized unprofiled v1 fields, validates them, and returns the fixed canonical
+customer profile without modifying the input. `Import-CustomerExportManifest
+-Path` remains the compatibility interface for existing consumers and also
+accepts the explicitly profiled customer sample. It never accepts replica intent.
+It rejects nonempty additional `deniedPaths`, rather than passing rules the
+existing customer export engine cannot enforce. The historical
+[`customer-export.schema.json`](../../src/config/schemas/customer-export.schema.json)
+and invalid fixture are unchanged; the previous customer sample is preserved as
+a v1 test fixture. JSON fields are closed and typed, duplicate properties and IDs
+are rejected, and input files must be UTF-8 without BOM.
+
+The [customer sample](../../src/config/runbooks/customer-export.sample.json)
+and [replica sample](../../src/config/runbooks/tenant-replica.sample.json) are
+synthetic contract examples, not approval or accepted retained-tree evidence.
+Source/destination binding, run IDs, approvals, and digests remain owned by the
+existing execution-manifest boundary, not a parallel intent contract. This slice
+adds no assessment, policy map, replica export entry point, full-tree validation,
+pipeline delivery, or acceptance. Plan 5 remains Draft; all export, pipeline, and
+live acceptance gates remain unchanged.
 
 ## Lifecycle-core integration boundary
 
@@ -39,7 +79,8 @@ Legacy evidence fails closed and requires a new run; there is no compatibility, 
 
 Umbrella authority remains exactly `Assess`, `Plan`, and `Verify`; `stage-results` remains authoritative and the second `Verify` pass remains required.
 
-Plan 1 and the child summary envelope implementation remain synthetic, `Draft`, and blocked until reviewed merge and then-current green `main`.
+Plan 1 and the child summary envelope implementation remain synthetic evidence.
+The profile-contract slice does not change their approval status or establish live acceptance.
 
 No live, provider, or tenant operation was performed, and no merge-readiness claim is made.
 

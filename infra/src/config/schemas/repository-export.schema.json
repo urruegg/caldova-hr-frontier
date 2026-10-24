@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://caldova.example.invalid/schemas/repository-export.schema.json",
+  "title": "Explicit Repository Export Profile Manifest",
+  "description": "Profile intent only. Source, destination, approval and digest binding remain execution-manifest concerns; this contract does not authorize export.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "profile", "profilePolicy", "deniedPaths",
+    "tenantAlias", "customerScope", "retainedTenantArtifacts",
+    "replacements", "residualMarkers", "sourceMarkerCatalog",
+    "residualDispositions", "syntheticDataPolicy", "fileClassifications",
+    "inspectableBinaries", "validationSuites"
+  ],
+  "properties": {
+    "schemaVersion": { "$ref": "customer-export.schema.json#/properties/schemaVersion" },
+    "profile": { "type": "string", "enum": ["TenantReplica", "CustomerHandover"] },
+    "profilePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "denyWorkflows", "denyEvidence", "denyTenantTransitions",
+        "denyPrivateState", "denySourceHistory", "denyUntrackedFiles"
+      ],
+      "properties": {
+        "denyWorkflows": { "type": "boolean" },
+        "denyEvidence": { "const": true },
+        "denyTenantTransitions": { "const": true },
+        "denyPrivateState": { "const": true },
+        "denySourceHistory": { "const": true },
+        "denyUntrackedFiles": { "const": true }
+      }
+    },
+    "deniedPaths": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Exact repository-relative paths. A deny covers the named path and descendants. Case-insensitive contradictions and Windows path aliases are rejected by the importer."
+    },
+    "tenantAlias": { "$ref": "customer-export.schema.json#/properties/tenantAlias" },
+    "customerScope": { "$ref": "customer-export.schema.json#/properties/customerScope" },
+    "retainedTenantArtifacts": { "$ref": "customer-export.schema.json#/properties/retainedTenantArtifacts" },
+    "replacements": { "$ref": "customer-export.schema.json#/properties/replacements" },
+    "residualMarkers": { "$ref": "customer-export.schema.json#/properties/residualMarkers" },
+    "sourceMarkerCatalog": { "$ref": "customer-export.schema.json#/properties/sourceMarkerCatalog" },
+    "residualDispositions": { "$ref": "customer-export.schema.json#/properties/residualDispositions" },
+    "syntheticDataPolicy": { "$ref": "customer-export.schema.json#/properties/syntheticDataPolicy" },
+    "fileClassifications": { "$ref": "customer-export.schema.json#/properties/fileClassifications" },
+    "inspectableBinaries": { "$ref": "customer-export.schema.json#/properties/inspectableBinaries" },
+    "validationSuites": { "$ref": "customer-export.schema.json#/properties/validationSuites" }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "profile": { "const": "TenantReplica" },
+        "profilePolicy": { "properties": { "denyWorkflows": { "const": false } } }
+      }
+    },
+    {
+      "properties": {
+        "profile": { "const": "CustomerHandover" },
+        "profilePolicy": { "properties": { "denyWorkflows": { "const": true } } }
+      }
+    }
+  ]
+}

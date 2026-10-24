@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "1.0",
+  "tenantAlias": "source-lab",
+  "customerScope": "Synthetic customer repository export",
+  "retainedTenantArtifacts": [
+    {
+      "path": "infra/src/config/tenants/customer-synthetic.json",
+      "artifactKind": "TenantManifest",
+      "customerScope": "Synthetic target tenant intent"
+    }
+  ],
+  "replacements": [
+    {
+      "id": "tenant-alias-json",
+      "path": "infra/src/config/tenants/customer-synthetic.json",
+      "format": "Json",
+      "selector": "/tenantAlias",
+      "expectedOldValue": "source-lab",
+      "newValue": "customer-synthetic",
+      "requiredCount": 1
+    },
+    {
+      "id": "customer-name-readme",
+      "path": "README.md",
+      "format": "MarkdownExact",
+      "expectedOldText": "Source Reference Organization",
+      "newText": "Customer Example Organization",
+      "requiredCount": 2
+    }
+  ],
+  "residualMarkers": [
+    {
+      "id": "source-alias",
+      "category": "TenantAlias",
+      "value": "source-lab",
+      "comparison": "OrdinalIgnoreCase"
+    },
+    {
+      "id": "source-customer-name",
+      "category": "CompanyName",
+      "value": "Source Reference Organization",
+      "comparison": "Ordinal"
+    }
+  ],
+  "sourceMarkerCatalog": [
+    {
+      "id": "source-alias",
+      "category": "TenantAlias",
+      "value": "source-lab",
+      "comparison": "OrdinalIgnoreCase",
+      "sources": [
+        {
+          "path": "infra/src/config/tenants/customer-synthetic.json",
+          "blobSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "occurrenceCount": 1
+        }
+      ]
+    },
+    {
+      "id": "source-customer-name",
+      "category": "CompanyName",
+      "value": "Source Reference Organization",
+      "comparison": "Ordinal",
+      "sources": [
+        {
+          "path": "README.md",
+          "blobSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "occurrenceCount": 2
+        }
+      ]
+    }
+  ],
+  "residualDispositions": [
+    {
+      "path": "docs/specs/synthetic-provenance.md",
+      "markerId": "source-alias",
+      "reason": "The source alias is retained only in synthetic provenance."
+    }
+  ],
+  "syntheticDataPolicy": {
+    "reservedNames": [
+      "Customer Example Organization",
+      "Synthetic Operator"
+    ],
+    "reservedDomains": [
+      "example.com",
+      "example.org",
+      "example.net",
+      "example.invalid"
+    ],
+    "reservedIdPrefixes": [
+      "synthetic-"
+    ]
+  },
+  "fileClassifications": [
+    {
+      "path": "infra/tests/fixtures/customer-export/synthetic-profile.json",
+      "sourceBlobSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "expectedOutputSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "classification": "SyntheticFixture",
+      "reason": "Synthetic profile used only by local export validation."
+    },
+    {
+      "path": "README.md",
+      "sourceBlobSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "expectedOutputSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "classification": "ReviewedNonPersonal",
+      "reason": "Repository introduction contains organization names and documentation dates only."
+    }
+  ],
+  "inspectableBinaries": [],
+  "validationSuites": [
+    "Pester",
+    "RepositorySafety",
+    "BicepBuild"
+  ]
+}
