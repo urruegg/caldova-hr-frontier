@@ -224,7 +224,10 @@ Describe 'Canonical repository assessment and deterministic planning' {
                 $blob = (& $f.Git -C $f.Source rev-parse HEAD:README.md).Trim()
                 "100644 $blob 1`tREADME.md`n100644 $blob 2`tREADME.md`n100644 $blob 3`tREADME.md" | & $f.Git -C $f.Source update-index --index-info
             }
-            'sparse' { & $f.Git -C $f.Source sparse-checkout set --no-cone README.md 2>$null }
+            'sparse' {
+                & $f.Git -C $f.Source sparse-checkout set --no-cone '/README.md'
+                if ($LASTEXITCODE -ne 0) { throw 'Synthetic sparse checkout could not be created.' }
+            }
             'empty sparse' {
                 & $f.Git -C $f.Source sparse-checkout init --no-cone
                 '' | & $f.Git -C $f.Source sparse-checkout set --no-cone --stdin

@@ -221,26 +221,44 @@ Describe 'Runbook documentation contracts' {
     }
 
     It 'publishes the Approved child summary envelope and residual implementation gate' {
+        $unmergedGate = (
+            'Plan 1 and the child summary envelope implementation remain ' +
+            'synthetic, `Draft`, and blocked until reviewed merge and ' +
+            'then-current green `main`.'
+        )
         $documentCases = @(
             @{
                 Path = 'infra/docs/runbooks/README.md'
                 Version = '1.6'
+                Date = '2026-10-19'
+                Gate = $unmergedGate
             }
             @{
                 Path = 'infra/docs/runbooks/01-developer-workstation.md'
                 Version = '1.5'
+                Date = '2026-10-19'
+                Gate = $unmergedGate
             }
             @{
                 Path = 'infra/docs/runbooks/03-customer-handover.md'
-                Version = '1.4'
+                Version = '1.8'
+                Date = '2026-10-25'
+                Gate = @(
+                    'Plan 1 and the child summary envelope implementation remain synthetic evidence.',
+                    'The profile-contract slice does not change their approval status or establish live acceptance.'
+                )
             }
             @{
                 Path = 'infra/docs/README.md'
                 Version = '1.4'
+                Date = '2026-10-19'
+                Gate = $unmergedGate
             }
             @{
                 Path = 'infra/README.md'
                 Version = '1.10'
+                Date = '2026-10-19'
+                Gate = $unmergedGate
             }
         )
         $requiredStatements = @(
@@ -281,11 +299,6 @@ Describe 'Runbook documentation contracts' {
                 'second `Verify` pass remains required.'
             ),
             (
-                'Plan 1 and the child summary envelope implementation remain ' +
-                'synthetic, `Draft`, and blocked until reviewed merge and ' +
-                'then-current green `main`.'
-            ),
-            (
                 'No live, provider, or tenant operation was performed, and ' +
                 'no merge-readiness claim is made.'
             )
@@ -303,7 +316,9 @@ Describe 'Runbook documentation contracts' {
                 '\s+\|\s*$'
             )
             $content | Should -Match (
-                '(?m)^\|\s+\*\*Date\*\*\s+\|\s+2026-10-19\s+\|\s*$'
+                '(?m)^\|\s+\*\*Date\*\*\s+\|\s+' +
+                [regex]::Escape($documentCase.Date) +
+                '\s+\|\s*$'
             )
             $content | Should -Match (
                 'Approved Child Summary Envelope Design.+child-summary-' +
@@ -318,6 +333,9 @@ Describe 'Runbook documentation contracts' {
                     Should -Match ([regex]::Escape($statement)) -Because (
                         "$($documentCase.Path) publishes the full boundary"
                     )
+            }
+            foreach ($statement in @($documentCase.Gate)) {
+                $content | Should -Match ([regex]::Escape($statement))
             }
             $content | Should -Not -Match (
                 'summar(?:y|ies).{0,120}validated only by exact bytes and digest|' +

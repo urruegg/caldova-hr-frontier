@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
+| **Version** | 1.3 |
 | **Date** | 2026-10-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -54,7 +54,17 @@ The user authorized the recommended prerequisite merge and beginning the profile
 
 Task 1 is implemented locally on `feat/tenant-replica-handover` in commits `e26abdbce662bdc9ef43c6b802ceb7cc7433665b` and `e019ea66349ae20c138bca55ebc52bf88d8d042c`. Review identified a root-array normalization defect; public-entrypoint regression tests reproduced it on both hosts, the fix was committed, and scoped re-review passed. Final focused validation passed 136 tests on each of Windows PowerShell 5.1 and PowerShell 7.6.8 with Pester 5.7.1. The related customer-export regression runner passed 208 tests on Windows PowerShell 5.1. Repository safety, scoped repository setup, and committed whitespace validation passed.
 
-This checkpoint does not approve the remaining Draft plan, publish the branch, execute a real export, or satisfy the Plan 4 retained-pipeline or operational acceptance gates. Tasks 2-6 remain incomplete. Continue with Task 2 after confirming the then-current source and dependency state.
+This checkpoint did not approve the remaining Draft plan, publish the branch, execute a real export, or satisfy the Plan 4 retained-pipeline or operational acceptance gates. Task 2 was authorized separately and its current disposition follows below.
+
+## Task 2 Implementation Checkpoint
+
+The user authorized continuing with Task 2 on 2026-10-25. The existing isolated branch was clean at `a995fdce475301808b64884638231f2b03f011f2`; main remained at the accepted prerequisite commit with successful validation run `40102788190`.
+
+Task 2 is implemented locally in commits `3435ec89f8ee73a788d232a375480c4fbe86debc` and `6cb4a650c5dc03ad28be92608b470b7bd7ea6460`. Both profiles use one shared committed-blob assessment engine and the existing execution-manifest helpers. `RepositoryIdentity` is the caller-reviewed expected 64-hex `remotesDigest` of the complete local fetch/push remote inventory, not an inferred selected URL. The fixed execution order is digest-bound separately from the shared manifest's sorted authorization set.
+
+Review identified a binary residual-marker bypass. The fix reuses the existing scanner for supported strict UTF-8 binary exceptions and explicitly refuses NUL-bearing or otherwise unsupported inspection; allowlisting or classification never waives marker policy. Scoped re-review passed. Covering tests passed 272 cases on each host, and the related authoritative regression runner passed 346 tests. Final controller checks passed 112 selected Task 2 and binary-boundary tests on each of Windows PowerShell 5.1 and PowerShell 7.6.8 with Pester 5.7.1. A synthetic sparse-checkout fixture was corrected to use an unambiguous file pattern and fail explicitly if setup fails; no source safety check was relaxed.
+
+The plan remains Draft beyond these authorized slices. Tasks 3-6 remain incomplete; the full capability/deny map, new public export entrypoints, independent full-tree validator, pipeline retention, and operational acceptance are not claimed. No real export, destination publication, provider call, or tenant operation was performed. Continue with Task 3 after confirming the then-current source and dependency state.
 
 ## File and Interface Map
 
@@ -144,11 +154,11 @@ git commit -m "feat(export): add explicit repository profiles" -m "Co-authored-b
 - `New-RepositoryExportActionPlan -Assessment -Manifest -RunId -EvidenceRoot -NowUtc`.
 - Action IDs are exactly `snapshot-source`, `stage-committed-blobs`, `apply-exact-transformations`, `validate-profile`, `promote-destination`, `snapshot-source-post`, `validate-independent`.
 
-- [ ] **Step 1: Write failing shared-engine tests**
+- [x] **Step 1: Write failing shared-engine tests**
 
 Cover exact commit/remote, dirty/staged/untracked/conflicted/sparse/submodule source, destination exists/inside source/worktree, reparse/symlink, denied path, unresolved marker, binary/encoding ambiguity, deterministic plan/digest, and same core action order for both profiles.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 powershell.exe -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1 -Force; Invoke-Pester -Path @('infra/tests/pester/RepositoryExportProfiles.Tests.ps1','infra/tests/pester/CustomerRepositoryExport.Tests.ps1','infra/tests/pester/CustomerExportIsolation.Tests.ps1') -Output Detailed"
@@ -156,19 +166,19 @@ powershell.exe -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1 
 
 Expected: **FAIL** because canonical assessment/planning functions are unavailable.
 
-- [ ] **Step 3: Refactor minimally to one engine**
+- [x] **Step 3: Refactor minimally to one engine**
 
 Wrap existing source snapshot, blob enumeration, marker catalogue, residual, and transform helpers. Resolve profile policy before path enumeration. Bind exact source snapshot, retain/deny/marker/replacement/profile/tool/destination digests into the Plan 1 execution manifest.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 Run the RED command. Expected: **PASS**, with all existing customer tests preserved.
 
-- [ ] **Step 5: Perform focused review**
+- [x] **Step 5: Perform focused review**
 
 Confirm one engine, no working-tree file copy, no ignored file read, no destination patch, no source cleanup, and no compatibility branch that bypasses canonical validation.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap infra/tests/pester/RepositoryExportProfiles.Tests.ps1 infra/tests/pester/CustomerRepositoryExport.Tests.ps1 infra/tests/pester/CustomerExportIsolation.Tests.ps1 infra/tests/pester/CustomerExportSanitization.Tests.ps1
