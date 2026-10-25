@@ -241,7 +241,7 @@ Describe 'Runbook documentation contracts' {
             }
             @{
                 Path = 'infra/docs/runbooks/03-customer-handover.md'
-                Version = '1.9'
+                Version = '1.10'
                 Date = '2026-10-25'
                 Gate = @(
                     'Plan 1 and the child summary envelope implementation remain synthetic evidence.',

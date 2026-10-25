@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.9 |
+| **Version** | 1.10 |
 | **Date** | 2026-10-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -154,6 +154,15 @@ text in a mapped capability needs an exact reviewed nonpersonal classification.
 Unknown prefixes are excluded as `AmbiguousArtifact`, even if a declaration
 tries to widen a known prefix. Other reusable files remain subject to the
 existing synthetic, encoding, and marker checks.
+
+The payload filename denial distinguishes the reusable definitions
+`infra/src/config/schemas/discovery.schema.json` and
+`infra/src/config/schemas/transition.schema.json` from discovery/transition
+payloads. An exact reviewed classification makes these eligible definitions
+required assets; an absent committed or staged definition blocks validation.
+This distinction applies only to those schema paths, not similarly named
+files elsewhere or tenant-suffixed payloads. Private/evidence denials, explicit
+path denials, byte digests, and stable-marker checks still apply.
 
 The denied groups are `GitMetadata`, `IgnoredOrUntracked`, `TenantPrivate`,
 `TenantStableIdentifier`, `TenantTransition`, `Evidence`, `ProviderOutput`,

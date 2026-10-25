@@ -69,7 +69,7 @@ function Get-RepositoryExportFixedPolicy {
         }
         deniedFilePatterns = [ordered]@{
             TenantPrivate = '(^|/)[^/]*(\.local\.|\.bak$|\.backup$)|(^|/)generated[-.]parameters([.-][^/]*)?\.(json|xml|bicepparam)$|(^|/)\.env($|[.-])'
-            TenantTransition = '(^|/)(transition|discovery)([.-][^/]*)?\.(json|psd1|jsonl|xml|zip)$|(^|/)[^/]+[-.](transition|discovery)\.(json|psd1)$'
+            TenantTransition = '\A(?!infra/src/config/schemas/(discovery|transition)\.schema\.json\z)(?:[^/]+/)*(?:(transition|discovery)([.-][^/]*)?\.(json|psd1|jsonl|xml|zip)|[^/]+[-.](transition|discovery)\.(json|psd1))\z'
             Evidence = '(^|/)(approvals|evidence)([.-][^/]*)?\.(json|jsonl|xml|zip|log)$'
             ProviderOutput = '(^|/)(provider[-.](outputs?|responses?)|deployment[-.]outputs?|pipeline[-.]artifacts)([.-][^/]*)?\.(json|jsonl|xml|zip|log)$'
             Authentication = '(^|/)(auth|authentication|pac[-.]profiles|credentials|token|tokens)(\.json|\.xml|\.dat)$|\.(pfx|p12|pem|key)$'

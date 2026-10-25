@@ -63,11 +63,12 @@ Describe 'TenantReplica retain and deny' {
             })
         }
         function Invoke-ReplicaMapContent {
-            param($Fixture, $Assessment, [string]$Extra, [switch]$Missing)
+            param($Fixture, $Assessment, [string]$Extra, [switch]$Missing, [string]$OmitPath)
             $stage = Join-Path $Fixture.Root ([guid]::NewGuid().ToString('N').Substring(0, 8))
             [void][IO.Directory]::CreateDirectory($stage)
             foreach ($path in $Assessment.copyFiles) {
                 if ($Missing -and $path -ceq 'hr/src/m.ps1') { continue }
+                if ($path -ceq $OmitPath) { continue }
                 $full = Join-Path $stage $path.Replace('/', '\')
                 [void][IO.Directory]::CreateDirectory((Split-Path $full -Parent))
                 [IO.File]::WriteAllBytes($full, $Fixture.Blobs[$path])
@@ -82,6 +83,165 @@ Describe 'TenantReplica retain and deny' {
             Test-CustomerExportContent -StagingRoot $stage -Manifest $Fixture.Manifest -Assessment $Assessment `
                 -ExecutionManifest $execution -CurrentSourceSnapshot $Assessment.sourceSnapshot `
                 -ValidationRunner { param($suite) [pscustomobject]@{ suite = $suite; exitCode = 0 } }
+        }
+        function Add-ReplicaSchemaFixture {
+            param($Fixture, [string]$Path = 'infra/src/config/schemas/discovery.schema.json')
+            $bytes = [Text.Encoding]::UTF8.GetBytes('{"type":"object","properties":{"status":{"type":"string"}},"additionalProperties":false}')
+            $Fixture.Blobs[$Path] = $bytes
+            $hash = (Get-FileHash -InputStream ([IO.MemoryStream]::new($bytes))).Hash.ToLowerInvariant()
+            $Fixture.Manifest.fileClassifications += [pscustomobject]@{
+                path = $Path; sourceBlobSha256 = $hash; expectedOutputSha256 = $hash
+                classification = 'ReviewedNonPersonal'; reason = 'Reviewed neutral reusable schema definition.'
+            }
+        }
+    }
+
+    Context 'reusable discovery schemas' {
+        It 'maps <Path> to required schema retention rather than a tenant payload' -ForEach @(
+            @{ Path = 'infra/src/config/schemas/discovery.schema.json' }
+            @{ Path = 'infra/src/config/schemas/transition.schema.json' }
+        ) {
+            $f = New-ReplicaMapFixture
+            Add-ReplicaSchemaFixture $f $Path
+            $mapping = & $script:ReplicaModule {
+                param($path, $manifest)
+                [pscustomobject]@{
+                    capability = Get-RepositoryExportCapability -Path $path -Manifest $manifest
+                    denial = Get-RepositoryExportPathDenial -Path $path -Manifest $manifest -Profile TenantReplica
+                    required = @(Get-RepositoryExportRequiredPaths -Manifest $manifest)
+                }
+            } $Path $f.Manifest
+            $mapping.capability | Should -BeExactly 'Schemas'
+            $mapping.denial | Should -BeNullOrEmpty
+            $mapping.required | Should -Contain $Path
+            $a = Invoke-ReplicaMapAssessment $f
+            $a.copyFiles | Should -Contain $Path
+            $a.fileDigests.$Path.expectedOutputSha256 | Should -BeExactly ($f.Manifest.fileClassifications | Where-Object path -CEQ $Path).expectedOutputSha256
+            (Invoke-ReplicaMapContent $f $a).status | Should -BeExactly 'Passed'
+        }
+
+        It 'requires the exact classified schema to exist in the approved committed inventory' {
+            $f = New-ReplicaMapFixture
+            Add-ReplicaSchemaFixture $f
+            [void]$f.Blobs.Remove('infra/src/config/schemas/discovery.schema.json')
+            { Invoke-ReplicaMapAssessment $f } | Should -Throw '*retention*missing committed asset*'
+        }
+
+        It 'does not let an exact schema classification override an explicit path denial' {
+            $f = New-ReplicaMapFixture
+            Add-ReplicaSchemaFixture $f
+            $f.Manifest.deniedPaths = @('infra/src/config/schemas/discovery.schema.json')
+            { Invoke-ReplicaMapAssessment $f } | Should -Throw '*retention*ExactPathDenied*'
+        }
+
+        It 'fails staged validation for a missing required schema when <Case>' -ForEach @(
+            @{ Case = 'the assessed inventory includes it'; RemoveInventory = $false }
+            @{ Case = 'the assessed inventory also omits it'; RemoveInventory = $true }
+        ) {
+            $f = New-ReplicaMapFixture
+            Add-ReplicaSchemaFixture $f
+            $a = Invoke-ReplicaMapAssessment $f
+            $path = 'infra/src/config/schemas/discovery.schema.json'
+            if ($RemoveInventory) { $a.copyFiles = @($a.copyFiles | Where-Object { $_ -cne $path }) }
+            $result = Invoke-ReplicaMapContent $f $a -OmitPath $path
+            $result.status | Should -BeExactly 'Failed'
+            @($result.failures | Where-Object { $_.category -ceq 'RequiredCapabilityMissing' -and $_.path -ceq $path }).Count | Should -Be 1
+            if (-not $RemoveInventory) { $result.failures.category | Should -Contain 'MissingFile' }
+        }
+
+        It 'checks the actual staged schema bytes against the assessed output digest' {
+            $f = New-ReplicaMapFixture
+            Add-ReplicaSchemaFixture $f
+            $a = Invoke-ReplicaMapAssessment $f
+            $f.Blobs['infra/src/config/schemas/discovery.schema.json'] = [Text.Encoding]::UTF8.GetBytes('{"type":"string"}')
+            $result = Invoke-ReplicaMapContent $f $a
+            $result.status | Should -BeExactly 'Failed'
+            $result.failures.category | Should -Contain 'Digest'
+        }
+
+        It 'never waives stable markers in a reusable schema at the <Boundary> boundary' -ForEach @(
+            @{ Boundary = 'assessment' }, @{ Boundary = 'content' }
+        ) {
+            $f = New-ReplicaMapFixture
+            $path = 'infra/src/config/schemas/discovery.schema.json'
+            Add-ReplicaSchemaFixture $f
+            Add-ReplicaMarker $f StableId 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+            $f.Manifest.residualDispositions = @([pscustomobject]@{ path = $path; markerId = 'reviewed'; reason = 'Cannot waive a stable schema value.' })
+            if ($Boundary -ceq 'content') { $a = Invoke-ReplicaMapAssessment $f }
+            $f.Blobs[$path] = [Text.Encoding]::UTF8.GetBytes('{"type":"object","description":"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"}')
+            if ($Boundary -ceq 'assessment') {
+                { Invoke-ReplicaMapAssessment $f } | Should -Throw '*TenantStableIdentifier*'
+            }
+            else {
+                $result = Invoke-ReplicaMapContent $f $a
+                $result.status | Should -BeExactly 'Failed'
+                $result.failures.category | Should -Contain 'TenantStableIdentifier'
+            }
+        }
+
+        It 'preserves <Reason> for neighboring payload <Path> despite an exact classification' -ForEach @(
+            @{ Path = 'infra/src/config/schemas/discovery.json'; Reason = 'TenantTransition' }
+            @{ Path = 'infra/src/config/schemas/discovery.tenant2.json'; Reason = 'TenantTransition' }
+            @{ Path = 'infra/src/config/schemas/transition.tenant2.json'; Reason = 'TenantTransition' }
+            @{ Path = 'infra/src/config/schemas/discovery.schema.xml'; Reason = 'TenantTransition' }
+            @{ Path = 'infra/src/config/schemas/discovery.tenant2.schema.json'; Reason = 'TenantTransition' }
+            @{ Path = 'infra/src/config/schemas/discovery.schema.tenant2.json'; Reason = 'TenantTransition' }
+            @{ Path = 'infra/src/config/schemas/transition.json'; Reason = 'TenantTransition' }
+            @{ Path = 'infra/src/config/schemas/tenant2-discovery.json'; Reason = 'TenantTransition' }
+            @{ Path = 'infra/src/config/schemas/discovery/tenant2.schema.json'; Reason = 'TenantTransition' }
+            @{ Path = 'infra/src/config/schemas/evidence/discovery.schema.json'; Reason = 'Evidence' }
+            @{ Path = 'infra/src/config/schemas/backups/discovery.schema.json'; Reason = 'TenantPrivate' }
+            @{ Path = 'infra/src/config/schemas/authentication/discovery.schema.json'; Reason = 'Authentication' }
+            @{ Path = 'infra/src/config/schemas/publication/discovery.schema.json'; Reason = 'Publication' }
+            @{ Path = 'infra/src/config/schemas/provider-output/discovery.schema.json'; Reason = 'ProviderOutput' }
+            @{ Path = 'hr/src/discovery.schema.json'; Reason = 'TenantTransition' }
+            @{ Path = 'unknown/discovery.schema.json'; Reason = 'TenantTransition' }
+            @{ Path = 'unknown/record.schema.json'; Reason = 'AmbiguousArtifact' }
+        ) {
+            $f = New-ReplicaMapFixture
+            Add-ReplicaSchemaFixture $f $Path
+            $a = Invoke-ReplicaMapAssessment $f
+            $a.copyFiles | Should -Not -Contain $Path
+            ($a.exclusions | Where-Object path -CEQ $Path).reason | Should -BeExactly $Reason
+            if ($Reason -ceq 'Evidence') {
+                { Invoke-ReplicaMapContent $f $a -Extra $Path } | Should -Throw '*classifications cannot target data, evidence, or fixture paths*'
+                return
+            }
+            $result = Invoke-ReplicaMapContent $f $a -Extra $Path
+            $result.status | Should -BeExactly 'Failed'
+            $result.failures.category | Should -Contain $Reason
+        }
+
+        It 'binds the real public assessment and plan to committed schema retention for <Profile>' -ForEach @(
+            @{ Profile = 'TenantReplica'; Retained = 6; Denied = 2 }
+            @{ Profile = 'CustomerHandover'; Retained = 4; Denied = 4 }
+        ) {
+            $neutral = New-ReplicaMapFixture
+            Add-ReplicaSchemaFixture $neutral
+            $path = 'infra/src/config/schemas/discovery.schema.json'
+            $f = New-RepositoryAssessmentFixture $Profile
+            $full = Join-Path $f.Source $path.Replace('/', '\')
+            [void][IO.Directory]::CreateDirectory((Split-Path $full -Parent))
+            [IO.File]::WriteAllBytes($full, $neutral.Blobs[$path])
+            $f.Manifest.fileClassifications += @($neutral.Manifest.fileClassifications | Where-Object path -CEQ $path)
+            & $f.Git -C $f.Source add -- $path
+            if ($LASTEXITCODE -ne 0) { throw 'Synthetic schema could not be staged.' }
+            & $f.Git -C $f.Source commit --quiet -m 'Synthetic reusable schema'
+            if ($LASTEXITCODE -ne 0) { throw 'Synthetic schema could not be committed.' }
+            $f.Parameters.ExpectedSourceCommit = (& $f.Git -C $f.Source rev-parse HEAD).Trim()
+            $p = $f.Parameters
+            $reader = & $script:ReplicaModule { ${function:Read-CustomerExportCommitBlob} }
+            $snapshotParameters = @{ RepositoryRoot = $f.Source; GitExecutable = $p.ToolIdentities.Git; NativeCommandRunner = $p.NativeCommandRunner; GitBlobReader = $reader }
+            $before = Get-RunbookContentDigest (Get-CustomerExportSourceSnapshot @snapshotParameters)
+            $a = Get-RepositoryExportAssessment @p
+            $a.retainedFileCount | Should -Be $Retained
+            $a.deniedFileCount | Should -Be $Denied
+            $plan = New-RepositoryExportActionPlan -Assessment $a -Manifest $f.Manifest `
+                -RunId 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee' -EvidenceRoot (Join-Path $f.Root 'proof') -NowUtc ([datetime]'2026-10-25T06:00:00Z')
+            $plan.profile | Should -BeExactly $Profile
+            (Get-RunbookContentDigest (Get-CustomerExportSourceSnapshot @snapshotParameters)) | Should -BeExactly $before
+            Test-Path $p.DestinationRoot | Should -BeFalse
+            Test-Path (Join-Path $f.Root 'proof') | Should -BeFalse
         }
     }
 
