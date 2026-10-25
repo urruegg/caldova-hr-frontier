@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.3 |
+| **Version** | 1.4 |
 | **Date** | 2026-10-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -64,7 +64,19 @@ Task 2 is implemented locally in commits `3435ec89f8ee73a788d232a375480c4fbe86de
 
 Review identified a binary residual-marker bypass. The fix reuses the existing scanner for supported strict UTF-8 binary exceptions and explicitly refuses NUL-bearing or otherwise unsupported inspection; allowlisting or classification never waives marker policy. Scoped re-review passed. Covering tests passed 272 cases on each host, and the related authoritative regression runner passed 346 tests. Final controller checks passed 112 selected Task 2 and binary-boundary tests on each of Windows PowerShell 5.1 and PowerShell 7.6.8 with Pester 5.7.1. A synthetic sparse-checkout fixture was corrected to use an unambiguous file pattern and fail explicitly if setup fails; no source safety check was relaxed.
 
-The plan remains Draft beyond these authorized slices. Tasks 3-6 remain incomplete; the full capability/deny map, new public export entrypoints, independent full-tree validator, pipeline retention, and operational acceptance are not claimed. No real export, destination publication, provider call, or tenant operation was performed. Continue with Task 3 after confirming the then-current source and dependency state.
+This Task 2 checkpoint did not approve the remaining Draft plan or establish public export entrypoints, independent full-tree validation, pipeline retention, or operational acceptance. No real export, destination publication, provider call, or tenant operation was performed. Task 3 was authorized separately and its current disposition follows below.
+
+## Task 3 Implementation Checkpoint
+
+The user authorized continuing with Task 3 on 2026-10-25. The existing isolated branch was clean at `cd4a0ab252abe6ae0b0a55ca76b225cc318d416b`; main remained at the accepted prerequisite commit with successful validation run `40102788190`.
+
+Task 3 is implemented locally in commits `a22e35078b1ae8336ee33b9f5607925f9a654666` and `83a13edfa4cfa16e3bd2523cd7afacfb9744abbf`. The fixed nine-capability and nine-denial map is bound into assessment and rechecked during planning and content validation. Exact required-asset classifications cannot silently lose reusable build capability. Private artifacts, transition/discovery payloads, ambiguous paths, and prohibited stable markers remain excluded or blocked; reusable architectural narrative and exact tenant-neutral synthetic fixtures retain their separately reviewed boundaries.
+
+Review identified that the discovery-payload filename rule also excluded the required reusable [discovery schema](../../infra/src/config/schemas/discovery.schema.json). The correction distinguishes only the two exact reusable discovery/transition schema definitions at the schema root, leaving payload/private-path denials and stable-marker inspection intact. Tests prove required committed and staged schemas cannot disappear, including through inventory tampering. Scoped re-review passed.
+
+The authoritative related regression runner passed 433 tests; documentation validation passed 232 tests. Final controller checks passed all 87 Task 3 retain/deny cases on each of Windows PowerShell 5.1 and PowerShell 7.6.8 with Pester 5.7.1, with no skipped cases. Repository safety, scoped setup, and committed-range whitespace validation passed. All new fixture paths remain within the workstation checkout budget.
+
+The remaining plan stays Draft. Tasks 4-6 remain incomplete. Synthetic pipeline fixtures prove retention rules, not the existence or acceptance of actual Plan 4 assets. No real export, new public export entrypoint, independent full-tree validator, publication, provider call, or tenant operation is claimed. Continue with Task 4 after confirming the then-current source and dependency state.
 
 ## File and Interface Map
 
@@ -201,11 +213,11 @@ git commit -m "refactor(export): share profile assessment and plan" -m "Co-autho
 - Produces `TenantReplica` retained capability groups `ProductSource`, `InfrastructureSource`, `GitHubValidation`, `AzurePipeline`, `InfrastructureTests`, `HrTests`, `ReplacementRunbooks`, `Schemas`, `SyntheticExamples`.
 - Produces denied artifact groups `GitMetadata`, `IgnoredOrUntracked`, `TenantPrivate`, `TenantStableIdentifier`, `TenantTransition`, `Evidence`, `ProviderOutput`, `Authentication`, `Publication`.
 
-- [ ] **Step 1: Write failing positive/negative fixture tests**
+- [x] **Step 1: Write failing positive/negative fixture tests**
 
 Require retained reusable files and reject intent/state/backups, generated parameters, IDs/URLs/account selectors, approvals/evidence, transition manifests/discovery evidence (including Tenant 2), pipeline artifacts, PAC profiles, provider responses, `.git`, hooks/remotes, ambiguous markers, and unexpected files. Test reusable literal “Tenant 1” narrative separately from prohibited stable values.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 powershell.exe -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1 -Force; Invoke-Pester -Path 'infra/tests/pester/RepositoryExportProfiles.Tests.ps1' -FullNameFilter '*TenantReplica retain and deny*' -Output Detailed"
@@ -213,19 +225,19 @@ powershell.exe -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1 
 
 Expected: **FAIL** because the complete map/fixtures do not exist.
 
-- [ ] **Step 3: Implement exact capability and deny maps**
+- [x] **Step 3: Implement exact capability and deny maps**
 
 Use exact paths/path prefixes plus marker dispositions; never global text replacement. Exclude any ambiguous file. Permit a retained file with a source-tenant narrative only when marker policy proves no prohibited stable value remains.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 Run the RED command. Expected: **PASS** for the positive tree and exact blocked reasons for every prohibited fixture.
 
-- [ ] **Step 5: Perform focused review**
+- [x] **Step 5: Perform focused review**
 
 Review the map against tracked repository paths. Confirm private files cannot enter through ignore state, no Tenant 2 transition file is retained, and reusable build capability is not silently removed.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add infra/src/config/runbooks/tenant-replica.sample.json infra/tests/fixtures/runbooks/repository-export infra/tests/pester/RepositoryExportProfiles.Tests.ps1 infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap
