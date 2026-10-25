@@ -103,6 +103,14 @@ function Test-LegacyCustomerExport {
         $result.publishReady = $false
         $result.status = 'Failed'
     }
+    try {
+        Get-RepositoryExportVerifiedTreeDigest -Root $root -Assessment $assessment | Out-Null
+    }
+    catch {
+        $result.failures = @($result.failures) + @([pscustomobject]@{ category = 'FinalTreeVerificationFailed'; path = $null })
+        $result.publishReady = $false
+        $result.status = 'Failed'
+    }
     $post = Get-CustomerExportSourceSnapshot -RepositoryRoot $SourceRoot -GitExecutable $git -NativeCommandRunner $NativeCommandRunner -GitBlobReader $GitBlobReader
     if ((Get-RunbookContentDigest $post) -cne (Get-RunbookContentDigest $snapshot)) { throw 'Source snapshot changed during validation.' }
     $reportRoot = Resolve-RunbookReportPath -RunId ([guid]$executionManifest.runId) -Path $ReportPath -RepositoryRoot $SourceRoot

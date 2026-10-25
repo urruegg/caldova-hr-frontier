@@ -375,17 +375,20 @@ if (-not $proceed) {
     return [pscustomobject]@{ reportPath = $resolvedReportPath; digest = $loadedExecutionManifest.digest; sourceCommit = $assessment.sourceCommit }
 }
 
+$copyState = @{
+    executionPhase = 'NotStarted'; sourceVerification = 'NotChecked'; destinationDisposition = 'NotCreated'
+}
 try {
     $copied = Invoke-RepositoryExportCopy -SourceRoot $SourceRoot -ExpectedSourceCommit $ExpectedSourceCommit `
         -DestinationRoot $DestinationRoot -Manifest $manifest -Assessment $assessment -ExecutionManifest $loadedExecutionManifest `
         -SourceSnapshot $sourceSnapshot -ToolIdentities $toolIdentities -NativeCommandRunner $NativeCommandRunner `
-        -GitBlobReader $GitBlobReader -ValidationRunner $ValidationRunner
+        -GitBlobReader $GitBlobReader -ValidationRunner $ValidationRunner -ExecutionState $copyState
     $evidence = ConvertTo-RunbookEvidenceRecord -RunId ([guid]$loadedExecutionManifest.runId) `
         -GeneratedAtUtc $NowUtc -SourceCommit $assessment.sourceCommit -AssessmentDigest $assessment.digest `
         -PlanDigest $loadedExecutionManifest.digest -ManifestDigest $manifestDigest -OperatorId $operatorId `
         -Operation 'CreateCustomerRepositoryExport' -Classification Create -Status Verified `
         -ShouldProcessDecision Approved -TargetId $assessment.destinationStableId `
-        -ToolVersions $evidenceToolVersions -FinalContext ([pscustomobject]@{ status = 'SourceSnapshotMatched' })
+        -ToolVersions $evidenceToolVersions -FinalContext (Get-RepositoryExportCopyFinalContext -ExecutionState $copyState)
     Write-CanonicalJson -InputObject $evidence -Path (Join-Path $resolvedReportPath 'customer-export-evidence.json') -Replace | Out-Null
     return [pscustomobject]@{
         reportPath = $resolvedReportPath
@@ -396,13 +399,19 @@ try {
     }
 }
 catch {
+    $finalContext = Get-RepositoryExportCopyFinalContext -ExecutionState $copyState -Failed
+    $category = 'ExportValidationFailed'
+    if ($finalContext.sourceVerification -cin @('Mismatch', 'Unavailable')) {
+        $category = if ($finalContext.executionPhase -ceq 'AfterPromotion') {
+            'SourceVerificationAfterPromotionFailed'
+        } else { 'SourceVerificationFailed' }
+    }
     $evidence = ConvertTo-RunbookEvidenceRecord -RunId ([guid]$loadedExecutionManifest.runId) `
         -GeneratedAtUtc $NowUtc -SourceCommit $assessment.sourceCommit -AssessmentDigest $assessment.digest `
         -PlanDigest $loadedExecutionManifest.digest -ManifestDigest $manifestDigest -OperatorId $operatorId `
         -Operation 'CreateCustomerRepositoryExport' -Classification Create -Status Failed `
         -ShouldProcessDecision Approved -TargetId $assessment.destinationStableId `
-        -ToolVersions $evidenceToolVersions -FinalContext ([pscustomobject]@{ status = 'SourceSnapshotMatched' }) `
-        -ErrorCategory 'ExportValidationFailed'
+        -ToolVersions $evidenceToolVersions -FinalContext $finalContext -ErrorCategory $category
     Write-CanonicalJson -InputObject $evidence -Path (Join-Path $resolvedReportPath 'customer-export-evidence.json') -Replace | Out-Null
     throw
 }

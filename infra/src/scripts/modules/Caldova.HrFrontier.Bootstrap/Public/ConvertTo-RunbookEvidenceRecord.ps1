@@ -141,11 +141,23 @@ function ConvertTo-RunbookEvidenceRecord {
         'executionHost', 'principalId', 'accountId', 'tenantId', 'subscriptionId',
         'githubHost', 'githubLogin', 'githubRepositoryId', 'azureDevOpsOrganizationUrl',
         'azureDevOpsActingUserId', 'azureDevOpsProjectId', 'powerPlatformProfileName',
-        'powerPlatformEnvironmentId', 'status', 'stages'
+        'powerPlatformEnvironmentId', 'status', 'stages',
+        'executionPhase', 'sourceVerification', 'destinationDisposition'
     )
     $safeFinalContext = $null
     if ($null -ne $FinalContext) {
         Assert-RunbookEvidencePropertyNames -InputObject $FinalContext -Allowed $finalAllowed
+        $exportProvenance = @{
+            executionPhase = @('NotStarted', 'BeforeStaging', 'Staging', 'BeforePromotion', 'AfterPromotion')
+            sourceVerification = @('NotChecked', 'Matched', 'Mismatch', 'Unavailable')
+            destinationDisposition = @('NotCreated', 'UnacceptedRequiresReview', 'PromotedPendingIndependent')
+        }
+        foreach ($field in $exportProvenance.Keys) {
+            if ((Get-RunbookObjectPropertyNames -InputObject $FinalContext) -contains $field -and
+                ($FinalContext.$field -isnot [string] -or $FinalContext.$field -cnotin $exportProvenance[$field])) {
+                throw 'Evidence export provenance must use an allowlisted token.'
+            }
+        }
         $safeFinalContext = [ordered]@{}
         foreach ($name in $finalAllowed | Where-Object { $_ -ne 'stages' }) {
             if ((Get-RunbookObjectPropertyNames -InputObject $FinalContext) -contains $name) {

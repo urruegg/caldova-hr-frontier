@@ -206,6 +206,35 @@ Describe 'Shared runbook output contracts' {
                 Should -Throw '*prohibited evidence field*'
         }
 
+        It 'preserves closed export provenance tokens and rejects private or nested substitutes' {
+            $common = @{
+                RunId = [guid]::NewGuid(); GeneratedAtUtc = [datetime]'2026-10-25T05:00:00Z'
+                SourceCommit = ('a' * 40); AssessmentDigest = ('b' * 64)
+                OperatorId = 'synthetic-operator'; ShouldProcessDecision = 'Approved'
+                Operation = 'CreateCustomerRepositoryExport'; Classification = 'Create'; Status = 'Failed'
+            }
+            $context = [pscustomobject]@{
+                status = 'PromotedUnaccepted'; executionPhase = 'AfterPromotion'
+                sourceVerification = 'Unavailable'; destinationDisposition = 'UnacceptedRequiresReview'
+            }
+            $record = ConvertTo-RunbookEvidenceRecord @common -FinalContext $context
+            $record.finalContext.executionPhase | Should -Be 'AfterPromotion'
+            $record.finalContext.sourceVerification | Should -Be 'Unavailable'
+            $record.finalContext.destinationDisposition | Should -Be 'UnacceptedRequiresReview'
+            foreach ($field in @('executionPhase', 'sourceVerification', 'destinationDisposition')) {
+                $old = $context.$field
+                foreach ($bad in @('C:\private-coordinate', 'https://private.example.invalid', @{ payload = 'private' }, 'afterpromotion')) {
+                    $context.$field = $bad
+                    { ConvertTo-RunbookEvidenceRecord @common -FinalContext $context } | Should -Throw
+                }
+                $context.$field = $old
+            }
+            foreach ($field in @('ExecutionPhase', 'SourceVerification', 'DestinationDisposition')) {
+                $alias = [pscustomobject]@{ $field = 'C:\private-coordinate' }
+                { ConvertTo-RunbookEvidenceRecord @common -FinalContext $alias } | Should -Throw
+            }
+        }
+
         It 'requires resource and stage collections to be arrays' {
             $common = @{
                 RunId = [guid]::NewGuid()

@@ -239,6 +239,186 @@ function script:Get-ApprovedGitPath {
     throw 'git.exe is required for production-default customer export tests.'
 }
 
+function script:New-LegacyVerificationCase {
+    $f = New-CustomerExportFixture
+    $common = @{
+        SourceRoot = $f.Source; ExpectedSourceCommit = $f.ExpectedSourceCommit
+        DestinationRoot = $f.Destination; ManifestPath = $f.ManifestPath
+        NativeCommandRunner = $f.NativeCommandRunner; CommandResolver = $f.CommandResolver
+        FileIdentityProvider = $f.FileIdentityProvider; GitBlobReader = $f.GitBlobReader
+        ValidationRunner = $f.ValidationRunner; InteractiveHostProbe = $f.InteractiveHostProbe
+        PlatformProbe = $f.PlatformProbe; OperatorIdProvider = $f.OperatorIdProvider
+    }
+    & $global:CustomerExportEntryPath @common -ReportPath $f.Report | Out-Null
+    $execution = Join-Path $f.Report 'customer-export-execution-manifest.json'
+    $common.ExecutionManifestPath = $execution
+    $common.ApprovedDigest = (Get-Content -Raw $execution | ConvertFrom-Json).digest
+    [pscustomobject]@{ Fixture = $f; Common = $common }
+}
+
+Describe 'Legacy final verification regressions' {
+    It 'refuses successful suites that introduce <Case> without repairing the destination' -ForEach @(
+        @{ Case = 'byte tamper' }
+        @{ Case = 'added file' }
+        @{ Case = 'empty directory' }
+        @{ Case = 'ordinal file drift' }
+        @{ Case = 'ordinal directory drift' }
+        @{ Case = 'hardlink' }
+        @{ Case = 'junction' }
+        @{ Case = 'symlink' }
+    ) {
+        $c = New-LegacyVerificationCase
+        $f = $c.Fixture
+        $p = $c.Common
+        & $global:CustomerExportEntryPath @p -ReportPath $f.Report -Apply -Confirm:$false | Out-Null
+        $report = Join-Path (Split-Path $f.Report -Parent) 'tamper-validation'
+        $outside = Join-Path (Split-Path $f.Report -Parent) 'outside'
+        [void][IO.Directory]::CreateDirectory($outside)
+        $sentinel = Join-Path $outside 'sentinel.md'
+        [IO.File]::WriteAllText($sentinel, 'synthetic-external-sentinel')
+        if ($Case -ceq 'symlink') {
+            $probe = Join-Path $outside 'link-probe'
+            try { New-Item -ItemType SymbolicLink -Path $probe -Target $sentinel -ErrorAction Stop | Out-Null }
+            catch { Set-ItResult -Skipped -Because 'File symbolic links are unavailable without workstation privilege.'; return }
+            [IO.File]::Delete($probe)
+        }
+        $state = @{ calls = 0 }
+        $runner = {
+            param($id, $file, $arguments, $root)
+            $state.calls++
+            if ($state.calls -eq 1) {
+                switch -CaseSensitive ($Case) {
+                    'byte tamper' { [IO.File]::AppendAllText((Join-Path $root 'README.md'), 'unreviewed') }
+                    'added file' { [IO.File]::WriteAllText((Join-Path $root 'unexpected.md'), 'unreviewed') }
+                    'empty directory' { [void][IO.Directory]::CreateDirectory((Join-Path $root 'unexpected')) }
+                    'ordinal file drift' {
+                        [IO.File]::Move((Join-Path $root 'README.md'), (Join-Path $root 'rename.md'))
+                        [IO.File]::Move((Join-Path $root 'rename.md'), (Join-Path $root 'readme.md'))
+                    }
+                    'ordinal directory drift' {
+                        [IO.Directory]::Move((Join-Path $root 'infra'), (Join-Path $root 'rename'))
+                        [IO.Directory]::Move((Join-Path $root 'rename'), (Join-Path $root 'Infra'))
+                    }
+                    'hardlink' {
+                        $target = Join-Path $root 'README.md'
+                        [IO.File]::WriteAllBytes($sentinel, [IO.File]::ReadAllBytes($target))
+                        [IO.File]::Delete($target)
+                        New-Item -ItemType HardLink -Path $target -Target $sentinel | Out-Null
+                    }
+                    'junction' { New-Item -ItemType Junction -Path (Join-Path $root 'unexpected') -Target $outside | Out-Null }
+                    'symlink' {
+                        $target = Join-Path $root 'README.md'
+                        [IO.File]::WriteAllBytes($sentinel, [IO.File]::ReadAllBytes($target))
+                        [IO.File]::Delete($target)
+                        New-Item -ItemType SymbolicLink -Path $target -Target $sentinel | Out-Null
+                    }
+                }
+            }
+            [pscustomobject]@{ suite = $id; executablePath = $file; exitCode = 0 }
+        }.GetNewClosure()
+        $p.ValidationRunner = $runner
+        $sourceHash = (Get-FileHash (Join-Path $f.Source '.git\index')).Hash
+        { & $global:CustomerExportValidatorPath @p -ReportPath $report } | Should -Throw '*publish-ready*'
+        $result = Get-Content -Raw (Join-Path $report 'customer-export-validation.json') | ConvertFrom-Json
+        $result.publishReady | Should -BeFalse
+        $result.status | Should -Be 'Failed'
+        @($result.failures | Where-Object category -CEQ 'FinalTreeVerificationFailed').Count | Should -Be 1
+        $evidence = Get-Content -Raw (Join-Path $report 'customer-export-validation-evidence.json') | ConvertFrom-Json
+        $evidence.status | Should -Be 'Failed'
+        $state.calls | Should -Be 3
+        Test-Path $f.Destination | Should -BeTrue
+        (Get-FileHash (Join-Path $f.Source '.git\index')).Hash | Should -Be $sourceHash
+        switch -CaseSensitive ($Case) {
+            'byte tamper' { [IO.File]::ReadAllText((Join-Path $f.Destination 'README.md')) | Should -Match 'unreviewed$' }
+            'added file' { Test-Path (Join-Path $f.Destination 'unexpected.md') | Should -BeTrue }
+            'empty directory' { Test-Path (Join-Path $f.Destination 'unexpected') | Should -BeTrue }
+            'ordinal file drift' { (Get-Item (Join-Path $f.Destination 'readme.md')).Name | Should -BeExactly 'readme.md' }
+            'ordinal directory drift' { (Get-Item (Join-Path $f.Destination 'Infra')).Name | Should -BeExactly 'Infra' }
+            'hardlink' { (Get-Item (Join-Path $f.Destination 'README.md')).LinkType | Should -Be 'HardLink' }
+            'junction' { (Get-Item (Join-Path $f.Destination 'unexpected')).Attributes -band [IO.FileAttributes]::ReparsePoint | Should -Not -Be 0 }
+            'symlink' { (Get-Item (Join-Path $f.Destination 'README.md')).LinkType | Should -Be 'SymbolicLink' }
+        }
+        Test-Path $sentinel | Should -BeTrue
+    }
+}
+
+Describe 'Legacy source failure evidence regressions' {
+    It 'records actual <Outcome> at <Phase> without serializing private exception data' -ForEach @(
+        @{ Phase = 'BeforeStaging'; Snapshot = 2; Outcome = 'Mismatch'; Promoted = $false }
+        @{ Phase = 'BeforeStaging'; Snapshot = 2; Outcome = 'Unavailable'; Promoted = $false }
+        @{ Phase = 'Staging'; Snapshot = 3; Outcome = 'Mismatch'; Promoted = $false }
+        @{ Phase = 'Staging'; Snapshot = 3; Outcome = 'Unavailable'; Promoted = $false }
+        @{ Phase = 'BeforePromotion'; Snapshot = 4; Outcome = 'Mismatch'; Promoted = $false }
+        @{ Phase = 'BeforePromotion'; Snapshot = 4; Outcome = 'Unavailable'; Promoted = $false }
+        @{ Phase = 'AfterPromotion'; Snapshot = 5; Outcome = 'Mismatch'; Promoted = $true }
+        @{ Phase = 'AfterPromotion'; Snapshot = 5; Outcome = 'Unavailable'; Promoted = $true }
+    ) {
+        $c = New-LegacyVerificationCase
+        $f = $c.Fixture
+        $p = $c.Common
+        $native = $f.NativeCommandRunner
+        $state = @{ snapshots = 0 }
+        $runner = {
+            param($file, $arguments)
+            $text = $arguments -join ' '
+            if ($text -match 'status --porcelain') {
+                $state.snapshots++
+                if ($state.snapshots -eq $Snapshot -and $Outcome -ceq 'Unavailable') {
+                    $error = [InvalidOperationException]::new('C:\private-source\payload https://private.example.invalid synthetic-secret')
+                    $error.Data['executionPhase'] = 'AfterPromotion'
+                    $error.Data['sourceVerification'] = @{ payload = 'synthetic-private-payload' }
+                    throw $error
+                }
+            }
+            if ($state.snapshots -eq $Snapshot -and $Outcome -ceq 'Mismatch' -and $text -match 'config --local --list --null') {
+                return [pscustomobject]@{ exitCode = 0; stdout = "synthetic.drift=true$([char]0)"; stderr = '' }
+            }
+            & $native $file $arguments
+        }.GetNewClosure()
+        $p.NativeCommandRunner = $runner
+        { & $global:CustomerExportEntryPath @p -ReportPath $f.Report -Apply -Confirm:$false } | Should -Throw
+        $json = Get-Content -Raw (Join-Path $f.Report 'customer-export-evidence.json')
+        $e = $json | ConvertFrom-Json
+        $e.status | Should -Be 'Failed'
+        $e.finalContext.status | Should -Be $(if ($Promoted) { 'PromotedUnaccepted' } else { 'ExportFailed' })
+        $e.finalContext.sourceVerification | Should -Be $Outcome
+        $e.finalContext.executionPhase | Should -Be $Phase
+        $e.finalContext.destinationDisposition | Should -Be $(if ($Promoted) { 'UnacceptedRequiresReview' } else { 'NotCreated' })
+        $e.errorCategory | Should -Be $(if ($Promoted) { 'SourceVerificationAfterPromotionFailed' } else { 'SourceVerificationFailed' })
+        @($e.finalContext.PSObject.Properties.Name).Count | Should -Be 4
+        $json | Should -Not -Match 'private-source|private\.example|synthetic-secret|synthetic-private-payload'
+        $json | Should -Not -Match ([regex]::Escape($f.Source))
+        $json | Should -Not -Match ([regex]::Escape($f.Destination))
+        Test-Path $f.Destination | Should -Be $Promoted
+        @(Get-ChildItem (Split-Path $f.Destination -Parent) -Force -Filter '.customer-export-*').Count | Should -Be 0
+        if ($Promoted) { [IO.File]::ReadAllText((Join-Path $f.Destination 'README.md')) | Should -Match 'Customer Example Organization' }
+    }
+
+    It 'does not accept forged phase or source provenance from a suite exception' {
+        $c = New-LegacyVerificationCase
+        $f = $c.Fixture
+        $p = $c.Common
+        $p.ValidationRunner = {
+            $error = [InvalidOperationException]::new('synthetic-private-payload')
+            $error.Data['executionPhase'] = 'AfterPromotion'
+            $error.Data['sourceVerification'] = @{ payload = 'synthetic-private-payload' }
+            throw $error
+        }
+        { & $global:CustomerExportEntryPath @p -ReportPath $f.Report -Apply -Confirm:$false } | Should -Throw
+        $json = Get-Content -Raw (Join-Path $f.Report 'customer-export-evidence.json')
+        $e = $json | ConvertFrom-Json
+        $e.status | Should -Be 'Failed'
+        $e.finalContext.status | Should -Be 'ExportFailed'
+        $e.finalContext.executionPhase | Should -Be 'Staging'
+        $e.finalContext.sourceVerification | Should -Be 'Matched'
+        $e.finalContext.destinationDisposition | Should -Be 'NotCreated'
+        $e.errorCategory | Should -Be 'ExportValidationFailed'
+        $json | Should -Not -Match 'synthetic-private-payload'
+        Test-Path $f.Destination | Should -BeFalse
+        @(Get-ChildItem (Split-Path $f.Destination -Parent) -Force -Filter '.customer-export-*').Count | Should -Be 0
+    }
+}
+
 Describe 'Customer assessment compatibility boundary' {
     BeforeAll {
         Import-Module (Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1') -Force

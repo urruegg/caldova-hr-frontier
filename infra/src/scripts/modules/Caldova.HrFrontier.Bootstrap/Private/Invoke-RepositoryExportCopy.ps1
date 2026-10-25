@@ -18,6 +18,81 @@ function Assert-RepositoryExportTree {
     }
 }
 
+function Get-RepositoryExportVerifiedTreeDigest {
+    param([Parameter(Mandatory)][string]$Root, [Parameter(Mandatory)][object]$Assessment)
+    Assert-RepositoryExportTree -Root $Root
+    $files = @(Get-ChildItem -LiteralPath $Root -Recurse -File -Force)
+    if ($files.Count -ne @($Assessment.copyFiles).Count) { throw 'Repository export validation changed the inventory.' }
+    $expectedFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($path in $Assessment.copyFiles) { [void]$expectedFiles.Add($path) }
+    foreach ($file in $files) {
+        if (-not $expectedFiles.Contains((Get-RunbookRelativePath -Root $Root -Path $file.FullName))) {
+            throw 'Repository export validation changed the path inventory.'
+        }
+    }
+    $tree = [ordered]@{}
+    $directories = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($path in $Assessment.copyFiles) {
+        $target = Join-Path $Root $path.Replace('/', '\')
+        $directory = Split-Path $target -Parent
+        while ($directory -cne $Root) {
+            [void]$directories.Add($directory)
+            $directory = Split-Path $directory -Parent
+        }
+        if (-not (Test-Path -LiteralPath $target -PathType Leaf) -or
+            (Get-CustomerExportFileDigest -Path $target) -cne [string]$Assessment.fileDigests.$path.expectedOutputSha256) {
+            throw 'Repository export validation changed expected bytes.'
+        }
+        $tree[$path] = $Assessment.fileDigests.$path.expectedOutputSha256
+    }
+    foreach ($directory in Get-ChildItem -LiteralPath $Root -Recurse -Directory -Force) {
+        if (-not $directories.Contains($directory.FullName)) { throw 'Repository export validation changed the directory inventory.' }
+    }
+    Get-RunbookContentDigest $tree
+}
+
+function Get-RepositoryExportVerifiedSourceSnapshot {
+    param(
+        [string]$SourceRoot, [object]$Git, [scriptblock]$NativeCommandRunner,
+        [scriptblock]$GitBlobReader, [string]$SnapshotDigest, [hashtable]$ExecutionState
+    )
+    $ExecutionState.sourceVerification = 'Unavailable'
+    $snapshot = Get-CustomerExportSourceSnapshot -RepositoryRoot $SourceRoot -GitExecutable $Git `
+        -NativeCommandRunner $NativeCommandRunner -GitBlobReader $GitBlobReader
+    if ($SnapshotDigest -cne (Get-RunbookContentDigest $snapshot)) {
+        $ExecutionState.sourceVerification = 'Mismatch'
+        throw 'Source snapshot changed during export; any promoted destination is unaccepted and requires human review.'
+    }
+    $ExecutionState.sourceVerification = 'Matched'
+    $snapshot
+}
+
+function Get-RepositoryExportCopyFinalContext {
+    param([Parameter(Mandatory)][hashtable]$ExecutionState, [switch]$Failed)
+    $allowed = @{
+        executionPhase = @('NotStarted', 'BeforeStaging', 'Staging', 'BeforePromotion', 'AfterPromotion')
+        sourceVerification = @('NotChecked', 'Matched', 'Mismatch', 'Unavailable')
+        destinationDisposition = @('NotCreated', 'UnacceptedRequiresReview', 'PromotedPendingIndependent')
+    }
+    foreach ($field in $allowed.Keys) {
+        if ($ExecutionState[$field] -isnot [string] -or $ExecutionState[$field] -cnotin $allowed[$field]) {
+            throw 'Repository export provenance is invalid.'
+        }
+    }
+    if (-not $Failed -and ($ExecutionState.executionPhase -cne 'AfterPromotion' -or
+        $ExecutionState.sourceVerification -cne 'Matched' -or
+        $ExecutionState.destinationDisposition -cne 'PromotedPendingIndependent')) {
+        throw 'Repository export completion provenance is unverified.'
+    }
+    $promoted = $ExecutionState.destinationDisposition -cne 'NotCreated'
+    [pscustomobject]@{
+        status = if ($Failed) { if ($promoted) { 'PromotedUnaccepted' } else { 'ExportFailed' } } else { 'SourceSnapshotMatched' }
+        executionPhase = $ExecutionState.executionPhase
+        sourceVerification = $ExecutionState.sourceVerification
+        destinationDisposition = if ($Failed -and $promoted) { 'UnacceptedRequiresReview' } else { $ExecutionState.destinationDisposition }
+    }
+}
+
 function Remove-RepositoryExportOwnedTree {
     param([Parameter(Mandatory)][string]$Root)
     Assert-RepositoryExportLocalPath -Path (Split-Path $Root -Parent)
@@ -52,8 +127,12 @@ function Invoke-RepositoryExportCopy {
         [Parameter(Mandatory)][scriptblock]$NativeCommandRunner,
         [Parameter(Mandatory)][scriptblock]$GitBlobReader,
         [Parameter(Mandatory)][scriptblock]$ValidationRunner,
-        [object]$BoundInputs
+        [object]$BoundInputs,
+        [hashtable]$ExecutionState = @{}
     )
+    $ExecutionState.executionPhase = 'BeforeStaging'
+    $ExecutionState.sourceVerification = 'NotChecked'
+    $ExecutionState.destinationDisposition = 'NotCreated'
     Assert-RepositoryExportLocalPath -Path $DestinationRoot
     if (Test-Path -LiteralPath $DestinationRoot) { throw 'Repository export destination must not already exist.' }
     $parent = Split-Path -Parent ([IO.Path]::GetFullPath($DestinationRoot))
@@ -66,11 +145,11 @@ function Invoke-RepositoryExportCopy {
     $snapshotDigest = Get-RunbookContentDigest -InputObject $SourceSnapshot
     try {
         if ($null -ne $BoundInputs) { Assert-RepositoryExportApplyBinding -Binding $BoundInputs }
-        $current = Get-CustomerExportSourceSnapshot -RepositoryRoot $SourceRoot -GitExecutable $git `
-            -NativeCommandRunner $NativeCommandRunner -GitBlobReader $GitBlobReader
-        if ($snapshotDigest -cne (Get-RunbookContentDigest $current)) { throw 'Source snapshot changed before staging.' }
+        $current = Get-RepositoryExportVerifiedSourceSnapshot -SourceRoot $SourceRoot -Git $git `
+            -NativeCommandRunner $NativeCommandRunner -GitBlobReader $GitBlobReader -SnapshotDigest $snapshotDigest -ExecutionState $ExecutionState
         [void][IO.Directory]::CreateDirectory($disposable)
         $owned = $true
+        $ExecutionState.executionPhase = 'Staging'
         foreach ($path in @($Assessment.copyFiles | Sort-Object)) {
             [byte[]]$bytes = @(& $GitBlobReader $git.path $SourceRoot $ExpectedSourceCommit.ToLowerInvariant() $path)
             if ((Get-CustomerExportSha256 -Bytes $bytes) -cne [string]$Assessment.fileDigests.$path.sourceBlobSha256) {
@@ -94,53 +173,27 @@ function Invoke-RepositoryExportCopy {
             [IO.File]::WriteAllBytes($target, $converted.bytes)
             foreach ($entry in @($converted.replacementLog)) { $log.Add($entry) }
         }
-        $post = Get-CustomerExportSourceSnapshot -RepositoryRoot $SourceRoot -GitExecutable $git `
-            -NativeCommandRunner $NativeCommandRunner -GitBlobReader $GitBlobReader
-        if ($snapshotDigest -cne (Get-RunbookContentDigest -InputObject $post)) { throw 'Source snapshot changed during export.' }
+        $post = Get-RepositoryExportVerifiedSourceSnapshot -SourceRoot $SourceRoot -Git $git `
+            -NativeCommandRunner $NativeCommandRunner -GitBlobReader $GitBlobReader -SnapshotDigest $snapshotDigest -ExecutionState $ExecutionState
         Assert-RepositoryExportTree -Root $disposable
         $validation = Test-CustomerExportContent -StagingRoot $disposable -Manifest $Manifest -Assessment $Assessment `
             -ExecutionManifest $ExecutionManifest -CurrentSourceSnapshot $post -ReplacementLog @($log) -ValidationRunner $ValidationRunner
         if (-not $validation.publishReady) { throw 'Repository export validation failed.' }
         # A validation runner can write files: recheck the complete bytes and boundary before promotion.
-        Assert-RepositoryExportTree -Root $disposable
-        $files = @(Get-ChildItem -LiteralPath $disposable -Recurse -File -Force)
-        if ($files.Count -ne @($Assessment.copyFiles).Count) { throw 'Repository export validation changed the inventory.' }
-        $expectedFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-        foreach ($path in $Assessment.copyFiles) { [void]$expectedFiles.Add($path) }
-        foreach ($file in $files) {
-            if (-not $expectedFiles.Contains((Get-RunbookRelativePath -Root $disposable -Path $file.FullName))) {
-                throw 'Repository export validation changed the path inventory.'
-            }
-        }
-        $tree = [ordered]@{}
-        $directories = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-        foreach ($path in $Assessment.copyFiles) {
-            $target = Join-Path $disposable $path.Replace('/', '\')
-            $directory = Split-Path $target -Parent
-            while ($directory -cne $disposable) {
-                [void]$directories.Add($directory)
-                $directory = Split-Path $directory -Parent
-            }
-            if (-not (Test-Path -LiteralPath $target -PathType Leaf) -or
-                (Get-CustomerExportFileDigest -Path $target) -cne [string]$Assessment.fileDigests.$path.expectedOutputSha256) {
-                throw 'Repository export validation changed expected bytes.'
-            }
-            $tree[$path] = $Assessment.fileDigests.$path.expectedOutputSha256
-        }
-        foreach ($directory in Get-ChildItem -LiteralPath $disposable -Recurse -Directory -Force) {
-            if (-not $directories.Contains($directory.FullName)) { throw 'Repository export validation changed the directory inventory.' }
-        }
-        $post = Get-CustomerExportSourceSnapshot -RepositoryRoot $SourceRoot -GitExecutable $git `
-            -NativeCommandRunner $NativeCommandRunner -GitBlobReader $GitBlobReader
-        if ($snapshotDigest -cne (Get-RunbookContentDigest -InputObject $post)) { throw 'Source snapshot changed during export.' }
+        $ExecutionState.executionPhase = 'BeforePromotion'
+        $treeDigest = Get-RepositoryExportVerifiedTreeDigest -Root $disposable -Assessment $Assessment
+        $post = Get-RepositoryExportVerifiedSourceSnapshot -SourceRoot $SourceRoot -Git $git `
+            -NativeCommandRunner $NativeCommandRunner -GitBlobReader $GitBlobReader -SnapshotDigest $snapshotDigest -ExecutionState $ExecutionState
         Assert-RepositoryExportLocalPath -Path $DestinationRoot
         if (Test-Path -LiteralPath $DestinationRoot) { throw 'Repository export destination must not already exist.' }
         if ($null -ne $BoundInputs) { Assert-RepositoryExportApplyBinding -Binding $BoundInputs }
         [IO.Directory]::Move($disposable, [IO.Path]::GetFullPath($DestinationRoot))
-        $final = Get-CustomerExportSourceSnapshot -RepositoryRoot $SourceRoot -GitExecutable $git `
-            -NativeCommandRunner $NativeCommandRunner -GitBlobReader $GitBlobReader
-        if ($snapshotDigest -cne (Get-RunbookContentDigest -InputObject $final)) { throw 'Source snapshot changed after promotion; destination requires review.' }
-        [pscustomobject]@{ replacementLog = @($log); contentTreeDigest = Get-RunbookContentDigest $tree }
+        $ExecutionState.executionPhase = 'AfterPromotion'
+        $ExecutionState.destinationDisposition = 'UnacceptedRequiresReview'
+        $final = Get-RepositoryExportVerifiedSourceSnapshot -SourceRoot $SourceRoot -Git $git `
+            -NativeCommandRunner $NativeCommandRunner -GitBlobReader $GitBlobReader -SnapshotDigest $snapshotDigest -ExecutionState $ExecutionState
+        $ExecutionState.destinationDisposition = 'PromotedPendingIndependent'
+        [pscustomobject]@{ replacementLog = @($log); contentTreeDigest = $treeDigest }
     }
     finally {
         if ($owned -and (Test-Path -LiteralPath $disposable)) {

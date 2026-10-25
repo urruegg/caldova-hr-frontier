@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.11 |
+| **Version** | 1.12 |
 | **Date** | 2026-10-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -294,6 +294,9 @@ After review, use the same explicit arguments with
 execution authority, `Invoke-RepositoryExport.ps1 -Apply`. `ShouldProcess`
 remains mandatory. Missing approval, WhatIf, declined confirmation, binding
 drift, and failed validation leave no destination or owned disposable staging.
+This no-destination guarantee covers failures before promotion. A source
+verification failure after the atomic move leaves an **unaccepted destination
+for human review**, never an accepted export or an automatic repair.
 Copy uses only proven regular blobs from the exact commit; transformations
 run in memory. Staged content, bytes, source snapshots, and bound inputs are
 rechecked before an atomic directory move, including ordinal file/directory
@@ -437,6 +440,14 @@ Run independent validation before any human publication review:
 
 Independent validation rereads every original blob from the exact approved commit, reapplies the reviewed rules in memory, and compares the complete expected bytes with staging. It does not trust fields already changed in staging. It writes `customer-export-validation.json` and `customer-export-validation-evidence.json`. Any mismatch requires a new assessment and approval rather than `-Force`.
 
+After all suites return, the historical validator uses the same non-mutating
+final-tree verifier as Apply: exact expected bytes, ordinal file and directory
+inventories, no unexpected empty directories, Git metadata, hardlinks, or
+reparse/symbolic links. It neither reruns suites nor trusts their prior result,
+replacement log, or metadata as proof of those final bytes. A final-tree
+failure records `FinalTreeVerificationFailed` and cannot return `publishReady`.
+The validator never repairs, removes, or rewrites an existing destination.
+
 ## Human review
 
 Human review inspects the staged export together with the redacted reports. Confirm that the export contains no `.git` path, no `.github/workflows` path, no denied tenant artifact, and no unexpected data or evidence path. Review the exact staged Markdown and JSON output that the reviewed manifest intended to change. Validation success alone does not authorize publication.
@@ -449,9 +460,33 @@ These scripts do not authenticate to a publication remote, create a remote, add 
 
 The report directory may contain `customer-export-assessment.json`, `customer-export-execution-manifest.json`, `customer-export-evidence.json`, `customer-export-validation.json`, and `customer-export-validation-evidence.json`. Evidence contains only non-secret provenance, digests, counts, statuses, and reviewed identifiers needed for read-back. It never stores tokens, PATs, secrets, raw connection strings, or remote publication targets.
 
+Historical Apply evidence records the engine's actual `executionPhase`
+(`NotStarted`, `BeforeStaging`, `Staging`, `BeforePromotion`, or
+`AfterPromotion`), `sourceVerification` (`NotChecked`, `Matched`, `Mismatch`,
+or `Unavailable`), and `destinationDisposition` (`NotCreated`,
+`UnacceptedRequiresReview`, or `PromotedPendingIndependent`) in `finalContext`.
+These are closed non-secret tokens, not exception fields or private coordinates.
+Source verification describes the last attempted snapshot comparison; on a
+failure, `Matched` means only that the last completed comparison matched, not
+that a later failure or the destination was accepted. An unreadable or incomplete
+snapshot is `Unavailable`, never a match. `NotCreated` means this engine has not
+promoted a destination; it is not inferred from whether a path happens to exist.
+
+Failed Apply uses overall `Failed` with context status `ExportFailed` before
+promotion or `PromotedUnaccepted` after promotion. Source comparison failures
+use `SourceVerificationFailed`, or `SourceVerificationAfterPromotionFailed`
+after the move, rather than the generic `ExportValidationFailed`. The engine
+tracks the move directly; it does not infer promotion from `Test-Path`.
+No nested exception data or raw diagnostic output enters these records.
+
 ## Failure and recovery
 
 Failure leaves the source untouched and does not produce a publish-ready destination. The only removable path is the explicitly named disposable or customer staging directory after a human path review. Any restart, failed validation, digest mismatch, executable-identity change, residual detection, or source-state change requires a new assessment, manifest, and approval. Prior evidence is preserved but cannot resume an approval bound to the earlier process session. Recovery never broadens scope and never treats a failed or manual item as verified.
+
+Automatic cleanup is limited to the exact owned disposable staging tree and
+does not follow reparse targets. After promotion, a failed or unavailable source
+snapshot leaves the destination unaccepted for human review. Neither source nor
+destination is repaired or deleted automatically.
 
 ## Definition of Done
 
