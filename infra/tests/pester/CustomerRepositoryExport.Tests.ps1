@@ -279,7 +279,18 @@ Describe 'Legacy final verification regressions' {
         if ($Case -ceq 'symlink') {
             $probe = Join-Path $outside 'link-probe'
             try { New-Item -ItemType SymbolicLink -Path $probe -Target $sentinel -ErrorAction Stop | Out-Null }
-            catch { Set-ItResult -Skipped -Because 'File symbolic links are unavailable without workstation privilege.'; return }
+            catch {
+                $nativeError = $_.Exception
+                while ($null -ne $nativeError -and $nativeError -isnot [ComponentModel.Win32Exception]) {
+                    $nativeError = $nativeError.InnerException
+                }
+                if ($_.FullyQualifiedErrorId -cne 'NewItemSymbolicLinkElevationRequired,Microsoft.PowerShell.Commands.NewItemCommand' -or
+                    $null -eq $nativeError -or $nativeError.NativeErrorCode -ne 1314) {
+                    throw
+                }
+                Set-ItResult -Skipped -Because 'File symbolic links require unavailable workstation privilege (Windows error 1314).'
+                return
+            }
             [IO.File]::Delete($probe)
         }
         $state = @{ calls = 0 }

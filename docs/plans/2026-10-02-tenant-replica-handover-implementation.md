@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.4 |
+| **Version** | 1.5 |
 | **Date** | 2026-10-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -76,7 +76,21 @@ Review identified that the discovery-payload filename rule also excluded the req
 
 The authoritative related regression runner passed 433 tests; documentation validation passed 232 tests. Final controller checks passed all 87 Task 3 retain/deny cases on each of Windows PowerShell 5.1 and PowerShell 7.6.8 with Pester 5.7.1, with no skipped cases. Repository safety, scoped setup, and committed-range whitespace validation passed. All new fixture paths remain within the workstation checkout budget.
 
-The remaining plan stays Draft. Tasks 4-6 remain incomplete. Synthetic pipeline fixtures prove retention rules, not the existence or acceptance of actual Plan 4 assets. No real export, new public export entrypoint, independent full-tree validator, publication, provider call, or tenant operation is claimed. Continue with Task 4 after confirming the then-current source and dependency state.
+This Task 3 checkpoint did not approve the remaining Draft plan or establish public export entrypoints, independent full-tree validation, or actual pipeline/operational acceptance. Synthetic pipeline fixtures prove retention rules, not the existence of actual Plan 4 assets. Task 4 was authorized separately and its current disposition follows below.
+
+## Task 4 Implementation Checkpoint
+
+The user authorized continuing with Task 4 on 2026-10-25. The existing isolated branch was clean at `c4ae5c86935acb81d36a2c404b4b559e7f55ded4`; main remained at the accepted prerequisite commit with successful validation run `40102788190`.
+
+Task 4 is implemented locally in commits `94c34b8faef753b13b2be67542f43a63f857ceda` and `5fcd1897cc752dcf1e1b621eb0447a3801f7e104`. The three new thin entrypoints require explicit profiles and the caller-reviewed complete `RepositoryIdentity` digest. Existing customer signatures remain fixed-customer compatibility routes. Both paths reuse one committed-blob copy, transformation, staged validation, final read-back, and atomic-promotion engine. Canonical Apply requires a manually supplied child `approvals.json`, exact approved manifest digest, complete ordered scope, freshness, and current input/tool/path bindings.
+
+Review identified two legacy-path defects: suites could alter a destination after its content checks, and failure evidence could falsely claim a matching source snapshot. The fixes add shared post-suite read-back and truthful, allowlisted execution-phase/source-verification provenance. Post-promotion source failure leaves an explicitly unaccepted destination for human review, not automatic recovery. Scoped re-review passed. A test-only skip was narrowed to the exact symbolic-link elevation error and Windows native error 1314; unrelated setup errors are rethrown.
+
+The authoritative related regression runner passed 539 tests with one file-symlink capability skip. Final controller checks passed 109 selected cases on each of Windows PowerShell 5.1 and PowerShell 7.6.8 with Pester 5.7.1, with the same single skip. The corrected Windows link-focused runner also passed all seven supported mutations; the file-symlink case remains unexercised because the required privilege is unavailable. Real hardlink and directory-junction cases execute and pass. No privilege or workstation policy was changed.
+
+This is an entrypoint/control checkpoint, not operational readiness. Canonical default offline suite/tool binding is unavailable and fails closed; injected synthetic runners are not an operational workaround. `Test-RepositoryExport -Independent` explicitly refuses until Task 5 supplies its real validator. Synthetic Apply reports `PromotedPendingIndependent`, never lifecycle `Passed`. Standalone evidence under `<EvidenceRoot>/<RunId>/phases/RepositoryExport/` is not a canonical TenantReplica terminal summary or stage result, and no tenant intent/state correlation is fabricated.
+
+The remaining plan stays Draft. Tasks 5-6 must supply independent reconstruction, provider-free offline suite/tool binding, and genuine lifecycle correlation before canonical stage acceptance. Actual Plan 4 assets, human review, and final retained-tree/operational acceptance remain gated. No real export, publication, provider call, or tenant operation was performed. Continue with Task 5 after confirming the then-current source and dependency state.
 
 ## File and Interface Map
 
@@ -263,27 +277,35 @@ Test-RepositoryExport.ps1 `
   -RunId <guid> -EvidenceRoot <absolute> -SourceRoot <absolute> `
   -ExpectedSourceCommit <40-hex> -DestinationRoot <absolute> `
   -ManifestPath <absolute> -Profile <TenantReplica|CustomerHandover> `
-  [-Independent]
+  -RepositoryIdentity <64-hex> [-Independent]
 
 New-RepositoryExportPlan.ps1 `
   -RunId <guid> -EvidenceRoot <absolute> -SourceRoot <absolute> `
   -ExpectedSourceCommit <40-hex> -DestinationRoot <absolute> `
-  -ManifestPath <absolute> -Profile <TenantReplica|CustomerHandover>
+  -ManifestPath <absolute> -Profile <TenantReplica|CustomerHandover> `
+  -RepositoryIdentity <64-hex>
 
 Invoke-RepositoryExport.ps1 `
   -RunId <guid> -EvidenceRoot <absolute> -SourceRoot <absolute> `
   -ExpectedSourceCommit <40-hex> -DestinationRoot <absolute> `
   -ManifestPath <absolute> -Profile <TenantReplica|CustomerHandover> `
+  -RepositoryIdentity <64-hex> `
   -ExecutionManifestPath <absolute> -ApprovedDigest <64-hex> [-Apply]
 ```
 
 All retain existing hidden injected runners and `NowUtc`.
 
-- [ ] **Step 1: Write failing entry/wrapper/safety tests**
+`RepositoryIdentity` is the caller-reviewed expected complete remote-inventory
+digest from Task 2. Its explicit public parameter preserves the approved
+expected-source identity invariant; it is not inferred from the observed source.
+Independent validation and canonical acceptance remain subject to the Task 4
+checkpoint's explicit Task 5 prerequisites.
+
+- [x] **Step 1: Write failing entry/wrapper/safety tests**
 
 Require explicit profile on new scripts, exact digest/`ShouldProcess`, `-WhatIf`, no destination on refusal, no network executables/API modules, no `git init/remote/push`, and customer wrappers fixed to canonical `CustomerHandover`. Assert wrappers reject any attempt to supply/derive `TenantReplica`.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 powershell.exe -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1 -Force; Invoke-Pester -Path @('infra/tests/pester/RepositoryExportProfiles.Tests.ps1','infra/tests/pester/CustomerExportStaticSafety.Tests.ps1','infra/tests/pester/CustomerRepositoryExport.Tests.ps1') -Output Detailed"
@@ -291,19 +313,19 @@ powershell.exe -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1 
 
 Expected: **FAIL** because new entry points are absent and wrappers do not use the canonical adapter.
 
-- [ ] **Step 3: Implement thin scripts and fixed wrappers**
+- [x] **Step 3: Implement thin scripts and fixed wrappers**
 
 Call shared assessment/planning/apply functions only. `Invoke` copies approved committed blobs to disposable staging, applies exact in-memory transformations, validates, and atomically promotes. Compatibility wrappers explicitly construct/validate `CustomerHandover`; they never inspect content to choose a profile.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 Run the RED command. Expected: **PASS**, zero network calls, and all existing customer behavior preserved.
 
-- [ ] **Step 5: Perform focused review**
+- [x] **Step 5: Perform focused review**
 
 Confirm no publication code, no hidden remote, no profile inference, no source write, no destination patch, no broad cleanup, and no force/skip flag.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add infra/src/scripts/runbooks infra/tests/pester/RepositoryExportProfiles.Tests.ps1 infra/tests/pester/CustomerExportStaticSafety.Tests.ps1 infra/tests/pester/CustomerRepositoryExport.Tests.ps1
