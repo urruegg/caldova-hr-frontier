@@ -33,6 +33,10 @@ function script:New-SnapshotFixture {
         if ($effective.Count -eq 1 -and $effective[0] -is [array]) {
             $effective = @($effective[0])
         }
+        if ($effective -notcontains '--no-optional-locks') {
+            throw 'Snapshot commands must disable optional Git index locks.'
+        }
+        $effective = @($effective | Where-Object { $_ -cne '--no-optional-locks' })
         $effective = if (@($effective).Count -ge 3 -and $effective[0] -eq '-C') { @($effective)[2..(@($effective).Count - 1)] } else { @($effective) }
         $joined = (@($effective) | ForEach-Object { [string]$_ }) -join ' '
         if ($joined -match '^status --porcelain=v1 --untracked-files=all$') { return [pscustomobject]@{ exitCode = 0; stdout = ''; stderr = '' } }

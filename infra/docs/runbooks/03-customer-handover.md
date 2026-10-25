@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.10 |
+| **Version** | 1.11 |
 | **Date** | 2026-10-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -13,7 +13,7 @@
 
 This runbook prepares a synthetic customer-facing repository export from the reusable source without mutating the source tree. Execution is local, attended, and limited to Windows 11 PowerShell 5.1 or 7. Authentication is `NotApplicable`. Evidence is written only outside Git. Publication is not implemented here and remains a separate attended procedure.
 
-## Profile-contract, shared-library, and safety-map slice (Plan 5, Tasks 1–3 only)
+## Profile-contract, shared-library, and entry-point slice (Plan 5, Tasks 1–4 only)
 
 [`repository-export.schema.json`](../../src/config/schemas/repository-export.schema.json)
 adds explicit `TenantReplica` and `CustomerHandover` intent profiles.
@@ -202,13 +202,145 @@ acceptance remain gated. The library records the historical fixed suites
 (`Pester`, `RepositorySafety`, `BicepBuild`); this slice adds no independent
 full-tree validator or profile-specific production suite runner.
 
-This slice adds no canonical Apply, replica export entry point, independent
-validator, pipeline delivery, real export, publication, or acceptance. Plan 5
-remains Draft; all export, pipeline, and live acceptance gates remain unchanged.
+The three canonical entry points now share this assessment library and the
+existing customer's committed-blob, exact in-memory transformation, content
+validation, and atomic promotion engine. Only synthetic fixtures have exercised
+them. Plan 5's remainder remains Draft; independent validation, actual pipeline
+assets, retained-tree acceptance, and live acceptance remain gated.
+
+## Canonical standalone export contracts
+
+[`Test-RepositoryExport.ps1`](../../src/scripts/runbooks/Test-RepositoryExport.ps1),
+[`New-RepositoryExportPlan.ps1`](../../src/scripts/runbooks/New-RepositoryExportPlan.ps1),
+and [`Invoke-RepositoryExport.ps1`](../../src/scripts/runbooks/Invoke-RepositoryExport.ps1)
+each require explicit `RunId`, `EvidenceRoot`, `SourceRoot`,
+`ExpectedSourceCommit`, `DestinationRoot`, `ManifestPath`, `Profile`, and
+`RepositoryIdentity`. `RepositoryIdentity` is the caller-reviewed expected
+complete remote-inventory digest described above, not a remote URL or a digest
+automatically adopted from this invocation's observation. The general scripts
+never adapt unprofiled intent or infer a profile from content.
+
+Use absolute local paths. Source, destination, and evidence must not overlap;
+destination and evidence must be outside every Git worktree. Reviewed private
+export intent must be outside all three roots. Dot segments, trailing-dot/space
+Windows path aliases, reparse traversal, and linked intent/evidence files are
+refused. Hash-bound installed tool executables may
+have Windows hardlinks; that exception does not permit linked inputs or outputs.
+The destination must be absent and its parent must already exist.
+
+### Immutable standalone evidence layout
+
+`EvidenceRoot` is the parent of the run-ID directory, not that directory itself.
+The exact standalone child path follows the existing run/phase convention:
+
+```text
+<EvidenceRoot>\<RunId>\phases\RepositoryExport\
+    assessment.json
+    execution-manifest.json
+    approvals.json
+    whatif.json
+    declined.json
+    apply.json
+```
+
+Assessment writes only `assessment.json`; planning writes only
+`execution-manifest.json`. The reviewer supplies `approvals.json` manually.
+WhatIf or declined confirmation writes only its corresponding decision file;
+Apply writes `apply.json`. Files are created atomically, read back, and never
+replaced. A no-Apply invocation verifies bindings but performs no copy and
+writes no action evidence. Existing output requires a new run rather than
+overwriting evidence. These names are standalone export evidence, not the
+canonical lifecycle summary or stage-result envelope.
+
+Assessment and execution evidence contain only fixed identifiers, profile,
+counts, statuses, versions, and digests. Source snapshots, inventories,
+manifest path, machine/operator identities, tool paths, destination, policies,
+and the evidence boundary are digest-bound, not dumped. No source text,
+marker/replacement value, remote coordinate, raw validation output, or private
+path is written to canonical evidence.
+
+### Manual approval and Apply
+
+`Invoke-RepositoryExport.ps1` additionally requires `ExecutionManifestPath`
+and `ApprovedDigest`, even for its non-mutating preview. The path must be exactly
+the child `execution-manifest.json` above; the digest must be exactly the
+reviewed embedded execution-manifest digest. Apply also requires a real
+child-owned `approvals.json`; an argument alone is not approval.
+
+The file uses the existing closed
+[`tenant-lifecycle-approval.schema.json`](../../src/config/schemas/tenant-lifecycle-approval.schema.json):
+`schemaVersion` is `1.0`; `runId` is this exact run; `executionManifestDigest`
+is the exact approved digest; `approverRole` identifies the reviewer role;
+`approvedAtUtc` and `expiresAtUtc` are literal UTC timestamps ending in `Z`;
+and `status` is `Approved`. `scope` must be the complete array below in this
+order, with no omitted, additional, or duplicate element:
+
+```json
+["snapshot-source","stage-committed-blobs","apply-exact-transformations","validate-profile","promote-destination","snapshot-source-post","validate-independent"]
+```
+
+The approval cannot predate planning or start in the future. Expiry must be
+after approval and no later than 30 minutes after manifest generation; expiry
+is checked again before staging and promotion. Schema, run, scope, digest,
+source/repository identity, private intent/path, operator/machine, tool,
+destination, evidence, and policy/suite drift invalidate approval. There is no
+approval writer or automatic approval. Reusing the Approval schema does not
+make this a lifecycle execution manifest: validation uses
+`New-RunbookExecutionManifest` / `Test-RunbookExecutionManifest`, not the
+different lifecycle-manifest approval helper.
+
+After review, use the same explicit arguments with
+`Invoke-RepositoryExport.ps1 -WhatIf -Apply`, then, only under separate
+execution authority, `Invoke-RepositoryExport.ps1 -Apply`. `ShouldProcess`
+remains mandatory. Missing approval, WhatIf, declined confirmation, binding
+drift, and failed validation leave no destination or owned disposable staging.
+Copy uses only proven regular blobs from the exact commit; transformations
+run in memory. Staged content, bytes, source snapshots, and bound inputs are
+rechecked before an atomic directory move, including ordinal file/directory
+inventory and unexpected empty directories after suite execution. Cleanup unlinks only entries in
+the exact owned disposable tree and never follows a reparse target.
+
+### Explicitly unavailable validation and acceptance
+
+The canonical default resolver selects only fixed local Git and Windows
+PowerShell paths. It refuses the historical `BicepBuild` provider-tool binding;
+it does not fall back to Azure CLI or an arbitrary executable. The canonical
+offline staged-suite runner is not yet supplied. Without those prerequisites,
+the default canonical path fails closed; a caller must not use hidden synthetic
+test hooks as an operational workaround. The positive Task 4 flows use synthetic
+repositories and controlled local runners only, not a real repository export
+or production retained-tree acceptance.
+
+Hidden runner, resolver, identity, clock, and host probes remain synthetic test
+seams. An injected blob reader cannot supply authority: its returned bytes must
+match the shared reader's real committed regular blob before they are used.
+
+`Test-RepositoryExport.ps1 -Independent` explicitly fails as **unavailable**
+until the Task 5 validator exists. It writes no clean, Skipped, or Passed
+acceptance. A locally promoted synthetic tree is
+`PromotedPendingIndependent`, never lifecycle `Passed`. Apply creates neither
+`summary.json` nor `stage-results/TenantReplica.json`. Genuine independent
+read-back, full suite definitions, lifecycle provenance/correlation, and human
+review remain required; no public tenant key or private intent/state digest
+is fabricated to fill those missing contracts.
+
+### Fixed historical customer wrappers
+
+The two customer-named scripts retain their existing signatures, legacy report
+layout, exact-digest approval argument, and independent byte-reconstruction
+contract. They explicitly invoke `CustomerHandover` through the tested adapter;
+neither accepts a profile override or replica intent. Their existing local
+suite mapping remains historical customer behavior, not the canonical offline
+runner or a canonical approval/stage acceptance. The shared copy engine now
+also rechecks complete bytes after suite execution and removes only owned
+staging without following links. Do not reinterpret historical reports as a
+canonical child approval or lifecycle result.
+All shared source-snapshot Git calls now disable optional index locks, including
+the historical customer wrappers.
 
 ## Lifecycle-core integration boundary
 
-The lifecycle core recognizes `TenantReplica` as a stage identifier but does not invoke [`New-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/New-CustomerRepositoryExport.ps1), [`Test-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/Test-CustomerRepositoryExport.ps1), a publication remote, or any handover provider. The local export and independent validator remain directly runnable under this runbook's separate contracts. A later reviewed replica/handover plan must define the digest binding and production subsystem invoker before the umbrella may sequence this stage.
+The lifecycle core recognizes `TenantReplica` as a stage identifier but does not invoke [`New-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/New-CustomerRepositoryExport.ps1), [`Test-CustomerRepositoryExport.ps1`](../../src/scripts/runbooks/Test-CustomerRepositoryExport.ps1), a publication remote, or any handover provider.  A later reviewed replica/handover plan must define the digest binding and production subsystem invoker before the umbrella may sequence this stage.
 
 Plan 1's synthetic `TenantReplica` stage is not export, independent-validation, human-review, transfer, or publication evidence. A sanitized lifecycle projection cannot make any of those claims.
 

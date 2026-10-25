@@ -136,7 +136,7 @@ function Get-CustomerExportSourceSnapshot {
     $git = [IO.Path]::GetFullPath([string]$GitExecutable.path)
     function Invoke-Git {
         param([string[]]$Arguments)
-        Invoke-CustomerExportNativeCommand -Runner $NativeCommandRunner -FilePath $git -ArgumentList (@('-C', $repository) + $Arguments)
+        Invoke-CustomerExportNativeCommand -Runner $NativeCommandRunner -FilePath $git -ArgumentList (@('--no-optional-locks', '-C', $repository) + $Arguments)
     }
 
     $status = Invoke-Git -Arguments @('status', '--porcelain=v1', '--untracked-files=all')

@@ -17,16 +17,24 @@ function Get-RepositoryExportAncestorIdentities {
 }
 
 function Assert-RepositoryExportLocalPath {
-    param([Parameter(Mandatory)][string]$Path)
+    param([Parameter(Mandatory)][string]$Path, [switch]$AllowHardLink)
     if (-not [IO.Path]::IsPathRooted($Path) -or $Path -notmatch '^[A-Za-z]:\\' -or
         $Path.Substring(2).Contains(':')) {
         throw 'Repository export requires an absolute local path.'
     }
+    if ($Path -match '(?:^|\\)(?:\.{1,2}|[^\\]*[. ])(?:\\|$)') {
+        throw 'Repository export paths must not contain Windows path aliases.'
+    }
     $cursor = [IO.Path]::GetFullPath($Path)
     while (-not [string]::IsNullOrWhiteSpace($cursor)) {
         if (Test-Path -LiteralPath $cursor) {
-            if (((Get-Item -LiteralPath $cursor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            $item = Get-Item -LiteralPath $cursor -Force
+            if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
                 throw 'Repository export paths must not traverse a reparse point.'
+            }
+            if (-not $AllowHardLink -and $null -ne $item.PSObject.Properties['LinkType'] -and
+                -not [string]::IsNullOrWhiteSpace([string]$item.LinkType)) {
+                throw 'Repository export paths must not traverse a linked item.'
             }
         }
         $parent = Split-Path -Parent $cursor

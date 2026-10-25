@@ -3,6 +3,47 @@ Set-StrictMode -Version Latest
 $global:CustomerExportEntryPath = Join-Path $PSScriptRoot '..\..\src\scripts\runbooks\New-CustomerRepositoryExport.ps1'
 $global:CustomerExportValidatorPath = Join-Path $PSScriptRoot '..\..\src\scripts\runbooks\Test-CustomerRepositoryExport.ps1'
 
+Describe 'Fixed customer compatibility script boundary' {
+    It 'plans through the real customer wrapper without optional source Git index locks' {
+        $f = New-CustomerExportFixture
+        $native = $f.NativeCommandRunner
+        $guard = {
+            param($file, $arguments)
+            if ($arguments -contains '-C' -and $arguments -notcontains '--no-optional-locks') {
+                throw 'Optional source Git writes were not disabled.'
+            }
+            & $native $file $arguments
+        }.GetNewClosure()
+        & $global:CustomerExportEntryPath -SourceRoot $f.Source -ExpectedSourceCommit $f.ExpectedSourceCommit `
+            -DestinationRoot $f.Destination -ManifestPath $f.ManifestPath -ReportPath $f.Report `
+            -NativeCommandRunner $guard -CommandResolver $f.CommandResolver -FileIdentityProvider $f.FileIdentityProvider `
+            -GitBlobReader $f.GitBlobReader -InteractiveHostProbe $f.InteractiveHostProbe -PlatformProbe $f.PlatformProbe `
+            -OperatorIdProvider $f.OperatorIdProvider | Out-Null
+        Test-Path $f.Destination | Should -BeFalse
+        Test-Path (Join-Path $f.Report 'customer-export-execution-manifest.json') | Should -BeTrue
+    }
+
+    It 'refuses replica intent rather than selecting a profile from its contents' {
+        $f = New-CustomerExportFixture
+        $legacy = Get-Content -Raw $f.ManifestPath | ConvertFrom-Json
+        $legacy | Add-Member NoteProperty profile 'TenantReplica'
+        [IO.File]::WriteAllText($f.ManifestPath, ($legacy | ConvertTo-Json -Depth 30))
+        { & $global:CustomerExportEntryPath -SourceRoot $f.Source -ExpectedSourceCommit $f.ExpectedSourceCommit `
+            -DestinationRoot $f.Destination -ManifestPath $f.ManifestPath -ReportPath $f.Report `
+            -NativeCommandRunner $f.NativeCommandRunner -CommandResolver $f.CommandResolver `
+            -FileIdentityProvider $f.FileIdentityProvider -GitBlobReader $f.GitBlobReader `
+            -InteractiveHostProbe $f.InteractiveHostProbe -PlatformProbe $f.PlatformProbe `
+            -OperatorIdProvider $f.OperatorIdProvider } | Should -Throw
+        Test-Path $f.Destination | Should -BeFalse
+    }
+
+    It 'does not expose a profile override on either legacy wrapper' {
+        foreach ($path in @($global:CustomerExportEntryPath, $global:CustomerExportValidatorPath)) {
+            (Get-Command $path).Parameters.Keys | Should -Not -Contain 'Profile'
+        }
+    }
+}
+
 function script:New-CustomerExportFixture {
     $root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
     $source = Join-Path $root 'source'
@@ -249,12 +290,19 @@ function script:New-RealGitCustomerExportFixture {
         [Text.UTF8Encoding]::new($false))
 
     & $git -C $source init --quiet | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Synthetic repository init failed.' }
     & $git -C $source config user.name 'Synthetic Tester' | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Synthetic user configuration failed.' }
     & $git -C $source config user.email 'synthetic.tester@example.invalid' | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Synthetic email configuration failed.' }
     & $git -C $source config core.autocrlf false | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Synthetic newline configuration failed.' }
     & $git -C $source add . | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Synthetic repository staging failed.' }
     & $git -C $source commit --quiet -m 'Synthetic export fixture' | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Synthetic repository commit failed.' }
     $gitCommit = (& $git -C $source rev-parse HEAD).Trim().ToLowerInvariant()
+    if ($LASTEXITCODE -ne 0) { throw 'Synthetic source commit read failed.' }
     $powershellPath = (Get-Command powershell.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1 -ExpandProperty Source)
     $azureCliPath = @(
         Get-Command az.cmd -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source
@@ -666,21 +714,9 @@ $ErrorActionPreference = 'Stop'
 if ($EnableNativeErrorPreference) {
     $PSNativeCommandUseErrorActionPreference = $true
 }
-$tokens = $null
-$errors = $null
-$ast = [Management.Automation.Language.Parser]::ParseFile(
-    $ProductionScriptPath,
-    [ref]$tokens,
-    [ref]$errors
-)
-if ($errors.Count -ne 0) { throw "Could not parse production script '$ProductionScriptPath'." }
-$functionAst = @($ast.FindAll({
-    param($node)
-    $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
-    $node.Name -eq 'New-DefaultNativeCommandRunner'
-}, $true))[0]
-. ([scriptblock]::Create($functionAst.Extent.Text))
-$runner = New-DefaultNativeCommandRunner
+$modulePath = Join-Path (Split-Path $ProductionScriptPath -Parent) '..\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
+Import-Module $modulePath -Force
+$runner = & (Get-Module Caldova.HrFrontier.Bootstrap) { New-DefaultNativeCommandRunner }
 $result = & $runner $GitPath @('-C', $RepositoryRoot, 'sparse-checkout', 'list')
 [pscustomobject]@{
     result = $result

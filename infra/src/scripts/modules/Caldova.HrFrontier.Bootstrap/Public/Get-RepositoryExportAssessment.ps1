@@ -1,4 +1,4 @@
-function Get-RepositoryExportAssessment {
+function Get-RepositoryExportContext {
     [CmdletBinding()]
     [OutputType([pscustomobject])]
     param(
@@ -9,7 +9,8 @@ function Get-RepositoryExportAssessment {
         [Parameter(Mandatory)][ValidateSet('TenantReplica', 'CustomerHandover')][string]$Profile,
         [Parameter(Mandatory)][ValidatePattern('^[0-9a-fA-F]{64}$')][string]$RepositoryIdentity,
         [Parameter(Mandatory)][object]$ToolIdentities,
-        [Parameter(Mandatory)][scriptblock]$NativeCommandRunner
+        [Parameter(Mandatory)][scriptblock]$NativeCommandRunner,
+        [scriptblock]$GitBlobReader
     )
 
     # Object inputs obey the same closed canonical contract as file inputs, before enumeration.
@@ -33,7 +34,7 @@ function Get-RepositoryExportAssessment {
             if ($tool.path -isnot [string] -or $tool.sha256 -isnot [string] -or $tool.version -isnot [string] -or
                 $tool.sha256 -cnotmatch '^[0-9a-f]{64}$' -or
                 $tool.version -cnotmatch '\A[A-Za-z0-9][A-Za-z0-9 ._()+-]{0,127}\z') { throw 'Invalid tool.' }
-            Assert-RepositoryExportLocalPath -Path $tool.path
+            Assert-RepositoryExportLocalPath -Path $tool.path -AllowHardLink
             if (-not (Test-Path -LiteralPath $tool.path -PathType Leaf) -or
                 (Get-CustomerExportFileDigest -Path $tool.path) -cne $tool.sha256) { throw 'Stale tool.' }
         }
@@ -46,6 +47,20 @@ function Get-RepositoryExportAssessment {
         & $NativeCommandRunner $file (@('--no-optional-locks') + $arguments)
     }.GetNewClosure()
     $reader = ${function:Read-CustomerExportCommitBlob}
+    if ($null -ne $GitBlobReader) {
+        $committedReader = $reader
+        $injectedReader = $GitBlobReader
+        $hashBytes = ${function:Get-CustomerExportSha256}
+        $reader = {
+            param($gitPath, $repository, $commit, $path)
+            [byte[]]$committed = @(& $committedReader $gitPath $repository $commit $path)
+            [byte[]]$candidate = @(& $injectedReader $gitPath $repository $commit $path)
+            if ((& $hashBytes -Bytes $committed) -cne (& $hashBytes -Bytes $candidate)) {
+                throw 'Repository export injected blob identity does not match the committed regular blob.'
+            }
+            return $committed
+        }.GetNewClosure()
+    }
     $snapshot = Get-CustomerExportSourceSnapshot -RepositoryRoot $SourceRoot -GitExecutable $git `
         -NativeCommandRunner $runner -GitBlobReader $reader -ExpectedSourceCommit $ExpectedSourceCommit -RepositoryIdentity $RepositoryIdentity
     if ($snapshot.commit -cne $ExpectedSourceCommit.ToLowerInvariant()) { throw 'Repository export source commit does not match.' }
@@ -96,5 +111,24 @@ function Get-RepositoryExportAssessment {
     $result = [ordered]@{}
     foreach ($entry in $unsigned.GetEnumerator()) { $result[$entry.Key] = $entry.Value }
     $result.digest = Get-RunbookContentDigest -InputObject $unsigned
-    [pscustomobject]$result
+    $public = [pscustomobject]$result
+    # The content validator consumes the private inventory, but the signature stays bound to public evidence.
+    $engine.digest = $public.digest
+    $engine.destinationStableId = $public.destinationStableId
+    [pscustomobject]@{ assessment = $public; engine = $engine; snapshot = $snapshot; reader = $reader; runner = $runner }
+}
+
+function Get-RepositoryExportAssessment {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$SourceRoot,
+        [Parameter(Mandatory)][ValidatePattern('^[0-9a-fA-F]{40}$')][string]$ExpectedSourceCommit,
+        [Parameter(Mandatory)][string]$DestinationRoot,
+        [Parameter(Mandatory)][object]$Manifest,
+        [Parameter(Mandatory)][ValidateSet('TenantReplica', 'CustomerHandover')][string]$Profile,
+        [Parameter(Mandatory)][ValidatePattern('^[0-9a-fA-F]{64}$')][string]$RepositoryIdentity,
+        [Parameter(Mandatory)][object]$ToolIdentities,
+        [Parameter(Mandatory)][scriptblock]$NativeCommandRunner
+    )
+    (Get-RepositoryExportContext @PSBoundParameters).assessment
 }

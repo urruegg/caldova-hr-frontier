@@ -1,5 +1,476 @@
 Set-StrictMode -Version Latest
 
+Describe 'Canonical repository export scripts' {
+    BeforeAll {
+        $script:Runbooks = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\src\scripts\runbooks'))
+        Import-Module (Join-Path $script:Runbooks '..\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1') -Force
+        if (-not ('RepositoryExportDecliningHost' -as [type])) {
+            Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Management.Automation;
+using System.Management.Automation.Host;
+using System.Security;
+public sealed class RepositoryExportDecliningHost : PSHost {
+    public readonly RepositoryExportDecliningUI Output = new RepositoryExportDecliningUI();
+    public override Guid InstanceId { get { return new Guid("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"); } }
+    public override string Name { get { return "SyntheticDecliningHost"; } }
+    public override Version Version { get { return new Version(1,0); } }
+    public override CultureInfo CurrentCulture { get { return CultureInfo.InvariantCulture; } }
+    public override CultureInfo CurrentUICulture { get { return CultureInfo.InvariantCulture; } }
+    public override PSHostUserInterface UI { get { return Output; } }
+    public override void EnterNestedPrompt() { throw new NotSupportedException(); }
+    public override void ExitNestedPrompt() { throw new NotSupportedException(); }
+    public override void NotifyBeginApplication() {}
+    public override void NotifyEndApplication() {}
+    public override void SetShouldExit(int code) {}
+}
+public sealed class RepositoryExportDecliningUI : PSHostUserInterface {
+    public int Prompts;
+    public override PSHostRawUserInterface RawUI { get { return null; } }
+    public override string ReadLine() { return "N"; }
+    public override SecureString ReadLineAsSecureString() { throw new NotSupportedException(); }
+    public override Dictionary<string, PSObject> Prompt(string c, string m, Collection<FieldDescription> d) { throw new NotSupportedException(); }
+    public override PSCredential PromptForCredential(string c, string m, string u, string t) { throw new NotSupportedException(); }
+    public override PSCredential PromptForCredential(string c, string m, string u, string t, PSCredentialTypes a, PSCredentialUIOptions b) { throw new NotSupportedException(); }
+    public override int PromptForChoice(string c, string m, Collection<ChoiceDescription> choices, int initial) {
+        Prompts++;
+        for (int i=0; i<choices.Count; i++) if (choices[i].Label.Replace("&","") == "No") return i;
+        throw new NotSupportedException("No decline choice.");
+    }
+    public override void Write(string s) {}
+    public override void Write(ConsoleColor f, ConsoleColor b, string s) {}
+    public override void WriteLine(string s) {}
+    public override void WriteErrorLine(string s) {}
+    public override void WriteDebugLine(string s) {}
+    public override void WriteProgress(long s, ProgressRecord r) {}
+    public override void WriteVerboseLine(string s) {}
+    public override void WriteWarningLine(string s) {}
+}
+'@
+        }
+        function New-EntryFixture {
+            param([string]$Profile = 'CustomerHandover')
+            $f = New-RepositoryAssessmentFixture -Profile $Profile
+            if ($Profile -ceq 'TenantReplica') {
+                $tree = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\fixtures\runbooks\repository-export\tenant-replica-tree'))
+                foreach ($file in Get-ChildItem -LiteralPath $tree -Recurse -Force -File) {
+                    $relative = $file.FullName.Substring($tree.Length + 1).Replace('\', '/')
+                    if ($relative -ceq 'README.md') { continue }
+                    $target = Join-Path $f.Source $relative.Replace('/', '\')
+                    [void][IO.Directory]::CreateDirectory((Split-Path $target -Parent))
+                    [IO.File]::WriteAllBytes($target, [IO.File]::ReadAllBytes($file.FullName))
+                    $hash = (Get-FileHash $target).Hash.ToLowerInvariant()
+                    $f.Manifest.fileClassifications = @($f.Manifest.fileClassifications | Where-Object path -CNE $relative)
+                    $f.Manifest.fileClassifications += [pscustomobject]@{
+                        path = $relative; sourceBlobSha256 = $hash; expectedOutputSha256 = $hash
+                        classification = $(if ($relative -ceq 'infra/tests/fixtures/sample.json') { 'SyntheticFixture' } else { 'ReviewedNonPersonal' })
+                        reason = 'Reviewed fabricated engineering fixture.'
+                    }
+                    if ($relative -ceq 'infra/src/config/tenants/_template.psd1') {
+                        $f.Manifest.retainedTenantArtifacts = @([pscustomobject]@{
+                            path = $relative; artifactKind = 'TenantManifest'; customerScope = 'Synthetic neutral template.'
+                        })
+                    }
+                }
+                & $f.Git -C $f.Source add .
+                if ($LASTEXITCODE -ne 0) { throw 'Fixture staging failed.' }
+                & $f.Git -C $f.Source commit --quiet -m 'Synthetic retained capabilities'
+                if ($LASTEXITCODE -ne 0) { throw 'Fixture commit failed.' }
+                $f.Parameters.ExpectedSourceCommit = (& $f.Git -C $f.Source rev-parse HEAD).Trim()
+                if ($LASTEXITCODE -ne 0) { throw 'Fixture commit read failed.' }
+            }
+            $manifestPath = Join-Path $f.Root 'intent.json'
+            Write-CanonicalJson $f.Manifest -Path $manifestPath | Out-Null
+            $tools = $f.Parameters.ToolIdentities
+            $native = $f.Parameters.NativeCommandRunner
+            $p = @{
+                RunId = [guid]'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+                EvidenceRoot = (Join-Path $f.Root 'proof')
+                SourceRoot = $f.Source; ExpectedSourceCommit = $f.Parameters.ExpectedSourceCommit
+                DestinationRoot = $f.Parameters.DestinationRoot; ManifestPath = $manifestPath
+                Profile = $Profile; RepositoryIdentity = $f.Parameters.RepositoryIdentity
+                NativeCommandRunner = {
+                    param($file, $arguments)
+                    if ($arguments -contains '--version' -or ($arguments -join ' ') -match 'PSVersionTable') {
+                        $v = @($tools.PSObject.Properties | Where-Object { $_.Value.path -ceq $file })[0].Value.version
+                        return [pscustomobject]@{ exitCode = 0; stdout = $v; stderr = '' }
+                    }
+                    & $native $file $arguments
+                }.GetNewClosure()
+                CommandResolver = {
+                    param($name)
+                    switch ($name) {
+                        'git.exe' { @($tools.Git.path) }
+                        'powershell.exe' { @($tools.WindowsPowerShell.path) }
+                        'az.cmd' { @($tools.AzureCli.path) }
+                        default { throw 'Unexpected executable.' }
+                    }
+                }.GetNewClosure()
+                FileIdentityProvider = { param($path) [pscustomobject]@{ path = $path; sha256 = (Get-FileHash $path).Hash.ToLowerInvariant() } }
+                ValidationRunner = { param($suite) [pscustomobject]@{ suite = $suite; exitCode = 0 } }
+                InteractiveHostProbe = { [pscustomobject]@{ isInteractive = $true } }
+                PlatformProbe = { [pscustomobject]@{ productName = 'Windows 11'; build = 26100 } }
+                OperatorIdProvider = { 'SYNTHETIC\reviewer' }
+                NowUtc = [datetime]'2026-10-25T06:00:00Z'
+            }
+            [pscustomobject]@{ Fixture = $f; Parameters = $p; Child = (Join-Path $p.EvidenceRoot ($p.RunId.ToString() + '\phases\RepositoryExport')) }
+        }
+        function New-EntryApproval {
+            param($Fixture, $Plan)
+            $p = $Fixture.Parameters
+            $approval = [pscustomobject]@{
+                schemaVersion = '1.0'; runId = $p.RunId.ToString()
+                executionManifestDigest = $Plan.digest; approverRole = 'RepositoryOwner'
+                approvedAtUtc = '2026-10-25T06:00:00Z'; expiresAtUtc = '2026-10-25T06:25:00Z'
+                scope = @('snapshot-source', 'stage-committed-blobs', 'apply-exact-transformations', 'validate-profile', 'promote-destination', 'snapshot-source-post', 'validate-independent')
+                status = 'Approved'
+            }
+            Write-CanonicalJson $approval -Path (Join-Path $Fixture.Child 'approvals.json') | Out-Null
+            $p.ExecutionManifestPath = Join-Path $Fixture.Child 'execution-manifest.json'
+            $p.ApprovedDigest = $Plan.digest
+            $approval
+        }
+        function Assert-NoEntryOutput {
+            param($Fixture)
+            Test-Path -LiteralPath $Fixture.Parameters.DestinationRoot | Should -BeFalse
+            @(Get-ChildItem -LiteralPath $Fixture.Fixture.Root -Directory -Force | Where-Object Name -Like '.customer-export-*').Count | Should -Be 0
+        }
+    }
+
+    It 'requires explicit profile and caller-reviewed identity on <Name>' -ForEach @(
+        @{ Name = 'Test-RepositoryExport.ps1' }, @{ Name = 'New-RepositoryExportPlan.ps1' }, @{ Name = 'Invoke-RepositoryExport.ps1' }
+    ) {
+        $command = Get-Command (Join-Path $script:Runbooks $Name) -ErrorAction Stop
+        foreach ($parameter in @('Profile', 'RepositoryIdentity', 'RunId', 'EvidenceRoot')) {
+            $command.Parameters[$parameter].Attributes.Mandatory | Should -Contain $true
+        }
+    }
+
+    It 'assesses plans and promotes approved committed bytes without canonical acceptance for <Profile>' -ForEach @(
+        @{ Profile = 'CustomerHandover' }, @{ Profile = 'TenantReplica' }
+    ) {
+        $f = New-EntryFixture $Profile
+        $p = $f.Parameters
+        $index = (Get-FileHash (Join-Path $p.SourceRoot '.git\index')).Hash
+        $a = & (Join-Path $script:Runbooks 'Test-RepositoryExport.ps1') @p
+        $a.profile | Should -BeExactly $Profile
+        $plan = & (Join-Path $script:Runbooks 'New-RepositoryExportPlan.ps1') @p
+        New-EntryApproval $f $plan | Out-Null
+        $executionBefore = (Get-FileHash $p.ExecutionManifestPath).Hash
+        $result = & (Join-Path $script:Runbooks 'Invoke-RepositoryExport.ps1') @p -Apply -Confirm:$false
+        [IO.File]::ReadAllText((Join-Path $p.DestinationRoot 'README.md')) | Should -BeExactly "Synthetic Reviewer`n"
+        Test-Path (Join-Path $p.DestinationRoot '.git') | Should -BeFalse
+        Test-Path (Join-Path $p.DestinationRoot 'private.local.json') | Should -BeFalse
+        Test-Path (Join-Path $p.DestinationRoot '.github\workflows\validate-repository.yml') | Should -Be ($Profile -ceq 'TenantReplica')
+        $result.status | Should -BeExactly 'PromotedPendingIndependent'
+        $result.PSObject.Properties.Name | Should -Not -Contain 'stageResult'
+        (Get-FileHash $p.ExecutionManifestPath).Hash | Should -BeExactly $executionBefore
+        (Get-FileHash (Join-Path $p.SourceRoot '.git\index')).Hash | Should -BeExactly $index
+        $evidence = Get-Content (Join-Path $f.Child 'apply.json') -Raw
+        $evidence | Should -Not -Match 'Source Lab|source-lab|example.invalid/source|synthetic-private-sentinel|SYNTHETIC\\reviewer'
+        $evidence | Should -Not -Match ([regex]::Escape($p.SourceRoot))
+        Test-Path (Join-Path $f.Child 'stage-result.json') | Should -BeFalse
+    }
+
+    It 'fails explicitly rather than emitting independent acceptance while Task5 is unavailable' {
+        $f = New-EntryFixture
+        $p = $f.Parameters
+        { & (Join-Path $script:Runbooks 'Test-RepositoryExport.ps1') @p -Independent } | Should -Throw '*Independent*unavailable*'
+        Assert-NoEntryOutput $f
+        Test-Path $f.Child | Should -BeFalse
+    }
+
+    It 'verifies injected blob-reader bytes against the real committed regular blob rather than accepting fabricated content' {
+        $f = New-EntryFixture
+        $p = $f.Parameters
+        $reader = & (Get-Module Caldova.HrFrontier.Bootstrap) { ${function:Read-CustomerExportCommitBlob} }
+        $p.GitBlobReader = { param($git, $source, $commit, $path) & $reader $git $source $commit $path }.GetNewClosure()
+        $result = & (Join-Path $script:Runbooks 'Test-RepositoryExport.ps1') @p
+        $result.profile | Should -BeExactly 'CustomerHandover'
+        $p.GitBlobReader = { [Text.Encoding]::UTF8.GetBytes('forged committed content') }
+        { & (Join-Path $script:Runbooks 'Test-RepositoryExport.ps1') @p } | Should -Throw '*blob identity*'
+        Assert-NoEntryOutput $f
+    }
+
+    It 'copies the complete committed inventory before the exact-transform phase' {
+        $f = New-EntryFixture
+        $p = $f.Parameters
+        [IO.File]::Move((Join-Path $p.SourceRoot 'README.md'), (Join-Path $p.SourceRoot 'a-readme.md'))
+        $f.Fixture.Manifest.replacements[0].path = 'a-readme.md'
+        $f.Fixture.Manifest.sourceMarkerCatalog[0].sources[0].path = 'a-readme.md'
+        Write-CanonicalJson $f.Fixture.Manifest -Path $p.ManifestPath -Replace | Out-Null
+        & $f.Fixture.Git -C $p.SourceRoot add .
+        if ($LASTEXITCODE -ne 0) { throw 'Synthetic order fixture staging failed.' }
+        & $f.Fixture.Git -C $p.SourceRoot commit --quiet -m 'Synthetic ordered transformations'
+        if ($LASTEXITCODE -ne 0) { throw 'Synthetic order fixture commit failed.' }
+        $p.ExpectedSourceCommit = (& $f.Fixture.Git -C $p.SourceRoot rev-parse HEAD).Trim()
+        if ($LASTEXITCODE -ne 0) { throw 'Synthetic order fixture commit read failed.' }
+        $reader = & (Get-Module Caldova.HrFrontier.Bootstrap) { ${function:Read-CustomerExportCommitBlob} }
+        $root = $f.Fixture.Root
+        $observed = [Collections.Generic.List[string]]::new()
+        $p.GitBlobReader = {
+            param($git, $source, $commit, $path)
+            $stages = @(Get-ChildItem $root -Directory -Force | Where-Object Name -Like '.customer-export-*')
+            if ($stages.Count -eq 1 -and $path -ceq 'azure-pipelines.yml' -and $observed.Count -eq 0) {
+                $observed.Add([IO.File]::ReadAllText((Join-Path $stages[0].FullName 'a-readme.md')))
+            }
+            & $reader $git $source $commit $path
+        }.GetNewClosure()
+        $plan = & (Join-Path $script:Runbooks 'New-RepositoryExportPlan.ps1') @p
+        New-EntryApproval $f $plan | Out-Null
+        & (Join-Path $script:Runbooks 'Invoke-RepositoryExport.ps1') @p -Apply -Confirm:$false | Out-Null
+        $observed.Count | Should -Be 1
+        $observed[0] | Should -BeExactly "Source Lab`n"
+        [IO.File]::ReadAllText((Join-Path $p.DestinationRoot 'a-readme.md')) | Should -BeExactly "Synthetic Reviewer`n"
+    }
+
+    It 'rejects <Fault> approval before staging' -ForEach @(
+        @{ Fault = 'missing' }, @{ Fault = 'malformed' }, @{ Fault = 'stale' }, @{ Fault = 'foreign' },
+        @{ Fault = 'partial' }, @{ Fault = 'tampered' }, @{ Fault = 'future' }, @{ Fault = 'extra' }, @{ Fault = 'array-root' }
+    ) {
+        $f = New-EntryFixture
+        $p = $f.Parameters
+        $plan = & (Join-Path $script:Runbooks 'New-RepositoryExportPlan.ps1') @p
+        $approval = New-EntryApproval $f $plan
+        $path = Join-Path $f.Child 'approvals.json'
+        switch ($Fault) {
+            'missing' { Remove-Item -LiteralPath $path }
+            'malformed' { [IO.File]::WriteAllText($path, '{') }
+            'stale' { $p.NowUtc = $p.NowUtc.AddMinutes(31) }
+            'foreign' { $approval.runId = 'bbbbbbbb-bbbb-4ccc-8ddd-eeeeeeeeeeee' }
+            'partial' { $approval.scope = @('snapshot-source') }
+            'tampered' { $approval.executionManifestDigest = 'b' * 64 }
+            'future' { $approval.approvedAtUtc = '2026-10-25T06:01:00Z' }
+            'extra' { $approval | Add-Member NoteProperty autoApproved $true }
+            'array-root' { [IO.File]::WriteAllText($path, '[' + ($approval | ConvertTo-Json -Depth 30 -Compress) + ']') }
+        }
+        if ($Fault -notin @('missing', 'malformed', 'array-root')) { Write-CanonicalJson $approval -Path $path -Replace | Out-Null }
+        { & (Join-Path $script:Runbooks 'Invoke-RepositoryExport.ps1') @p -Apply -Confirm:$false } | Should -Throw
+        Assert-NoEntryOutput $f
+    }
+
+    It 'invalidates approval on <Drift> drift without changing source or creating staging' -ForEach @(
+        @{ Drift = 'profile' }, @{ Drift = 'identity' }, @{ Drift = 'destination' }, @{ Drift = 'evidence' },
+        @{ Drift = 'run' }, @{ Drift = 'manifest' }, @{ Drift = 'tool' }, @{ Drift = 'commit' }, @{ Drift = 'execution' },
+        @{ Drift = 'operator' }, @{ Drift = 'manifest-path' }, @{ Drift = 'source-path' }, @{ Drift = 'policy' }, @{ Drift = 'suite' }
+    ) {
+        $f = New-EntryFixture
+        $p = $f.Parameters
+        $plan = & (Join-Path $script:Runbooks 'New-RepositoryExportPlan.ps1') @p
+        New-EntryApproval $f $plan | Out-Null
+        switch ($Drift) {
+            'profile' { $p.Profile = 'TenantReplica' }
+            'identity' { $p.RepositoryIdentity = 'f' * 64 }
+            'destination' { $p.DestinationRoot += '-other' }
+            'evidence' { $p.EvidenceRoot += '-other' }
+            'run' { $p.RunId = [guid]'bbbbbbbb-bbbb-4ccc-8ddd-eeeeeeeeeeee' }
+            'manifest' { $f.Fixture.Manifest.customerScope = 'Changed intent'; Write-CanonicalJson $f.Fixture.Manifest -Path $p.ManifestPath -Replace | Out-Null }
+            'tool' { $p.FileIdentityProvider = { param($path) [pscustomobject]@{ path = $path; sha256 = ('e' * 64) } } }
+            'commit' { $p.ExpectedSourceCommit = 'f' * 40 }
+            'execution' { [IO.File]::AppendAllText($p.ExecutionManifestPath, 'null') }
+            'operator' { $p.OperatorIdProvider = { 'SYNTHETIC\another-reviewer' } }
+            'manifest-path' {
+                $alternate = Join-Path $f.Fixture.Root 'alternate-intent.json'
+                [IO.File]::WriteAllBytes($alternate, [IO.File]::ReadAllBytes($p.ManifestPath))
+                $p.ManifestPath = $alternate
+            }
+            'source-path' {
+                $alternate = Join-Path $f.Fixture.Root 'alternate-source'
+                [IO.Directory]::Move($p.SourceRoot, $alternate)
+                $p.SourceRoot = $alternate
+            }
+            'policy' { $f.Fixture.Manifest.profilePolicy.denyEvidence = $false; Write-CanonicalJson $f.Fixture.Manifest -Path $p.ManifestPath -Replace | Out-Null }
+            'suite' { $f.Fixture.Manifest.validationSuites = @('RepositorySafety'); Write-CanonicalJson $f.Fixture.Manifest -Path $p.ManifestPath -Replace | Out-Null }
+        }
+        { & (Join-Path $script:Runbooks 'Invoke-RepositoryExport.ps1') @p -Apply -Confirm:$false } | Should -Throw
+        Assert-NoEntryOutput $f
+    }
+
+    It 'creates no staging for WhatIf or noApply and keeps output immutable' {
+        $f = New-EntryFixture
+        $p = $f.Parameters
+        $plan = & (Join-Path $script:Runbooks 'New-RepositoryExportPlan.ps1') @p
+        New-EntryApproval $f $plan | Out-Null
+        & (Join-Path $script:Runbooks 'Invoke-RepositoryExport.ps1') @p -WhatIf -Apply | Out-Null
+        Assert-NoEntryOutput $f
+        & (Join-Path $script:Runbooks 'Invoke-RepositoryExport.ps1') @p | Out-Null
+        Assert-NoEntryOutput $f
+        $planParameters = $p.Clone()
+        $planParameters.Remove('ExecutionManifestPath')
+        $planParameters.Remove('ApprovedDigest')
+        { & (Join-Path $script:Runbooks 'New-RepositoryExportPlan.ps1') @planParameters } | Should -Throw '*already exists*'
+    }
+
+    It 'removes only owned staging on failed staged validation and refuses existing destinations' {
+        $f = New-EntryFixture
+        $p = $f.Parameters
+        $plan = & (Join-Path $script:Runbooks 'New-RepositoryExportPlan.ps1') @p
+        New-EntryApproval $f $plan | Out-Null
+        $p.ValidationRunner = { param($suite) [pscustomobject]@{ suite = $suite; exitCode = 1; stdout = 'private validation output' } }
+        { & (Join-Path $script:Runbooks 'Invoke-RepositoryExport.ps1') @p -Apply -Confirm:$false } | Should -Throw '*validation*'
+        Assert-NoEntryOutput $f
+        (Get-Content (Join-Path $f.Child 'apply.json') -Raw) | Should -Not -Match 'private validation output'
+        [void][IO.Directory]::CreateDirectory($p.DestinationRoot)
+        [IO.File]::WriteAllText((Join-Path $p.DestinationRoot 'sentinel'), 'unchanged')
+        { & (Join-Path $script:Runbooks 'Invoke-RepositoryExport.ps1') @p -Apply -Confirm:$false } | Should -Throw
+        [IO.File]::ReadAllText((Join-Path $p.DestinationRoot 'sentinel')) | Should -BeExactly 'unchanged'
+    }
+
+    It 'rejects changed <Binding> at confirmation or validation before promotion' -ForEach @(
+        @{ Binding = 'manifest' }, @{ Binding = 'approval' }, @{ Binding = 'tool' }, @{ Binding = 'output-bytes' }, @{ Binding = 'output-directory' }, @{ Binding = 'output-path-case' }
+    ) {
+        $f = New-EntryFixture
+        $p = $f.Parameters
+        $plan = & (Join-Path $script:Runbooks 'New-RepositoryExportPlan.ps1') @p
+        New-EntryApproval $f $plan | Out-Null
+        $intent = $p.ManifestPath
+        $approval = Join-Path $f.Child 'approvals.json'
+        $p.ValidationRunner = {
+            param($suite, $file, $arguments, $root)
+            switch ($Binding) {
+                'manifest' { [IO.File]::AppendAllText($intent, 'null') }
+                'approval' { [IO.File]::WriteAllText($approval, '{}') }
+                'tool' { throw 'Synthetic tool unavailable during validation.' }
+                'output-bytes' { [IO.File]::WriteAllText((Join-Path $root 'README.md'), 'tampered') }
+                'output-directory' { [void][IO.Directory]::CreateDirectory((Join-Path $root 'unexpected-empty-directory')) }
+                'output-path-case' {
+                    $intermediate = Join-Path $root 'rename.md'
+                    [IO.File]::Move((Join-Path $root 'README.md'), $intermediate)
+                    [IO.File]::Move($intermediate, (Join-Path $root 'readme.md'))
+                }
+            }
+            [pscustomobject]@{ suite = $suite; exitCode = 0 }
+        }.GetNewClosure()
+        { & (Join-Path $script:Runbooks 'Invoke-RepositoryExport.ps1') @p -Apply -Confirm:$false } | Should -Throw
+        Assert-NoEntryOutput $f
+    }
+
+    It 'blocks <Boundary> paths before source enumeration' -ForEach @(
+        @{ Boundary = 'inside-source' }, @{ Boundary = 'evidence-overlap' }, @{ Boundary = 'worktree' }, @{ Boundary = 'junction' }, @{ Boundary = 'hardlink' },
+        @{ Boundary = 'intent-in-source' }, @{ Boundary = 'intent-in-evidence' }, @{ Boundary = 'invalid-run' },
+        @{ Boundary = 'destination-evidence-alias' }, @{ Boundary = 'trailing-space' }, @{ Boundary = 'dot-segment' }
+    ) {
+        $f = New-EntryFixture
+        $p = $f.Parameters
+        switch ($Boundary) {
+            'inside-source' { $p.DestinationRoot = Join-Path $p.SourceRoot 'out' }
+            'evidence-overlap' { $p.EvidenceRoot = Join-Path $p.DestinationRoot 'evidence' }
+            'worktree' {
+                $other = Join-Path $f.Fixture.Root 'other'
+                [void][IO.Directory]::CreateDirectory($other)
+                [IO.File]::WriteAllText((Join-Path $other '.git'), 'gitdir: C:\synthetic\unused')
+                $p.EvidenceRoot = Join-Path $other 'proof'
+            }
+            'junction' {
+                $link = Join-Path $f.Fixture.Root 'alias'
+                New-Item -ItemType Junction -Path $link -Target $p.SourceRoot -ErrorAction Stop | Out-Null
+                $p.EvidenceRoot = Join-Path $link 'proof'
+            }
+            'hardlink' {
+                $link = Join-Path $f.Fixture.Root 'linked-intent.json'
+                New-Item -ItemType HardLink -Path $link -Target $p.ManifestPath -ErrorAction Stop | Out-Null
+                $p.ManifestPath = $link
+            }
+            'intent-in-source' { $p.ManifestPath = Join-Path $p.SourceRoot 'intent.json' }
+            'intent-in-evidence' { $p.ManifestPath = Join-Path $p.EvidenceRoot 'intent.json' }
+            'invalid-run' { $p.RunId = [guid]::Empty }
+            'destination-evidence-alias' { $p.EvidenceRoot = $p.DestinationRoot + '.\proof' }
+            'trailing-space' { $p.EvidenceRoot = Join-Path $f.Fixture.Root 'proof ' }
+            'dot-segment' { $p.EvidenceRoot = Join-Path $f.Fixture.Root 'unused\..\proof' }
+        }
+        $p.NativeCommandRunner = { throw 'Source enumeration must not be reached.' }
+        try {
+            { & (Join-Path $script:Runbooks 'New-RepositoryExportPlan.ps1') @p } | Should -Throw 'Repository export*'
+            Assert-NoEntryOutput $f
+        }
+        finally {
+            if ($Boundary -ceq 'junction') { [IO.Directory]::Delete($link) }
+        }
+    }
+
+    It 'fails closed without a canonical offline suite runner instead of invoking a provider' {
+        $f = New-EntryFixture
+        $p = $f.Parameters
+        $plan = & (Join-Path $script:Runbooks 'New-RepositoryExportPlan.ps1') @p
+        New-EntryApproval $f $plan | Out-Null
+        $p.Remove('ValidationRunner')
+        { & (Join-Path $script:Runbooks 'Invoke-RepositoryExport.ps1') @p -Apply -Confirm:$false } | Should -Throw '*runner*unavailable*'
+        Assert-NoEntryOutput $f
+    }
+
+    It 'refuses default provider-tool resolution rather than running a provider or arbitrary executable' {
+        $f = New-EntryFixture
+        $p = $f.Parameters
+        $p.Remove('CommandResolver')
+        $calls = [Collections.Generic.List[string]]::new()
+        $p.NativeCommandRunner = {
+            param($file, $arguments)
+            $name = [IO.Path]::GetFileName($file)
+            $calls.Add($name)
+            if ($name -cnotin @('git.exe', 'powershell.exe')) { throw 'Unexpected provider execution.' }
+            [pscustomobject]@{ exitCode = 0; stdout = 'synthetic-version'; stderr = '' }
+        }.GetNewClosure()
+        { & (Join-Path $script:Runbooks 'New-RepositoryExportPlan.ps1') @p } | Should -Throw '*tool binding is unavailable*'
+        @($calls) | Should -Be @('git.exe', 'powershell.exe')
+        Assert-NoEntryOutput $f
+        Test-Path $f.Child | Should -BeFalse
+    }
+
+    It 'honors a real declined ShouldProcess confirmation without destination or staging' {
+        $f = New-EntryFixture
+        $p = $f.Parameters
+        $plan = & (Join-Path $script:Runbooks 'New-RepositoryExportPlan.ps1') @p
+        New-EntryApproval $f $plan | Out-Null
+        $decliningHost = New-Object RepositoryExportDecliningHost
+        $runspace = [Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace($decliningHost)
+        $pipeline = [powershell]::Create()
+        try {
+            $runspace.Open()
+            $pipeline.Runspace = $runspace
+            [void]$pipeline.AddCommand((Join-Path $script:Runbooks 'Invoke-RepositoryExport.ps1')).AddParameters($p).AddParameter('Apply', $true).AddParameter('Confirm', $true)
+            $result = @($pipeline.Invoke())
+            $pipeline.HadErrors | Should -BeFalse -Because ($pipeline.Streams.Error -join "`n")
+            $decliningHost.Output.Prompts | Should -Be 1
+            $result[-1].shouldProcess | Should -BeExactly 'Declined'
+            Assert-NoEntryOutput $f
+            (Get-Content (Join-Path $f.Child 'declined.json') -Raw | ConvertFrom-Json).status | Should -BeExactly 'NotApplied'
+        }
+        finally { $pipeline.Dispose(); $runspace.Dispose() }
+    }
+
+    It 'unlinks only owned staged reparse points on failure and leaves their external target unchanged' {
+        $f = New-EntryFixture
+        $p = $f.Parameters
+        $plan = & (Join-Path $script:Runbooks 'New-RepositoryExportPlan.ps1') @p
+        New-EntryApproval $f $plan | Out-Null
+        $outside = Join-Path $f.Fixture.Root 'unowned'
+        [void][IO.Directory]::CreateDirectory($outside)
+        [IO.File]::WriteAllText((Join-Path $outside 'sentinel'), 'untouched')
+        $p.ValidationRunner = {
+            param($suite, $file, $arguments, $root)
+            $alias = Join-Path $root 'alias'
+            if (-not (Test-Path $alias)) {
+                New-Item -ItemType Junction -Path $alias -Target $outside -ErrorAction Stop | Out-Null
+            }
+            [pscustomobject]@{ suite = $suite; exitCode = 0 }
+        }.GetNewClosure()
+        try {
+            { & (Join-Path $script:Runbooks 'Invoke-RepositoryExport.ps1') @p -Apply -Confirm:$false } | Should -Throw
+            Assert-NoEntryOutput $f
+            [IO.File]::ReadAllText((Join-Path $outside 'sentinel')) | Should -BeExactly 'untouched'
+        }
+        finally {
+            foreach ($stage in Get-ChildItem $f.Fixture.Root -Directory -Force | Where-Object Name -Like '.customer-export-*') {
+                $alias = Join-Path $stage.FullName 'alias'
+                if (Test-Path $alias) { [IO.Directory]::Delete($alias) }
+            }
+        }
+    }
+}
+
 Describe 'TenantReplica retain and deny' {
     BeforeAll {
         Import-Module (Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1') -Force
@@ -562,13 +1033,21 @@ function script:New-RepositoryAssessmentFixture {
         [IO.File]::WriteAllText($full, $files[$path], [Text.UTF8Encoding]::new($false))
     }
     & $git -C $source init --quiet
+    if ($LASTEXITCODE -ne 0) { throw 'Synthetic repository init failed.' }
     & $git -C $source config user.name 'Synthetic Reviewer'
+    if ($LASTEXITCODE -ne 0) { throw 'Synthetic user configuration failed.' }
     & $git -C $source config user.email 'reviewer@example.invalid'
+    if ($LASTEXITCODE -ne 0) { throw 'Synthetic email configuration failed.' }
     & $git -C $source config core.autocrlf false
+    if ($LASTEXITCODE -ne 0) { throw 'Synthetic newline configuration failed.' }
     & $git -C $source add .
+    if ($LASTEXITCODE -ne 0) { throw 'Synthetic repository staging failed.' }
     & $git -C $source commit --quiet -m 'Synthetic assessment'
+    if ($LASTEXITCODE -ne 0) { throw 'Synthetic repository commit failed.' }
     & $git -C $source remote add origin 'https://example.invalid/source'
+    if ($LASTEXITCODE -ne 0) { throw 'Synthetic remote fixture failed.' }
     $commit = (& $git -C $source rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0) { throw 'Synthetic source commit read failed.' }
     $readmeHash = (Get-FileHash -LiteralPath (Join-Path $source 'README.md')).Hash.ToLowerInvariant()
     $tenantHash = (Get-FileHash -LiteralPath (Join-Path $source 'infra\src\config\tenants\transition.json')).Hash.ToLowerInvariant()
     $manifest = [pscustomobject][ordered]@{

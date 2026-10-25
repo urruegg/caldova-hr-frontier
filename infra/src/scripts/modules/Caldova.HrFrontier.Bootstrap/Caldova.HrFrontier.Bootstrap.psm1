@@ -56,6 +56,7 @@ Export-ModuleMember -Function @(
     'Get-CustomerExportAssessment'
     'Get-RepositoryExportAssessment'
     'New-RepositoryExportActionPlan'
+    'Invoke-RepositoryExportOperation'
     'Convert-CustomerExportBlob'
     'Invoke-CustomerStructuredReplacement'
     'Get-CustomerExportResidual'

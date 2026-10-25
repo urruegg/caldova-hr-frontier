@@ -133,7 +133,9 @@ function Test-CustomerExportContent {
     $expectedRules = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($rule in @($Manifest.replacements)) { [void]$expectedRules.Add([string]$rule.id) }
     foreach ($entry in @($ReplacementLog)) {
-        [void]$expectedRules.Remove([string]$entry.ruleId)
+        if ($entry.PSObject.Properties.Name -contains 'ruleId') {
+            [void]$expectedRules.Remove([string]$entry.ruleId)
+        }
     }
     foreach ($missingRule in $expectedRules) {
         $failures.Add([pscustomobject]@{ category = 'ReplacementLogMissing'; path = $null; ruleId = $missingRule })
