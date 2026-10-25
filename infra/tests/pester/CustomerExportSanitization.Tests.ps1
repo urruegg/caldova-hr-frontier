@@ -452,6 +452,60 @@ Describe 'Customer export sanitization' {
         @($matches | Where-Object disposition -eq 'Undisposed').Count | Should -Be 3
     }
 
+    It 'inspects allowlisted binary UTF8 marker occurrences with exact dispositions in <Mode> mode' -ForEach @(
+        @{ Mode = 'Blob' }, @{ Mode = 'Tree' }
+    ) {
+        $bytes = [Text.Encoding]::UTF8.GetBytes(([string][char]0x1B) + "SOURCE-LAB`nsource-lab caf" + [char]0xE9)
+        $root = Join-Path $TestDrive 'binary-residual'
+        [void][IO.Directory]::CreateDirectory($root)
+        $full = Join-Path $root 'reviewed.bin'
+        [IO.File]::WriteAllBytes($full, $bytes)
+        $parameters = @{
+            Markers = @(
+                [pscustomobject]@{ id = 'alias'; category = 'TenantAlias'; value = 'source-lab'; comparison = 'OrdinalIgnoreCase' }
+                [pscustomobject]@{ id = 'unicode'; category = 'OtherTenantIdentifier'; value = ('caf' + [char]0xE9); comparison = 'Ordinal' }
+            )
+            InspectableBinaries = @([pscustomobject]@{
+                path = 'reviewed.bin'; sha256 = (Get-FileHash -LiteralPath $full).Hash.ToLowerInvariant(); reason = 'Synthetic fixture.'
+            })
+            Dispositions = @([pscustomobject]@{ path = 'other.bin'; markerId = 'alias'; reason = 'Wrong path must not authorize.' })
+        }
+        if ($Mode -ceq 'Blob') { $parameters.RelativePath = 'reviewed.bin'; $parameters.Bytes = $bytes }
+        else { $parameters.StagingRoot = $root }
+        $matches = @(Get-CustomerExportResidual @parameters)
+        $matches.Count | Should -Be 3
+        @($matches | Where-Object disposition -ceq 'Undisposed').Count | Should -Be 3
+        @($matches | Where-Object markerId -ceq 'alias').location | Should -Be @('Line:1:Column:2', 'Line:2:Column:1')
+        $parameters.Dispositions = @([pscustomobject]@{ path = 'reviewed.bin'; markerId = 'alias'; reason = 'Exact synthetic exception.' })
+        $matches = @(Get-CustomerExportResidual @parameters)
+        @($matches | Where-Object disposition -ceq 'Disposed').Count | Should -Be 2
+        @($matches | Where-Object disposition -ceq 'Undisposed').markerId | Should -Be 'unicode'
+        [IO.File]::ReadAllBytes($full) | Should -Be $bytes
+    }
+
+    It 'fails residual inspection rather than reporting clean for <Case> bytes in <Mode> mode' -ForEach @(
+        @{ Case = 'NUL'; Mode = 'Blob'; Bytes = [byte[]]@(65,0,66); ErrorPattern = '*residual inspection*' }
+        @{ Case = 'NUL'; Mode = 'Tree'; Bytes = [byte[]]@(65,0,66); ErrorPattern = '*residual inspection*' }
+        @{ Case = 'invalid UTF8'; Mode = 'Blob'; Bytes = [byte[]]@(0xC3,0x28); ErrorPattern = '*valid UTF-8*' }
+        @{ Case = 'invalid UTF8'; Mode = 'Tree'; Bytes = [byte[]]@(0xC3,0x28); ErrorPattern = '*valid UTF-8*' }
+        @{ Case = 'BOM'; Mode = 'Blob'; Bytes = [byte[]]@(0xFF,0xFE,65,0); ErrorPattern = '*UTF-8 without BOM*' }
+        @{ Case = 'BOM'; Mode = 'Tree'; Bytes = [byte[]]@(0xFF,0xFE,65,0); ErrorPattern = '*UTF-8 without BOM*' }
+    ) {
+        $root = Join-Path $TestDrive 'uninspectable-residual'
+        [void][IO.Directory]::CreateDirectory($root)
+        $full = Join-Path $root 'reviewed.bin'
+        [IO.File]::WriteAllBytes($full, $Bytes)
+        $parameters = @{
+            Markers = @()
+            InspectableBinaries = @([pscustomobject]@{
+                path = 'reviewed.bin'; sha256 = (Get-FileHash -LiteralPath $full).Hash.ToLowerInvariant(); reason = 'Cannot override inspection.'
+            })
+        }
+        if ($Mode -ceq 'Blob') { $parameters.RelativePath = 'reviewed.bin'; $parameters.Bytes = $Bytes }
+        else { $parameters.StagingRoot = $root }
+        { Get-CustomerExportResidual @parameters } | Should -Throw $ErrorPattern
+    }
+
     It 'withholds publish readiness for one undisposed residual' {
         $stage = Join-Path $TestDrive 'validation-stage'
         [IO.Directory]::CreateDirectory($stage) | Out-Null

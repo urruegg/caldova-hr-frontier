@@ -107,6 +107,7 @@ function script:New-RepositoryAssessmentFixture {
 Describe 'Canonical repository assessment and deterministic planning' {
     BeforeAll {
         Import-Module (Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1') -Force
+        $script:FixtureBlobReader = & (Get-Module Caldova.HrFrontier.Bootstrap) { ${function:Read-CustomerExportCommitBlob} }
         $script:Order = @('snapshot-source', 'stage-committed-blobs', 'apply-exact-transformations', 'validate-profile', 'promote-destination', 'snapshot-source-post', 'validate-independent')
         function New-FixturePlan {
             param($Assessment, $Fixture)
@@ -118,6 +119,26 @@ Describe 'Canonical repository assessment and deterministic planning' {
             & $Fixture.Git -C $Fixture.Source add .
             & $Fixture.Git -C $Fixture.Source commit --quiet -m 'Synthetic case'
             $Fixture.Parameters.ExpectedSourceCommit = (& $Fixture.Git -C $Fixture.Source rev-parse HEAD).Trim()
+        }
+        function Add-FixtureBinary {
+            param($Fixture, [byte[]]$Bytes, [switch]$AssertMarker)
+            $path = 'reviewed.bin'
+            $full = Join-Path $Fixture.Source $path
+            [IO.File]::WriteAllBytes($full, $Bytes)
+            Complete-FixtureCommit $Fixture
+            $hash = (Get-FileHash -LiteralPath $full).Hash.ToLowerInvariant()
+            $Fixture.Manifest.inspectableBinaries = @([pscustomobject]@{
+                path = $path; sha256 = $hash; reason = 'Exact synthetic binary authorization.'
+            })
+            $Fixture.Manifest.fileClassifications += [pscustomobject]@{
+                path = $path; sourceBlobSha256 = $hash; expectedOutputSha256 = $hash
+                classification = 'ReviewedNonPersonal'; reason = 'Exact synthetic nonpersonal classification.'
+            }
+            if ($AssertMarker) {
+                $Fixture.Manifest.sourceMarkerCatalog[1].sources += [pscustomobject]@{
+                    path = $path; blobSha256 = $hash; occurrenceCount = 1
+                }
+            }
         }
     }
 
@@ -330,6 +351,140 @@ Describe 'Canonical repository assessment and deterministic planning' {
         Complete-FixtureCommit $f
         $p = $f.Parameters
         { Get-RepositoryExportAssessment @p } | Should -Throw '*residual*'
+    }
+
+    It 'rejects the digest-authorized NUL binary marker bypass for <Profile> with <Disposition> disposition' -ForEach @(
+        @{ Profile = 'TenantReplica'; Disposition = 'missing' }
+        @{ Profile = 'CustomerHandover'; Disposition = 'missing' }
+        @{ Profile = 'TenantReplica'; Disposition = 'exact' }
+        @{ Profile = 'CustomerHandover'; Disposition = 'exact' }
+        @{ Profile = 'TenantReplica'; Disposition = 'mismatched' }
+        @{ Profile = 'CustomerHandover'; Disposition = 'mismatched' }
+    ) {
+        $f = New-RepositoryAssessmentFixture $Profile
+        $bytes = [Text.Encoding]::UTF8.GetBytes("source-lab`0")
+        Add-FixtureBinary $f $bytes -AssertMarker
+        if ($Disposition -cne 'missing') {
+            $f.Manifest.residualDispositions = @([pscustomobject]@{
+                path = $(if ($Disposition -ceq 'exact') { 'reviewed.bin' } else { 'README.md' })
+                markerId = 'alias'; reason = 'A disposition cannot make ambiguous bytes inspectable.'
+            })
+        }
+        $p = $f.Parameters
+        # Prove the canonical intent and committed marker assertions are valid before testing refusal.
+        $intentPath = Join-Path $f.Root 'reviewed-intent.json'
+        [IO.File]::WriteAllText($intentPath, ($f.Manifest | ConvertTo-Json -Depth 30), [Text.UTF8Encoding]::new($false))
+        Import-RepositoryExportManifest -Path $intentPath -ExpectedProfile $Profile | Out-Null
+        $snapshotParameters = @{
+            RepositoryRoot = $f.Source; GitExecutable = $p.ToolIdentities.Git
+            NativeCommandRunner = $p.NativeCommandRunner; GitBlobReader = $script:FixtureBlobReader
+        }
+        $before = Get-CustomerExportSourceSnapshot @snapshotParameters
+        $proof = Get-CustomerSourceMarkerCatalog -RepositoryRoot $f.Source -ExpectedSourceCommit $p.ExpectedSourceCommit `
+            -TrackedFiles $before.trackedFiles -RetainedTenantArtifacts @() -SourceMarkerCatalog $f.Manifest.sourceMarkerCatalog `
+            -GitExecutable $p.ToolIdentities.Git -GitBlobReader $script:FixtureBlobReader
+        $proof.reviewedAssertionsVerified | Should -Be 3
+        try {
+            { Get-RepositoryExportAssessment @p } | Should -Throw '*residual inspection*'
+        }
+        finally {
+            (Get-RunbookContentDigest (Get-CustomerExportSourceSnapshot @snapshotParameters)) |
+                Should -BeExactly (Get-RunbookContentDigest $before)
+            [IO.File]::ReadAllBytes((Join-Path $f.Source 'reviewed.bin')) | Should -Be $bytes
+            Test-Path -LiteralPath $p.DestinationRoot | Should -BeFalse
+            @(Get-ChildItem -LiteralPath $f.Root -Directory | Where-Object Name -ne 'src').Count | Should -Be 0
+        }
+    }
+
+    It 'enforces residual dispositions independently of binary authorization for <Profile> with <Disposition> disposition' -ForEach @(
+        @{ Profile = 'TenantReplica'; Disposition = 'missing' }
+        @{ Profile = 'CustomerHandover'; Disposition = 'missing' }
+        @{ Profile = 'TenantReplica'; Disposition = 'exact' }
+        @{ Profile = 'CustomerHandover'; Disposition = 'exact' }
+        @{ Profile = 'TenantReplica'; Disposition = 'mismatched' }
+        @{ Profile = 'CustomerHandover'; Disposition = 'mismatched' }
+    ) {
+        $f = New-RepositoryAssessmentFixture $Profile
+        Add-FixtureBinary $f ([Text.Encoding]::UTF8.GetBytes(([string][char]0x1B) + 'source-lab')) -AssertMarker
+        if ($Disposition -cne 'missing') {
+            $f.Manifest.residualDispositions = @([pscustomobject]@{
+                path = $(if ($Disposition -ceq 'exact') { 'reviewed.bin' } else { 'README.md' })
+                markerId = 'alias'; reason = 'Exact reviewed synthetic marker exception.'
+            })
+        }
+        $p = $f.Parameters
+        if ($Disposition -ceq 'exact') {
+            $assessment = Get-RepositoryExportAssessment @p
+            $assessment.classification | Should -BeExactly 'Create'
+            $assessment.markerCatalogProof.reviewedAssertionsVerified | Should -Be 3
+            $assessment.retainedFileCount | Should -Be $(if ($Profile -ceq 'TenantReplica') { 6 } else { 5 })
+        }
+        else {
+            { Get-RepositoryExportAssessment @p } | Should -Throw '*unresolved residual*'
+        }
+        Test-Path -LiteralPath $p.DestinationRoot | Should -BeFalse
+    }
+
+    It 'preserves safe non-NUL binary exceptions only with both exact controls for <Profile> and <Control>' -ForEach @(
+        @{ Profile = 'TenantReplica'; Control = 'both' }
+        @{ Profile = 'CustomerHandover'; Control = 'both' }
+        @{ Profile = 'TenantReplica'; Control = 'missing allowlist' }
+        @{ Profile = 'CustomerHandover'; Control = 'missing allowlist' }
+        @{ Profile = 'TenantReplica'; Control = 'stale allowlist' }
+        @{ Profile = 'CustomerHandover'; Control = 'stale allowlist' }
+        @{ Profile = 'TenantReplica'; Control = 'missing classification' }
+        @{ Profile = 'CustomerHandover'; Control = 'missing classification' }
+        @{ Profile = 'TenantReplica'; Control = 'stale classification' }
+        @{ Profile = 'CustomerHandover'; Control = 'stale classification' }
+    ) {
+        $f = New-RepositoryAssessmentFixture $Profile
+        Add-FixtureBinary $f ([byte[]](0x1B, 0x50, 0x4B, 0x03))
+        switch ($Control) {
+            'missing allowlist' { $f.Manifest.inspectableBinaries = @() }
+            'stale allowlist' { $f.Manifest.inspectableBinaries[0].sha256 = 'f' * 64 }
+            'missing classification' { $f.Manifest.fileClassifications = @($f.Manifest.fileClassifications | Where-Object path -cne 'reviewed.bin') }
+            'stale classification' { $f.Manifest.fileClassifications[-1].expectedOutputSha256 = 'f' * 64 }
+        }
+        $p = $f.Parameters
+        $baseCount = if ($Profile -ceq 'TenantReplica') { 5 } else { 4 }
+        switch ($Control) {
+            'both' { (Get-RepositoryExportAssessment @p).retainedFileCount | Should -Be ($baseCount + 1) }
+            'missing classification' { (Get-RepositoryExportAssessment @p).retainedFileCount | Should -Be $baseCount }
+            'stale classification' { { Get-RepositoryExportAssessment @p } | Should -Throw '*classification*' }
+            default { { Get-RepositoryExportAssessment @p } | Should -Throw '*allowlisted*' }
+        }
+        Test-Path -LiteralPath $p.DestinationRoot | Should -BeFalse
+    }
+
+    It 'refuses encoding-ambiguous allowlisted bytes for <Profile> and <Encoding>' -ForEach @(
+        @{ Profile = 'TenantReplica'; Encoding = 'NUL only' }
+        @{ Profile = 'CustomerHandover'; Encoding = 'NUL only' }
+        @{ Profile = 'TenantReplica'; Encoding = 'BOMless UTF16LE' }
+        @{ Profile = 'CustomerHandover'; Encoding = 'BOMless UTF16BE' }
+        @{ Profile = 'TenantReplica'; Encoding = 'BOMless UTF32LE' }
+        @{ Profile = 'CustomerHandover'; Encoding = 'BOMless UTF32BE' }
+        @{ Profile = 'TenantReplica'; Encoding = 'invalid UTF8' }
+        @{ Profile = 'CustomerHandover'; Encoding = 'UTF8 BOM' }
+    ) {
+        $f = New-RepositoryAssessmentFixture $Profile
+        $bytes = switch ($Encoding) {
+            'NUL only' { [byte[]]@(0) }
+            'BOMless UTF16LE' { [Text.Encoding]::Unicode.GetBytes('source-lab') }
+            'BOMless UTF16BE' { [Text.Encoding]::BigEndianUnicode.GetBytes('source-lab') }
+            'BOMless UTF32LE' { [Text.UTF32Encoding]::new($false, $false).GetBytes('source-lab') }
+            'BOMless UTF32BE' { [Text.UTF32Encoding]::new($true, $false).GetBytes('source-lab') }
+            'invalid UTF8' { [byte[]]@(0xC3, 0x28) }
+            'UTF8 BOM' { [byte[]]@(0xEF, 0xBB, 0xBF, 0x41) }
+        }
+        Add-FixtureBinary $f ([byte[]]$bytes)
+        $p = $f.Parameters
+        $errorPattern = switch ($Encoding) {
+            'invalid UTF8' { '*valid UTF-8*' }
+            'UTF8 BOM' { '*UTF-8 without BOM*' }
+            default { '*residual inspection*' }
+        }
+        { Get-RepositoryExportAssessment @p } | Should -Throw $errorPattern
+        Test-Path -LiteralPath $p.DestinationRoot | Should -BeFalse
     }
 
     It 'rejects <Case> private source assertions through the canonical entry point' -ForEach @(

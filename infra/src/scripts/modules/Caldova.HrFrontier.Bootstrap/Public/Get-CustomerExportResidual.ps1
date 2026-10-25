@@ -61,14 +61,10 @@ function Get-CustomerExportResidual {
         }
 
         $contentBytes = if ($blobMode) { $Bytes } else { [IO.File]::ReadAllBytes($item.FullName) }
-        try {
-            $textKind = Get-CustomerExportTextKind -Path $relative -Bytes $contentBytes -InspectableBinaries $InspectableBinaries
-        }
-        catch {
-            continue
-        }
-        if ([string]$textKind.kind -ne 'Utf8Text') {
-            continue
+        $textKind = Get-CustomerExportTextKind -Path $relative -Bytes $contentBytes -InspectableBinaries $InspectableBinaries
+        if ($textKind.text.IndexOf([char]0) -ge 0) {
+            # NUL-bearing bytes can hide BOM-less wide text; binary authorization cannot prove its encoding.
+            throw 'Customer export residual inspection does not support NUL-bearing binary content.'
         }
 
         $lineNumber = 1

@@ -52,7 +52,7 @@ function Get-CustomerExportTextKind {
         if ($null -eq $match) {
             throw 'Customer export binary content must be explicitly allowlisted.'
         }
-        return [pscustomobject]@{ kind = 'InspectableBinary'; digest = $digest }
+        return [pscustomobject]@{ kind = 'InspectableBinary'; digest = $digest; text = $text }
     }
 
     $containsCrLf = $text.Contains("`r`n")

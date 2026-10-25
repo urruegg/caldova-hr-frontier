@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.7 |
+| **Version** | 1.8 |
 | **Date** | 2026-10-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -82,6 +82,18 @@ Git status uses no optional locks. The destination must be absent, outside sourc
 and Git worktrees, and free of reparse traversal. Assessment creates neither
 destination, staging, nor evidence, and does not patch an existing destination.
 Successful assessments are classified `Create`; unsafe input fails closed.
+
+Binary authorization never waives marker inspection or the separate exact
+nonpersonal classification. For both profiles, the shared residual scanner
+inspects literal BOM-free, valid UTF-8, including allowlisted non-NUL control
+bytes, using the same marker comparisons and exact path-and-marker dispositions
+as text. NUL-bearing content is refused even with an exact binary digest,
+classification, and residual disposition: it can conceal BOM-less UTF-16 or
+UTF-32 text. Unsupported encoding and inspection errors are blocking, not a
+clean residual result. No binary-format, compressed-content, or alternate-
+encoding parser is provided. These limits also apply to historical customer
+staging and independent residual validation; a previously allowlisted
+NUL-bearing binary is no longer an accepted exception.
 
 Assessment evidence contains counts, statuses, digests, action IDs, fixed suite
 IDs, and tool versions, not source text, marker/replacement values, source paths,
