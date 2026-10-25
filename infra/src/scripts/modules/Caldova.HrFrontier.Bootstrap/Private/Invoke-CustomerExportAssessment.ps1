@@ -47,6 +47,10 @@ function Invoke-CustomerExportAssessment {
 
     $trackedByPath = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
     foreach ($tracked in @($SourceSnapshot.trackedFiles)) {
+        if ($Canonical -and $Profile -ceq 'TenantReplica' -and
+            @(([string]$tracked.path -split '/') | Where-Object { $_ -ieq '.git' }).Count -gt 0) {
+            throw 'Repository export refuses GitMetadata in the committed inventory.'
+        }
         $path = Test-CustomerExportRelativePath -Path ([string]$tracked.path)
         $trackedByPath[$path] = $tracked
     }
@@ -55,6 +59,17 @@ function Invoke-CustomerExportAssessment {
     $retained = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($artifact in @($Manifest.retainedTenantArtifacts)) {
         [void]$retained.Add((Test-CustomerExportRelativePath -Path ([string]$artifact.path)))
+        if ($Canonical -and $Profile -ceq 'TenantReplica') {
+            $denial = Get-RepositoryExportPathDenial -Path $artifact.path -Manifest $Manifest -Profile $Profile
+            if ($null -ne $denial) { throw "Repository export retention contradicts $denial." }
+            if (-not $trackedByPath.ContainsKey($artifact.path)) { throw 'Repository export retention requires a missing committed asset.' }
+        }
+    }
+    if ($Canonical -and $Profile -ceq 'TenantReplica') {
+        foreach ($required in @(Get-RepositoryExportRequiredPaths -Manifest $Manifest)) {
+            [void]$retained.Add($required)
+            if (-not $trackedByPath.ContainsKey($required)) { throw 'Repository export retention requires a missing committed asset.' }
+        }
     }
 
     $fixtureClassifications = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
@@ -77,24 +92,26 @@ function Invoke-CustomerExportAssessment {
         if ($null -eq $reason -and $Profile -ceq 'CustomerHandover' -and $path.StartsWith('.github/workflows/', [StringComparison]::OrdinalIgnoreCase)) {
             $reason = 'WorkflowBoundary'
         }
-        elseif ($path.StartsWith('.git/', [StringComparison]::OrdinalIgnoreCase)) {
+        elseif ($null -eq $reason -and $path.StartsWith('.git/', [StringComparison]::OrdinalIgnoreCase)) {
             $reason = 'GitMetadataDenied'
         }
-        elseif ($path.StartsWith('infra/evidence/', [StringComparison]::OrdinalIgnoreCase) -or
-            @($path -split '/' | Where-Object { $_ -ieq 'evidence' }).Count -gt 0) {
+        elseif ($null -eq $reason -and ($path.StartsWith('infra/evidence/', [StringComparison]::OrdinalIgnoreCase) -or
+            @($path -split '/' | Where-Object { $_ -ieq 'evidence' }).Count -gt 0) -and $Profile -cne 'TenantReplica') {
             $reason = 'EvidenceAlwaysExcluded'
         }
-        elseif ($path.StartsWith('data/', [StringComparison]::OrdinalIgnoreCase)) {
+        elseif ($null -eq $reason -and $path.StartsWith('data/', [StringComparison]::OrdinalIgnoreCase) -and
+            -not ($Canonical -and $Profile -ceq 'TenantReplica' -and $path -ceq 'data/README.md')) {
             $reason = 'DataPathDenied'
         }
-        elseif ($path.StartsWith('infra/tests/fixtures/', [StringComparison]::Ordinal)) {
+        elseif ($null -eq $reason -and ($path.StartsWith('infra/tests/fixtures/', [StringComparison]::Ordinal) -or
+            ($Canonical -and $Profile -ceq 'TenantReplica' -and $path.StartsWith('hr/tests/fixtures/', [StringComparison]::Ordinal)))) {
             $classification = $null
             $fixtureClassifications.TryGetValue($path, [ref]$classification) | Out-Null
             if ($null -eq $classification -or [string]$classification.sourceBlobSha256 -cne [string]$trackedByPath[$path].blobSha256) {
                 $reason = 'FixtureDeniedByDefault'
             }
         }
-        elseif (@($tenantRoots | Where-Object { $path.StartsWith($_, [StringComparison]::Ordinal) }).Count -gt 0 -and
+        elseif ($null -eq $reason -and @($tenantRoots | Where-Object { $path.StartsWith($_, [StringComparison]::Ordinal) }).Count -gt 0 -and
             -not $retained.Contains($path)) {
             $reason = 'TenantArtifactDeniedByDefault'
         }
@@ -114,9 +131,20 @@ function Invoke-CustomerExportAssessment {
             Get-CustomerExportTextKind -Path $path -Bytes $converted.bytes -InspectableBinaries @($Manifest.inspectableBinaries) | Out-Null
             $residuals = @(Get-CustomerExportResidual -RelativePath $path -Bytes $converted.bytes `
                 -Markers @($Manifest.residualMarkers) -Dispositions @($Manifest.residualDispositions) `
-                -InspectableBinaries @($Manifest.inspectableBinaries))
+                -InspectableBinaries @($Manifest.inspectableBinaries) -Profile $Profile)
+            if (@($residuals | Where-Object reason -CEQ 'TenantStableIdentifier').Count -gt 0) {
+                throw 'Repository export contains TenantStableIdentifier in retained content.'
+            }
             if (@($residuals | Where-Object disposition -CEQ 'Undisposed').Count -gt 0) {
                 throw 'Repository export contains an unresolved residual.'
+            }
+            $capability = $null
+            if ($Canonical -and $Profile -ceq 'TenantReplica') {
+                $capability = Get-RepositoryExportCapability -Path $path -Manifest $Manifest
+                if ($null -eq $capability) {
+                    $exclusions.Add([pscustomobject]@{ path = $path; reason = 'AmbiguousArtifact' })
+                    continue
+                }
             }
         }
         $sourceBlobSha256 = [string]$trackedByPath[$path].blobSha256
@@ -145,6 +173,9 @@ function Invoke-CustomerExportAssessment {
 
         if ([string]$classificationResult.status -ceq 'Inconclusive') {
             if ($null -eq $classification -or [string]$classification.classification -cne 'ReviewedNonPersonal') {
+                if ($Canonical -and $Profile -ceq 'TenantReplica' -and ($retained.Contains($path) -or $capability -cne 'SyntheticExamples')) {
+                    throw 'Repository export retention requires an exact nonpersonal classification.'
+                }
                 $exclusions.Add([pscustomobject]@{ path = $path; reason = 'ReviewedNonPersonalClassificationRequired' })
                 continue
             }
@@ -153,6 +184,14 @@ function Invoke-CustomerExportAssessment {
         $copyFiles.Add($path)
     }
 
+    if ($Canonical -and $Profile -ceq 'TenantReplica') {
+        foreach ($required in $retained) {
+            if (-not $copyFiles.Contains($required)) {
+                $denial = @($exclusions | Where-Object path -CEQ $required | Select-Object -ExpandProperty reason) -join ','
+                throw "Repository export retention could not be satisfied: $denial."
+            }
+        }
+    }
     foreach ($rule in @($Manifest.replacements)) {
         $path = Test-CustomerExportRelativePath -Path ([string]$rule.path)
         if (-not $trackedByPath.ContainsKey($path) -or -not ($copyFiles -contains $path)) {
@@ -252,6 +291,10 @@ function Invoke-CustomerExportAssessment {
         exclusions = @($exclusions | Sort-Object path, reason)
         replacements = $replacementMetadata
         allowedActions = $allowedActions
+    }
+    if ($Canonical) {
+        $unsignedAssessment.profile = $Profile
+        $unsignedAssessment.fixedPolicyDigest = Get-RunbookContentDigest -InputObject (Get-RepositoryExportFixedPolicy -Profile $Profile)
     }
 
     $digest = Get-RunbookContentDigest -InputObject $unsignedAssessment

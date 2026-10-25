@@ -1,5 +1,381 @@
 Set-StrictMode -Version Latest
 
+Describe 'TenantReplica retain and deny' {
+    BeforeAll {
+        Import-Module (Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1') -Force
+        $script:ReplicaModule = Get-Module Caldova.HrFrontier.Bootstrap
+        $script:ReplicaTree = Join-Path $PSScriptRoot '..\fixtures\runbooks\repository-export\tenant-replica-tree'
+        $script:ProhibitedTree = Join-Path $PSScriptRoot '..\fixtures\runbooks\repository-export\prohibited-tree'
+        function New-ReplicaMapFixture {
+            $root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N').Substring(0, 8))
+            [void][IO.Directory]::CreateDirectory($root)
+            $blobs = [Collections.Generic.Dictionary[string, byte[]]]::new([StringComparer]::Ordinal)
+            $manifest = Import-RepositoryExportManifest -Path ([IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\src\config\runbooks\tenant-replica.sample.json'))) -ExpectedProfile TenantReplica
+            $manifest.retainedTenantArtifacts = @()
+            $manifest.fileClassifications = @()
+            $manifest.deniedPaths = @()
+            foreach ($file in Get-ChildItem $script:ReplicaTree -Recurse -File -Force) {
+                $path = $file.FullName.Substring([IO.Path]::GetFullPath($script:ReplicaTree).TrimEnd('\').Length + 1).Replace('\', '/')
+                $blobs[$path] = [IO.File]::ReadAllBytes($file.FullName)
+                $hash = (Get-FileHash $file.FullName).Hash.ToLowerInvariant()
+                if ($path -ceq 'infra/src/config/tenants/_template.psd1') {
+                    $manifest.retainedTenantArtifacts += [pscustomobject]@{ path = $path; artifactKind = 'TenantManifest'; customerScope = 'Synthetic required template.' }
+                }
+                $manifest.fileClassifications += [pscustomobject]@{
+                    path = $path; sourceBlobSha256 = $hash; expectedOutputSha256 = $hash
+                    classification = $(if ($path -ceq 'infra/tests/fixtures/sample.json') { 'SyntheticFixture' } else { 'ReviewedNonPersonal' })
+                    reason = 'Reviewed fabricated engineering fixture.'
+                }
+            }
+            $manifest.residualMarkers = @()
+            $manifest.sourceMarkerCatalog = @()
+            $manifest.residualDispositions = @()
+            [pscustomobject]@{ Root = $root; Source = (Join-Path $root 'src'); Destination = (Join-Path $root 'out'); Blobs = $blobs; Manifest = $manifest }
+        }
+        function Invoke-ReplicaMapAssessment {
+            param($Fixture)
+            $blobs = $Fixture.Blobs
+            $reader = { param($git, $source, $commit, $path) $blobs[$path] }.GetNewClosure()
+            $tracked = @(
+                foreach ($path in $blobs.Keys) {
+                    [pscustomobject]@{ path = $path; blobSha256 = (Get-FileHash -InputStream ([IO.MemoryStream]::new($blobs[$path]))).Hash.ToLowerInvariant() }
+                }
+            )
+            $parameters = @{
+                SourceRoot = $Fixture.Source; ExpectedSourceCommit = ('a' * 40); DestinationRoot = $Fixture.Destination
+                Manifest = $Fixture.Manifest; ManifestDigest = (Get-RunbookContentDigest $Fixture.Manifest)
+                SourceSnapshot = [pscustomobject]@{ trackedFiles = $tracked }
+                ToolIdentities = [pscustomobject]@{
+                    WindowsPowerShell = [pscustomobject]@{ path = 'C:\synthetic\powershell.exe' }
+                    AzureCli = [pscustomobject]@{ path = 'C:\synthetic\az.exe' }
+                }; MarkerCatalogProof = [pscustomobject]@{}
+                GitExecutable = [pscustomobject]@{ path = 'C:\synthetic\git.exe' }; GitBlobReader = $reader
+                Profile = $Fixture.Manifest.profile; Canonical = $true
+            }
+            & $script:ReplicaModule { param($p) Invoke-CustomerExportAssessment @p } $parameters
+        }
+        function Add-ReplicaMarker {
+            param($Fixture, [string]$Category, [string]$Value)
+            $Fixture.Manifest.residualMarkers = @([pscustomobject]@{ id = 'reviewed'; category = $Category; value = $Value; comparison = 'OrdinalIgnoreCase' })
+            $Fixture.Manifest.sourceMarkerCatalog = @([pscustomobject]@{
+                id = 'reviewed'; category = $Category; value = $Value; comparison = 'OrdinalIgnoreCase'
+                sources = @([pscustomobject]@{ path = 'README.md'; blobSha256 = ('a' * 64); occurrenceCount = 1 })
+            })
+        }
+        function Invoke-ReplicaMapContent {
+            param($Fixture, $Assessment, [string]$Extra, [switch]$Missing)
+            $stage = Join-Path $Fixture.Root ([guid]::NewGuid().ToString('N').Substring(0, 8))
+            [void][IO.Directory]::CreateDirectory($stage)
+            foreach ($path in $Assessment.copyFiles) {
+                if ($Missing -and $path -ceq 'hr/src/m.ps1') { continue }
+                $full = Join-Path $stage $path.Replace('/', '\')
+                [void][IO.Directory]::CreateDirectory((Split-Path $full -Parent))
+                [IO.File]::WriteAllBytes($full, $Fixture.Blobs[$path])
+            }
+            if ($Extra) {
+                $full = Join-Path $stage $Extra.Replace('/', '\')
+                [void][IO.Directory]::CreateDirectory((Split-Path $full -Parent))
+                [IO.File]::WriteAllText($full, 'Synthetic extra payload')
+            }
+            $execution = [pscustomobject]@{ kind = 'CustomerExport'; target = [pscustomobject]@{ type = 'CustomerExport'; stableId = $Assessment.destinationStableId }; assessmentDigest = $Assessment.digest }
+            # External suite execution is not retained-tree acceptance in this slice.
+            Test-CustomerExportContent -StagingRoot $stage -Manifest $Fixture.Manifest -Assessment $Assessment `
+                -ExecutionManifest $execution -CurrentSourceSnapshot $Assessment.sourceSnapshot `
+                -ValidationRunner { param($suite) [pscustomobject]@{ suite = $suite; exitCode = 0 } }
+        }
+    }
+
+    It 'retains every required engineering asset rather than silently dropping build capability' {
+        $f = New-ReplicaMapFixture
+        $before = Get-RunbookContentDigest @($f.Blobs.Values | ForEach-Object { [Convert]::ToBase64String($_) })
+        $a = Invoke-ReplicaMapAssessment $f
+        @($a.copyFiles).Count | Should -Be 19
+        foreach ($required in $f.Manifest.fileClassifications) { $a.copyFiles | Should -Contain $required.path }
+        (Invoke-ReplicaMapContent $f $a).status | Should -BeExactly 'Passed'
+        (Get-RunbookContentDigest @($f.Blobs.Values | ForEach-Object { [Convert]::ToBase64String($_) })) | Should -BeExactly $before
+        Test-Path $f.Source | Should -BeFalse
+        Test-Path $f.Destination | Should -BeFalse
+    }
+
+    It 'excludes <Path> with exact <Reason> even with digest classifications and binary permission' -ForEach @(
+        @{ Path = 'tenant1.local.psd1'; Reason = 'TenantPrivate' }
+        @{ Path = 'tenant1.state.local.json'; Reason = 'TenantPrivate' }
+        @{ Path = 'backups/state.json'; Reason = 'TenantPrivate' }
+        @{ Path = 'infra/src/bicep/parameters/tenant1.json'; Reason = 'TenantPrivate' }
+        @{ Path = 'approvals/approved.json'; Reason = 'Evidence' }
+        @{ Path = 'evidence/sanitized.json'; Reason = 'Evidence' }
+        @{ Path = 'runs/raw.json'; Reason = 'Evidence' }
+        @{ Path = 'infra/src/config/tenants/tenant2.psd1'; Reason = 'TenantTransition' }
+        @{ Path = 'discovery/tenant2.json'; Reason = 'TenantTransition' }
+        @{ Path = 'provider-response.json'; Reason = 'ProviderOutput' }
+        @{ Path = 'artifacts/pipeline.json'; Reason = 'ProviderOutput' }
+        @{ Path = '.pac/profiles.json'; Reason = 'Authentication' }
+        @{ Path = '.azure/context.json'; Reason = 'Authentication' }
+        @{ Path = 'publication/remote.json'; Reason = 'Publication' }
+    ) {
+        $f = New-ReplicaMapFixture
+        $bytes = [IO.File]::ReadAllBytes((Join-Path $script:ProhibitedTree $Path.Replace('/', '\')))
+        $f.Blobs[$Path] = $bytes
+        $hash = (Get-FileHash -InputStream ([IO.MemoryStream]::new($bytes))).Hash.ToLowerInvariant()
+        $f.Manifest.fileClassifications += [pscustomobject]@{ path = $Path; sourceBlobSha256 = $hash; expectedOutputSha256 = $hash; classification = 'ReviewedNonPersonal'; reason = 'Cannot bypass a denial.' }
+        $f.Manifest.inspectableBinaries = @([pscustomobject]@{ path = $Path; sha256 = $hash; reason = 'Cannot bypass a denial.' })
+        $a = Invoke-ReplicaMapAssessment $f
+        @($a.exclusions | Where-Object path -CEQ $Path).Count | Should -Be 1
+        ($a.exclusions | Where-Object path -CEQ $Path).reason | Should -BeExactly $Reason
+        $a.copyFiles | Should -Not -Contain $Path
+        $f.Manifest.retainedTenantArtifacts += [pscustomobject]@{ path = $Path; artifactKind = 'ReusableCapability'; customerScope = 'Cannot bypass a denial.' }
+        { Invoke-ReplicaMapAssessment $f } | Should -Throw "*retention*$Reason*"
+        Test-Path $f.Destination | Should -BeFalse
+    }
+
+    It 'blocks metadata and misleading <Path> without touching real Git metadata' -ForEach @(
+        @{ Path = '.git/config'; Reason = 'GitMetadata' }
+        @{ Path = 'nested/.GiT/hooks/pre-push'; Reason = 'GitMetadata' }
+        @{ Path = 'infra/src/scripts/.azure/context.json'; Reason = 'Authentication' }
+        @{ Path = 'infra/src/scripts/APPROVALS/result.json'; Reason = 'Evidence' }
+        @{ Path = 'infra/src/config/tenants/tenant2/template.psd1'; Reason = 'TenantTransition' }
+        @{ Path = 'infra/src/config/tenants/_template.psd1.bak'; Reason = 'TenantPrivate' }
+        @{ Path = '.github/workflows/publish.yml'; Reason = 'Publication' }
+        @{ Path = 'hr/src/provider-output/result.json'; Reason = 'ProviderOutput' }
+        @{ Path = 'infra/src/scripts/auth.json'; Reason = 'Authentication' }
+        @{ Path = 'infra/src/scripts/session.pfx'; Reason = 'Authentication' }
+        @{ Path = 'hr/src/.env'; Reason = 'TenantPrivate' }
+        @{ Path = 'infra/src/scripts/tenant2-discovery.json'; Reason = 'TenantTransition' }
+        @{ Path = 'infra/src/scripts/deployment-outputs.json'; Reason = 'ProviderOutput' }
+        @{ Path = 'infra/src/scripts-extra/m.ps1'; Reason = 'AmbiguousArtifact' }
+        @{ Path = 'infra/SRC/scripts/m.ps1'; Reason = 'AmbiguousArtifact' }
+        @{ Path = 'unknown/payload.json'; Reason = 'AmbiguousArtifact' }
+    ) {
+        $f = New-ReplicaMapFixture
+        $f.Blobs[$Path] = [Text.Encoding]::UTF8.GetBytes('{}')
+        if ($Reason -ceq 'GitMetadata') {
+            { Invoke-ReplicaMapAssessment $f } | Should -Throw '*GitMetadata*'
+        }
+        else {
+            $a = Invoke-ReplicaMapAssessment $f
+            ($a.exclusions | Where-Object path -CEQ $Path).reason | Should -BeExactly $Reason
+        }
+        Test-Path $f.Destination | Should -BeFalse
+    }
+
+    It 'requires the exact manifest-retained asset when <Case>' -ForEach @(
+        @{ Case = 'missing' }, @{ Case = 'inconclusive without classification' }, @{ Case = 'denied' }
+    ) {
+        $f = New-ReplicaMapFixture
+        switch ($Case) {
+            'missing' { [void]$f.Blobs.Remove('hr/src/m.ps1') }
+            'inconclusive without classification' { $f.Manifest.fileClassifications = @($f.Manifest.fileClassifications | Where-Object path -CNE 'hr/src/m.ps1') }
+            'denied' { $f.Manifest.deniedPaths = @('hr/src') }
+        }
+        { Invoke-ReplicaMapAssessment $f } | Should -Throw '*retention*'
+    }
+
+    It 'never disposes a prohibited <Category> in retained text' -ForEach @(
+        @{ Category = 'StableId'; Value = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee' }
+        @{ Category = 'Url'; Value = 'https://source.example.invalid/private' }
+        @{ Category = 'Domain'; Value = 'source.example.invalid' }
+        @{ Category = 'EmailSuffix'; Value = 'source.example.invalid' }
+        @{ Category = 'OtherTenantIdentifier'; Value = 'synthetic-source-account' }
+    ) {
+        $f = New-ReplicaMapFixture
+        Add-ReplicaMarker $f $Category $Value
+        $f.Blobs['README.md'] = [Text.Encoding]::UTF8.GetBytes("Tenant 1 narrative and $Value")
+        $f.Manifest.residualDispositions = @([pscustomobject]@{ path = 'README.md'; markerId = 'reviewed'; reason = 'Cannot waive a stable source value.' })
+        { Invoke-ReplicaMapAssessment $f } | Should -Throw '*TenantStableIdentifier*'
+        $r = @(Get-CustomerExportResidual -RelativePath 'README.md' -Bytes $f.Blobs['README.md'] -Markers $f.Manifest.residualMarkers -Dispositions $f.Manifest.residualDispositions -Profile TenantReplica)
+        $r[0].disposition | Should -BeExactly 'Undisposed'
+        $r[0].reason | Should -BeExactly 'TenantStableIdentifier'
+    }
+
+    It 'permits reviewed narrative but requires an exact transformation for a stable value' {
+        $f = New-ReplicaMapFixture
+        Add-ReplicaMarker $f 'CompanyName' 'Tenant 1'
+        $f.Manifest.residualDispositions = @(
+            [pscustomobject]@{ path = 'README.md'; markerId = 'reviewed'; reason = 'Reusable narrative, not a tenant selector.' }
+            [pscustomobject]@{ path = 'infra/docs/runbooks/03-customer-handover.md'; markerId = 'reviewed'; reason = 'Reusable narrative.' }
+        )
+        (Invoke-ReplicaMapAssessment $f).copyFiles | Should -Contain 'README.md'
+        Add-ReplicaMarker $f 'StableId' 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+        $f.Manifest.residualDispositions = @()
+        $f.Blobs['README.md'] = [Text.Encoding]::UTF8.GetBytes('Tenant 1 aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee')
+        $f.Manifest.replacements = @([pscustomobject]@{ id = 'exact'; path = 'README.md'; format = 'MarkdownExact'; expectedOldText = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'; newText = 'synthetic-new-id'; requiredCount = 1 })
+        $sourceHash = (Get-FileHash -InputStream ([IO.MemoryStream]::new($f.Blobs['README.md']))).Hash.ToLowerInvariant()
+        $expectedHash = (Get-FileHash -InputStream ([IO.MemoryStream]::new([Text.Encoding]::UTF8.GetBytes('Tenant 1 synthetic-new-id')))).Hash.ToLowerInvariant()
+        ($f.Manifest.fileClassifications | Where-Object path -CEQ 'README.md').sourceBlobSha256 = $sourceHash
+        ($f.Manifest.fileClassifications | Where-Object path -CEQ 'README.md').expectedOutputSha256 = $expectedHash
+        (Invoke-ReplicaMapAssessment $f).fileDigests.'README.md'.expectedOutputSha256 | Should -BeExactly $expectedHash
+    }
+
+    It 'enforces actual staged <Case> independently of the retained inventory' -ForEach @(
+        @{ Case = 'missing capability'; Extra = ''; Missing = $true; Reason = 'MissingFile' }
+        @{ Case = 'unexpected allowed source'; Extra = 'hr/src/extra.ps1'; Missing = $false; Reason = 'UnexpectedFile' }
+        @{ Case = 'private evidence'; Extra = 'evidence/sanitized.json'; Missing = $false; Reason = 'Evidence' }
+        @{ Case = 'Git metadata'; Extra = '.git/config'; Missing = $false; Reason = 'GitMetadata' }
+        @{ Case = 'publication'; Extra = 'publication/target.json'; Missing = $false; Reason = 'Publication' }
+    ) {
+        $f = New-ReplicaMapFixture
+        $a = Invoke-ReplicaMapAssessment $f
+        $result = Invoke-ReplicaMapContent $f $a -Extra $Extra -Missing:$Missing
+        $result.status | Should -BeExactly 'Failed'
+        $result.failures.category | Should -Contain $Reason
+    }
+
+    It 'retains validation only for replica and never widens the customer boundary' {
+        $f = New-ReplicaMapFixture
+        $f.Manifest.profile = 'CustomerHandover'
+        $f.Manifest.profilePolicy.denyWorkflows = $true
+        $f.Manifest.retainedTenantArtifacts = @($f.Manifest.retainedTenantArtifacts | Where-Object path -CNE '.github/workflows/validate-repository.yml')
+        (Invoke-ReplicaMapAssessment $f).copyFiles | Should -Not -Contain '.github/workflows/validate-repository.yml'
+    }
+
+    It 'retains an exact reviewed negative synthetic fixture without treating its payload-shaped path as live evidence' {
+        $f = New-ReplicaMapFixture
+        $path = 'infra/tests/fixtures/evidence/example.json'
+        $f.Blobs[$path] = [Text.Encoding]::UTF8.GetBytes('{"status":"Synthetic evidence fixture"}')
+        $hash = (Get-FileHash -InputStream ([IO.MemoryStream]::new($f.Blobs[$path]))).Hash.ToLowerInvariant()
+        $f.Manifest.fileClassifications += [pscustomobject]@{ path = $path; sourceBlobSha256 = $hash; expectedOutputSha256 = $hash; classification = 'SyntheticFixture'; reason = 'Reviewed tenant-neutral negative fixture.' }
+        $a = Invoke-ReplicaMapAssessment $f
+        $a.copyFiles | Should -Contain $path
+        $content = Invoke-ReplicaMapContent $f $a
+        $content.status | Should -BeExactly 'Passed' -Because ($content.failures | ConvertTo-Json -Compress)
+    }
+
+    It 'cannot promote an unknown prefix to a capability by classification or explicit retention' {
+        $f = New-ReplicaMapFixture
+        $path = 'infra/src/scripts-extra/private.json'
+        $f.Blobs[$path] = [Text.Encoding]::UTF8.GetBytes('{}')
+        $hash = (Get-FileHash -InputStream ([IO.MemoryStream]::new($f.Blobs[$path]))).Hash.ToLowerInvariant()
+        $f.Manifest.fileClassifications += [pscustomobject]@{ path = $path; sourceBlobSha256 = $hash; expectedOutputSha256 = $hash; classification = 'SyntheticFixture'; reason = 'Cannot widen the capability prefixes.' }
+        (Invoke-ReplicaMapAssessment $f).exclusions.reason | Should -Contain 'AmbiguousArtifact'
+        $f.Manifest.retainedTenantArtifacts += [pscustomobject]@{ path = $path; artifactKind = 'TenantManifest'; customerScope = 'Cannot widen the capability prefixes.' }
+        { Invoke-ReplicaMapAssessment $f } | Should -Throw '*retention*AmbiguousArtifact*'
+    }
+
+    It 'does not let a binary authorization or generic disposition waive a stable marker' {
+        $f = New-ReplicaMapFixture
+        $path = 'reviewed.bin'
+        $value = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+        $f.Blobs[$path] = [Text.Encoding]::UTF8.GetBytes(([string][char]0x1B) + $value)
+        $hash = (Get-FileHash -InputStream ([IO.MemoryStream]::new($f.Blobs[$path]))).Hash.ToLowerInvariant()
+        $f.Manifest.fileClassifications += [pscustomobject]@{ path = $path; sourceBlobSha256 = $hash; expectedOutputSha256 = $hash; classification = 'ReviewedNonPersonal'; reason = 'Cannot waive a source marker.' }
+        $f.Manifest.inspectableBinaries = @([pscustomobject]@{ path = $path; sha256 = $hash; reason = 'Cannot waive a source marker.' })
+        Add-ReplicaMarker $f StableId $value
+        $f.Manifest.residualDispositions = @([pscustomobject]@{ path = $path; markerId = 'reviewed'; reason = 'Cannot waive a source marker.' })
+        { Invoke-ReplicaMapAssessment $f } | Should -Throw '*TenantStableIdentifier*'
+    }
+
+    It 'rejects stable values in actual content even when an exact disposition and digest classification claim them' {
+        $f = New-ReplicaMapFixture
+        $a = Invoke-ReplicaMapAssessment $f
+        Add-ReplicaMarker $f StableId 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+        $f.Blobs['README.md'] = [Text.Encoding]::UTF8.GetBytes('Tenant 1 aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee')
+        $f.Manifest.residualDispositions = @([pscustomobject]@{ path = 'README.md'; markerId = 'reviewed'; reason = 'Cannot waive a stable value.' })
+        $hash = (Get-FileHash -InputStream ([IO.MemoryStream]::new($f.Blobs['README.md']))).Hash.ToLowerInvariant()
+        ($f.Manifest.fileClassifications | Where-Object path -CEQ 'README.md').expectedOutputSha256 = $hash
+        $a.fileDigests.'README.md'.expectedOutputSha256 = $hash
+        $a.manifestDigest = Get-RunbookContentDigest $f.Manifest
+        (Invoke-ReplicaMapContent $f $a).failures.category | Should -Contain 'TenantStableIdentifier'
+    }
+
+    It 'rejects a stale fixed policy binding in actual content' {
+        $f = New-ReplicaMapFixture
+        $a = Invoke-ReplicaMapAssessment $f
+        $a.fixedPolicyDigest = 'f' * 64
+        (Invoke-ReplicaMapContent $f $a).failures.category | Should -Contain 'ProfilePolicyMismatch'
+    }
+
+    It 'cannot bypass explicit profile enforcement with a dictionary manifest' {
+        $f = New-ReplicaMapFixture
+        $a = Invoke-ReplicaMapAssessment $f
+        $dictionary = [ordered]@{}
+        foreach ($property in $f.Manifest.PSObject.Properties) { $dictionary[$property.Name] = $property.Value }
+        $f.Manifest = $dictionary
+        $a.fixedPolicyDigest = 'f' * 64
+        { Invoke-ReplicaMapContent $f $a } | Should -Throw '*profile manifest*'
+    }
+
+    It 'does not reinterpret a singleton manifest array as the historical customer profile' {
+        $f = New-ReplicaMapFixture
+        $a = Invoke-ReplicaMapAssessment $f
+        $f.Manifest = @($f.Manifest)
+        { Invoke-ReplicaMapContent $f $a } | Should -Throw '*manifest*'
+    }
+
+    It 'cannot remove the explicit manifest profile after a canonical assessment' {
+        $f = New-ReplicaMapFixture
+        $a = Invoke-ReplicaMapAssessment $f
+        $f.Manifest.PSObject.Properties.Remove('profile')
+        { Invoke-ReplicaMapContent $f $a } | Should -Throw '*explicit profile*'
+    }
+
+    It 'rejects case-mismatched profile selection at the shared residual boundary' {
+        $f = New-ReplicaMapFixture
+        Add-ReplicaMarker $f StableId 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+        {
+            Get-CustomerExportResidual -RelativePath 'README.md' `
+                -Bytes ([Text.Encoding]::UTF8.GetBytes('aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee')) `
+                -Markers $f.Manifest.residualMarkers -Profile tenantreplica
+        } | Should -Throw
+    }
+
+    It 'rejects changed synthetic bytes despite an unchanged classification and staged inventory' {
+        $f = New-ReplicaMapFixture
+        $a = Invoke-ReplicaMapAssessment $f
+        $f.Blobs['infra/tests/fixtures/sample.json'] = [Text.Encoding]::UTF8.GetBytes('{"status":"Synthetic changed output"}')
+        (Invoke-ReplicaMapContent $f $a).failures.category | Should -Contain 'Digest'
+    }
+
+    It 'proves the public assessment and planner bind the map without writes or ignored-file reads' {
+        $f = New-RepositoryAssessmentFixture
+        $p = $f.Parameters
+        $lock = [IO.File]::Open((Join-Path $f.Source 'private.local.json'), 'Open', 'ReadWrite', 'None')
+        $reader = & $script:ReplicaModule { ${function:Read-CustomerExportCommitBlob} }
+        $snapshotParameters = @{ RepositoryRoot = $f.Source; GitExecutable = $p.ToolIdentities.Git; NativeCommandRunner = $p.NativeCommandRunner; GitBlobReader = $reader }
+        try {
+            $before = Get-RunbookContentDigest (Get-CustomerExportSourceSnapshot @snapshotParameters)
+            $a = Get-RepositoryExportAssessment @p
+            $a.retainedFileCount | Should -Be 5
+            $planParameters = @{ Assessment = $a; Manifest = $f.Manifest; RunId = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'; EvidenceRoot = (Join-Path $f.Root 'proof'); NowUtc = [datetime]'2026-10-25T06:00:00Z' }
+            (New-RepositoryExportActionPlan @planParameters).profile | Should -BeExactly 'TenantReplica'
+            $a.fixedPolicyDigest = 'f' * 64
+            $unsigned = [ordered]@{}
+            foreach ($property in $a.PSObject.Properties | Where-Object Name -ne 'digest') { $unsigned[$property.Name] = $property.Value }
+            $a.digest = Get-RunbookContentDigest $unsigned
+            { New-RepositoryExportActionPlan @planParameters } | Should -Throw '*policy digest*'
+            (Get-RunbookContentDigest (Get-CustomerExportSourceSnapshot @snapshotParameters)) | Should -BeExactly $before
+        }
+        finally { $lock.Dispose() }
+        Test-Path $p.DestinationRoot | Should -BeFalse
+        Test-Path $planParameters.EvidenceRoot | Should -BeFalse
+    }
+
+    It 'rejects an unreadable untracked payload before reading its bytes' {
+        $f = New-RepositoryAssessmentFixture
+        $path = Join-Path $f.Source 'untracked.json'
+        [IO.File]::WriteAllText($path, '{"status":"Synthetic untracked sentinel"}')
+        $lock = [IO.File]::Open($path, 'Open', 'ReadWrite', 'None')
+        $p = $f.Parameters
+        try { { Get-RepositoryExportAssessment @p } | Should -Throw '*IgnoredOrUntracked*' }
+        finally { $lock.Dispose() }
+        Test-Path $p.DestinationRoot | Should -BeFalse
+    }
+
+    It 'requires reviewed account selectors discovered from committed tenant artifacts' {
+        $f = New-RepositoryAssessmentFixture
+        $full = Join-Path $f.Source 'infra\src\config\tenants\transition.json'
+        [IO.File]::WriteAllText($full, '{"TenantAlias":"source-lab","AccountSelector":"synthetic-owner-selector"}', [Text.UTF8Encoding]::new($false))
+        & $f.Git -C $f.Source add -- infra/src/config/tenants/transition.json
+        if ($LASTEXITCODE -ne 0) { throw 'Synthetic account fixture could not be staged.' }
+        & $f.Git -C $f.Source commit --quiet -m 'Synthetic account selector'
+        if ($LASTEXITCODE -ne 0) { throw 'Synthetic account fixture could not be committed.' }
+        $f.Parameters.ExpectedSourceCommit = (& $f.Git -C $f.Source rev-parse HEAD).Trim()
+        $f.Manifest.sourceMarkerCatalog[1].sources[0].blobSha256 = (Get-FileHash $full).Hash.ToLowerInvariant()
+        $p = $f.Parameters
+        { Get-RepositoryExportAssessment @p } | Should -Throw '*unrepresented source marker*'
+        Test-Path $p.DestinationRoot | Should -BeFalse
+    }
+}
+
 function script:New-RepositoryAssessmentFixture {
     param([string]$Profile = 'TenantReplica')
     $root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))

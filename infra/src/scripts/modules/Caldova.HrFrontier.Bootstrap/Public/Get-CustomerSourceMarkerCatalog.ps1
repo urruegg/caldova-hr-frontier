@@ -64,7 +64,7 @@ function Get-CustomerExportKeyValueCandidatesFromJson {
                 if ([string]$key -ieq 'TenantAlias') {
                     [void]$Candidates.Add(@{ key = [string]$key; value = $stringValue })
                 }
-                elseif ([string]$key -match 'Id$') {
+                elseif ([string]$key -match 'Id$' -or [string]$key -iin @('AccountSelector', 'UserPrincipalName', 'AccountName')) {
                     [void]$Candidates.Add(@{ key = [string]$key; value = $stringValue })
                 }
                 elseif ($stringValue -match '^https://') {
@@ -113,6 +113,9 @@ function Get-CustomerExportAutomaticCandidates {
         $records = @()
         if ($key -ieq 'TenantAlias') {
             $records += (New-CustomerExportAutomaticCandidate -Category 'TenantAlias' -Value $value -Comparison 'OrdinalIgnoreCase' -Path $Path -BlobSha256 $BlobSha256)
+        }
+        if ($key -iin @('AccountSelector', 'UserPrincipalName', 'AccountName')) {
+            $records += (New-CustomerExportAutomaticCandidate -Category 'OtherTenantIdentifier' -Value $value -Comparison 'Ordinal' -Path $Path -BlobSha256 $BlobSha256)
         }
         if ($value -match '^[0-9a-fA-F-]{36}$') {
             $records += (New-CustomerExportAutomaticCandidate -Category 'StableId' -Value $value.ToLowerInvariant() -Comparison 'OrdinalIgnoreCase' -Path $Path -BlobSha256 $BlobSha256)

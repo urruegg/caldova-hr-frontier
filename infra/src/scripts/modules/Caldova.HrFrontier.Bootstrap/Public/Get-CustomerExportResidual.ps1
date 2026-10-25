@@ -7,7 +7,8 @@ function Get-CustomerExportResidual {
         [Parameter(Mandatory, ParameterSetName = 'Blob')][AllowEmptyCollection()][byte[]]$Bytes,
         [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Markers,
         [AllowEmptyCollection()][object[]]$Dispositions = @(),
-        [AllowEmptyCollection()][object[]]$InspectableBinaries = @()
+        [AllowEmptyCollection()][object[]]$InspectableBinaries = @(),
+        [ValidateScript({ $_ -cin @('TenantReplica', 'CustomerHandover') })][string]$Profile
     )
 
     $blobMode = $PSCmdlet.ParameterSetName -ceq 'Blob'
@@ -91,6 +92,11 @@ function Get-CustomerExportResidual {
     }
 
     foreach ($result in $results) {
+        if ($Profile -ceq 'TenantReplica' -and
+            (Get-RepositoryExportFixedPolicy -Profile $Profile).stableMarkerCategories -ccontains $result.category) {
+            $result.reason = 'TenantStableIdentifier'
+            continue
+        }
         $disposition = @($Dispositions | Where-Object { $_.path -ceq $result.path -and $_.markerId -ceq $result.markerId }) | Select-Object -First 1
         if ($null -ne $disposition) {
             $result.disposition = 'Disposed'

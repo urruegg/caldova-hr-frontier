@@ -48,6 +48,29 @@ function Test-CustomerExportContent {
 
     $root = [IO.Path]::GetFullPath($StagingRoot)
     $failures = [Collections.Generic.List[object]]::new()
+    if ($Manifest -is [array] -or ($Manifest -isnot [Collections.IDictionary] -and $Manifest -isnot [pscustomobject])) {
+        throw 'Customer export content requires an object manifest.'
+    }
+    $profile = 'CustomerHandover'
+    $assessmentNames = @(Get-RunbookObjectPropertyNames -InputObject $Assessment)
+    $manifestNames = @(Get-RunbookObjectPropertyNames -InputObject $Manifest)
+    if ($manifestNames -cnotcontains 'profile' -and
+        ($manifestNames -icontains 'profile' -or $assessmentNames -ccontains 'profile')) {
+        throw 'Canonical content validation requires an explicit profile manifest.'
+    }
+    if ($manifestNames -ccontains 'profile') {
+        $profile = [string]$Manifest.profile
+        Assert-RepositoryExportManifestContract -Manifest $Manifest -ExpectedProfile $profile
+        $fixedDigest = Get-RunbookContentDigest -InputObject (Get-RepositoryExportFixedPolicy -Profile $profile)
+        $canonicalAssessment = $assessmentNames -ccontains 'profile'
+        if (($profile -ceq 'TenantReplica' -or $canonicalAssessment) -and
+            (-not $canonicalAssessment -or $Assessment.profile -cne $profile -or
+            $assessmentNames -cnotcontains 'fixedPolicyDigest' -or
+            $Assessment.fixedPolicyDigest -cne $fixedDigest -or
+            $Assessment.manifestDigest -cne (Get-RunbookContentDigest -InputObject $Manifest))) {
+            $failures.Add([pscustomobject]@{ category = 'ProfilePolicyMismatch'; path = $null })
+        }
+    }
     $actualFiles = @(
         Get-ChildItem -LiteralPath $root -Recurse -File -Force |
             ForEach-Object { Get-RunbookRelativePath -Root $root -Path $_.FullName } |
@@ -60,6 +83,25 @@ function Test-CustomerExportContent {
     foreach ($extra in @($actualFiles | Where-Object { $expectedFiles -notcontains $_ })) {
         $failures.Add([pscustomobject]@{ category = 'UnexpectedFile'; path = $extra })
     }
+    if ($profile -ceq 'TenantReplica') {
+        foreach ($item in @(Get-ChildItem -LiteralPath $root -Recurse -Force)) {
+            $path = Get-RunbookRelativePath -Root $root -Path $item.FullName
+            $denial = Get-RepositoryExportPathDenial -Path $path -Manifest $Manifest -Profile $profile -Directory:$item.PSIsContainer
+            if ($null -ne $denial) { $failures.Add([pscustomobject]@{ category = $denial; path = $path }) }
+            if (-not $item.PSIsContainer -and $null -eq (Get-RepositoryExportCapability -Path $path -Manifest $Manifest)) {
+                $failures.Add([pscustomobject]@{ category = 'AmbiguousArtifact'; path = $path })
+            }
+        }
+        foreach ($required in @(Get-RepositoryExportRequiredPaths -Manifest $Manifest)) {
+            if ($actualFiles -cnotcontains $required -or $expectedFiles -cnotcontains $required) {
+                $failures.Add([pscustomobject]@{ category = 'RequiredCapabilityMissing'; path = $required })
+            }
+        }
+        # Do not inspect metadata payloads, including staged synthetic .git files.
+        if (@($failures | Where-Object category -CEQ 'GitMetadata').Count -gt 0) {
+            return [pscustomobject]@{ status = 'Failed'; publishReady = $false; failures = @($failures) }
+        }
+    }
 
     if ([string]$ExecutionManifest.kind -cne 'CustomerExport' -or
         [string]$ExecutionManifest.target.type -cne 'CustomerExport' -or
@@ -69,9 +111,10 @@ function Test-CustomerExportContent {
     }
 
     $residuals = Get-CustomerExportResidual -StagingRoot $root -Markers @($Manifest.residualMarkers) `
-        -Dispositions @($Manifest.residualDispositions) -InspectableBinaries @($Manifest.inspectableBinaries)
+        -Dispositions @($Manifest.residualDispositions) -InspectableBinaries @($Manifest.inspectableBinaries) -Profile $profile
     foreach ($residual in @($residuals | Where-Object disposition -eq 'Undisposed')) {
-        $failures.Add([pscustomobject]@{ category = 'UndisposedResidual'; path = $residual.path; location = $residual.location; markerId = $residual.markerId })
+        $category = if ($residual.reason -ceq 'TenantStableIdentifier') { 'TenantStableIdentifier' } else { 'UndisposedResidual' }
+        $failures.Add([pscustomobject]@{ category = $category; path = $residual.path; location = $residual.location; markerId = $residual.markerId })
     }
 
     $sourceCommit = if ($null -ne $Assessment.PSObject.Properties['sourceCommit'] -and -not [string]::IsNullOrWhiteSpace([string]$Assessment.sourceCommit)) {
@@ -82,7 +125,7 @@ function Test-CustomerExportContent {
     }
     $synthetic = Test-CustomerExportSyntheticData -StagingRoot $root -SourceCommit $sourceCommit `
         -SyntheticDataPolicy $Manifest.syntheticDataPolicy -FileClassifications @($Assessment.fileClassifications) `
-        -FileDigests $Assessment.fileDigests
+        -FileDigests $Assessment.fileDigests -Manifest $Manifest
     if ([string]$synthetic.status -ne 'Passed') {
         foreach ($finding in @($synthetic.findings)) { $failures.Add($finding) }
     }

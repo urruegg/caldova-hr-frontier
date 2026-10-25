@@ -9,10 +9,20 @@
     "denySourceHistory": true,
     "denyUntrackedFiles": true
   },
-  "deniedPaths": [],
+  "deniedPaths": [
+    "infra/evidence",
+    "publication",
+    "artifacts"
+  ],
   "tenantAlias": "source-lab",
-  "customerScope": "Synthetic profile-contract example only; not an operational replica manifest",
-  "retainedTenantArtifacts": [],
+  "customerScope": "Synthetic Task 3 policy example only; not an operational manifest or Plan 4 retained-tree acceptance",
+  "retainedTenantArtifacts": [
+    {
+      "path": "infra/src/config/tenants/_template.psd1",
+      "artifactKind": "TenantManifest",
+      "customerScope": "Required reusable template only; no source-tenant intent or transition payload"
+    }
+  ],
   "replacements": [],
   "residualMarkers": [],
   "sourceMarkerCatalog": [],

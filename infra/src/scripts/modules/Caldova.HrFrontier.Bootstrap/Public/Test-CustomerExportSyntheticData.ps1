@@ -6,13 +6,16 @@ function Test-CustomerExportSyntheticData {
         [Parameter(Mandatory)][ValidatePattern('^[0-9a-fA-F]{40}$')][string]$SourceCommit,
         [Parameter(Mandatory)][object]$SyntheticDataPolicy,
         [AllowEmptyCollection()][object[]]$FileClassifications = @(),
-        [Parameter(Mandatory)][object]$FileDigests
+        [Parameter(Mandatory)][object]$FileDigests,
+        [object]$Manifest
     )
 
     $root = [IO.Path]::GetFullPath($StagingRoot)
     $classifications = [Collections.Generic.List[object]]::new()
     $findings = [Collections.Generic.List[object]]::new()
     $classificationByPath = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
+    $replica = $null -ne $Manifest -and
+        @(Get-RunbookObjectPropertyNames -InputObject $Manifest) -ccontains 'profile' -and $Manifest.profile -ceq 'TenantReplica'
     foreach ($classification in @($FileClassifications)) {
         $classificationByPath[[string]$classification.path] = $classification
     }
@@ -20,9 +23,16 @@ function Test-CustomerExportSyntheticData {
     foreach ($file in Get-ChildItem -LiteralPath $root -Recurse -File -Force | Sort-Object FullName) {
         $relative = Get-RunbookRelativePath -Root $root -Path $file.FullName
         $segments = @($relative -split '/')
-        if (@($segments | Where-Object { $_ -ieq 'data' -or $_ -ieq 'evidence' }).Count -gt 0) {
+        if (-not $replica -and @($segments | Where-Object { $_ -ieq 'data' -or $_ -ieq 'evidence' }).Count -gt 0) {
             $findings.Add([pscustomobject]@{ path = $relative; category = 'DeniedPath'; reason = 'data-or-evidence' })
             continue
+        }
+        if ($replica) {
+            $denial = Get-RepositoryExportPathDenial -Path $relative -Manifest $Manifest -Profile TenantReplica
+            if ($null -ne $denial) {
+                $findings.Add([pscustomobject]@{ path = $relative; category = $denial; reason = 'Fixed profile denial.' })
+                continue
+            }
         }
 
         $digestEntry = $null
@@ -38,10 +48,15 @@ function Test-CustomerExportSyntheticData {
             $findings.Add([pscustomobject]@{ path = $relative; category = 'Digest'; reason = 'Missing file digest entry.' })
             continue
         }
+        if ($replica -and (Get-CustomerExportFileDigest -Path $file.FullName) -cne [string]$digestEntry.expectedOutputSha256) {
+            $findings.Add([pscustomobject]@{ path = $relative; category = 'Digest'; reason = 'Actual content differs from assessed output.' })
+            continue
+        }
 
         $classification = $null
         $classificationByPath.TryGetValue($relative, [ref]$classification) | Out-Null
-        if ($relative.StartsWith('infra/tests/fixtures/', [StringComparison]::Ordinal)) {
+        if ($relative.StartsWith('infra/tests/fixtures/', [StringComparison]::Ordinal) -or
+            ($replica -and $relative.StartsWith('hr/tests/fixtures/', [StringComparison]::Ordinal))) {
             if ($null -ne $classification -and
                 [string]$classification.classification -ceq 'SyntheticFixture' -and
                 [string]$classification.sourceBlobSha256 -ceq [string]$digestEntry.sourceBlobSha256 -and

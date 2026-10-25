@@ -144,6 +144,9 @@ function Get-CustomerExportSourceSnapshot {
         throw 'Customer export source status could not be read.'
     }
     if (-not [string]::IsNullOrWhiteSpace($status.stdout)) {
+        if ($status.stdout -match '(?m)^\?\? ') {
+            throw 'Customer export source must be clean; IgnoredOrUntracked files are forbidden.'
+        }
         throw 'Customer export source must be clean.'
     }
 

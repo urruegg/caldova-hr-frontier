@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.8 |
+| **Version** | 1.9 |
 | **Date** | 2026-10-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -13,7 +13,7 @@
 
 This runbook prepares a synthetic customer-facing repository export from the reusable source without mutating the source tree. Execution is local, attended, and limited to Windows 11 PowerShell 5.1 or 7. Authentication is `NotApplicable`. Evidence is written only outside Git. Publication is not implemented here and remains a separate attended procedure.
 
-## Profile-contract and shared-library slice (Plan 5, Tasks 1–2 only)
+## Profile-contract, shared-library, and safety-map slice (Plan 5, Tasks 1–3 only)
 
 [`repository-export.schema.json`](../../src/config/schemas/repository-export.schema.json)
 adds explicit `TenantReplica` and `CustomerHandover` intent profiles.
@@ -123,15 +123,75 @@ customer independent validator alone retains its historical
 `AllowExistingDestination` assessment behavior; it is not exposed by the canonical
 library and cannot enable replica behavior.
 
-The current canonical deny policy covers explicit denied paths and descendants,
-customer workflows, evidence, private local state, approvals, backups, run roots,
-provider/discovery/transition payloads, source-history metadata, and default-denied
-tenant artifacts. Engineering text still requires the existing reviewed
-classifications where synthetic inspection is inconclusive. This is not the
-complete Task 3 capability map or retained-tree fixture acceptance. The library
-records the historical fixed suites (`Pester`, `RepositorySafety`, `BicepBuild`);
-it does not execute them against a destination or establish profile-independent
-full-tree validation.
+### TenantReplica retain/deny map
+
+The fixed map is shared by committed-blob assessment and the existing content
+validator. Its complete policy digest is also bound and rechecked by the planner;
+the manifest cannot change the map. Capability prefixes are case-sensitive and
+include the trailing path separator. Denials are case-insensitive, precede
+retention, and cannot be waived by replacements, binary permissions, or a
+nonpersonal classification.
+
+| Capability | Reviewed path boundary |
+|---|---|
+| `ProductSource` | `hr/src/`, `hr/docs/`, `docs/`; repository instructions, skills, and agent definitions under their exact repository-owned prefixes; enumerated root guidance files |
+| `InfrastructureSource` | `infra/src/scripts/`, `infra/src/bicep/` except generated parameters, `infra/src/solutions/`, `infra/src/config/github/`, and `infra/README.md` |
+| `GitHubValidation` | Exactly `.github/workflows/validate-repository.yml`, its workflow guidance, and `.github/cli/` static dependencies |
+| `AzurePipeline` | Exactly `azure-pipelines.yml` and `infra/src/pipelines/templates/` |
+| `InfrastructureTests` | `infra/tests/pester/` |
+| `HrTests` | `hr/tests/pester/` |
+| `ReplacementRunbooks` | `infra/docs/` and `infra/src/config/runbooks/` |
+| `Schemas` | `infra/src/config/schemas/` |
+| `SyntheticExamples` | Exact reviewed tenant-neutral fixture classifications under `infra/tests/fixtures/` or `hr/tests/fixtures/`, reviewed neutral tenant templates, and exact digest-classified root examples |
+
+These are candidates for retention, not permission to ignore content checks.
+The existing closed `retainedTenantArtifacts` field still accepts only its
+original tenant/parameter roots; it is not a general-purpose allowlist.
+Manifest-declared exact classifications on eligible paths and retained neutral
+tenant templates are required assets: a missing asset or failed classification
+blocks rather than silently removing build capability. Unsupported engineering
+text in a mapped capability needs an exact reviewed nonpersonal classification.
+Unknown prefixes are excluded as `AmbiguousArtifact`, even if a declaration
+tries to widen a known prefix. Other reusable files remain subject to the
+existing synthetic, encoding, and marker checks.
+
+The denied groups are `GitMetadata`, `IgnoredOrUntracked`, `TenantPrivate`,
+`TenantStableIdentifier`, `TenantTransition`, `Evidence`, `ProviderOutput`,
+`Authentication`, and `Publication`. They cover Git internals; ignored/untracked
+content; local intent/state, backups and generated parameters; source identifiers;
+tracked tenant manifests and discovery/transition payloads including Tenant 2;
+approvals and raw or sanitized run evidence; provider/deployment outputs and
+pipeline artifacts; PAC/authentication stores; and publication files and
+non-validation workflows. Exact manifest denials also include descendants.
+Ignored files are not opened, and an untracked source blocks before its bytes
+can be read. All source payload inspection uses the approved committed blobs.
+
+Exact `SyntheticFixture` classifications inside the declared test-fixture roots
+may preserve tenant-neutral negative-test examples whose paths resemble evidence
+or private payloads. They never authorize a live payload elsewhere, Git metadata,
+or a prohibited stable marker; both source and output hashes and the existing
+synthetic checks still apply. This avoids removing the tests needed to prove the
+boundary.
+
+The literal `Tenant 1` is reusable narrative, not automatically a private value.
+An exact reviewed narrative disposition may retain it. Reviewed `StableId`,
+`Url`, `Domain`, `EmailSuffix`, and `OtherTenantIdentifier` markers cannot be
+disposed in replica content: an exact authorized transformation must remove the
+value, or the file must be excluded. Account selectors in committed tenant
+artifacts also require marker-catalogue representation. The policy does not
+classify every GUID, schema property, or mention of authentication/evidence in
+source code as private data. Customer handover keeps its stricter workflow
+boundary and its historical exact marker dispositions.
+
+The two short fixture trees exercise synthetic capability retention and
+prohibited artifacts over this same engine, including actual staged-content
+inventory checks. Safe in-memory inventories test Git metadata rejection without
+altering any real fixture repository's metadata. They do not export this working
+repository. Synthetic pipeline definitions prove map rules only: the actual
+Plan 4 pipeline assets, retained-tree suite execution, and final production
+acceptance remain gated. The library records the historical fixed suites
+(`Pester`, `RepositorySafety`, `BicepBuild`); this slice adds no independent
+full-tree validator or profile-specific production suite runner.
 
 This slice adds no canonical Apply, replica export entry point, independent
 validator, pipeline delivery, real export, publication, or acceptance. Plan 5
