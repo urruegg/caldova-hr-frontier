@@ -1,5 +1,538 @@
 Set-StrictMode -Version Latest
 
+function script:New-RepositoryAssessmentFixture {
+    param([string]$Profile = 'TenantReplica')
+    $root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+    $source = Join-Path $root 'src'
+    [void][IO.Directory]::CreateDirectory($source)
+    $git = 'C:\Program Files\Git\cmd\git.exe'
+    if (-not (Test-Path -LiteralPath $git -PathType Leaf)) {
+        $git = (Get-Command git.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+    }
+    $ps = (Get-Command powershell.exe -CommandType Application | Select-Object -First 1).Source
+    $files = [ordered]@{
+        'README.md' = "Source Lab`n"
+        '.gitignore' = "*.local.json`n.github/workflows/ignored.yml`n"
+        '.github/workflows/validate-repository.yml' = "name: synthetic`n"
+        'azure-pipelines.yml' = "trigger: none`n"
+        'infra/src/pipelines/templates/check.yml' = "steps: []`n"
+        'infra/src/config/tenants/transition.json' = '{"TenantAlias":"source-lab"}'
+        'infra/evidence/private.md' = 'source-lab'
+        'private.local.json' = '{"value":"synthetic-private-sentinel"}'
+    }
+    foreach ($path in $files.Keys) {
+        $full = Join-Path $source $path.Replace('/', '\')
+        [void][IO.Directory]::CreateDirectory((Split-Path -Parent $full))
+        [IO.File]::WriteAllText($full, $files[$path], [Text.UTF8Encoding]::new($false))
+    }
+    & $git -C $source init --quiet
+    & $git -C $source config user.name 'Synthetic Reviewer'
+    & $git -C $source config user.email 'reviewer@example.invalid'
+    & $git -C $source config core.autocrlf false
+    & $git -C $source add .
+    & $git -C $source commit --quiet -m 'Synthetic assessment'
+    & $git -C $source remote add origin 'https://example.invalid/source'
+    $commit = (& $git -C $source rev-parse HEAD).Trim()
+    $readmeHash = (Get-FileHash -LiteralPath (Join-Path $source 'README.md')).Hash.ToLowerInvariant()
+    $tenantHash = (Get-FileHash -LiteralPath (Join-Path $source 'infra\src\config\tenants\transition.json')).Hash.ToLowerInvariant()
+    $manifest = [pscustomobject][ordered]@{
+        schemaVersion = '1.0'; tenantAlias = 'source-lab'; customerScope = 'Synthetic assessment'
+        retainedTenantArtifacts = @()
+        replacements = @([pscustomobject]@{
+            id = 'readme'; path = 'README.md'; format = 'MarkdownExact'
+            expectedOldText = 'Source Lab'; newText = 'Synthetic Reviewer'; requiredCount = 1
+        })
+        residualMarkers = @(
+            [pscustomobject]@{ id = 'company'; category = 'CompanyName'; value = 'Source Lab'; comparison = 'Ordinal' }
+            [pscustomobject]@{ id = 'alias'; category = 'TenantAlias'; value = 'source-lab'; comparison = 'OrdinalIgnoreCase' }
+        )
+        sourceMarkerCatalog = @(
+            [pscustomobject]@{
+                id = 'company'; category = 'CompanyName'; value = 'Source Lab'; comparison = 'Ordinal'
+                sources = @([pscustomobject]@{ path = 'README.md'; blobSha256 = $readmeHash; occurrenceCount = 1 })
+            }
+            [pscustomobject]@{
+                id = 'alias'; category = 'TenantAlias'; value = 'source-lab'; comparison = 'OrdinalIgnoreCase'
+                sources = @([pscustomobject]@{ path = 'infra/src/config/tenants/transition.json'; blobSha256 = $tenantHash; occurrenceCount = 1 })
+            }
+        )
+        residualDispositions = @()
+        syntheticDataPolicy = [pscustomobject]@{
+            reservedNames = @('Synthetic Reviewer'); reservedDomains = @('example.invalid'); reservedIdPrefixes = @('synthetic-')
+        }
+        fileClassifications = @(
+            foreach ($path in @('.gitignore', '.github/workflows/validate-repository.yml', 'azure-pipelines.yml', 'infra/src/pipelines/templates/check.yml')) {
+                $hash = (Get-FileHash -LiteralPath (Join-Path $source $path.Replace('/', '\'))).Hash.ToLowerInvariant()
+                [pscustomobject]@{ path = $path; sourceBlobSha256 = $hash; expectedOutputSha256 = $hash; classification = 'ReviewedNonPersonal'; reason = 'Synthetic engineering text.' }
+            }
+        )
+        inspectableBinaries = @(); validationSuites = @('Pester', 'RepositorySafety', 'BicepBuild')
+        profile = $Profile
+        profilePolicy = [pscustomobject]@{
+            denyWorkflows = ($Profile -ceq 'CustomerHandover'); denyEvidence = $true
+            denyTenantTransitions = $true; denyPrivateState = $true; denySourceHistory = $true; denyUntrackedFiles = $true
+        }
+        deniedPaths = @()
+    }
+    $runner = {
+        param($file, $arguments)
+        $previous = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            $output = @(& $file @arguments 2>&1 | ForEach-Object { $_.ToString() })
+            $code = $LASTEXITCODE
+        }
+        finally { $ErrorActionPreference = $previous }
+        [pscustomobject]@{ exitCode = $code; stdout = ($output -join "`n"); stderr = '' }
+    }
+    # Expected identity is independently reviewed fixture data, not an assessment read-back.
+    $identity = Get-RunbookContentDigest -InputObject @(
+        "origin`thttps://example.invalid/source (fetch)"
+        "origin`thttps://example.invalid/source (push)"
+    )
+    [pscustomobject]@{
+        Source = $source; Root = $root; Git = $git; Manifest = $manifest
+        Parameters = @{
+            SourceRoot = $source; ExpectedSourceCommit = $commit; DestinationRoot = (Join-Path $root 'out')
+            Manifest = $manifest; Profile = $Profile; RepositoryIdentity = $identity; NativeCommandRunner = $runner
+            ToolIdentities = [pscustomobject]@{
+                Git = [pscustomobject]@{ path = $git; sha256 = (Get-FileHash $git).Hash.ToLowerInvariant(); version = (& $git --version).Trim() }
+                WindowsPowerShell = [pscustomobject]@{ path = $ps; sha256 = (Get-FileHash $ps).Hash.ToLowerInvariant(); version = '5.1' }
+                AzureCli = [pscustomobject]@{ path = $ps; sha256 = (Get-FileHash $ps).Hash.ToLowerInvariant(); version = 'synthetic-unused' }
+            }
+        }
+    }
+}
+
+Describe 'Canonical repository assessment and deterministic planning' {
+    BeforeAll {
+        Import-Module (Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1') -Force
+        $script:Order = @('snapshot-source', 'stage-committed-blobs', 'apply-exact-transformations', 'validate-profile', 'promote-destination', 'snapshot-source-post', 'validate-independent')
+        function New-FixturePlan {
+            param($Assessment, $Fixture)
+            New-RepositoryExportActionPlan -Assessment $Assessment -Manifest $Fixture.Manifest `
+                -RunId 'e9c21cdd-8bfc-45be-a90d-2e29c5ee4dc1' -EvidenceRoot (Join-Path $Fixture.Root 'evidence') -NowUtc ([datetime]'2026-10-25T06:00:00Z')
+        }
+        function Complete-FixtureCommit {
+            param($Fixture)
+            & $Fixture.Git -C $Fixture.Source add .
+            & $Fixture.Git -C $Fixture.Source commit --quiet -m 'Synthetic case'
+            $Fixture.Parameters.ExpectedSourceCommit = (& $Fixture.Git -C $Fixture.Source rev-parse HEAD).Trim()
+        }
+    }
+
+    It 'plans the same seven ordered actions using the shared signed permission set for <Profile>' -ForEach @(
+        @{ Profile = 'TenantReplica' }, @{ Profile = 'CustomerHandover' }
+    ) {
+        $f = New-RepositoryAssessmentFixture $Profile
+        $p = $f.Parameters
+        $before = (& $f.Git -C $f.Source status --porcelain=v1 --ignored) -join "`n"
+        $a = Get-RepositoryExportAssessment @p
+        $plan = New-FixturePlan $a $f
+        $a.classification | Should -BeExactly 'Create'
+        $a.replacementPolicyDigest | Should -BeExactly (Get-RunbookContentDigest -InputObject $f.Manifest.replacements)
+        $a.denyPolicyDigest | Should -BeExactly (Get-RunbookContentDigest -InputObject @())
+        @($plan.orderedActions.action) | Should -Be $script:Order
+        @($plan.executionManifest.allowedActions.action) | Should -Be @(
+            'apply-exact-transformations', 'promote-destination', 'snapshot-source', 'snapshot-source-post',
+            'stage-committed-blobs', 'validate-independent', 'validate-profile'
+        )
+        Test-RunbookExecutionManifest -Manifest $plan.executionManifest -ApprovedDigest $plan.digest `
+            -CurrentSourceCommit $p.ExpectedSourceCommit -CurrentAssessmentDigest $a.digest `
+            -CurrentAuthenticationContext $plan.executionManifest.authentication -AllowedActionNames $script:Order `
+            -NowUtc ([datetime]'2026-10-25T06:00:00Z') | Should -BeTrue
+        (New-FixturePlan (Get-RepositoryExportAssessment @p) $f).digest | Should -BeExactly $plan.digest
+        Test-Path $p.DestinationRoot | Should -BeFalse
+        Test-Path (Join-Path $f.Root 'evidence') | Should -BeFalse
+        @((Get-ChildItem $f.Root -Force).Name | Sort-Object) | Should -Be @('src')
+        ((& $f.Git -C $f.Source status --porcelain=v1 --ignored) -join "`n") | Should -BeExactly $before
+        $json = $a | ConvertTo-Json -Depth 60 -Compress
+        $json | Should -Not -Match 'https:|example.invalid|Source Lab|source-lab|private.local|README.md|[A-Za-z]:[\\]'
+        $a.retainedFileCount | Should -Be $(if ($Profile -ceq 'TenantReplica') { 5 } else { 4 })
+        $a.deniedFileCount | Should -Be $(if ($Profile -ceq 'TenantReplica') { 2 } else { 3 })
+    }
+
+    It 'rejects complete remote inventory drift: <Case>' -ForEach @(
+        @{ Case = 'fetch' }, @{ Case = 'push' }, @{ Case = 'extra remote' }, @{ Case = 'extra push' }
+    ) {
+        $f = New-RepositoryAssessmentFixture
+        switch ($Case) {
+            'fetch' { & $f.Git -C $f.Source remote set-url origin https://example.invalid/changed }
+            'push' { & $f.Git -C $f.Source remote set-url --push origin https://example.invalid/changed }
+            'extra remote' { & $f.Git -C $f.Source remote add extra https://example.invalid/extra }
+            'extra push' {
+                & $f.Git -C $f.Source remote set-url --push origin https://example.invalid/source
+                & $f.Git -C $f.Source remote set-url --add --push origin https://example.invalid/extra
+                @(& $f.Git -C $f.Source remote -v).Count | Should -Be 3
+            }
+        }
+
+        $p = $f.Parameters
+        { Get-RepositoryExportAssessment @p } | Should -Throw '*identity*'
+        Test-Path $p.DestinationRoot | Should -BeFalse
+    }
+
+    It 'accepts only the existing sorted-line remote normalization, including uppercase expected hex' {
+        $f = New-RepositoryAssessmentFixture
+        $p = $f.Parameters
+        $p.RepositoryIdentity = $p.RepositoryIdentity.ToUpperInvariant()
+        $native = $p.NativeCommandRunner
+        $p.NativeCommandRunner = {
+            param($file, $arguments)
+            $result = & $native $file $arguments
+            if ($arguments -contains 'remote') {
+                $result.stdout = "`r`norigin`thttps://example.invalid/source (push)`r`norigin`thttps://example.invalid/source (fetch)`r`n"
+            }
+            $result
+        }.GetNewClosure()
+        (Get-RepositoryExportAssessment @p).classification | Should -BeExactly 'Create'
+    }
+
+    It 'rejects <Case> source state without repairing it' -ForEach @(
+        @{ Case = 'wrong commit' }, @{ Case = 'unstaged' }, @{ Case = 'staged' }, @{ Case = 'untracked' },
+        @{ Case = 'conflicted' }, @{ Case = 'sparse' }, @{ Case = 'empty sparse' }, @{ Case = 'submodule' }, @{ Case = 'symlink blob' }
+    ) {
+        $f = New-RepositoryAssessmentFixture
+        $p = $f.Parameters
+        switch ($Case) {
+            'wrong commit' { $p.ExpectedSourceCommit = 'b' * 40 }
+            'unstaged' { [IO.File]::AppendAllText((Join-Path $f.Source 'README.md'), 'dirty') }
+            'staged' { [IO.File]::AppendAllText((Join-Path $f.Source 'README.md'), 'dirty'); & $f.Git -C $f.Source add README.md }
+            'untracked' { [IO.File]::WriteAllText((Join-Path $f.Source 'new.md'), 'untracked') }
+            'conflicted' {
+                $blob = (& $f.Git -C $f.Source rev-parse HEAD:README.md).Trim()
+                "100644 $blob 1`tREADME.md`n100644 $blob 2`tREADME.md`n100644 $blob 3`tREADME.md" | & $f.Git -C $f.Source update-index --index-info
+            }
+            'sparse' { & $f.Git -C $f.Source sparse-checkout set --no-cone README.md 2>$null }
+            'empty sparse' {
+                & $f.Git -C $f.Source sparse-checkout init --no-cone
+                '' | & $f.Git -C $f.Source sparse-checkout set --no-cone --stdin
+            }
+            'submodule' {
+                & $f.Git -C $f.Source update-index --add --cacheinfo "160000,$($p.ExpectedSourceCommit),linked"
+                & $f.Git -C $f.Source commit --quiet -m 'Synthetic gitlink'
+                $p.ExpectedSourceCommit = (& $f.Git -C $f.Source rev-parse HEAD).Trim()
+            }
+            'symlink blob' {
+                $blob = (& $f.Git -C $f.Source rev-parse HEAD:README.md).Trim()
+                & $f.Git -C $f.Source update-index --add --cacheinfo "120000,$blob,linked"
+                & $f.Git -C $f.Source commit --quiet -m 'Synthetic symlink'
+                $p.ExpectedSourceCommit = (& $f.Git -C $f.Source rev-parse HEAD).Trim()
+            }
+        }
+        $before = (& $f.Git -C $f.Source status --porcelain=v1) -join "`n"
+        { Get-RepositoryExportAssessment @p } | Should -Throw
+        ((& $f.Git -C $f.Source status --porcelain=v1) -join "`n") | Should -BeExactly $before
+        Test-Path $p.DestinationRoot | Should -BeFalse
+    }
+
+    It 'refuses <Case> destinations with no staging side effect' -ForEach @(
+        @{ Case = 'existing' }, @{ Case = 'inside source' }, @{ Case = 'inside another worktree' }, @{ Case = 'reparse ancestor' }
+    ) {
+        $f = New-RepositoryAssessmentFixture
+        $p = $f.Parameters
+        switch ($Case) {
+            'existing' { [void][IO.Directory]::CreateDirectory($p.DestinationRoot) }
+            'inside source' { $p.DestinationRoot = Join-Path $f.Source 'out' }
+            'inside another worktree' {
+                $other = Join-Path $f.Root 'other'
+                & $f.Git -C $f.Source worktree add --quiet --detach $other
+                $p.DestinationRoot = Join-Path $other 'out'
+            }
+            'reparse ancestor' {
+                $link = Join-Path $f.Root 'link'
+                [void](New-Item -ItemType Junction -Path $link -Target $f.Source)
+                $p.DestinationRoot = Join-Path $link 'out'
+            }
+        }
+        try { { Get-RepositoryExportAssessment @p } | Should -Throw }
+        finally {
+            if ($Case -ceq 'reparse ancestor') { [IO.Directory]::Delete($link) }
+        }
+        @(Get-ChildItem $f.Root -Filter '*staging*').Count | Should -Be 0
+    }
+
+    It 'validates canonical object input before reading source for <Case>' -ForEach @(
+        @{ Case = 'legacy' }, @{ Case = 'unknown property' }, @{ Case = 'conflicting profile' },
+        @{ Case = 'weakened policy' }, @{ Case = 'array root' }, @{ Case = 'denied conflict' }
+    ) {
+        $f = New-RepositoryAssessmentFixture
+        $p = $f.Parameters
+        switch ($Case) {
+            'legacy' { $f.Manifest.PSObject.Properties.Remove('profile') }
+            'unknown property' { $f.Manifest | Add-Member NoteProperty skipValidation $true }
+            'conflicting profile' { $p.Profile = 'CustomerHandover' }
+            'weakened policy' { $f.Manifest.profilePolicy.denyPrivateState = $false }
+            'array root' { $p.Manifest = @($f.Manifest) }
+            'denied conflict' { $f.Manifest.deniedPaths = @('README.md') }
+        }
+        $p.SourceRoot = Join-Path $f.Root 'missing-source'
+        $p.NativeCommandRunner = { throw 'Source enumeration was reached before profile validation.' }
+        { Get-RepositoryExportAssessment @p } | Should -Throw '*profile*'
+    }
+
+    It 'requires a canonical profile and reviewed digest at the public boundary' {
+        $command = Get-Command Get-RepositoryExportAssessment
+        $command.Parameters['Profile'].Attributes.Mandatory | Should -Contain $true
+        $command.Parameters['RepositoryIdentity'].Attributes.Mandatory | Should -Contain $true
+        $f = New-RepositoryAssessmentFixture
+        $p = $f.Parameters
+        $p.RepositoryIdentity = 'not-a-digest'
+        { Get-RepositoryExportAssessment @p } | Should -Throw
+    }
+
+    It 'rejects explicit tenant retention that contradicts fixed transition denial before enumeration' {
+        $f = New-RepositoryAssessmentFixture
+        $f.Manifest.retainedTenantArtifacts = @([pscustomobject]@{
+            path = 'infra/src/config/tenants/transition.json'; artifactKind = 'TenantManifest'; customerScope = 'Must not override the fixed deny policy.'
+        })
+        $p = $f.Parameters
+        $p.NativeCommandRunner = { throw 'Enumeration must not be reached for conflicting retention.' }
+        { Get-RepositoryExportAssessment @p } | Should -Throw '*profile*'
+    }
+
+    It 'rejects private coordinates masquerading as a tool version' {
+        $f = New-RepositoryAssessmentFixture
+        $p = $f.Parameters
+        $p.ToolIdentities.Git.version = 'https://example.invalid/private-coordinate'
+        { Get-RepositoryExportAssessment @p } | Should -Throw '*tool*'
+    }
+
+    It 'rejects retained bytes that are <Case>, even with a reviewed nonpersonal classification' -ForEach @(
+        @{ Case = 'UTF8 BOM'; Bytes = [byte[]]@(239,187,191,65) }
+        @{ Case = 'UTF16'; Bytes = [byte[]]@(255,254,65,0) }
+        @{ Case = 'invalid UTF8'; Bytes = [byte[]]@(195,40) }
+        @{ Case = 'binary'; Bytes = [byte[]]@(65,0,66) }
+        @{ Case = 'mixed newline'; Bytes = [Text.Encoding]::UTF8.GetBytes("a`r`nb`nc") }
+    ) {
+        $f = New-RepositoryAssessmentFixture
+        $full = Join-Path $f.Source 'ambiguous.md'
+        [IO.File]::WriteAllBytes($full, $Bytes)
+        Complete-FixtureCommit $f
+        $hash = (Get-FileHash $full).Hash.ToLowerInvariant()
+        $f.Manifest.fileClassifications += [pscustomobject]@{
+            path = 'ambiguous.md'; sourceBlobSha256 = $hash; expectedOutputSha256 = $hash
+            classification = 'ReviewedNonPersonal'; reason = 'Must not override encoding validation.'
+        }
+        $p = $f.Parameters
+        { Get-RepositoryExportAssessment @p } | Should -Throw
+    }
+
+    It 'rejects an unresolved marker in <Case>' -ForEach @(
+        @{ Case = 'content'; Path = 'residual.md' }
+        @{ Case = 'filename'; Path = 'Source Lab.md' }
+        @{ Case = 'directory'; Path = 'Source Lab/note.md' }
+    ) {
+        $f = New-RepositoryAssessmentFixture
+        $full = Join-Path $f.Source $Path.Replace('/', '\')
+        [void][IO.Directory]::CreateDirectory((Split-Path $full -Parent))
+        [IO.File]::WriteAllText($full, $(if ($Case -ceq 'content') { 'Source Lab' } else { 'Synthetic Reviewer' }))
+        Complete-FixtureCommit $f
+        $p = $f.Parameters
+        { Get-RepositoryExportAssessment @p } | Should -Throw '*residual*'
+    }
+
+    It 'rejects <Case> private source assertions through the canonical entry point' -ForEach @(
+        @{ Case = 'unrepresented' }, @{ Case = 'unrepresented lower alias' }, @{ Case = 'unrepresented nested ID' },
+        @{ Case = 'stale digest' }, @{ Case = 'wrong occurrence count' },
+        @{ Case = 'replacement count mismatch' }
+    ) {
+        $f = New-RepositoryAssessmentFixture
+        switch ($Case) {
+            'unrepresented' {
+                $f.Manifest.sourceMarkerCatalog = @($f.Manifest.sourceMarkerCatalog | Where-Object id -ne 'alias')
+                $f.Manifest.residualMarkers = @($f.Manifest.residualMarkers | Where-Object id -ne 'alias')
+            }
+            'stale digest' { $f.Manifest.sourceMarkerCatalog[0].sources[0].blobSha256 = 'f' * 64 }
+            'wrong occurrence count' { $f.Manifest.sourceMarkerCatalog[0].sources[0].occurrenceCount = 2 }
+            'replacement count mismatch' { $f.Manifest.replacements[0].requiredCount = 2 }
+        }
+        if ($Case -cin @('unrepresented lower alias', 'unrepresented nested ID')) {
+            $text = '{"tenantAlias":"source-lab"}'
+            if ($Case -ceq 'unrepresented nested ID') { $text = '{"items":[{"subscriptionId":"11111111-1111-4111-8111-111111111111"}]}' }
+            [IO.File]::WriteAllText((Join-Path $f.Source 'infra\src\config\tenants\transition.json'), $text, [Text.UTF8Encoding]::new($false))
+            Complete-FixtureCommit $f
+            $f.Manifest.sourceMarkerCatalog = @($f.Manifest.sourceMarkerCatalog | Where-Object id -ne 'alias')
+            $f.Manifest.residualMarkers = @($f.Manifest.residualMarkers | Where-Object id -ne 'alias')
+        }
+        $p = $f.Parameters
+        { Get-RepositoryExportAssessment @p } | Should -Throw
+        Test-Path $p.DestinationRoot | Should -BeFalse
+    }
+
+    It 'binds <Case> drift to a different shared execution digest' -ForEach @(
+        @{ Case = 'destination' }, @{ Case = 'retained inventory' }, @{ Case = 'deny policy' },
+        @{ Case = 'marker policy' }, @{ Case = 'replacement' }, @{ Case = 'residual policy' },
+        @{ Case = 'profile' }, @{ Case = 'tool path' }, @{ Case = 'tool hash' }, @{ Case = 'tool version' },
+        @{ Case = 'suites' }, @{ Case = 'source snapshot' }, @{ Case = 'evidence root' },
+        @{ Case = 'retain policy' }, @{ Case = 'classification policy' }, @{ Case = 'binary policy' }, @{ Case = 'synthetic policy' }
+    ) {
+        $f = New-RepositoryAssessmentFixture
+        $p = $f.Parameters
+        if ($Case -ceq 'retain policy') {
+            [IO.File]::WriteAllText((Join-Path $f.Source 'infra\src\config\tenants\template.json'), '{}', [Text.UTF8Encoding]::new($false))
+            Complete-FixtureCommit $f
+        }
+        $a = Get-RepositoryExportAssessment @p
+        $before = New-FixturePlan $a $f
+        switch ($Case) {
+            'destination' { $p.DestinationRoot = Join-Path $f.Root 'different' }
+            'retained inventory' {
+                [IO.File]::WriteAllText((Join-Path $f.Source 'extra.md'), 'Synthetic Reviewer')
+                Complete-FixtureCommit $f
+            }
+            'deny policy' { $f.Manifest.deniedPaths = @('not-present.md') }
+            'marker policy' {
+                $f.Manifest.residualMarkers[0].id = 'company-reviewed'
+                $f.Manifest.sourceMarkerCatalog[0].id = 'company-reviewed'
+            }
+            'replacement' { $f.Manifest.replacements[0].newText = 'Synthetic Reviewer revised' }
+            'residual policy' {
+                $f.Manifest.residualDispositions = @([pscustomobject]@{ path = 'README.md'; markerId = 'company'; reason = 'Reviewed architectural narrative.' })
+            }
+            'profile' {
+                $f.Manifest.profile = 'CustomerHandover'; $f.Manifest.profilePolicy.denyWorkflows = $true; $p.Profile = 'CustomerHandover'
+            }
+            'tool path' {
+                $copy = Join-Path $f.Root 'powershell-copy.exe'
+                Copy-Item $p.ToolIdentities.WindowsPowerShell.path $copy
+                $p.ToolIdentities.WindowsPowerShell.path = $copy
+            }
+            'tool hash' { $p.ToolIdentities.WindowsPowerShell.sha256 = 'a' * 64 }
+            'tool version' { $p.ToolIdentities.WindowsPowerShell.version = '5.1-reviewed-revision' }
+            'suites' { $f.Manifest.validationSuites = @('RepositorySafety') }
+            'source snapshot' { & $f.Git -C $f.Source config synthetic.assessment changed }
+            'retain policy' {
+                $f.Manifest.retainedTenantArtifacts = @([pscustomobject]@{ path = 'infra/src/config/tenants/template.json'; artifactKind = 'TenantManifest'; customerScope = 'Reviewed synthetic template.' })
+            }
+            'classification policy' { $f.Manifest.fileClassifications[0].reason = 'Updated reviewed synthetic rationale.' }
+            'binary policy' { $f.Manifest.inspectableBinaries = @([pscustomobject]@{ path = 'synthetic.bin'; sha256 = 'a' * 64; reason = 'Exact synthetic exception policy.' }) }
+            'synthetic policy' { $f.Manifest.syntheticDataPolicy.reservedNames += 'Synthetic Alternate' }
+            'evidence root' {
+                $after = New-RepositoryExportActionPlan -Assessment $a -Manifest $f.Manifest -RunId 'e9c21cdd-8bfc-45be-a90d-2e29c5ee4dc1' `
+                    -EvidenceRoot (Join-Path $f.Root 'different-evidence') -NowUtc ([datetime]'2026-10-25T06:00:00Z')
+            }
+        }
+        if ($Case -cin @('tool hash', 'suites')) {
+            { Get-RepositoryExportAssessment @p } | Should -Throw
+        }
+        else {
+            if ($Case -cne 'evidence root') { $after = New-FixturePlan (Get-RepositoryExportAssessment @p) $f }
+            $after.digest | Should -Not -BeExactly $before.digest
+        }
+    }
+
+    It 'refuses tampered assessed <Case> during planning' -ForEach @(
+        @{ Case = 'digest' }, @{ Case = 'order' }, @{ Case = 're-signed order' }, @{ Case = 'manifest' },
+        @{ Case = 're-signed replacement policy' }, @{ Case = 're-signed profile policy' }
+    ) {
+        $f = New-RepositoryAssessmentFixture
+        $p = $f.Parameters
+        $a = Get-RepositoryExportAssessment @p
+        switch ($Case) {
+            'digest' { $a.destinationStableId = 'tampered' }
+            'order' { [array]::Reverse($a.orderedActions) }
+            're-signed order' {
+                [array]::Reverse($a.orderedActions)
+                $unsigned = [ordered]@{}
+                foreach ($property in $a.PSObject.Properties | Where-Object Name -ne 'digest') { $unsigned[$property.Name] = $property.Value }
+                $a.digest = Get-RunbookContentDigest $unsigned
+            }
+            'manifest' { $f.Manifest.replacements[0].newText = 'Changed after assessment' }
+            're-signed replacement policy' { $a.replacementPolicyDigest = 'a' * 64 }
+            're-signed profile policy' { $a.profilePolicyDigest = 'a' * 64 }
+        }
+        if ($Case -cin @('re-signed replacement policy', 're-signed profile policy')) {
+            $unsigned = [ordered]@{}
+            foreach ($property in $a.PSObject.Properties | Where-Object Name -ne 'digest') { $unsigned[$property.Name] = $property.Value }
+            $a.digest = Get-RunbookContentDigest $unsigned
+        }
+        { New-FixturePlan $a $f } | Should -Throw
+    }
+
+    It 'rejects an unapproved commit before enumerating or reading any of its blobs' {
+        $f = New-RepositoryAssessmentFixture
+        $p = $f.Parameters
+        $p.ExpectedSourceCommit = 'b' * 40
+        $native = $p.NativeCommandRunner
+        $p.NativeCommandRunner = {
+            param($file, $arguments)
+            if ($arguments -contains 'ls-tree') { throw 'Unapproved tree was enumerated.' }
+            & $native $file $arguments
+        }.GetNewClosure()
+        { Get-RepositoryExportAssessment @p } | Should -Throw '*source commit*'
+    }
+
+    It 'keeps ignored source values unreadable throughout assessment' {
+        $f = New-RepositoryAssessmentFixture
+        $p = $f.Parameters
+        $ignored = Join-Path $f.Source '.github\workflows\ignored.yml'
+        [IO.File]::WriteAllText($ignored, 'synthetic-private-sentinel')
+        $locks = @(
+            [IO.File]::Open($ignored, 'Open', 'ReadWrite', 'None')
+            [IO.File]::Open((Join-Path $f.Source 'private.local.json'), 'Open', 'ReadWrite', 'None')
+        )
+        try {
+            (Get-RepositoryExportAssessment @p).retainedFileCount | Should -Be 5
+        }
+        finally { foreach ($lock in $locks) { $lock.Dispose() } }
+    }
+
+    It 'enforces exact deny descendants and tracked private-artifact boundaries for <Profile>' -ForEach @(
+        @{ Profile = 'TenantReplica' }, @{ Profile = 'CustomerHandover' }
+    ) {
+        $f = New-RepositoryAssessmentFixture $Profile
+        foreach ($path in @('private.local.json', 'archive/approvals.json', 'runs/result.md', 'discovery/tenant2.json', 'custom/private.md')) {
+            $full = Join-Path $f.Source $path.Replace('/', '\')
+            [void][IO.Directory]::CreateDirectory((Split-Path $full -Parent))
+            [IO.File]::WriteAllText($full, 'source-lab')
+            & $f.Git -C $f.Source add --force -- $path
+        }
+        & $f.Git -C $f.Source commit --quiet -m 'Synthetic denied artifacts'
+        $f.Parameters.ExpectedSourceCommit = (& $f.Git -C $f.Source rev-parse HEAD).Trim()
+        $f.Manifest.deniedPaths = @('CUSTOM')
+        $p = $f.Parameters
+        $a = Get-RepositoryExportAssessment @p
+        $a.retainedFileCount | Should -Be $(if ($Profile -ceq 'TenantReplica') { 5 } else { 4 })
+        $a.deniedFileCount | Should -Be $(if ($Profile -ceq 'TenantReplica') { 7 } else { 8 })
+    }
+
+    It 'refuses reparse ancestors of the source before any Git call' {
+        $f = New-RepositoryAssessmentFixture
+        $link = Join-Path $f.Root 'source-link'
+        [void](New-Item -ItemType Junction -Path $link -Target $f.Source)
+        $p = $f.Parameters
+        $p.SourceRoot = $link
+        $p.NativeCommandRunner = { throw 'Git must not inspect the linked source.' }
+        try { { Get-RepositoryExportAssessment @p } | Should -Throw '*reparse*' }
+        finally { [IO.Directory]::Delete($link) }
+    }
+
+    It 'blocks source snapshot drift during assessment' {
+        $f = New-RepositoryAssessmentFixture
+        $p = $f.Parameters
+        $native = $p.NativeCommandRunner
+        $state = [pscustomobject]@{ snapshots = 0 }
+        $p.NativeCommandRunner = {
+            param($file, $arguments)
+            if ($arguments -contains 'status') { $state.snapshots++ }
+            $result = & $native $file $arguments
+            if ($state.snapshots -eq 2 -and $arguments -contains 'remote') { $result.stdout += "`nextra`thttps://example.invalid/extra (push)" }
+            $result
+        }.GetNewClosure()
+        { Get-RepositoryExportAssessment @p } | Should -Throw '*snapshot drifted*'
+    }
+
+    It 'rejects evidence rooted in source or destination' {
+        $f = New-RepositoryAssessmentFixture
+        $p = $f.Parameters
+        $a = Get-RepositoryExportAssessment @p
+        foreach ($root in @($f.Source, (Join-Path $f.Source 'evidence'), $p.DestinationRoot, (Join-Path $p.DestinationRoot 'evidence'))) {
+            { New-RepositoryExportActionPlan -Assessment $a -Manifest $f.Manifest -RunId ([guid]::NewGuid()) -EvidenceRoot $root -NowUtc ([datetime]::UtcNow) } | Should -Throw
+        }
+    }
+}
+
 Describe 'Explicit repository export profile contract' {
     BeforeAll {
         $script:Root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))

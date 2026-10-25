@@ -73,6 +73,19 @@ Describe 'Customer export sanitization' {
         ($log | ConvertTo-Json) | Should -Not -Match 'customer-synthetic|source-lab'
     }
 
+    It 'preserves nested literal arrays and timestamp strings through canonical import and exact transformation' {
+        $manifestPath = Join-Path $TestDrive 'nested-profile.json'
+        $sample = Join-Path $PSScriptRoot '..\..\src\config\runbooks\tenant-replica.sample.json'
+        $manifest = [IO.File]::ReadAllText($sample) | ConvertFrom-Json
+        $ruleJson = '{"id":"literal","path":"nested.json","format":"Json","selector":"/items","expectedOldValue":[null,["synthetic-old"],[],false,1],"newValue":[null,["2026-10-25T06:00:00Z"],[],false,1],"requiredCount":1}'
+        $manifest.replacements = @($ruleJson | ConvertFrom-Json)
+        [IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 50), [Text.UTF8Encoding]::new($false))
+        $imported = Import-RepositoryExportManifest -Path $manifestPath -ExpectedProfile TenantReplica
+        $original = [Text.Encoding]::UTF8.GetBytes('{"items":[null,["synthetic-old"],[],false,1],"stamp":"2026-10-25T06:00:00Z"}')
+        $converted = Convert-CustomerExportBlob -Path 'nested.json' -OriginalBytes $original -Rules $imported.replacements
+        [Text.Encoding]::UTF8.GetString($converted.bytes) | Should -BeExactly '{"items":[null,["2026-10-25T06:00:00Z"],[],false,1],"stamp":"2026-10-25T06:00:00Z"}'
+    }
+
     It 'changes the exact reviewed count only in the named Markdown file' {
         $target = Join-Path $TestDrive 'handover.md'
         $other = Join-Path $TestDrive 'other.md'

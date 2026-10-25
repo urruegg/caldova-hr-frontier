@@ -67,6 +67,19 @@ Describe 'Customer export source isolation' {
         Import-Module $script:Module -Force
     }
 
+    It 'never reads an ignored or untracked workflow value while snapshotting committed workflows' {
+        $fixture = New-SnapshotFixture
+        $path = Join-Path $fixture.RepositoryRoot '.github\workflows\sentinel.yml'
+        $locked = [IO.File]::Open($path, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+        try {
+            $snapshot = Get-CustomerExportSourceSnapshot -RepositoryRoot $fixture.RepositoryRoot `
+                -GitExecutable $fixture.GitExecutable -NativeCommandRunner $fixture.NativeCommandRunner `
+                -GitBlobReader $fixture.GitBlobReader
+            $snapshot.workflowDigest | Should -BeExactly (Get-RunbookContentDigest -InputObject @())
+        }
+        finally { $locked.Dispose() }
+    }
+
     It 'resolves rooted gitdir metadata consistently across Windows PowerShell 5.1 and PowerShell 7' {
         $fixture = New-SnapshotFixture
 

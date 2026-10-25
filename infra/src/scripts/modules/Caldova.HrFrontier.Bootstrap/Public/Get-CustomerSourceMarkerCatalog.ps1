@@ -57,11 +57,11 @@ function Get-CustomerExportKeyValueCandidatesFromJson {
     )
 
     if ($null -eq $Value) { return }
-    if ($Value -is [System.Collections.IDictionary]) {
-        foreach ($key in $Value.Keys) {
-            $stringValue = $Value[$key]
+    if ($Value -is [System.Collections.IDictionary] -or $Value -is [pscustomobject]) {
+        foreach ($key in @(Get-RunbookObjectPropertyNames -InputObject $Value)) {
+            $stringValue = Get-RunbookObjectPropertyValue -InputObject $Value -Name $key
             if ($stringValue -is [string]) {
-                if ([string]$key -ceq 'TenantAlias') {
+                if ([string]$key -ieq 'TenantAlias') {
                     [void]$Candidates.Add(@{ key = [string]$key; value = $stringValue })
                 }
                 elseif ([string]$key -match 'Id$') {
@@ -74,7 +74,7 @@ function Get-CustomerExportKeyValueCandidatesFromJson {
                     [void]$Candidates.Add(@{ key = [string]$key; value = $stringValue })
                 }
             }
-            Get-CustomerExportKeyValueCandidatesFromJson -Value $Value[$key] -Candidates $Candidates
+            Get-CustomerExportKeyValueCandidatesFromJson -Value $stringValue -Candidates $Candidates
         }
         return
     }
@@ -111,7 +111,7 @@ function Get-CustomerExportAutomaticCandidates {
         $key = [string]$item.key
         $value = [string]$item.value
         $records = @()
-        if ($key -ceq 'TenantAlias') {
+        if ($key -ieq 'TenantAlias') {
             $records += (New-CustomerExportAutomaticCandidate -Category 'TenantAlias' -Value $value -Comparison 'OrdinalIgnoreCase' -Path $Path -BlobSha256 $BlobSha256)
         }
         if ($value -match '^[0-9a-fA-F-]{36}$') {
@@ -154,7 +154,8 @@ function Get-CustomerSourceMarkerCatalog {
         [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$RetainedTenantArtifacts,
         [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$SourceMarkerCatalog,
         [Parameter(Mandatory)][object]$GitExecutable,
-        [Parameter(Mandatory)][scriptblock]$GitBlobReader
+        [Parameter(Mandatory)][scriptblock]$GitBlobReader,
+        [switch]$DigestOnly
     )
 
     $repository = [IO.Path]::GetFullPath($RepositoryRoot)
@@ -227,6 +228,14 @@ function Get-CustomerSourceMarkerCatalog {
         }
     }
 
+    if ($DigestOnly) {
+        return [pscustomobject][ordered]@{
+            reviewedAssertionsVerified = $reviewedAssertionsVerified
+            automaticCandidateCount = @($automaticCandidates).Count
+            automaticCandidatesDigest = Get-RunbookContentDigest -InputObject @($automaticCandidates)
+            sourceMarkerCatalogDigest = Get-RunbookContentDigest -InputObject @($SourceMarkerCatalog)
+        }
+    }
     return [pscustomobject][ordered]@{
         reviewedAssertionsVerified = $reviewedAssertionsVerified
         automaticCandidateCount = @($automaticCandidates).Count

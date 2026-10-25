@@ -103,74 +103,7 @@ function Join-WindowsProcessArguments {
 }
 
 function New-DefaultGitBlobReader {
-    {
-        param([string]$GitPath, [string]$RepositoryRoot, [string]$Commit, [string]$Path)
-
-        function Join-Arguments {
-            param([string[]]$Values)
-            function Quote-Argument {
-                param([AllowEmptyString()][string]$Value)
-                if ($null -eq $Value) { return '""' }
-                if ($Value -notmatch '[\s"]') { return $Value }
-
-                $builder = [Text.StringBuilder]::new('"')
-                $backslashCount = 0
-                foreach ($character in $Value.ToCharArray()) {
-                    if ($character -eq '\') { $backslashCount++; continue }
-                    if ($character -eq '"') {
-                        [void]$builder.Append(('\' * (($backslashCount * 2) + 1)))
-                        [void]$builder.Append('"')
-                        $backslashCount = 0
-                        continue
-                    }
-                    if ($backslashCount -gt 0) {
-                        [void]$builder.Append(('\' * $backslashCount))
-                        $backslashCount = 0
-                    }
-                    [void]$builder.Append($character)
-                }
-                if ($backslashCount -gt 0) {
-                    [void]$builder.Append(('\' * ($backslashCount * 2)))
-                }
-                [void]$builder.Append('"')
-                $builder.ToString()
-            }
-
-            (@($Values) | ForEach-Object { Quote-Argument -Value ([string]$_) }) -join ' '
-        }
-
-        $process = [System.Diagnostics.Process]::new()
-        $process.StartInfo = [System.Diagnostics.ProcessStartInfo]::new()
-        $process.StartInfo.FileName = [IO.Path]::GetFullPath($GitPath)
-        $process.StartInfo.Arguments = Join-Arguments -Values @('-C', [IO.Path]::GetFullPath($RepositoryRoot), 'show', '--no-textconv', ('{0}:{1}' -f $Commit, $Path))
-        $process.StartInfo.UseShellExecute = $false
-        $process.StartInfo.RedirectStandardOutput = $true
-        $process.StartInfo.RedirectStandardError = $true
-
-        try {
-            [void]$process.Start()
-            $stream = $process.StandardOutput.BaseStream
-            $buffer = New-Object byte[] 4096
-            $memory = [IO.MemoryStream]::new()
-            try {
-                while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
-                    $memory.Write($buffer, 0, $read)
-                }
-                $process.WaitForExit()
-                $stderr = $process.StandardError.ReadToEnd()
-                if ($process.ExitCode -ne 0) {
-                    throw "Git commit blob read failed: $stderr"
-                }
-                return $memory.ToArray()
-            }
-            finally {
-                $memory.Dispose()
-            }
-        }
-        finally {
-            $process.Dispose()
-        }
-    }.GetNewClosure()
+    & (Get-Module Caldova.HrFrontier.Bootstrap) { ${function:Read-CustomerExportCommitBlob} }
 }
 
 function New-DefaultValidationRunner {

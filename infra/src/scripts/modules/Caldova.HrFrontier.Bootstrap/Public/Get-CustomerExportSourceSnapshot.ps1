@@ -118,10 +118,13 @@ function Get-CustomerExportSourceSnapshot {
         [Parameter(Mandatory)][string]$RepositoryRoot,
         [Parameter(Mandatory)][object]$GitExecutable,
         [Parameter(Mandatory)][scriptblock]$NativeCommandRunner,
-        [Parameter(Mandatory)][scriptblock]$GitBlobReader
+        [Parameter(Mandatory)][scriptblock]$GitBlobReader,
+        [ValidatePattern('^[0-9a-fA-F]{40}$')][string]$ExpectedSourceCommit,
+        [ValidatePattern('^[0-9a-fA-F]{64}$')][string]$RepositoryIdentity
     )
 
     $repository = [IO.Path]::GetFullPath($RepositoryRoot)
+    Assert-RepositoryExportLocalPath -Path $repository
     if (-not (Test-Path -LiteralPath $repository -PathType Container)) {
         throw 'Source repository root does not exist.'
     }
@@ -149,6 +152,19 @@ function Get-CustomerExportSourceSnapshot {
     if ($head.exitCode -ne 0 -or $commit -notmatch '^[0-9a-f]{40}$') {
         throw 'Customer export source commit could not be read.'
     }
+    if ($PSBoundParameters.ContainsKey('ExpectedSourceCommit') -and $commit -cne $ExpectedSourceCommit.ToLowerInvariant()) {
+        throw 'Repository export source commit does not match.'
+    }
+
+    $remotes = Invoke-Git -Arguments @('remote', '-v')
+    if ($remotes.exitCode -ne 0) {
+        throw 'Customer export source remotes could not be read.'
+    }
+    $remoteLines = @($remotes.stdout -split "`r?`n" | Where-Object { $_ } | Sort-Object)
+    $remoteDigest = Get-RunbookContentDigest -InputObject $remoteLines
+    if ($PSBoundParameters.ContainsKey('RepositoryIdentity') -and $remoteDigest -cne $RepositoryIdentity.ToLowerInvariant()) {
+        throw 'Repository export repository identity does not match.'
+    }
 
     $topLevel = Invoke-Git -Arguments @('rev-parse', '--show-toplevel')
     if ($topLevel.exitCode -ne 0 -or
@@ -158,7 +174,7 @@ function Get-CustomerExportSourceSnapshot {
     }
 
     $sparse = Invoke-Git -Arguments @('sparse-checkout', 'list')
-    if ($sparse.exitCode -eq 0 -and -not [string]::IsNullOrWhiteSpace($sparse.stdout)) {
+    if ($sparse.exitCode -eq 0) {
         throw 'Customer export source must not use sparse checkout.'
     }
 
@@ -178,6 +194,7 @@ function Get-CustomerExportSourceSnapshot {
             throw 'Customer export source contains an unsupported tracked tree entry.'
         }
         $path = Test-CustomerExportRelativePath -Path $Matches.path
+        Assert-RepositoryExportLocalPath -Path (Join-Path $repository $path.Replace('/', '\'))
         if (-not $seenPaths.Add($path)) {
             throw 'Customer export source contains a duplicate tracked path.'
         }
@@ -205,12 +222,6 @@ function Get-CustomerExportSourceSnapshot {
             [pscustomobject]@{ refname = $parts[0]; objectId = $parts[1].ToLowerInvariant() }
         }
     )
-
-    $remotes = Invoke-Git -Arguments @('remote', '-v')
-    if ($remotes.exitCode -ne 0) {
-        throw 'Customer export source remotes could not be read.'
-    }
-    $remoteLines = @($remotes.stdout -split "`r?`n" | Where-Object { $_ } | Sort-Object)
 
     $config = Invoke-Git -Arguments @('config', '--local', '--list', '--null')
     if ($config.exitCode -ne 0) {
@@ -246,14 +257,10 @@ function Get-CustomerExportSourceSnapshot {
     }
 
     $workflowRecords = @()
-    $workflowRoot = Join-Path $repository '.github\workflows'
-    if (Test-Path -LiteralPath $workflowRoot -PathType Container) {
-        foreach ($workflow in Get-ChildItem -LiteralPath $workflowRoot -File -Recurse | Sort-Object FullName) {
-            $relative = Get-RunbookRelativePath -Root $repository -Path $workflow.FullName
-            $workflowRecords += [pscustomobject]@{
-                path = $relative
-                sha256 = Get-CustomerExportFileDigest -Path $workflow.FullName
-            }
+    foreach ($workflow in @($trackedFiles | Where-Object { $_.path.StartsWith('.github/workflows/', [StringComparison]::OrdinalIgnoreCase) } | Sort-Object path)) {
+        $workflowRecords += [pscustomobject]@{
+            path = $workflow.path
+            sha256 = $workflow.blobSha256
         }
     }
 
@@ -283,7 +290,7 @@ function Get-CustomerExportSourceSnapshot {
         trackedFiles = $trackedArray
         trackedTreeDigest = Get-RunbookContentDigest -InputObject $trackedArray
         refsDigest = Get-RunbookContentDigest -InputObject @($refRecords | Sort-Object refname, objectId)
-        remotesDigest = Get-RunbookContentDigest -InputObject $remoteLines
+        remotesDigest = $remoteDigest
         configDigest = Get-RunbookContentDigest -InputObject $configEntries
         hooksDigest = Get-RunbookContentDigest -InputObject @($hookRecords)
         workflowDigest = Get-RunbookContentDigest -InputObject @($workflowRecords)

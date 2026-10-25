@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.6 |
-| **Date** | 2026-10-24 |
+| **Version** | 1.7 |
+| **Date** | 2026-10-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure customer repository handover |
@@ -13,7 +13,7 @@
 
 This runbook prepares a synthetic customer-facing repository export from the reusable source without mutating the source tree. Execution is local, attended, and limited to Windows 11 PowerShell 5.1 or 7. Authentication is `NotApplicable`. Evidence is written only outside Git. Publication is not implemented here and remains a separate attended procedure.
 
-## Profile-contract slice (Plan 5, Task 1 only)
+## Profile-contract and shared-library slice (Plan 5, Tasks 1–2 only)
 
 [`repository-export.schema.json`](../../src/config/schemas/repository-export.schema.json)
 adds explicit `TenantReplica` and `CustomerHandover` intent profiles.
@@ -27,7 +27,9 @@ The canonical `1.0` object reuses the historical manifest fields and adds
 not permission switches: `denyEvidence`, `denyTenantTransitions`,
 `denyPrivateState`, `denySourceHistory`, and `denyUntrackedFiles` are always
 `true`; `denyWorkflows` is `true` for customer handover and `false` for replica
-intent. The latter is not an implemented workflow-retention path. Exact denied
+intent. The shared assessment library can retain committed workflows for replica
+intent, subject to the same exact content checks; the existing customer scripts
+still exclude them. Exact denied
 paths include their descendants; duplicate paths and contradictions with
 retained artifacts, replacements, residual dispositions, classifications, or
 binary exceptions fail closed, including Windows case and path aliases.
@@ -51,10 +53,77 @@ The [customer sample](../../src/config/runbooks/customer-export.sample.json)
 and [replica sample](../../src/config/runbooks/tenant-replica.sample.json) are
 synthetic contract examples, not approval or accepted retained-tree evidence.
 Source/destination binding, run IDs, approvals, and digests remain owned by the
-existing execution-manifest boundary, not a parallel intent contract. This slice
-adds no assessment, policy map, replica export entry point, full-tree validation,
-pipeline delivery, or acceptance. Plan 5 remains Draft; all export, pipeline, and
-live acceptance gates remain unchanged.
+existing execution-manifest boundary, not a parallel intent contract.
+
+### Shared assessment and planning library
+
+`Get-RepositoryExportAssessment -SourceRoot -ExpectedSourceCommit -DestinationRoot
+-Manifest -Profile -RepositoryIdentity -ToolIdentities -NativeCommandRunner` is a
+library operation, not an export script. Every parameter is required. Its manifest
+object must satisfy the same closed canonical profile contract as the importer;
+an unprofiled object, a conflicting profile, or weakened policy is not a
+compatibility shortcut. Validation precedes source enumeration.
+
+`RepositoryIdentity` is the caller-reviewed expected 64-hex `remotesDigest` from
+`Get-CustomerExportSourceSnapshot`. That existing contract hashes the complete
+sorted nonempty local `git remote -v` lines, including every fetch record, push
+record, additional push URL, and additional remote. The library compares that
+expected digest with a fresh observation; it does not choose one remote or URL,
+normalize URLs, infer intent from its own observation, or record remote
+coordinates. A different commit or remote inventory is rejected before committed
+blobs are enumerated. Existing customer callers remain snapshot-bound under their
+historical interface; that behavior is not a fallback for this parameter.
+
+The assessment reuses the customer engine's committed-blob inventory,
+marker assertions, exact transformations, residual checks, synthetic-data checks,
+and digest helpers. It checks source snapshots before and after assessment.
+Ignored/untracked values are never read, including ignored workflow files.
+Git status uses no optional locks. The destination must be absent, outside source
+and Git worktrees, and free of reparse traversal. Assessment creates neither
+destination, staging, nor evidence, and does not patch an existing destination.
+Successful assessments are classified `Create`; unsafe input fails closed.
+
+Assessment evidence contains counts, statuses, digests, action IDs, fixed suite
+IDs, and tool versions, not source text, marker/replacement values, source paths,
+or remote coordinates. A digest binds the complete private source snapshot and
+the retained/denied inventories; policy digests bind retained artifacts, exact
+denials, markers, replacements, residual dispositions, profile, classifications,
+binary exceptions, synthetic policy, and fixed suites. Tool executable paths are
+represented by path digests alongside verified file hashes and caller-reviewed
+versions. Destination and boundary identities are also path digests.
+
+`New-RepositoryExportActionPlan -Assessment -Manifest -RunId -EvidenceRoot -NowUtc`
+rechecks assessment integrity and policy bindings and uses the existing
+`New-RunbookExecutionManifest` constructor and verifier with kind `CustomerExport`.
+This is reuse of the shared local-export contract, not a second manifest schema.
+Its sorted `executionManifest.allowedActions` is an **authorization set**. It is
+not the execution sequence. The separately exposed `orderedActions` is bound by
+the assessment digest and checked against this fixed order for both profiles:
+
+`snapshot-source` → `stage-committed-blobs` → `apply-exact-transformations` →
+`validate-profile` → `promote-destination` → `snapshot-source-post` →
+`validate-independent`.
+
+The execution manifest binds the assessment, run ID, time, tools, destination,
+permissions, and a digest-only evidence-root scope. Planning rejects evidence
+inside source, destination, or any Git worktree, and writes nothing. The existing
+customer independent validator alone retains its historical
+`AllowExistingDestination` assessment behavior; it is not exposed by the canonical
+library and cannot enable replica behavior.
+
+The current canonical deny policy covers explicit denied paths and descendants,
+customer workflows, evidence, private local state, approvals, backups, run roots,
+provider/discovery/transition payloads, source-history metadata, and default-denied
+tenant artifacts. Engineering text still requires the existing reviewed
+classifications where synthetic inspection is inconclusive. This is not the
+complete Task 3 capability map or retained-tree fixture acceptance. The library
+records the historical fixed suites (`Pester`, `RepositorySafety`, `BicepBuild`);
+it does not execute them against a destination or establish profile-independent
+full-tree validation.
+
+This slice adds no canonical Apply, replica export entry point, independent
+validator, pipeline delivery, real export, publication, or acceptance. Plan 5
+remains Draft; all export, pipeline, and live acceptance gates remain unchanged.
 
 ## Lifecycle-core integration boundary
 

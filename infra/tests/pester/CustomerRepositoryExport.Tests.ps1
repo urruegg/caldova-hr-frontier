@@ -192,9 +192,44 @@ function script:Get-ApprovedGitPath {
         if (-not [string]::IsNullOrWhiteSpace($candidate) -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
             return [IO.Path]::GetFullPath($candidate)
         }
+
     }
 
     throw 'git.exe is required for production-default customer export tests.'
+}
+
+Describe 'Customer assessment compatibility boundary' {
+    BeforeAll {
+        Import-Module (Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1') -Force
+    }
+
+    It 'preserves the legacy existing-destination assessment only for independent validation' {
+        $f = New-CustomerExportFixture
+        $manifest = Import-CustomerExportManifest -Path $f.ManifestPath
+        $git = [pscustomobject]@{ path = 'C:\Approved\git.exe'; sha256 = 'c' * 64 }
+        $snapshot = Get-CustomerExportSourceSnapshot -RepositoryRoot $f.Source -GitExecutable $git `
+            -NativeCommandRunner $f.NativeCommandRunner -GitBlobReader $f.GitBlobReader
+        $catalog = Get-CustomerSourceMarkerCatalog -RepositoryRoot $f.Source -ExpectedSourceCommit $f.ExpectedSourceCommit `
+            -TrackedFiles $snapshot.trackedFiles -RetainedTenantArtifacts $manifest.retainedTenantArtifacts `
+            -SourceMarkerCatalog $manifest.sourceMarkerCatalog -GitExecutable $git -GitBlobReader $f.GitBlobReader
+        [void][IO.Directory]::CreateDirectory($f.Destination)
+        $parameters = @{
+            SourceRoot = $f.Source; ExpectedSourceCommit = $f.ExpectedSourceCommit; DestinationRoot = $f.Destination
+            Manifest = $manifest; ManifestDigest = (Get-RunbookContentDigest $manifest); SourceSnapshot = $snapshot
+            ToolIdentities = [pscustomobject]@{ Git = $git }; MarkerCatalogProof = $catalog; GitExecutable = $git; GitBlobReader = $f.GitBlobReader
+        }
+        { Get-CustomerExportAssessment @parameters } | Should -Throw '*already exist*'
+        (Get-CustomerExportAssessment @parameters -AllowExistingDestination).copyFiles | Should -Contain 'README.md'
+        $manifest.deniedPaths = @('never-shipped.md')
+        { Get-CustomerExportAssessment @parameters -AllowExistingDestination } | Should -Throw '*deniedPaths*'
+        $manifest.deniedPaths = @()
+        $manifest.profilePolicy.denyEvidence = $false
+        { Get-CustomerExportAssessment @parameters -AllowExistingDestination } | Should -Throw
+        $manifest.profilePolicy.denyEvidence = $true
+        $manifest.profile = 'TenantReplica'
+        { Get-CustomerExportAssessment @parameters -AllowExistingDestination } | Should -Throw '*CustomerHandover*'
+        (Get-Command Get-RepositoryExportAssessment).Parameters.Keys | Should -Not -Contain 'AllowExistingDestination'
+    }
 }
 
 function script:New-RealGitCustomerExportFixture {

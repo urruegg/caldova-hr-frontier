@@ -1,20 +1,32 @@
 function Get-CustomerExportResidual {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'Tree')]
     [OutputType([object[]])]
     param(
-        [Parameter(Mandatory)][string]$StagingRoot,
-        [Parameter(Mandatory)][object[]]$Markers,
+        [Parameter(Mandatory, ParameterSetName = 'Tree')][string]$StagingRoot,
+        [Parameter(Mandatory, ParameterSetName = 'Blob')][string]$RelativePath,
+        [Parameter(Mandatory, ParameterSetName = 'Blob')][AllowEmptyCollection()][byte[]]$Bytes,
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Markers,
         [AllowEmptyCollection()][object[]]$Dispositions = @(),
         [AllowEmptyCollection()][object[]]$InspectableBinaries = @()
     )
 
-    $root = [IO.Path]::GetFullPath($StagingRoot)
+    $blobMode = $PSCmdlet.ParameterSetName -ceq 'Blob'
+    $root = if (-not $blobMode) { [IO.Path]::GetFullPath($StagingRoot) }
     $results = [Collections.Generic.List[object]]::new()
-    foreach ($item in Get-ChildItem -LiteralPath $root -Recurse -Force) {
+    $items = if ($blobMode) {
+        $relative = Test-CustomerExportRelativePath -Path $RelativePath
+        $segments = @($relative -split '/')
+        for ($index = 0; $index -lt ($segments.Count - 1); $index++) {
+            [pscustomobject]@{ Attributes = 0; PSIsContainer = $true; FullName = ($segments[0..$index] -join '/'); Name = $segments[$index] }
+        }
+        [pscustomobject]@{ Attributes = 0; PSIsContainer = $false; FullName = $relative; Name = $segments[-1] }
+    }
+    else { Get-ChildItem -LiteralPath $root -Recurse -Force }
+    foreach ($item in $items) {
         if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
             continue
         }
-        $relative = Get-RunbookRelativePath -Root $root -Path $item.FullName
+        $relative = if ($blobMode) { $item.FullName } else { Get-RunbookRelativePath -Root $root -Path $item.FullName }
         if ($item.PSIsContainer) {
             foreach ($segment in @($relative -split '/')) {
                 foreach ($marker in @($Markers)) {
@@ -48,9 +60,9 @@ function Get-CustomerExportResidual {
             }
         }
 
-        $bytes = [IO.File]::ReadAllBytes($item.FullName)
+        $contentBytes = if ($blobMode) { $Bytes } else { [IO.File]::ReadAllBytes($item.FullName) }
         try {
-            $textKind = Get-CustomerExportTextKind -Path $relative -Bytes $bytes -InspectableBinaries $InspectableBinaries
+            $textKind = Get-CustomerExportTextKind -Path $relative -Bytes $contentBytes -InspectableBinaries $InspectableBinaries
         }
         catch {
             continue
