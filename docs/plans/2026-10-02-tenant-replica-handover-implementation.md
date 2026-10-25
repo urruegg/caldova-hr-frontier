@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-10-03 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-25 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Local profile-based TenantReplica and CustomerHandover export, compatibility, and independent validation |
@@ -48,6 +48,14 @@ This child plan remains `Draft`. Tasks 1-4 cannot begin until the [coordinate-on
 - Evidence records counts/digests/statuses only; no source text, replacement value, tenant marker, private path, remote coordinate, token, or raw validation output.
 - Fixtures contain synthetic IDs and reserved domains only. Each task ends with focused review and the standard Copilot co-author trailer.
 
+## Task 1 Implementation Checkpoint
+
+The user authorized the recommended prerequisite merge and beginning the profile-contract slice on 2026-10-24. PR #34 was merged as `99968302d5a05ccd64744db3c3beee83c4afbd7b`, and its current-main validation run `40102788190` passed before implementation began.
+
+Task 1 is implemented locally on `feat/tenant-replica-handover` in commits `e26abdbce662bdc9ef43c6b802ceb7cc7433665b` and `e019ea66349ae20c138bca55ebc52bf88d8d042c`. Review identified a root-array normalization defect; public-entrypoint regression tests reproduced it on both hosts, the fix was committed, and scoped re-review passed. Final focused validation passed 136 tests on each of Windows PowerShell 5.1 and PowerShell 7.6.8 with Pester 5.7.1. The related customer-export regression runner passed 208 tests on Windows PowerShell 5.1. Repository safety, scoped repository setup, and committed whitespace validation passed.
+
+This checkpoint does not approve the remaining Draft plan, publish the branch, execute a real export, or satisfy the Plan 4 retained-pipeline or operational acceptance gates. Tasks 2-6 remain incomplete. Continue with Task 2 after confirming the then-current source and dependency state.
+
 ## File and Interface Map
 
 | Path | Responsibility |
@@ -85,11 +93,11 @@ Path rules have exactly `id`, `kind`, `value`, `reason`; `kind` is `ExactPath` o
 - Produces `ConvertTo-CustomerHandoverManifest -LegacyManifest <object>`, returning canonical schema `1.0` with explicit `profile: CustomerHandover`.
 - Existing `Import-CustomerExportManifest -Path` remains callable and returns the canonical fixed customer profile.
 
-- [ ] **Step 1: Write failing schema/compatibility tests**
+- [x] **Step 1: Write failing schema/compatibility tests**
 
 Accept both explicit profiles, reject absent/unknown profile, unknown fields, wildcard paths/replacements, conflicting retain/deny rules, invalid profile-policy booleans, and duplicate IDs. Prove existing valid v1 customer fixtures map byte-deterministically to `CustomerHandover` and existing invalid fixtures still fail.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 powershell.exe -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1 -Force; Invoke-Pester -Path @('infra/tests/pester/RepositoryExportProfiles.Tests.ps1','infra/tests/pester/CustomerExportManifest.Tests.ps1') -Output Detailed"
@@ -97,19 +105,19 @@ powershell.exe -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1 
 
 Expected: **FAIL** because the canonical schema/import/adapter do not exist.
 
-- [ ] **Step 3: Implement minimum canonical import**
+- [x] **Step 3: Implement minimum canonical import**
 
 Validate duplicate JSON properties, UTF-8 without BOM, exact paths, closed fields, profile policy, and contradictory rules. Adapt only recognized v1 fields; set the fixed strict policy and never infer `TenantReplica`. Keep the old schema for historical input validation and the new schema as canonical output.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 Run the RED command under Windows PowerShell 5.1. Expected: **PASS**, including all existing customer manifest tests.
 
-- [ ] **Step 5: Perform focused review**
+- [x] **Step 5: Perform focused review**
 
 Confirm no implicit profile in canonical entry points, no wildcard, no broad replacement, no weakening of old customer denials, and no source/private-value read during import.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add infra/src/config/schemas/repository-export.schema.json infra/src/config/runbooks/tenant-replica.sample.json infra/src/config/runbooks/customer-export.sample.json infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap infra/tests/pester/RepositoryExportProfiles.Tests.ps1
