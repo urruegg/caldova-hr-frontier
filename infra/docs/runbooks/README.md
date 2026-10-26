@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.6 |
-| **Date** | 2026-10-19 |
+| **Version** | 1.7 |
+| **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure operations |
@@ -166,7 +166,7 @@ Repository-bundled Superpowers skills and custom agents are integrity and presen
 
 | Runbook | Scope | Status |
 |---|---|---|
-| [Developer Workstation](01-developer-workstation.md) | Independently runnable assessment, preview, approval, apply, read-back, and recovery for one approved Windows 11 administrator workstation; not wired by the lifecycle core. | In scope now |
+| [Developer Workstation](01-developer-workstation.md) | Independently runnable assessment, preview, approval, apply, read-back, and recovery for one approved Windows 11 administrator workstation, including sibling `wt` placement and safe worktree relocation; not wired by the lifecycle core. | In scope now |
 | [Cloud Service Foundation Runbook](02-cloud-service-foundation.md) | Superseded stop notice for dormant cloud-foundation entry points; retained generic modules are not an approved operating path. | Superseded |
 | [Customer Repository Handover](03-customer-handover.md) | Independently runnable local attended customer export assessment, approval, apply, independent validation, and human review; not wired by the lifecycle core. | In scope now |
 | [Tenant 1 Lean Platform](../24-tenant-1-lean-platform-runbook.md) | Attended local private configuration, discovery, Bicep build, subscription `what-if`, boundary validation, and context/access read-back. | In scope now |

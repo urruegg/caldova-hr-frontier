@@ -224,23 +224,28 @@ Describe 'Runbook documentation contracts' {
         $documentCases = @(
             @{
                 Path = 'infra/docs/runbooks/README.md'
-                Version = '1.6'
+                Version = '1.7'
+                Date = '2026-10-26'
             }
             @{
                 Path = 'infra/docs/runbooks/01-developer-workstation.md'
-                Version = '1.5'
+                Version = '1.6'
+                Date = '2026-10-26'
             }
             @{
                 Path = 'infra/docs/runbooks/03-customer-handover.md'
                 Version = '1.4'
+                Date = '2026-10-19'
             }
             @{
                 Path = 'infra/docs/README.md'
                 Version = '1.4'
+                Date = '2026-10-19'
             }
             @{
                 Path = 'infra/README.md'
                 Version = '1.10'
+                Date = '2026-10-19'
             }
         )
         $requiredStatements = @(
@@ -303,7 +308,9 @@ Describe 'Runbook documentation contracts' {
                 '\s+\|\s*$'
             )
             $content | Should -Match (
-                '(?m)^\|\s+\*\*Date\*\*\s+\|\s+2026-10-19\s+\|\s*$'
+                '(?m)^\|\s+\*\*Date\*\*\s+\|\s+' +
+                [regex]::Escape($documentCase.Date) +
+                '\s+\|\s*$'
             )
             $content | Should -Match (
                 'Approved Child Summary Envelope Design.+child-summary-' +

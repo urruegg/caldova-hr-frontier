@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.5 |
-| **Date** | 2026-10-19 |
+| **Version** | 1.6 |
+| **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Approved Windows 11 administrator workstation |
@@ -72,20 +72,33 @@ $env:Path = @(
 
 ## External worktree prerequisite
 
-The durable Windows convention is `%LOCALAPPDATA%\CaldovaHR\wt\<repository>\<short-task-id>`. Task worktrees append a reviewed short task ID below the repository root, require no administrator rights, and are removed through `git worktree remove` after branch completion. In this example, `doc-arch` is the reviewed short task ID.
+The durable Windows convention keeps the primary checkout and its worktree container beside each other:
+
+```text
+Source\
+    <repository-context>\
+        caldova-hr-frontier\
+        wt\
+            <sprint-branch>\
+```
+
+`<repository-context>` identifies the GitHub or Azure DevOps repository context. Each worktree uses a reviewed, unique, short sprint or branch directory name directly below `wt`; do not create `.worktrees` or `worktrees` inside the primary checkout. In this example, `doc-arch` is the reviewed task directory name.
+
+The following resolves the primary checkout's shared Git directory, so it uses the same sibling `wt` root from the primary checkout or a linked worktree. It requires no administrator rights.
 
 ```powershell
-$localAppData = [Environment]::GetFolderPath('LocalApplicationData')
-if ([string]::IsNullOrWhiteSpace($localAppData)) {
-    throw 'LocalApplicationData is unavailable.'
+$gitCommonDirectory = git rev-parse --path-format=absolute --git-common-dir
+if ($LASTEXITCODE -ne 0) {
+    throw 'Unable to resolve the primary checkout Git directory.'
 }
-$worktreeRoot = Join-Path $localAppData 'CaldovaHR\wt'
-$repositoryRoot = Join-Path $worktreeRoot 'caldova-hr-frontier'
-New-Item -ItemType Directory -Path $repositoryRoot -Force | Out-Null
-$probe = Join-Path $repositoryRoot ('.write-probe-{0}.tmp' -f [guid]::NewGuid().ToString('N'))
+$primaryCheckoutRoot = Split-Path -Parent $gitCommonDirectory
+$repositoryContextRoot = Split-Path -Parent $primaryCheckoutRoot
+$worktreeRoot = Join-Path $repositoryContextRoot 'wt'
+New-Item -ItemType Directory -Path $worktreeRoot -Force -ErrorAction Stop | Out-Null
+$probe = Join-Path $worktreeRoot ('.write-probe-{0}.tmp' -f [guid]::NewGuid().ToString('N'))
 [IO.File]::WriteAllText($probe, 'permission-probe', [Text.UTF8Encoding]::new($false))
-Remove-Item -LiteralPath $probe -Force
-$taskRoot = Join-Path $repositoryRoot 'doc-arch'
+Remove-Item -LiteralPath $probe -Force -ErrorAction Stop
+$taskRoot = Join-Path $worktreeRoot 'doc-arch'
 $longestRelative = @(
     git -c core.quotepath=false ls-files |
         Sort-Object Length -Descending
@@ -97,6 +110,8 @@ if ($longestCheckoutPath.Length -ge 240) {
 ```
 
 Never loosen directory ACLs or enable `core.longpaths` automatically. A failed current-user write/delete probe or path-budget check is a blocking workstation prerequisite.
+
+Use `git worktree move <current-path> <new-path>` to relocate existing worktrees without losing their registration or local changes. After branch completion, remove a worktree through `git worktree remove <path>` without forcing removal of uncommitted work. Remove an old container only after confirming it is empty. This sibling convention replaces older Local AppData worktree examples; evidence and tenant-private configuration roots remain unchanged.
 
 Run assessment without installation, configuration, or authentication mutation:
 

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.4 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.5 |
+| **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Repository |
@@ -23,31 +23,13 @@ examples.
 
 ### External Windows worktrees
 
-The durable convention is `%LOCALAPPDATA%\CaldovaHR\wt\<repository>\<short-task-id>`. Task worktrees append a reviewed short task ID below the repository root, require no administrator rights, and are removed through `git worktree remove` after branch completion.
+Keep the primary checkout at `Source\<repository-context>\<repository>` and task worktrees at `Source\<repository-context>\wt\<sprint-branch>`. The `wt` container is a sibling of the primary checkout, never a child of it. Use a reviewed, unique, short sprint or branch directory name; do not create `.worktrees` or `worktrees` inside the repository.
 
-```powershell
-$localAppData = [Environment]::GetFolderPath('LocalApplicationData')
-if ([string]::IsNullOrWhiteSpace($localAppData)) {
-    throw 'LocalApplicationData is unavailable.'
-}
-$worktreeRoot = Join-Path $localAppData 'CaldovaHR\wt'
-$repositoryRoot = Join-Path $worktreeRoot 'caldova-hr-frontier'
-New-Item -ItemType Directory -Path $repositoryRoot -Force | Out-Null
-$probe = Join-Path $repositoryRoot ('.write-probe-{0}.tmp' -f [guid]::NewGuid().ToString('N'))
-[IO.File]::WriteAllText($probe, 'permission-probe', [Text.UTF8Encoding]::new($false))
-Remove-Item -LiteralPath $probe -Force
-$taskRoot = Join-Path $repositoryRoot 'doc-arch'
-$longestRelative = @(
-    git -c core.quotepath=false ls-files |
-        Sort-Object Length -Descending
-)[0]
-$longestCheckoutPath = Join-Path $taskRoot $longestRelative
-if ($longestCheckoutPath.Length -ge 240) {
-    throw "Worktree path budget exceeded: $($longestCheckoutPath.Length)"
-}
-```
+This convention supersedes worktree-location examples in older plans and vendored skills, including the former Local AppData convention. Evidence and tenant-private configuration locations do not change.
 
-Never loosen directory ACLs or enable `core.longpaths` automatically. A failed current-user write/delete probe or a checkout path of 240 characters or more is a blocking workstation prerequisite.
+Follow the [external worktree prerequisite](../infra/docs/runbooks/01-developer-workstation.md#external-worktree-prerequisite) to resolve the root from the primary checkout even when running inside a linked worktree, prove current-user write/delete access, and keep checkout paths below 240 characters. Never loosen directory ACLs or enable `core.longpaths` automatically; a failed probe or path-budget check blocks creation.
+
+Relocate existing checkouts with `git worktree move` to preserve Git registration and local changes. Remove completed worktrees through `git worktree remove`, never by deleting their directories or forcing removal of uncommitted work.
 
 ---
 

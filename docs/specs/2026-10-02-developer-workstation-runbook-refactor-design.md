@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Windows 11 workstation subsystem for the Tenant 1 runbook sprint |
@@ -149,8 +149,10 @@ Each executable resolves to exactly one canonical physical path. Ambiguous PATH 
 Task worktrees remain outside the primary checkout under:
 
 ```text
-%LOCALAPPDATA%\CaldovaHR\wt\<repository>\<short-task-id>
+Source\<repository-context>\wt\<sprint-branch>
 ```
+
+The primary checkout remains at `Source\<repository-context>\<repository>`; `wt` is its sibling, never a directory inside the checkout. The user approved this location revision on 2026-10-26. It supersedes worktree-location examples in earlier implementation plans, not their other constraints or the evidence and tenant-private configuration roots. The [current workstation runbook](../../infra/docs/runbooks/01-developer-workstation.md#external-worktree-prerequisite) owns the root-resolution and safe-relocation procedure.
 
 The runbook:
 

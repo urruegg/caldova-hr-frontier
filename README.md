@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.5 |
-| **Date** | 2026-10-01 |
+| **Version** | 1.6 |
+| **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Repository |
@@ -298,6 +298,8 @@ GitHub Copilot discovers the skills under `.github/skills/` in:
 - GitHub Copilot CLI when launched from this repository.
 
 Repository instructions require Copilot to begin with the `using-superpowers` skill and load other skills when relevant.
+
+Keep the primary checkout at `Source\<repository-context>\caldova-hr-frontier` and local worktrees at `Source\<repository-context>\wt\<sprint-branch>`. The `wt` container sits beside the primary checkout, never inside it. Follow the [developer workstation worktree prerequisite](infra/docs/runbooks/01-developer-workstation.md#external-worktree-prerequisite) for path checks, safe relocation, and cleanup.
 
 ### Verify the Bundle
 
