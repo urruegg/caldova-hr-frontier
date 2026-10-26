@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Local repository export profiles for tenant replication and customer handover |
@@ -50,6 +50,7 @@ The current Tenant 1 sprint executes only a local `TenantReplica` export and ind
 - Automatic source synchronization or backport between tenant repositories.
 - Rewriting, filtering, deleting, resetting, or otherwise changing the reusable source repository.
 - A customer-name or tenant-name global replacement.
+- Requiring the legacy HR control-plane Code App or its specific `BackgroundImageUri` pack/unpack capability for current-sprint replica or handover acceptance.
 
 ## 4. Current Baseline
 
@@ -272,6 +273,10 @@ The only operational handover outcome in this sprint is:
 
 The export is not initialized as a repository, uploaded, published, or connected to a provider.
 
+At the user's request, the legacy `hr/src/apps/hr-control-plane/` Code App and its specific image-reference round trip are not required sprint capabilities. This is not platform retirement or exclusion of generic Power Platform delivery; [ADR-0006](../adr/0006-agentic-toolset-and-hr-control-plane.md), historical source, and the known PAC limitation remain. Applicable packaging proof and blocking conditions follow the [cloud component boundary](2026-10-02-cloud-service-foundation-runbook-design.md#33-current-sprint-component-boundary).
+
+This scope exclusion is not a file-deletion or export-filter instruction. Any retention or exclusion of historical Code App files still requires the reviewed profile's exact path, marker, and privacy disposition. It neither automatically widens `CustomerHandover` nor relaxes `TenantReplica` privacy, independent validation, or source immutability.
+
 ### 10.2 Later Tenant 2 Sequence
 
 In a separate approved activity, the designated Tenant 2 owner, Andrea Rizzi:
@@ -339,6 +344,7 @@ The subsystem is acceptable only when:
 - both profiles are explicit, closed, schema-valid, and independently tested;
 - current `CustomerHandover` safety behavior is preserved or strengthened;
 - `TenantReplica` retains reusable source, GitHub validation, Azure Pipeline templates, tests, and runbooks required by its manifest;
+- required sprint capabilities follow section 10.1: the legacy Code App round trip is not an acceptance gate, while generic HR delivery and all profile-specific privacy and validation requirements remain;
 - no Tenant 1 private intent, state, stable identifier, backup, generated parameter, approval, or evidence appears in the replica;
 - tracked tenant transition manifests and discovery evidence are absent;
 - `.git`, remotes, workflows prohibited by `CustomerHandover`, and publication behavior are absent as applicable;

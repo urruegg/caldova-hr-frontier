@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-10-03 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Windows 11 workstation assessment, initialization, private-boundary readiness, and restart-safe local evidence |
@@ -103,7 +103,7 @@ Existing hidden test seams remain: `NativeCommandRunner`, `CommandResolver`, `Fi
 
 - [ ] **Step 1: Write failing preflight tests**
 
-Require exact versions, full semver where the product exposes semver, nonempty first-party references, host/architecture, and capability checks. Include PAC pack/unpack/help parsing, Bicep build help, Azure DevOps extension version, and PowerShell 7 Windows compatibility. Assert any unproven component returns `Blocked` and prevents policy acceptance.
+Require exact versions, full semver where the product exposes semver, nonempty first-party references, host/architecture, and capability checks. Include PAC pack/unpack/help parsing, Bicep build help, Azure DevOps extension version, and PowerShell 7 Windows compatibility. Cover a meaningful non-Code-App component round trip, refusal of out-of-scope Code App delivery input, and rejection of empty or missing-source input as capability proof. Assert any unproven applicable component returns `Blocked` and prevents policy acceptance.
 
 - [ ] **Step 2: Run RED**
 
@@ -115,7 +115,11 @@ Expected: **FAIL** because the compatibility schema, record, and preflight do no
 
 - [ ] **Step 3: Perform and record the minimum support decision**
 
-From the execution worktree, inspect current first-party release/support pages and unauthenticated installed command output. Record only values whose required capability checks pass, including the known Code App `BackgroundImageUri` pack/unpack case. If no current PAC version proves the required capability, record that component as blocked in external preflight evidence and **stop this plan without inventing a version**. Once all values are reviewed, commit full exact versions/finite allowlists to `workstation-compatibility.json` and reference them from the prerequisite policy; remove delivery-critical `Present` modes.
+From the execution worktree, inspect current first-party release/support pages and unauthenticated installed command output. Record only values whose applicable capability checks pass; keep raw machine output in external preflight evidence. The [approved sprint scope](../specs/2026-10-02-developer-workstation-runbook-refactor-design.md#6-version-and-tool-policy) excludes the legacy HR control-plane Code App and its specific `BackgroundImageUri` pack/unpack case, not PAC or generic Power Platform delivery. Preserve the historical limitation without claiming it fixed.
+
+Prove the remaining PAC pack/unpack capability with a reviewed, meaningful non-Code-App fixture containing at least one actual declared component. Verify that the declared component, its references, and associated payload survive the round trip without loss. The current empty, pre-Code-App HR snapshot cannot supply that proof. Report and refuse any out-of-scope Code App in future delivery input against the declared scope; never silently strip it or waive another in-scope component.
+
+If any applicable capability cannot be proven, including PAC round-trip support, record the component as `Blocked` in external preflight evidence and **stop this plan without inventing a version**. Missing source or component loss remains blocking. Once all nine delivery-critical tool values and their applicable capabilities are reviewed, commit full exact versions/finite allowlists to `workstation-compatibility.json` and reference them from the prerequisite policy; remove delivery-critical `Present` modes.
 
 - [ ] **Step 4: Run GREEN**
 

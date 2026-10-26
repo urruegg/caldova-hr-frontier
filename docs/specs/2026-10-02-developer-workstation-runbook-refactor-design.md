@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
+| **Version** | 1.3 |
 | **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
@@ -52,6 +52,7 @@ The proposed subsystem produces an approved Windows 11 workstation that:
 - Storing credentials, token caches, tenant-private values, or raw provider output in workstation evidence.
 - Editing vendored skills or installing repository-bundled agents or skills on the machine.
 - Weakening execution policy, endpoint protection, Conditional Access, filesystem permissions, or organization policy.
+- Requiring the legacy HR control-plane Code App or its specific `BackgroundImageUri` pack/unpack capability for this sprint.
 
 ## 4. Current Baseline
 
@@ -140,7 +141,9 @@ The minimum compatibility set covers:
 | Power Platform package and context operations | PAC CLI version proven to pack/import the committed HR solution or a documented Build Tools-only boundary |
 | Local editing and optional operator experience | VS Code and reviewed extensions, without making editor state a cloud prerequisite |
 
-The plan must explicitly resolve the known PAC CLI limitation recorded by [HR Solution Sources](../../hr/src/solutions/README.md). A version is not accepted merely because installation succeeds.
+At the user's request, the legacy HR control-plane Code App at `hr/src/apps/hr-control-plane/` and its specific `BackgroundImageUri` pack/unpack case are excluded from the current Tenant 1 runbook, replica, and handover sprint. This is a sprint-only scope decision, not platform retirement or exclusion of all Power Platform delivery. Historical source and the [recorded PAC limitation](../../hr/src/solutions/README.md) remain; no fix or current support is claimed. [ADR-0006](../adr/0006-agentic-toolset-and-hr-control-plane.md) still records the control-plane Code App choice; no replacement UI is selected.
+
+PAC remains in the exact-version toolset. Applicable pack/unpack capability must be proven with a reviewed, meaningful non-Code-App fixture containing at least one actual declared component, with its references and associated payload preserved through the round trip. The current empty, pre-Code-App HR snapshot is not capability proof or full Dataverse parity. Missing source, component loss, or any unproven applicable capability remains `Blocked`; installation alone is insufficient. Any out-of-scope Code App found in future delivery input must be reported and refused against the declared scope, never silently stripped to make packaging pass.
 
 Each executable resolves to exactly one canonical physical path. Ambiguous PATH results, changed files, changed versions, untrusted sources, or parser failures are `Blocked`; there is no first-match selection.
 

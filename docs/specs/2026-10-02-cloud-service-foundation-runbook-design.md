@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Tenant 1 provider foundation, Azure Pipeline, and Power Platform DEV deployment |
@@ -61,6 +61,13 @@ It reconciles only the reviewed Tenant 1 foundation, builds the committed HR sol
 - Azure complete-mode deployment, deployment-stack adoption, implicit deletion, or automatic destructive rollback.
 - Secret-based service connections, client secrets, certificates in source, PATs, token parameters, or self-elevation.
 - Workload deployment beyond the exact committed HR solution artifact imported to DEV.
+- The legacy HR control-plane Code App at `hr/src/apps/hr-control-plane/` and its specific `BackgroundImageUri` pack/unpack capability for current-sprint delivery and acceptance.
+
+### 3.3 Current Sprint Component Boundary
+
+The user-requested Code App exclusion applies only to the current Tenant 1 runbook, replica, and handover sprint. It does not retire the platform, remove historical source, supersede [ADR-0006](../adr/0006-agentic-toolset-and-hr-control-plane.md), or select another UI. The [historical PAC limitation](../../hr/src/solutions/README.md) remains recorded, not newly reproduced or claimed fixed.
+
+Generic HR solution packaging, exact PAC versions, Build Tools 2.0, WIF, provenance, approval, read-back, pipeline privacy, and no-component-loss requirements remain. Applicable PAC pack/unpack proof requires a reviewed, meaningful non-Code-App fixture with at least one actual declared component and preservation of its references and associated payload. The empty, pre-Code-App HR snapshot is not that proof or full Dataverse parity. Missing source, component loss, unproven applicable capability, or unknown organization capability remains `Blocked`. Report and refuse any out-of-scope Code App in future delivery input against the declared scope; never silently strip it to make packaging pass.
 
 ## 4. Current State
 
@@ -414,6 +421,7 @@ The cloud subsystem is acceptable only when:
 - the Entra delivery identity has no credential and its federated credential matches the reviewed Azure DevOps contract;
 - incremental Bicep results match approved `what-if` without deletion;
 - the pipeline uses Power Platform Build Tools 2.0 and WIF;
+- applicable exact-version PAC capability has meaningful non-Code-App component/reference/payload round-trip proof, and complete declared in-scope source packages without component loss under section 3.3;
 - one package from the exact GitHub SHA is checked, published, and imported byte-for-byte to DEV without a deployment rebuild;
 - DEV application-user and minimum-role read-back passes;
 - TEST and PROD are validated but unchanged;
@@ -429,7 +437,7 @@ The cloud subsystem is acceptable only when:
 | Azure DevOps WIF setup may require attended permissions or unavailable features | Assess organization capability first; classify unsupported state `Blocked`, never fall back to a secret. |
 | Power Platform roles are easy to overgrant | Define the exact minimum role, require administrator approval, and read back the complete role set. |
 | DEV import can overwrite maker changes | Bind import to reviewed committed source and require a fresh export/reconciliation decision when DEV is ahead. |
-| Solution source has a recorded PAC unpack limitation | Prove pack/check behavior and source completeness before live import; block on unresolved component loss. |
+| Historical Code App PAC limitation is confused with current delivery readiness | Preserve the limitation outside this sprint's required capability set; prove applicable pack/unpack/check behavior and complete in-scope source before live import. Missing source, component loss, or unproven applicable capability remains blocking. |
 | Providers expose different idempotency semantics | Use exact stable IDs and owned-property comparisons; document supported no-op behavior per action. |
 | Manual pipeline queueing is less automated | It prevents an implementation merge from importing automatically; trigger expansion is a later decision. |
 | Forward recovery may leave a partial resource visible | Preserve evidence, block dependents, and adopt only after exact read-back; avoid unsafe automatic deletion. |

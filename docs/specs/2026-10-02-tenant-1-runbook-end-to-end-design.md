@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.3 |
-| **Date** | 2026-10-03 |
+| **Version** | 1.4 |
+| **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Tenant 1 infrastructure runbooks and Power Platform DEV delivery |
@@ -49,6 +49,8 @@ The proposed sprint proves one composable lifecycle:
 
 Power Platform TEST and PROD are discovered and validated as lifecycle targets but are never mutated. This sprint neither publishes the replica nor operates Tenant 2.
 
+At the user's request, this sprint excludes the legacy HR control-plane Code App at `hr/src/apps/hr-control-plane/` and its specific `BackgroundImageUri` pack/unpack capability. Generic Power Platform HR delivery and the remaining acceptance controls stay in scope under the [cloud component boundary](2026-10-02-cloud-service-foundation-runbook-design.md#33-current-sprint-component-boundary), including meaningful non-Code-App capability proof and no component loss. Historical source, the known limitation, and [ADR-0006](../adr/0006-agentic-toolset-and-hr-control-plane.md) remain; no replacement UI, permanent retirement, export-privacy relaxation, or new execution authority follows.
+
 ## 3. Evidence Basis
 
 ### 3.1 Known
@@ -89,7 +91,7 @@ Fresh attended assessment must validate:
 - Power Platform Build Tools 2.0 availability in the Tenant 1 Azure DevOps organization and its current workload-identity-federation contract;
 - the exact DEV application-user role needed for import and read-back;
 - current TEST and PROD identities without changing them;
-- the committed HR solution's packability, solution type, version, publisher, and known PAC CLI limitations;
+- the committed HR solution's packability, solution type, version, publisher, and PAC CLI limitations applicable to declared in-scope components under the [cloud component boundary](2026-10-02-cloud-service-foundation-runbook-design.md#33-current-sprint-component-boundary); the historical Code App case is not a required sprint gate;
 - all dormant-module assumptions against current APIs and repository contracts; and
 - current-main repository validation and all focused tests before any Apply.
 

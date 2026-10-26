@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.3 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.4 |
+| **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR |
@@ -32,6 +32,8 @@ Use-case packages use `uc-nnnn-<context>/` and match the retained central idea i
 | Prior or next stage | HR documentation entry | Status | Purpose | Authority |
 |---|---|---|---|---|
 | [Central ideas](../docs/ideas/README.md) | [HR Use Cases](docs/use-cases/README.md) | Active | Catalogues detailed packages for graduated HR ideas. | Routes to package PRDs and supporting artifacts; platform governance remains higher authority. |
+| [Power Platform DEV delivery plan](../docs/plans/2026-10-02-power-platform-dev-delivery-implementation.md) | [HR Solution Sources](src/solutions/README.md) | Proposed Baseline | Catalogues the committed foundation snapshot, historical Code App limitation, and remaining non-Code-App capability gate. | Source-state guidance; an empty snapshot does not prove packaging support or Dataverse parity. |
+| [Wireframe design](../docs/specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md) | [HR Control Plane Code App](src/apps/hr-control-plane/README.md) | Proposed Baseline | Documents the retained legacy wireframe, excluded only from current-sprint required capabilities. | ADR-0006 remains unchanged; no retirement, replacement UI, or deployment authority follows. |
 
 ---
 
@@ -49,13 +51,15 @@ Fifteen further use cases are candidates with no commitment attached. See the [c
 
 ## Solutions
 
-Power Platform solution source lives in `src/solutions/`, exported unmanaged from DEV and committed via [`hr/src/scripts/Sync-HrSolutionSource.ps1`](src/scripts/README.md). Managed solutions for TEST and PROD are produced by the pipeline, never hand-exported.
+Power Platform solution source lives in [`src/solutions/`](src/solutions/README.md), exported unmanaged from DEV and committed via [`hr/src/scripts/Sync-HrSolutionSource.ps1`](src/scripts/README.md). Managed solutions for TEST and PROD are produced by the pipeline, never hand-exported.
 
 ## Code apps
 
-Power Apps Code App projects — npm/Vite projects, a different kind of source than either the PowerShell tooling in `src/scripts/` or the unpacked Dataverse XML in `src/solutions/` — live in `src/apps/`. The first is [`hr-control-plane`](src/apps/hr-control-plane/README.md), the wireframe shell for the HR Employee Control Plane ([ADR-0006](../docs/adr/0006-agentic-toolset-and-hr-control-plane.md)), deployed to Tenant 1 DEV and added to the `caldovahrfrontier` solution. See [its design](../docs/specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md) for what is and is not built yet.
+Power Apps Code App projects — npm/Vite projects, a different kind of source than either the PowerShell tooling in `src/scripts/` or the unpacked Dataverse XML in `src/solutions/` — live in `src/apps/`. The first is [`hr-control-plane`](src/apps/hr-control-plane/README.md), the legacy wireframe shell for the HR Employee Control Plane ([ADR-0006](../docs/adr/0006-agentic-toolset-and-hr-control-plane.md)), historically deployed to Tenant 1 DEV and added to the `caldovahrfrontier` solution. See [its design](../docs/specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md) for what is and is not built yet.
 
-**Current state (Tenant 1):** one foundation solution, [`caldovahrfrontier`](src/solutions/caldovahrfrontier/), publisher prefix `calhr`. It is empty — no Dataverse tables or Copilot Studio agent artefacts exist in it yet.
+**Current sprint:** the user-requested exclusion covers this legacy Code App and its specific `BackgroundImageUri` pack/unpack capability for the Tenant 1 runbook, replica, and handover sprint only. Historical source, the known PAC limitation, and ADR-0006 remain; generic Power Platform HR delivery is not excluded. The [current component boundary](../docs/specs/2026-10-02-cloud-service-foundation-runbook-design.md#33-current-sprint-component-boundary) retains meaningful non-Code-App component/reference/payload proof, blocking of missing source or component loss, and existing export privacy.
+
+**Committed snapshot (Tenant 1):** one foundation solution, [`caldovahrfrontier`](src/solutions/caldovahrfrontier/), publisher prefix `calhr`. It is the empty pre-Code-App snapshot — no declared root components, Dataverse tables, or Copilot Studio agent artefacts. It is not full Dataverse parity or capability proof.
 
 **Documented target (Tenant 3 / Caldova), not yet built anywhere:**
 

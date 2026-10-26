@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-10-03 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Azure Pipeline and HR solution pack, check, publish, WIF import, attended application-user checkpoint, and DEV read-back |
@@ -40,6 +40,7 @@ This child plan remains `Draft` and cannot begin until the [coordinate-only corr
 - Use Power Platform Build Tools major version 2 only. Task/minor capability needing live organization validation is a fail-closed preflight result, not an invented value.
 - WIF is the only service-connection authentication path. No client secret, certificate, PAT, token parameter, service-principal secret, or hidden fallback.
 - Pack `hr/src/solutions/caldovahrfrontier/` once into one unmanaged DEV package. Build/check publishes it; Deploy DEV downloads and verifies the same bytes. No deploy-stage pack/rebuild.
+- The [current sprint scope](../specs/2026-10-02-cloud-service-foundation-runbook-design.md#33-current-sprint-component-boundary) excludes the legacy HR control-plane Code App and its specific `BackgroundImageUri` round trip, not generic HR solution delivery. Preserve historical source and the known limitation; report and refuse any out-of-scope Code App in future delivery input rather than silently stripping it.
 - Pipeline variables are exactly `LifecycleRunId`, `ApprovedExecutionManifestDigest`, `ExpectedGitCommit`, `HrSolutionUniqueName`, `HrSolutionSourcePath`, `HrSolutionPackageName`, `PowerPlatformServiceConnection`, `PowerPlatformDevEnvironmentId`, `PowerPlatformDevEnvironmentUrl`, `PowerPlatformApplicationId`, and `PowerPlatformMinimumRoleId`.
 - Tenant-specific values and URLs never appear in YAML. Protected values are reconciled by Plan 3 outside Git.
 - The immutable artifact name is `hr-solution-dev`. Its files are `caldovahrfrontier.zip`, `provenance.json`, and `package.sha256`.
@@ -80,11 +81,11 @@ This child plan remains `Draft` and cannot begin until the [coordinate-only corr
 
 **Interfaces:**
 - Produces: `Test-PowerPlatformDeliveryCapabilities.ps1 -CapabilitiesPath -SolutionSourcePath -PacPath -ReportPath -NativeCommandRunner -NowUtc`.
-- Capability fields are `schemaVersion`, `reviewedAtUtc`, `pac`, `buildTools`, `azureDevOpsWif`, `digest`; `pac` has `exactVersion`, `packSupported`, `codeAppRoundTripSupported`, `firstPartyReferences`; `buildTools` has `majorVersion`, `taskIds`, `taskVersions`, `firstPartyReferences`; `azureDevOpsWif` has `scheme`, `issuerField`, `subjectField`, `audienceField`, `organizationValidated`, `status`.
+- Capability fields are `schemaVersion`, `reviewedAtUtc`, `pac`, `buildTools`, `azureDevOpsWif`, `digest`; `pac` has `exactVersion`, `packSupported`, `declaredComponentRoundTripSupported`, `firstPartyReferences`; `buildTools` has `majorVersion`, `taskIds`, `taskVersions`, `firstPartyReferences`; `azureDevOpsWif` has `scheme`, `issuerField`, `subjectField`, `audienceField`, `organizationValidated`, `status`. `declaredComponentRoundTripSupported` covers the reviewed non-Code-App fixture and its declared references/payload, not Code App support.
 
 - [ ] **Step 1: Write failing capability tests**
 
-Require PAC exact-version pack against committed source, no component loss, explicit Code App limitation result, Build Tools major `2`, exact task IDs, and WIF fields. Live organization availability must remain `Blocked` until an attended preflight records it.
+Require PAC exact-version pack against complete declared in-scope committed source, no component loss, and a meaningful non-Code-App pack/unpack fixture with at least one actual declared component and reference/payload preservation. Reject empty or missing-source input as capability proof, and report/refuse out-of-scope Code App delivery input. Preserve the historical Code App limitation as non-gating for this sprint, without claiming a fix. Require Build Tools major `2`, exact task IDs, and WIF fields. Live organization availability must remain `Blocked` until an attended preflight records it.
 
 - [ ] **Step 2: Run RED**
 
@@ -96,7 +97,11 @@ Expected: **FAIL** because delivery capability contracts do not exist.
 
 - [ ] **Step 3: Implement fail-closed local preflight**
 
-Use the exact PAC version selected by Plan 2 to pack to a temporary external directory and inspect the package without provider access. Record Build Tools 2.0 task IDs/versions from current first-party task metadata. If committed source cannot pack completely, stop and keep delivery blocked rather than excluding the Code App or inventing support. Mark Tenant 1 organization WIF availability `Blocked` for Plan 6 live preflight.
+Use the exact PAC version selected by Plan 2 to pack to a temporary external directory and inspect the package without provider access. Prove applicable pack/unpack support with a reviewed, meaningful non-Code-App fixture containing at least one actual declared component; compare the declared component, its references, and associated payload after the round trip. The current empty, pre-Code-App HR snapshot has no declared root components and is not capability proof or full Dataverse parity.
+
+Separately require complete committed delivery source for every declared in-scope component. Missing source, component loss, or any unproven applicable capability keeps delivery `Blocked`; fixture success does not substitute for source completeness. The Code App exclusion is declared sprint scope, not permission to remove components from delivery input: report and refuse an unexpected Code App, never silently strip it to force a package pass. Do not invent support or treat the historical PAC issue as fixed.
+
+Record Build Tools 2.0 task IDs/versions from current first-party task metadata. Mark Tenant 1 organization WIF availability `Blocked` for Plan 6 live preflight; no local fixture establishes organization capability.
 
 - [ ] **Step 4: Run GREEN**
 
@@ -104,7 +109,7 @@ Run the RED command and the local preflight. Expected: tests **PASS**; local pac
 
 - [ ] **Step 5: Perform focused review**
 
-Confirm exact versions/references, no hidden component omission, no live organization claim, no secret fallback, and accurate update of the known limitation.
+Confirm exact versions/references, meaningful declared-component/reference/payload proof, complete in-scope source, no hidden component omission, no live organization claim, no secret fallback, and accurate preservation of the historical known limitation. No pipeline asset or mock may substitute for Plan 6 live acceptance.
 
 - [ ] **Step 6: Commit**
 
