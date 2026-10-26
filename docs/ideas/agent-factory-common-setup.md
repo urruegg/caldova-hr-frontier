@@ -9,7 +9,7 @@
 | **Scope** | Repository Ideas |
 | **References** | [Agent Factory Foundation Design](../specs/2026-10-26-agent-factory-foundation-design.md), [Repository-Agent Portfolio Governance Design](../specs/2026-10-02-hr-frontier-copilot-agent-portfolio-governance-design.md), [Agent Policy](../../.github/agent-policy/README.md) |
 
-**Repository adoption.** This record adopts *Agent Factory Part 1 — Common setup v1.1* as received from its author on 2026-10-25. Everything below the horizontal rule is the unchanged source text; only this header and note were added. The version above is the source concept version.
+**Repository adoption.** This record adopts *Agent Factory Part 1 — Common setup v1.1* as received from its author on 2026-10-25. Everything below the horizontal rule is the author's source text with its wording unchanged. Only this header and note were added, and every numbered section heading (section 1 onward, and Appendices A and B) and its subheadings were moved down one level so the record has exactly one H1, as the documentation policy requires; the author's numbering and hierarchy are preserved. The version above is the source concept version.
 
 This is an idea record. It is not an approved requirement, specification, or decision. Its capability statements, status labels, source IDs, and field-evidence (FE) observations are the author's, dated 2026-10-25, and this repository has not verified them. The repository's reading of the concept, the decisions it leads to, and the authority of the Approved portfolio design over it are in the [Agent Factory Foundation Design](../specs/2026-10-26-agent-factory-foundation-design.md).
 
@@ -60,11 +60,11 @@ Capability statements reflect public Microsoft and GitHub documentation as read 
 
 ---
 
-# 1. Executive summary
+## 1. Executive summary
 
 **Answer first.** A GitHub Copilot–driven, end-to-end DevSecOps closed loop for Copilot Studio agents and workflows on the GitHub Copilot harness is feasible and has been demonstrated in practice. Agents, native skills and workflows can live in Git, be generated or authored with GitHub Copilot, be validated in CI and be promoted as managed solutions from DEV through SIT/TEST to PROD. Three links still need custom tooling — the unattended evaluation gate, non-interactive identity for Copilot Studio–specific operations, and the production-to-backlog loop — and several building blocks are in preview, so they must be built as replaceable adapters.
 
-## 1.1 What is already there
+### 1.1 What is already there
 
 1. **Agents as code.** The GitHub Copilot harness is generally available in Copilot Studio [S03]. Agents can be scaffolded, cloned, pulled, pushed, packed and published with `pac copilot` [S11]; the Copilot Studio extension for VS Code round-trips harness agents, skills, connected agents, hooks and standalone workflows per its release notes [S18]; the Copilot Studio MCP server lets GitHub Copilot author, test and evaluate agents and workflows [S10]; the CAT Copilot Studio plugin (mcs-assistant) creates and migrates harness agents [S61]. **FE:** a DEV export of agents, native skills and workflows round-trips through `pac solution unpack/pack` and a managed import; workflows can be generated as code and the DEV export is byte-identical to the generator output.
 2. **Transport and release.** Solutions/ALM are listed as supported for the harness [S02]. Packing and importing managed solutions with deployment settings [S11, S13], Power Platform Pipelines [S35–S37] and GitHub Actions / Azure DevOps with OIDC or workload identity federation [S39–S41] cover the path to PROD. **FE:** managed SIT promotion of a seven-agent harness solution with post-import workflow activation and agent publishing; managed PROD import of the identical package, with PROD workflow activation still requiring a service-owned connection (FE-22).
@@ -72,7 +72,7 @@ Capability statements reflect public Microsoft and GitHub documentation as read 
 4. **Governance and security.** Data policies including MCP [S43]; environment-group rules [S44]; an Entra Agent ID per agent [S26]; Agent 365 registry and observability (GA) [S27, S29]; Purview [S45]; Defender real-time protection [S47]; credit allocations and per-agent limits [S31].
 5. **Observation.** Monitor tab with sessions, outcomes, reactions and credits [S51]; environment-level Application Insights telemetry for both harnesses (preview) [S50]; Agent 365 telemetry without SDK instrumentation [S29]; credit-consumption API [S30].
 
-## 1.2 What is missing (the custom glue)
+### 1.2 What is missing (the custom glue)
 
 | Gap | Why it matters | Factory answer |
 |---|---|---|
@@ -80,7 +80,7 @@ Capability statements reflect public Microsoft and GitHub documentation as read 
 | **B. Non-interactive identity for Copilot Studio–specific operations** | OIDC/WIF is documented for `pac auth` and solution import [S12, S39]; service-principal use is not documented for `pac copilot` sync/publish, the MCP server or evaluations; app-only SDK access is private preview for anonymous agents [S24]. FE: workflow activation fails in pipelines when the bound connection is user-owned | Inner loop interactive and DEV-only; outer loop moves only solutions with a federated service principal; **service-principal-owned connections** and a dedicated **runtime principal** with a minimal Dataverse role; governed test identity for evaluations |
 | **C. Production-to-backlog feedback** | No native link from Monitor, Application Insights or Agent 365 to the backlog; the session list keeps 28 days [S51] | **Feedback Harvester** that turns aggregated, privacy-safe signals into work items with evidence and regression cases |
 
-## 1.3 Recommendation
+### 1.3 Recommendation
 
 Set up every repository as an **Agent Factory** with four interlocking loops — **Build, Verify, Release, Operate & Learn** — engineered with an agent-specific adaptation of Superpowers (**Eval-Driven Development**), a factory skill pack and custom agents for GitHub Copilot, policy-as-code, the proven two-layer source model and an evidence record at every gate. Adopt it in four phases:
 
@@ -91,7 +91,7 @@ Set up every repository as an **Agent Factory** with four interlocking loops —
 | 2 Automated gates | 6–8 weeks | Eval Runner, red-team suite and policy-as-code unattended; Feedback Harvester v1 |
 | 3 Closed loop at scale | ongoing | Autonomy ladder per intent, automatic regression cases, template repository |
 
-## 1.4 Short answers to the four questions
+### 1.4 Short answers to the four questions
 
 | Question | Short answer | Details |
 |---|---|---|
@@ -102,16 +102,16 @@ Set up every repository as an **Agent Factory** with four interlocking loops —
 
 ---
 
-# 2. Context and objectives
+## 2. Context and objectives
 
-## 2.1 Objectives
+### 2.1 Objectives
 
 1. Fully automate the build and maintenance of Copilot Studio agents and workflows on the GitHub Copilot harness, using GitHub Copilot, the Superpowers skills framework, the Work IQ CLI and other CLIs.
 2. Establish an end-to-end DevSecOps closed loop: plan → specify → build → verify → release → operate → learn → plan.
 3. Follow Microsoft best practice and Microsoft Learn guidance, and keep every capability claim traceable to a source.
 4. Provide one reusable setup that any repository can adopt, independent of customer, domain or source-control platform.
 
-## 2.2 Why now: the harness shift
+### 2.2 Why now: the harness shift
 
 Everything built in Copilot Studio now runs on a harness — the runtime between the model and what the maker builds. The GitHub Copilot harness powers agents and workflows for reasoning-heavy, multi-step work; the Customer Conversation harness serves customer voice and chat; the standard harness powers rule-based agents and agent flows [S01]. The GitHub Copilot harness is a Copilot Studio authoring and orchestration framework, not the GitHub Copilot service; customer data is not sent to the GitHub Copilot service when agents run in Copilot Studio [S01].
 
@@ -119,7 +119,7 @@ Everything built in Copilot Studio now runs on a harness — the runtime between
 - **Cost moves left.** Building, testing, evaluating and running consume Copilot Credits, and Microsoft 365 Copilot licences don't cover this usage [S31].
 - **Agents become software.** An agent can live in Git, be reviewed in a pull request and be released through a pipeline [S10, S11, S18].
 
-## 2.3 Scope
+### 2.3 Scope
 
 | In scope | Out of scope (for now) |
 |---|---|
@@ -131,7 +131,7 @@ Everything built in Copilot Studio now runs on a harness — the runtime between
 
 ---
 
-# 3. Design principles
+## 3. Design principles
 
 | # | Principle | What it means in the factory | Origin |
 |---|---|---|---|
@@ -149,11 +149,11 @@ Everything built in Copilot Studio now runs on a harness — the runtime between
 
 ---
 
-# 4. Capability landscape (as of 25 October 2026)
+## 4. Capability landscape (as of 25 October 2026)
 
 This section answers the four questions directly: which APIs exist (§4.2), which CLIs, skills, plugins and MCP servers exist (§4.3–4.4), what ALM support exists (§4.5), and what exists for evaluation and monitoring (§4.6–4.7).
 
-## 4.1 The runtime: what the GitHub Copilot harness offers and constrains
+### 4.1 The runtime: what the GitHub Copilot harness offers and constrains
 
 | Area | Capability and constraint | Status | Source |
 |---|---|---|---|
@@ -174,7 +174,7 @@ This section answers the four questions directly: which APIs exist (§4.2), whic
 
 **Design consequence.** The harness exposes no orchestration configuration, so determinism, audit and escalation belong in workflows that call the agent where judgement is needed (principle P4). The factory treats this as a hard architectural rule.
 
-## 4.2 APIs
+### 4.2 APIs
 
 | API | Role in the loop | Status | Automation fit | Source |
 |---|---|---|---|---|
@@ -192,7 +192,7 @@ This section answers the four questions directly: which APIs exist (§4.2), whic
 | Azure DevOps REST & remote MCP; GitHub REST & MCP | Backlog, PR and pipeline automation | GA | Service principal / GitHub App | [S69, S82] |
 | **Not found** | REST API to author harness workflows; API to create evaluation test sets; documented Work IQ or Retrieval API for code | — | — | — |
 
-## 4.3 CLIs and IDE tooling
+### 4.3 CLIs and IDE tooling
 
 | Tool | What it automates | Status | CI fit | Source |
 |---|---|---|---|---|
@@ -209,7 +209,7 @@ This section answers the four questions directly: which APIs exist (§4.2), whic
 | Microsoft 365 Agents Toolkit CLI (`atk`) | Declarative agents from the terminal or CI, non-interactive mode — relevant where declarative agents complement Copilot Studio | GA | Yes | [S90] |
 | FlightCheck (ESS Agent Developer Kit) | Deterministic readiness validator with 40+ checks; `--scope local` makes no API calls. ESS-specific, but the pattern is reusable | Sample / OSS | Local scope only | [S93] |
 
-## 4.4 Skills, plugins, custom agents and MCP servers
+### 4.4 Skills, plugins, custom agents and MCP servers
 
 | Item | Type | Publisher | Role in the loop | Status | Source |
 |---|---|---|---|---|---|
@@ -239,7 +239,7 @@ This section answers the four questions directly: which APIs exist (§4.2), whic
 | Microsoft Agent Framework — GitHub Copilot agent | SDK | Microsoft | Build factory services (for example a triage service) with approvals and observability | Stable (.NET, Python) | [S89] |
 | CAT technical guide and BlastBox samples | Sample | Microsoft CAT | Reference harness solution (connected agents, MCP servers, runtime skills, generated files) and a deploy script | Sample / OSS | [S63] |
 
-## 4.5 ALM support
+### 4.5 ALM support
 
 | Capability | Tool | Status | Applies to harness agents and workflows | Source |
 |---|---|---|---|---|
@@ -259,7 +259,7 @@ This section answers the four questions directly: which APIs exist (§4.2), whic
 
 **Microsoft's tool tiering.** Learn ranks the setup complexity of ALM options as low for Power Platform Pipelines, moderate for GitHub Actions and high for Azure DevOps [S33]. The factory combines them: pro-code CI for validation and evidence, in-product Pipelines (or pac import) for governed deployment.
 
-## 4.6 Evaluation and testing
+### 4.6 Evaluation and testing
 
 | Stage | Capability | Tool | Status | Harness support | Programmatic / CI | Source |
 |---|---|---|---|---|---|---|
@@ -277,7 +277,7 @@ This section answers the four questions directly: which APIs exist (§4.2), whic
 | Release gate | Golden prompts — curated regression set; Go requires a 100% pass rate; any failure aborts | ESS ALM guidance | Guidance | Concept applies | Needs a runner | [S94] |
 | Triage | Evaluation triage and remediation framework | Copilot Studio guidance | Guidance | Concept applies | n/a | [S54] |
 
-## 4.7 Monitoring, security and governance
+### 4.7 Monitoring, security and governance
 
 | Area | Capability | Status | Harness support | Source |
 |---|---|---|---|---|
@@ -294,7 +294,7 @@ This section answers the four questions directly: which APIs exist (§4.2), whic
 | Environment-group rules | Knowledge sources, skills, sharing, unmanaged customizations, solution checker enforcement, default deployment pipeline (preview), external and preview models, credit draw | GA (some preview) | Partial | [S44] |
 | GitHub governance | MCP allow/deny and plugin standards in `managed-settings.json`; agentic audit-log events (`actor:Copilot`, 180 days). Content exclusion: documentation conflicts on agent support — don't rely on it | GA | n/a | [S75, S76, S86] |
 
-## 4.8 Automation readiness by loop stage
+### 4.8 Automation readiness by loop stage
 
 | Loop stage | Readiness | Reason |
 |---|---|---|
@@ -309,11 +309,11 @@ This section answers the four questions directly: which APIs exist (§4.2), whic
 
 ---
 
-# 5. Field-proven platform behaviours (FE)
+## 5. Field-proven platform behaviours (FE)
 
 A production reference implementation of this factory (seven GitHub Copilot harness agents with native skills, agent-callable workflows and connected agents, promoted DEV → SIT → PROD through GitHub Actions in October 2026) recorded the platform behaviours below. They are observations, not Microsoft support statements — but every repository should design for them from day one.
 
-## 5.1 Authoring and source
+### 5.1 Authoring and source
 
 | # | Observed behaviour | Consequence for the factory |
 |---|---|---|
@@ -329,7 +329,7 @@ A production reference implementation of this factory (seven GitHub Copilot harn
 | FE-10 | Workflow file names contain component IDs | Source manifests use wildcards for ID-bearing paths |
 | FE-11 | The solution "Both" unpack layout has no separate managed variants for agents, skills and workflows | Keep one unpacked tree; build managed and unmanaged packages from it |
 
-## 5.2 Transport, import and publishing
+### 5.2 Transport, import and publishing
 
 | # | Observed behaviour | Consequence for the factory |
 |---|---|---|
@@ -343,7 +343,7 @@ A production reference implementation of this factory (seven GitHub Copilot harn
 | FE-19 | A missing table in the target broke the agent import | Import order platform/app solution → agent solution; preflight checks prerequisites |
 | FE-20 | The Power Platform CLI below 2.13 failed on Code Apps in the app solution | Pin the pac version in every pipeline |
 
-## 5.3 Identity and connections
+### 5.3 Identity and connections
 
 | # | Observed behaviour | Consequence for the factory |
 |---|---|---|
@@ -353,7 +353,7 @@ A production reference implementation of this factory (seven GitHub Copilot harn
 | FE-24 | A dedicated runtime principal with a minimal Dataverse role (one table; delete and unrelated tables denied) worked; WhoAmI and allow/deny probes confirmed it | Each agent context gets its own runtime principal, role and secret/credential per environment |
 | FE-25 | Copilot Studio creates an Entra agent identity per agent per environment; Agent Builder agents have none, so identities can't be carried over when migrating | Plan Agent 365 registration, ownership and sharing per environment; migrations change identities |
 
-## 5.4 Testing, evaluation and operations
+### 5.4 Testing, evaluation and operations
 
 | # | Observed behaviour | Consequence for the factory |
 |---|---|---|
@@ -366,7 +366,7 @@ A production reference implementation of this factory (seven GitHub Copilot harn
 
 ---
 
-# 6. Gap analysis
+## 6. Gap analysis
 
 | # | Gap | Impact | Factory mitigation | Evidence |
 |---|---|---|---|---|
@@ -387,9 +387,9 @@ A production reference implementation of this factory (seven GitHub Copilot harn
 
 ---
 
-# 7. Target concept: the Agent Factory
+## 7. Target concept: the Agent Factory
 
-## 7.1 Overview: four loops, seven planes
+### 7.1 Overview: four loops, seven planes
 
 **Figure 1 — The Agent Factory closed loop** (render as a circular four-stage diagram; arrows clockwise; the Learn arrow returns to Build):
 
@@ -412,7 +412,7 @@ A production reference implementation of this factory (seven GitHub Copilot harn
 | Observability | Monitor tab; environment-level Application Insights and Log Analytics; Agent 365; Purview; Defender; credit API; Feedback Harvester | Operations |
 | Knowledge | Microsoft Learn MCP (capability truth); Work IQ (organisational context); repository docs (PRD, SD, ALM, ADRs, evidence register) | Everyone |
 
-## 7.2 The agent team: humans, GitHub Copilot custom agents and digital colleagues
+### 7.2 The agent team: humans, GitHub Copilot custom agents and digital colleagues
 
 **Humans decide.** **GitHub Copilot custom agents** work in the engineering plane. **Digital colleagues** (optional Microsoft 365 Copilot / Copilot Studio agents) work in the planning plane. One rule applies to all agents: an agent that reads external text (pull-request descriptions, issues, documents, telemetry) never gets write tools beyond its declared scope, and external text is material, never instruction.
 
@@ -430,7 +430,7 @@ A production reference implementation of this factory (seven GitHub Copilot harn
 
 **Non-delegable work** (always human): destructive cloud or data operations, production credential and identity changes, security-policy exceptions, PROD changes outside the change flow, anything irreversible.
 
-## 7.3 Engineering methodology: Superpowers adapted for agents
+### 7.3 Engineering methodology: Superpowers adapted for agents
 
 The default Superpowers flow is brainstorming → using-git-worktrees → writing-plans → subagent-driven-development or executing-plans → test-driven-development → requesting-code-review → finishing-a-development-branch [S87].
 
@@ -457,7 +457,7 @@ The default Superpowers flow is brainstorming → using-git-worktrees → writin
 
 **Superpowers pinning.** Pin an exact version. Either vendor the full skill set under `.github/skills/` with a SHA-256 manifest and a verifier, or install the plugin from `obra/superpowers-marketplace` at a fixed version — and vendor at least the core skills the Copilot cloud agent needs. v7.0.0 rebuilt brainstorming and fixed Windows hook discovery; a fix since v6.3.0 stops `run-hook.cmd` from executing `bash`/`where` planted in the current directory [S87]. Vendoring skills alone skips the plugin's SessionStart hook, so repository instructions must require using-superpowers first [S88].
 
-## 7.4 Eval-Driven Development and the evaluation pyramid
+### 7.4 Eval-Driven Development and the evaluation pyramid
 
 | Level | What is tested | Tools | When | Proposed gate |
 |---|---|---|---|---|
@@ -474,7 +474,7 @@ The default Superpowers flow is brainstorming → using-git-worktrees → writin
 
 **Attended gate (Phase 1).** The maker uploads the batches in SIT/TEST or runs them through the Copilot Studio MCP server, exports results, and the pipeline verifies freshness (agent version, evaluation-set hash), applies thresholds and attaches the evidence. **Automated gate (Phase 2).** The Eval Runner drives the published agent through the Agents SDK client with a governed test identity; the evaluation API is added once the delegated permission is consented (FE-27).
 
-## 7.5 Source model (proven two-layer pattern)
+### 7.5 Source model (proven two-layer pattern)
 
 | Layer | Content | Produced by | Rules |
 |---|---|---|---|
@@ -487,7 +487,7 @@ The default Superpowers flow is brainstorming → using-git-worktrees → writin
 
 **Solution split.** A platform/app solution owns tables, security roles, connection references and environment variables; the agent solution holds agents, skills and workflows on top of it. Import order: components → platform/app → agent. Connection references belong to the owning solution and are bound through its deployment settings (FE-19, FE-23).
 
-## 7.6 Repository blueprint
+### 7.6 Repository blueprint
 
 ```
 AGENTS.md                              rules for repository-working agents (start with using-superpowers)
@@ -513,7 +513,7 @@ infra/                                 Bicep: Log Analytics, Application Insight
 data/                                  synthetic test data only
 ```
 
-## 7.7 Factory skill pack and custom agents
+### 7.7 Factory skill pack and custom agents
 
 | # | Skill | Purpose | Uses | Guardrail |
 |---|---|---|---|---|
@@ -536,7 +536,7 @@ data/                                  synthetic test data only
 
 Custom agents bundle these skills with scoped tools: `spec-architect`, `mcs-builder`, `eval-engineer`, `security-reviewer` (read-only), `release-manager`, `ops-analyst` (read-only on telemetry). Vendored specialists from github/awesome-copilot (for example power-platform-architect, Power Automate and Copilot Studio MCP-generator skills) are welcome when pinned and reviewed.
 
-## 7.8 Tooling configuration and guardrails
+### 7.8 Tooling configuration and guardrails
 
 - **MCP per surface.** VS Code uses `.vscode/mcp.json`; Copilot CLI its `mcpServers` configuration; the cloud agent uses repository MCP settings, supports tools only (no OAuth remote servers) and uses tools without asking — so only read-only servers belong there, and secrets use the `COPILOT_MCP_` prefix [S82].
 - **Allowed servers (proposal).** Learn MCP (all surfaces); Copilot Studio MCP (DEV only, human session); Dataverse MCP (DEV, read-mostly); Azure DevOps MCP (read-only header by default); GitHub MCP; Work IQ MCP (after admin consent); Azure MCP (read by default); Playwright (UI smoke tests in DEV).
@@ -546,7 +546,7 @@ Custom agents bundle these skills with scoped tools: `spec-architect`, `mcs-buil
 - **Pinned versions.** pac CLI (≥ 2.13, FE-20), Copilot Studio extension, plugins, Copilot Studio MCP server, Superpowers and every GitHub Action by commit SHA.
 - **Portal automation.** Browser automation of the maker portal (for probes) stays outside the repository when it contains environment identifiers.
 
-## 7.9 Reference pipeline (proven pattern)
+### 7.9 Reference pipeline (proven pattern)
 
 | # | Stage | Trigger | Steps | Gate | Evidence |
 |---|---|---|---|---|---|
@@ -563,7 +563,7 @@ Custom agents bundle these skills with scoped tools: `spec-architect`, `mcs-buil
 
 **GitHub vs Azure DevOps.** Stages are identical. GitHub uses Actions, environments with required reviewers and OIDC [S39]; Azure DevOps uses Azure Pipelines, environment approvals and Build Tools v2.0 with workload identity federation (Entra issuer) [S40, S92]. Power Platform Pipelines can replace stage 6 inside one tenant (delegated service-principal deployment, approvals, gated extensions) but can't deploy across tenants [S35–S37]. Copilot ALM Starter is a starting skeleton for both platforms [S42].
 
-## 7.10 Environments and identity
+### 7.10 Environments and identity
 
 | Environment | Type | Purpose | Data | Credits | Changed by | Identity |
 |---|---|---|---|---|---|---|
@@ -578,7 +578,7 @@ Custom agents bundle these skills with scoped tools: `spec-architect`, `mcs-buil
 - **Entra Agent ID** is created per agent per environment; plan Agent 365 registration, ownership, description and sharing for each [S26, S27]; FE-25.
 - **Managed environments throughout** — required for Pipelines and Git integration, and for environment-level telemetry [S35, S38, S50]. Environment-group rules block unmanaged customizations in SIT/TEST and PROD, enforce solution checker, restrict knowledge sources, skills and sharing, disable external and preview models and stop drawing credits from the tenant pool [S44]. Data policies are strictest in DEV, with MCP and HTTP explicitly classified [S43, S49].
 
-## 7.11 Security baseline by layer
+### 7.11 Security baseline by layer
 
 | Layer | Controls |
 |---|---|
@@ -589,7 +589,7 @@ Custom agents bundle these skills with scoped tools: `spec-architect`, `mcs-buil
 | Agent design | Server-side write envelopes (workflow contracts, minimal runtime roles); content treated as data; refusal sets; human gates that agents can't trigger; escalation paths; Work IQ write operations reviewed per agent; telemetry without personal data; DPIA per agent where personal data is in scope |
 | Assurance | Red-team suite; prompt-injection corpus; out-of-envelope negative tests; pre-publish security scan read-back [S48] |
 
-## 7.12 Observability and the learning loop
+### 7.12 Observability and the learning loop
 
 **Signal chain.** Monitor tab, environment-level Application Insights, Agent 365, Dataverse process-state tables, reactions, workflow run history, credit API, Purview and Defender alerts → normalisation (KQL functions in Log Analytics) → KPIs → alerts → triage (`ops-analyst` drafts, the owner decides) → work item with evidence → regression case → release.
 
@@ -602,7 +602,7 @@ Custom agents bundle these skills with scoped tools: `spec-architect`, `mcs-buil
 
 **Autonomy ladder per intent.** Stage 0 Shadow → 1 Assist → 2 Supervised → 3 Autonomous → 4 Transactional. Promotion is a decision by a named owner on recorded evidence; demotion is an automatic trigger on a policy breach or a KPI floor; every stage change is an audit record. **Privacy:** evaluate answers, never people — aggregate per intent, minimum cohort sizes, no per-person score.
 
-## 7.13 FinOps
+### 7.13 FinOps
 
 - **What consumes credits.** AI-powered authoring, preview testing, evaluations and runtime; every workflow action consumes capacity, even without AI steps [S05, S31].
 - **Prerequisite.** Each environment needs a credit allocation or a pay-as-you-go plan before the first build, otherwise preview and testing are blocked (FE-30).
@@ -611,9 +611,9 @@ Custom agents bundle these skills with scoped tools: `spec-architect`, `mcs-buil
 
 ---
 
-# 8. Adoption roadmap for any repository
+## 8. Adoption roadmap for any repository
 
-## 8.1 Phases
+### 8.1 Phases
 
 | Phase | Typical duration | Deliverables | Exit criteria |
 |---|---|---|---|
@@ -622,7 +622,7 @@ Custom agents bundle these skills with scoped tools: `spec-architect`, `mcs-buil
 | **2 Automated gates** | 6–8 weeks | Eval Runner in CI (L2), red-team suite (L3), complete policy-as-code, Feedback Harvester v1, governance read-back, nightly regression within budget | No manual step between merge and SIT/TEST evidence |
 | **3 Closed loop at scale** | Ongoing | Autonomy ladder per intent; production regressions create work items and regression cases automatically; cloud-agent or autopilot remediation of low-risk changes with human approval; template repository | KPI targets met for two consecutive months |
 
-## 8.2 Standard spikes
+### 8.2 Standard spikes
 
 | Spike | Question | Method | Done when |
 |---|---|---|---|
@@ -634,7 +634,7 @@ Custom agents bundle these skills with scoped tools: `spec-architect`, `mcs-buil
 
 ---
 
-# 9. Decisions (ADRs) every repository takes
+## 9. Decisions (ADRs) every repository takes
 
 | ADR | Decision | Options | Recommendation |
 |---|---|---|---|
@@ -648,7 +648,7 @@ Custom agents bundle these skills with scoped tools: `spec-architect`, `mcs-buil
 
 ---
 
-# 10. Risks
+## 10. Risks
 
 | Risk | Impact | Mitigation |
 |---|---|---|
@@ -664,7 +664,7 @@ Custom agents bundle these skills with scoped tools: `spec-architect`, `mcs-buil
 | Tool sprawl and unclear ownership | Factory decay | Named factory owner; quarterly review of skills, agents and allow-lists |
 
 ---
-# Appendix A — Glossary
+## Appendix A — Glossary
 
 | Term | Meaning |
 |---|---|
@@ -687,7 +687,7 @@ Custom agents bundle these skills with scoped tools: `spec-architect`, `mcs-buil
 | Managed environment | Power Platform environment with enhanced governance, required for Pipelines and Git integration |
 | Deployment settings | Per-environment values for connection references and environment variables used at import [S13] |
 
-# Appendix B — Evidence register (accessed 25 Oct 2026)
+## Appendix B — Evidence register (accessed 25 Oct 2026)
 
 | ID | Source | URL |
 |---|---|---|
