@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.5 |
-| **Date** | 2026-10-25 |
+| **Version** | 1.6 |
+| **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Local profile-based TenantReplica and CustomerHandover export, compatibility, and independent validation |
@@ -88,9 +88,23 @@ Review identified two legacy-path defects: suites could alter a destination afte
 
 The authoritative related regression runner passed 539 tests with one file-symlink capability skip. Final controller checks passed 109 selected cases on each of Windows PowerShell 5.1 and PowerShell 7.6.8 with Pester 5.7.1, with the same single skip. The corrected Windows link-focused runner also passed all seven supported mutations; the file-symlink case remains unexercised because the required privilege is unavailable. Real hardlink and directory-junction cases execute and pass. No privilege or workstation policy was changed.
 
-This is an entrypoint/control checkpoint, not operational readiness. Canonical default offline suite/tool binding is unavailable and fails closed; injected synthetic runners are not an operational workaround. `Test-RepositoryExport -Independent` explicitly refuses until Task 5 supplies its real validator. Synthetic Apply reports `PromotedPendingIndependent`, never lifecycle `Passed`. Standalone evidence under `<EvidenceRoot>/<RunId>/phases/RepositoryExport/` is not a canonical TenantReplica terminal summary or stage result, and no tenant intent/state correlation is fabricated.
+At the Task 4 checkpoint, canonical default offline tooling and independent validation were unavailable and failed closed; injected synthetic runners were not an operational workaround. Task 5's implementation follows below. Apply remains distinct from lifecycle acceptance: standalone evidence under `<EvidenceRoot>/<RunId>/phases/RepositoryExport/` is not a canonical TenantReplica terminal summary or stage result, and no tenant intent/state correlation is fabricated.
 
-The remaining plan stays Draft. Tasks 5-6 must supply independent reconstruction, provider-free offline suite/tool binding, and genuine lifecycle correlation before canonical stage acceptance. Actual Plan 4 assets, human review, and final retained-tree/operational acceptance remain gated. No real export, publication, provider call, or tenant operation was performed. Continue with Task 5 after confirming the then-current source and dependency state.
+This Task 4 checkpoint did not approve the remaining Draft plan or establish actual Plan 4 assets, genuine lifecycle correlation, human review, or final retained-tree/operational acceptance. No real export, publication, provider call, or tenant operation was performed. Task 5 was authorized separately and its current disposition follows below.
+
+## Task 5 Implementation Checkpoint
+
+The user authorized continuing with Task 5 on 2026-10-26. The existing isolated branch was clean at `52039a0348793f09bf72504c327fccd398c3f84a`; main remained at the accepted prerequisite commit with successful validation run `40102788190`.
+
+Task 5 is implemented locally in commits `4f32b8e60d5d976578d77f8c2f75d84ba3365e01` and `58c24867156fc0099a047fa87d2c82c4a134ec9b`. The public helper and independent CLI require the caller-reviewed complete `RepositoryIdentity` digest and reconstruct expected bytes from fresh committed source, not Apply metadata. Full ordinal object/byte inspection includes links, alternate streams, denied content, and required assets. Validation never repairs the source or candidate.
+
+Production defaults now execute pinned local Pester, history-free repository safety, and standalone Bicep with `--no-restore --stdout`. Missing tools and required assets block explicitly; no provider CLI, automatic download, temporary Git metadata, or candidate result files are used. Actual default-tool execution succeeded on meaningful synthetic inputs. Standalone independent evidence is immutable and allowlisted under `phases/RepositoryExport/IndependentValidation/`; diagnostic path lists are not projected into it.
+
+Review identified that source comparison occurred only after all suites. The fix verifies the original frozen source after every mutable, failed, or throwing suite and again at finalization. Any mismatch or unavailable proof remains sticky and stops subsequent suite dispatch, including when candidate inspection throws. A real source mutation that a later suite could otherwise restore was reproduced before the fix and rejected afterward. Scoped re-review passed.
+
+The original 828-case combined run was not green because of six owned-runner StrictMode failures. Those failures were individually corrected at the harness boundary and rerun; they are not represented as a retroactive combined pass. A fresh corrected targeted related invocation passed 374 cases with one precisely gated file-symlink skip, including the full independent suite, prior affected parameter checks, safety/contracts, and documentation. Final controller independent checks passed 59 cases on each of Windows PowerShell 5.1 and PowerShell 7.6.8 with Pester 5.7.1, with that same single Win32-1314 skip. Actual hardlink, junction, and alternate-stream checks execute and pass.
+
+The remaining plan stays Draft. Task 6 is blocked: actual root pipeline/template assets are absent from both this branch and then-current main; synthetic fixtures do not satisfy that gate. Genuine tenant intent/state correlation and explicit human acceptance are also still required before a canonical TenantReplica stage can be accepted. No real export, publication, provider call, or tenant operation was performed. Deliver and merge the Plan 4 dependencies with green current-main validation before beginning Task 6.
 
 ## File and Interface Map
 
@@ -347,16 +361,21 @@ Test-RepositoryExportIndependent `
   -SourceRoot <absolute> -ExpectedSourceCommit <40-hex> `
   -DestinationRoot <absolute> -Manifest <object> `
   -Profile <TenantReplica|CustomerHandover> `
+  -RepositoryIdentity <64-hex> `
   -GitBlobReader <scriptblock> -ValidationRunner <scriptblock>
 ```
 
-- Validation result fields are `profile`, `expectedFileCount`, `actualFileCount`, `contentTreeDigest`, `unexpectedPaths`, `missingPaths`, `mismatchedPaths`, `deniedFindings`, `suiteResults`, `sourceUnchanged`, `status`.
+- Required validation diagnostic fields are `profile`, `expectedFileCount`, `actualFileCount`, `contentTreeDigest`, `unexpectedPaths`, `missingPaths`, `mismatchedPaths`, `deniedFindings`, `suiteResults`, `sourceUnchanged`, `status`. Separate allowlisted provenance supports the evidence projection; private diagnostics are not serialized into canonical evidence.
 
-- [ ] **Step 1: Write failing independent-validation tests**
+`RepositoryIdentity` preserves the existing expected-source identity contract.
+Production CLI defaults use the approved local tools; injected readers/runners
+remain explicit test seams, not an operational substitute for missing tools.
+
+- [x] **Step 1: Write failing independent-validation tests**
 
 Cover complete byte reconstruction, added/missing/changed file, `.git`, reparse/symlink, denied marker/artifact, source pre/post mismatch, staging metadata distrust, failed suite, interrupted staging, existing destination, and customer omission of forbidden workflows/tests. Before Plan 4 merges, assert missing pipeline files produce an explicit pending prerequisite rather than a false pass.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 powershell.exe -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1 -Force; Invoke-Pester -Path 'infra/tests/pester/RepositoryExportIndependentValidation.Tests.ps1' -Output Detailed"
@@ -364,19 +383,19 @@ powershell.exe -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1 
 
 Expected: **FAIL** because canonical independent validation is absent.
 
-- [ ] **Step 3: Implement independent reconstruction**
+- [x] **Step 3: Implement independent reconstruction**
 
 Reread every expected blob from the approved commit, independently reapply canonical rules in memory, byte-compare all files, detect unexpected filesystem objects, rerun marker/deny policy, compare source snapshots, and execute only manifest-selected local suites through injected runners. Do not trust Apply logs or staging metadata.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 Run the RED command. Expected: **PASS** for synthetic complete trees and exact failure sets for every tamper case.
 
-- [ ] **Step 5: Perform focused review**
+- [x] **Step 5: Perform focused review**
 
 Confirm validator independence, full-tree rather than sampled comparison, no provider access, no force/skip, no source read outside Git blobs, and explicit pending status for Plan 4 assets.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add infra/src/scripts/modules/Caldova.HrFrontier.Bootstrap infra/src/scripts/runbooks/Test-RepositoryExport.ps1 infra/tests/pester/RepositoryExportIndependentValidation.Tests.ps1
