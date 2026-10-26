@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.13 |
+| **Version** | 1.14 |
 | **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -322,10 +322,14 @@ hash, replacement log, suite result, or staged metadata as proof. It compares
 complete actual bytes and ordinal file and directory inventories, including empty
 directories and case changes. Git metadata, denied artifacts, links, reparse
 traversal, hardlinks, alternate data streams, unsupported encoding, and
-uninspected objects prevent success. It inspects again after mutable suites,
-including failed or throwing runners, and verifies the real source snapshot
-afterward. It never copies, patches, deletes, generates files, or creates Git
-metadata in the source or candidate.
+uninspected objects prevent success. After every mutable suite, including failed
+or throwing runners, it independently rechecks both the candidate and the real
+source against the frozen baseline. Source verification still runs if candidate
+inspection throws. A failed or unavailable boundary stops subsequent suites,
+which are explicitly blocked. Final source verification is attempted again;
+later recovery cannot erase an earlier mismatch or unavailable proof, nor an
+earlier tree or suite failure. The validator never copies, repairs, restores,
+deletes, generates files, or creates Git metadata in the source or candidate.
 
 The canonical default resolver uses installed Git and Windows PowerShell at
 fixed local paths and a standalone `bicep.exe`, bound by path digest, file hash,

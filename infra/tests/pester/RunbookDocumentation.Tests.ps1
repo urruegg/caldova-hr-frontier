@@ -229,7 +229,7 @@ Describe 'Runbook documentation contracts' {
         $documentCases = @(
             @{
                 Path = 'infra/docs/runbooks/README.md'
-                Version = '1.8'
+                Version = '1.9'
                 Date = '2026-10-26'
                 Gate = $unmergedGate
             }
@@ -241,7 +241,7 @@ Describe 'Runbook documentation contracts' {
             }
             @{
                 Path = 'infra/docs/runbooks/03-customer-handover.md'
-                Version = '1.13'
+                Version = '1.14'
                 Date = '2026-10-26'
                 Gate = @(
                     'Plan 1 and the child summary envelope implementation remain synthetic evidence.',

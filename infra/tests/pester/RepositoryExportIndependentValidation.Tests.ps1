@@ -398,6 +398,158 @@ Describe 'Independent complete reconstruction' {
     }
 }
 
+Describe 'Per-suite source validation boundary' {
+    It 'stops subsequent suites and retains source failure for <Case>' -ForEach @(
+        @{ Case = 'successful suite changes source bytes'; Outcome = 'Passed'; Recovery = 'None'; Verification = 'Unavailable' }
+        @{ Case = 'failed suite changes source bytes'; Outcome = 'Failed'; Recovery = 'None'; Verification = 'Unavailable' }
+        @{ Case = 'throwing suite changes source bytes'; Outcome = 'Throws'; Recovery = 'None'; Verification = 'Unavailable' }
+        @{ Case = 'dirty source followed by final recovery'; Outcome = 'Passed'; Recovery = 'Bytes'; Verification = 'Unavailable' }
+        @{ Case = 'source mismatch followed by final recovery'; Outcome = 'Passed'; Recovery = 'Config'; Verification = 'Mismatch' }
+        @{ Case = 'unavailable proof followed by final recovery'; Outcome = 'Passed'; Recovery = 'Probe'; Verification = 'Unavailable' }
+    ) {
+        $f = New-IndependentFixture
+        $sourceFile = Join-Path $f.Source 'README.md'
+        $configFile = Join-Path $f.Source '.git\config'
+        $original = [IO.File]::ReadAllBytes($sourceFile)
+        $originalConfig = [IO.File]::ReadAllBytes($configFile)
+        $source = $f.Source; $git = $script:Git; $outcome = $Outcome; $recovery = $Recovery
+        $state = @{ active = $false; observations = 0; finalClean = $false; dispatched = [Collections.Generic.List[string]]::new() }
+        $native = & (Get-Module Caldova.HrFrontier.Bootstrap) { New-DefaultNativeCommandRunner }
+        $f.Parameters.NativeCommandRunner = {
+            param($file, $arguments)
+            $isPostStatus = $state.active -and $arguments -contains 'status'
+            if ($isPostStatus) {
+                $state.observations++
+                if ($state.observations -eq 1 -and $recovery -ceq 'Probe') { throw 'Synthetic private source observation failure.' }
+                # Only the fixture owner restores inputs, during the independent final observation.
+                if ($state.observations -eq 2) {
+                    if ($recovery -ceq 'Bytes') { [IO.File]::WriteAllBytes($sourceFile, $original) }
+                    if ($recovery -ceq 'Config') { [IO.File]::WriteAllBytes($configFile, $originalConfig) }
+                }
+            }
+            $nativeResult = & $native $file $arguments
+            if ($isPostStatus -and $state.observations -eq 2) {
+                $state.finalClean = $nativeResult.exitCode -eq 0 -and [string]::IsNullOrWhiteSpace($nativeResult.stdout)
+            }
+            $nativeResult
+        }.GetNewClosure()
+        $f.Parameters.ValidationRunner = {
+            param($id)
+            $state.active = $true
+            $state.dispatched.Add($id)
+            if ($id -ceq 'Pester') {
+                if ($recovery -ceq 'Config') {
+                    & $git -C $source remote add synthetic 'https://example.invalid/changed'
+                    if ($LASTEXITCODE -ne 0) { throw 'Synthetic configuration mutation failed.' }
+                }
+                elseif ($recovery -cne 'Probe') { [IO.File]::WriteAllText($sourceFile, 'synthetic boundary mutation') }
+                if ($outcome -ceq 'Throws') { throw 'Synthetic private runner failure.' }
+            }
+            else {
+                # This restoration must never run after a failed source boundary.
+                [IO.File]::WriteAllBytes($sourceFile, $original)
+                [IO.File]::WriteAllBytes($configFile, $originalConfig)
+            }
+            [pscustomobject]@{ suite = $id; exitCode = $(if ($outcome -ceq 'Failed') { 1 } else { 0 }) }
+        }.GetNewClosure()
+        try {
+            $r = Get-IndependentResult $f
+            Write-Host ('SOURCE BOUNDARY: case={0}; observations={1}; dispatched={2}; source={3}; status={4}' -f
+                $Case, $state.observations, ($state.dispatched -join ','), $r.provenance.sourceVerification, $r.status)
+            $r.status | Should -BeExactly 'Failed'
+            $r.sourceUnchanged | Should -BeFalse
+            $r.provenance.sourceVerification | Should -BeExactly $Verification
+            ($state.dispatched -join ',') | Should -BeExactly 'Pester'
+            $state.observations | Should -Be 2
+            @($r.suiteResults).Count | Should -Be 3
+            ($r.suiteResults | Where-Object suite -CEQ 'Pester').status |
+                Should -BeExactly $(if ($Outcome -ceq 'Passed') { 'Passed' } else { 'Failed' })
+            foreach ($suite in @('RepositorySafety', 'BicepBuild')) {
+                ($r.suiteResults | Where-Object suite -CEQ $suite).status | Should -BeExactly 'Blocked'
+                ($r.suiteResults | Where-Object suite -CEQ $suite).category | Should -BeExactly 'ValidationBoundaryFailed'
+            }
+            if ($Recovery -ceq 'None') {
+                [IO.File]::ReadAllText($sourceFile) | Should -BeExactly 'synthetic boundary mutation'
+            }
+            else {
+                $state.finalClean | Should -BeTrue
+                [Convert]::ToBase64String([IO.File]::ReadAllBytes($sourceFile)) | Should -BeExactly ([Convert]::ToBase64String($original))
+                [Convert]::ToBase64String([IO.File]::ReadAllBytes($configFile)) | Should -BeExactly ([Convert]::ToBase64String($originalConfig))
+            }
+            ($r | ConvertTo-Json -Depth 30) | Should -Not -Match 'Synthetic private'
+        }
+        finally {
+            [IO.File]::WriteAllBytes($sourceFile, $original)
+            [IO.File]::WriteAllBytes($configFile, $originalConfig)
+        }
+    }
+
+    It 'checks unchanged source after each suite and independently again at finalization' {
+        $f = New-IndependentFixture
+        $events = [Collections.Generic.List[string]]::new()
+        $native = & (Get-Module Caldova.HrFrontier.Bootstrap) { New-DefaultNativeCommandRunner }
+        $f.Parameters.NativeCommandRunner = {
+            param($file, $arguments)
+            if ($events.Count -gt 0 -and $arguments -contains 'status') { $events.Add('source') }
+            & $native $file $arguments
+        }.GetNewClosure()
+        $f.Parameters.ValidationRunner = {
+            param($id)
+            $events.Add('suite:' + $id)
+            [pscustomobject]@{ suite = $id; exitCode = 0 }
+        }.GetNewClosure()
+        $r = Get-IndependentResult $f
+        $r.status | Should -BeExactly 'Passed'
+        $r.sourceUnchanged | Should -BeTrue
+        $r.provenance.sourceVerification | Should -BeExactly 'Matched'
+        ($events -join ',') | Should -BeExactly 'suite:Pester,source,suite:RepositorySafety,source,suite:BicepBuild,source,source'
+    }
+
+    It 'still checks source when post-suite candidate inspection throws without masking suite failure' {
+        $f = New-IndependentFixture
+        $sourceFile = Join-Path $f.Source 'README.md'
+        $original = [IO.File]::ReadAllBytes($sourceFile)
+        $state = @{ active = $false; observations = 0; inspections = 0; dispatched = [Collections.Generic.List[string]]::new() }
+        $native = & (Get-Module Caldova.HrFrontier.Bootstrap) { New-DefaultNativeCommandRunner }
+        $realInspection = & (Get-Module Caldova.HrFrontier.Bootstrap) { ${function:Test-RepositoryExportReconstructedTree} }
+        $inspectionDouble = {
+            param($Root, $Expected, $Manifest, $Profile)
+            $state.inspections++
+            if ($state.inspections -gt 1) { throw 'Synthetic private inspection failure.' }
+            & $realInspection -Root $Root -Expected $Expected -Manifest $Manifest -Profile $Profile
+        }.GetNewClosure()
+        Mock Test-RepositoryExportReconstructedTree -ModuleName Caldova.HrFrontier.Bootstrap -MockWith $inspectionDouble
+        $f.Parameters.NativeCommandRunner = {
+            param($file, $arguments)
+            if ($state.active -and $arguments -contains 'status') { $state.observations++ }
+            & $native $file $arguments
+        }.GetNewClosure()
+        $f.Parameters.ValidationRunner = {
+            param($id)
+            $state.active = $true
+            $state.dispatched.Add($id)
+            [IO.File]::WriteAllText($sourceFile, 'synthetic boundary mutation')
+            throw 'Synthetic private runner failure.'
+        }.GetNewClosure()
+        try {
+            $r = Get-IndependentResult $f
+            $r.status | Should -BeExactly 'Failed'
+            $r.sourceUnchanged | Should -BeFalse
+            $r.provenance.sourceVerification | Should -BeExactly 'Unavailable'
+            $state.observations | Should -Be 2
+            ($state.dispatched -join ',') | Should -BeExactly 'Pester'
+            ($r.suiteResults | Where-Object suite -CEQ 'Pester').status | Should -BeExactly 'Failed'
+            @($r.deniedFindings.category) | Should -Contain 'ObjectInspectionUnavailable'
+            foreach ($suite in @('RepositorySafety', 'BicepBuild')) {
+                ($r.suiteResults | Where-Object suite -CEQ $suite).status | Should -BeExactly 'Blocked'
+            }
+            [IO.File]::ReadAllText($sourceFile) | Should -BeExactly 'synthetic boundary mutation'
+            ($r | ConvertTo-Json -Depth 30) | Should -Not -Match 'Synthetic private'
+        }
+        finally { [IO.File]::WriteAllBytes($sourceFile, $original) }
+    }
+}
+
 Describe 'Production offline dispatch and script boundary' {
     It 'rejects independent authority intent rather than silently ignoring <Authority>' -ForEach @(
         @{ Authority = 'WhatIf' }, @{ Authority = 'Confirm' }

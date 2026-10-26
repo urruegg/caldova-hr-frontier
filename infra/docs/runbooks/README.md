@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.8 |
+| **Version** | 1.9 |
 | **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -17,6 +17,8 @@ caller-reviewed `RepositoryIdentity`, immutable external run layout, and manual
 child `approvals.json`. Synthetic approved-copy tests do not establish operational
 acceptance. `-Independent` now reconstructs the complete existing input from
 fresh committed blobs and executes installed provider-free offline tools.
+Source and candidate boundaries are rechecked after every suite; a failed or
+unavailable boundary blocks later suites even if final source verification recovers.
 Missing tools or mandatory suite assets block; absent actual Plan 4 pipelines
 remain an explicit prerequisite. Separate immutable validation evidence is not
 canonical lifecycle or human acceptance, and Apply emits no lifecycle `Passed`.

@@ -31,12 +31,30 @@ function Test-RepositoryExportIndependent {
     }
     $context = $null
     $sourceSnapshotDigest = $null
+    $sourceBoundaryFailed = $false
+    $validationBoundaryFailed = $false
     $toolPrerequisite = $false
     $expected = [Collections.Generic.Dictionary[string, byte[]]]::new([StringComparer]::Ordinal)
     if ($null -eq $NativeCommandRunner) { $NativeCommandRunner = New-DefaultNativeCommandRunner }
     if ($null -eq $CommandResolver) { $CommandResolver = New-RepositoryExportCommandResolver }
     if ($null -eq $FileIdentityProvider) { $FileIdentityProvider = New-DefaultFileIdentityProvider }
     if ($null -eq $ValidationRunner) { $ValidationRunner = New-DefaultValidationRunner -Runner $NativeCommandRunner }
+    $verifySource = {
+        $verification = 'Unavailable'
+        try {
+            Assert-RepositoryExportToolFiles -Tools ([pscustomobject]@{ Git = $frozenTools.Git })
+            $post = Get-CustomerExportSourceSnapshot -RepositoryRoot $SourceRoot -GitExecutable $frozenTools.Git `
+                -NativeCommandRunner $context.runner -GitBlobReader $context.reader
+            $verification = if ($sourceSnapshotDigest -ceq (Get-RunbookContentDigest $post)) { 'Matched' } else { 'Mismatch' }
+        }
+        catch {}
+        # Keep the first failed boundary even if a later observation matches.
+        if (-not $sourceBoundaryFailed) {
+            $result.sourceUnchanged = $verification -ceq 'Matched'
+            $result.provenance.sourceVerification = $verification
+        }
+        if ($verification -cne 'Matched') { $sourceBoundaryFailed = $true }
+    }
     try {
         Assert-RepositoryExportLocalPath -Path $SourceRoot
         Assert-RepositoryExportLocalPath -Path $DestinationRoot
@@ -107,10 +125,18 @@ function Test-RepositoryExportIndependent {
                 }
                 finally {
                     # A failing or throwing runner is mutable too: do not let it suppress inspection.
-                    $inspection = Test-RepositoryExportReconstructedTree -Root $DestinationRoot -Expected $expected -Manifest $Manifest -Profile $Profile
-                    Merge-RepositoryExportInspection -Result $result -Inspection $inspection
+                    try {
+                        $inspection = Test-RepositoryExportReconstructedTree -Root $DestinationRoot -Expected $expected -Manifest $Manifest -Profile $Profile
+                        Merge-RepositoryExportInspection -Result $result -Inspection $inspection
+                        if (-not $inspection.passed) { $validationBoundaryFailed = $true }
+                    }
+                    catch {
+                        $validationBoundaryFailed = $true
+                        $result.deniedFindings += [pscustomobject]@{ category = 'ObjectInspectionUnavailable'; path = $null }
+                    }
+                    finally { . $verifySource }
                 }
-                if (-not $inspection.passed) { break }
+                if ($validationBoundaryFailed -or $sourceBoundaryFailed) { break }
             }
         }
     }
@@ -120,14 +146,7 @@ function Test-RepositoryExportIndependent {
     }
     finally {
         if ($null -ne $context) {
-            try {
-                Assert-RepositoryExportToolFiles -Tools ([pscustomobject]@{ Git = $frozenTools.Git })
-                $post = Get-CustomerExportSourceSnapshot -RepositoryRoot $SourceRoot -GitExecutable $frozenTools.Git `
-                    -NativeCommandRunner $context.runner -GitBlobReader $context.reader
-                $result.sourceUnchanged = $sourceSnapshotDigest -ceq (Get-RunbookContentDigest $post)
-                $result.provenance.sourceVerification = if ($result.sourceUnchanged) { 'Matched' } else { 'Mismatch' }
-            }
-            catch { $result.provenance.sourceVerification = 'Unavailable' }
+            . $verifySource
             try { Assert-RepositoryExportToolFiles -Tools $frozenTools }
             catch { $result.deniedFindings += [pscustomobject]@{ category = 'ToolIdentityDrift'; path = $null } }
         }
@@ -148,6 +167,13 @@ function Test-RepositoryExportIndependent {
         if ((Get-RunbookContentDigest $Manifest) -cne $manifestDigest -or
             (Get-RunbookContentDigest (Get-RepositoryExportFixedPolicy -Profile $Profile)) -cne $policyDigest) {
             $result.deniedFindings += [pscustomobject]@{ category = 'ReviewedInputDrift'; path = $null }
+        }
+        if ($sourceBoundaryFailed -or $validationBoundaryFailed) {
+            foreach ($suite in @($Manifest.validationSuites)) {
+                if (@($result.suiteResults | Where-Object suite -CEQ $suite).Count -eq 0) {
+                    $result.suiteResults += [pscustomobject]@{ suite = $suite; status = 'Blocked'; exitCode = 1; category = 'ValidationBoundaryFailed' }
+                }
+            }
         }
     }
     $treeFailed = @($result.unexpectedPaths).Count + @($result.missingPaths).Count + @($result.mismatchedPaths).Count + @($result.deniedFindings).Count -gt 0
