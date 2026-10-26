@@ -54,6 +54,7 @@
         'Get-RepositoryExportAssessment'
         'New-RepositoryExportActionPlan'
         'Invoke-RepositoryExportOperation'
+        'Test-RepositoryExportIndependent'
         'Convert-CustomerExportBlob'
         'Invoke-CustomerStructuredReplacement'
         'Get-CustomerExportResidual'

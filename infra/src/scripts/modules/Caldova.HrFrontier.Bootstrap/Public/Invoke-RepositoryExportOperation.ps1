@@ -33,9 +33,9 @@ function Assert-RepositoryExportApproval {
 }
 
 function Assert-RepositoryExportBoundaries {
-    param([string]$SourceRoot, [string]$DestinationRoot, [string]$EvidenceRoot, [string]$ManifestPath)
+    param([string]$SourceRoot, [string]$DestinationRoot, [string]$EvidenceRoot, [string]$ManifestPath, [switch]$Independent)
     foreach ($path in @($SourceRoot, $DestinationRoot, $EvidenceRoot, $ManifestPath)) { Assert-RepositoryExportLocalPath -Path $path }
-    if (Test-Path -LiteralPath $DestinationRoot) { throw 'Repository export destination must not already exist.' }
+    if (-not $Independent -and (Test-Path -LiteralPath $DestinationRoot)) { throw 'Repository export destination must not already exist.' }
     $roots = @($SourceRoot, $DestinationRoot, $EvidenceRoot)
     foreach ($root in $roots) {
         if (Test-RunbookPathWithin -Path $ManifestPath -Root $root) {
@@ -52,6 +52,7 @@ function Assert-RepositoryExportBoundaries {
     }
     foreach ($root in @($DestinationRoot, $EvidenceRoot)) {
         $cursor = [IO.Path]::GetFullPath($root)
+        if ($Independent -and $root -ceq $DestinationRoot) { $cursor = Split-Path $cursor -Parent }
         while ($cursor) {
             if (Test-Path -LiteralPath (Join-Path $cursor '.git')) { throw 'Repository export output must be outside every Git worktree.' }
             $parent = Split-Path -Parent $cursor
@@ -122,7 +123,59 @@ function Invoke-RepositoryExportOperation {
     if ($RunId.ToString('D') -cnotmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$') {
         throw 'Repository export run ID is invalid.'
     }
-    if ($Independent) { throw 'Independent repository export validation is unavailable until the Task 5 validator exists.' }
+    if ($Independent) {
+        if ($Operation -cne 'Assess' -or $PSBoundParameters.ContainsKey('Apply') -or
+            $PSBoundParameters.ContainsKey('ExecutionManifestPath') -or $PSBoundParameters.ContainsKey('ApprovedDigest') -or
+            $PSBoundParameters.ContainsKey('WhatIf') -or $PSBoundParameters.ContainsKey('Confirm')) {
+            throw 'Independent validation is read-only Assess; Apply, Invoke and approval authority parameters are forbidden.'
+        }
+        Assert-RepositoryExportBoundaries -SourceRoot $SourceRoot -DestinationRoot $DestinationRoot `
+            -EvidenceRoot $EvidenceRoot -ManifestPath $ManifestPath -Independent
+        $manifest = Import-RepositoryExportManifest -Path $ManifestPath -ExpectedProfile $Profile
+        $manifestDigest = Get-RunbookContentDigest $manifest
+        $child = Join-Path ([IO.Path]::GetFullPath($EvidenceRoot)) ($RunId.ToString('D') + '\phases\RepositoryExport\IndependentValidation')
+        Assert-RepositoryExportLocalPath -Path $child
+        if (Test-Path -LiteralPath $child) { throw 'Independent validation evidence already exists; use a new run.' }
+        $arguments = @{
+            SourceRoot = $SourceRoot; ExpectedSourceCommit = $ExpectedSourceCommit; DestinationRoot = $DestinationRoot
+            Manifest = $manifest; Profile = $Profile; RepositoryIdentity = $RepositoryIdentity
+        }
+        foreach ($name in @('NativeCommandRunner', 'CommandResolver', 'FileIdentityProvider', 'GitBlobReader', 'ValidationRunner')) {
+            if ($PSBoundParameters.ContainsKey($name)) { $arguments[$name] = $PSBoundParameters[$name] }
+        }
+        $validation = Test-RepositoryExportIndependent @arguments
+        try {
+            $fresh = Import-RepositoryExportManifest -Path $ManifestPath -ExpectedProfile $Profile
+            if ((Get-RunbookContentDigest $fresh) -cne $manifestDigest) { throw 'Manifest drift.' }
+        }
+        catch {
+            $validation.status = 'Failed'
+            $validation.deniedFindings += [pscustomobject]@{ category = 'ReviewedInputDrift'; path = $null }
+        }
+        $envelope = [pscustomobject][ordered]@{
+            schemaVersion = '1.0'; runId = $RunId.ToString('D'); profile = $Profile
+            sourceCommit = $ExpectedSourceCommit.ToLowerInvariant(); repositoryIdentity = $RepositoryIdentity.ToLowerInvariant()
+            sourceSnapshotDigest = $validation.provenance.sourceSnapshotDigest
+            manifestDigest = $manifestDigest; fixedPolicyDigest = $validation.provenance.fixedPolicyDigest
+            toolIdentities = $validation.provenance.toolIdentities
+            expectedFileCount = $validation.expectedFileCount; actualFileCount = $validation.actualFileCount
+            contentTreeDigest = $validation.contentTreeDigest
+            unexpectedCount = @($validation.unexpectedPaths).Count; missingCount = @($validation.missingPaths).Count
+            mismatchedCount = @($validation.mismatchedPaths).Count; deniedCount = @($validation.deniedFindings).Count
+            suiteResults = @($validation.suiteResults)
+            sourceUnchanged = $validation.sourceUnchanged; sourceVerification = $validation.provenance.sourceVerification
+            status = $validation.status
+        }
+        Write-RepositoryExportRecord -Record $envelope -Path (Join-Path $child 'validation-envelope.json')
+        $summary = [pscustomobject]@{
+            schemaVersion = '1.0'; runId = $RunId.ToString('D'); profile = $Profile
+            validationDigest = Get-RunbookContentDigest $envelope
+            status = $validation.status; sourceUnchanged = $validation.sourceUnchanged
+            lifecycleAcceptance = 'NotEstablished'; humanAcceptance = 'NotPerformed'
+        }
+        Write-RepositoryExportRecord -Record $summary -Path (Join-Path $child 'validation-summary.json')
+        return $validation
+    }
     if ($Profile -cnotin @('TenantReplica', 'CustomerHandover')) { throw 'Repository export profile is invalid.' }
     Assert-RepositoryExportBoundaries -SourceRoot $SourceRoot -DestinationRoot $DestinationRoot -EvidenceRoot $EvidenceRoot -ManifestPath $ManifestPath
     $child = Join-Path ([IO.Path]::GetFullPath($EvidenceRoot)) ($RunId.ToString('D') + '\phases\RepositoryExport')
@@ -154,20 +207,11 @@ function Invoke-RepositoryExportOperation {
         Assert-RepositoryExportApproval -Approval $approval -Execution $execution -RunId $RunId -NowUtc $NowUtc
     }
     if ($null -eq $NativeCommandRunner) { $NativeCommandRunner = New-DefaultNativeCommandRunner }
-    if ($null -eq $CommandResolver) {
-        $CommandResolver = {
-            param($name)
-            switch -CaseSensitive ($name) {
-                'git.exe' { Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Git\cmd\git.exe' }
-                'powershell.exe' { Join-Path ([Environment]::SystemDirectory) 'WindowsPowerShell\v1.0\powershell.exe' }
-                default { throw 'Canonical staged validation tool binding is unavailable; no provider executable is resolved.' }
-            }
-        }
-    }
+    if ($null -eq $CommandResolver) { $CommandResolver = New-RepositoryExportCommandResolver }
     if ($null -eq $FileIdentityProvider) { $FileIdentityProvider = New-DefaultFileIdentityProvider }
     $approvedTools = if ($null -eq $execution) { $null } else { $execution.toolVersions }
     $tools = New-ToolIdentities -ValidationSuites @($manifest.validationSuites) -Resolver $CommandResolver `
-        -IdentityProvider $FileIdentityProvider -Runner $NativeCommandRunner -ApprovedProof $approvedTools -StrictTools
+        -IdentityProvider $FileIdentityProvider -Runner $NativeCommandRunner -ApprovedProof $approvedTools -StrictTools -Canonical
     $context = Get-RepositoryExportContext -SourceRoot $SourceRoot -ExpectedSourceCommit $ExpectedSourceCommit `
         -DestinationRoot $DestinationRoot -Manifest $manifest -Profile $Profile -RepositoryIdentity $RepositoryIdentity `
         -ToolIdentities $tools -NativeCommandRunner $NativeCommandRunner -GitBlobReader $GitBlobReader
@@ -221,7 +265,7 @@ function Invoke-RepositoryExportOperation {
     }
     $record.shouldProcess = 'Approved'
     try {
-        if ($null -eq $ValidationRunner) { throw 'Canonical staged validation runner is unavailable; no provider or arbitrary retained script is executed.' }
+        if ($null -eq $ValidationRunner) { $ValidationRunner = New-DefaultValidationRunner -Runner $NativeCommandRunner }
         $bound = [pscustomobject]@{
             source = $SourceRoot; destination = $DestinationRoot; evidence = $EvidenceRoot
             manifestPath = $ManifestPath; profile = $Profile; manifestDigest = $assessment.manifestDigest

@@ -29,7 +29,7 @@ function Invoke-CustomerExportAssessment {
         throw 'Customer export destination must not already exist.'
     }
 
-    $cursor = $canonicalDestination
+    $cursor = if ($AllowExistingDestination -and $Canonical) { Split-Path $canonicalDestination -Parent } else { $canonicalDestination }
     while (-not [string]::IsNullOrWhiteSpace($cursor)) {
         if (Test-Path -LiteralPath $cursor) {
             $item = Get-Item -LiteralPath $cursor -Force

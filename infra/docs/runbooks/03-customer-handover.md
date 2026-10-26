@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.12 |
-| **Date** | 2026-10-25 |
+| **Version** | 1.13 |
+| **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure customer repository handover |
@@ -13,7 +13,7 @@
 
 This runbook prepares a synthetic customer-facing repository export from the reusable source without mutating the source tree. Execution is local, attended, and limited to Windows 11 PowerShell 5.1 or 7. Authentication is `NotApplicable`. Evidence is written only outside Git. Publication is not implemented here and remains a separate attended procedure.
 
-## Profile-contract, shared-library, and entry-point slice (Plan 5, Tasks 1–4 only)
+## Profile contract, shared library, and independent validation (Plan 5, Tasks 1–5)
 
 [`repository-export.schema.json`](../../src/config/schemas/repository-export.schema.json)
 adds explicit `TenantReplica` and `CustomerHandover` intent profiles.
@@ -197,16 +197,15 @@ prohibited artifacts over this same engine, including actual staged-content
 inventory checks. Safe in-memory inventories test Git metadata rejection without
 altering any real fixture repository's metadata. They do not export this working
 repository. Synthetic pipeline definitions prove map rules only: the actual
-Plan 4 pipeline assets, retained-tree suite execution, and final production
-acceptance remain gated. The library records the historical fixed suites
-(`Pester`, `RepositorySafety`, `BicepBuild`); this slice adds no independent
-full-tree validator or profile-specific production suite runner.
+Plan 4 pipeline assets and final production acceptance remain gated. The fixed
+suite IDs remain `Pester`, `RepositorySafety`, and `BicepBuild`; canonical
+validation now has a provider-free local dispatcher for those suites.
 
 The three canonical entry points now share this assessment library and the
 existing customer's committed-blob, exact in-memory transformation, content
 validation, and atomic promotion engine. Only synthetic fixtures have exercised
-them. Plan 5's remainder remains Draft; independent validation, actual pipeline
-assets, retained-tree acceptance, and live acceptance remain gated.
+them. No real worktree export or live acceptance has been performed. Actual
+pipeline assets, lifecycle correlation, and human acceptance remain gated.
 
 ## Canonical standalone export contracts
 
@@ -226,7 +225,9 @@ export intent must be outside all three roots. Dot segments, trailing-dot/space
 Windows path aliases, reparse traversal, and linked intent/evidence files are
 refused. Hash-bound installed tool executables may
 have Windows hardlinks; that exception does not permit linked inputs or outputs.
-The destination must be absent and its parent must already exist.
+For assessment, planning, and Apply the destination must be absent and its
+parent must already exist. Only independent validation accepts an existing
+destination, as a read-only input; it never repairs or promotes that tree.
 
 ### Immutable standalone evidence layout
 
@@ -303,29 +304,76 @@ rechecked before an atomic directory move, including ordinal file/directory
 inventory and unexpected empty directories after suite execution. Cleanup unlinks only entries in
 the exact owned disposable tree and never follows a reparse target.
 
-### Explicitly unavailable validation and acceptance
+### Independent reconstruction and provider-free offline suites
 
-The canonical default resolver selects only fixed local Git and Windows
-PowerShell paths. It refuses the historical `BicepBuild` provider-tool binding;
-it does not fall back to Azure CLI or an arbitrary executable. The canonical
-offline staged-suite runner is not yet supplied. Without those prerequisites,
-the default canonical path fails closed; a caller must not use hidden synthetic
-test hooks as an operational workaround. The positive Task 4 flows use synthetic
-repositories and controlled local runners only, not a real repository export
-or production retained-tree acceptance.
+`Test-RepositoryExport.ps1 -Independent` uses the same mandatory caller-reviewed
+`RepositoryIdentity`, exact source commit, freshly imported closed manifest, and
+explicit profile as assessment. The exported
+[`Test-RepositoryExportIndependent`](../../src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Test-RepositoryExportIndependent.ps1)
+helper also requires `RepositoryIdentity`; it never adopts the observed source
+identity as approval. Independent validation cannot be combined with Invoke,
+Apply, execution-manifest, approved-digest, WhatIf, or Confirm authority
+parameters. Apply's existing preview and confirmation behavior is unchanged.
+
+The validator reconstructs every retained byte afresh from real committed regular
+blobs and the shared exact transformation, marker, classification, and fixed
+path policies. It does not use an old assessment, Apply output, stored inventory,
+hash, replacement log, suite result, or staged metadata as proof. It compares
+complete actual bytes and ordinal file and directory inventories, including empty
+directories and case changes. Git metadata, denied artifacts, links, reparse
+traversal, hardlinks, alternate data streams, unsupported encoding, and
+uninspected objects prevent success. It inspects again after mutable suites,
+including failed or throwing runners, and verifies the real source snapshot
+afterward. It never copies, patches, deletes, generates files, or creates Git
+metadata in the source or candidate.
+
+The canonical default resolver uses installed Git and Windows PowerShell at
+fixed local paths and a standalone `bicep.exe`, bound by path digest, file hash,
+and version. Compiler locations are `ProgramFiles\Bicep CLI`,
+`LocalApplicationData\Programs\Bicep CLI`, or the user's `.azure\bin`; absent or
+ambiguous resolution blocks rather than searching arbitrary executables.
+The standalone compiler runs only `build --no-restore --stdout`. No Azure CLI,
+GitHub CLI, PAC, provider API, credential discovery, download, module restore,
+package installation, or generated build file is part of canonical validation.
+
+Pester 5.7.1 must already be installed for Windows PowerShell 5.1. The dispatcher
+disables test-result and coverage files and fails on failed tests, failed
+containers, empty required containers, or zero executed tests. Repository safety
+reuses the existing validator in explicit `-HistoryFree` mode: a complete safe
+filesystem inventory replaces Git inventory, and the private-payload,
+protected-fingerprint, prohibited-command, and action-pin rules still apply.
+The default safety mode and historical customer callers retain their contracts.
+
+`TenantReplica` requires infrastructure, HR, GitHub static, and runbook contract
+and safety tests, the safety validator and its shared history-free inventory
+dependency, and the full private-boundary reconstruction checks.
+When pipelines exist their templates and pipeline tests are required too.
+Missing actual Plan 4 pipeline assets produce `PendingPrerequisite`; other missing
+required suite assets or installed tools produce `Blocked`, never a skipped or
+fabricated pass. `CustomerHandover` verifies its exact narrower inventory and
+workflow/test omissions; omitting tests does not waive its mandatory suites.
 
 Hidden runner, resolver, identity, clock, and host probes remain synthetic test
 seams. An injected blob reader cannot supply authority: its returned bytes must
 match the shared reader's real committed regular blob before they are used.
+Injected runners are not an operational alternative to installed offline tools.
 
-`Test-RepositoryExport.ps1 -Independent` explicitly fails as **unavailable**
-until the Task 5 validator exists. It writes no clean, Skipped, or Passed
-acceptance. A locally promoted synthetic tree is
-`PromotedPendingIndependent`, never lifecycle `Passed`. Apply creates neither
-`summary.json` nor `stage-results/TenantReplica.json`. Genuine independent
-read-back, full suite definitions, lifecycle provenance/correlation, and human
-review remain required; no public tenant key or private intent/state digest
-is fabricated to fill those missing contracts.
+Independent evidence is separate and immutable:
+`<EvidenceRoot>\<RunId>\phases\RepositoryExport\IndependentValidation\validation-envelope.json`
+and `validation-summary.json`. These contain allowlisted counts, digests, tool
+proofs, suite statuses, and source-verification outcomes, not source text,
+replacement/marker values, raw suite output, private coordinates, or path lists.
+The helper's `unexpectedPaths`, `missingPaths`, `mismatchedPaths`, and
+`deniedFindings` are private diagnostics; do not publish or copy them into
+canonical evidence.
+
+A standalone `Passed` means only local reconstruction and mandatory suites
+passed. It is not lifecycle or human acceptance. Apply remains
+`PromotedPendingIndependent` and creates neither canonical `summary.json` nor
+`stage-results/TenantReplica.json`. Genuine lifecycle provenance/correlation,
+actual pipeline prerequisites, and human review remain required; no tenant key,
+private intent/state digest, or lifecycle result is fabricated. Task 6 and real
+export, publication, provider, and tenant operations are not implemented here.
 
 ### Fixed historical customer wrappers
 

@@ -3,7 +3,7 @@ function Resolve-CustomerExportExecutable {
     [OutputType([pscustomobject])]
     param(
         [Parameter(Mandatory)]
-        [ValidateSet('git.exe', 'powershell.exe', 'az.cmd')]
+        [ValidateSet('git.exe', 'powershell.exe', 'az.cmd', 'bicep.exe')]
         [string]$Name,
 
         [scriptblock]$CommandResolver,

@@ -10,7 +10,8 @@ function Get-RepositoryExportContext {
         [Parameter(Mandatory)][ValidatePattern('^[0-9a-fA-F]{64}$')][string]$RepositoryIdentity,
         [Parameter(Mandatory)][object]$ToolIdentities,
         [Parameter(Mandatory)][scriptblock]$NativeCommandRunner,
-        [scriptblock]$GitBlobReader
+        [scriptblock]$GitBlobReader,
+        [switch]$Independent
     )
 
     # Object inputs obey the same closed canonical contract as file inputs, before enumeration.
@@ -23,11 +24,11 @@ function Get-RepositoryExportContext {
     }
     Assert-RepositoryExportLocalPath -Path $SourceRoot
     Assert-RepositoryExportLocalPath -Path $DestinationRoot
-    if (Test-Path -LiteralPath $DestinationRoot) { throw 'Repository export destination must not already exist.' }
+    if (-not $Independent -and (Test-Path -LiteralPath $DestinationRoot)) { throw 'Repository export destination must not already exist.' }
     $requiredTools = @('Git', 'WindowsPowerShell')
-    if (@($Manifest.validationSuites) -contains 'BicepBuild') { $requiredTools += 'AzureCli' }
+    if (-not $Independent -and @($Manifest.validationSuites) -contains 'BicepBuild') { $requiredTools += 'Bicep' }
     try {
-        Assert-RunbookClosedObject -InputObject $ToolIdentities -AllowedProperties @('Git', 'WindowsPowerShell', 'AzureCli') -RequiredProperties $requiredTools
+        Assert-RunbookClosedObject -InputObject $ToolIdentities -AllowedProperties @('Git', 'WindowsPowerShell', 'Bicep') -RequiredProperties $requiredTools
         foreach ($name in @(Get-RunbookObjectPropertyNames -InputObject $ToolIdentities)) {
             $tool = Get-RunbookObjectPropertyValue -InputObject $ToolIdentities -Name $name
             Assert-RunbookClosedObject -InputObject $tool -AllowedProperties @('path', 'sha256', 'version') -RequiredProperties @('path', 'sha256', 'version')
@@ -72,7 +73,7 @@ function Get-RepositoryExportContext {
     $engine = Invoke-CustomerExportAssessment -SourceRoot $SourceRoot -ExpectedSourceCommit $snapshot.commit `
         -DestinationRoot $DestinationRoot -Manifest $Manifest -ManifestDigest $manifestDigest `
         -SourceSnapshot $snapshot -ToolIdentities $ToolIdentities -MarkerCatalogProof $catalog `
-        -GitExecutable $git -GitBlobReader $reader -Profile $Profile -Canonical
+        -GitExecutable $git -GitBlobReader $reader -Profile $Profile -Canonical -AllowExistingDestination:$Independent
     $post = Get-CustomerExportSourceSnapshot -RepositoryRoot $SourceRoot -GitExecutable $git `
         -NativeCommandRunner $runner -GitBlobReader $reader
     $snapshotDigest = Get-RunbookContentDigest -InputObject $snapshot

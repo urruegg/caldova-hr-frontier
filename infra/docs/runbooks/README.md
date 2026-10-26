@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.7 |
-| **Date** | 2026-10-25 |
+| **Version** | 1.8 |
+| **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure operations |
@@ -12,11 +12,14 @@
 These runbooks govern attended, local operations for the infrastructure domain. They define how an operator proves readiness, previews reviewed intent, receives a digest for approval, executes only the approved changes, records redacted evidence, and closes with recovery when anything remains unresolved.
 
 The [repository handover runbook](03-customer-handover.md#canonical-standalone-export-contracts)
-now documents Plan 5 Tasks 1–4's explicit-profile standalone scripts, mandatory
+now documents Plan 5 Tasks 1–5's explicit-profile standalone scripts, mandatory
 caller-reviewed `RepositoryIdentity`, immutable external run layout, and manual
 child `approvals.json`. Synthetic approved-copy tests do not establish operational
-acceptance: canonical default suite tooling remains fail-closed, `-Independent`
-is unavailable pending Task 5, and Apply emits no lifecycle `Passed` result.
+acceptance. `-Independent` now reconstructs the complete existing input from
+fresh committed blobs and executes installed provider-free offline tools.
+Missing tools or mandatory suite assets block; absent actual Plan 4 pipelines
+remain an explicit prerequisite. Separate immutable validation evidence is not
+canonical lifecycle or human acceptance, and Apply emits no lifecycle `Passed`.
 The historical fixed-customer wrappers remain a separate compatibility contract.
 
 ## Implemented lifecycle-core boundary

@@ -2,6 +2,11 @@
 param(
     [string]$RepositoryRoot,
 
+    [switch]$HistoryFree,
+
+    [ValidateSet('TenantReplica', 'CustomerHandover')]
+    [string]$ExportProfile = 'TenantReplica',
+
     [ValidatePattern('^[0-9a-f]{64}$')]
     [string[]]$AdditionalProtectedTenantPayloadFingerprint = @()
 )
@@ -20,6 +25,17 @@ if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) {
     $RepositoryRoot = Join-Path $scriptDirectory '..\..'
 }
 $repositoryRootPath = [IO.Path]::GetFullPath($RepositoryRoot)
+if ($HistoryFree) {
+    . (Join-Path $PSScriptRoot 'Get-HistoryFreeRepositoryInventory.ps1')
+    try {
+        $historyFreeInventory = Get-HistoryFreeRepositoryInventory -Root $repositoryRootPath
+        if (@($historyFreeInventory.findings).Count -gt 0) { throw 'History-free object integrity failed.' }
+    }
+    catch {
+        Write-Output 'Repository safety validation failed: history-free object integrity.'
+        exit 1
+    }
+}
 $prohibitedPattern = 'az\s+deployment\s+sub\s+create|New-AzSubscriptionDeployment|client[_-]?secret|AZURE_CLIENT_SECRET|--password|Set-ExecutionPolicy\s+(?:Unrestricted|Bypass)|Set-MpPreference\s+-DisableRealtimeMonitoring|Start-Process[^\r\n]+-Verb\s+RunAs'
 $failures = [Collections.Generic.List[string]]::new()
 $paths = [Collections.Generic.List[string]]::new()
@@ -134,6 +150,7 @@ function Get-ContentFingerprintCandidates {
 }
 
 try {
+    if (-not $HistoryFree) {
     $gitPath = (Get-Command git.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
     $trackedTenantFiles = @(
         & $gitPath -C $repositoryRootPath ls-files -- `
@@ -175,6 +192,21 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw 'git ls-files failed for active payload isolation.'
     }
+    }
+    else {
+        $activePayloadPaths = @($historyFreeInventory.files)
+        foreach ($relativePath in @($historyFreeInventory.files) + @($historyFreeInventory.directories)) {
+            # The sanitized tree has neutral templates, never the source's transition inventory.
+            # Broader artifact/fixture classifications belong to independent profile reconstruction.
+            if ($relativePath.StartsWith('infra/evidence/discovery/', [StringComparison]::OrdinalIgnoreCase) -or
+                ($relativePath.StartsWith('infra/src/config/tenants/', [StringComparison]::OrdinalIgnoreCase) -and
+                 $relativePath -cne 'infra/src/config/tenants' -and
+                 $relativePath -cnotin @('infra/src/config/tenants/_template.psd1', 'infra/src/config/tenants/template.json')) -or
+                ($ExportProfile -ceq 'CustomerHandover' -and $relativePath -imatch '^\.github/workflows(/|$)')) {
+                [void]$failures.Add('History-free private payload or workflow boundary failed.')
+            }
+        }
+    }
     $protectedTransitionPaths = @(
         'infra/src/config/tenants/caldova25668747.psd1'
         'infra/evidence/discovery/caldova25668747.json'
@@ -184,7 +216,7 @@ try {
         '.yml', '.yaml', '.xml', '.txt', '.csv'
     )
     foreach ($relativePath in $activePayloadPaths) {
-        if ($relativePath -in $protectedTransitionPaths) {
+        if (-not $HistoryFree -and $relativePath -in $protectedTransitionPaths) {
             continue
         }
         $extension = [IO.Path]::GetExtension($relativePath).ToLowerInvariant()
@@ -210,10 +242,11 @@ catch {
     [void]$failures.Add("Cannot validate tracked tenant boundary: $($_.Exception.Message)")
 }
 
-if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf) -and
+    -not ($HistoryFree -and $ExportProfile -ceq 'CustomerHandover' -and -not (Test-Path -LiteralPath $workflowRoot))) {
     [void]$failures.Add('Missing action pin manifest: infra/src/config/github/action-pins.json')
 }
-else {
+elseif (Test-Path -LiteralPath $manifestPath -PathType Leaf) {
     try {
         $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
         if ([string]$manifest.schemaVersion -cne '1.0') {
@@ -302,7 +335,8 @@ foreach ($path in $paths) {
 }
 
 foreach ($actionName in @($reviewedActions.Keys)) {
-    if (-not $usedActions.Contains([string]$actionName)) {
+    if (-not $usedActions.Contains([string]$actionName) -and
+        -not ($HistoryFree -and $ExportProfile -ceq 'CustomerHandover' -and -not (Test-Path -LiteralPath $workflowRoot))) {
         [void]$failures.Add("Manifest action is unused: $actionName")
     }
 }

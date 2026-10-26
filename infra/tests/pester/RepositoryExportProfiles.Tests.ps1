@@ -105,7 +105,7 @@ public sealed class RepositoryExportDecliningUI : PSHostUserInterface {
                     switch ($name) {
                         'git.exe' { @($tools.Git.path) }
                         'powershell.exe' { @($tools.WindowsPowerShell.path) }
-                        'az.cmd' { @($tools.AzureCli.path) }
+                        'bicep.exe' { @($tools.Bicep.path) }
                         default { throw 'Unexpected executable.' }
                     }
                 }.GetNewClosure()
@@ -175,12 +175,14 @@ public sealed class RepositoryExportDecliningUI : PSHostUserInterface {
         Test-Path (Join-Path $f.Child 'stage-result.json') | Should -BeFalse
     }
 
-    It 'fails explicitly rather than emitting independent acceptance while Task5 is unavailable' {
+    It 'does not accept an absent independent input or emit lifecycle acceptance' {
         $f = New-EntryFixture
         $p = $f.Parameters
-        { & (Join-Path $script:Runbooks 'Test-RepositoryExport.ps1') @p -Independent } | Should -Throw '*Independent*unavailable*'
+        $result = & (Join-Path $script:Runbooks 'Test-RepositoryExport.ps1') @p -Independent
+        $result.status | Should -BeExactly 'Failed'
+        $result.sourceUnchanged | Should -BeFalse
         Assert-NoEntryOutput $f
-        Test-Path $f.Child | Should -BeFalse
+        Test-Path (Join-Path $p.EvidenceRoot ($p.RunId.ToString() + '\stage-results\TenantReplica.json')) | Should -BeFalse
     }
 
     It 'verifies injected blob-reader bytes against the real committed regular blob rather than accepting fabricated content' {
@@ -391,17 +393,17 @@ public sealed class RepositoryExportDecliningUI : PSHostUserInterface {
         }
     }
 
-    It 'fails closed without a canonical offline suite runner instead of invoking a provider' {
+    It 'runs the canonical default offline validator and refuses incomplete suite inputs' {
         $f = New-EntryFixture
         $p = $f.Parameters
         $plan = & (Join-Path $script:Runbooks 'New-RepositoryExportPlan.ps1') @p
         New-EntryApproval $f $plan | Out-Null
         $p.Remove('ValidationRunner')
-        { & (Join-Path $script:Runbooks 'Invoke-RepositoryExport.ps1') @p -Apply -Confirm:$false } | Should -Throw '*runner*unavailable*'
+        { & (Join-Path $script:Runbooks 'Invoke-RepositoryExport.ps1') @p -Apply -Confirm:$false } | Should -Throw '*validation*'
         Assert-NoEntryOutput $f
     }
 
-    It 'refuses default provider-tool resolution rather than running a provider or arbitrary executable' {
+    It 'never resolves a provider through the default canonical tool resolver' {
         $f = New-EntryFixture
         $p = $f.Parameters
         $p.Remove('CommandResolver')
@@ -410,11 +412,14 @@ public sealed class RepositoryExportDecliningUI : PSHostUserInterface {
             param($file, $arguments)
             $name = [IO.Path]::GetFileName($file)
             $calls.Add($name)
-            if ($name -cnotin @('git.exe', 'powershell.exe')) { throw 'Unexpected provider execution.' }
+            if ($name -cnotin @('git.exe', 'powershell.exe', 'bicep.exe')) { throw 'Unexpected provider execution.' }
+            if ($arguments -ccontains '-C') { throw 'Synthetic tool-resolution boundary.' }
             [pscustomobject]@{ exitCode = 0; stdout = 'synthetic-version'; stderr = '' }
         }.GetNewClosure()
-        { & (Join-Path $script:Runbooks 'New-RepositoryExportPlan.ps1') @p } | Should -Throw '*tool binding is unavailable*'
-        @($calls) | Should -Be @('git.exe', 'powershell.exe')
+        { & (Join-Path $script:Runbooks 'New-RepositoryExportPlan.ps1') @p } | Should -Throw
+        @($calls) | Should -Contain 'git.exe'
+        @($calls) | Should -Contain 'powershell.exe'
+        @($calls | Where-Object { $_ -cnotin @('git.exe', 'powershell.exe', 'bicep.exe') }).Count | Should -Be 0
         Assert-NoEntryOutput $f
         Test-Path $f.Child | Should -BeFalse
     }
@@ -518,7 +523,7 @@ Describe 'TenantReplica retain and deny' {
                 SourceSnapshot = [pscustomobject]@{ trackedFiles = $tracked }
                 ToolIdentities = [pscustomobject]@{
                     WindowsPowerShell = [pscustomobject]@{ path = 'C:\synthetic\powershell.exe' }
-                    AzureCli = [pscustomobject]@{ path = 'C:\synthetic\az.exe' }
+                    Bicep = [pscustomobject]@{ path = 'C:\synthetic\bicep.exe' }
                 }; MarkerCatalogProof = [pscustomobject]@{}
                 GitExecutable = [pscustomobject]@{ path = 'C:\synthetic\git.exe' }; GitBlobReader = $reader
                 Profile = $Fixture.Manifest.profile; Canonical = $true
@@ -1113,7 +1118,7 @@ function script:New-RepositoryAssessmentFixture {
             ToolIdentities = [pscustomobject]@{
                 Git = [pscustomobject]@{ path = $git; sha256 = (Get-FileHash $git).Hash.ToLowerInvariant(); version = (& $git --version).Trim() }
                 WindowsPowerShell = [pscustomobject]@{ path = $ps; sha256 = (Get-FileHash $ps).Hash.ToLowerInvariant(); version = '5.1' }
-                AzureCli = [pscustomobject]@{ path = $ps; sha256 = (Get-FileHash $ps).Hash.ToLowerInvariant(); version = 'synthetic-unused' }
+                Bicep = [pscustomobject]@{ path = $ps; sha256 = (Get-FileHash $ps).Hash.ToLowerInvariant(); version = 'synthetic-unused' }
             }
         }
     }

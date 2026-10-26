@@ -160,6 +160,7 @@ function New-ToolIdentities {
         [Parameter(Mandatory)][scriptblock]$Runner,
         [object]$ApprovedIdentities,
         [object]$ApprovedProof,
+        [switch]$Canonical,
         [switch]$StrictTools
     )
 
@@ -186,23 +187,25 @@ function New-ToolIdentities {
         }
     }
     if (@($ValidationSuites | Where-Object { $_ -ceq 'BicepBuild' }).Count -gt 0) {
-        $resolved = Resolve-CustomerExportExecutable -Name 'az.cmd' -CommandResolver $Resolver -FileIdentityProvider $IdentityProvider
+        $compilerName = if ($Canonical) { 'bicep.exe' } else { 'az.cmd' }
+        $compilerKey = if ($Canonical) { 'Bicep' } else { 'AzureCli' }
+        $resolved = Resolve-CustomerExportExecutable -Name $compilerName -CommandResolver $Resolver -FileIdentityProvider $IdentityProvider
         if ($null -ne $ApprovedProof) {
-            $proof = $ApprovedProof.PSObject.Properties['AzureCli']
+            $proof = $ApprovedProof.PSObject.Properties[$compilerKey]
             if ($null -eq $proof -or $proof.Value.pathDigest -cne (Get-RepositoryExportPathIdentity $resolved.path) -or
                 $proof.Value.sha256 -cne $resolved.sha256) { throw 'Required executable identity changed before approved manifest validation.' }
         }
         if ($null -ne $ApprovedIdentities) {
-            $expected = $ApprovedIdentities.PSObject.Properties['AzureCli']
+            $expected = $ApprovedIdentities.PSObject.Properties[$compilerKey]
             if ($null -eq $expected -or [string]$expected.Value.path -cne [string]$resolved.path -or
                 [string]$expected.Value.sha256 -cne [string]$resolved.sha256) {
                 throw 'Required executable identity changed before approved manifest validation.'
             }
         }
-        $tools['AzureCli'] = [pscustomobject]@{
+        $tools[$compilerKey] = [pscustomobject]@{
             path = $resolved.path
             sha256 = $resolved.sha256
-            version = Get-ExecutableVersion -Name 'az.cmd' -Path $resolved.path -Runner $Runner -Strict:$StrictTools
+            version = Get-ExecutableVersion -Name $compilerName -Path $resolved.path -Runner $Runner -Strict:$StrictTools
         }
     }
     [pscustomobject]$tools

@@ -143,7 +143,11 @@ function Test-CustomerExportContent {
 
     $suiteResults = [Collections.Generic.List[object]]::new()
     foreach ($suite in @($Manifest.validationSuites)) {
-        $command = Get-CustomerExportValidationCommand -Suite ([string]$suite) -ToolIdentities $Assessment.toolIdentities
+        $command = if ($assessmentNames -ccontains 'profile') {
+            Get-RepositoryExportValidationCommand -Suite $suite -ToolIdentities $Assessment.toolIdentities -Root $root -Profile $profile
+        } else {
+            Get-CustomerExportValidationCommand -Suite ([string]$suite) -ToolIdentities $Assessment.toolIdentities
+        }
         if (-not [IO.Path]::IsPathRooted([string]$command.filePath)) {
             throw "Customer export validation suite '$suite' resolved a non-rooted executable path."
         }
