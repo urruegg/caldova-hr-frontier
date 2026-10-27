@@ -1,0 +1,101 @@
+{
+  "$schema": "../schemas/workstation-compatibility.schema.json",
+  "schemaVersion": "1.0",
+  "review": {
+    "kind": "AutomatedTechnicalReview",
+    "reviewer": "GitHub Copilot",
+    "reviewedAtUtc": "2026-10-26T16:30:15.1877593Z",
+    "isApproval": false,
+    "scope": "Local unauthenticated Windows X64 compatibility; no operator, import, organization or live acceptance"
+  },
+  "components": [
+    {
+      "id": "PowerShell7",
+      "version": "7.6.8",
+      "source": "MicrosoftStore",
+      "architecture": "X64",
+      "sha256": "b90c0f48ca4b13c9426a7863f3d469baf310ca517721dd0b55551b80ec9fee2a",
+      "capabilities": ["WindowsX64Host", "WindowsCompatibilityParameter", "Pester571Import"],
+      "references": ["https://github.com/PowerShell/PowerShell/releases/tag/v7.6.8", "https://learn.microsoft.com/en-us/powershell/scripting/install/powershell-support-lifecycle"]
+    },
+    {
+      "id": "WindowsPowerShell",
+      "version": "5.1.26100.9711",
+      "source": "WindowsComponent",
+      "architecture": "X64",
+      "sha256": "60c9b29843624dd8af6b6a7b26147753be6aeef65098b9a503cc50850afe410f",
+      "capabilities": ["WindowsX64Host", "Pester571Import"],
+      "references": ["https://learn.microsoft.com/en-us/powershell/scripting/install/powershell-support-lifecycle"]
+    },
+    {
+      "id": "Git",
+      "version": "2.56.0.windows.3",
+      "source": "GitForWindowsRelease",
+      "architecture": "X64",
+      "sha256": "3b64043b9e4dc225225f43ff9c1173b57493ff72e5b729accfae051eb160cca3",
+      "capabilities": ["WorktreeHelp"],
+      "references": ["https://github.com/git-for-windows/git/releases/tag/v2.56.0.windows.3"]
+    },
+    {
+      "id": "GitHubCli",
+      "version": "2.103.2",
+      "source": "GitHubCliRelease",
+      "architecture": "X64",
+      "sha256": "f1efa3796052b576a11abcc8e69c3966cf54e5858c94cc7bdae0d9fbf7ee91d8",
+      "capabilities": ["RepositoryJsonHelp"],
+      "references": ["https://github.com/cli/cli/releases/tag/v2.103.2"]
+    },
+    {
+      "id": "AzureCli",
+      "version": "2.91.0",
+      "source": "AzureCliMsi",
+      "architecture": "X64",
+      "sha256": "f24c501b242614afa989acf22719c816be87e7ac1ff8ff84c5fa200751f30fe2",
+      "payloads": [
+        { "id": "AzureCliPython", "sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9" }
+      ],
+      "capabilities": ["VersionJson", "BundledPythonX64"],
+      "references": ["https://github.com/Azure/azure-cli/releases/tag/azure-cli-2.91.0"]
+    },
+    {
+      "id": "Bicep",
+      "version": "0.46.1",
+      "source": "AzureCliBicepComponent",
+      "architecture": "X64",
+      "sha256": "441d3d6094513acaa8a9be0b96b754d174bc0c19064c7be04e35b87e67b66250",
+      "capabilities": ["BuildHelp"],
+      "references": ["https://github.com/Azure/bicep/releases/tag/v0.46.1", "https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/bicep-cli"]
+    },
+    {
+      "id": "azure-devops",
+      "version": "1.0.8",
+      "source": "AzureCliExtension",
+      "architecture": "X64",
+      "sha256": "c948bdba030abe6e23c5b9065dae06111da289d6ccded92230e5ea1bcb7ee867",
+      "capabilities": ["InstalledExtensionMetadata", "DevopsHelp"],
+      "references": ["https://github.com/Azure/azure-devops-cli-extension/releases/tag/20260902.1", "https://learn.microsoft.com/en-us/cli/azure/devops"]
+    },
+    {
+      "id": "PowerPlatformCli",
+      "version": "1.43.6+gc7c8d99",
+      "source": "DotNetTool",
+      "architecture": "X64",
+      "sha256": "39817e96081eb3d6ed4131b5ffd2d5cea38911484ee191e456cd9d41e09f6435",
+      "payloads": [
+        { "id": "PacAssembly", "sha256": "11fcdef47ecdb33e423c1e620d4cb289fc73f38987868bccc2316eb195c7c92e" },
+        { "id": "SolutionPackagerAssembly", "sha256": "3111d30c8513b9f9f29a08712bcb16bf6b67aa8882ae8d9995d1f41f12812ac2" }
+      ],
+      "capabilities": ["PackHelp", "UnpackHelp", "DeclaredWebResourceRoundTrip"],
+      "references": ["https://www.nuget.org/packages/Microsoft.PowerApps.CLI.Tool/1.43.6", "https://learn.microsoft.com/en-us/power-platform/developer/cli/reference/solution"]
+    },
+    {
+      "id": "Pester",
+      "version": "5.7.1",
+      "source": "PowerShellGallery",
+      "architecture": "X64",
+      "sha256": "49e9e839447703f7b6a6a320a3c65a6dd5a17f4e33372fe02c7d32ad26a2d3ca",
+      "capabilities": ["ExactModuleImport"],
+      "references": ["https://www.powershellgallery.com/packages/Pester/5.7.1"]
+    }
+  ]
+}

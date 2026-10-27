@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.6 |
+| **Version** | 1.7 |
 | **Date** | 2026-10-26 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -10,6 +10,44 @@
 | **References** | [Infrastructure Operational Runbooks](README.md); [Approved Tenant 1 Runbook End-to-End Design](../../../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md); [Approved Child Summary Envelope Design](../../../docs/specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md); [Draft Child Summary Envelope Implementation Plan](../../../docs/plans/2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md); [Tenant Lifecycle Core Implementation Plan](../../../docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md); [Operational Runbooks Design](../../../docs/specs/2026-09-26-operational-runbooks-design.md) |
 
 This runbook assesses and, when explicitly approved, initializes one local Windows 11 administrator workstation for later attended infrastructure operations. It does not authenticate to cloud services, deploy infrastructure, create tenants, install repository-bundled skills, or mutate vendored content.
+
+## Read-only tool compatibility gate
+
+Run [`Test-DeveloperWorkstationCompatibility.ps1`](../../src/scripts/runbooks/Test-DeveloperWorkstationCompatibility.ps1)
+before accepting the prerequisite policy. The closed
+[technical compatibility record](../../src/config/runbooks/workstation-compatibility.json)
+pins all nine delivery-critical components, including full Windows and vendor
+build suffixes. Its automated technical review is not a human approval, child
+acceptance result, or live organization/import capability.
+
+```powershell
+powershell.exe -NoProfile -File infra/src/scripts/runbooks/Test-DeveloperWorkstationCompatibility.ps1 `
+  -ReportPath (Join-Path $env:TEMP 'caldova-workstation-compatibility')
+```
+
+The gate checks unique canonical physical identities, exact source/hash/version,
+Windows X64 host constraints, installed extension metadata, and local command
+capabilities without authentication or installation. Both WindowsApps PowerShell
+aliases must identify the same physical host. The reviewed standalone Bicep
+location is resolved explicitly; assessment does not invoke `az bicep version`
+or implicitly install an absent component.
+
+PAC must also preserve the synthetic fixture's two declared HTML/JavaScript Web
+Resources, their manifest and payload references, and payload bytes through
+pack/unpack in a unique owned external workspace. The fixture follows
+[Microsoft's Web Resource model](https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/web-resources)
+and [published resource metadata](https://github.com/microsoft/coe-starter-kit/blob/main/CenterofExcellenceCoreComponents/SolutionPackage/src/WebResources/accessChecker_openDialog.js.data.xml).
+Exit zero and help alone are not packaging proof. Empty source, missing payload,
+component loss, changed identities, or unproven capabilities return `Blocked`
+and process exit 1 without policy mutation. `NoChange` means only that this local
+compatibility gate passed.
+
+The legacy Code App and its historical `BackgroundImageUri` case remain excluded
+only for this sprint under the [declared component boundary](../../../docs/specs/2026-10-02-cloud-service-foundation-runbook-design.md#33-current-sprint-component-boundary).
+Unexpected out-of-scope Code App input is refused, never stripped. Fixture
+success neither fixes that historical issue nor proves complete HR delivery
+source or Dataverse parity. Installer execution and live acceptance remain
+separate, explicitly approved operations.
 
 ## Lifecycle-core integration boundary
 
@@ -159,20 +197,20 @@ The service owner compares and records that displayed digest before the workstat
 | Tool or component | Assessment command | Mutation scope | Elevation expectation | Read-back | Recovery notes |
 |---|---|---|---|---|---|
 | Windows PowerShell 5.1 | `$PSVersionTable.PSVersion` | None; OS component only | Existing local admin shell | `$PSVersionTable.PSVersion` | Reassess only; never install through this runbook |
-| PowerShell 7 | `pwsh --version` | Exact reviewed WinGet ID only | Local attended admin | `pwsh --version` | Reassess after restart if required |
+| PowerShell 7 | `pwsh --version` | Manual; currently reviewed Microsoft Store host only | Local attended admin | `pwsh --version` and the compatibility gate | Reassess after restart if required |
 | Git | `git --version` | Exact reviewed WinGet ID only | Local attended admin | `git --version` | Generate a new manifest if path or version differs |
 | VS Code | `code --version` | Exact reviewed WinGet ID only | Local attended admin | `code --version` | Reassess if PATH or extension host changes |
 | GitHub CLI | `gh --version` | Exact reviewed WinGet ID only | Local attended admin | `gh --version` | Authentication remains attended and separate |
 | Azure CLI | `az version` | Exact reviewed WinGet ID only | Local attended admin | `az version` | Reassess after extension or component change |
 | Azure Developer CLI | `azd version` | Exact reviewed WinGet ID only | Local attended admin | `azd version` | Reassess after restart if required |
-| PAC CLI | `pac help` | Exact reviewed WinGet ID only | Local attended admin | `pac help` | PAC profile operations happen later and attended |
+| PAC CLI | `pac help` | Manual; currently reviewed .NET tool only | Local attended admin | `pac help` and the component round-trip gate | PAC profile operations happen later and attended |
 | Copilot CLI | `copilot --help` | Exact reviewed WinGet ID only | Local attended admin | `copilot --help` | Entitlement and sign-in remain attended |
-| Bicep | `az bicep version` | Azure CLI component only | Local attended admin | `az bicep version` | Reassess after Azure CLI changes |
+| Bicep | Standalone `bicep --version` | Azure CLI component at the exact reviewed version | Local attended admin | Standalone `bicep --version` and build help | Reassess after component changes |
 | Pester 5.7.1 | `Get-Module Pester -ListAvailable` | `CurrentUser` exact reviewed version only | Current user scope | `Import-Module Pester -RequiredVersion 5.7.1 -Force` | New manifest required for any version drift |
 | Azure DevOps CLI extension | `az extension show --name azure-devops` | Azure CLI extension only | Local attended admin | `az extension show --name azure-devops` | PAT mode is prohibited; see authentication readiness |
 | VS Code extensions | `code --list-extensions --show-versions` | Recommended only when present in manifest | User scope | `code --list-extensions --show-versions` | Optional; never infer or add unapproved IDs |
 
-Windows PowerShell 5.1 is an OS component and is never installed by this runbook. PowerShell 7, Git, VS Code, GitHub CLI, Azure CLI, Azure Developer CLI, PAC CLI, and officially verified Copilot CLI use exact reviewed WinGet IDs. Bicep is an Azure CLI component, and `az bicep version` is its read-back. Pester is exact version 5.7.1 in `CurrentUser`. `azure-devops` is the only required Azure CLI extension in this increment. VS Code extensions are recommendations and may be applied only when present in the execution manifest. GitHub Copilot entitlement, terms, and sign-in remain attended; installation does not prove entitlement or authentication.
+Windows PowerShell 5.1 is an OS component and is never installed by this runbook. The currently reviewed PowerShell 7 Microsoft Store host and PAC .NET tool remain manual prerequisites; the compatibility record does not approve untested WinGet/MSI substitutes for them. Git, VS Code, GitHub CLI, Azure CLI, Azure Developer CLI, and officially verified Copilot CLI retain their reviewed WinGet IDs. Bicep remains an Azure CLI component, but assessment and read-back use its explicit standalone executable without auto-installation. Pester is exact version 5.7.1 in `CurrentUser`. `azure-devops` is the only required Azure CLI extension in this increment. VS Code extensions are recommendations and may be applied only when present in the execution manifest. GitHub Copilot entitlement, terms, and sign-in remain attended; installation does not prove entitlement or authentication.
 
 ## Attended authentication readiness
 

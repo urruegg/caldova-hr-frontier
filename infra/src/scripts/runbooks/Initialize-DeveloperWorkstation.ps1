@@ -22,105 +22,6 @@ $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
 $moduleManifestPath = Join-Path $scriptDirectory '..\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'
 Import-Module $moduleManifestPath -Force
 
-function Get-ObservedVersion {
-    param(
-        [Parameter(Mandatory)][string]$ToolId,
-        [Parameter(Mandatory)][pscustomobject]$Result
-    )
-
-    $joined = ($Result.stdout -join "`n").Trim()
-    switch ($ToolId) {
-        'AzureCli' {
-            try {
-                $parsed = $joined | ConvertFrom-Json
-                return [string]$parsed.'azure-cli'
-            }
-            catch {
-                return $joined
-            }
-        }
-        default {
-            if ([string]::IsNullOrWhiteSpace($joined)) {
-                return $null
-            }
-            $match = [regex]::Match($joined, '([0-9]+(?:\.[0-9]+)+)')
-            if ($match.Success) { return $match.Groups[1].Value }
-            return $joined
-        }
-    }
-}
-
-function Test-VersionPolicy {
-    param(
-        [AllowNull()][string]$ObservedVersion,
-        [Parameter(Mandatory)][object]$VersionPolicy
-    )
-
-    if ([string]::IsNullOrWhiteSpace($ObservedVersion)) {
-        return $false
-    }
-
-    switch ([string]$VersionPolicy.mode) {
-        'Present' { return $true }
-        'Exact' {
-            if ([string]$VersionPolicy.value -ceq $ObservedVersion) {
-                return $true
-            }
-            return $ObservedVersion.StartsWith(([string]$VersionPolicy.value + '.'), [StringComparison]::Ordinal)
-        }
-        default { return $false }
-    }
-}
-
-function Invoke-NativeCommand {
-    param(
-        [Parameter(Mandatory)][scriptblock]$Runner,
-        [Parameter(Mandatory)][string]$FilePath,
-        [Parameter(Mandatory)][string[]]$ArgumentList
-    )
-
-    $result = & $Runner $FilePath $ArgumentList
-    if ($null -eq $result) {
-        return [pscustomobject]@{ exitCode = 1; stdout = @(); stderr = @('runner returned no result') }
-    }
-
-    [pscustomobject]@{
-        exitCode = $(if ($result.PSObject.Properties.Name -contains 'exitCode') { [int]$result.exitCode } else { 1 })
-        stdout = @($result.stdout | ForEach-Object { [string]$_ })
-        stderr = @($result.stderr | ForEach-Object { [string]$_ })
-    }
-}
-
-function New-DefaultNativeCommandRunner {
-    {
-        param([string]$FilePath, [string[]]$ArgumentList)
-
-        $output = @(& $FilePath @ArgumentList 2>&1 | ForEach-Object { $_.ToString() })
-        [pscustomobject]@{
-            exitCode = $(if ($null -ne $LASTEXITCODE) { [int]$LASTEXITCODE } else { 0 })
-            stdout = $output
-            stderr = @()
-        }
-    }.GetNewClosure()
-}
-
-function New-DefaultCommandResolver {
-    {
-        param($name)
-        @(Get-Command $name -All -CommandType Application -ErrorAction SilentlyContinue | ForEach-Object Source)
-    }.GetNewClosure()
-}
-
-function New-DefaultFileIdentityProvider {
-    {
-        param($path)
-        [pscustomobject]@{
-            path = [IO.Path]::GetFullPath($path)
-            sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
-        }
-    }.GetNewClosure()
-}
-
 function Get-CurrentProcessElevationState {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = [Security.Principal.WindowsPrincipal]::new($identity)
@@ -203,7 +104,7 @@ function Assert-AllowedPolicyActions {
                 $item = [pscustomobject][ordered]@{
                     action = 'InstallBicepComponent'
                     targetId = [string]$tool.id
-                    expectedPostcondition = 'az bicep version exits 0'
+                    expectedPostcondition = 'Standalone Bicep resolves uniquely at the reviewed exact version'
                 }
             }
         }
@@ -265,65 +166,6 @@ function Show-RunbookChangeSummary {
     }
 
     & $Writer @($displayRows)
-}
-
-function Resolve-ExecutableIdentity {
-    param(
-        [Parameter(Mandatory)][string]$CommandName,
-        [Parameter(Mandatory)][scriptblock]$Resolver,
-        [Parameter(Mandatory)][scriptblock]$IdentityProvider
-    )
-
-    $candidates = @(& $Resolver $CommandName)
-    if ($candidates.Count -eq 0) {
-        return [pscustomobject][ordered]@{
-            status = 'Missing'
-            path = $null
-            sha256 = $null
-            diagnostic = "No executable resolves for $CommandName."
-        }
-    }
-
-    $unique = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::OrdinalIgnoreCase)
-    foreach ($candidate in $candidates) {
-        try {
-            $identity = & $IdentityProvider $candidate
-            $canonicalPath = [IO.Path]::GetFullPath([string]$identity.path)
-            $hash = [string]$identity.sha256
-            $key = '{0}|{1}' -f $canonicalPath, $hash
-            if (-not $unique.ContainsKey($key)) {
-                $unique[$key] = [pscustomobject][ordered]@{
-                    path = $canonicalPath
-                    sha256 = $hash
-                }
-            }
-        }
-        catch {
-            return [pscustomobject][ordered]@{
-                status = 'Blocked'
-                path = $null
-                sha256 = $null
-                diagnostic = "Executable identity could not be verified for ${CommandName}: $($_.Exception.Message)"
-            }
-        }
-    }
-
-    if ($unique.Count -gt 1) {
-        return [pscustomobject][ordered]@{
-            status = 'Blocked'
-            path = $null
-            sha256 = $null
-            diagnostic = "Executable resolution for $CommandName is ambiguous."
-        }
-    }
-
-    $resolved = $unique.Values | Select-Object -First 1
-    [pscustomobject][ordered]@{
-        status = 'Ready'
-        path = [string]$resolved.path
-        sha256 = [string]$resolved.sha256
-        diagnostic = $null
-    }
 }
 
 function Get-Policy {
@@ -439,7 +281,7 @@ function Get-PlannedOperations {
                 [void]$operations.Add((New-Operation -Classification $classification -Action ([pscustomobject][ordered]@{
                     action = 'InstallBicepComponent'
                     targetId = [string]$tool.id
-                    expectedPostcondition = 'az bicep version exits 0'
+                    expectedPostcondition = 'Standalone Bicep resolves uniquely at the reviewed exact version'
                 })))
             }
             'None' {
@@ -461,7 +303,7 @@ function Get-PlannedOperations {
             [void]$operations.Add((New-Operation -Classification 'Create' -Action ([pscustomobject][ordered]@{
                 action = 'InstallAzureCliExtensionExact'
                 targetId = [string]$extension.name
-                requiredVersion = $(if ($extension.PSObject.Properties.Name -contains 'version') { [string]$extension.version } else { $null })
+                requiredVersion = [string]($Policy.azureCliExtensions | Where-Object { $_.name -ceq $extension.name }).versionPolicy.value
                 expectedPostcondition = "Azure CLI extension $($extension.name) resolves at the reviewed version"
             })))
         }
@@ -469,7 +311,7 @@ function Get-PlannedOperations {
             [void]$operations.Add((New-Operation -Classification 'Blocked' -Action ([pscustomobject][ordered]@{
                 action = 'InstallAzureCliExtensionExact'
                 targetId = [string]$extension.name
-                requiredVersion = $(if ($extension.PSObject.Properties.Name -contains 'version') { [string]$extension.version } else { $null })
+                requiredVersion = [string]($Policy.azureCliExtensions | Where-Object { $_.name -ceq $extension.name }).versionPolicy.value
                 expectedPostcondition = "Azure CLI extension $($extension.name) resolves at the reviewed version"
             })))
         }
@@ -789,6 +631,8 @@ function New-EvidenceRecord {
         -ManualItems $ManualItems -RecoveryItems $RecoveryItems -ErrorCategory $ErrorCategory
 }
 
+. (Join-Path $scriptDirectory 'WorkstationTools.ps1')
+
 if ([string]::IsNullOrWhiteSpace($PolicyPath)) {
     $PolicyPath = [IO.Path]::GetFullPath((Join-Path $scriptDirectory '..\..\config\runbooks\workstation-prerequisites.json'))
 }
@@ -806,6 +650,9 @@ if (-not [bool]$interactiveState.isInteractive) {
 }
 
 $policy = Get-Policy -PolicyFilePath $PolicyPath
+$compatibility = Get-Content -Raw -LiteralPath (Join-Path $scriptDirectory '..\..\config\runbooks\workstation-compatibility.json') | ConvertFrom-Json
+Assert-WorkstationCompatibilityRecord $compatibility
+Assert-WorkstationDeliveryPolicy $policy $compatibility (Join-Path $scriptDirectory '..\..\config\schemas\workstation-prerequisites.schema.json')
 $assessment = Get-Assessment -PolicyFilePath $PolicyPath -RepositoryRootPath $RepositoryRoot `
     -Provider $AssessmentProvider -Runner $NativeCommandRunner -Resolver $CommandResolver `
     -IdentityProvider $FileIdentityProvider -InteractiveProbe $InteractiveHostProbe -UtcNow $NowUtc
@@ -1043,9 +890,14 @@ foreach ($action in @($manifestContent.allowedActions)) {
                     -VersionArguments @($hostTool.versionArguments) -ToolId ([string]$hostTool.id) `
                     -CommandName 'az.cmd' -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider `
                     -Runner $NativeCommandRunner | Out-Null
-                $nativeResult = Invoke-NativeCommand -Runner $NativeCommandRunner -FilePath ([string]$tool.executablePath) -ArgumentList @('bicep', 'install')
                 $toolPolicy = Get-ToolPolicyForAction -Policy $policy -Action $policyAction
-                $readBackResult = Invoke-NativeCommand -Runner $NativeCommandRunner -FilePath ([string]$tool.executablePath) -ArgumentList @($toolPolicy.versionArguments)
+                $nativeResult = Invoke-NativeCommand -Runner $NativeCommandRunner -FilePath ([string]$tool.executablePath) `
+                    -ArgumentList @('bicep', 'install', '--version', ('v' + [string]$toolPolicy.versionPolicy.value))
+                $standalone = Resolve-ExecutableIdentity -CommandName ([string]$toolPolicy.command) `
+                    -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider
+                $readBackResult = if ($standalone.status -eq 'Ready') {
+                    Invoke-NativeCommand -Runner $NativeCommandRunner -FilePath $standalone.path -ArgumentList @($toolPolicy.versionArguments)
+                } else { [pscustomobject]@{ exitCode = 1; stdout = @(); stderr = @() } }
                 $observedVersion = Get-ObservedVersion -ToolId ([string]$toolPolicy.id) -Result $readBackResult
                 $verified = ($nativeResult.exitCode -eq 0 -and $readBackResult.exitCode -eq 0 -and
                     (Test-VersionPolicy -ObservedVersion $observedVersion -VersionPolicy $toolPolicy.versionPolicy))
@@ -1056,7 +908,7 @@ foreach ($action in @($manifestContent.allowedActions)) {
                     status = $status
                     expectedPostcondition = [string]$policyAction.expectedPostcondition
                     version = $observedVersion
-                    path = [string]$tool.executablePath
+                    path = [string]$standalone.path
                     exitCode = [int]$readBackResult.exitCode
                 }
                 if (-not $verified) {
@@ -1080,10 +932,12 @@ foreach ($action in @($manifestContent.allowedActions)) {
                     -VersionArguments @($hostTool.versionArguments) -ToolId ([string]$hostTool.id) `
                     -CommandName 'az.cmd' -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider `
                     -Runner $NativeCommandRunner | Out-Null
-                $nativeResult = Invoke-NativeCommand -Runner $NativeCommandRunner -FilePath ([string]$tool.executablePath) -ArgumentList @('extension', 'add', '--name', $policyAction.targetId)
+                $nativeResult = Invoke-NativeCommand -Runner $NativeCommandRunner -FilePath ([string]$tool.executablePath) `
+                    -ArgumentList @('extension', 'add', '--name', $policyAction.targetId, '--version', $policyAction.requiredVersion)
                 $extensionState = Get-AzureCliExtensionReadBack -ExtensionName ([string]$policyAction.targetId) `
                     -ToolAssessments @($assessment.tools) -Runner $NativeCommandRunner
-                $verified = ($nativeResult.exitCode -eq 0 -and $extensionState.status -eq 'Ready')
+                $verified = ($nativeResult.exitCode -eq 0 -and $extensionState.status -eq 'Ready' -and
+                    $extensionState.version -ceq $policyAction.requiredVersion)
                 $status = $(if ($verified) { 'Verified' } else { 'Failed' })
                 $readBack = [pscustomobject][ordered]@{
                     service = 'AzureCliExtension'

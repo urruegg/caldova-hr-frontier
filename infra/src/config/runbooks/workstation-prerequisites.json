@@ -1,6 +1,7 @@
 {
   "$schema": "../schemas/workstation-prerequisites.schema.json",
   "schemaVersion": "1.0",
+  "compatibilityRecord": "workstation-compatibility.json",
   "platform": {
     "productName": "Windows 11",
     "minimumBuild": 22000
@@ -46,16 +47,16 @@
       "id": "PowerShell7",
       "command": "pwsh.exe",
       "versionArguments": ["--NoLogo", "--NoProfile", "--Command", "$PSVersionTable.PSVersion.ToString()"],
-      "versionPolicy": { "mode": "Present" },
-      "installDisposition": "Automated",
-      "install": { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.PowerShell", "scope": "machine" },
+      "versionPolicy": { "mode": "Exact", "value": "7.6.8" },
+      "installDisposition": "Manual",
+      "install": { "kind": "None" },
       "reference": "https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-windows"
     },
     {
       "id": "WindowsPowerShell",
       "command": "powershell.exe",
       "versionArguments": ["-NoLogo", "-NoProfile", "-Command", "$PSVersionTable.PSVersion.ToString()"],
-      "versionPolicy": { "mode": "Exact", "value": "5.1" },
+      "versionPolicy": { "mode": "Exact", "value": "5.1.26100.9711" },
       "installDisposition": "Manual",
       "install": { "kind": "None" },
       "reference": "https://learn.microsoft.com/en-us/powershell/scripting/what-is-windows-powershell"
@@ -64,7 +65,7 @@
       "id": "Git",
       "command": "git.exe",
       "versionArguments": ["--version"],
-      "versionPolicy": { "mode": "Present" },
+      "versionPolicy": { "mode": "Exact", "value": "2.56.0.windows.3" },
       "installDisposition": "Automated",
       "install": { "kind": "WinGet", "source": "winget", "packageId": "Git.Git", "scope": "machine" },
       "reference": "https://docs.github.com/en/get-started/getting-started-with-git/set-up-git"
@@ -82,7 +83,7 @@
       "id": "GitHubCli",
       "command": "gh.exe",
       "versionArguments": ["--version"],
-      "versionPolicy": { "mode": "Present" },
+      "versionPolicy": { "mode": "Exact", "value": "2.103.2" },
       "installDisposition": "Automated",
       "install": { "kind": "WinGet", "source": "winget", "packageId": "GitHub.cli", "scope": "machine" },
       "reference": "https://docs.github.com/en/github-cli/github-cli/quickstart"
@@ -91,7 +92,7 @@
       "id": "AzureCli",
       "command": "az.cmd",
       "versionArguments": ["version", "--output", "json"],
-      "versionPolicy": { "mode": "Present" },
+      "versionPolicy": { "mode": "Exact", "value": "2.91.0" },
       "installDisposition": "Automated",
       "install": { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.AzureCLI", "scope": "machine" },
       "reference": "https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-windows"
@@ -109,16 +110,16 @@
       "id": "PowerPlatformCli",
       "command": "pac.exe",
       "versionArguments": ["help"],
-      "versionPolicy": { "mode": "Present" },
-      "installDisposition": "Automated",
-      "install": { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.PowerAppsCLI", "scope": "machine" },
+      "versionPolicy": { "mode": "Exact", "value": "1.43.6+gc7c8d99" },
+      "installDisposition": "Manual",
+      "install": { "kind": "None" },
       "reference": "https://learn.microsoft.com/en-us/power-platform/developer/cli/introduction"
     },
     {
       "id": "Bicep",
-      "command": "az.cmd",
-      "versionArguments": ["bicep", "version"],
-      "versionPolicy": { "mode": "Present" },
+      "command": "bicep.exe",
+      "versionArguments": ["--version"],
+      "versionPolicy": { "mode": "Exact", "value": "0.46.1" },
       "installDisposition": "Automated",
       "install": { "kind": "AzureCliComponent", "arguments": ["bicep", "install"] },
       "reference": "https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/install"
@@ -145,7 +146,7 @@
   "azureCliExtensions": [
     {
       "name": "azure-devops",
-      "versionPolicy": { "mode": "Present" },
+      "versionPolicy": { "mode": "Exact", "value": "1.0.8" },
       "installDisposition": "Automated",
       "reference": "https://learn.microsoft.com/en-us/azure/devops/cli/"
     }

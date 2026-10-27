@@ -26,30 +26,30 @@ function Get-NonWingetActionCase {
             actionManifest = [pscustomobject][ordered]@{
                 action = 'InstallBicepComponent'
                 targetId = 'Bicep'
-                expectedPostcondition = 'az bicep version exits 0'
+                expectedPostcondition = 'Standalone Bicep resolves uniquely at the reviewed exact version'
             }
             assessment = { New-SyntheticAssessment -ToolOverrides @{ Bicep = @{ status = 'Missing'; version = $null; executablePath = $null; executableSha256 = $null } } -VsCodeExtensionOverrides @{ status = 'Ready'; diagnostic = $null } }
             hostCommand = 'C:\Approved\az.cmd'
             versionArguments = 'version --output json'
             mismatchedVersionOutput = @('{"azure-cli":"9.9.9"}')
-            expectedInstall = 'bicep install'
-            readBackArguments = 'bicep version'
+            expectedInstall = 'bicep install --version v0.46.1'
+            readBackArguments = '--version'
             failedReadBackOutput = @('')
-            passingReadBackOutput = @('Bicep CLI version 0.38.33')
+            passingReadBackOutput = @('Bicep CLI version 0.46.1 (545b338e2c)')
         }
         @{
             name = 'AzureDevOpsExtension'
             actionManifest = [pscustomobject][ordered]@{
                 action = 'InstallAzureCliExtensionExact'
                 targetId = 'azure-devops'
-                requiredVersion = $null
+                requiredVersion = '1.0.8'
                 expectedPostcondition = 'Azure CLI extension azure-devops resolves at the reviewed version'
             }
             assessment = { New-SyntheticAssessment -AzureCliExtensionOverrides @{ status = 'Missing'; version = $null; diagnostic = 'Reviewed Azure CLI extension is not installed.' } -VsCodeExtensionOverrides @{ status = 'Ready'; diagnostic = $null } }
             hostCommand = 'C:\Approved\az.cmd'
             versionArguments = 'version --output json'
             mismatchedVersionOutput = @('{"azure-cli":"9.9.9"}')
-            expectedInstall = 'extension add --name azure-devops'
+            expectedInstall = 'extension add --name azure-devops --version 1.0.8'
             readBackArguments = 'extension list --output json'
             failedReadBackOutput = @('[]')
             passingReadBackOutput = @('[{"name":"azure-devops","version":"1.0.8"}]')
@@ -408,6 +408,39 @@ Describe 'Developer workstation initialization gates' {
         $result.operations[0].status | Should -Be 'Failed'
         $result.operations[0].readBack.status | Should -Be 'Failed'
         @($result.operations[0].recovery).Count | Should -BeGreaterThan 0
+    }
+
+    It 'reports the verified standalone Bicep identity rather than its Azure CLI installer host' {
+        $manifestFile = New-ManifestFile -AllowedAction ([pscustomobject][ordered]@{
+            action = 'InstallBicepComponent'
+            targetId = 'Bicep'
+            expectedPostcondition = 'Standalone Bicep resolves uniquely at the reviewed exact version'
+        })
+        $result = & $script:ScriptPath -Apply -ExecutionManifestPath $manifestFile.path `
+            -ApprovedDigest $manifestFile.digest -Confirm:$false `
+            -AssessmentProvider {
+                New-SyntheticAssessment -ToolOverrides @{
+                    Bicep = @{ status = 'Missing'; version = $null; executablePath = $null; executableSha256 = $null }
+                } -VsCodeExtensionOverrides @{ status = 'Ready'; diagnostic = $null }
+            } `
+            -InteractiveHostProbe { [pscustomobject]@{ isInteractive = $true; reason = 'TestHost' } } `
+            -NowUtc ([datetime]'2026-09-26T05:10:00Z') `
+            -NativeCommandRunner {
+                param($file, $arguments)
+                $text = if ($file -like '*az.cmd' -and ($arguments -join ' ') -eq 'version --output json') {
+                    '{"azure-cli":"2.78.0"}'
+                } elseif ($file -like '*bicep.exe') { 'Bicep CLI version 0.46.1 (545b338e2c)' }
+                else { 'synthetic install complete' }
+                [pscustomobject]@{ exitCode = 0; stdout = @($text); stderr = @() }
+            } `
+            -CommandResolver { param($name) @("C:\Approved\$name") } `
+            -FileIdentityProvider {
+                param($path)
+                [pscustomobject]@{ path = $path; sha256 = $(if ($path -like '*az.cmd') { '4' * 64 } else { '7' * 64 }) }
+            }
+        $result.operations[0].status | Should -BeExactly 'Verified'
+        $result.operations[0].readBack.path | Should -BeExactly 'C:\Approved\bicep.exe'
+        $result.operations[0].readBack.version | Should -BeExactly '0.46.1'
     }
 
     It 'refuses a changed executable identity before mutation' {
