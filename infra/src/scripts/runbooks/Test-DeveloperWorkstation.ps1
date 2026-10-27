@@ -1,5 +1,15 @@
 [CmdletBinding()]
 param(
+    [guid]$RunId,
+    [string]$EvidenceRoot,
+    [string]$CompatibilityPath,
+    [string]$ExpectedSourceCommit,
+    [string]$RepositoryIdentity,
+    [string]$ExpectedMachineId,
+    [string]$WorktreeRoot,
+    [string]$TenantConfigurationPath,
+    [string]$TenantStatePath,
+    [string]$BackupManifestPath,
     [string]$PolicyPath,
     [string]$RepositoryRoot,
     [string]$ReportPath,
@@ -223,10 +233,14 @@ function Get-ToolAssessment {
         [Parameter(Mandatory)][object]$ToolPolicy,
         [Parameter(Mandatory)][scriptblock]$Resolver,
         [Parameter(Mandatory)][scriptblock]$IdentityProvider,
-        [Parameter(Mandatory)][scriptblock]$Runner
+        [Parameter(Mandatory)][scriptblock]$Runner,
+        [string]$ExpectedSha256
     )
 
     $identity = Resolve-ExecutableIdentity -CommandName ([string]$ToolPolicy.command) -Resolver $Resolver -IdentityProvider $IdentityProvider
+    if ($ExpectedSha256 -and $identity.sha256 -cne $ExpectedSha256) {
+        $identity = [pscustomobject]@{ status = 'Blocked'; diagnostic = 'Reviewed executable hash mismatch.' }
+    }
     if ($identity.status -ne 'Ready') {
         return [pscustomobject][ordered]@{
             id = [string]$ToolPolicy.id
@@ -537,6 +551,339 @@ function Get-RepositoryAssetAssessments {
 }
 
 . (Join-Path $scriptDirectory 'WorkstationTools.ps1')
+
+function Resolve-WorkstationBoundPath {
+    param([string]$Path)
+    try {
+        if ([string]::IsNullOrWhiteSpace($Path) -or
+            [Management.Automation.WildcardPattern]::ContainsWildcardCharacters($Path) -or
+            $Path -match '(^|[\\/])\.([\\/] |$)|[\\/]\.[\\/]' -or $Path.EndsWith('\.')) { throw 'Path' }
+        $provider = $null
+        $drive = $null
+        $full = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path, [ref]$provider, [ref]$drive)
+        if ($provider.Name -cne 'FileSystem' -or $full -notmatch '^[A-Za-z]:\\' -or
+            $full.Substring(2).Contains(':')) { throw 'Path' }
+        [IO.Path]::GetFullPath($full).TrimEnd('\')
+    } catch { throw 'Workstation.Context.Path' }
+}
+
+function Assert-WorkstationBoundPhysicalPath {
+    param([string]$Path, [switch]$Directory, [switch]$File, [switch]$Optional)
+    try {
+        $cursor = $Path
+        if (-not (Test-Path -LiteralPath $Path)) {
+            if (-not $Optional) { throw 'Missing' }
+        } else {
+            $item = Get-Item -LiteralPath $Path -Force
+            if (($Directory -and $item -isnot [IO.DirectoryInfo]) -or
+                ($File -and $item -isnot [IO.FileInfo])) { throw 'Type' }
+        }
+        while ($cursor) {
+            if (Test-Path -LiteralPath $cursor) {
+                $item = Get-Item -LiteralPath $cursor -Force
+                if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Alias' }
+                if ($item.FullName.TrimEnd('\') -ine $cursor.TrimEnd('\')) { throw 'Alias' }
+            }
+            $parent = Split-Path -Parent $cursor
+            if ($parent -eq $cursor) { break }
+            $cursor = $parent
+        }
+    } catch { throw 'Workstation.Context.PhysicalPath' }
+}
+
+function Invoke-BoundWorkstationAssessment {
+    function Test-RunbookPathWithin {
+        param([string]$Path, [string]$Root)
+        & (Get-WorkstationBootstrapModule) {
+            param($candidate, $boundary)
+            Test-RunbookPathWithin -Path $candidate -Root $boundary
+        } $Path $Root
+    }
+    $required = @('RunId','EvidenceRoot','PolicyPath','CompatibilityPath','RepositoryRoot','ExpectedSourceCommit',
+        'RepositoryIdentity','ExpectedMachineId','WorktreeRoot','TenantConfigurationPath','TenantStatePath','BackupManifestPath')
+    foreach ($name in $required) {
+        if (-not $PSBoundParameters.ContainsKey($name) -and -not $script:boundInputs.ContainsKey($name)) {
+            throw 'Workstation.Context.Required'
+        }
+    }
+    if ($RunId -eq [guid]::Empty -or $ExpectedSourceCommit -cnotmatch '^[0-9a-f]{40}$' -or
+        $RepositoryIdentity -cnotmatch '^[0-9a-f]{64}$' -or [string]::IsNullOrWhiteSpace($ExpectedMachineId)) {
+        throw 'Workstation.Context.Identity'
+    }
+    $paths = @{}
+    foreach ($name in @('RepositoryRoot','WorktreeRoot','EvidenceRoot','PolicyPath','CompatibilityPath',
+        'TenantConfigurationPath','TenantStatePath','BackupManifestPath')) {
+        $paths[$name] = Resolve-WorkstationBoundPath (Get-Variable -Name $name -ValueOnly)
+    }
+    $repo = $paths.RepositoryRoot
+    $target = $paths.WorktreeRoot
+    $tenantRoot = Join-Path $repo 'infra\src\config\tenants'
+    if ($paths.PolicyPath -ine (Join-Path $repo 'infra\src\config\runbooks\workstation-prerequisites.json') -or
+        $paths.CompatibilityPath -ine (Join-Path $repo 'infra\src\config\runbooks\workstation-compatibility.json') -or
+        $paths.TenantConfigurationPath -ine (Join-Path $tenantRoot 'tenant1.local.psd1') -or
+        $paths.TenantStatePath -ine (Join-Path $tenantRoot 'tenant1.state.local.json')) {
+        throw 'Workstation.Context.InputBoundary'
+    }
+    $sourceParent = Split-Path -Parent $repo
+    $context = if ((Split-Path -Leaf $sourceParent) -ieq 'wt') { Split-Path -Parent $sourceParent } else { $sourceParent }
+    $sibling = Join-Path $context 'wt'
+    if ((Split-Path -Parent $target) -ine $sibling -or
+        (Split-Path -Leaf $target) -cnotmatch '^[a-zA-Z0-9][a-zA-Z0-9-]{0,119}$' -or
+        ($target -ine $repo -and (Test-RunbookPathWithin -Path $target -Root $repo))) {
+        throw 'Workstation.Context.WorktreeBoundary'
+    }
+    foreach ($external in @($paths.EvidenceRoot, (Split-Path -Parent $paths.BackupManifestPath))) {
+        if ((Test-RunbookPathWithin -Path $external -Root $repo) -or
+            (Test-RunbookPathWithin -Path $external -Root $sibling) -or
+            (Test-RunbookPathWithin -Path $repo -Root $external) -or
+            (Test-RunbookPathWithin -Path $sibling -Root $external)) { throw 'Workstation.Context.ExternalBoundary' }
+    }
+    if ((Test-RunbookPathWithin -Path $paths.BackupManifestPath -Root $paths.EvidenceRoot) -or
+        (Test-RunbookPathWithin -Path $paths.EvidenceRoot -Root (Split-Path -Parent $paths.BackupManifestPath))) {
+        throw 'Workstation.Context.ExternalBoundary'
+    }
+    # Inspect every bound coordinate before opening any contract or invoking a tool.
+    Assert-WorkstationBoundPhysicalPath $repo -Directory
+    Assert-WorkstationBoundPhysicalPath $target -Directory -Optional
+    Assert-WorkstationBoundPhysicalPath $paths.EvidenceRoot -Directory -Optional
+    Assert-WorkstationBoundPhysicalPath $paths.BackupManifestPath -File -Optional
+    foreach ($name in @('PolicyPath','CompatibilityPath','TenantConfigurationPath','TenantStatePath')) {
+        Assert-WorkstationBoundPhysicalPath $paths[$name] -File
+    }
+    foreach ($external in @($paths.EvidenceRoot, (Split-Path -Parent $paths.BackupManifestPath))) {
+        $null = Resolve-RunbookReportPath -RunId $RunId -Path $external -RepositoryRoot $repo
+    }
+    $gitMarker = Join-Path $repo '.git'
+    Assert-WorkstationBoundPhysicalPath $gitMarker
+    $gitItem = Get-Item -LiteralPath $gitMarker -Force
+    if ($gitItem -is [IO.DirectoryInfo]) {
+        $common = $gitMarker
+        $gitDirectory = $gitMarker
+    } else {
+        $gitText = [IO.File]::ReadAllText($gitMarker).Trim()
+        if ($gitText -notmatch '^gitdir: ([^\r\n]+)$') { throw 'Workstation.Source.GitDirectory' }
+        $gitDirectory = Resolve-WorkstationBoundPath $Matches[1]
+        $adminParent = Split-Path -Parent $gitDirectory
+        $common = Split-Path -Parent $adminParent
+        if ((Split-Path -Leaf $adminParent) -cne 'worktrees' -or (Split-Path -Leaf $common) -cne '.git') {
+            throw 'Workstation.Source.CommonDirectory'
+        }
+    }
+    $primary = Split-Path -Parent $common
+    if ((Split-Path -Parent $primary) -ine $context -or $primary -ieq $sibling -or
+        (Join-Path (Split-Path -Parent $primary) 'wt') -ine $sibling) { throw 'Workstation.Source.CommonDirectory' }
+    Assert-WorkstationBoundPhysicalPath $primary -Directory
+    Assert-WorkstationBoundPhysicalPath $common -Directory
+    Assert-WorkstationBoundPhysicalPath $gitDirectory -Directory
+    if ($gitDirectory -ine $common) {
+        $commonMarker = Join-Path $gitDirectory 'commondir'
+        Assert-WorkstationBoundPhysicalPath $commonMarker -File
+        $commonText = [IO.File]::ReadAllText($commonMarker).Trim()
+        $resolvedCommon = [IO.Path]::GetFullPath((Join-Path $gitDirectory $commonText)).TrimEnd('\')
+        if ($resolvedCommon -ine $common) { throw 'Workstation.Source.CommonDirectory' }
+    }
+    $interactive = if ($InteractiveHostProbe) { & $InteractiveHostProbe } else { Get-DefaultInteractiveHostState }
+    if (-not $interactive.isInteractive) { throw 'Workstation.Host.InteractiveRequired' }
+    $platform = if ($PlatformProbe) { & $PlatformProbe } else {
+        $value = Get-DefaultPlatformState
+        $value | Add-Member NoteProperty architecture $env:PROCESSOR_ARCHITECTURE
+        $value | Add-Member NoteProperty machineId ('{0}\{1}' -f $env:COMPUTERNAME,$env:USERNAME)
+        $value
+    }
+    if ($platform.productName -cne 'Windows 11' -or $platform.build -lt 22000 -or
+        $platform.architecture -cnotin @('X64','AMD64') -or $platform.machineId -cne $ExpectedMachineId) {
+        throw 'Workstation.Host.Mismatch'
+    }
+    $inputHashes = @{}
+    foreach ($name in @('PolicyPath','CompatibilityPath')) {
+        $inputHashes[$name] = (Get-FileHash -LiteralPath $paths[$name] -Algorithm SHA256).Hash
+    }
+    $policy = ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText($paths.PolicyPath))
+    Assert-WorkstationPolicy $policy
+    $record = ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText($paths.CompatibilityPath))
+    Assert-WorkstationCompatibilityRecord $record
+    $compatibility = ConvertTo-WorkstationCompatibilityModel $record
+    Assert-WorkstationDeliveryPolicy $policy $compatibility (Join-Path $scriptDirectory '..\..\config\schemas\workstation-prerequisites.schema.json')
+    $runner = if ($NativeCommandRunner) { $NativeCommandRunner } else { New-DefaultNativeCommandRunner }
+    $resolver = if ($CommandResolver) { $CommandResolver } else { New-DefaultCommandResolver }
+    $identityProvider = if ($FileIdentityProvider) { $FileIdentityProvider } else { New-DefaultFileIdentityProvider $compatibility }
+    $gitPolicy = @($policy.tools | Where-Object id -CEQ Git)[0]
+    $gitComponent = @($compatibility.components | Where-Object id -CEQ Git)[0]
+    $git = Resolve-ExecutableIdentity $gitPolicy.command $resolver $identityProvider
+    if ($git.status -cne 'Ready' -or $git.sha256 -cne $gitComponent.sha256 -or
+        $git.path -ine (Join-Path $env:ProgramFiles 'Git\cmd\git.exe')) { throw 'Workstation.Tools.GitIdentity' }
+    $gitTool = Get-ToolAssessment $gitPolicy $resolver $identityProvider $runner $gitComponent.sha256
+    if ($gitTool.status -cne 'Ready') { throw 'Workstation.Tools.GitVersion' }
+    function Invoke-BoundGit {
+        param([string[]]$Arguments, [int[]]$AllowedExitCodes = @(0))
+        $fresh = Resolve-ExecutableIdentity $gitPolicy.command $resolver $identityProvider
+        if ($fresh.status -cne 'Ready' -or $fresh.path -ine $git.path -or $fresh.sha256 -cne $git.sha256) {
+            throw 'Workstation.Tools.GitDrift'
+        }
+        $native = Invoke-NativeCommand $runner $git.path (@('--no-optional-locks','-c','core.quotepath=false','-c','core.fsmonitor=false','-C',$repo) + $Arguments)
+        if ($native.exitCode -notin $AllowedExitCodes) { throw 'Workstation.Source.NativeRead' }
+        $native
+    }
+    function Get-BoundSource {
+        $top = ((Invoke-BoundGit @('rev-parse','--show-toplevel')).stdout -join "`n").Trim().Replace('/','\')
+        $observedCommon = ((Invoke-BoundGit @('rev-parse','--path-format=absolute','--git-common-dir')).stdout -join "`n").Trim().Replace('/','\')
+        $observedGit = ((Invoke-BoundGit @('rev-parse','--absolute-git-dir')).stdout -join "`n").Trim().Replace('/','\')
+        if ($top -ine $repo -or $observedCommon -ine $common -or $observedGit -ine $gitDirectory) { throw 'Workstation.Source.RootMismatch' }
+        $commit = ((Invoke-BoundGit @('rev-parse','--verify','HEAD')).stdout -join "`n").Trim()
+        if ($commit -cne $ExpectedSourceCommit) { throw 'Workstation.Source.CommitMismatch' }
+        $remoteLines = @((Invoke-BoundGit @('remote','-v')).stdout | Where-Object { $_ } | Sort-Object)
+        if ($remoteLines.Count -lt 2 -or (Get-RunbookContentDigest -InputObject $remoteLines) -cne $RepositoryIdentity) {
+            throw 'Workstation.Source.RemoteMismatch'
+        }
+        $sparse = Invoke-BoundGit @('config','--bool','--get','core.sparseCheckout') @(0,1)
+        if ($sparse.exitCode -eq 0 -and ($sparse.stdout -join '') -cne 'false') { throw 'Workstation.Source.Sparse' }
+        $files = [Collections.Generic.List[string]]::new()
+        $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+        $entries = (Invoke-BoundGit @('ls-files','--stage','-z')).stdout -join "`n"
+        foreach ($entry in @($entries -split [char]0 | Where-Object { $_ })) {
+            if ($entry -notmatch '^(100644|100755) [0-9a-f]{40} 0\t([^\r\n]+)$') { throw 'Workstation.Source.TrackedEntry' }
+            $relative = $Matches[2]
+            if ($relative -match '(^|/)\.\.?(/|$)|[\\:\x00-\x1f]' -or $relative.StartsWith('/') -or
+                $relative -match '(?i)(^|/)([^/]*\.local\.[^/]*|\.env[^/]*|[^/]*\.state\.local\.json)$|^\.github/plugins(/|$)' -or
+                -not $seen.Add($relative)) { throw 'Workstation.Source.TrackedBoundary' }
+            Assert-WorkstationBoundPhysicalPath (Join-Path $repo $relative.Replace('/','\')) -File
+            $files.Add($relative)
+        }
+        if ($files.Count -eq 0) { throw 'Workstation.Source.Empty' }
+        $dirty = (Invoke-BoundGit @('status','--porcelain=v1','--untracked-files=all','--ignore-submodules=none')).stdout -join ''
+        if ($dirty) { throw 'Workstation.Source.NotClean' }
+        foreach ($label in @('infra/src/config/tenants/tenant1.local.psd1','infra/src/config/tenants/tenant1.state.local.json')) {
+            $null = Invoke-BoundGit @('check-ignore','--quiet','--no-index','--',$label)
+        }
+        [pscustomobject]@{ files = @($files); commit = $commit }
+    }
+    $index = Join-Path $gitDirectory 'index'
+    Assert-WorkstationBoundPhysicalPath $index -File
+    $indexHash = (Get-FileHash -LiteralPath $index -Algorithm SHA256).Hash
+    $indexTime = [IO.File]::GetLastWriteTimeUtc($index)
+    $source = Get-BoundSource
+    $compatibilityProof = & (Join-Path $scriptDirectory 'Test-DeveloperWorkstationCompatibility.ps1') `
+        -CompatibilityPath $paths.CompatibilityPath -PolicyPath $paths.PolicyPath `
+        -CommandResolver $resolver -NativeCommandRunner $runner -NowUtc $NowUtc
+    $tools = @(
+        foreach ($component in $compatibility.components) {
+            $observed = @($compatibilityProof.components | Where-Object id -CEQ $component.id)
+            $ready = $compatibilityProof.status -ceq 'NoChange' -and
+                $compatibilityProof.policyAccepted -and $observed.Count -eq 1 -and
+                $observed[0].status -ceq 'Proven'
+            if ($ready -and ($observed[0].version -cne $component.version -or
+                $observed[0].sha256 -cne $component.sha256)) { throw 'Workstation.Tools.Compatibility' }
+            [pscustomobject][ordered]@{
+                id = $component.id
+                status = $(if ($ready) { 'Ready' } else { 'Blocked' })
+                version = $(if ($ready) { $observed[0].version } else { $null })
+                executablePath = $(if ($ready) { $observed[0].canonicalPath } else { $null })
+                executableSha256 = $(if ($ready) { $observed[0].sha256 } else { $null })
+            }
+        }
+    )
+    $longest = @($source.files | Sort-Object @{ Expression = { $_.Length }; Descending = $true }, @{ Expression = { $_ } })[0]
+    $checkoutLength = $target.Length + 1 + $longest.Length
+    $budget = [pscustomobject][ordered]@{
+        worktreeRootLength = $target.Length
+        longestTrackedRelativePath = $longest
+        longestCheckoutPathLength = $checkoutLength
+        maximumExclusive = 240
+        classification = $(if ($checkoutLength -lt 240) { 'NoChange' } else { 'Blocked' })
+    }
+    $access = 'Blocked'
+    $probe = $null
+    $probeOwned = $false
+    if ($checkoutLength -lt 240 -and [IO.Directory]::Exists($target)) {
+        try {
+            Assert-WorkstationBoundPhysicalPath $target -Directory
+            $probe = Join-Path $target ('.access-probe-' + [guid]::NewGuid().ToString('N'))
+            $null = New-Item -ItemType File -Path $probe -ErrorAction Stop
+            $probeOwned = $true
+            Set-Content -LiteralPath $probe -Value 'current-user-access' -Encoding ASCII -ErrorAction Stop
+            Remove-Item -LiteralPath $probe -ErrorAction Stop
+            $probeOwned = $false
+            if (Test-Path -LiteralPath $probe) { throw 'Delete' }
+            $access = 'NoChange'
+        } catch { $access = 'Blocked' }
+        finally {
+            if ($probeOwned) {
+                try { Remove-Item -LiteralPath $probe -ErrorAction Stop } catch { $access = 'Blocked' }
+            }
+        }
+    }
+    $after = Get-BoundSource
+    if ($after.commit -cne $source.commit -or
+        (Get-RunbookContentDigest $after.files) -cne (Get-RunbookContentDigest $source.files) -or
+        (Get-FileHash -LiteralPath $index -Algorithm SHA256).Hash -cne $indexHash -or
+        [IO.File]::GetLastWriteTimeUtc($index) -ne $indexTime) { throw 'Workstation.Source.Drift' }
+    foreach ($name in @('PolicyPath','CompatibilityPath')) {
+        Assert-WorkstationBoundPhysicalPath $paths[$name] -File
+        if ((Get-FileHash -LiteralPath $paths[$name] -Algorithm SHA256).Hash -cne $inputHashes[$name]) {
+            throw 'Workstation.Policy.Drift'
+        }
+    }
+    $freshGit = Get-ToolAssessment $gitPolicy $resolver $identityProvider $runner $git.sha256
+    if ($freshGit.status -cne 'Ready' -or $freshGit.executablePath -ine $git.path -or
+        $freshGit.executableSha256 -cne $git.sha256 -or $freshGit.version -cne $gitTool.version) {
+        throw 'Workstation.Tools.Drift'
+    }
+    foreach ($tool in $tools | Where-Object status -CEQ Ready) {
+        Assert-WorkstationPhysicalPath $tool.executablePath
+        if ((Get-FileHash -LiteralPath $tool.executablePath -Algorithm SHA256).Hash.ToLowerInvariant() -cne
+            $tool.executableSha256) { throw 'Workstation.Tools.Drift' }
+    }
+    $components = [pscustomobject][ordered]@{
+        worktreeAccess = [pscustomobject]@{ classification = $access }
+        pathBudget = $budget
+        repositorySource = [pscustomobject]@{ classification = 'NoChange'; sourceCommit = $ExpectedSourceCommit; remotesDigest = $RepositoryIdentity; machineMatched = $true }
+        repositoryCleanliness = [pscustomobject]@{ classification = 'NoChange'; cleanBefore = $true; cleanAfter = $true; optionalIndexWrites = $false }
+        toolIdentities = [pscustomobject]@{
+            classification = $(if (@($tools | Where-Object status -CNE Ready).Count -eq 0) { 'NoChange' } else { 'Blocked' })
+            inventory = @($tools | Select-Object id,status,version,executablePath,executableSha256)
+            diagnostic = $compatibilityProof.diagnostic
+        }
+    }
+    $projection = [pscustomobject][ordered]@{
+        schemaVersion = '1.0'
+        scopeStage = 'Task2AssessmentOnly'
+        policyDigest = Get-RunbookContentDigest $policy
+        compatibilityDigest = [string]$record.digest
+        components = $components
+        privateBackup = [pscustomobject]@{ classification = 'Blocked'; reason = 'PrivateBackupProofNotIntegrated' }
+        overallStatus = 'Blocked'
+    }
+    $result = [pscustomobject][ordered]@{
+        schemaVersion = $projection.schemaVersion
+        scopeStage = $projection.scopeStage
+        runId = $RunId.ToString('D')
+        assessedAtUtc = $NowUtc.ToUniversalTime().ToString('o')
+        policyDigest = $projection.policyDigest
+        compatibilityDigest = $projection.compatibilityDigest
+        components = $components
+        privateBackup = $projection.privateBackup
+        overallStatus = $projection.overallStatus
+        assessmentDigest = Get-RunbookContentDigest $projection
+    }
+    $safe = Resolve-RunbookReportPath -RunId $RunId -Path (Join-Path $paths.EvidenceRoot $RunId.ToString('D')) -RepositoryRoot $repo
+    Assert-WorkstationBoundPhysicalPath $safe -Directory -Optional
+    New-Item -ItemType Directory -Path $safe -Force | Out-Null
+    Write-CanonicalJson -InputObject $result -Path (Join-Path $safe 'assessment.json') | Out-Null
+    $result
+}
+
+$script:boundInputs = $PSBoundParameters
+$boundContext = @('RunId','EvidenceRoot','CompatibilityPath','ExpectedSourceCommit','RepositoryIdentity','ExpectedMachineId',
+    'WorktreeRoot','TenantConfigurationPath','TenantStatePath','BackupManifestPath') |
+    Where-Object { $PSBoundParameters.ContainsKey($_) }
+if (@($boundContext).Count -gt 0) {
+    try { Invoke-BoundWorkstationAssessment } catch {
+        if ($_.Exception.Message -cmatch '^Workstation\.[A-Za-z.]+$') { throw $_.Exception.Message }
+        throw ('Workstation.Assessment.Blocked.' + $_.Exception.GetType().Name + '.' + $_.InvocationInfo.ScriptLineNumber)
+    }
+    return
+}
+if ($null -eq $PlatformProbe) { throw 'Workstation.Context.Required' }
 
 if ([string]::IsNullOrWhiteSpace($PolicyPath)) {
     $PolicyPath = [IO.Path]::GetFullPath((Join-Path $scriptDirectory '..\..\config\runbooks\workstation-prerequisites.json'))

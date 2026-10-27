@@ -1,5 +1,15 @@
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
 param(
+    [guid]$RunId,
+    [string]$EvidenceRoot,
+    [string]$CompatibilityPath,
+    [string]$ExpectedSourceCommit,
+    [string]$RepositoryIdentity,
+    [string]$ExpectedMachineId,
+    [string]$WorktreeRoot,
+    [string]$TenantConfigurationPath,
+    [string]$TenantStatePath,
+    [string]$BackupManifestPath,
     [switch]$Apply,
     [string]$ExecutionManifestPath,
     [ValidatePattern('^[0-9a-f]{64}$')] [string]$ApprovedDigest,
@@ -12,6 +22,7 @@ param(
     [Parameter(DontShow)] [scriptblock]$FileIdentityProvider,
     [Parameter(DontShow)] [scriptblock]$SummaryWriter,
     [Parameter(DontShow)] [scriptblock]$InteractiveHostProbe,
+    [Parameter(DontShow)] [scriptblock]$PlatformProbe,
     [datetime]$NowUtc = [datetime]::UtcNow
 )
 
@@ -618,6 +629,28 @@ function New-EvidenceRecord {
 }
 
 . (Join-Path $scriptDirectory 'WorkstationTools.ps1')
+
+$boundContext = @('RunId','EvidenceRoot','CompatibilityPath','ExpectedSourceCommit','RepositoryIdentity','ExpectedMachineId',
+    'WorktreeRoot','TenantConfigurationPath','TenantStatePath','BackupManifestPath') |
+    Where-Object { $PSBoundParameters.ContainsKey($_) }
+if (@($boundContext).Count -gt 0) {
+    $forward = @{}
+    foreach ($name in @('RunId','EvidenceRoot','PolicyPath','CompatibilityPath','RepositoryRoot','ExpectedSourceCommit',
+        'RepositoryIdentity','ExpectedMachineId','WorktreeRoot','TenantConfigurationPath','TenantStatePath','BackupManifestPath',
+        'NativeCommandRunner','CommandResolver','FileIdentityProvider','PlatformProbe','InteractiveHostProbe','NowUtc')) {
+        if ($PSBoundParameters.ContainsKey($name)) { $forward[$name] = $PSBoundParameters[$name] }
+    }
+    # This slice cannot approve a plan or Apply without the genuine private-backup gate.
+    $assessment = & (Join-Path $scriptDirectory 'Test-DeveloperWorkstation.ps1') @forward
+    if ($Apply) { throw 'Workstation.PrivateBackup.Unproven' }
+    return [pscustomobject][ordered]@{
+        scopeStage = 'Task2AssessmentOnly'
+        classification = 'Blocked'
+        reason = 'PrivateBackupProofNotIntegrated'
+        assessment = $assessment
+    }
+}
+if ($null -eq $AssessmentProvider) { throw 'Workstation.Context.Required' }
 
 if ([string]::IsNullOrWhiteSpace($PolicyPath)) {
     $PolicyPath = [IO.Path]::GetFullPath((Join-Path $scriptDirectory '..\..\config\runbooks\workstation-prerequisites.json'))

@@ -27,6 +27,7 @@ Describe 'Runbook static safety' {
         $content | Should -Not -Match '(?i)SetEnvironmentVariable'
         $content | Should -Not -Match '(?i)\b(az\s+login|gh\s+auth\s+login|azd\s+auth\s+login|pac\s+auth\s+create|copilot\s+login)\b'
         $content | Should -Not -Match '(?i)(Read-Host|\[Console\]::ReadLine|\$input\b)'
+        $content | Should -Not -Match '(?i)(icacls|Set-Acl|core[.]longpaths|git\s+clean|git\s+reset|\bMove-Item\b)'
     }
 
     It 'accepts no credential material and contains no OIDC or workflow trigger text' {
