@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.3 |
-| **Date** | 2026-10-26 |
+| **Version** | 2.5 |
+| **Date** | 2026-10-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
 | **Scope** | docs/specs |
@@ -65,6 +65,7 @@ A specification is created from a selected idea or approved problem. It precedes
 | [Tenant replica and handover implementation plan](../plans/2026-10-02-tenant-replica-handover-implementation.md) | [`2026-10-02-tenant-replica-and-customer-handover-runbook-design.md`](2026-10-02-tenant-replica-and-customer-handover-runbook-design.md) | Approved | Defines local `TenantReplica` and stricter `CustomerHandover` export profiles with independent validation. | Approved local implementation authority; it authorizes no publication, destination repository, or Tenant 2 live action. |
 | [Coordinate-only correction plan](../plans/2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md), then [child-summary implementation plan](../plans/2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md) | [`2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md`](2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md) | Approved | Defines the coordinate-only lifecycle umbrella, child-owned mutation and approval, canonical stage results, and the lifecycle-core blocker correction. | Approved corrective authority; supersedes the umbrella mutation, approval, and resource-correlation implications identified in its authority section. It authorizes no implementation or live operation. |
 | [Draft implementation plan](../plans/2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md) | [`2026-10-03-tenant-lifecycle-child-summary-envelope-design.md`](2026-10-03-tenant-lifecycle-child-summary-envelope-design.md) | Approved | Defines the reserved canonical child-summary envelope, exact digest meanings, write order, and equivalent Verify/prerequisite enforcement. | Approved companion authority for its stated scope; implementation remains Draft and blocked until reviewed, merged, and then-current `main` is green. |
+| Draft [Slice A plan](../plans/2026-10-26-agent-factory-superpowers-v7-implementation.md) and [Slice B plan](../plans/2026-10-26-agent-factory-decisions-implementation.md) for owner review; Slice C plan not yet created | [`2026-10-26-agent-factory-foundation-design.md`](2026-10-26-agent-factory-foundation-design.md) | Proposed Baseline | Defines the Superpowers upgrade, three factory decisions, evidence review, role mapping, and agent guardrails that prepare the repository for a GitHub Copilot agent factory. | Proposed only; subordinate to the Approved repository-agent portfolio design. Draft plans do not bypass owner approval or authorize implementation, pipeline, tenant action, or a new agent profile. |
 
 ## Domain Links
 

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.0 |
-| **Date** | 2026-10-02 |
+| **Version** | 2.2 |
+| **Date** | 2026-10-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active |
 | **Scope** | Repository Ideas |
@@ -73,6 +73,7 @@ The next-stage column comes before the owned record so automated navigation can 
 | UC-0018 | Not created | [Onboarding Checklist Rebuild](uc-0018-onboarding-checklist-rebuild.md) | Proposed Baseline | HR | Replace the onboarding checklist with an owned, usable process | Customer-supplied HR Ops CH pain points | Deferred - not synchronized |
 | UC-0019 | Not created | [Attrition Risk Insight Lite](uc-0019-attrition-risk-insight-lite.md) | Proposed Baseline | HR | Support retention improvement without automated employment decisions | Customer-supplied HR AI use-case workbook | Deferred - not synchronized |
 | IDEA-HR-CONTROL-PLANE | [HTML companion](hr-control-plane-mockup.html); no committed next stage | [HR Control Plane Mockup](hr-control-plane-mockup-idea.md) | Draft | HR | Explore an operational cockpit for agent runs, field actions, and exceptions | Repository-owned design exploration; non-authoritative | Deferred - not synchronized |
+| IDEA-AGENT-FACTORY | [Foundation design](../specs/2026-10-26-agent-factory-foundation-design.md); draft [Slice A](../plans/2026-10-26-agent-factory-superpowers-v7-implementation.md) and [Slice B](../plans/2026-10-26-agent-factory-decisions-implementation.md) plans for owner review | [Agent Factory Part 1 Common Setup](agent-factory-common-setup.md) | Draft | Cross-cutting | Establish a governed GitHub Copilot factory for Copilot Studio agents and workflows | Author-supplied concept dated 2026-10-25; not customer-stated and not verified here; subordinate to the Approved portfolio design | Deferred - not synchronized |
 
 ## HR portfolio guidance
 
