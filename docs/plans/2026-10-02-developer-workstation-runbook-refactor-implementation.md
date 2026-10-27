@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.3 |
+| **Version** | 1.4 |
 | **Date** | 2026-10-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -96,7 +96,17 @@ Review corrections prevent untrusted alias execution and Pester import, reject d
 
 The final focused related suites passed 150 cases on each of Windows PowerShell 5.1 and reviewed PowerShell 7.6.8; documentation passed 232 cases. Controller checks independently passed the prior 138-case set and the final 12 path regressions on both hosts. Actual absolute and corrected relative default preflights returned `NoChange` for nine components with the four native PAC operations, preserving both declared Web Resources, references, and payloads.
 
-This is local tool compatibility, not child-stage, machine, backup, provider, import, or human acceptance. Tasks 2-7 remain incomplete and the plan remains Draft. No live Apply, installation, authentication, provider action, or source publication was performed. Continue with Task 2 under the current sibling-worktree rule and explicit expected repository identity.
+This is local tool compatibility, not child-stage, machine, backup, provider, import, or human acceptance. Task 2 is recorded separately below; Tasks 3-7 remain incomplete and the plan remains Draft. No live Apply, installation, authentication, provider action, or source publication was performed.
+
+## Task 2 Technical Implementation Checkpoint
+
+Task 2 is implemented locally in `d06b267d5680d3da041585f1ac8d8d2929b2b8c5`, with the reviewed pre-execution architecture correction in `67d0120f5c1296b8f358226e52b6eab5baa053d3`. Assessment validates the independently expected machine, source commit and complete remote-inventory digest; derives the sibling worktree boundary from the primary/shared Git directory; refuses unsafe, dirty, conflicted, sparse or prohibited tracked source; and checks the exact 239/240 checkout boundary. Source inspection disables optional index writes and fsmonitor. Only the unique owned current-user access probe is written and removed.
+
+The five assessment components use the complete Task 1 compatibility preflight, including the Azure DevOps extension and trusted host/module/payload checks, rather than a legacy version-only inventory. Git's canonical physical path, hash and X64 architecture are verified before its first native invocation. Private values are not opened or serialized.
+
+The authoritative related regression run passed 185 cases; reviewed PowerShell 7.6.8 focused checks passed 82. After the architecture review correction, all 36 covering source/initializer/probe cases passed on each host. These are separate runs, not a combined count. A default-runner integration through a wholly synthetic clean source proved nine trusted components and native PAC preservation while both synthetic private files remained exclusively locked and unopened. Safety, scoped setup and whitespace checks passed.
+
+Assessment remains explicitly `Task2AssessmentOnly` and `Blocked` for the missing private-backup gate. The initializer forwards the revised inputs but cannot emit an executable plan or canonical successful child result. This checkpoint is not workstation, tenant, provider or human acceptance. Continue with Task 3; do not use the historical standalone initialization examples as authority to bypass the remaining gates.
 
 ---
 
@@ -163,6 +173,7 @@ git commit -m "feat(workstation): pin supported delivery tools" -m "Co-authored-
 
 **Files:**
 - Modify: `infra/src/scripts/runbooks/Test-DeveloperWorkstation.ps1`
+- Modify: `infra/src/scripts/runbooks/Initialize-DeveloperWorkstation.ps1` (parameter forwarding only).
 - Modify: `infra/tests/pester/DeveloperWorkstationAssessment.Tests.ps1`
 - Modify: `infra/tests/pester/RunbookStaticSafety.Tests.ps1`
 
@@ -171,11 +182,11 @@ git commit -m "feat(workstation): pin supported delivery tools" -m "Co-authored-
 - Produces assessment components `worktreeAccess`, `pathBudget`, `repositorySource`, `repositoryCleanliness`, and `toolIdentities`.
 - `pathBudget` fields are `worktreeRootLength`, `longestTrackedRelativePath`, `longestCheckoutPathLength`, `maximumExclusive`, and `classification`; `maximumExclusive` is exactly `240`.
 
-- [ ] **Step 1: Write failing assessment tests**
+- [x] **Step 1: Write failing assessment tests**
 
-Cover missing `LocalApplicationData`, failed create/write/delete probe, path length 239/240, dirty/conflicted/sparse checkout, remote mismatch, SHA mismatch, duplicate executable resolution, changed hash/version, private file accidentally tracked, and a valid `%LOCALAPPDATA%\CaldovaHR\wt\caldova-hr-frontier\ws-refactor` fixture.
+Cover missing primary/common-root context, failed create/write/delete probe, path length 239/240, dirty/conflicted/sparse checkout, complete remote mismatch, SHA mismatch, duplicate executable resolution, changed hash/version/architecture, private file accidentally tracked, and a valid sibling `Source\<repository-context>\wt\<sprint-branch>` fixture. The approved location revision supersedes the former `LocalApplicationData` cases.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 powershell.exe -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1 -Force; Invoke-Pester -Path @('infra/tests/pester/DeveloperWorkstationAssessment.Tests.ps1','infra/tests/pester/RunbookStaticSafety.Tests.ps1') -Output Detailed"
@@ -183,19 +194,19 @@ powershell.exe -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1 
 
 Expected: **FAIL** because the current script does not expose the required run/worktree/source/private-boundary contract.
 
-- [ ] **Step 3: Extend assessment minimally**
+- [x] **Step 3: Extend assessment minimally**
 
 Add the revised signature and retain hidden seams. Probe the exact worktree root as the current user, enumerate tracked paths with `git -c core.quotepath=false ls-files`, compute the longest checkout path, require `< 240`, and remove only the unique probe created by this run. Use exact Git remote/SHA/status/sparse checks. Resolve tools without `Select-Object -First 1`.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 Run the RED command. Expected: **PASS**; all blocked cases make no write except external evidence and the deleted access probe.
 
-- [ ] **Step 5: Perform focused review**
+- [x] **Step 5: Perform focused review**
 
 Confirm no ACL edit, no `core.longpaths`, no profile move, no source cleanup, no broad temp deletion, no first match, and no private path/value in evidence.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add infra/src/scripts/runbooks/Test-DeveloperWorkstation.ps1 infra/tests/pester/DeveloperWorkstationAssessment.Tests.ps1 infra/tests/pester/RunbookStaticSafety.Tests.ps1

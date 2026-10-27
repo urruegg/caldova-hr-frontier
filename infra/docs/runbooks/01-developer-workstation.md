@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.9 |
+| **Version** | 1.10 |
 | **Date** | 2026-10-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -10,6 +10,32 @@
 | **References** | [Infrastructure Operational Runbooks](README.md); [Approved Tenant 1 Runbook End-to-End Design](../../../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md); [Approved Child Summary Envelope Design](../../../docs/specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md); [Draft Child Summary Envelope Implementation Plan](../../../docs/plans/2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md); [Tenant Lifecycle Core Implementation Plan](../../../docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md); [Operational Runbooks Design](../../../docs/specs/2026-09-26-operational-runbooks-design.md) |
 
 This runbook assesses and, when explicitly approved, initializes one local Windows 11 administrator workstation for later attended infrastructure operations. It does not authenticate to cloud services, deploy infrastructure, create tenants, install repository-bundled skills, or mutate vendored content.
+
+## Current workstation refactor boundary
+
+The [implementation plan](../../../docs/plans/2026-10-02-developer-workstation-runbook-refactor-implementation.md#task-2-technical-implementation-checkpoint)
+records local completion of the exact-tool and source/worktree assessment
+tasks. This branch is not yet a completed workstation initialization release.
+The revised assessment requires explicit run, evidence, repository, expected
+commit, complete remote-inventory digest, machine, worktree, policy,
+compatibility and private-file coordinates. Context-free public calls are
+refused; the old examples later in this runbook are historical baseline
+instructions, not authority to bypass these inputs.
+
+Assessment uses the full nine-component trusted compatibility preflight.
+It checks the primary/shared Git directory and sibling worktree boundary,
+clean source, prohibited tracked files, unchanged index and exact checkout
+budget below 240 characters. Git's physical path, hash and X64 architecture
+are checked before its first native invocation. Only the unique current-user
+access probe and sanitized external evidence are written; private values
+remain unopened.
+
+The current result is `Task2AssessmentOnly`, with missing private-backup
+proof explicitly `Blocked`. Initialization only forwards this assessment;
+it cannot produce an executable plan or successful lifecycle child result.
+Private backup/restore, revised planning and restart-safe Apply remain open
+tasks. The independent compatibility gate below is usable, but its
+`NoChange` result is not overall workstation or tenant acceptance.
 
 ## Read-only tool compatibility gate
 
