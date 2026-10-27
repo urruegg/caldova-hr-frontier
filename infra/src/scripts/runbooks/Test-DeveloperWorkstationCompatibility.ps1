@@ -13,6 +13,30 @@ $ErrorActionPreference = 'Stop'
 $directory = $PSScriptRoot
 . (Join-Path $directory 'WorkstationTools.ps1')
 Import-Module (Join-Path $directory '..\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1') -Force
+
+function Resolve-CompatibilityFileSystemPath {
+    param([string]$Path, [switch]$File)
+    if ([string]::IsNullOrWhiteSpace($Path) -or [Management.Automation.WildcardPattern]::ContainsWildcardCharacters($Path)) {
+        throw 'A nonempty literal FileSystem path is required.'
+    }
+    $provider = $null
+    $drive = $null
+    $absolute = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path, [ref]$provider, [ref]$drive)
+    if ($provider.Name -cne 'FileSystem' -or -not [IO.Path]::IsPathRooted($absolute)) {
+        throw 'Only absolute or caller-relative FileSystem paths are supported.'
+    }
+    $absolute = [IO.Path]::GetFullPath($absolute)
+    if ($File) {
+        $item = Get-Item -LiteralPath $absolute -Force -ErrorAction Stop
+        if ($item -isnot [IO.FileInfo]) { throw 'A FileSystem input file is required.' }
+        return $item.FullName
+    }
+    if ((Test-Path -LiteralPath $absolute) -and (Get-Item -LiteralPath $absolute -Force) -isnot [IO.DirectoryInfo]) {
+        throw 'A FileSystem report directory is required.'
+    }
+    $absolute
+}
+
 if (-not $CompatibilityPath) { $CompatibilityPath = Join-Path $directory '..\..\config\runbooks\workstation-compatibility.json' }
 if (-not $PolicyPath) { $PolicyPath = Join-Path $directory '..\..\config\runbooks\workstation-prerequisites.json' }
 if ($null -eq $CommandResolver) { $CommandResolver = New-DefaultCommandResolver }
@@ -27,8 +51,16 @@ $owned = $null
 $owner = [guid]::NewGuid().ToString('N')
 $currentComponent = 'Contract'
 $phase = 'RecordAndPolicyValidation'
+$resolvedReportPath = $null
 
 try {
+    $CompatibilityPath = Resolve-CompatibilityFileSystemPath -Path $CompatibilityPath -File
+    $PolicyPath = Resolve-CompatibilityFileSystemPath -Path $PolicyPath -File
+    if ($ReportPath) {
+        $reportAbsolute = Resolve-CompatibilityFileSystemPath -Path $ReportPath
+        $resolvedReportPath = Resolve-RunbookReportPath -RunId ([guid]::NewGuid()) -Path $reportAbsolute `
+            -RepositoryRoot ([IO.Path]::GetFullPath((Join-Path $directory '..\..\..\..')))
+    }
     $inputHashes = @((Get-FileHash -LiteralPath $CompatibilityPath).Hash, (Get-FileHash -LiteralPath $PolicyPath).Hash)
     $record = ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText($CompatibilityPath))
     $policy = ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText($PolicyPath))
@@ -213,9 +245,9 @@ try {
         }
     }
 }
-if ($ReportPath) {
+if ($resolvedReportPath) {
     $repo = [IO.Path]::GetFullPath((Join-Path $directory '..\..\..\..'))
-    $safe = Resolve-RunbookReportPath -RunId ([guid]::NewGuid()) -Path $ReportPath -RepositoryRoot $repo
+    $safe = Resolve-RunbookReportPath -RunId ([guid]::NewGuid()) -Path $resolvedReportPath -RepositoryRoot $repo
     New-Item -ItemType Directory -Path $safe -Force | Out-Null
     Write-CanonicalJson -InputObject ([pscustomobject]$result) -Path (Join-Path $safe 'workstation-compatibility.json') | Out-Null
 }
