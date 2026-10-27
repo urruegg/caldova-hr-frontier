@@ -10,6 +10,7 @@ Describe 'Developer workstation assessment' {
                 if ($gitCommands.Count -ne 1) { throw 'Tests require one Git executable.' }
                 $script:BoundGit = $gitCommands[0]
                 Import-Module (Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1') -Force
+                . (Join-Path $PSScriptRoot '..\fixtures\runbooks\PrivateBackupTestSupport.ps1')
 
                 function script:Invoke-FixtureGit {
                     param([string]$Root, [string[]]$Arguments)
@@ -19,6 +20,7 @@ Describe 'Developer workstation assessment' {
                 }
 
                 function script:New-BoundFixture {
+                    param([switch]$PrivateReady)
                     $context = Join-Path $TestDrive ([guid]::NewGuid().ToString('N').Substring(0, 6))
                     $repo = Join-Path $context 'repo'
                     New-Item -ItemType Directory -Path (Join-Path $repo 'infra\src\config\tenants') -Force | Out-Null
@@ -26,6 +28,29 @@ Describe 'Developer workstation assessment' {
                     New-Item -ItemType Directory -Path (Join-Path $context 'wt\task') -Force | Out-Null
                     Copy-Item -LiteralPath (Join-Path $script:ConfigRoot 'workstation-prerequisites.json') -Destination (Join-Path $repo 'infra\src\config\runbooks')
                     Copy-Item -LiteralPath (Join-Path $script:ConfigRoot 'workstation-compatibility.json') -Destination (Join-Path $repo 'infra\src\config\runbooks')
+                    $entry = $script:BoundEntry
+                    $initializer = $script:BoundInitializer
+                    if ($PrivateReady) {
+                        $scripts = Split-Path (Split-Path $script:BoundEntry)
+                        $fixtureScripts = Join-Path $repo 'infra\src\scripts'
+                        New-Item -ItemType Directory -Path (Join-Path $fixtureScripts 'runbooks') -Force | Out-Null
+                        Copy-Item -LiteralPath (Join-Path $scripts 'modules') -Destination $fixtureScripts -Recurse
+                        foreach ($file in @('Test-DeveloperWorkstation.ps1','Initialize-DeveloperWorkstation.ps1','Test-DeveloperWorkstationCompatibility.ps1','WorkstationTools.ps1')) {
+                            Copy-Item -LiteralPath (Join-Path $scripts "runbooks\$file") -Destination (Join-Path $fixtureScripts 'runbooks')
+                        }
+                        Copy-Item -LiteralPath (Join-Path (Split-Path $script:ConfigRoot) 'schemas') -Destination (Join-Path $repo 'infra\src\config') -Recurse
+                        # The real validator and closed schema run from an isolated
+                        # copy; only public repository identity constants are synthetic.
+                        $schemaPath = Join-Path $repo 'infra\src\config\schemas\tenant.schema.json'
+                        $schema = Get-Content -Raw $schemaPath | ConvertFrom-Json
+                        $schema.properties.GitHub.properties.Owner.const = 'synthetic-owner'
+                        $schema.properties.GitHub.properties.OwnerId.const = '100001'
+                        $schema.properties.GitHub.properties.Repository.const = 'synthetic-repository'
+                        $schema.properties.GitHub.properties.RepositoryId.const = '100002'
+                        [IO.File]::WriteAllText($schemaPath, ($schema | ConvertTo-Json -Depth 30))
+                        $entry = Join-Path $fixtureScripts 'runbooks\Test-DeveloperWorkstation.ps1'
+                        $initializer = Join-Path $fixtureScripts 'runbooks\Initialize-DeveloperWorkstation.ps1'
+                    }
                     [IO.File]::WriteAllText((Join-Path $repo 'README.md'), 'synthetic public source')
                     [IO.File]::WriteAllText((Join-Path $repo '.gitignore'), "*.local.psd1`n*.state.local.json`n")
                     Invoke-FixtureGit $repo @('init', '--quiet')
@@ -52,6 +77,7 @@ Describe 'Developer workstation assessment' {
                     $hash = [string]$gitComponent.installationSource.sha256
                     $runner = {
                         param($file, $arguments)
+                        $ErrorActionPreference = 'Continue'
                         $calls.Add(($arguments -join ' '))
                         if ($file -cne $gitPath) { throw 'Unexpected executable in synthetic fixture.' }
                         if (($arguments -join ' ') -ceq '--version') {
@@ -73,13 +99,14 @@ Describe 'Developer workstation assessment' {
                         TenantConfigurationPath = $config
                         TenantStatePath = $state
                         BackupManifestPath = Join-Path $context 'backup\manifest.json'
+                        RestoreRoot = Join-Path $context 'restored'
                         PlatformProbe = { [pscustomobject]@{ productName = 'Windows 11'; build = 26100; architecture = 'X64'; machineId = 'SYNTHETIC-PC\fixture' } }
                         InteractiveHostProbe = { [pscustomobject]@{ isInteractive = $true; reason = 'SyntheticHost' } }
                         CommandResolver = { param($name) if ($name -ceq 'git.exe') { @($gitPath) } }.GetNewClosure()
                         FileIdentityProvider = { param($path) [pscustomobject]@{ path = $path; sha256 = $hash } }.GetNewClosure()
                         NativeCommandRunner = $runner
                     }
-                    [pscustomobject]@{ parameters = $parameters; context = $context; calls = $calls; gitHash = $hash }
+                    [pscustomobject]@{ parameters = $parameters; context = $context; calls = $calls; gitHash = $hash; entry = $entry; initializer = $initializer }
                 }
 
                 function script:Read-BoundAssessment {
@@ -300,6 +327,105 @@ Describe 'Developer workstation assessment' {
                 @(Get-ChildItem -LiteralPath $p.EvidenceRoot -Recurse -Filter 'summary.json').Count | Should -Be 0
                 $p.ExpectedSourceCommit = 'e' * 40
                 { & $script:BoundInitializer @p } | Should -Throw 'Workstation.*'
+            }
+
+            It 'private backup and restore integrates actual equality and shared private schema boundaries without planning' {
+                $f = New-BoundFixture -PrivateReady; $p = $f.parameters
+                Write-SyntheticPrivateBackupPair -IntentPath $p.TenantConfigurationPath -StatePath $p.TenantStatePath `
+                    -ManifestPath $p.BackupManifestPath -RestoreRoot $p.RestoreRoot
+                $p.NowUtc = [datetime]'2026-10-02T12:15:00Z'
+                $privateFiles = @($p.TenantConfigurationPath, $p.TenantStatePath, $p.BackupManifestPath,
+                    (Join-Path $p.RestoreRoot 'intent'), (Join-Path $p.RestoreRoot 'state'), (Join-Path $p.RepositoryRoot '.git\index'))
+                $before = @{}
+                foreach ($file in $privateFiles) {
+                    $before[$file] = @([Convert]::ToBase64String([IO.File]::ReadAllBytes($file)), [IO.File]::GetLastWriteTimeUtc($file))
+                }
+                $r = & $f.initializer @p
+                $a = $r.assessment
+                $a.privateBackup.intentEqual | Should -BeTrue
+                $a.privateBackup.stateEqual | Should -BeTrue
+                $a.privateBackup.privateBoundary.intent.schemaValid | Should -BeTrue
+                $a.privateBackup.privateBoundary.state.ignored | Should -BeTrue
+                $a.privateBackup.privateBoundary.state.tracked | Should -BeFalse
+                $a.privateBackup.reason | Should -BeExactly 'EncryptionAndAttendanceVerifierMissing'
+                $a.overallStatus | Should -BeExactly 'Blocked'
+                $r.classification | Should -BeExactly 'Blocked'
+                $a.components.PSObject.Properties.Name | Should -Be @('worktreeAccess','pathBudget','repositorySource','repositoryCleanliness','toolIdentities')
+                $json = [IO.File]::ReadAllText((Join-Path $p.EvidenceRoot "$($p.RunId)\assessment.json"))
+                $json | Should -Not -Match 'Synthetic Private Marker|example[.]invalid|synthetic123|tenant1[.]local|containerLabel|intentDigest|stateDigest'
+                $json | Should -Not -Match ([regex]::Escape($f.context))
+                foreach ($file in $privateFiles) {
+                    [Convert]::ToBase64String([IO.File]::ReadAllBytes($file)) | Should -BeExactly $before[$file][0]
+                    [IO.File]::GetLastWriteTimeUtc($file) | Should -Be $before[$file][1]
+                }
+                foreach ($file in @($p.TenantConfigurationPath, $p.TenantStatePath)) {
+                    $json | Should -Not -Match (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
+                }
+                @(Get-ChildItem -LiteralPath $p.EvidenceRoot -Recurse -Filter 'summary.json').Count | Should -Be 0
+                @(Get-ChildItem -LiteralPath $p.EvidenceRoot -Recurse -Filter '*manifest*').Count | Should -Be 0
+            }
+
+            It 'private backup and restore rejects <Case> through the real assessment' -ForEach @(
+                @{Case='Schema'}; @{Case='StateTenant'}; @{Case='Unequal'}; @{Case='SourceDrift'}
+            ) {
+                $f = New-BoundFixture -PrivateReady; $p = $f.parameters
+                Write-SyntheticPrivateBackupPair -IntentPath $p.TenantConfigurationPath -StatePath $p.TenantStatePath `
+                    -ManifestPath $p.BackupManifestPath -RestoreRoot $p.RestoreRoot
+                $p.NowUtc = [datetime]'2026-10-02T12:15:00Z'
+                switch ($Case) {
+                    Schema { [IO.File]::WriteAllText($p.TenantConfigurationPath, '@{ Invalid = 1 }') }
+                    StateTenant { [IO.File]::WriteAllText($p.TenantStatePath, '{"schemaVersion":"1.0","publicTenantKey":"tenant2","resources":[]}') }
+                    Unequal { [IO.File]::AppendAllText((Join-Path $p.RestoreRoot 'state'), ' ') }
+                    SourceDrift { [IO.File]::SetLastWriteTimeUtc($p.TenantStatePath, [datetime]'2026-10-02T12:11:00Z') }
+                }
+                if ($Case -in @('Schema','StateTenant')) {
+                    foreach ($pair in @(@($p.TenantConfigurationPath,'intent'), @($p.TenantStatePath,'state'))) {
+                        [IO.File]::WriteAllBytes((Join-Path $p.RestoreRoot $pair[1]), [IO.File]::ReadAllBytes($pair[0]))
+                        [IO.File]::SetLastWriteTimeUtc($pair[0], [datetime]'2026-10-02T11:59:00Z')
+                    }
+                }
+                $r = & $f.entry @p
+                $r.privateBackup.classification | Should -BeExactly 'Blocked'
+                $r.privateBackup.reason | Should -Not -BeExactly 'EncryptionAndAttendanceVerifierMissing'
+                $r.privateBackup.reason | Should -Not -BeExactly 'PrivateBackupProofNotIntegrated'
+            }
+
+            It 'private backup and restore requires and normalizes explicit RestoreRoot and refuses overlap' {
+                $f = New-BoundFixture; $p = $f.parameters
+                $p.Remove('RestoreRoot')
+                { & $script:BoundInitializer @p } | Should -Throw 'Workstation.Context.Required'
+                $p.RestoreRoot = $p.EvidenceRoot
+                { & $script:BoundEntry @p } | Should -Throw 'Workstation.Context.*'
+                $p.RestoreRoot = Join-Path $p.RepositoryRoot 'restored'
+                { & $script:BoundEntry @p } | Should -Throw 'Workstation.Context.*'
+                $p.RestoreRoot = Join-Path $f.context 'restored'
+                Push-Location $f.context
+                try {
+                    $p.RestoreRoot = '.\restored'
+                    $r = & $script:BoundEntry @p
+                    $r.privateBackup.reason | Should -BeExactly 'BackupDeclarationInvalid'
+                } finally { Pop-Location }
+            }
+
+            It 'private backup and restore keeps inputs read-locked across shared schema and Git verification' {
+                $f = New-BoundFixture -PrivateReady; $p = $f.parameters
+                Write-SyntheticPrivateBackupPair -IntentPath $p.TenantConfigurationPath -StatePath $p.TenantStatePath `
+                    -ManifestPath $p.BackupManifestPath -RestoreRoot $p.RestoreRoot
+                $p.NowUtc = [datetime]'2026-10-02T12:15:00Z'
+                $source = $p.TenantConfigurationPath
+                $before = [Convert]::ToBase64String([IO.File]::ReadAllBytes($source))
+                $original = $p.NativeCommandRunner
+                $p.NativeCommandRunner = {
+                    param($file, $arguments)
+                    if (($arguments -join ' ') -match ' check-ignore --quiet -- ') {
+                        [IO.File]::AppendAllText($source, 'synthetic input drift')
+                    }
+                    & $original $file $arguments
+                }.GetNewClosure()
+                $r = & $f.entry @p
+                $r.privateBackup.reason | Should -BeExactly 'PrivateBoundaryInvalid'
+                [Convert]::ToBase64String([IO.File]::ReadAllBytes($source)) | Should -BeExactly $before
+                ($r | ConvertTo-Json -Depth 30) | Should -Not -Match 'synthetic input drift'
             }
 
             It 'never treats an old unbound public invocation as a canonical assessment or plan' {

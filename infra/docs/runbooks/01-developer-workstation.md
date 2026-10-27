@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.10 |
+| **Version** | 1.11 |
 | **Date** | 2026-10-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -18,7 +18,10 @@ records local completion of the exact-tool and source/worktree assessment
 tasks. This branch is not yet a completed workstation initialization release.
 The revised assessment requires explicit run, evidence, repository, expected
 commit, complete remote-inventory digest, machine, worktree, policy,
-compatibility and private-file coordinates. Context-free public calls are
+compatibility, private-file, backup-manifest and separate restore-root
+coordinates. `RestoreRoot` is explicit on both entry points; it is never
+inferred from a filename or environment variable. Relative coordinates resolve
+against the caller's FileSystem location. Context-free public calls are
 refused; the old examples later in this runbook are historical baseline
 instructions, not authority to bypass these inputs.
 
@@ -27,15 +30,55 @@ It checks the primary/shared Git directory and sibling worktree boundary,
 clean source, prohibited tracked files, unchanged index and exact checkout
 budget below 240 characters. Git's physical path, hash and X64 architecture
 are checked before its first native invocation. Only the unique current-user
-access probe and sanitized external evidence are written; private values
-remain unopened.
+access probe and sanitized external evidence are written. Missing or invalid
+external backup declarations block before private content is opened.
 
-The current result is `Task2AssessmentOnly`, with missing private-backup
-proof explicitly `Blocked`. Initialization only forwards this assessment;
+The scope marker remains `Task2AssessmentOnly`: Task 3 extends private
+readiness, not planning or Apply. Initialization only forwards this assessment;
 it cannot produce an executable plan or successful lifecycle child result.
-Private backup/restore, revised planning and restart-safe Apply remain open
-tasks. The independent compatibility gate below is usable, but its
+Revised planning and restart-safe Apply remain separate tasks. The independent compatibility gate below is usable, but its
 `NoChange` result is not overall workstation or tenant acceptance.
+
+### Private backup declaration and read-only restore check
+
+The closed [private backup manifest schema](../../src/config/schemas/private-backup-manifest.schema.json)
+accepts only the declared tenant key, creation time, provider/container labels,
+both encrypted-entry declarations, and restore-test declarations. Its two logical
+entry names are exactly `intent` and `state`. They identify already restored files
+directly below the explicit `RestoreRoot`; they are not source paths or commands.
+The manifest, restore root and evidence root must be separate, external to every
+Git working tree and outside the source and sibling worktree boundaries. Reparse
+points and private-file hard-link aliases are refused.
+
+[`Test-TenantPrivateBackup`](../../src/scripts/modules/Caldova.HrFrontier.Bootstrap/Public/Test-TenantPrivateBackup.ps1)
+checks exact fields, case, primitive types and duplicate decoded JSON keys. It
+requires creation time no later than the declared restore test and neither time
+in the future. A source newer than the declared backup is stale. No arbitrary
+age limit or independently signed time attestation is established by this
+contract.
+
+The helper only reads existing files. Its frozen `DecryptAndReadRunner` name
+does **not** authorize decryption: an injected reader receives one restored file
+path and returns a single `byte[]` containing those existing bytes (PowerShell:
+`return ,([IO.File]::ReadAllBytes($Path))`). It must not create, copy, encrypt,
+decrypt or restore files. The default reader is also read-only. Independent
+held-handle reads check the returned bytes and compare both restored files with
+the current source bytes. Read locks prevent source, manifest or restored-byte
+changes during verification. The assessment then calls the shared lifecycle
+private boundary for schema and ignored/untracked checks under held locks.
+Only allowlisted existence, schema, Git-boundary and equality predicates reach
+evidence; private values, private hashes and absolute private/restore paths do
+not.
+
+An encryption provider label and `encrypted: true` are declarations, not
+cryptographic evidence. Equal bytes do not prove attended creation or a restore
+from an encrypted container. No trusted external verifier or authenticated proof
+binding a container, both current entries and an attended restore is supplied
+by the present interface. Even with equal bytes and valid private schemas, the
+gate therefore remains `Blocked` with
+`EncryptionAndAttendanceVerifierMissing`; `encryptionVerified` and
+`attendanceVerified` stay false. Do not treat this as a successful backup,
+invent a fallback, or use it to authorize planning, Apply or tenant operations.
 
 ## Read-only tool compatibility gate
 

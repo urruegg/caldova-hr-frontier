@@ -10,6 +10,7 @@ param(
     [string]$TenantConfigurationPath,
     [string]$TenantStatePath,
     [string]$BackupManifestPath,
+    [string]$RestoreRoot,
     [switch]$Apply,
     [string]$ExecutionManifestPath,
     [ValidatePattern('^[0-9a-f]{64}$')] [string]$ApprovedDigest,
@@ -631,12 +632,12 @@ function New-EvidenceRecord {
 . (Join-Path $scriptDirectory 'WorkstationTools.ps1')
 
 $boundContext = @('RunId','EvidenceRoot','CompatibilityPath','ExpectedSourceCommit','RepositoryIdentity','ExpectedMachineId',
-    'WorktreeRoot','TenantConfigurationPath','TenantStatePath','BackupManifestPath') |
+    'WorktreeRoot','TenantConfigurationPath','TenantStatePath','BackupManifestPath','RestoreRoot') |
     Where-Object { $PSBoundParameters.ContainsKey($_) }
 if (@($boundContext).Count -gt 0) {
     $forward = @{}
     foreach ($name in @('RunId','EvidenceRoot','PolicyPath','CompatibilityPath','RepositoryRoot','ExpectedSourceCommit',
-        'RepositoryIdentity','ExpectedMachineId','WorktreeRoot','TenantConfigurationPath','TenantStatePath','BackupManifestPath',
+        'RepositoryIdentity','ExpectedMachineId','WorktreeRoot','TenantConfigurationPath','TenantStatePath','BackupManifestPath','RestoreRoot',
         'NativeCommandRunner','CommandResolver','FileIdentityProvider','PlatformProbe','InteractiveHostProbe','NowUtc')) {
         if ($PSBoundParameters.ContainsKey($name)) { $forward[$name] = $PSBoundParameters[$name] }
     }

@@ -229,7 +229,7 @@ Describe 'Runbook documentation contracts' {
             }
             @{
                 Path = 'infra/docs/runbooks/01-developer-workstation.md'
-                Version = '1.10'
+                Version = '1.11'
                 Date = '2026-10-27'
             }
             @{

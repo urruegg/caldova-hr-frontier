@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "publicTenantKey": "tenant1",
+  "createdAtUtc": "2026-10-02T12:00:00Z",
+  "encryptionProvider": "SyntheticProvider",
+  "containerLabel": "synthetic-container",
+  "intentEntry": {
+    "logicalName": "intent",
+    "included": true,
+    "encrypted": true
+  },
+  "stateEntry": {
+    "logicalName": "state",
+    "included": true,
+    "encrypted": true
+  },
+  "restoreTest": {
+    "testedAtUtc": "2026-10-02T12:10:00Z",
+    "separateRoot": true,
+    "intentEqual": true,
+    "stateEqual": true,
+    "result": "Passed"
+  }
+}

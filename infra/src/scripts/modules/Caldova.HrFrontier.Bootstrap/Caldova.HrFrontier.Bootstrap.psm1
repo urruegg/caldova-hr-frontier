@@ -36,6 +36,7 @@ Export-ModuleMember -Function @(
     'Test-TenantLifecycleStageResultSet'
     'New-TenantLifecycleControlRecord'
     'Test-TenantLifecyclePrivateBoundary'
+    'Test-TenantPrivateBackup'
     'Import-TenantLifecycleState'
     'Update-TenantLifecycleState'
     'Resolve-TenantLifecycleGraph'
