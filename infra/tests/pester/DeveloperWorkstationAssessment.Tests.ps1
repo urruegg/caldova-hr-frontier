@@ -347,7 +347,13 @@ Describe 'Developer workstation assessment' {
                 $a.privateBackup.privateBoundary.intent.schemaValid | Should -BeTrue
                 $a.privateBackup.privateBoundary.state.ignored | Should -BeTrue
                 $a.privateBackup.privateBoundary.state.tracked | Should -BeFalse
-                $a.privateBackup.reason | Should -BeExactly 'EncryptionAndAttendanceVerifierMissing'
+                $a.privateBackup.classification | Should -BeExactly 'NoChange'
+                $a.privateBackup.reason | Should -BeExactly 'OperatorAttestationRequired'
+                $a.privateBackup.encryptionVerified | Should -BeFalse
+                $a.privateBackup.attendanceVerified | Should -BeFalse
+                $a.privateBackup.operatorAttestationRequired | Should -BeTrue
+                $a.privateBackup.PSObject.Properties.Name | Should -Not -Contain 'operatorAttestationSupplied'
+                $a.privateBackup.declarationMetadataDigest | Should -BeExactly 'e84e58501e93500cee907864fdc7c7644741ad82dc1922097baef6f52b0092fc'
                 $a.overallStatus | Should -BeExactly 'Blocked'
                 $r.classification | Should -BeExactly 'Blocked'
                 $a.components.PSObject.Properties.Name | Should -Be @('worktreeAccess','pathBudget','repositorySource','repositoryCleanliness','toolIdentities')
@@ -363,6 +369,19 @@ Describe 'Developer workstation assessment' {
                 }
                 @(Get-ChildItem -LiteralPath $p.EvidenceRoot -Recurse -Filter 'summary.json').Count | Should -Be 0
                 @(Get-ChildItem -LiteralPath $p.EvidenceRoot -Recurse -Filter '*manifest*').Count | Should -Be 0
+                $declaration = ConvertFrom-TenantLifecycleJson ([IO.File]::ReadAllText($p.BackupManifestPath))
+                $declaration.containerLabel = 'synthetic-container-updated'
+                [IO.File]::WriteAllText($p.BackupManifestPath, ($declaration | ConvertTo-Json -Depth 10))
+                $p.RunId = [guid]::NewGuid()
+                $changed = & $f.entry @p
+                $changed.privateBackup.classification | Should -BeExactly 'NoChange'
+                $changed.privateBackup.declarationMetadataDigest | Should -Not -BeExactly $a.privateBackup.declarationMetadataDigest
+                $changed.assessmentDigest | Should -Not -BeExactly $a.assessmentDigest
+                $changed.privateBackup.operatorAttestationRequired | Should -BeTrue
+                $changed.privateBackup.encryptionVerified | Should -BeFalse
+                $changed.privateBackup.attendanceVerified | Should -BeFalse
+                $changed.overallStatus | Should -BeExactly 'Blocked'
+                ($changed | ConvertTo-Json -Depth 30) | Should -Not -Match 'synthetic-container-updated|operatorAttestationSupplied'
             }
 
             It 'private backup and restore rejects <Case> through the real assessment' -ForEach @(
@@ -386,7 +405,8 @@ Describe 'Developer workstation assessment' {
                 }
                 $r = & $f.entry @p
                 $r.privateBackup.classification | Should -BeExactly 'Blocked'
-                $r.privateBackup.reason | Should -Not -BeExactly 'EncryptionAndAttendanceVerifierMissing'
+                $r.privateBackup.reason | Should -Not -BeExactly 'OperatorAttestationRequired'
+                $r.privateBackup.operatorAttestationRequired | Should -BeTrue
                 $r.privateBackup.reason | Should -Not -BeExactly 'PrivateBackupProofNotIntegrated'
             }
 
@@ -423,6 +443,7 @@ Describe 'Developer workstation assessment' {
                     & $original $file $arguments
                 }.GetNewClosure()
                 $r = & $f.entry @p
+                $r.privateBackup.classification | Should -BeExactly 'Blocked'
                 $r.privateBackup.reason | Should -BeExactly 'PrivateBoundaryInvalid'
                 [Convert]::ToBase64String([IO.File]::ReadAllBytes($source)) | Should -BeExactly $before
                 ($r | ConvertTo-Json -Depth 30) | Should -Not -Match 'synthetic input drift'

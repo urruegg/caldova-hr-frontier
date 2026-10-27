@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.4 |
+| **Version** | 1.5 |
 | **Date** | 2026-10-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
@@ -107,6 +107,16 @@ The five assessment components use the complete Task 1 compatibility preflight, 
 The authoritative related regression run passed 185 cases; reviewed PowerShell 7.6.8 focused checks passed 82. After the architecture review correction, all 36 covering source/initializer/probe cases passed on each host. These are separate runs, not a combined count. A default-runner integration through a wholly synthetic clean source proved nine trusted components and native PAC preservation while both synthetic private files remained exclusively locked and unopened. Safety, scoped setup and whitespace checks passed.
 
 Assessment remains explicitly `Task2AssessmentOnly` and `Blocked` for the missing private-backup gate. The initializer forwards the revised inputs but cannot emit an executable plan or canonical successful child result. This checkpoint is not workstation, tenant, provider or human acceptance. Continue with Task 3; do not use the historical standalone initialization examples as authority to bypass the remaining gates.
+
+## Task 3 Local Implementation Checkpoint
+
+The private-backup gate is implemented locally, including the operator-attestation correction recorded in the [workstation runbook](../../infra/docs/runbooks/01-developer-workstation.md). Closed declarations require both encrypted entries and separate restored-byte equality. Plaintext provider labels are refused case-insensitively. A canonical declaration-metadata digest binds the pending attestation without hashing private contents or projecting private paths. Successful local predicates return `NoChange` with `OperatorAttestationRequired`; encryption and attendance remain unverified, and no operator approval is recorded as supplied.
+
+The first closeout regression invocation covered 253 cases on Windows PowerShell 5.1: 252 passed and one test failed because copied fixture modules remained loaded and made Pester's module-scoped mock ambiguous. This is not recorded as a green combined run. A separate two-module reproduction confirmed the failure; the backup suite now removes prior module instances before importing its own copy, following the shared runbook-contract test pattern. No production check was weakened.
+
+Fresh covering backup and assessment checks passed 72 selected cases with no failures or skips on each of Windows PowerShell 5.1 and installed PowerShell 7.6.9, deliberately including prior module imports. These are separate runs, not a retroactive combined pass. The PowerShell 7 result is supplemental compatibility evidence, not approval of a new exact tool version. JSON Schema validation accepted the synthetic declaration and rejected all nine tested plaintext-provider case variants. Repository safety, scoped setup, and whitespace checks passed.
+
+The plan remains Draft. Tasks 4-7, exact human approval binding, executable planning/Apply, and canonical successful child-stage emission remain incomplete. Assessment stays `Task2AssessmentOnly` and overall `Blocked`; local backup predicates do not authorize execution. No private backup creation, encryption, decryption, restoration, installation, authentication, provider call, or tenant operation was performed.
 
 ---
 

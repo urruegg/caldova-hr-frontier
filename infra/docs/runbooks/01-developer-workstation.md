@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.11 |
+| **Version** | 1.12 |
 | **Date** | 2026-10-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -66,19 +66,37 @@ held-handle reads check the returned bytes and compare both restored files with
 the current source bytes. Read locks prevent source, manifest or restored-byte
 changes during verification. The assessment then calls the shared lifecycle
 private boundary for schema and ignored/untracked checks under held locks.
-Only allowlisted existence, schema, Git-boundary and equality predicates reach
-evidence; private values, private hashes and absolute private/restore paths do
-not.
+Only allowlisted existence, schema, Git-boundary and equality predicates, plus
+the canonical declaration-metadata digest, reach evidence; private values,
+private hashes and absolute private/restore paths do not.
 
-An encryption provider label and `encrypted: true` are declarations, not
-cryptographic evidence. Equal bytes do not prove attended creation or a restore
-from an encrypted container. No trusted external verifier or authenticated proof
-binding a container, both current entries and an attended restore is supplied
-by the present interface. Even with equal bytes and valid private schemas, the
-gate therefore remains `Blocked` with
-`EncryptionAndAttendanceVerifierMissing`; `encryptionVerified` and
-`attendanceVerified` stay false. Do not treat this as a successful backup,
-invent a fallback, or use it to authorize planning, Apply or tenant operations.
+Encrypted backup remains mandatory. Both entries must declare encryption;
+provider labels `Plaintext`, `None` and `Unencrypted` (in any case) are refused
+even when both encryption flags are true. A provider label and `encrypted: true`
+are operator declarations, not cryptographic evidence. Equal bytes do not prove
+attended creation or restore from an encrypted container.
+
+The trust model combines explicit operator attestation with independently
+observed separate restore equality. When declaration, path, byte-equality and
+shared schema/Git predicates pass, local private readiness is `NoChange` with
+reason `OperatorAttestationRequired`. `operatorAttestationRequired` remains
+true; `encryptionVerified` and `attendanceVerified` remain false. Assessment
+does not record an attestation or approval as supplied. No new cryptographic
+verifier, encryption provider or fallback is required or introduced.
+
+`declarationMetadataDigest` binds the exact closed declaration through the
+shared canonical JSON digest helper. It covers declaration metadata only,
+never private file bytes or their content hashes. Formatting/property order
+does not change this binding; changed valid declaration metadata does.
+The sanitized assessment digest includes that binding and the pending
+attestation predicate.
+
+Local `NoChange` is neither a canonical child success nor execution approval.
+The later execution-manifest/Apply implementation must bind this exact
+declaration and pending operator attestation to the existing exact human
+approval. The human must attest encrypted creation and attended restore; those
+facts remain operator-attested, not automatically verified. That approval has
+not been supplied, and this Task 3 slice still cannot plan or Apply.
 
 ## Read-only tool compatibility gate
 

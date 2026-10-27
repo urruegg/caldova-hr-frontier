@@ -824,8 +824,10 @@ function Invoke-BoundWorkstationAssessment {
         $privateBackup = Test-TenantPrivateBackup -IntentPath $paths.TenantConfigurationPath `
             -StatePath $paths.TenantStatePath -BackupManifestPath $paths.BackupManifestPath `
             -RestoreRoot $paths.RestoreRoot -NowUtc $NowUtc
-        if ($privateBackup.bytesChecked -and $privateBackup.intentEqual -and $privateBackup.stateEqual) {
+        if ($privateBackup.classification -ceq 'NoChange' -and
+            $privateBackup.bytesChecked -and $privateBackup.intentEqual -and $privateBackup.stateEqual) {
             try {
+                $declarationBinding = $privateBackup.declarationMetadataDigest
                 # Keep current bytes stable through shared schema/Git validation and
                 # evidence projection. Invalid declarations never reach these opens.
                 foreach ($path in @($paths.BackupManifestPath, $paths.TenantConfigurationPath, $paths.TenantStatePath,
@@ -835,7 +837,9 @@ function Invoke-BoundWorkstationAssessment {
                 $privateBackup = Test-TenantPrivateBackup -IntentPath $paths.TenantConfigurationPath `
                     -StatePath $paths.TenantStatePath -BackupManifestPath $paths.BackupManifestPath `
                     -RestoreRoot $paths.RestoreRoot -NowUtc $NowUtc
-                if (-not ($privateBackup.bytesChecked -and $privateBackup.intentEqual -and $privateBackup.stateEqual)) {
+                if ($privateBackup.classification -cne 'NoChange' -or
+                    $privateBackup.declarationMetadataDigest -cne $declarationBinding -or
+                    -not ($privateBackup.bytesChecked -and $privateBackup.intentEqual -and $privateBackup.stateEqual)) {
                     throw 'Private input changed before binding.'
                 }
                 $boundaryRunner = {
@@ -857,7 +861,10 @@ function Invoke-BoundWorkstationAssessment {
                     }
                 }
                 $privateBackup | Add-Member NoteProperty privateBoundary ([pscustomobject]$predicates)
-            } catch { $privateBackup.reason = 'PrivateBoundaryInvalid' }
+            } catch {
+                $privateBackup.classification = 'Blocked'
+                $privateBackup.reason = 'PrivateBoundaryInvalid'
+            }
         }
         $after = Get-BoundSource
         if ($after.commit -cne $source.commit -or

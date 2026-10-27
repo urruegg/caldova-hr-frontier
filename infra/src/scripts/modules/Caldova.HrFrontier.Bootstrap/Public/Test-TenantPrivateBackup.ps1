@@ -16,6 +16,8 @@ function Test-TenantPrivateBackup {
         encryptionDeclared = $false
         encryptionVerified = $false
         attendanceVerified = $false
+        operatorAttestationRequired = $true
+        declarationMetadataDigest = $null
         separateRoot = $false
         bytesChecked = $false
         intentEqual = $false
@@ -97,6 +99,7 @@ function Test-TenantPrivateBackup {
         foreach ($label in @($declaration.encryptionProvider, $declaration.containerLabel)) {
             Assert-TenantLifecycleString $label '^[A-Za-z][A-Za-z0-9_-]{0,63}$'
         }
+        Assert-TenantLifecycleCondition ($declaration.encryptionProvider -notmatch '^(Plaintext|None|Unencrypted)$')
         foreach ($name in @('intent','state')) {
             $entry = $declaration.($name + 'Entry')
             Assert-TenantLifecycleProperties $entry @('logicalName','included','encrypted')
@@ -118,6 +121,7 @@ function Test-TenantPrivateBackup {
         Assert-TenantLifecycleCondition ($intentName -cmatch '^(tenant[1-9][0-9]*)\.local\.psd1$')
         Assert-TenantLifecycleCondition ($declaration.publicTenantKey -ceq $Matches[1])
         $result.encryptionDeclared = $true
+        $result.declarationMetadataDigest = Get-RunbookContentDigest -InputObject $declaration
 
         $failure = 'BackupBoundaryInvalid'
         $intent = Resolve-PrivateBackupPath $IntentPath -File
@@ -172,9 +176,10 @@ function Test-TenantPrivateBackup {
         $result.bytesChecked = $true
         $result.intentEqual = Test-PrivateBackupBytesEqual $bytes[$intent] $bytes[$restoredIntent]
         $result.stateEqual = Test-PrivateBackupBytesEqual $bytes[$state] $bytes[$restoredState]
-        $result.reason = if ($result.intentEqual -and $result.stateEqual) {
-            'EncryptionAndAttendanceVerifierMissing'
-        } else { 'RestoreBytesUnequal' }
+        if ($result.intentEqual -and $result.stateEqual) {
+            $result.classification = 'NoChange'
+            $result.reason = 'OperatorAttestationRequired'
+        } else { $result.reason = 'RestoreBytesUnequal' }
     } catch {
         $result.reason = $failure
         $result.bytesChecked = $false

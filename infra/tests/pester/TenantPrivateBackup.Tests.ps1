@@ -2,6 +2,7 @@ Set-StrictMode -Version Latest
 
 Describe 'Tenant private backup and restore' {
     BeforeAll {
+        @(Get-Module Caldova.HrFrontier.Bootstrap -All) | Remove-Module -Force
         Import-Module (Join-Path $PSScriptRoot '..\..\src\scripts\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1') -Force
         . (Join-Path $PSScriptRoot '..\fixtures\runbooks\PrivateBackupTestSupport.ps1')
         $script:BackupSchema = Join-Path $PSScriptRoot '..\..\src\config\schemas\private-backup-manifest.schema.json'
@@ -26,7 +27,19 @@ Describe 'Tenant private backup and restore' {
         }
         function Assert-SafeBackupProjection {
             param($Value, $Fixture)
-            $json = $Value | ConvertTo-Json -Depth 30
+            $Value.operatorAttestationRequired | Should -BeTrue
+            $Value.encryptionVerified | Should -BeFalse
+            $Value.attendanceVerified | Should -BeFalse
+            $Value.PSObject.Properties.Name | Should -Not -Contain 'operatorAttestationSupplied'
+            $Value.PSObject.Properties.Name | Should -Contain 'declarationMetadataDigest'
+            if ($null -ne $Value.declarationMetadataDigest) {
+                $Value.declarationMetadataDigest | Should -Match '^[0-9a-f]{64}$'
+            }
+            $withoutMetadataBinding = [ordered]@{}
+            foreach ($property in $Value.PSObject.Properties) {
+                if ($property.Name -cne 'declarationMetadataDigest') { $withoutMetadataBinding[$property.Name] = $property.Value }
+            }
+            $json = $withoutMetadataBinding | ConvertTo-Json -Depth 30
             $json | Should -Not -Match ([regex]::Escape($Fixture.context))
             $json | Should -Not -Match 'Synthetic Private Marker|example[.]invalid|synthetic123|11111111-|100001'
             $json | Should -Not -Match '(?i)digest|sha256|[0-9a-f]{64}|intentPath|restoreRoot|containerLabel'
@@ -37,14 +50,15 @@ Describe 'Tenant private backup and restore' {
         $f = New-BackupFixture
         $p = $f.p
         $r = Test-TenantPrivateBackup @p
-        $r.classification | Should -BeExactly 'Blocked'
-        $r.reason | Should -BeExactly 'EncryptionAndAttendanceVerifierMissing'
+        $r.classification | Should -BeExactly 'NoChange'
+        $r.reason | Should -BeExactly 'OperatorAttestationRequired'
         $r.encryptionDeclared | Should -BeTrue
         $r.encryptionVerified | Should -BeFalse
         $r.attendanceVerified | Should -BeFalse
         $r.intentEqual | Should -BeTrue
         $r.stateEqual | Should -BeTrue
         $r.bytesChecked | Should -BeTrue
+        $r.declarationMetadataDigest | Should -BeExactly 'e84e58501e93500cee907864fdc7c7644741ad82dc1922097baef6f52b0092fc'
         Assert-SafeBackupProjection $r $f
     }
 
@@ -65,6 +79,7 @@ Describe 'Tenant private backup and restore' {
         @{Case='TraversalEntry'}; @{Case='PathProvider'}; @{Case='Failed'}; @{Case='NotSeparate'}
         @{Case='DeclaredUnequal'}; @{Case='Stale'}; @{Case='Future'}; @{Case='ReverseTime'}
         @{Case='InvalidDate'}; @{Case='OffsetDate'}
+        @{Case='PlaintextProvider'}; @{Case='NoneProvider'}; @{Case='UnencryptedProvider'}; @{Case='LowercasePlaintextProvider'}
     ) {
         $f = New-BackupFixture; $p = $f.p
         switch ($Case) {
@@ -95,6 +110,10 @@ Describe 'Tenant private backup and restore' {
             ReverseTime { Set-BackupDeclaration $f { param($v) $v.createdAtUtc = '2026-10-02T12:12:00Z' } }
             InvalidDate { Set-BackupDeclaration $f { param($v) $v.createdAtUtc = '2026-02-30T12:00:00Z' } }
             OffsetDate { Set-BackupDeclaration $f { param($v) $v.createdAtUtc = '2026-10-02T12:00:00+01:00' } }
+            PlaintextProvider { Set-BackupDeclaration $f { param($v) $v.encryptionProvider = 'Plaintext' } }
+            NoneProvider { Set-BackupDeclaration $f { param($v) $v.encryptionProvider = 'None' } }
+            UnencryptedProvider { Set-BackupDeclaration $f { param($v) $v.encryptionProvider = 'Unencrypted' } }
+            LowercasePlaintextProvider { Set-BackupDeclaration $f { param($v) $v.encryptionProvider = 'plaintext' } }
         }
         $p.DecryptAndReadRunner = { throw 'READER-MUST-NOT-RUN synthetic-secret' }
         $lock = [IO.File]::Open($p.IntentPath, 'Open', 'ReadWrite', 'None')
@@ -102,6 +121,7 @@ Describe 'Tenant private backup and restore' {
         $r.classification | Should -BeExactly 'Blocked'
         $r.reason | Should -BeExactly 'BackupDeclarationInvalid'
         $r.bytesChecked | Should -BeFalse
+        $r.declarationMetadataDigest | Should -BeNullOrEmpty
         Assert-SafeBackupProjection $r $f
     }
 
@@ -178,13 +198,15 @@ Describe 'Tenant private backup and restore' {
         try { $all = @(Test-TenantPrivateBackup @p *>&1) } finally { if ($null -ne $lock) { $lock.Dispose() } }
         $all.Count | Should -Be 1
         $r = $all[0]
-        $r.classification | Should -BeExactly 'Blocked'
         if ($Case -eq 'Equal') {
+            $r.classification | Should -BeExactly 'NoChange'
+            $r.reason | Should -BeExactly 'OperatorAttestationRequired'
             $r.intentEqual | Should -BeTrue
             $r.stateEqual | Should -BeTrue
         } else {
+            $r.classification | Should -BeExactly 'Blocked'
             ($r.intentEqual -and $r.stateEqual) | Should -BeFalse
-            $r.reason | Should -Not -BeExactly 'EncryptionAndAttendanceVerifierMissing'
+            $r.reason | Should -Not -BeExactly 'OperatorAttestationRequired'
         }
         Assert-SafeBackupProjection $r $f
         if ($Case -in @('InputDrift','RestoreMutation','ManifestMutation')) {
@@ -192,6 +214,58 @@ Describe 'Tenant private backup and restore' {
             [IO.File]::ReadAllText((Join-Path $p.RestoreRoot 'intent')) | Should -Not -Match 'drift'
             [IO.File]::ReadAllText($p.BackupManifestPath) | Should -Not -Match 'drift'
         }
+        if ($Case -eq 'ManifestMutation') {
+            $r.declarationMetadataDigest | Should -BeExactly 'e84e58501e93500cee907864fdc7c7644741ad82dc1922097baef6f52b0092fc'
+        }
+    }
+
+    It 'binds changed <Metadata> declarations without claiming operator approval' -ForEach @(
+        @{Metadata='Provider'}; @{Metadata='Container'}; @{Metadata='CreationTime'}; @{Metadata='RestoreTime'}
+    ) {
+        $f = New-BackupFixture; $p = $f.p
+        $before = Test-TenantPrivateBackup @p
+        switch ($Metadata) {
+            Provider { Set-BackupDeclaration $f { param($v) $v.encryptionProvider = 'SyntheticProviderUpdated' } }
+            Container { Set-BackupDeclaration $f { param($v) $v.containerLabel = 'synthetic-container-updated' } }
+            CreationTime { Set-BackupDeclaration $f { param($v) $v.createdAtUtc = '2026-10-02T12:01:00Z' } }
+            RestoreTime { Set-BackupDeclaration $f { param($v) $v.restoreTest.testedAtUtc = '2026-10-02T12:11:00Z' } }
+        }
+        $after = Test-TenantPrivateBackup @p
+        $before.classification | Should -BeExactly 'NoChange'
+        $after.classification | Should -BeExactly 'NoChange'
+        $after.declarationMetadataDigest | Should -Not -BeExactly $before.declarationMetadataDigest
+        Assert-SafeBackupProjection $before $f
+        Assert-SafeBackupProjection $after $f
+    }
+
+    It 'canonicalizes declaration metadata and never binds private bytes into its digest' {
+        $f = New-BackupFixture; $p = $f.p
+        $value = ConvertFrom-TenantLifecycleJson ([IO.File]::ReadAllText($p.BackupManifestPath))
+        $reordered = [ordered]@{
+            restoreTest = $value.restoreTest
+            stateEntry = [ordered]@{ encrypted = $true; included = $true; logicalName = 'state' }
+            intentEntry = [ordered]@{ encrypted = $true; included = $true; logicalName = 'intent' }
+            containerLabel = $value.containerLabel
+            encryptionProvider = $value.encryptionProvider
+            createdAtUtc = $value.createdAtUtc
+            publicTenantKey = $value.publicTenantKey
+            schemaVersion = $value.schemaVersion
+        }
+        [IO.File]::WriteAllText($p.BackupManifestPath, ($reordered | ConvertTo-Json -Depth 10 -Compress))
+        $r = Test-TenantPrivateBackup @p
+        $r.declarationMetadataDigest | Should -BeExactly 'e84e58501e93500cee907864fdc7c7644741ad82dc1922097baef6f52b0092fc'
+        foreach ($pair in @(@($p.IntentPath,'intent'), @($p.StatePath,'state'))) {
+            [IO.File]::AppendAllText($pair[0], ' ')
+            [IO.File]::WriteAllBytes((Join-Path $p.RestoreRoot $pair[1]), [IO.File]::ReadAllBytes($pair[0]))
+            [IO.File]::SetLastWriteTimeUtc($pair[0], [datetime]'2026-10-02T11:59:00Z')
+        }
+        $changedPrivateBytes = Test-TenantPrivateBackup @p
+        $changedPrivateBytes.classification | Should -BeExactly 'NoChange'
+        $changedPrivateBytes.declarationMetadataDigest | Should -BeExactly 'e84e58501e93500cee907864fdc7c7644741ad82dc1922097baef6f52b0092fc'
+        foreach ($file in @($p.IntentPath, $p.StatePath)) {
+            $changedPrivateBytes.declarationMetadataDigest | Should -Not -BeExactly (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+        }
+        Assert-SafeBackupProjection $changedPrivateBytes $f
     }
 
     It 'reads only declared restored entries and leaves all file bytes and timestamps unchanged' {
