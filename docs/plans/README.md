@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.12 |
-| **Date** | 2026-10-19 |
+| **Version** | 1.13 |
+| **Date** | 2026-10-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
 | **Scope** | docs/plans |
@@ -58,6 +58,8 @@ Name plans `YYYY-MM-DD-topic-implementation.md`. Include exact files, ordered st
 | [Replica final validation](2026-10-02-tenant-replica-handover-implementation.md), then [end-to-end acceptance](2026-10-02-tenant-1-end-to-end-acceptance-implementation.md) | [Power Platform DEV Delivery Implementation Plan](2026-10-02-power-platform-dev-delivery-implementation.md) | Draft | Adds the child-owned manual Azure Pipeline, Build Tools 2.0 WIF contract, immutable HR artifact, DEV-only import, attended application-user read-back, and canonical stage result. | Draft child plan blocked until corrected Plans 1-3 are merged and then-current `main` is green; it authorizes no pipeline queue, role grant, import, or live execution. |
 | [End-to-end acceptance plan](2026-10-02-tenant-1-end-to-end-acceptance-implementation.md) | [Tenant Replica and Customer Handover Implementation Plan](2026-10-02-tenant-replica-handover-implementation.md) | Draft | Adds explicit `TenantReplica` and `CustomerHandover` profiles over one child-owned local export and independent-validation engine, including canonical stage-result emission. | Draft local child plan blocked until the coordinate-only correction is merged and then-current `main` is green; final retained-pipeline acceptance also waits for the DEV delivery plan and no remote or Tenant 2 action is authorized. |
 | New sprint-specific review at `docs/reviews/2026-10-02-tenant-1-runbook-end-to-end-acceptance-review.md` | [Tenant 1 End-to-End Acceptance Implementation Plan](2026-10-02-tenant-1-end-to-end-acceptance-implementation.md) | Draft | Gates explicit child Plan/approval/WhatIf/Apply/read-back/stage-result sequences, coordinate-only umbrella Verify, NoChange, fresh-laptop continuation, local replica validation, sanitized review, and post-acceptance documentation disposition. | Draft final plan blocked until the coordinate-only correction and Plans 1-5 are merged, then-current `main` is green, private prerequisites exist, and every hard live-entry approval is recorded. |
+| [Slice B plan](2026-10-26-agent-factory-decisions-implementation.md) after design approval and merged Slice A | [Agent Factory Slice A: Superpowers v7.0.1 Implementation Plan](2026-10-26-agent-factory-superpowers-v7-implementation.md) | Draft | Plans the pinned Superpowers upgrade, integrity-contract RED/GREEN checks, and discovery evidence. | Review material only; the foundation design remains Proposed Baseline and its approval and docs-only merge gates must pass before execution. |
+| Slice C plan after owner approval; no plan exists yet | [Agent Factory Slice B: Decisions and Evidence Implementation Plan](2026-10-26-agent-factory-decisions-implementation.md) | Draft | Plans three Proposed ADRs and nine dated capability-evidence entries. | Review material only; execution also requires merged Slice A. It admits no capability and authorizes no tenant, pipeline, or agent-profile change. |
 
 ## Domain Links
 

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-10-26 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Repository-agent factory foundation: supply chain, governance record, and guardrails |
@@ -62,12 +62,14 @@ Delivery uses one docs-only pull request and three slices, each on its own branc
 
 | Order | Branch | Contents |
 |---|---|---|
-| PR 0 | `docs/agent-factory-foundation-spec` | Idea record and this design, with their catalogue rows. The idea record lands here because this design must cite it |
+| PR 0 | `docs/agent-factory-foundation-spec` | Idea record, this design, and the draft Slice A/B plans for owner review, with their catalogue rows. The idea record lands here because this design must cite it |
 | A | `chore/vendor-superpowers-v7.0.1` | Superpowers upgrade |
 | B | `docs/agent-factory-decisions` | ADR-0013 to ADR-0015, capability evidence review, catalogue rows |
 | C | `feat/agent-factory-guardrails` | Factory-authoring instruction, phase matrix, tool guard, hook entry |
 
-A merges before B and C so the decisions and guidance cite a stable skill inventory. Each slice has its own implementation plan under `docs/plans/`, written after the owner approves this design.
+A merges before B and C so the decisions and guidance cite a stable skill inventory. The draft [Slice A plan](../plans/2026-10-26-agent-factory-superpowers-v7-implementation.md) and [Slice B plan](../plans/2026-10-26-agent-factory-decisions-implementation.md) are prepared alongside this design as review material, not execution authority. They remain `Draft` and cannot execute until the owner approves this design and PR 0 is merged. Slice B also waits for merged Slice A. No Slice C plan exists yet; it is written under `docs/plans/` after design approval and must consume the Slice B hook-support evidence before claiming enforcement.
+
+The sprint is at PR 0 preparation, not implementation. No slice is completed by the existence of its plan. The open items in section 13 remain open, and completing this review package does not settle them.
 
 ## 6. Slice A: Superpowers v7.0.1
 
