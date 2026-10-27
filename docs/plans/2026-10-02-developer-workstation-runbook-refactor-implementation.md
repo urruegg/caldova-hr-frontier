@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-10-26 |
+| **Version** | 1.3 |
+| **Date** | 2026-10-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Draft |
 | **Scope** | Windows 11 workstation assessment, initialization, private-boundary readiness, and restart-safe local evidence |
@@ -32,7 +32,7 @@ This child plan remains `Draft` and cannot begin until the [coordinate-only corr
 ## Global Constraints
 
 - This is Plan 2. Do not begin until Plan 1 is merged, then-current `main` is green, and its lifecycle schemas/functions are available.
-- At execution time, use `superpowers:using-git-worktrees`. Create branch `feat/developer-workstation-runbook-refactor` and worktree `%LOCALAPPDATA%\CaldovaHR\wt\caldova-hr-frontier\ws-refactor`; use the current-user write/delete probe and prove the longest checkout path is **less than 240 characters**. Never enable `core.longpaths`, change ACLs, self-elevate, or relocate a profile.
+- At execution time, use `superpowers:using-git-worktrees`. Create branch `feat/developer-workstation-runbook-refactor` in the sibling `Source\<repository-context>\wt\ws-refactor` location required by the current instructions and Approved workstation specification. Use the current-user write/delete probe and prove the longest checkout path is **less than 240 characters**. Never enable `core.longpaths`, change ACLs, self-elevate, or relocate a profile.
 - Windows PowerShell 5.1 with Pester 5.7.1 is authoritative. The exact reviewed PowerShell 7 version selected in Task 1 is the compatibility host; both hosts must pass focused tests.
 - Do not authenticate, inspect a provider context, call a provider API, install an Azure DevOps organization extension, create an identity, or mutate cloud/tenant/pipeline state.
 - Reuse `Test-DeveloperWorkstation.ps1`, `Initialize-DeveloperWorkstation.ps1`, the current policy/schema, Plan 1 lifecycle contracts, existing `ShouldProcess`, and injected-runner patterns. No broad rewrite.
@@ -69,20 +69,34 @@ The revised public signatures are:
 Test-DeveloperWorkstation.ps1 `
   -RunId <guid> -EvidenceRoot <absolute> -PolicyPath <absolute> `
   -CompatibilityPath <absolute> -RepositoryRoot <absolute> `
-  -ExpectedSourceCommit <40-hex> -ExpectedMachineId <string> `
+  -ExpectedSourceCommit <40-hex> -RepositoryIdentity <64-hex> -ExpectedMachineId <string> `
   -WorktreeRoot <absolute> -TenantConfigurationPath <absolute> `
   -TenantStatePath <absolute> -BackupManifestPath <absolute>
 
 Initialize-DeveloperWorkstation.ps1 `
   -RunId <guid> -EvidenceRoot <absolute> -PolicyPath <absolute> `
   -CompatibilityPath <absolute> -RepositoryRoot <absolute> `
-  -ExpectedSourceCommit <40-hex> -ExpectedMachineId <string> `
+  -ExpectedSourceCommit <40-hex> -RepositoryIdentity <64-hex> -ExpectedMachineId <string> `
   -WorktreeRoot <absolute> -TenantConfigurationPath <absolute> `
   -TenantStatePath <absolute> -BackupManifestPath <absolute> `
   -ExecutionManifestPath <absolute> -ApprovedDigest <64-hex> [-Apply]
 ```
 
 Existing hidden test seams remain: `NativeCommandRunner`, `CommandResolver`, `FileIdentityProvider`, `PlatformProbe`, `InteractiveHostProbe`, `AssessmentProvider`, `SummaryWriter`, and `NowUtc`.
+
+`RepositoryIdentity` is the caller-reviewed expected complete Git remote-inventory
+digest. It supplies the independent expected remote required by specification
+section 7; assessment must not infer it from the source it is verifying.
+
+## Task 1 Technical Implementation Checkpoint
+
+Task 1 is implemented locally through `836e4446d0ab64c1a7e150c79d365a1604c310e7`, following the sprint-only Code App scope correction `af31fb0`. The canonical compatibility record has the declared five root and eight component fields and a stored, verified digest. Exact runtime versions, trusted executable/Store/Pester payload identities, closed raw JSON contracts, and meaningful two-component non-Code-App package preservation are enforced before technical acceptance. Automated technical review is explicitly not human approval.
+
+Review corrections prevent untrusted alias execution and Pester import, reject duplicate/scalar contract substitutions, and keep unreviewed WinGet package/runtime mappings Manual and non-executable. GitHub CLI `2.103.3` was adopted only after a separate signed-file/publisher-release/version/help/hash review; no installer was run. Caller-relative file paths now resolve once against PowerShell's FileSystem location so hashing and reading use the same inputs.
+
+The final focused related suites passed 150 cases on each of Windows PowerShell 5.1 and reviewed PowerShell 7.6.8; documentation passed 232 cases. Controller checks independently passed the prior 138-case set and the final 12 path regressions on both hosts. Actual absolute and corrected relative default preflights returned `NoChange` for nine components with the four native PAC operations, preserving both declared Web Resources, references, and payloads.
+
+This is local tool compatibility, not child-stage, machine, backup, provider, import, or human acceptance. Tasks 2-7 remain incomplete and the plan remains Draft. No live Apply, installation, authentication, provider action, or source publication was performed. Continue with Task 2 under the current sibling-worktree rule and explicit expected repository identity.
 
 ---
 
@@ -101,11 +115,11 @@ Existing hidden test seams remain: `NativeCommandRunner`, `CommandResolver`, `Fi
 - Produces: `Test-DeveloperWorkstationCompatibility.ps1 -CompatibilityPath -PolicyPath -ReportPath -CommandResolver -NativeCommandRunner -NowUtc`.
 - Produces exact reviewed versions for `PowerShell7`, `WindowsPowerShell`, `Git`, `GitHubCli`, `AzureCli`, `Bicep`, `azure-devops`, `PowerPlatformCli`, and `Pester`.
 
-- [ ] **Step 1: Write failing preflight tests**
+- [x] **Step 1: Write failing preflight tests**
 
 Require exact versions, full semver where the product exposes semver, nonempty first-party references, host/architecture, and capability checks. Include PAC pack/unpack/help parsing, Bicep build help, Azure DevOps extension version, and PowerShell 7 Windows compatibility. Cover a meaningful non-Code-App component round trip, refusal of out-of-scope Code App delivery input, and rejection of empty or missing-source input as capability proof. Assert any unproven applicable component returns `Blocked` and prevents policy acceptance.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 powershell.exe -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1 -Force; Invoke-Pester -Path 'infra/tests/pester/WorkstationCompatibility.Tests.ps1' -Output Detailed"
@@ -113,7 +127,7 @@ powershell.exe -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1 
 
 Expected: **FAIL** because the compatibility schema, record, and preflight do not exist and current delivery tools still use `Present`.
 
-- [ ] **Step 3: Perform and record the minimum support decision**
+- [x] **Step 3: Perform and record the minimum support decision**
 
 From the execution worktree, inspect current first-party release/support pages and unauthenticated installed command output. Record only values whose applicable capability checks pass; keep raw machine output in external preflight evidence. The [approved sprint scope](../specs/2026-10-02-developer-workstation-runbook-refactor-design.md#6-version-and-tool-policy) excludes the legacy HR control-plane Code App and its specific `BackgroundImageUri` pack/unpack case, not PAC or generic Power Platform delivery. Preserve the historical limitation without claiming it fixed.
 
@@ -121,7 +135,7 @@ Prove the remaining PAC pack/unpack capability with a reviewed, meaningful non-C
 
 If any applicable capability cannot be proven, including PAC round-trip support, record the component as `Blocked` in external preflight evidence and **stop this plan without inventing a version**. Missing source or component loss remains blocking. Once all nine delivery-critical tool values and their applicable capabilities are reviewed, commit full exact versions/finite allowlists to `workstation-compatibility.json` and reference them from the prerequisite policy; remove delivery-critical `Present` modes.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 Run the RED command and:
 
@@ -134,11 +148,11 @@ Run the RED command and:
 
 Expected: Pester **PASS** and preflight returns `NoChange` only when every exact value and capability is proven; otherwise it fails closed with `Blocked` and no policy mutation.
 
-- [ ] **Step 5: Perform focused review**
+- [x] **Step 5: Perform focused review**
 
 Review source ownership, release dates, exact values, capability evidence, and parser behavior. Confirm no guessed version, floating major, wildcard, `latest`, `Present`, authentication, install, or provider call.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add infra/src/config/runbooks/workstation-prerequisites.json infra/src/config/runbooks/workstation-compatibility.json infra/src/config/schemas/workstation-prerequisites.schema.json infra/src/config/schemas/workstation-compatibility.schema.json infra/src/scripts/runbooks/Test-DeveloperWorkstationCompatibility.ps1 infra/tests/pester/WorkstationCompatibility.Tests.ps1
