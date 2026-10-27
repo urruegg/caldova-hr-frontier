@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.8 |
+| **Version** | 1.9 |
 | **Date** | 2026-10-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -19,6 +19,27 @@ before accepting the prerequisite policy. The closed
 pins all nine delivery-critical components, including full Windows and vendor
 build suffixes. Its automated technical review is not a human approval, child
 acceptance result, or live organization/import capability.
+
+There is one public record format. Its root is exactly `schemaVersion`,
+`reviewedAtUtc`, `reviewedByRole`, `components`, and `digest`. Each component is
+exactly `id`, `exactVersions`, `host`, `architecture`, `installationSource`,
+`versionCommand`, `capabilityChecks`, and `firstPartyReferences`. The current
+contract binds one full exact version per component; it does not promise
+unproven multi-version compatibility.
+
+The stored digest covers every other field through the shared canonical digest
+helper and excludes only `digest` itself. Missing/stale digests, unknown fields,
+wrong collection types and former record formats fail before tool resolution.
+The integrity digest is not execution approval. Trust hashes, Store manifest
+binding, companion payloads and Pester inventories remain in closed
+`installationSource` objects.
+
+`versionCommand` contains only checked `command`/`probe` metadata for the fixed
+dispatcher; record-supplied shell text is never evaluated. `host` declares
+Windows build 22000 or later with X64 tool compatibility, explicitly scoped as
+`ToolCompatibilityOnly`. That check does not attest a Windows 11 product edition
+or overall workstation readiness; the existing workstation assessment owns its
+separate Windows 11 boundary.
 
 ```powershell
 powershell.exe -NoProfile -File infra/src/scripts/runbooks/Test-DeveloperWorkstationCompatibility.ps1 `

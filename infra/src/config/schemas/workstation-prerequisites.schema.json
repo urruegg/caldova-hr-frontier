@@ -128,14 +128,14 @@
       "required": ["mode"],
       "properties": {
         "mode": { "enum": ["Present", "Exact"] },
-        "value": { "enum": ["7.6.8", "5.1.26100.9711", "2.56.0.windows.3", "2.103.2", "2.91.0", "0.46.1", "1.0.8", "1.43.6+gc7c8d99", "5.7.1"] }
+        "value": { "enum": ["7.6.8", "5.1.26100.9711", "2.56.0.windows.3", "2.103.3", "2.91.0", "0.46.1", "1.0.8", "1.43.6+gc7c8d99", "5.7.1"] }
       },
       "enum": [
         { "mode": "Present" },
         { "mode": "Exact", "value": "7.6.8" },
         { "mode": "Exact", "value": "5.1.26100.9711" },
         { "mode": "Exact", "value": "2.56.0.windows.3" },
-        { "mode": "Exact", "value": "2.103.2" },
+        { "mode": "Exact", "value": "2.103.3" },
         { "mode": "Exact", "value": "2.91.0" },
         { "mode": "Exact", "value": "0.46.1" },
         { "mode": "Exact", "value": "1.0.8" },
@@ -224,7 +224,7 @@
             "id": { "const": "GitHubCli" },
             "command": { "const": "gh.exe" },
             "versionArguments": { "const": ["--version"] },
-            "versionPolicy": { "const": { "mode": "Exact", "value": "2.103.2" } },
+            "versionPolicy": { "const": { "mode": "Exact", "value": "2.103.3" } },
             "installDisposition": { "const": "Manual" },
             "install": { "const": { "kind": "None" } },
             "reference": { "const": "https://docs.github.com/en/github-cli/github-cli/quickstart" }

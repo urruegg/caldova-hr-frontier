@@ -7,6 +7,11 @@ Describe 'Task1 fix round trust boundaries' {
         $script:PolicyPath = Join-Path $script:Repo 'infra\src\config\runbooks\workstation-prerequisites.json'
         $script:HostPath = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
         . $script:Helper
+        function script:Read-TrustFixture {
+            $parameters = @{ InputObject = [IO.File]::ReadAllText($script:RecordPath) }
+            if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) { $parameters.DateKind = 'String' }
+            ConvertFrom-Json @parameters
+        }
         function script:Invoke-TrustChild {
             param([string]$Code)
             $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes(
@@ -31,9 +36,9 @@ Describe 'Task1 fix round trust boundaries' {
     ) {
         $text = Get-Content -Raw $(if ($Target -eq 'Record') { $script:RecordPath } else { $script:PolicyPath })
         switch ($Mutation) {
-            'DuplicateVersion' { $text = $text.Replace('"version": "7.6.8"', '"version":"UNREVIEWED","version":"7.6.8"') }
-            'EscapedDuplicateVersion' { $text = $text.Replace('"version": "7.6.8"', '"ver\u0073ion":"UNREVIEWED","version":"7.6.8"') }
-            'CaseAliasVersion' { $text = $text.Replace('"version": "7.6.8"', '"Version":"UNREVIEWED","version":"7.6.8"') }
+            'DuplicateVersion' { $text = $text.Replace('"exactVersions": ["7.6.8"]', '"exactVersions":["UNREVIEWED"],"exactVersions":["7.6.8"]') }
+            'EscapedDuplicateVersion' { $text = $text.Replace('"exactVersions": ["7.6.8"]', '"exactVer\u0073ions":["UNREVIEWED"],"exactVersions":["7.6.8"]') }
+            'CaseAliasVersion' { $text = $text.Replace('"exactVersions": ["7.6.8"]', '"ExactVersions":["UNREVIEWED"],"exactVersions":["7.6.8"]') }
             'RootArray' { $text = '[' + $text + ']' }
             'ScalarCapabilities' { $text = $text.Replace('["WorktreeHelp"]', '"WorktreeHelp"') }
             'ScalarReferences' { $text = $text.Replace(
@@ -91,11 +96,12 @@ try { `$null=& (New-DefaultFileIdentityProvider) '$($alias.Replace("'", "''"))' 
     }
 
     It 'checks Store package binding before a directly resolved physical host is probed' {
-        $record = Get-Content -Raw $script:RecordPath | ConvertFrom-Json
+        $record = Read-TrustFixture
         $component = @($record.components | Where-Object id -CEQ PowerShell7)[0]
-        $component.appxManifestSha256 = '0' * 64
+        $component.installationSource.appxManifestSha256 = '0' * 64
+        $record.digest = Get-WorkstationCompatibilityDigest $record
         $physical = Join-Path $env:ProgramFiles (
-            'WindowsApps\Microsoft.PowerShell_' + $component.version + '.0_x64__8wekyb3d8bbwe\pwsh.exe')
+            'WindowsApps\Microsoft.PowerShell_' + $component.exactVersions[0] + '.0_x64__8wekyb3d8bbwe\pwsh.exe')
         $path = Join-Path $TestDrive 'changed-store-pin.json'
         [IO.File]::WriteAllText($path, (ConvertTo-Json -InputObject $record -Depth 20))
         $calls = [Collections.Generic.List[string]]::new()
@@ -131,9 +137,9 @@ try { `$null=& (New-DefaultFileIdentityProvider) '$($alias.Replace("'", "''"))' 
         @{ ChangedFile = 'Pester.psd1' }
     ) {
         Get-Command Invoke-WorkstationTrustedHostProbe -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
-        $record = Get-Content -Raw $script:RecordPath | ConvertFrom-Json
+        $record = Read-TrustFixture
         $pester = $record.components | Where-Object id -CEQ Pester
-        $installation = $pester.installations | Where-Object id -CEQ CurrentUserWindowsPowerShell
+        $installation = $pester.installationSource.installations | Where-Object id -CEQ CurrentUserWindowsPowerShell
         $package = Join-Path $TestDrive ('package-' + $ChangedFile)
         New-Item -ItemType Directory $package | Out-Null
         foreach ($file in $installation.files) {

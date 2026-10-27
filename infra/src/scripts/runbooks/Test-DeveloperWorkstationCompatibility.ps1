@@ -33,6 +33,7 @@ try {
     $record = ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText($CompatibilityPath))
     $policy = ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText($PolicyPath))
     Assert-WorkstationCompatibilityRecord $record
+    $record = ConvertTo-WorkstationCompatibilityModel $record
     Assert-WorkstationDeliveryPolicy $policy $record (Join-Path $directory '..\..\config\schemas\workstation-prerequisites.schema.json')
     $identityProvider = New-DefaultFileIdentityProvider -CompatibilityRecord $record
     if (-not [Environment]::Is64BitProcess -or [Environment]::OSVersion.Platform -ne 'Win32NT') {

@@ -2,81 +2,127 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
-  "required": ["$schema", "schemaVersion", "review", "components"],
+  "required": ["schemaVersion", "reviewedAtUtc", "reviewedByRole", "components", "digest"],
   "properties": {
-    "$schema": {"type": "string"},
     "schemaVersion": {"const": "1.0"},
-    "review": {
-      "type": "object", "additionalProperties": false,
-      "required": ["kind", "reviewer", "reviewedAtUtc", "isApproval", "scope"],
-      "properties": {
-        "kind": {"const": "AutomatedTechnicalReview"},
-        "reviewer": {"const": "GitHub Copilot"},
-        "reviewedAtUtc": {"type": "string", "format": "date-time"},
-        "isApproval": {"const": false},
-        "scope": {"type": "string", "minLength": 1}
-      }
-    },
+    "reviewedAtUtc": {"type": "string", "format": "date-time"},
+    "reviewedByRole": {"const": "AutomatedTechnicalReview: GitHub Copilot"},
+    "digest": {"$ref": "#/$defs/sha256"},
     "components": {
       "type": "array", "minItems": 9, "maxItems": 9, "uniqueItems": true,
       "allOf": [
-        {"contains": {"required": ["id"], "properties": {"id": {"const": "PowerShell7"}}}, "minContains": 1, "maxContains": 1},
-        {"contains": {"required": ["id"], "properties": {"id": {"const": "WindowsPowerShell"}}}, "minContains": 1, "maxContains": 1},
-        {"contains": {"required": ["id"], "properties": {"id": {"const": "Git"}}}, "minContains": 1, "maxContains": 1},
-        {"contains": {"required": ["id"], "properties": {"id": {"const": "GitHubCli"}}}, "minContains": 1, "maxContains": 1},
-        {"contains": {"required": ["id"], "properties": {"id": {"const": "AzureCli"}}}, "minContains": 1, "maxContains": 1},
-        {"contains": {"required": ["id"], "properties": {"id": {"const": "Bicep"}}}, "minContains": 1, "maxContains": 1},
-        {"contains": {"required": ["id"], "properties": {"id": {"const": "azure-devops"}}}, "minContains": 1, "maxContains": 1},
-        {"contains": {"required": ["id"], "properties": {"id": {"const": "PowerPlatformCli"}}}, "minContains": 1, "maxContains": 1},
-        {"contains": {"required": ["id"], "properties": {"id": {"const": "Pester"}}}, "minContains": 1, "maxContains": 1}
+        {"contains": {"properties": {"id": {"const": "PowerShell7"}}, "required": ["id"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"properties": {"id": {"const": "WindowsPowerShell"}}, "required": ["id"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"properties": {"id": {"const": "Git"}}, "required": ["id"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"properties": {"id": {"const": "GitHubCli"}}, "required": ["id"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"properties": {"id": {"const": "AzureCli"}}, "required": ["id"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"properties": {"id": {"const": "Bicep"}}, "required": ["id"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"properties": {"id": {"const": "azure-devops"}}, "required": ["id"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"properties": {"id": {"const": "PowerPlatformCli"}}, "required": ["id"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"properties": {"id": {"const": "Pester"}}, "required": ["id"]}, "minContains": 1, "maxContains": 1}
       ],
       "items": {
         "type": "object", "additionalProperties": false,
-        "required": ["id", "version", "source", "architecture", "sha256", "capabilities", "references"],
-        "allOf": [
-          {"if": {"properties": {"id": {"const": "PowerShell7"}}}, "then": {"required": ["appxManifestSha256"]}, "else": {"not": {"required": ["appxManifestSha256"]}}},
-          {"if": {"properties": {"id": {"const": "Pester"}}}, "then": {"required": ["installations"]}, "else": {"not": {"required": ["installations"]}}}
-        ],
+        "required": ["id", "exactVersions", "host", "architecture", "installationSource", "versionCommand", "capabilityChecks", "firstPartyReferences"],
         "properties": {
           "id": {"enum": ["PowerShell7", "WindowsPowerShell", "Git", "GitHubCli", "AzureCli", "Bicep", "azure-devops", "PowerPlatformCli", "Pester"]},
-          "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:\\.[0-9]+|\\.windows\\.[0-9]+|\\+g[0-9a-f]+)?$"},
-          "source": {"enum": ["MicrosoftStore", "WindowsComponent", "GitForWindowsRelease", "GitHubCliRelease", "AzureCliMsi", "AzureCliBicepComponent", "AzureCliExtension", "DotNetTool", "PowerShellGallery"]},
+          "exactVersions": {
+            "type": "array", "minItems": 1, "maxItems": 1, "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:\\.[0-9]+|\\.windows\\.[0-9]+|\\+g[0-9a-f]+)?$"}
+          },
+          "host": {
+            "type": "object", "additionalProperties": false,
+            "required": ["platform", "minimumBuild", "readinessScope"],
+            "properties": {
+              "platform": {"const": "Windows"},
+              "minimumBuild": {"const": 22000},
+              "readinessScope": {"const": "ToolCompatibilityOnly"}
+            }
+          },
           "architecture": {"const": "X64"},
-          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-          "appxManifestSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-          "installations": {
-            "type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true,
-            "items": {
-              "type": "object", "additionalProperties": false, "required": ["id", "files"],
-              "properties": {
-                "id": {"enum": ["CurrentUserWindowsPowerShell", "CurrentUserPowerShell"]},
-                "files": {
-                  "type": "array", "minItems": 18, "maxItems": 18, "uniqueItems": true,
-                  "items": {
-                    "type": "object", "additionalProperties": false, "required": ["path", "sha256"],
-                    "properties": {
-                      "path": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+(?:\\\\[A-Za-z0-9_.-]+)*$"},
-                      "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
-                    }
-                  }
-                }
-              }
+          "installationSource": {"$ref": "#/$defs/installationSource"},
+          "versionCommand": {
+            "type": "object", "additionalProperties": false, "required": ["command", "probe"],
+            "properties": {
+              "command": {"enum": ["pwsh.exe", "powershell.exe", "git.exe", "gh.exe", "az.cmd", "bicep.exe", "pac.exe"]},
+              "probe": {"enum": ["PowerShellVersion", "WindowsPowerShellVersion", "GitVersion", "GitHubCliVersion", "AzureCliVersion", "BicepVersion", "AzureDevopsInstalledVersion", "PacHelpVersion", "TrustedPesterModuleVersion"]}
             }
           },
-          "payloads": {
-            "type": "array", "minItems": 1, "maxItems": 2, "uniqueItems": true,
-            "items": {
-              "type": "object", "additionalProperties": false, "required": ["id", "sha256"],
-              "properties": {
-                "id": {"enum": ["AzureCliPython", "PacAssembly", "SolutionPackagerAssembly"]},
-                "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
-              }
-            }
+          "capabilityChecks": {
+            "type": "array", "minItems": 1, "uniqueItems": true,
+            "items": {"enum": ["WindowsX64Host", "WindowsCompatibilityParameter", "Pester571Import", "WorktreeHelp", "RepositoryJsonHelp", "VersionJson", "BundledPythonX64", "BuildHelp", "InstalledExtensionMetadata", "DevopsHelp", "PackHelp", "UnpackHelp", "DeclaredWebResourceRoundTrip", "ExactModuleImport"]}
           },
-          "capabilities": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["WindowsX64Host", "WindowsCompatibilityParameter", "Pester571Import", "WorktreeHelp", "RepositoryJsonHelp", "VersionJson", "BundledPythonX64", "BuildHelp", "InstalledExtensionMetadata", "DevopsHelp", "PackHelp", "UnpackHelp", "DeclaredWebResourceRoundTrip", "ExactModuleImport"]}},
-          "references": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^https://(?:learn\\.microsoft\\.com/|github\\.com/(?:PowerShell/PowerShell|git-for-windows/git|cli/cli|Azure/(?:azure-cli|bicep|azure-devops-cli-extension))/|www\\.nuget\\.org/packages/Microsoft\\.PowerApps\\.CLI\\.Tool/|www\\.powershellgallery\\.com/packages/Pester/)"}}
+          "firstPartyReferences": {
+            "type": "array", "minItems": 1, "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^https://(?:learn\\.microsoft\\.com/|github\\.com/(?:PowerShell/PowerShell|git-for-windows/git|cli/cli|Azure/(?:azure-cli|bicep|azure-devops-cli-extension))/|www\\.nuget\\.org/packages/Microsoft\\.PowerApps\\.CLI\\.Tool/|www\\.powershellgallery\\.com/packages/Pester/)"}
+          }
         }
       }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "payload": {
+      "type": "object", "additionalProperties": false, "required": ["id", "sha256"],
+      "properties": {
+        "id": {"enum": ["AzureCliPython", "PacAssembly", "SolutionPackagerAssembly"]},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "pesterInstallation": {
+      "type": "object", "additionalProperties": false, "required": ["id", "files"],
+      "properties": {
+        "id": {"enum": ["CurrentUserWindowsPowerShell", "CurrentUserPowerShell"]},
+        "files": {
+          "type": "array", "minItems": 18, "maxItems": 18, "uniqueItems": true,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["path", "sha256"],
+            "properties": {
+              "path": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+(?:\\\\[A-Za-z0-9_.-]+)*$"},
+              "sha256": {"$ref": "#/$defs/sha256"}
+            }
+          }
+        }
+      }
+    },
+    "installationSource": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "sha256"],
+          "properties": {
+            "kind": {"enum": ["WindowsComponent", "GitForWindowsRelease", "GitHubCliRelease", "AzureCliBicepComponent", "AzureCliExtension"]},
+            "sha256": {"$ref": "#/$defs/sha256"}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "sha256", "appxManifestSha256"],
+          "properties": {
+            "kind": {"const": "MicrosoftStore"}, "sha256": {"$ref": "#/$defs/sha256"},
+            "appxManifestSha256": {"$ref": "#/$defs/sha256"}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "sha256", "payloads"],
+          "properties": {
+            "kind": {"const": "AzureCliMsi"}, "sha256": {"$ref": "#/$defs/sha256"},
+            "payloads": {"type": "array", "minItems": 1, "maxItems": 1, "items": {"$ref": "#/$defs/payload"}}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "sha256", "payloads"],
+          "properties": {
+            "kind": {"const": "DotNetTool"}, "sha256": {"$ref": "#/$defs/sha256"},
+            "payloads": {"type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": {"$ref": "#/$defs/payload"}}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "sha256", "installations"],
+          "properties": {
+            "kind": {"const": "PowerShellGallery"}, "sha256": {"$ref": "#/$defs/sha256"},
+            "installations": {"type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": {"$ref": "#/$defs/pesterInstallation"}}
+          }
+        }
+      ]
     }
   }
 }

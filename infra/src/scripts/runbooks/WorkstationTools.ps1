@@ -138,6 +138,7 @@ function New-DefaultFileIdentityProvider {
         $record = ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText(
             (Join-Path $PSScriptRoot '..\..\config\runbooks\workstation-compatibility.json')))
         Assert-WorkstationCompatibilityRecord $record
+        $record = ConvertTo-WorkstationCompatibilityModel $record
     }
     $powerShell = @($record.components | Where-Object id -CEQ PowerShell7)[0]
     $metadataReader = ${function:Read-WorkstationReparseMetadata}
@@ -288,6 +289,7 @@ function Get-WorkstationHostProbeCommand {
         $record = ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText(
             (Join-Path $PSScriptRoot '..\..\config\runbooks\workstation-compatibility.json')))
         Assert-WorkstationCompatibilityRecord $record
+        $record = ConvertTo-WorkstationCompatibilityModel $record
         $PesterRecord = @($record.components | Where-Object id -CEQ Pester)[0]
     }
     $id = if ($HostId -eq 'WindowsPowerShell') { 'CurrentUserWindowsPowerShell' } else { 'CurrentUserPowerShell' }
@@ -432,7 +434,108 @@ function Assert-WorkstationProperties {
     } $Value $Names
 }
 
+function Get-WorkstationVersionCommand {
+    param([string]$Id)
+    $dispatch = @{
+        PowerShell7 = @('pwsh.exe', 'PowerShellVersion')
+        WindowsPowerShell = @('powershell.exe', 'WindowsPowerShellVersion')
+        Git = @('git.exe', 'GitVersion')
+        GitHubCli = @('gh.exe', 'GitHubCliVersion')
+        AzureCli = @('az.cmd', 'AzureCliVersion')
+        Bicep = @('bicep.exe', 'BicepVersion')
+        'azure-devops' = @('az.cmd', 'AzureDevopsInstalledVersion')
+        PowerPlatformCli = @('pac.exe', 'PacHelpVersion')
+        Pester = @('powershell.exe', 'TrustedPesterModuleVersion')
+    }
+    if (-not $dispatch.ContainsKey($Id)) { throw 'Unreviewed version probe identifier.' }
+    [pscustomobject]@{ command = $dispatch[$Id][0]; probe = $dispatch[$Id][1] }
+}
+
+function Get-WorkstationCompatibilityDigest {
+    param([object]$Record)
+    $projection = [ordered]@{}
+    foreach ($property in $Record.PSObject.Properties) {
+        if ($property.Name -cne 'digest') { $projection[$property.Name] = $property.Value }
+    }
+    & (Get-WorkstationBootstrapModule) {
+        param($value) Get-RunbookContentDigest -InputObject $value
+    } ([pscustomobject]$projection)
+}
+
+function ConvertTo-WorkstationCompatibilityModel {
+    param([object]$Record)
+    $components = @(
+        foreach ($component in $Record.components) {
+            $source = $component.installationSource
+            $model = [ordered]@{
+                id = $component.id; version = $component.exactVersions[0]; source = $source.kind
+                architecture = $component.architecture; sha256 = $source.sha256
+                capabilities = $component.capabilityChecks; references = $component.firstPartyReferences
+            }
+            foreach ($name in @('payloads', 'installations', 'appxManifestSha256')) {
+                if ($source.PSObject.Properties.Name -contains $name) { $model[$name] = $source.$name }
+            }
+            [pscustomobject]$model
+        }
+    )
+    [pscustomobject]@{
+        '$schema' = '../schemas/workstation-compatibility.schema.json'
+        schemaVersion = $Record.schemaVersion
+        review = [pscustomobject]@{
+            kind = 'AutomatedTechnicalReview'; reviewer = 'GitHub Copilot'
+            reviewedAtUtc = $Record.reviewedAtUtc; isApproval = $false
+            scope = 'Private verifier projection; tool compatibility only, not approval or OS attestation'
+        }
+        components = $components
+    }
+}
+
 function Assert-WorkstationCompatibilityRecord {
+    param([object]$Record)
+    Assert-WorkstationProperties $Record @('schemaVersion', 'reviewedAtUtc', 'reviewedByRole', 'components', 'digest')
+    if ($Record.schemaVersion -isnot [string] -or $Record.schemaVersion -cne '1.0' -or
+        $Record.reviewedAtUtc -isnot [string] -or $Record.reviewedByRole -isnot [string] -or
+        $Record.reviewedByRole -cne 'AutomatedTechnicalReview: GitHub Copilot' -or
+        $Record.digest -isnot [string] -or $Record.digest -cnotmatch '^[0-9a-f]{64}$') {
+        throw 'Invalid canonical compatibility envelope.'
+    }
+    $null = [datetime]::Parse($Record.reviewedAtUtc, [Globalization.CultureInfo]::InvariantCulture)
+    Assert-WorkstationArray -Value $Record.components -MinimumCount 9
+    if ($Record.components.Count -ne 9) { throw 'Exactly nine compatibility components are required.' }
+    foreach ($component in $Record.components) {
+        Assert-WorkstationProperties $component @('id', 'exactVersions', 'host', 'architecture',
+            'installationSource', 'versionCommand', 'capabilityChecks', 'firstPartyReferences')
+        if ($component.id -isnot [string] -or $component.architecture -isnot [string]) { throw 'Invalid component declarations.' }
+        Assert-WorkstationArray -Value $component.exactVersions -MinimumCount 1 -Strings
+        if ($component.exactVersions.Count -ne 1) { throw 'Only one reviewed identity/version binding is supported.' }
+        Assert-WorkstationArray -Value $component.capabilityChecks -MinimumCount 1 -Strings
+        Assert-WorkstationArray -Value $component.firstPartyReferences -MinimumCount 1 -Strings
+        Assert-WorkstationProperties $component.host @('platform', 'minimumBuild', 'readinessScope')
+        if ($component.host.platform -isnot [string] -or $component.host.platform -cne 'Windows' -or
+            ($component.host.minimumBuild -isnot [int] -and $component.host.minimumBuild -isnot [long]) -or
+            $component.host.minimumBuild -ne 22000 -or $component.host.readinessScope -isnot [string] -or
+            $component.host.readinessScope -cne 'ToolCompatibilityOnly') {
+            throw 'Unreviewed host constraint; no overall Windows 11 attestation is implied.'
+        }
+        Assert-WorkstationProperties $component.versionCommand @('command', 'probe')
+        $expected = Get-WorkstationVersionCommand $component.id
+        if ($component.versionCommand.command -isnot [string] -or $component.versionCommand.probe -isnot [string] -or
+            $component.versionCommand.command -cne $expected.command -or $component.versionCommand.probe -cne $expected.probe) {
+            throw 'Version-command metadata does not match fixed dispatch.'
+        }
+        $sourceProperties = @('kind', 'sha256')
+        if ($component.id -in @('AzureCli', 'PowerPlatformCli')) { $sourceProperties += 'payloads' }
+        if ($component.id -ceq 'PowerShell7') { $sourceProperties += 'appxManifestSha256' }
+        if ($component.id -ceq 'Pester') { $sourceProperties += 'installations' }
+        Assert-WorkstationProperties $component.installationSource $sourceProperties
+    }
+    if ((Get-WorkstationCompatibilityDigest $Record) -cne $Record.digest) {
+        throw 'Compatibility integrity digest mismatch.'
+    }
+    Assert-WorkstationCompatibilityModel (ConvertTo-WorkstationCompatibilityModel $Record)
+}
+
+function Assert-WorkstationCompatibilityModel {
     param([object]$Record)
     Assert-WorkstationProperties $Record @('$schema', 'schemaVersion', 'review', 'components')
     if ($Record.'$schema' -isnot [string] -or $Record.schemaVersion -isnot [string]) { throw 'Schema declarations must be strings.' }

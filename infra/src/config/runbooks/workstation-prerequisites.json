@@ -83,7 +83,7 @@
       "id": "GitHubCli",
       "command": "gh.exe",
       "versionArguments": ["--version"],
-      "versionPolicy": { "mode": "Exact", "value": "2.103.2" },
+      "versionPolicy": { "mode": "Exact", "value": "2.103.3" },
       "installDisposition": "Manual",
       "install": { "kind": "None" },
       "reference": "https://docs.github.com/en/github-cli/github-cli/quickstart"

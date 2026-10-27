@@ -6,11 +6,16 @@ Describe 'Fail-closed workstation compatibility' {
         $script:Helper = Join-Path $script:Repo 'infra\src\scripts\runbooks\WorkstationTools.ps1'
         $script:Entry = Join-Path $script:Repo 'infra\src\scripts\runbooks\Test-DeveloperWorkstationCompatibility.ps1'
         $script:Schema = Join-Path $script:Repo 'infra\src\config\schemas\workstation-compatibility.schema.json'
+        . $script:Helper
         function script:Read-CompatibilityFixture {
             param([string]$Path)
             $parameters = @{ InputObject = [IO.File]::ReadAllText($Path) }
             if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) { $parameters.DateKind = 'String' }
             ConvertFrom-Json @parameters
+        }
+        function script:Update-CompatibilityFixtureDigest {
+            param($Record)
+            $Record.digest = Get-WorkstationCompatibilityDigest $Record
         }
     }
 
@@ -26,10 +31,9 @@ Describe 'Fail-closed workstation compatibility' {
                 $policy.tools | Where-Object id -CEQ $component.id
             }
             $item.versionPolicy.mode | Should -BeExactly 'Exact'
-            $item.versionPolicy.value | Should -BeExactly $component.version
+            $item.versionPolicy.value | Should -BeExactly $component.exactVersions[0]
         }
-        $record.review.kind | Should -BeExactly 'AutomatedTechnicalReview'
-        $record.review.isApproval | Should -BeFalse
+        $record.reviewedByRole | Should -BeExactly 'AutomatedTechnicalReview: GitHub Copilot'
     }
 
     It 'rejects unknown record properties and non-first-party references before any native command' {
@@ -54,7 +58,7 @@ Describe 'Fail-closed workstation compatibility' {
         $policy = Read-CompatibilityFixture $script:Policy
         {
             Set-StrictMode -Version Latest
-            Assert-WorkstationDeliveryPolicy $policy $record (
+            Assert-WorkstationDeliveryPolicy $policy (ConvertTo-WorkstationCompatibilityModel $record) (
                 Join-Path $script:Repo 'infra\src\config\schemas\workstation-prerequisites.schema.json')
         } | Should -Not -Throw
     }
@@ -83,17 +87,19 @@ Describe 'Fail-closed workstation compatibility' {
     }
 
     It 'rejects an unproven component, partial version, source drift or unsupported architecture' -ForEach @(
-        @{ Field = 'version'; Value = '7' }
-        @{ Field = 'source'; Value = 'Unreviewed' }
+        @{ Field = 'exactVersions'; Value = @('7') }
+        @{ Field = 'kind'; Value = 'Unreviewed' }
         @{ Field = 'architecture'; Value = 'Arm64' }
-        @{ Field = 'capabilities'; Value = @() }
-        @{ Field = 'references'; Value = @('https://example.invalid/not-a-publisher') }
+        @{ Field = 'capabilityChecks'; Value = @() }
+        @{ Field = 'firstPartyReferences'; Value = @('https://example.invalid/not-a-publisher') }
         @{ Field = 'sha256'; Value = 'unknown' }
     ) {
         Test-Path -LiteralPath $script:Helper | Should -BeTrue
         . $script:Helper
         $record = Read-CompatibilityFixture $script:Record
-        $record.components[0].$Field = $Value
+        if ($Field -in @('kind', 'sha256')) { $record.components[0].installationSource.$Field = $Value }
+        else { $record.components[0].$Field = $Value }
+        Update-CompatibilityFixtureDigest $record
         { Assert-WorkstationCompatibilityRecord $record } | Should -Throw
     }
 
@@ -138,7 +144,8 @@ Describe 'Fail-closed workstation compatibility' {
 
     It 'rejects an otherwise valid reviewed hash changed to a different full SHA-256' {
         $record = Read-CompatibilityFixture $script:Record
-        $record.components[0].sha256 = '0' * 64
+        $record.components[0].installationSource.sha256 = '0' * 64
+        Update-CompatibilityFixtureDigest $record
         $path = Join-Path $TestDrive 'hash-drift.json'
         $record | ConvertTo-Json -Depth 20 | Set-Content $path
         $result = & $script:Entry -CompatibilityPath $path -NativeCommandRunner {
@@ -152,10 +159,12 @@ Describe 'Fail-closed workstation compatibility' {
         . $script:Helper
         $record = Read-CompatibilityFixture $script:Record
         $azure = $record.components | Where-Object id -CEQ AzureCli
-        $azure.PSObject.Properties.Remove('payloads')
+        $azure.installationSource.PSObject.Properties.Remove('payloads')
+        Update-CompatibilityFixtureDigest $record
         { Assert-WorkstationCompatibilityRecord $record } | Should -Throw
         $record = Read-CompatibilityFixture $script:Record
-        ($record.components | Where-Object id -CEQ PowerPlatformCli).payloads[0].id = 'UnreviewedPayload'
+        ($record.components | Where-Object id -CEQ PowerPlatformCli).installationSource.payloads[0].id = 'UnreviewedPayload'
+        Update-CompatibilityFixtureDigest $record
         { Assert-WorkstationCompatibilityRecord $record } | Should -Throw
     }
 
@@ -180,7 +189,7 @@ Describe 'Fail-closed workstation compatibility' {
         $policy.tools[0].install = [pscustomobject]@{
             kind = 'WinGet'; source = 'winget'; packageId = 'Microsoft.PowerShell'; scope = 'machine'
         }
-        { Assert-WorkstationDeliveryPolicy $policy $record (
+        { Assert-WorkstationDeliveryPolicy $policy (ConvertTo-WorkstationCompatibilityModel $record) (
             Join-Path $script:Repo 'infra\src\config\schemas\workstation-prerequisites.schema.json') } | Should -Throw
     }
 

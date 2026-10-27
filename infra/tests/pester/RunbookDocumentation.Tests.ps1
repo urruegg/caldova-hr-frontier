@@ -224,12 +224,12 @@ Describe 'Runbook documentation contracts' {
         $documentCases = @(
             @{
                 Path = 'infra/docs/runbooks/README.md'
-                Version = '1.8'
+                Version = '1.9'
                 Date = '2026-10-27'
             }
             @{
                 Path = 'infra/docs/runbooks/01-developer-workstation.md'
-                Version = '1.8'
+                Version = '1.9'
                 Date = '2026-10-27'
             }
             @{

@@ -569,6 +569,7 @@ Assert-WorkstationPolicy -Policy $policy
 $compatibility = ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText(
     (Join-Path $scriptDirectory '..\..\config\runbooks\workstation-compatibility.json')))
 Assert-WorkstationCompatibilityRecord $compatibility
+$compatibility = ConvertTo-WorkstationCompatibilityModel $compatibility
 Assert-WorkstationDeliveryPolicy $policy $compatibility (Join-Path $scriptDirectory '..\..\config\schemas\workstation-prerequisites.schema.json')
 $policyDigest = Get-RunbookContentDigest -InputObject $policy
 

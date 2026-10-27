@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.8 |
+| **Version** | 1.9 |
 | **Date** | 2026-10-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -17,6 +17,12 @@ package/physical source before alias probing or Pester import, rejects lossy
 JSON contracts before execution, and keeps unreviewed WinGet package/runtime
 version mappings manual. No alias self-report, module directory name or package
 identifier alone authorizes execution or installation.
+
+Its single canonical public record uses the five/eight-field contract and a
+stored shared digest verified before callbacks. Descriptive version-probe
+metadata is not executable code. Host constraints express local tool
+compatibility, not a Windows 11 edition attestation or live workstation
+acceptance.
 
 ## Implemented lifecycle-core boundary
 
