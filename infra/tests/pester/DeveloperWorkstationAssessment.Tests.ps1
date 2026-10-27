@@ -251,6 +251,25 @@ Describe 'Developer workstation assessment' {
                 @(Get-ChildItem -LiteralPath $p.WorktreeRoot -Force).Count | Should -Be 0
             }
 
+            It 'rejects incompatible Git architecture before any native probe' {
+                $f = New-BoundFixture; $p = $f.parameters
+                $programFiles = $env:ProgramFiles
+                $syntheticPrograms = Join-Path $f.context 'programs'
+                $syntheticGit = Join-Path $syntheticPrograms 'Git\cmd\git.exe'
+                New-Item -ItemType Directory -Path (Split-Path $syntheticGit) -Force | Out-Null
+                $bytes = [byte[]]::new(0x48)
+                $bytes[0x3c] = 0x40
+                $bytes[0x44] = 0x4c
+                $bytes[0x45] = 0x01
+                [IO.File]::WriteAllBytes($syntheticGit, $bytes)
+                $p.CommandResolver = { param($name) if ($name -ceq 'git.exe') { @($syntheticGit) } }.GetNewClosure()
+                try {
+                    $env:ProgramFiles = $syntheticPrograms
+                    { & $script:BoundEntry @p } | Should -Throw 'Workstation.*'
+                    $f.calls.Count | Should -Be 0
+                } finally { $env:ProgramFiles = $programFiles }
+            }
+
             It 'keeps failed probe creation and deletion blocked and never deletes existing content' {
                 $f = New-BoundFixture; $p = $f.parameters
                 [IO.File]::WriteAllText((Join-Path $p.WorktreeRoot 'owned-by-someone-else.txt'), 'retain')

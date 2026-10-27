@@ -712,6 +712,7 @@ function Invoke-BoundWorkstationAssessment {
     $git = Resolve-ExecutableIdentity $gitPolicy.command $resolver $identityProvider
     if ($git.status -cne 'Ready' -or $git.sha256 -cne $gitComponent.sha256 -or
         $git.path -ine (Join-Path $env:ProgramFiles 'Git\cmd\git.exe')) { throw 'Workstation.Tools.GitIdentity' }
+    Assert-WorkstationX64Executable $git.path
     $gitTool = Get-ToolAssessment $gitPolicy $resolver $identityProvider $runner $gitComponent.sha256
     if ($gitTool.status -cne 'Ready') { throw 'Workstation.Tools.GitVersion' }
     function Invoke-BoundGit {
