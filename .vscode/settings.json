@@ -1,0 +1,10 @@
+{
+    "dotnetAcquisitionExtension.allowInvalidPaths": true,
+    "chat.tools.terminal.autoApprove": {
+        "/^& 'C:\\\\Program Files\\\\Git\\\\cmd\\\\git\\.exe' -C 'C:\\\\Users\\\\urruegg\\\\Source\\\\urruegg\\\\wt\\\\runbook-e2e-remediation' diff --name-only$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    },
+    "sarif-viewer.connectToGithubCodeScanning": "off"
+}
