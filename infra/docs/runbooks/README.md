@@ -2,14 +2,21 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.7 |
-| **Date** | 2026-10-26 |
+| **Version** | 1.8 |
+| **Date** | 2026-10-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure operations |
 | **References** | [Approved Tenant 1 Runbook End-to-End Design](../../../docs/specs/2026-10-02-tenant-1-runbook-end-to-end-design.md); [Approved Child Summary Envelope Design](../../../docs/specs/2026-10-03-tenant-lifecycle-child-summary-envelope-design.md); [Draft Child Summary Envelope Implementation Plan](../../../docs/plans/2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md); [Tenant Lifecycle Core Implementation Plan](../../../docs/plans/2026-10-02-tenant-lifecycle-core-implementation.md); [Operational Runbooks Design](../../../docs/specs/2026-09-26-operational-runbooks-design.md); [Tenant 1 Lean Platform Runbook](../24-tenant-1-lean-platform-runbook.md); [Infrastructure Domain](../../README.md) |
 
 These runbooks govern attended, local operations for the infrastructure domain. They define how an operator proves readiness, previews reviewed intent, receives a digest for approval, executes only the approved changes, records redacted evidence, and closes with recovery when anything remains unresolved.
+
+The [workstation compatibility gate](01-developer-workstation.md#read-only-tool-compatibility-gate)
+is a local technical check, not operator or lifecycle acceptance. It verifies
+package/physical source before alias probing or Pester import, rejects lossy
+JSON contracts before execution, and keeps unreviewed WinGet package/runtime
+version mappings manual. No alias self-report, module directory name or package
+identifier alone authorizes execution or installation.
 
 ## Implemented lifecycle-core boundary
 

@@ -564,9 +564,10 @@ if ($productName -cne 'Windows 11' -or $build -lt 22000) {
     throw 'This runbook requires Windows 11 build 22000 or later.'
 }
 
-$policy = Get-Content -Raw -LiteralPath $PolicyPath | ConvertFrom-Json
+$policy = ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText($PolicyPath))
 Assert-WorkstationPolicy -Policy $policy
-$compatibility = Get-Content -Raw -LiteralPath (Join-Path $scriptDirectory '..\..\config\runbooks\workstation-compatibility.json') | ConvertFrom-Json
+$compatibility = ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText(
+    (Join-Path $scriptDirectory '..\..\config\runbooks\workstation-compatibility.json')))
 Assert-WorkstationCompatibilityRecord $compatibility
 Assert-WorkstationDeliveryPolicy $policy $compatibility (Join-Path $scriptDirectory '..\..\config\schemas\workstation-prerequisites.schema.json')
 $policyDigest = Get-RunbookContentDigest -InputObject $policy

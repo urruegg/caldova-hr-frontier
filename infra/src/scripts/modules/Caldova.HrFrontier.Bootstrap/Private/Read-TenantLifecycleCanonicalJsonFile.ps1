@@ -103,7 +103,8 @@ function Assert-TenantLifecycleJsonValueToken {
         [Parameter(Mandatory)][string]$Text,
         [Parameter(Mandatory)][ref]$Index,
         [ValidateRange(0, 100)][int]$Depth = 0,
-        [string[]]$RootReservedPropertyNames = @()
+        [string[]]$RootReservedPropertyNames = @(),
+        [switch]$RejectCaseAliases
     )
 
     if ($Depth -ge 100) {
@@ -117,7 +118,7 @@ function Assert-TenantLifecycleJsonValueToken {
     if ($character -eq '{') {
         $Index.Value++
         $propertyNames = [Collections.Generic.HashSet[string]]::new(
-            [StringComparer]::Ordinal
+            $(if ($RejectCaseAliases) { [StringComparer]::OrdinalIgnoreCase } else { [StringComparer]::Ordinal })
         )
         Skip-TenantLifecycleJsonWhitespace -Text $Text -Index $Index
         if ($Index.Value -lt $Text.Length -and
@@ -158,7 +159,8 @@ function Assert-TenantLifecycleJsonValueToken {
                 -Text $Text `
                 -Index $Index `
                 -Depth ($Depth + 1) `
-                -RootReservedPropertyNames $RootReservedPropertyNames
+                -RootReservedPropertyNames $RootReservedPropertyNames `
+                -RejectCaseAliases:$RejectCaseAliases
             Skip-TenantLifecycleJsonWhitespace -Text $Text -Index $Index
             if ($Index.Value -ge $Text.Length) {
                 throw [IO.InvalidDataException]::new()
@@ -186,7 +188,8 @@ function Assert-TenantLifecycleJsonValueToken {
                 -Text $Text `
                 -Index $Index `
                 -Depth ($Depth + 1) `
-                -RootReservedPropertyNames $RootReservedPropertyNames
+                -RootReservedPropertyNames $RootReservedPropertyNames `
+                -RejectCaseAliases:$RejectCaseAliases
             Skip-TenantLifecycleJsonWhitespace -Text $Text -Index $Index
             if ($Index.Value -ge $Text.Length) {
                 throw [IO.InvalidDataException]::new()
@@ -231,14 +234,16 @@ function Assert-TenantLifecycleJsonValueToken {
 function Assert-TenantLifecycleJsonHasUniqueProperties {
     param(
         [Parameter(Mandatory)][string]$Text,
-        [string[]]$RootReservedPropertyNames = @()
+        [string[]]$RootReservedPropertyNames = @(),
+        [switch]$RejectCaseAliases
     )
 
     $index = 0
     Assert-TenantLifecycleJsonValueToken `
         -Text $Text `
         -Index ([ref]$index) `
-        -RootReservedPropertyNames $RootReservedPropertyNames
+        -RootReservedPropertyNames $RootReservedPropertyNames `
+        -RejectCaseAliases:$RejectCaseAliases
     Skip-TenantLifecycleJsonWhitespace `
         -Text $Text `
         -Index ([ref]$index)

@@ -202,12 +202,9 @@ Describe 'Developer workstation initialization gates' {
                 mode = 'NotRequired'
             }) `
             -AllowedActions @([pscustomobject]@{
-                action = 'WinGetInstallExact'
-                targetId = 'Git.Git'
-                packageSource = 'winget'
-                packageId = 'Git.Git'
-                scope = 'machine'
-                expectedPostcondition = 'git.exe resolves and git --version exits 0'
+                action = 'InstallVsCodeExtensionExact'
+                targetId = 'GitHub.copilot'
+                expectedPostcondition = 'VS Code reports extension GitHub.copilot'
             }) `
             -ToolVersions @{} -GeneratedAtUtc ([datetime]'2026-09-26T05:00:00Z')
         $script:ApprovedDigest = $manifest.digest
@@ -443,6 +440,40 @@ Describe 'Developer workstation initialization gates' {
         $result.operations[0].readBack.version | Should -BeExactly '0.46.1'
     }
 
+    It 'fix round keeps missing unpinned WinGet prerequisites manual and outside executable manifests' {
+        $result = & $script:ScriptPath `
+            -AssessmentProvider {
+                New-SyntheticAssessment -MissingTool Git -ToolOverrides @{
+                    VisualStudioCode = @{ status = 'Missing'; version = $null; executablePath = $null; executableSha256 = $null }
+                } -VsCodeExtensionOverrides @{ status = 'Ready'; diagnostic = $null }
+            } `
+            -InteractiveHostProbe { [pscustomobject]@{ isInteractive = $true; reason = 'TestHost' } }
+        $result.executionManifest | Should -BeNullOrEmpty
+        @($result.operations | Where-Object { $_.classification -ne 'Manual' }).Count | Should -Be 0
+    }
+
+    It 'fix round refuses an unversioned automated WinGet action before any native callback' {
+        $manifestFile = New-ManifestFile -AllowedAction ([pscustomobject][ordered]@{
+            action = 'WinGetInstallExact'; targetId = 'Microsoft.VisualStudioCode'
+            packageSource = 'winget'; packageId = 'Microsoft.VisualStudioCode'; scope = 'machine'
+            expectedPostcondition = 'VisualStudioCode resolves uniquely with the reviewed executable identity and version policy'
+        })
+        $calls = [Collections.Generic.List[string]]::new()
+        {
+            & $script:ScriptPath -Apply -ExecutionManifestPath $manifestFile.path `
+                -ApprovedDigest $manifestFile.digest -Confirm:$false `
+                -AssessmentProvider {
+                    New-SyntheticAssessment -ToolOverrides @{
+                        VisualStudioCode = @{ status = 'Missing'; version = $null; executablePath = $null; executableSha256 = $null }
+                    } -VsCodeExtensionOverrides @{ status = 'Ready'; diagnostic = $null }
+                } `
+                -InteractiveHostProbe { [pscustomobject]@{ isInteractive = $true; reason = 'TestHost' } } `
+                -NowUtc ([datetime]'2026-09-26T05:10:00Z') `
+                -NativeCommandRunner { param($file, $arguments) $calls.Add($file); throw 'Unversioned action must not probe or install.' }.GetNewClosure()
+        } | Should -Throw
+        $calls.Count | Should -Be 0
+    }
+
     It 'refuses a changed executable identity before mutation' {
         $manifestFile = New-ManifestFile -AllowedAction ([pscustomobject][ordered]@{
             action = 'InstallPesterExact'
@@ -468,7 +499,7 @@ Describe 'Developer workstation initialization gates' {
         $calls.Count | Should -Be 0
     }
 
-    It 'marks machine-scope reviewed installs as requiring elevation in preview' {
+    It 'keeps an unreviewed installer mapping manual instead of requesting elevation' {
         $result = & $script:ScriptPath -RepositoryRoot (Join-Path $TestDrive 'repo-elevation') `
             -ReportPath (Join-Path $TestDrive 'preview-elevation') `
             -AssessmentProvider { New-SyntheticAssessment -MissingTool Git } `
@@ -476,20 +507,22 @@ Describe 'Developer workstation initialization gates' {
 
         $planResult = @($result)[-1]
         $plan = Get-Content -Raw -LiteralPath (Join-Path $planResult.reportDirectory 'workstation-plan.json') | ConvertFrom-Json
-        ($plan.operations | Where-Object targetId -eq 'Git.Git' | Select-Object -First 1).requiresElevation | Should -BeTrue
+        $operation = @($plan.operations | Where-Object targetId -eq 'Git')[0]
+        $operation.classification | Should -BeExactly 'Manual'
+        $operation.action | Should -BeExactly 'ManualReview'
+        $operation.requiresElevation | Should -BeFalse
     }
 
-    It 'refuses machine-scope apply when the current token is not elevated' {
-        $isElevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).
-            IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-        if ($isElevated) {
-            Set-ItResult -Skipped -Because 'This coverage requires a non-elevated token.'
-            return
-        }
-
+    It 'refuses an unreviewed machine-scope installer before any elevation or native decision' {
+        $manifestFile = New-ManifestFile -AllowedAction ([pscustomobject][ordered]@{
+            action = 'WinGetInstallExact'; targetId = 'Git.Git'; packageSource = 'winget'
+            packageId = 'Git.Git'; scope = 'machine'
+            expectedPostcondition = 'git.exe resolves and git --version exits 0'
+        })
         $calls = [Collections.Generic.List[string]]::new()
-        $result = & $script:ScriptPath -Apply -ExecutionManifestPath $script:ValidManifest `
-            -ApprovedDigest $script:ApprovedDigest -Confirm:$false `
+        {
+        & $script:ScriptPath -Apply -ExecutionManifestPath $manifestFile.path `
+            -ApprovedDigest $manifestFile.digest -Confirm:$false `
             -AssessmentProvider { New-SyntheticAssessment -MissingTool Git -VsCodeExtensionOverrides @{ status = 'Ready'; diagnostic = $null } } `
             -InteractiveHostProbe { [pscustomobject]@{ isInteractive = $true; reason = 'TestHost' } } `
             -NowUtc ([datetime]'2026-09-26T05:10:00Z') `
@@ -510,9 +543,9 @@ Describe 'Developer workstation initialization gates' {
                 }
                 [pscustomobject]@{ exitCode = 0; stdout = @('synthetic'); stderr = @() }
             }
+        } | Should -Throw '*absent from reviewed policy*'
 
         $calls.Count | Should -Be 0
-        $result.operations[0].status | Should -Be 'Manual'
     }
 
     It 'preserves blocked and manual planning states and emits only executable actions into the manifest' {
@@ -542,7 +575,7 @@ Describe 'Developer workstation initialization gates' {
         $manifest = Get-Content -Raw -LiteralPath (Join-Path $reportPath 'workstation-execution-manifest.json') | ConvertFrom-Json
         $planResult = @($result)[-1]
         $plan = Get-Content -Raw -LiteralPath (Join-Path $planResult.reportDirectory 'workstation-plan.json') | ConvertFrom-Json
-        ($plan.operations | Where-Object targetId -eq 'Git.Git' | Select-Object -First 1).classification | Should -Be 'Blocked'
+        ($plan.operations | Where-Object targetId -eq 'Git' | Select-Object -First 1).classification | Should -Be 'Blocked'
         ($plan.operations | Where-Object targetId -eq 'WindowsPowerShell' | Select-Object -First 1).classification | Should -Be 'Manual'
         ($plan.operations | Where-Object targetId -eq 'Pester' | Select-Object -First 1).classification | Should -Be 'Update'
         @($manifest.allowedActions).Count | Should -Be 1

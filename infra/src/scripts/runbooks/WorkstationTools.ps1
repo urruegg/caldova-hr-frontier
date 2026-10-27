@@ -1,3 +1,37 @@
+function Get-WorkstationBootstrapModule {
+    $path = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\modules\Caldova.HrFrontier.Bootstrap\Caldova.HrFrontier.Bootstrap.psd1'))
+    $loaded = @(Get-Module -Name Caldova.HrFrontier.Bootstrap | Where-Object {
+        $_.Path -ieq [IO.Path]::ChangeExtension($path, '.psm1')
+    })
+    if ($loaded.Count -eq 1) { return $loaded[0] }
+    Import-Module -Name $path -PassThru -ErrorAction Stop
+}
+
+function ConvertFrom-WorkstationStrictJson {
+    param([string]$Text)
+    & (Get-WorkstationBootstrapModule) {
+        param([string]$raw)
+        if ([string]::IsNullOrWhiteSpace($raw) -or $raw.TrimStart()[0] -ne '{') {
+            throw [IO.InvalidDataException]::new('Expected a JSON object.')
+        }
+        Assert-TenantLifecycleJsonHasUniqueProperties -Text $raw -RejectCaseAliases
+        $value = ConvertFrom-TenantLifecycleJson -InputObject $raw
+        if ($null -eq $value -or $value -is [array] -or $value -is [string] -or $value.GetType().IsPrimitive) {
+            throw [IO.InvalidDataException]::new('Expected a JSON object.')
+        }
+        $value
+    } $Text
+}
+
+function Assert-WorkstationArray {
+    param([AllowNull()][object]$Value, [int]$MinimumCount = 0, [switch]$Strings)
+    & (Get-WorkstationBootstrapModule) {
+        param([object]$raw, [int]$minimum, [bool]$stringsOnly)
+        if ($stringsOnly) { Assert-TenantLifecycleStringArray -Value $raw -MinimumCount $minimum }
+        else { Assert-TenantLifecycleArray -Value $raw -MinimumCount $minimum }
+    } $Value $MinimumCount ([bool]$Strings)
+}
+
 function Invoke-NativeCommand {
     param([scriptblock]$Runner, [string]$FilePath, [string[]]$ArgumentList)
     $result = & $Runner $FilePath $ArgumentList
@@ -47,7 +81,70 @@ function New-DefaultCommandResolver {
     }
 }
 
+function Read-WorkstationReparseMetadata {
+    param([string]$Path, [scriptblock]$Runner)
+    $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+    if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) {
+        return [pscustomobject]@{ tag = [uint32]0; fields = @() }
+    }
+    if ($null -eq $Runner) { $Runner = New-DefaultNativeCommandRunner }
+    $native = & $Runner (Join-Path ([Environment]::SystemDirectory) 'fsutil.exe') @(
+        'reparsepoint', 'query', $item.FullName)
+    if ($native.exitCode -ne 0) { throw 'Reparse metadata cannot be proven.' }
+    $tags = @($native.stdout | ForEach-Object {
+        if ($_ -match '(?i)^Reparse Tag Value\s*:\s*0x([0-9a-f]{8})\s*$') { [Convert]::ToUInt32($Matches[1], 16) }
+    })
+    if ($tags.Count -ne 1) { throw 'Unknown reparse metadata format.' }
+    $fields = @()
+    if ($tags[0] -eq [Convert]::ToUInt32('8000001b', 16)) {
+        $bytes = [Collections.Generic.List[byte]]::new()
+        foreach ($line in $native.stdout) {
+            if ($line -match '^\s*[0-9a-fA-F]{4,8}:\s+((?:[0-9a-fA-F]{2}\s+){1,16})') {
+                foreach ($byte in ($Matches[1].Trim() -split '\s+')) { $bytes.Add([Convert]::ToByte($byte, 16)) }
+            }
+        }
+        if ($bytes.Count -lt 6 -or [BitConverter]::ToUInt32($bytes.ToArray(), 0) -ne 3) {
+            throw 'Unsupported AppExecutionAlias metadata.'
+        }
+        $fields = @(([Text.Encoding]::Unicode.GetString($bytes.ToArray(), 4, $bytes.Count - 4)).Split([char]0) |
+            Where-Object { $_ })
+    }
+    [pscustomobject]@{ tag = $tags[0]; fields = $fields }
+}
+
+function Assert-WorkstationPhysicalPath {
+    param([string]$Path, [scriptblock]$MetadataReader, [scriptblock]$Runner)
+    if ($null -eq $MetadataReader) { $MetadataReader = ${function:Read-WorkstationReparseMetadata} }
+    if ($null -eq $Runner) { $Runner = New-DefaultNativeCommandRunner }
+    $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+    while ($null -ne $item) {
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            $metadata = & $MetadataReader $item.FullName $Runner
+            # Hydrated Cloud Files tags are non-name-surrogate metadata, not path redirections.
+            if (([uint64]$metadata.tag -band [Convert]::ToUInt32('ffff0fff', 16)) -ne
+                [Convert]::ToUInt32('9000001a', 16) -or
+                ([int64]$item.Attributes -band 4460544) -ne 0) {
+                throw 'Redirecting, offline or unreviewed reparse path refused.'
+            }
+        }
+        $item = if ($item -is [IO.DirectoryInfo]) { $item.Parent } else { $item.Directory }
+    }
+}
+
 function New-DefaultFileIdentityProvider {
+    param([object]$CompatibilityRecord)
+    $record = $CompatibilityRecord
+    if ($null -eq $record) {
+        $record = ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText(
+            (Join-Path $PSScriptRoot '..\..\config\runbooks\workstation-compatibility.json')))
+        Assert-WorkstationCompatibilityRecord $record
+    }
+    $powerShell = @($record.components | Where-Object id -CEQ PowerShell7)[0]
+    $metadataReader = ${function:Read-WorkstationReparseMetadata}
+    $physicalPathValidator = ${function:Assert-WorkstationPhysicalPath}
+    $metadataRunner = New-DefaultNativeCommandRunner
+    $expectedTarget = Join-Path $env:ProgramFiles ('WindowsApps\Microsoft.PowerShell_' +
+        $powerShell.version + '.0_x64__8wekyb3d8bbwe\pwsh.exe')
     {
         param($path)
         $canonical = [IO.Path]::GetFullPath($path)
@@ -59,12 +156,30 @@ function New-DefaultFileIdentityProvider {
                 (Join-Path $aliasRoot 'Microsoft.PowerShell_8wekyb3d8bbwe\pwsh.exe')
             )
             if ($canonical -notin $approvedAliases) { throw 'Unreviewed PowerShell execution alias.' }
-            # App execution aliases have no hashable PE payload; ask each alias for its actual host.
-            $homes = @(& $canonical -NoLogo -NoProfile -Command '(Join-Path $PSHOME "pwsh.exe")' 2>&1)
-            if ($LASTEXITCODE -ne 0 -or $homes.Count -ne 1) { throw 'PowerShell alias identity is unproven.' }
-            $canonical = [IO.Path]::GetFullPath([string]$homes[0])
-            if (-not $canonical.StartsWith((Join-Path $env:ProgramFiles 'WindowsApps\Microsoft.PowerShell_'),
-                [StringComparison]::OrdinalIgnoreCase)) { throw 'Untrusted PowerShell alias target.' }
+            $metadata = & $metadataReader $canonical $metadataRunner
+            if ($metadata.tag -ne [Convert]::ToUInt32('8000001b', 16) -or $metadata.fields.Count -ne 4 -or
+                $metadata.fields[0] -cne 'Microsoft.PowerShell_8wekyb3d8bbwe' -or
+                $metadata.fields[1] -cne 'Microsoft.PowerShell_8wekyb3d8bbwe!App' -or
+                $metadata.fields[2] -ine $expectedTarget -or $metadata.fields[3] -cne '0') {
+                throw 'AppExecutionAlias package binding is unproven.'
+            }
+            $canonical = $expectedTarget
+        }
+        if ((Split-Path -Leaf $canonical) -ieq 'pwsh.exe') {
+            if ($canonical -ine $expectedTarget) { throw 'Unreviewed physical PowerShell target.' }
+            $manifestPath = Join-Path (Split-Path $expectedTarget -Parent) 'AppxManifest.xml'
+            & $physicalPathValidator $manifestPath $metadataReader $metadataRunner
+            if ((Get-FileHash -LiteralPath $manifestPath).Hash.ToLowerInvariant() -cne $powerShell.appxManifestSha256) {
+                throw 'Store package manifest changed.'
+            }
+            [xml]$manifest = [IO.File]::ReadAllText($manifestPath)
+            $applications = @($manifest.SelectNodes('//*[local-name()="Application"]') | Where-Object {
+                $_.Id -ceq 'App' -and $_.Executable -ceq 'pwsh.exe'
+            })
+            if ($applications.Count -ne 1) { throw 'Store application executable binding is unproven.' }
+            if ((Get-FileHash -LiteralPath $canonical).Hash.ToLowerInvariant() -cne $powerShell.sha256) {
+                throw 'Unreviewed physical PowerShell target.'
+            }
         }
         $item = Get-Item -LiteralPath $canonical -ErrorAction Stop
         if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
@@ -74,7 +189,7 @@ function New-DefaultFileIdentityProvider {
             path = $item.FullName
             sha256 = (Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
         }
-    }
+    }.GetNewClosure()
 }
 
 function Get-ObservedVersion {
@@ -121,27 +236,72 @@ function Test-VersionPolicy {
     }
 }
 
+function Get-WorkstationPesterInstallationRoot {
+    param([string]$Id)
+    $family = switch -CaseSensitive ($Id) {
+        'CurrentUserWindowsPowerShell' { 'WindowsPowerShell' }
+        'CurrentUserPowerShell' { 'PowerShell' }
+        default { throw 'Unreviewed module installation source.' }
+    }
+    Join-Path ([Environment]::GetFolderPath('MyDocuments')) ($family + '\Modules\Pester\5.7.1')
+}
+
+function Assert-WorkstationPesterInstallation {
+    param([object]$Installation)
+    $root = Get-WorkstationPesterInstallationRoot $Installation.id
+    Assert-WorkstationPhysicalPath $root
+    $actual = @(Get-ChildItem -LiteralPath $root -File -Recurse -Force | Where-Object {
+        $_.FullName.Substring($root.Length + 1) -cne 'PSGetModuleInfo.xml'
+    })
+    if ($actual.Count -ne $Installation.files.Count) { throw 'Module package inventory changed.' }
+    foreach ($file in $Installation.files) {
+        if ($file.path -cnotmatch '^[A-Za-z0-9_.-]+(?:\\[A-Za-z0-9_.-]+)*$' -or
+            $file.path -match '(^|\\)\.\.?(\\|$)') { throw 'Invalid module payload path.' }
+        $path = Join-Path $root $file.path
+        Assert-WorkstationPhysicalPath $path
+        if ((Get-FileHash -LiteralPath $path).Hash.ToLowerInvariant() -cne $file.sha256) {
+            throw 'Module payload changed before import.'
+        }
+    }
+    $root
+}
+
+function Invoke-WorkstationTrustedHostProbe {
+    param([object]$Installation)
+    $root = Assert-WorkstationPesterInstallation $Installation
+    $p = Import-Module -Name (Join-Path $root 'Pester.psd1') -Force -PassThru -ErrorAction Stop
+    [pscustomobject]@{
+        ps = $PSVersionTable.PSVersion.ToString()
+        arch = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()
+        windows = ([Environment]::OSVersion.Platform -eq 'Win32NT')
+        build = [Environment]::OSVersion.Version.Build
+        compat = (Get-Command Import-Module).Parameters.ContainsKey('UseWindowsPowerShell')
+        pester = $p.Version.ToString()
+        modulePath = $p.Path
+        moduleSha256 = (Get-FileHash -LiteralPath $p.Path -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+}
+
 function Get-WorkstationHostProbeCommand {
-    @'
-$ErrorActionPreference = 'Stop'
-$editionRoot = if ($PSVersionTable.PSEdition -eq 'Core') { '\\PowerShell\\Modules\\' } else { '\\WindowsPowerShell\\Modules\\' }
-$modules = @(Get-Module -ListAvailable Pester | Where-Object {
-    $_.Version.ToString() -ceq '5.7.1' -and $_.Path -match $editionRoot
-})
-if ($modules.Count -ne 1) { exit 1 }
-Import-Module -Name $modules[0].Path -Force
-$p = Get-Module Pester
-[pscustomobject]@{
-    ps = $PSVersionTable.PSVersion.ToString()
-    arch = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()
-    windows = ([Environment]::OSVersion.Platform -eq 'Win32NT')
-    build = [Environment]::OSVersion.Version.Build
-    compat = (Get-Command Import-Module).Parameters.ContainsKey('UseWindowsPowerShell')
-    pester = $p.Version.ToString()
-    modulePath = $p.Path
-    moduleSha256 = (Get-FileHash -LiteralPath $p.Path -Algorithm SHA256).Hash.ToLowerInvariant()
-} | ConvertTo-Json -Compress
-'@
+    param([object]$PesterRecord, [ValidateSet('WindowsPowerShell', 'PowerShell7')][string]$HostId = 'WindowsPowerShell')
+    if ($null -eq $PesterRecord) {
+        $record = ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText(
+            (Join-Path $PSScriptRoot '..\..\config\runbooks\workstation-compatibility.json')))
+        Assert-WorkstationCompatibilityRecord $record
+        $PesterRecord = @($record.components | Where-Object id -CEQ Pester)[0]
+    }
+    $id = if ($HostId -eq 'WindowsPowerShell') { 'CurrentUserWindowsPowerShell' } else { 'CurrentUserPowerShell' }
+    $installation = @($PesterRecord.installations | Where-Object id -CEQ $id)[0]
+    $data = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(
+        (ConvertTo-Json -InputObject $installation -Depth 20 -Compress)))
+    $helperPath = (Join-Path $PSScriptRoot 'WorkstationTools.ps1').Replace("'", "''")
+    @"
+`$ErrorActionPreference='Stop'
+`$ProgressPreference='SilentlyContinue'
+. '$helperPath'
+`$installation=ConvertFrom-WorkstationStrictJson ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$data')))
+Invoke-WorkstationTrustedHostProbe -Installation `$installation | ConvertTo-Json -Compress
+"@
 }
 
 function Resolve-ExecutableIdentity {
@@ -171,17 +331,30 @@ function Assert-WorkstationDeliveryPolicy {
     Assert-WorkstationProperties $Policy @('$schema', 'schemaVersion', 'compatibilityRecord', 'platform',
         'interactiveAuthentication', 'tools', 'azureCliExtensions', 'vsCodeExtensions', 'repositoryAssets', 'allowedActions')
     Assert-WorkstationProperties $Policy.platform @('productName', 'minimumBuild')
+    if ($Policy.schemaVersion -isnot [string] -or $Policy.platform.productName -isnot [string]) { throw 'Platform/schema names must be strings.' }
+    if ($Policy.platform.minimumBuild -isnot [int] -and $Policy.platform.minimumBuild -isnot [long]) { throw 'Platform build must be an integer.' }
     if ($Policy.schemaVersion -cne '1.0' -or $Policy.platform.productName -cne 'Windows 11' -or
         $Policy.platform.minimumBuild -lt 22000) { throw 'Unreviewed platform contract.' }
     $auth = $Policy.interactiveAuthentication
     Assert-WorkstationProperties $auth @('executionHost', 'allowUnattendedExecution', 'allowOidcWorkloadIdentity',
         'allowCredentialParameters', 'methods')
+    foreach ($name in 'allowUnattendedExecution', 'allowOidcWorkloadIdentity', 'allowCredentialParameters') {
+        if ($auth.$name -isnot [bool]) { throw 'Authentication flags must be JSON booleans.' }
+    }
+    foreach ($name in 'tools', 'azureCliExtensions', 'vsCodeExtensions', 'repositoryAssets', 'allowedActions') {
+        Assert-WorkstationArray -Value $Policy.$name
+    }
+    Assert-WorkstationArray -Value $auth.methods
     if ($auth.executionHost -cne 'InteractiveWindows11PowerShell' -or $auth.allowUnattendedExecution -or
         $auth.allowOidcWorkloadIdentity -or $auth.allowCredentialParameters -or @($auth.methods).Count -ne 4) {
         throw 'Authentication boundary changed.'
     }
     foreach ($method in $auth.methods) {
         Assert-WorkstationProperties $method @('service', 'mode', 'loginCommand', 'readBackCommand', 'cleanupCommands')
+        foreach ($name in 'service', 'mode', 'loginCommand', 'readBackCommand') {
+            if ($method.$name -isnot [string]) { throw 'Authentication declarations must be strings.' }
+        }
+        Assert-WorkstationArray -Value $method.cleanupCommands -MinimumCount 1 -Strings
     }
     if ((@($Policy.tools.id) -join '|') -cne
         'PowerShell7|WindowsPowerShell|Git|VisualStudioCode|GitHubCli|AzureCli|AzureDeveloperCli|PowerPlatformCli|Bicep|Pester|GitHubCopilotCli') {
@@ -221,13 +394,17 @@ function Assert-WorkstationDeliveryPolicy {
             $items[0].versionPolicy.value -cne $component.version) { throw 'Policy/compatibility version mismatch.' }
     }
     foreach ($tool in $Policy.tools) {
+        Assert-WorkstationArray -Value $tool.versionArguments -MinimumCount 1 -Strings
+        if ($tool.install.PSObject.Properties.Name -contains 'arguments') {
+            Assert-WorkstationArray -Value $tool.install.arguments -MinimumCount 1 -Strings
+        }
         $contracts = @($schema.'$defs'.tool.oneOf | Where-Object { $_.properties.id.const -ceq $tool.id })
         if ($contracts.Count -ne 1) { throw 'Unreviewed tool contract.' }
         Assert-WorkstationProperties $tool @('id', 'command', 'versionArguments', 'versionPolicy', 'installDisposition', 'install', 'reference')
         foreach ($property in $contracts[0].properties.PSObject.Properties) {
             if ($property.Value.PSObject.Properties.Name -contains 'const') {
-                if (($tool.($property.Name) | ConvertTo-Json -Depth 20 -Compress) -cne
-                    ($property.Value.const | ConvertTo-Json -Depth 20 -Compress)) {
+                if ((ConvertTo-Json -InputObject $tool.($property.Name) -Depth 20 -Compress) -cne
+                    (ConvertTo-Json -InputObject $property.Value.const -Depth 20 -Compress)) {
                     throw 'Policy tool command, source or parser contract changed.'
                 }
             }
@@ -249,17 +426,22 @@ function Assert-WorkstationX64Executable {
 
 function Assert-WorkstationProperties {
     param([object]$Value, [string[]]$Names)
-    $actual = @($Value.PSObject.Properties.Name | Sort-Object)
-    if (($actual -join '|') -cne (($Names | Sort-Object) -join '|')) {
-        throw 'Unrecognized or missing compatibility property.'
-    }
+    & (Get-WorkstationBootstrapModule) {
+        param([object]$raw, [string[]]$fields)
+        Assert-TenantLifecycleProperties -InputObject $raw -Fields $fields
+    } $Value $Names
 }
 
 function Assert-WorkstationCompatibilityRecord {
     param([object]$Record)
     Assert-WorkstationProperties $Record @('$schema', 'schemaVersion', 'review', 'components')
+    if ($Record.'$schema' -isnot [string] -or $Record.schemaVersion -isnot [string]) { throw 'Schema declarations must be strings.' }
+    Assert-WorkstationArray -Value $Record.components -MinimumCount 9
     if ($Record.schemaVersion -cne '1.0') { throw 'Unsupported compatibility schema.' }
     Assert-WorkstationProperties $Record.review @('kind', 'reviewer', 'reviewedAtUtc', 'isApproval', 'scope')
+    foreach ($name in 'kind', 'reviewer', 'reviewedAtUtc', 'scope') {
+        if ($Record.review.$name -isnot [string]) { throw 'Review declarations must be strings.' }
+    }
     if ($Record.review.kind -cne 'AutomatedTechnicalReview' -or $Record.review.reviewer -cne 'GitHub Copilot' -or
         $Record.review.isApproval -isnot [bool] -or $Record.review.isApproval -or
         [string]::IsNullOrWhiteSpace($Record.review.scope)) { throw 'Technical review is not human approval.' }
@@ -285,8 +467,44 @@ function Assert-WorkstationCompatibilityRecord {
     foreach ($component in $Record.components) {
         $properties = @('id', 'version', 'source', 'architecture', 'sha256', 'capabilities', 'references')
         if ($component.id -in @('AzureCli', 'PowerPlatformCli')) { $properties += 'payloads' }
+        if ($component.id -ceq 'PowerShell7') { $properties += 'appxManifestSha256' }
+        if ($component.id -ceq 'Pester') { $properties += 'installations' }
         Assert-WorkstationProperties $component $properties
+        foreach ($name in 'id', 'version', 'source', 'architecture', 'sha256') {
+            if ($component.$name -isnot [string]) { throw 'Component fields must be JSON strings.' }
+        }
+        Assert-WorkstationArray -Value $component.capabilities -MinimumCount 1 -Strings
+        Assert-WorkstationArray -Value $component.references -MinimumCount 1 -Strings
+        if ($component.id -ceq 'PowerShell7' -and $component.appxManifestSha256 -cnotmatch '^[0-9a-f]{64}$') {
+            throw 'Unproven Store package manifest.'
+        }
+        if ($component.id -ceq 'Pester') {
+            Assert-WorkstationArray -Value $component.installations -MinimumCount 2
+            if (($component.installations.id -join '|') -cne 'CurrentUserWindowsPowerShell|CurrentUserPowerShell') {
+                throw 'Unreviewed Pester installation roots.'
+            }
+            foreach ($installation in $component.installations) {
+                Assert-WorkstationProperties $installation @('id', 'files')
+                Assert-WorkstationArray -Value $installation.files -MinimumCount 18
+                if ($installation.files.Count -ne 18 -or @($installation.files.path | Sort-Object -Unique).Count -ne 18) {
+                    throw 'Incomplete Pester source inventory.'
+                }
+                foreach ($file in $installation.files) {
+                    Assert-WorkstationProperties $file @('path', 'sha256')
+                    if ($file.path -isnot [string] -or $file.sha256 -isnot [string] -or
+                        $file.sha256 -cnotmatch '^[0-9a-f]{64}$' -or
+                        $file.path -cnotmatch '^[A-Za-z0-9_.-]+(?:\\[A-Za-z0-9_.-]+)*$' -or
+                        $file.path -match '(^|\\)\.\.?(\\|$)') { throw 'Invalid Pester payload pin.' }
+                }
+                $module = @($installation.files | Where-Object path -CEQ Pester.psm1)
+                if ($module.Count -ne 1 -or $module[0].sha256 -cne $component.sha256 -or
+                    @($installation.files | Where-Object path -CEQ Pester.psd1).Count -ne 1) {
+                    throw 'Pester executable/manifest source pins missing.'
+                }
+            }
+        }
         if ($component.id -in @('AzureCli', 'PowerPlatformCli')) {
+            Assert-WorkstationArray -Value $component.payloads -MinimumCount 1
             $expectedPayloads = if ($component.id -eq 'AzureCli') { 'AzureCliPython' } else { 'PacAssembly|SolutionPackagerAssembly' }
             if ((@($component.payloads.id) -join '|') -cne $expectedPayloads) { throw 'Principal source payload pins missing or changed.' }
             foreach ($payload in $component.payloads) {

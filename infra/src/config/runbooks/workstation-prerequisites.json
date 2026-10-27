@@ -66,8 +66,8 @@
       "command": "git.exe",
       "versionArguments": ["--version"],
       "versionPolicy": { "mode": "Exact", "value": "2.56.0.windows.3" },
-      "installDisposition": "Automated",
-      "install": { "kind": "WinGet", "source": "winget", "packageId": "Git.Git", "scope": "machine" },
+      "installDisposition": "Manual",
+      "install": { "kind": "None" },
       "reference": "https://docs.github.com/en/get-started/getting-started-with-git/set-up-git"
     },
     {
@@ -84,8 +84,8 @@
       "command": "gh.exe",
       "versionArguments": ["--version"],
       "versionPolicy": { "mode": "Exact", "value": "2.103.2" },
-      "installDisposition": "Automated",
-      "install": { "kind": "WinGet", "source": "winget", "packageId": "GitHub.cli", "scope": "machine" },
+      "installDisposition": "Manual",
+      "install": { "kind": "None" },
       "reference": "https://docs.github.com/en/github-cli/github-cli/quickstart"
     },
     {
@@ -93,8 +93,8 @@
       "command": "az.cmd",
       "versionArguments": ["version", "--output", "json"],
       "versionPolicy": { "mode": "Exact", "value": "2.91.0" },
-      "installDisposition": "Automated",
-      "install": { "kind": "WinGet", "source": "winget", "packageId": "Microsoft.AzureCLI", "scope": "machine" },
+      "installDisposition": "Manual",
+      "install": { "kind": "None" },
       "reference": "https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-windows"
     },
     {

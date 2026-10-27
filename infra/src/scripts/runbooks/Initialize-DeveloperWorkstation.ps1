@@ -77,18 +77,8 @@ function Assert-AllowedPolicyActions {
         $item = $null
         switch ([string]$tool.install.kind) {
             'WinGet' {
-                $postcondition = switch ([string]$tool.id) {
-                    'Git' { 'git.exe resolves and git --version exits 0' }
-                    default { "$($tool.id) resolves uniquely with the reviewed executable identity and version policy" }
-                }
-                $item = [pscustomobject][ordered]@{
-                    action = 'WinGetInstallExact'
-                    targetId = [string]$tool.install.packageId
-                    packageSource = [string]$tool.install.source
-                    packageId = [string]$tool.install.packageId
-                    scope = [string]$tool.install.scope
-                    expectedPostcondition = $postcondition
-                }
+                # No package-manager/runtime version mapping is reviewed in this increment.
+                $item = $null
             }
             'PowerShellGallery' {
                 $item = [pscustomobject][ordered]@{
@@ -170,7 +160,7 @@ function Show-RunbookChangeSummary {
 
 function Get-Policy {
     param([Parameter(Mandatory)][string]$PolicyFilePath)
-    Get-Content -Raw -LiteralPath $PolicyFilePath | ConvertFrom-Json
+    ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText($PolicyFilePath))
 }
 
 function Get-Assessment {
@@ -222,13 +212,12 @@ function Get-ToolStatusClassification {
         [Parameter(Mandatory)][string]$InstallDisposition
     )
 
-    if ([string]$CurrentState.status -eq 'Missing') {
-        return 'Create'
+    if ([string]$InstallDisposition -ceq 'Manual') {
+        if ([string]$CurrentState.status -eq 'Missing' -or
+            [string]$CurrentState.diagnostic -like 'Reviewed version policy failed*') { return 'Manual' }
+        return 'Blocked'
     }
-    if ([string]$CurrentState.status -eq 'Blocked' -and
-        [string]$InstallDisposition -ceq 'Manual') {
-        return 'Manual'
-    }
+    if ([string]$CurrentState.status -eq 'Missing') { return 'Create' }
     if ([string]$CurrentState.status -eq 'Blocked' -and
         -not [string]::IsNullOrWhiteSpace([string]$CurrentState.diagnostic) -and
         [string]$CurrentState.diagnostic -like 'Reviewed version policy failed*') {
@@ -258,13 +247,10 @@ function Get-PlannedOperations {
                     'Git' { 'git.exe resolves and git --version exits 0' }
                     default { "$($tool.id) resolves uniquely with the reviewed executable identity and version policy" }
                 }
-                [void]$operations.Add((New-Operation -Classification $classification -RequiresElevation ([string]$tool.install.scope -ceq 'machine') -Action ([pscustomobject][ordered]@{
-                    action = 'WinGetInstallExact'
-                    targetId = [string]$tool.install.packageId
-                    packageSource = [string]$tool.install.source
-                    packageId = [string]$tool.install.packageId
-                    scope = [string]$tool.install.scope
-                    expectedPostcondition = $postcondition
+                [void]$operations.Add((New-Operation -Classification $(if ($classification -eq 'Blocked') { 'Blocked' } else { 'Manual' }) -Action ([pscustomobject][ordered]@{
+                    action = 'ManualReview'
+                    targetId = [string]$tool.id
+                    expectedPostcondition = 'Installer package-version/runtime mapping requires separate review'
                 })))
             }
             'PowerShellGallery' {
@@ -650,7 +636,8 @@ if (-not [bool]$interactiveState.isInteractive) {
 }
 
 $policy = Get-Policy -PolicyFilePath $PolicyPath
-$compatibility = Get-Content -Raw -LiteralPath (Join-Path $scriptDirectory '..\..\config\runbooks\workstation-compatibility.json') | ConvertFrom-Json
+$compatibility = ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText(
+    (Join-Path $scriptDirectory '..\..\config\runbooks\workstation-compatibility.json')))
 Assert-WorkstationCompatibilityRecord $compatibility
 Assert-WorkstationDeliveryPolicy $policy $compatibility (Join-Path $scriptDirectory '..\..\config\schemas\workstation-prerequisites.schema.json')
 $assessment = Get-Assessment -PolicyFilePath $PolicyPath -RepositoryRootPath $RepositoryRoot `
@@ -746,96 +733,7 @@ foreach ($action in @($manifestContent.allowedActions)) {
 
     switch ([string]$action.action) {
         'WinGetInstallExact' {
-            $arguments = @(
-                'install', '--exact', '--id', $policyAction.packageId,
-                '--source', $policyAction.packageSource, '--scope', $policyAction.scope
-            )
-            if ($null -ne $plannedOperation -and $plannedOperation.requiresElevation -and -not $elevationState.isElevated) {
-                $decision = 'Approved'
-                $status = 'Manual'
-                $errorCategory = 'Elevation'
-                $recoveryItems = @([pscustomobject][ordered]@{
-                    service = 'WorkstationTooling'
-                    targetId = [string]$policyAction.targetId
-                    lastProvenState = 'The current token is not elevated for the reviewed machine-scope operation.'
-                    safeDiagnostic = [string]$elevationState.reason
-                    owner = 'Workstation administrator'
-                    nextAction = 'Restart the attended run in an already elevated PowerShell session and generate a new approved manifest.'
-                    requiresNewPlan = $true
-                    requiresNewApproval = $true
-                })
-            }
-            elseif ($PSCmdlet.ShouldProcess($policyAction.targetId, "Install exact WinGet package $($policyAction.packageId)")) {
-                $decision = 'Approved'
-                Assert-ExecutableStateUnchanged -ExpectedPath ([string]$hostTool.expectedPath) `
-                    -ExpectedSha256 ([string]$hostTool.expectedSha256) -ExpectedVersion ([string]$hostTool.expectedVersion) `
-                    -VersionArguments @($hostTool.versionArguments) -ToolId ([string]$hostTool.id) `
-                    -CommandName 'winget.exe' -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider `
-                    -Runner $NativeCommandRunner | Out-Null
-                $nativeResult = Invoke-NativeCommand -Runner $NativeCommandRunner `
-                    -FilePath ([string]$assessment.platform.packageManager.executablePath) `
-                    -ArgumentList $arguments
-                Update-RunbookProcessPath | Out-Null
-
-                $toolPolicy = Get-ToolPolicyForAction -Policy $policy -Action $policyAction
-                $resolved = Resolve-ExecutableIdentity -CommandName ([string]$toolPolicy.command) -Resolver $CommandResolver -IdentityProvider $FileIdentityProvider
-                if ($resolved.status -ne 'Ready') {
-                    $status = 'Failed'
-                    $errorCategory = 'ReadBack'
-                    $recoveryItems = @([pscustomobject][ordered]@{
-                        service = 'WorkstationTooling'
-                        targetId = [string]$policyAction.targetId
-                        lastProvenState = 'Package manager returned success but executable did not resolve uniquely.'
-                        safeDiagnostic = [string]$resolved.diagnostic
-                        owner = 'Workstation administrator'
-                        nextAction = 'Reassess the workstation and generate a new approved manifest.'
-                        requiresNewPlan = $true
-                        requiresNewApproval = $true
-                    })
-                    $readBack = [pscustomobject][ordered]@{
-                        service = 'WorkstationTooling'
-                        targetId = [string]$policyAction.targetId
-                        status = 'Failed'
-                        expectedPostcondition = [string]$policyAction.expectedPostcondition
-                    }
-                }
-                else {
-                    $nativeReadBack = Invoke-NativeCommand -Runner $NativeCommandRunner -FilePath $resolved.path -ArgumentList @($toolPolicy.versionArguments)
-                    $observedVersion = Get-ObservedVersion -ToolId ([string]$toolPolicy.id) -Result $nativeReadBack
-                    $verified = ($nativeResult.exitCode -eq 0 -and $nativeReadBack.exitCode -eq 0 -and
-                        (Test-VersionPolicy -ObservedVersion $observedVersion -VersionPolicy $toolPolicy.versionPolicy))
-                    $status = $(if ($verified) { 'Verified' } else { 'Failed' })
-                    $readBack = [pscustomobject][ordered]@{
-                        service = 'WorkstationTooling'
-                        targetId = [string]$policyAction.targetId
-                        status = $status
-                        expectedPostcondition = [string]$policyAction.expectedPostcondition
-                        version = $observedVersion
-                        path = $resolved.path
-                        exitCode = [int]$nativeReadBack.exitCode
-                    }
-                    if ($verified) {
-                        $toolVersions[[string]$toolPolicy.id] = $observedVersion
-                    }
-                    else {
-                        $errorCategory = 'ReadBack'
-                        $recoveryItems = @([pscustomobject][ordered]@{
-                            service = 'WorkstationTooling'
-                            targetId = [string]$policyAction.targetId
-                            lastProvenState = 'Command returned without proving the reviewed postcondition.'
-                            safeDiagnostic = [string]$policyAction.expectedPostcondition
-                            owner = 'Workstation administrator'
-                            nextAction = 'Reassess the workstation and generate a new approved manifest.'
-                            requiresNewPlan = $true
-                            requiresNewApproval = $true
-                        })
-                    }
-                }
-            }
-            else {
-                $decision = $(if ($WhatIfPreference) { 'WhatIf' } else { 'Declined' })
-                $status = 'Refused'
-            }
+            throw 'WinGet installer package-version/runtime mapping is not reviewed; installation is manual.'
         }
         'InstallPesterExact' {
             $arguments = @(

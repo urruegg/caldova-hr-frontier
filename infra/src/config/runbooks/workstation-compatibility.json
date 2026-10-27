@@ -4,7 +4,7 @@
   "review": {
     "kind": "AutomatedTechnicalReview",
     "reviewer": "GitHub Copilot",
-    "reviewedAtUtc": "2026-10-26T16:30:15.1877593Z",
+    "reviewedAtUtc": "2026-10-27T07:35:14.9497372Z",
     "isApproval": false,
     "scope": "Local unauthenticated Windows X64 compatibility; no operator, import, organization or live acceptance"
   },
@@ -15,6 +15,7 @@
       "source": "MicrosoftStore",
       "architecture": "X64",
       "sha256": "b90c0f48ca4b13c9426a7863f3d469baf310ca517721dd0b55551b80ec9fee2a",
+      "appxManifestSha256": "feb18066e5dcf71e13b94145b20be3f1b802b22241f8ae38e05a6f84268fcdf4",
       "capabilities": ["WindowsX64Host", "WindowsCompatibilityParameter", "Pester571Import"],
       "references": ["https://github.com/PowerShell/PowerShell/releases/tag/v7.6.8", "https://learn.microsoft.com/en-us/powershell/scripting/install/powershell-support-lifecycle"]
     },
@@ -94,6 +95,54 @@
       "source": "PowerShellGallery",
       "architecture": "X64",
       "sha256": "49e9e839447703f7b6a6a320a3c65a6dd5a17f4e33372fe02c7d32ad26a2d3ca",
+      "installations": [
+        {
+          "id": "CurrentUserWindowsPowerShell",
+          "files": [
+            {"path":"bin\\net452\\Pester.dll","sha256":"6c5a4c127c4dc600e746b3d6eac40ad5f28974779efcd618e0d923113f3b971d"},
+            {"path":"bin\\net452\\Pester.pdb","sha256":"23912407d111bb8b1ab75244cf8bfb534f5e4a7e51320444bb492821ccdb347f"},
+            {"path":"bin\\netstandard2.0\\Pester.dll","sha256":"fb994a81040741ca9d1f4e5b74cbad563a61f65f5af43602958be1dbae9c851f"},
+            {"path":"bin\\netstandard2.0\\Pester.pdb","sha256":"f526bb03c0f67733561408ddba8dd390c29516bbe321aaff4e8a0c98f1deb149"},
+            {"path":"en-US\\about_Pester.help.txt","sha256":"5eb70b28e54b1000cbd9e49dded8bd9c0a8fc29364c450a1b586a6f657e57b01"},
+            {"path":"en-US\\about_PesterConfiguration.help.txt","sha256":"9bd878e921fecedcdedb0cd076463aeb7a4065f34dcf614a11a8fc0880bd43e9"},
+            {"path":"Pester.Format.ps1xml","sha256":"94c598f75cc09b8905e2b1c9c2c72ab000d589a317770dc6d65bc4a8df376cae"},
+            {"path":"Pester.ps1","sha256":"01b03d7ca5f727de93b65d8a2b172d1f06ef306a62915893333302aaca57bca7"},
+            {"path":"Pester.psd1","sha256":"c6dce1cdd85a9236a9a628dcaaf3e6f07b0ac4173fb25f620fa466f4402ec341"},
+            {"path":"Pester.psm1","sha256":"49e9e839447703f7b6a6a320a3c65a6dd5a17f4e33372fe02c7d32ad26a2d3ca"},
+            {"path":"PesterConfiguration.Format.ps1xml","sha256":"c270400765fe97e9933f1554ac2d78a57bba685db0bf1884869286c88034f316"},
+            {"path":"schemas\\Cobertura\\coverage-loose.dtd","sha256":"face94d4975a0e7d01b376f9fb2fba298be61a3ca3b108799749df408d4bfefc"},
+            {"path":"schemas\\JaCoCo\\report.dtd","sha256":"7effc41ffc755dbb2f4626653753ad7d533050f1685260e219951d6e9e5a2a94"},
+            {"path":"schemas\\JUnit4\\junit_schema_4.xsd","sha256":"db8a5fc7e72267f3983a3470d4fa532a0f9349df4dad699df9e2527b40690b94"},
+            {"path":"schemas\\NUnit25\\nunit_schema_2.5.xsd","sha256":"19baf3e207534c770ffb6c7d470e84f22a55271f684d29f4ec34c50308d98db7"},
+            {"path":"schemas\\NUnit3\\TestDefinitions.xsd","sha256":"67e39db6a3251ba20a1bbdec215168b50f95c8055801652f0f760553e6120a82"},
+            {"path":"schemas\\NUnit3\\TestFilterDefinitions.xsd","sha256":"fbe91c35957f34e3bb2b815edd0445e9cd92dfe5fd2dd734f38b13204f59175d"},
+            {"path":"schemas\\NUnit3\\TestResult.xsd","sha256":"ce31e0cbd6be23c01a253570cef92c10a5689b8d184d3f3a74f2097703d3fc5b"}
+          ]
+        },
+        {
+          "id": "CurrentUserPowerShell",
+          "files": [
+            {"path":"bin\\net452\\Pester.dll","sha256":"6c5a4c127c4dc600e746b3d6eac40ad5f28974779efcd618e0d923113f3b971d"},
+            {"path":"bin\\net452\\Pester.pdb","sha256":"23912407d111bb8b1ab75244cf8bfb534f5e4a7e51320444bb492821ccdb347f"},
+            {"path":"bin\\netstandard2.0\\Pester.dll","sha256":"fb994a81040741ca9d1f4e5b74cbad563a61f65f5af43602958be1dbae9c851f"},
+            {"path":"bin\\netstandard2.0\\Pester.pdb","sha256":"f526bb03c0f67733561408ddba8dd390c29516bbe321aaff4e8a0c98f1deb149"},
+            {"path":"en-US\\about_Pester.help.txt","sha256":"5eb70b28e54b1000cbd9e49dded8bd9c0a8fc29364c450a1b586a6f657e57b01"},
+            {"path":"en-US\\about_PesterConfiguration.help.txt","sha256":"9bd878e921fecedcdedb0cd076463aeb7a4065f34dcf614a11a8fc0880bd43e9"},
+            {"path":"Pester.Format.ps1xml","sha256":"94c598f75cc09b8905e2b1c9c2c72ab000d589a317770dc6d65bc4a8df376cae"},
+            {"path":"Pester.ps1","sha256":"01b03d7ca5f727de93b65d8a2b172d1f06ef306a62915893333302aaca57bca7"},
+            {"path":"Pester.psd1","sha256":"c6dce1cdd85a9236a9a628dcaaf3e6f07b0ac4173fb25f620fa466f4402ec341"},
+            {"path":"Pester.psm1","sha256":"49e9e839447703f7b6a6a320a3c65a6dd5a17f4e33372fe02c7d32ad26a2d3ca"},
+            {"path":"PesterConfiguration.Format.ps1xml","sha256":"c270400765fe97e9933f1554ac2d78a57bba685db0bf1884869286c88034f316"},
+            {"path":"schemas\\Cobertura\\coverage-loose.dtd","sha256":"face94d4975a0e7d01b376f9fb2fba298be61a3ca3b108799749df408d4bfefc"},
+            {"path":"schemas\\JaCoCo\\report.dtd","sha256":"7effc41ffc755dbb2f4626653753ad7d533050f1685260e219951d6e9e5a2a94"},
+            {"path":"schemas\\JUnit4\\junit_schema_4.xsd","sha256":"db8a5fc7e72267f3983a3470d4fa532a0f9349df4dad699df9e2527b40690b94"},
+            {"path":"schemas\\NUnit25\\nunit_schema_2.5.xsd","sha256":"19baf3e207534c770ffb6c7d470e84f22a55271f684d29f4ec34c50308d98db7"},
+            {"path":"schemas\\NUnit3\\TestDefinitions.xsd","sha256":"67e39db6a3251ba20a1bbdec215168b50f95c8055801652f0f760553e6120a82"},
+            {"path":"schemas\\NUnit3\\TestFilterDefinitions.xsd","sha256":"fbe91c35957f34e3bb2b815edd0445e9cd92dfe5fd2dd734f38b13204f59175d"},
+            {"path":"schemas\\NUnit3\\TestResult.xsd","sha256":"ce31e0cbd6be23c01a253570cef92c10a5689b8d184d3f3a74f2097703d3fc5b"}
+          ]
+        }
+      ],
       "capabilities": ["ExactModuleImport"],
       "references": ["https://www.powershellgallery.com/packages/Pester/5.7.1"]
     }

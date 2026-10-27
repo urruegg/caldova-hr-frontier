@@ -33,12 +33,36 @@
       "items": {
         "type": "object", "additionalProperties": false,
         "required": ["id", "version", "source", "architecture", "sha256", "capabilities", "references"],
+        "allOf": [
+          {"if": {"properties": {"id": {"const": "PowerShell7"}}}, "then": {"required": ["appxManifestSha256"]}, "else": {"not": {"required": ["appxManifestSha256"]}}},
+          {"if": {"properties": {"id": {"const": "Pester"}}}, "then": {"required": ["installations"]}, "else": {"not": {"required": ["installations"]}}}
+        ],
         "properties": {
           "id": {"enum": ["PowerShell7", "WindowsPowerShell", "Git", "GitHubCli", "AzureCli", "Bicep", "azure-devops", "PowerPlatformCli", "Pester"]},
           "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:\\.[0-9]+|\\.windows\\.[0-9]+|\\+g[0-9a-f]+)?$"},
           "source": {"enum": ["MicrosoftStore", "WindowsComponent", "GitForWindowsRelease", "GitHubCliRelease", "AzureCliMsi", "AzureCliBicepComponent", "AzureCliExtension", "DotNetTool", "PowerShellGallery"]},
           "architecture": {"const": "X64"},
           "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "appxManifestSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "installations": {
+            "type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true,
+            "items": {
+              "type": "object", "additionalProperties": false, "required": ["id", "files"],
+              "properties": {
+                "id": {"enum": ["CurrentUserWindowsPowerShell", "CurrentUserPowerShell"]},
+                "files": {
+                  "type": "array", "minItems": 18, "maxItems": 18, "uniqueItems": true,
+                  "items": {
+                    "type": "object", "additionalProperties": false, "required": ["path", "sha256"],
+                    "properties": {
+                      "path": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+(?:\\\\[A-Za-z0-9_.-]+)*$"},
+                      "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+                    }
+                  }
+                }
+              }
+            }
+          },
           "payloads": {
             "type": "array", "minItems": 1, "maxItems": 2, "uniqueItems": true,
             "items": {

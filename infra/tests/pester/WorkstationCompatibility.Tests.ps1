@@ -6,15 +6,21 @@ Describe 'Fail-closed workstation compatibility' {
         $script:Helper = Join-Path $script:Repo 'infra\src\scripts\runbooks\WorkstationTools.ps1'
         $script:Entry = Join-Path $script:Repo 'infra\src\scripts\runbooks\Test-DeveloperWorkstationCompatibility.ps1'
         $script:Schema = Join-Path $script:Repo 'infra\src\config\schemas\workstation-compatibility.schema.json'
+        function script:Read-CompatibilityFixture {
+            param([string]$Path)
+            $parameters = @{ InputObject = [IO.File]::ReadAllText($Path) }
+            if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) { $parameters.DateKind = 'String' }
+            ConvertFrom-Json @parameters
+        }
     }
 
     It 'requires exact full vendor versions and nine reviewed components before accepting policy' {
         Test-Path -LiteralPath $script:Record | Should -BeTrue
         . $script:Helper
-        $record = Get-Content -Raw $script:Record | ConvertFrom-Json
+        $record = Read-CompatibilityFixture $script:Record
         { Assert-WorkstationCompatibilityRecord $record } | Should -Not -Throw
         @($record.components).Count | Should -Be 9
-        $policy = Get-Content -Raw $script:Policy | ConvertFrom-Json
+        $policy = Read-CompatibilityFixture $script:Policy
         foreach ($component in $record.components) {
             $item = if ($component.id -eq 'azure-devops') { $policy.azureCliExtensions[0] } else {
                 $policy.tools | Where-Object id -CEQ $component.id
@@ -28,7 +34,7 @@ Describe 'Fail-closed workstation compatibility' {
 
     It 'rejects unknown record properties and non-first-party references before any native command' {
         Test-Path -LiteralPath $script:Entry | Should -BeTrue
-        $record = Get-Content -Raw $script:Record | ConvertFrom-Json
+        $record = Read-CompatibilityFixture $script:Record
         $record | Add-Member NoteProperty unexpected 'not permitted'
         $path = Join-Path $TestDrive 'invalid.json'
         $record | ConvertTo-Json -Depth 20 | Set-Content $path
@@ -44,8 +50,8 @@ Describe 'Fail-closed workstation compatibility' {
 
     It 'accepts the complete reviewed delivery contract under the production strict host' {
         . $script:Helper
-        $record = Get-Content -Raw $script:Record | ConvertFrom-Json
-        $policy = Get-Content -Raw $script:Policy | ConvertFrom-Json
+        $record = Read-CompatibilityFixture $script:Record
+        $policy = Read-CompatibilityFixture $script:Policy
         {
             Set-StrictMode -Version Latest
             Assert-WorkstationDeliveryPolicy $policy $record (
@@ -86,7 +92,7 @@ Describe 'Fail-closed workstation compatibility' {
     ) {
         Test-Path -LiteralPath $script:Helper | Should -BeTrue
         . $script:Helper
-        $record = Get-Content -Raw $script:Record | ConvertFrom-Json
+        $record = Read-CompatibilityFixture $script:Record
         $record.components[0].$Field = $Value
         { Assert-WorkstationCompatibilityRecord $record } | Should -Throw
     }
@@ -131,7 +137,7 @@ Describe 'Fail-closed workstation compatibility' {
     }
 
     It 'rejects an otherwise valid reviewed hash changed to a different full SHA-256' {
-        $record = Get-Content -Raw $script:Record | ConvertFrom-Json
+        $record = Read-CompatibilityFixture $script:Record
         $record.components[0].sha256 = '0' * 64
         $path = Join-Path $TestDrive 'hash-drift.json'
         $record | ConvertTo-Json -Depth 20 | Set-Content $path
@@ -144,18 +150,18 @@ Describe 'Fail-closed workstation compatibility' {
 
     It 'rejects missing or unknown principal payload pins rather than trusting a launcher hash alone' {
         . $script:Helper
-        $record = Get-Content -Raw $script:Record | ConvertFrom-Json
+        $record = Read-CompatibilityFixture $script:Record
         $azure = $record.components | Where-Object id -CEQ AzureCli
         $azure.PSObject.Properties.Remove('payloads')
         { Assert-WorkstationCompatibilityRecord $record } | Should -Throw
-        $record = Get-Content -Raw $script:Record | ConvertFrom-Json
+        $record = Read-CompatibilityFixture $script:Record
         ($record.components | Where-Object id -CEQ PowerPlatformCli).payloads[0].id = 'UnreviewedPayload'
         { Assert-WorkstationCompatibilityRecord $record } | Should -Throw
     }
 
     It 'rejects policy/record version disagreement without changing either input' {
         Test-Path -LiteralPath $script:Entry | Should -BeTrue
-        $policy = Get-Content -Raw $script:Policy | ConvertFrom-Json
+        $policy = Read-CompatibilityFixture $script:Policy
         $policy.tools[0].versionPolicy.value = '7.0.0'
         $path = Join-Path $TestDrive 'policy.json'
         $policy | ConvertTo-Json -Depth 20 | Set-Content $path
@@ -168,8 +174,8 @@ Describe 'Fail-closed workstation compatibility' {
 
     It 'refuses an automatic WinGet policy for a Store-only reviewed PowerShell host' {
         . $script:Helper
-        $record = Get-Content -Raw $script:Record | ConvertFrom-Json
-        $policy = Get-Content -Raw $script:Policy | ConvertFrom-Json
+        $record = Read-CompatibilityFixture $script:Record
+        $policy = Read-CompatibilityFixture $script:Policy
         $policy.tools[0].installDisposition = 'Automated'
         $policy.tools[0].install = [pscustomobject]@{
             kind = 'WinGet'; source = 'winget'; packageId = 'Microsoft.PowerShell'; scope = 'machine'
@@ -277,7 +283,7 @@ Describe 'Fail-closed workstation compatibility' {
             if (-not (Test-Json -Json (Get-Content -Raw $record) -SchemaFile $schema)) { exit 1 }
         } -args $script:Record, $script:Schema
         $LASTEXITCODE | Should -Be 0
-        $duplicate = Get-Content -Raw $script:Record | ConvertFrom-Json
+        $duplicate = Read-CompatibilityFixture $script:Record
         $duplicate.components[1].id = 'PowerShell7'
         $duplicatePath = Join-Path $TestDrive 'duplicate-component.json'
         $duplicate | ConvertTo-Json -Depth 20 | Set-Content $duplicatePath
@@ -286,7 +292,7 @@ Describe 'Fail-closed workstation compatibility' {
             if (Test-Json -Json (Get-Content -Raw $record) -SchemaFile $schema -ErrorAction SilentlyContinue) { exit 1 }
         } -args $duplicatePath, $script:Schema
         $LASTEXITCODE | Should -Be 0
-        $record = Get-Content -Raw $script:Record | ConvertFrom-Json
+        $record = Read-CompatibilityFixture $script:Record
         $record.components[0] | Add-Member NoteProperty unreviewed $true
         $path = Join-Path $TestDrive 'unknown-field.json'
         $record | ConvertTo-Json -Depth 20 | Set-Content $path

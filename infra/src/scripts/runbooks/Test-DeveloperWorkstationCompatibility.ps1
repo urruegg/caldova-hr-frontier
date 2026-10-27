@@ -17,7 +17,7 @@ if (-not $CompatibilityPath) { $CompatibilityPath = Join-Path $directory '..\..\
 if (-not $PolicyPath) { $PolicyPath = Join-Path $directory '..\..\config\runbooks\workstation-prerequisites.json' }
 if ($null -eq $CommandResolver) { $CommandResolver = New-DefaultCommandResolver }
 if ($null -eq $NativeCommandRunner) { $NativeCommandRunner = New-DefaultNativeCommandRunner }
-$identityProvider = New-DefaultFileIdentityProvider
+$identityProvider = $null
 $result = [ordered]@{
     schemaVersion = '1.0'; assessedAtUtc = $NowUtc.ToUniversalTime().ToString('o')
     status = 'Blocked'; policyAccepted = $false; diagnostic = $null
@@ -27,14 +27,14 @@ $owned = $null
 $owner = [guid]::NewGuid().ToString('N')
 $currentComponent = 'Contract'
 $phase = 'RecordAndPolicyValidation'
-$hostProbe = Get-WorkstationHostProbeCommand
 
 try {
     $inputHashes = @((Get-FileHash -LiteralPath $CompatibilityPath).Hash, (Get-FileHash -LiteralPath $PolicyPath).Hash)
-    $record = Get-Content -LiteralPath $CompatibilityPath -Raw | ConvertFrom-Json
-    $policy = Get-Content -LiteralPath $PolicyPath -Raw | ConvertFrom-Json
+    $record = ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText($CompatibilityPath))
+    $policy = ConvertFrom-WorkstationStrictJson ([IO.File]::ReadAllText($PolicyPath))
     Assert-WorkstationCompatibilityRecord $record
     Assert-WorkstationDeliveryPolicy $policy $record (Join-Path $directory '..\..\config\schemas\workstation-prerequisites.schema.json')
+    $identityProvider = New-DefaultFileIdentityProvider -CompatibilityRecord $record
     if (-not [Environment]::Is64BitProcess -or [Environment]::OSVersion.Platform -ne 'Win32NT') {
         throw 'Windows X64 host required.'
     }
@@ -106,6 +106,8 @@ try {
             $phase = 'DeclaredLocalCapabilities'
             switch ($id) {
                 { $_ -in @('PowerShell7', 'WindowsPowerShell') } {
+                    $hostProbe = Get-WorkstationHostProbeCommand -PesterRecord (
+                        @($record.components | Where-Object id -CEQ Pester)[0]) -HostId $id
                     $native = Invoke-NativeCommand $NativeCommandRunner $identity.path @('-NoLogo', '-NoProfile', '-Command', $hostProbe)
                     if ($native.exitCode -ne 0) { throw 'Host/module capability failed.' }
                     $hostState = ($native.stdout -join "`n") | ConvertFrom-Json
@@ -175,6 +177,11 @@ try {
             $phase = 'PostProbePrincipalPayloadDrift'
             if ((Get-FileHash -LiteralPath $path).Hash.ToLowerInvariant() -cne $dependencies[$path]) {
                 throw 'Principal source payload changed during assessment.'
+            }
+            foreach ($installation in @($record.components | Where-Object id -CEQ Pester)[0].installations) {
+                $currentComponent = 'Pester'
+                $phase = 'PostProbeModuleSourceDrift'
+                $null = Assert-WorkstationPesterInstallation $installation
             }
         }
         $currentComponent = 'Contract'

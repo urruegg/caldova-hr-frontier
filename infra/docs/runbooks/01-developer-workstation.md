@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.7 |
-| **Date** | 2026-10-26 |
+| **Version** | 1.8 |
+| **Date** | 2026-10-27 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Approved Windows 11 administrator workstation |
@@ -28,7 +28,14 @@ powershell.exe -NoProfile -File infra/src/scripts/runbooks/Test-DeveloperWorksta
 The gate checks unique canonical physical identities, exact source/hash/version,
 Windows X64 host constraints, installed extension metadata, and local command
 capabilities without authentication or installation. Both WindowsApps PowerShell
-aliases must identify the same physical host. The reviewed standalone Bicep
+aliases must have a proven AppExecutionAlias reparse tag, package/application
+binding, and pinned Store manifest/physical target. Alias candidates are never
+executed to identify themselves. Pester is loaded only from the reviewed
+physical installation roots after manifest, module, library and other package
+payload hashes and namespace checks pass. An edition-looking path or a stated
+module version is not trusted source evidence. Hydrated non-redirecting Cloud
+Files metadata can be verified; redirects, offline/recall paths and unknown
+reparse tags fail closed. The reviewed standalone Bicep
 location is resolved explicitly; assessment does not invoke `az bicep version`
 or implicitly install an absent component.
 
@@ -41,6 +48,19 @@ Exit zero and help alone are not packaging proof. Empty source, missing payload,
 component loss, changed identities, or unproven capabilities return `Blocked`
 and process exit 1 without policy mutation. `NoChange` means only that this local
 compatibility gate passed.
+
+Raw JSON is checked for duplicate decoded keys, including escaped and
+case-aliased names at every depth, before conversion. Closed JSON collection
+types are preserved: a scalar cannot stand in for a one-item array.
+
+Git, GitHub CLI and Azure CLI installation remain Manual because no separate
+WinGet package-version/runtime-version mapping has been reviewed. `--exact`
+matches a package identifier; it does not pin an installer version. No runtime
+version, particularly Git's vendor/build suffix, is guessed to be a package
+manager version. All unpinned WinGet operations, including optional editor
+prerequisites, stay outside executable manifests and are refused on Apply.
+No automatic fallback is allowed. A later exact-installer contract needs its
+own reviewed mapping; local compatibility is not installer approval.
 
 The legacy Code App and its historical `BackgroundImageUri` case remain excluded
 only for this sprint under the [declared component boundary](../../../docs/specs/2026-10-02-cloud-service-foundation-runbook-design.md#33-current-sprint-component-boundary).
@@ -198,19 +218,19 @@ The service owner compares and records that displayed digest before the workstat
 |---|---|---|---|---|---|
 | Windows PowerShell 5.1 | `$PSVersionTable.PSVersion` | None; OS component only | Existing local admin shell | `$PSVersionTable.PSVersion` | Reassess only; never install through this runbook |
 | PowerShell 7 | `pwsh --version` | Manual; currently reviewed Microsoft Store host only | Local attended admin | `pwsh --version` and the compatibility gate | Reassess after restart if required |
-| Git | `git --version` | Exact reviewed WinGet ID only | Local attended admin | `git --version` | Generate a new manifest if path or version differs |
-| VS Code | `code --version` | Exact reviewed WinGet ID only | Local attended admin | `code --version` | Reassess if PATH or extension host changes |
-| GitHub CLI | `gh --version` | Exact reviewed WinGet ID only | Local attended admin | `gh --version` | Authentication remains attended and separate |
-| Azure CLI | `az version` | Exact reviewed WinGet ID only | Local attended admin | `az version` | Reassess after extension or component change |
-| Azure Developer CLI | `azd version` | Exact reviewed WinGet ID only | Local attended admin | `azd version` | Reassess after restart if required |
+| Git | `git --version` | Manual until installer/runtime mapping is reviewed | Local attended admin | `git --version` | Generate a new manifest if path or version differs |
+| VS Code | `code --version` | Manual while the WinGet package version is unpinned | Local attended admin | `code --version` | Reassess if PATH or extension host changes |
+| GitHub CLI | `gh --version` | Manual until installer/runtime mapping is reviewed | Local attended admin | `gh --version` | Authentication remains attended and separate |
+| Azure CLI | `az version` | Manual until installer/runtime mapping is reviewed | Local attended admin | `az version` | Reassess after extension or component change |
+| Azure Developer CLI | `azd version` | Manual while the WinGet package version is unpinned | Local attended admin | `azd version` | Reassess after restart if required |
 | PAC CLI | `pac help` | Manual; currently reviewed .NET tool only | Local attended admin | `pac help` and the component round-trip gate | PAC profile operations happen later and attended |
-| Copilot CLI | `copilot --help` | Exact reviewed WinGet ID only | Local attended admin | `copilot --help` | Entitlement and sign-in remain attended |
+| Copilot CLI | `copilot --help` | Manual while the WinGet package version is unpinned | Local attended admin | `copilot --help` | Entitlement and sign-in remain attended |
 | Bicep | Standalone `bicep --version` | Azure CLI component at the exact reviewed version | Local attended admin | Standalone `bicep --version` and build help | Reassess after component changes |
 | Pester 5.7.1 | `Get-Module Pester -ListAvailable` | `CurrentUser` exact reviewed version only | Current user scope | `Import-Module Pester -RequiredVersion 5.7.1 -Force` | New manifest required for any version drift |
 | Azure DevOps CLI extension | `az extension show --name azure-devops` | Azure CLI extension only | Local attended admin | `az extension show --name azure-devops` | PAT mode is prohibited; see authentication readiness |
 | VS Code extensions | `code --list-extensions --show-versions` | Recommended only when present in manifest | User scope | `code --list-extensions --show-versions` | Optional; never infer or add unapproved IDs |
 
-Windows PowerShell 5.1 is an OS component and is never installed by this runbook. The currently reviewed PowerShell 7 Microsoft Store host and PAC .NET tool remain manual prerequisites; the compatibility record does not approve untested WinGet/MSI substitutes for them. Git, VS Code, GitHub CLI, Azure CLI, Azure Developer CLI, and officially verified Copilot CLI retain their reviewed WinGet IDs. Bicep remains an Azure CLI component, but assessment and read-back use its explicit standalone executable without auto-installation. Pester is exact version 5.7.1 in `CurrentUser`. `azure-devops` is the only required Azure CLI extension in this increment. VS Code extensions are recommendations and may be applied only when present in the execution manifest. GitHub Copilot entitlement, terms, and sign-in remain attended; installation does not prove entitlement or authentication.
+Windows PowerShell 5.1 is an OS component and is never installed by this runbook. The currently reviewed PowerShell 7 Microsoft Store host and PAC .NET tool remain manual prerequisites; the compatibility record does not approve untested WinGet/MSI substitutes for them. Git, GitHub CLI and Azure CLI also remain manual until installer/runtime mappings are reviewed. Optional WinGet identifiers are retained only as references: an unpinned package cannot become an executable action. Bicep remains an Azure CLI component, but assessment and read-back use its explicit standalone executable without auto-installation. Pester is exact version 5.7.1 in `CurrentUser`. `azure-devops` is the only required Azure CLI extension in this increment. VS Code extensions are recommendations and may be applied only when present in the execution manifest. GitHub Copilot entitlement, terms, and sign-in remain attended; installation does not prove entitlement or authentication.
 
 ## Attended authentication readiness
 
