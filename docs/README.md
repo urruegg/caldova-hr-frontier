@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.10 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.12 |
+| **Date** | 2026-10-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -55,6 +55,61 @@ Successor links precede the owned child so automated navigation can identify eac
 - [Data domain](../data/README.md)
 - [HR use-case detail](../hr/docs/use-cases/README.md)
 - [Infrastructure documentation](../infra/docs/README.md)
+
+## GF Draft Packages
+
+The following are five separate GF starting-point packages, each with its own sprint, idea and specification. All fifteen primary documents are **Draft**. They do not graduate or replace existing Caldova portfolio records, commit delivery dates, or authorize live changes.
+
+| Topic | Sprint document | Idea document | Specification |
+|---|---|---|---|
+| Functional: SSE HR Policy assistant | [Draft sprint](plans/2026-10-28-gf-sse-hr-policy-assistant-sprint.md) | [Draft idea](ideas/gf-sse-hr-policy-assistant-idea.md) | [Draft specification](specs/2026-10-28-gf-sse-hr-policy-assistant-design.md) |
+| Functional: Recruiting - Job Requisition and Job Posting agent | [Draft sprint](plans/2026-10-28-gf-recruiting-requisition-posting-agent-sprint.md) | [Draft idea](ideas/gf-recruiting-requisition-posting-agent-idea.md) | [Draft specification](specs/2026-10-28-gf-recruiting-requisition-posting-agent-design.md) |
+| Functional: HR Operations Agent | [Draft sprint](plans/2026-10-28-gf-hr-operations-agent-sprint.md) | [Draft idea](ideas/gf-hr-operations-agent-idea.md) | [Draft specification](specs/2026-10-28-gf-hr-operations-agent-design.md) |
+| Technical: GF Azure DevOps repository | [Draft sprint](plans/2026-10-28-gf-azure-devops-repository-sprint.md) | [Draft idea](ideas/gf-azure-devops-repository-idea.md) | [Draft specification](specs/2026-10-28-gf-azure-devops-repository-design.md) |
+| Technical: Azure DevOps CI/CD and DEV solution capture | [Draft sprint](plans/2026-10-28-gf-azure-devops-solution-cicd-sprint.md) | [Draft idea](ideas/gf-azure-devops-solution-cicd-idea.md) | [Draft specification](specs/2026-10-28-gf-azure-devops-solution-cicd-design.md) |
+
+Scope was refined interactively with the repository owner on 2026-10-28 using the supplied build brief. The original SOPs, policy PDFs, FAQ/workbooks, templates and evidence register have not been independently reviewed here. The drafts distinguish user decisions, brief-reported evidence, proposals and open gates. HR Operations now has a detailed process but remains propose-only with writes blocked. No actual GF URL, named approver or delivery estimate is invented.
+
+GF's confirmed target is an independent Azure Repos source/PR authority after a reviewed one-time transfer, with no automatic GitHub synchronization. [ADR-0013](adr/0013-gf-azure-repos-source-authority.md) is the **Proposed Baseline** GF-scoped refinement of ADR-0001, ADR-0002 and ADR-0012, preserving their approved demo history. CI/CD includes reusable explicit DEV capture into branch/PR and TEST delivery only; production is later scope.
+
+Continue review one question at a time: challenge and refine each answer before treating it as a settled requirement. Source-dependent decisions remain open until the SharePoint material and accountable owners support them.
+
+### GF Source Basis and Publication Boundary
+
+The local source is *Georg Fischer HR - MVP 1-3 agent canvases, processes, audiences and SharePoint BOM*, v1.0 dated 2026-10-28, supplied from outside this repository. It is marked confidential. Its original stays outside Git. The repository is public; permission to prepare the handover locally is **not permission to commit, push or upload confidential refinements publicly**. Verify the private GF destination and disclosure inventory before handover. This documentation change performs no commit, push, source upload or tenant operation.
+
+References such as `brief 3.6 / E41` mean "reported by the supplied brief", not that the primary document or tenant condition was inspected. The brief's "received", "validated" and "in place" labels must not become local verification claims. Its workshop dates are context, not sprint commitments. Keep policy PDFs and employee intake in controlled SharePoint, and real personal data, tenant-specific values and private source attachments out of Git.
+
+| Topic | Confirmed refinement or open decision |
+|---|---|
+| All functional MVPs | Copilot Studio's **GitHub Copilot runtime harness** selected by the user. ESS is out of current scope; no silent standard-harness substitution. This is separate from GitHub source hosting. |
+| Policy | Switzerland-only MVP; design supports later regional onboarding with separate sources, audience permissions, applicability, languages, owners, escalation and tests. Exact regional deployment topology is open. |
+| Recruiting | **GF-REC-D01 remains open for HR stakeholders:** earlier approved agent-created requisition/publication versus brief manual Workday entry and recruiter publication. No operational Workday writes or publishing enabled while unresolved. |
+| HR Operations | Detail the PeopleDoc-to-Workday proposal process; writes remain blocked until matching, field/document, approval, interface/identity, privacy and safety gates close. |
+| Repository / CI/CD | Independent Azure Repos; explicit reusable DEV capture to branch/PR; reviewed-source build and TEST delivery. Prove chosen-harness packaging/deployment and preserve functional write blocks. PROD is later scope. |
+
+Process and participant-interaction Mermaid diagrams live in each specification; dependency/gate diagrams live in each sprint. Idea canvases link to these authoritative diagrams rather than maintain competing copies. The drawings are proposed responsibilities and gates, not implementation evidence.
+
+### CAT Reuse Assessment
+
+The [CAT gallery](https://microsoft.github.io/cat-agent-skills/?platform=Copilot+Studio) was assessed on 2026-10-28. Its fetched page exposed only a QR-code entry, while the [repository source at `6b31474`](https://github.com/microsoft/cat-agent-skills/tree/6b31474a2c93f603ff8ce5659bc3cefbca0fe77a) contained many metadata/instruction entries. The assessment below therefore pins **source records**, not an assumed complete published gallery. This is a bounded shortlist relevant to the five packages, not an exhaustive catalogue review.
+
+The [project support policy](https://github.com/microsoft/cat-agent-skills/blob/6b31474a2c93f603ff8ce5659bc3cefbca0fe77a/SUPPORT.md) describes an example implementation with community/project support, separate from support for underlying Microsoft services. The repository reports [MIT licensing](https://github.com/microsoft/cat-agent-skills/blob/6b31474a2c93f603ff8ce5659bc3cefbca0fe77a/LICENSE); bundled/transitive asset notices still require review. Metadata/instruction records were inspected; ZIP contents/dependencies were **not** installed, executed or validated.
+
+| Candidate and inspected version | Fit | Recommendation and constraint |
+|---|---|---|
+| [Copilot Studio Knowledge Readiness](https://github.com/microsoft/cat-agent-skills/blob/6b31474a2c93f603ff8ce5659bc3cefbca0fe77a/src/content/skills/copilot-studio-knowledge-readiness.md), 1.0.0 | Policy corpus; Recruiting guidance preparation | Conditional **maker-side** aid for inventory, knowledge-versus-action separation and cleanup/test planning. Exported files do not establish live ACLs, metadata, indexing or permission readiness. Do not upload confidential material to the public gallery. |
+| [Agent Evaluation Designer](https://github.com/microsoft/cat-agent-skills/blob/6b31474a2c93f603ff8ce5659bc3cefbca0fe77a/src/content/skills/agent-evaluation-designer.md), 1.0.0 | All three agents; shared CI/CD evaluation design | Recommend adapting the methodology: semantic grounding, deterministic safety/tool checks and human go/no-go. Not an executable CI runner. Validate harness-specific evaluation APIs, quotas and grading; never replace the agreed 66-policy-case target with its generic smaller starting set. |
+| [Knowledge Source Router](https://github.com/microsoft/cat-agent-skills/blob/6b31474a2c93f603ff8ce5659bc3cefbca0fe77a/src/content/skills/knowledge-source-router.md), 2.0.0 | Future regional policy onboarding | Conditional pattern, **not required for the fixed Swiss MVP**. It assumes `sharepoint_metadata_filter` and `knowledge_search_sharepoint`; availability/contracts are unverified. Combine region metadata with approved/current sources and effective caller access. Disable its multi-country comparisons for the MVP; missing metadata must not broaden retrieval. |
+| [Template-Based Document Generation](https://github.com/microsoft/cat-agent-skills/blob/6b31474a2c93f603ff8ce5659bc3cefbca0fe77a/src/content/skills/template-based-document-generation.md), 3.8.0 | Optional Recruiting Word output | Conditional candidate after approval of template, Python/sandbox/filesystem support, script dependencies, output storage/retention and tests. Restrict derived literals to GF-approved inputs/rules; its reports/work files may contain personal values. Not a Workday/publishing/approval capability. |
+| [Copilot Studio Adaptive Card Builder](https://github.com/microsoft/cat-agent-skills/blob/6b31474a2c93f603ff8ce5659bc3cefbca0fe77a/src/content/skills/copilot-studio-adaptive-card-builder.md), 1.0.0 | Review/confirmation UI idea | **Not a drop-in MVP runtime dependency.** Its generated package explicitly targets standard-harness card/topic nodes. Validate a GitHub-harness-supported interaction or separately governed workflow/channel UX; a model emitting JSON is not a native rendered card. |
+| [Copilot Studio Test Planner](https://github.com/microsoft/cat-agent-skills/blob/6b31474a2c93f603ff8ce5659bc3cefbca0fe77a/src/content/skills/copilot-studio-test-planner.md), 1.0.0 | Potential development test planning | Metadata/package is a **Cowork-only plugin**, despite the name. Not a Copilot Studio runtime plugin or proven pipeline runner; use the evaluation-methodology candidate instead. |
+| [Assistente CLT para RH](https://github.com/microsoft/cat-agent-skills/blob/6b31474a2c93f603ff8ce5659bc3cefbca0fe77a/src/content/skills/clt-hr-assistant.md), version not stated | Superficially HR-related | Reject for these MVPs: Brazilian employment-law/payroll calculations and personal inputs do not fit approved Swiss-policy-only guidance or the no-employment-decision boundary. |
+| [PDF Table Data Conversion](https://github.com/microsoft/cat-agent-skills/blob/6b31474a2c93f603ff8ce5659bc3cefbca0fe77a/src/content/skills/pdf-table-data-conversion.md), 1.0.0 | Superficially similar to HR Operations extraction | Do not use as the Operations extraction engine: exports tables to spreadsheets, not approved-field provenance/confidence, exact profile matching or server-enforced add-only updates. No assessed skill replaces the Workday Access Layer. |
+
+**No candidate is admitted, installed or activated by this assessment.** Before reuse, record the accountable owner, exact source/bundle revision and checksum, license/notices, scripts/dependencies, execution/network/data locations, secret handling, least-privilege tools, selected-harness support, synthetic positive/negative tests and export/import asset coverage. Restrict any adapted instructions to the declared write envelope; a skill's instructions are not permission enforcement. Reuse must not enable memory for write-capable agents, Work IQ or connected-agent delegation contrary to existing governance.
+
+The [repository package](specs/2026-10-28-gf-azure-devops-repository-design.md#9-source-layout-and-reusable-component-boundary) owns future vendoring/source admission; the [CI/CD package](specs/2026-10-28-gf-azure-devops-solution-cicd-design.md#8-selected-harness-evidence-and-reuse) owns bundle inclusion and regression evidence. Neither needs a CAT plugin to clone a repository, create pipelines or govern Workday access.
 
 ## Board Synchronization
 

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.3 |
-| **Date** | 2026-10-26 |
+| **Version** | 2.5 |
+| **Date** | 2026-10-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
 | **Scope** | docs/specs |
@@ -65,6 +65,18 @@ A specification is created from a selected idea or approved problem. It precedes
 | [Tenant replica and handover implementation plan](../plans/2026-10-02-tenant-replica-handover-implementation.md) | [`2026-10-02-tenant-replica-and-customer-handover-runbook-design.md`](2026-10-02-tenant-replica-and-customer-handover-runbook-design.md) | Approved | Defines local `TenantReplica` and stricter `CustomerHandover` export profiles with independent validation. | Approved local implementation authority; it authorizes no publication, destination repository, or Tenant 2 live action. |
 | [Coordinate-only correction plan](../plans/2026-10-03-tenant-lifecycle-coordinate-only-correction-implementation.md), then [child-summary implementation plan](../plans/2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md) | [`2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md`](2026-10-03-tenant-lifecycle-coordinate-only-simplification-design.md) | Approved | Defines the coordinate-only lifecycle umbrella, child-owned mutation and approval, canonical stage results, and the lifecycle-core blocker correction. | Approved corrective authority; supersedes the umbrella mutation, approval, and resource-correlation implications identified in its authority section. It authorizes no implementation or live operation. |
 | [Draft implementation plan](../plans/2026-10-03-tenant-lifecycle-child-summary-envelope-implementation.md) | [`2026-10-03-tenant-lifecycle-child-summary-envelope-design.md`](2026-10-03-tenant-lifecycle-child-summary-envelope-design.md) | Approved | Defines the reserved canonical child-summary envelope, exact digest meanings, write order, and equivalent Verify/prerequisite enforcement. | Approved companion authority for its stated scope; implementation remains Draft and blocked until reviewed, merged, and then-current `main` is green. |
+
+### GF draft specifications
+
+| Successor or next stage | Specification | Status | Purpose | Authority |
+|---|---|---|---|---|
+| [Draft sprint](../plans/2026-10-28-gf-sse-hr-policy-assistant-sprint.md) | [GF SSE HR Policy assistant](2026-10-28-gf-sse-hr-policy-assistant-design.md) | Draft | Defines Swiss-only cited policy guidance and future-region onboarding boundaries. | GitHub runtime harness selected; source/access, ownership and evaluation gates remain. |
+| [Draft sprint](../plans/2026-10-28-gf-recruiting-requisition-posting-agent-sprint.md) | [GF Recruiting: Job Requisition and Job Posting agent](2026-10-28-gf-recruiting-requisition-posting-agent-design.md) | Draft | Defines shared drafting/handoff and explicit disputed-action gate; no CV screening. | GF-REC-D01 awaits HR; no Workday writes or publishing enabled by the draft. |
+| [Draft sprint](../plans/2026-10-28-gf-hr-operations-agent-sprint.md) | [GF HR Operations Agent](2026-10-28-gf-hr-operations-agent-design.md) | Draft | Defines proposed Swiss extraction/comparison/add-only process and interaction controls. | Current boundary is propose-only; unresolved stakeholder and safety gates block writes. |
+| [Draft sprint](../plans/2026-10-28-gf-azure-devops-repository-sprint.md) | [GF Azure DevOps repository](2026-10-28-gf-azure-devops-repository-design.md) | Draft | Defines independent GF source authority and reviewed one-time transfer. | Confirmed Azure Repos target; Proposed Baseline scoped ADR refinement; live action separately gated. |
+| [Draft sprint](../plans/2026-10-28-gf-azure-devops-solution-cicd-sprint.md) | [GF Azure DevOps solution CI/CD and DEV capture](2026-10-28-gf-azure-devops-solution-cicd-design.md) | Draft | Defines explicit DEV capture to branch/PR, reviewed-source build and TEST delivery. | No pipeline queue, environment access or PROD delivery authority. |
+
+The [GF package index](../README.md#gf-draft-packages) links each specification to its own idea and sprint. The supplied brief is reviewed, but primary source documents and tenant conditions are not independently verified. Each specification has process/interaction Mermaid diagrams and links to the [CAT reuse assessment](../README.md#cat-reuse-assessment). ESS is excluded; chosen-harness deployment remains capability-gated.
 
 ## Domain Links
 

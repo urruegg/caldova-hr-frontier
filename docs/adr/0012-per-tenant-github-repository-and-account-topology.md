@@ -2,12 +2,22 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 3.1 |
-| **Date** | 2026-10-01 |
+| **Version** | 3.2 |
+| **Date** | 2026-10-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Cross-cutting (all solution domains) |
 | **References** | [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [ADR-0001](0001-azure-devops-as-engineering-control-plane.md), [ADR-0002](0002-github-first-bootstrap-and-the-role-of-azure-repos.md), [ADR-0004](0004-domain-solution-architecture-and-publisher.md), [Azure DevOps and GitHub single source of truth design](../specs/2026-09-24-azure-devops-github-single-source-of-truth-design.md) |
+
+## GF applicability
+
+The approved tenant topology below remains the recorded demo/tenant decision.
+GF's confirmed requirement is an independent Azure Repos source/PR authority,
+not a mandatory new GitHub repository.
+[ADR-0013](0013-gf-azure-repos-source-authority.md) records the **Proposed Baseline**
+GF-scoped refinement. Do not infer GF's identity or repository details from the
+tenant table below. Formal GF adoption and live transfer remain separately gated,
+and no demo tenant is migrated by this annotation.
 
 ## Attended Decision
 

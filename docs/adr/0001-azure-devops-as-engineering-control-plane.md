@@ -2,12 +2,21 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 3.0 |
-| **Date** | 2026-09-28 |
+| **Version** | 3.1 |
+| **Date** | 2026-10-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Cross-cutting (all solution domains) |
 | **References** | [Approved Intake Design](../specs/2026-09-17-architecture-baseline-intake-design.md), [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md), [Source Inventory](../reviews/2026-09-17-architecture-baseline-source-inventory.json), [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) |
+
+## GF applicability
+
+The approved demo/tenant decision below is retained. GF's confirmed target is an
+independent Azure Repos source/PR authority after a reviewed one-time transfer,
+not a GitHub mirror. [ADR-0013](0013-gf-azure-repos-source-authority.md) records the
+**Proposed Baseline** GF-scoped refinement. Its formal adoption and live execution remain
+separately gated; this applicability note does not extend the historical approval
+to GF or alter the demo operating model.
 
 ## Attended Decision
 

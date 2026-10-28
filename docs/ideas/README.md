@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.0 |
-| **Date** | 2026-10-02 |
+| **Version** | 2.2 |
+| **Date** | 2026-10-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active |
 | **Scope** | Repository Ideas |
@@ -73,6 +73,18 @@ The next-stage column comes before the owned record so automated navigation can 
 | UC-0018 | Not created | [Onboarding Checklist Rebuild](uc-0018-onboarding-checklist-rebuild.md) | Proposed Baseline | HR | Replace the onboarding checklist with an owned, usable process | Customer-supplied HR Ops CH pain points | Deferred - not synchronized |
 | UC-0019 | Not created | [Attrition Risk Insight Lite](uc-0019-attrition-risk-insight-lite.md) | Proposed Baseline | HR | Support retention improvement without automated employment decisions | Customer-supplied HR AI use-case workbook | Deferred - not synchronized |
 | IDEA-HR-CONTROL-PLANE | [HTML companion](hr-control-plane-mockup.html); no committed next stage | [HR Control Plane Mockup](hr-control-plane-mockup-idea.md) | Draft | HR | Explore an operational cockpit for agent runs, field actions, and exceptions | Repository-owned design exploration; non-authoritative | Deferred - not synchronized |
+
+### GF draft packages
+
+| ID | Domain detail and next stage | Idea | Status | Domain | Purpose | Authority | Board synchronization |
+|---|---|---|---|---|---|---|---|
+| IDEA-GF-POLICY | [Specification](../specs/2026-10-28-gf-sse-hr-policy-assistant-design.md); [sprint](../plans/2026-10-28-gf-sse-hr-policy-assistant-sprint.md) | [GF SSE HR Policy assistant](gf-sse-hr-policy-assistant-idea.md) | Draft | GF HR | Swiss-only cited policy guidance, with future regional onboarding design. | Brief reviewed; primary sources/access gates pending; GitHub runtime harness selected. | Deferred - not synchronized |
+| IDEA-GF-RECRUITING | [Specification](../specs/2026-10-28-gf-recruiting-requisition-posting-agent-design.md); [sprint](../plans/2026-10-28-gf-recruiting-requisition-posting-agent-sprint.md) | [GF Recruiting: Job Requisition and Job Posting agent](gf-recruiting-requisition-posting-agent-idea.md) | Draft | GF HR | Interview/generation and conditional recruiter handoff; no CV screening. | HR must resolve GF-REC-D01 creation/publication conflict; no operational write envelope approved. | Deferred - not synchronized |
+| IDEA-GF-HR-OPERATIONS | [Specification](../specs/2026-10-28-gf-hr-operations-agent-design.md); [sprint](../plans/2026-10-28-gf-hr-operations-agent-sprint.md) | [GF HR Operations Agent](gf-hr-operations-agent-idea.md) | Draft | GF HR | Detailed Swiss PeopleDoc-to-Workday proposal process. | Propose-only; matching/approval/data/interface and safety gates block writes. | Deferred - not synchronized |
+| IDEA-GF-REPOSITORY | [Specification](../specs/2026-10-28-gf-azure-devops-repository-design.md); [sprint](../plans/2026-10-28-gf-azure-devops-repository-sprint.md) | [GF Azure DevOps repository](gf-azure-devops-repository-idea.md) | Draft | GF Engineering | Independent Azure Repos source authority after reviewed one-time transfer. | User-confirmed target; Proposed Baseline GF ADR refinement; no live migration authority. | Deferred - not synchronized |
+| IDEA-GF-SOLUTION-CICD | [Specification](../specs/2026-10-28-gf-azure-devops-solution-cicd-design.md); [sprint](../plans/2026-10-28-gf-azure-devops-solution-cicd-sprint.md) | [GF Azure DevOps solution CI/CD and DEV capture](gf-azure-devops-solution-cicd-idea.md) | Draft | GF Engineering | Explicit reusable DEV capture to branch/PR, reviewed-source build and TEST delivery. | User-confirmed boundary; solution/environment inventory and access unverified. | Deferred - not synchronized |
+
+The [five GF draft packages](../README.md#gf-draft-packages) are separate from the nineteen Caldova `UC-nnnn` records. Draft specifications and sprint proposals do not constitute idea graduation or implementation approval. The [source/CAT assessment](../README.md#cat-reuse-assessment) separates reusable authoring aids from conditional runtime candidates; none is installed or admitted.
 
 ## HR portfolio guidance
 

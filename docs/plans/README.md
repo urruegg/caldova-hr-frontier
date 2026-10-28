@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.12 |
-| **Date** | 2026-10-19 |
+| **Version** | 1.14 |
+| **Date** | 2026-10-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
 | **Scope** | docs/plans |
@@ -15,7 +15,7 @@ This is the canonical repository-wide implementation-plan root. Plans translate 
 
 ## Contains and Does Not Contain
 
-This folder contains implementation plans and superseded plans retained for traceability. It does not contain ideas, design specifications, execution evidence, domain runbooks, or source code.
+This folder contains implementation plans, draft sprint proposals and superseded plans retained for traceability. It does not contain ideas, design specifications, execution evidence, domain runbooks, or source code.
 
 ## Reading Order
 
@@ -24,6 +24,8 @@ Start at the [documentation knowledge map](../README.md), select the governing [
 ## Naming and Lifecycle
 
 Name plans `YYYY-MM-DD-topic-implementation.md`. Include exact files, ordered steps, validation commands, expected outcomes, and completion criteria. A superseded plan remains for history but must not execute; it links to its successor. Status changes update this catalogue in the same pull request.
+
+Draft sprint proposals may use `YYYY-MM-DD-topic-sprint.md`. They record a goal, candidate backlog, dependencies, entry gates and proposed acceptance evidence. They are starting points, not executable implementation plans or commitments; unknown owners, dates and estimates remain explicit. A draft sprint does not turn its Draft specification into implementation authority.
 
 ## Catalogue
 
@@ -58,6 +60,18 @@ Name plans `YYYY-MM-DD-topic-implementation.md`. Include exact files, ordered st
 | [Replica final validation](2026-10-02-tenant-replica-handover-implementation.md), then [end-to-end acceptance](2026-10-02-tenant-1-end-to-end-acceptance-implementation.md) | [Power Platform DEV Delivery Implementation Plan](2026-10-02-power-platform-dev-delivery-implementation.md) | Draft | Adds the child-owned manual Azure Pipeline, Build Tools 2.0 WIF contract, immutable HR artifact, DEV-only import, attended application-user read-back, and canonical stage result. | Draft child plan blocked until corrected Plans 1-3 are merged and then-current `main` is green; it authorizes no pipeline queue, role grant, import, or live execution. |
 | [End-to-end acceptance plan](2026-10-02-tenant-1-end-to-end-acceptance-implementation.md) | [Tenant Replica and Customer Handover Implementation Plan](2026-10-02-tenant-replica-handover-implementation.md) | Draft | Adds explicit `TenantReplica` and `CustomerHandover` profiles over one child-owned local export and independent-validation engine, including canonical stage-result emission. | Draft local child plan blocked until the coordinate-only correction is merged and then-current `main` is green; final retained-pipeline acceptance also waits for the DEV delivery plan and no remote or Tenant 2 action is authorized. |
 | New sprint-specific review at `docs/reviews/2026-10-02-tenant-1-runbook-end-to-end-acceptance-review.md` | [Tenant 1 End-to-End Acceptance Implementation Plan](2026-10-02-tenant-1-end-to-end-acceptance-implementation.md) | Draft | Gates explicit child Plan/approval/WhatIf/Apply/read-back/stage-result sequences, coordinate-only umbrella Verify, NoChange, fresh-laptop continuation, local replica validation, sanitized review, and post-acceptance documentation disposition. | Draft final plan blocked until the coordinate-only correction and Plans 1-5 are merged, then-current `main` is green, private prerequisites exist, and every hard live-entry approval is recorded. |
+
+### GF draft sprint proposals
+
+| Successor or next stage | Plan | Status | Purpose | Authority |
+|---|---|---|---|---|
+| [Draft specification](../specs/2026-10-28-gf-sse-hr-policy-assistant-design.md) | [GF SSE HR Policy assistant sprint](2026-10-28-gf-sse-hr-policy-assistant-sprint.md) | Draft | Proposes Swiss source/access review, golden cases first and conditional pilot validation. | No release authority; classification, accountability and harness gates remain open. |
+| [Draft specification](../specs/2026-10-28-gf-recruiting-requisition-posting-agent-design.md) | [GF Recruiting: Job Requisition and Job Posting sprint](2026-10-28-gf-recruiting-requisition-posting-agent-sprint.md) | Draft | Proposes shared drafting and synthetic recruiter-handoff evaluation. | GF-REC-D01 remains an HR decision; no Workday writes/publishing committed. |
+| [Draft specification](../specs/2026-10-28-gf-hr-operations-agent-design.md) | [GF HR Operations Agent sprint](2026-10-28-gf-hr-operations-agent-sprint.md) | Draft | Proposes synthetic, propose-only process and Access Layer safety validation. | All writes blocked until stakeholder decisions, privacy and safety evidence close. |
+| [Draft specification](../specs/2026-10-28-gf-azure-devops-repository-design.md) | [GF Azure DevOps repository sprint](2026-10-28-gf-azure-devops-repository-sprint.md) | Draft | Proposes reviewed transfer, GF controls and source-authority acceptance. | No live repository creation or migration authority; GF decision/security gates apply. |
+| [Draft specification](../specs/2026-10-28-gf-azure-devops-solution-cicd-design.md) | [GF Azure DevOps solution CI/CD and DEV capture sprint](2026-10-28-gf-azure-devops-solution-cicd-sprint.md) | Draft | Proposes reusable DEV capture to PR, validated artifact build and TEST delivery. | No live capture/import authority; PROD excluded and environment/inventory gates remain open. |
+
+The [five GF packages](../README.md#gf-draft-packages) each have a separate sprint, idea and specification. Each sprint includes a Mermaid dependency/gate chart and the [CAT assessment](../README.md#cat-reuse-assessment) informs conditional reuse work, not installed dependencies. No sprint dates, estimates or Azure Boards identifiers are inferred.
 
 ## Domain Links
 
