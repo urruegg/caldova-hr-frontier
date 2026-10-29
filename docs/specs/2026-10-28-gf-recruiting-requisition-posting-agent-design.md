@@ -2,12 +2,21 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.2 |
-| **Date** | 2026-10-28 |
+| **Version** | 0.3 |
+| **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
 | **Scope** | GF functional package: recruiting preparation with stakeholder-gated action scope |
 | **References** | [Idea](../ideas/gf-recruiting-requisition-posting-agent-idea.md), [Sprint](../plans/2026-10-28-gf-recruiting-requisition-posting-agent-sprint.md), [Platform requirements](../prd.md), [Write envelope](../adr/0008-human-in-the-loop-and-write-envelope.md), [Governed Workday access](../adr/0009-workday-access-via-connector-behind-governed-layer.md), [Workflow-first architecture](../adr/0011-workflow-first-process-architecture.md) |
+
+## Grounded agent identity
+
+Use the [GF identity kit and adopted bindings](../brand/gf-agent-identity/README.md#3-adopted-identities):
+**D1-A01, Recruiting Job Posting**. Exact per-environment names/icons come from
+the bound source identity, not a title shortened independently by each maker.
+The identity does not resolve GF-REC-D01, enable publication/Workday writes or
+approve a schema/solution migration. Apply the
+[identity adoption gates](2026-10-29-gf-agent-identity-kit-design.md) before deployment.
 
 ## 1. Authority and confirmed scope
 

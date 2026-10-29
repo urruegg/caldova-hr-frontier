@@ -1,0 +1,108 @@
+{
+  "id": "D4-A02",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D4",
+    "name": "Leadership & Workforce Insights"
+  },
+  "tokens": {
+    "po": "People Analytics",
+    "domain": "Trends",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "People Analytics Trends DEV",
+    "TEST": "People Analytics Trends TEST",
+    "PROD": "People Analytics Trends"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Explains group-level trends such as headcount, hiring and attrition.",
+    "TEST": "TEST · Explains group-level trends such as headcount, hiring and attrition.",
+    "PROD": "Explains group-level trends such as headcount, hiring and attrition."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nCombines several reports and Power BI models to explain trends such as headcount, hiring and attrition at group level. Process owner area: People Analytics. Status: Hypothesis · not selected.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nCombines several reports and Power BI models to explain trends such as headcount, hiring and attrition at group level. Process owner area: People Analytics. Status: Hypothesis · not selected.",
+    "PROD": "Combines several reports and Power BI models to explain trends such as headcount, hiring and attrition at group level. Process owner area: People Analytics. Status: Hypothesis · not selected."
+  },
+  "slug": "people-analytics-trends",
+  "schemaName": "gf_PeopleAnalyticsTrends",
+  "solution": {
+    "uniqueName": "GFHRPeopleAnalyticsTrends",
+    "displayName": "GF HR People Analytics Trends"
+  },
+  "envVarPrefix": "gf_PeopleAnalytics",
+  "connectionContext": "PeopleAnalytics",
+  "flowNamePrefix": "People Analytics Trends - ",
+  "github": null,
+  "icon": {
+    "background": "#003E51",
+    "glyphColour": "#FFFFFF",
+    "contrast": 11.62,
+    "glyph": "Fluent UI System Icons: data-bar-vertical (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "People Analytics Trends DEV",
+      "TEST": "People Analytics Trends TEST",
+      "PROD": "People Analytics Trends"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer People Analytics Trends (DEV)",
+      "TEST": "Georg Fischer People Analytics Trends (TEST)",
+      "PROD": "Georg Fischer People Analytics Trends"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Explains group-level trends such as headcount, hiring and attrition.",
+      "TEST": "TEST · Explains group-level trends such as headcount, hiring and attrition.",
+      "PROD": "Explains group-level trends such as headcount, hiring and attrition."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nCombines several reports and Power BI models to explain trends such as headcount, hiring and attrition at group level. Process owner area: People Analytics. Status: Hypothesis · not selected.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nCombines several reports and Power BI models to explain trends such as headcount, hiring and attrition at group level. Process owner area: People Analytics. Status: Hypothesis · not selected.",
+      "PROD": "Combines several reports and Power BI models to explain trends such as headcount, hiring and attrition at group level. Process owner area: People Analytics. Status: Hypothesis · not selected."
+    },
+    "accentColor": "#003E51",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Hypothesis · not selected",
+  "statusClass": "hypothesis",
+  "audience": "HR leadership",
+  "processOwnerArea": "People Data, Analytics & AI (DAAI); People Analytics as report owner",
+  "owner": "Head of People Data, Analytics & AI",
+  "channels": [],
+  "gfName": null,
+  "blueprintName": "Workforce Insights Agent",
+  "evidence": [
+    "E06",
+    "E13"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

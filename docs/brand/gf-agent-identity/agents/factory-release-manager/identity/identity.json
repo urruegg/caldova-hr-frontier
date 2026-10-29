@@ -1,0 +1,71 @@
+{
+  "id": "D6-A05",
+  "kind": "repository-agent",
+  "role": "specialist",
+  "journey": {
+    "id": "D6",
+    "name": "HR Agentic Factory"
+  },
+  "tokens": {
+    "po": "Factory",
+    "domain": "Release Manager",
+    "scope": ""
+  },
+  "displayName": {
+    "PROD": "Factory Release Manager"
+  },
+  "shortDescription": {
+    "PROD": "Prepares releases through the pipelines with a promotion manifest."
+  },
+  "fullDescription": {
+    "PROD": "Prepares releases through Azure Pipelines and Power Platform Pipelines — version stamp, packages built once, deployment settings, promotion manifest, release notes and approvals — so the identical artefact moves from TEST to PROD. Process owner area: Factory. Status: Factory · prototype-days dry run. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself."
+  },
+  "slug": "factory-release-manager",
+  "schemaName": null,
+  "solution": null,
+  "envVarPrefix": null,
+  "connectionContext": null,
+  "flowNamePrefix": null,
+  "github": {
+    "agentName": "release-manager",
+    "file": ".github/agents/release-manager.agent.md",
+    "proposedName": false
+  },
+  "icon": {
+    "background": "#323232",
+    "glyphColour": "#FFFFFF",
+    "contrast": 12.82,
+    "glyph": "Fluent UI System Icons: rocket (filled / regular)",
+    "files": {
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": null,
+  "status": "Factory · prototype-days dry run",
+  "statusClass": "factory",
+  "audience": "Platform governance",
+  "processOwnerArea": "HR Agentic Factory - HR AI Business Lead as product owner (to confirm)",
+  "owner": "GF IT Power Platform and Dynamics platform governance (releases with the HR AI Business Lead)",
+  "channels": [
+    "Azure Pipelines",
+    "VS Code with GitHub Copilot",
+    "Teams"
+  ],
+  "gfName": null,
+  "blueprintName": "Release Manager Agent",
+  "evidence": [
+    "E44",
+    "E45",
+    "E12",
+    "E09",
+    "E36",
+    "E38"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

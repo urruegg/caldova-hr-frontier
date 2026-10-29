@@ -1,0 +1,107 @@
+{
+  "id": "D5-A03",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D5",
+    "name": "Talent & Performance"
+  },
+  "tokens": {
+    "po": "Talent",
+    "domain": "Development Plan",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "Talent Development Plan DEV",
+    "TEST": "Talent Development Plan TEST",
+    "PROD": "Talent Development Plan"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Proposes a 70/20/10 development plan to discuss with the manager.",
+    "TEST": "TEST · Proposes a 70/20/10 development plan to discuss with the manager.",
+    "PROD": "Proposes a 70/20/10 development plan to discuss with the manager."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nProposes a 70/20/10 development plan for the employee to discuss with the manager. Process owner area: Talent. Status: Hypothesis · not selected.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nProposes a 70/20/10 development plan for the employee to discuss with the manager. Process owner area: Talent. Status: Hypothesis · not selected.",
+    "PROD": "Proposes a 70/20/10 development plan for the employee to discuss with the manager. Process owner area: Talent. Status: Hypothesis · not selected."
+  },
+  "slug": "talent-development-plan",
+  "schemaName": "gf_TalentDevelopmentPlan",
+  "solution": {
+    "uniqueName": "GFHRTalentDevelopmentPlan",
+    "displayName": "GF HR Talent Development Plan"
+  },
+  "envVarPrefix": "gf_Talent",
+  "connectionContext": "Talent",
+  "flowNamePrefix": "Talent Development Plan - ",
+  "github": null,
+  "icon": {
+    "background": "#ADDC91",
+    "glyphColour": "#003E51",
+    "contrast": 7.42,
+    "glyph": "Fluent UI System Icons: target-arrow (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "Talent Development Plan DEV",
+      "TEST": "Talent Development Plan TEST",
+      "PROD": "Talent Development Plan"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer Talent Development Plan (DEV)",
+      "TEST": "Georg Fischer Talent Development Plan (TEST)",
+      "PROD": "Georg Fischer Talent Development Plan"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Proposes a 70/20/10 development plan to discuss with the manager.",
+      "TEST": "TEST · Proposes a 70/20/10 development plan to discuss with the manager.",
+      "PROD": "Proposes a 70/20/10 development plan to discuss with the manager."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nProposes a 70/20/10 development plan for the employee to discuss with the manager. Process owner area: Talent. Status: Hypothesis · not selected.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nProposes a 70/20/10 development plan for the employee to discuss with the manager. Process owner area: Talent. Status: Hypothesis · not selected.",
+      "PROD": "Proposes a 70/20/10 development plan for the employee to discuss with the manager. Process owner area: Talent. Status: Hypothesis · not selected."
+    },
+    "accentColor": "#ADDC91",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Hypothesis · not selected",
+  "statusClass": "hypothesis",
+  "audience": "Employees and managers",
+  "processOwnerArea": "Talent & Performance (hypothesis, not yet confirmed by GF)",
+  "owner": "Head of Talent & Performance",
+  "channels": [],
+  "gfName": null,
+  "blueprintName": "Development Planning Agent",
+  "evidence": [
+    "E06"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

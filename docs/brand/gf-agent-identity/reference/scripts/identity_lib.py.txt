@@ -1,0 +1,153 @@
+"""Shared helpers for the GF HR agent identity package.
+
+Naming is derived from tokens held in config/agent-identity.json:
+  display name = <PO> <Domain> [<Scope>] [<ENV>]   (no environment postfix in PROD)
+Everything technical (schema names, solutions, slugs, variables) is environment-neutral.
+Standard library only, so the validator and the stamping step run on any build agent.
+"""
+from __future__ import annotations
+
+import json
+import re
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+ENVS = ("DEV", "TEST", "PROD")
+
+
+def load_json(path: Path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_json(path: Path, data) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+
+
+def load_config(root: Path = ROOT):
+    return load_json(root / "config" / "agent-identity.json"), load_json(root / "config" / "palette.json")
+
+
+# ---------------------------------------------------------------- colour
+
+def _channel(c: float) -> float:
+    c = c / 255.0
+    return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+
+
+def luminance(hex_colour: str) -> float:
+    h = hex_colour.lstrip("#")
+    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+    return 0.2126 * _channel(r) + 0.7152 * _channel(g) + 0.0722 * _channel(b)
+
+
+def contrast(a: str, b: str) -> float:
+    la, lb = sorted((luminance(a), luminance(b)), reverse=True)
+    return round((la + 0.05) / (lb + 0.05), 2)
+
+
+def mix(hex_colour: str, other: str = "#FFFFFF", share_other: float = 0.88) -> str:
+    h1, h2 = hex_colour.lstrip("#"), other.lstrip("#")
+    out = []
+    for i in (0, 2, 4):
+        c1, c2 = int(h1[i:i + 2], 16), int(h2[i:i + 2], 16)
+        out.append(round(c1 * (1 - share_other) + c2 * share_other))
+    return "#" + "".join(f"{c:02X}" for c in out)
+
+
+# ---------------------------------------------------------------- naming
+
+def _pascal(text: str) -> str:
+    words = re.split(r"[^A-Za-z0-9]+", text)
+    out = []
+    for w in words:
+        if not w:
+            continue
+        out.append(w if w.isupper() else w[:1].upper() + w[1:])
+    return "".join(out)
+
+
+def _kebab(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
+def po_area(cfg: dict, token: str) -> dict:
+    for area in cfg["poAreas"]:
+        if area["token"] == token:
+            return area
+    raise KeyError(f"Unknown PO area token: {token!r} (add it to poAreas)")
+
+
+def base_name(cfg: dict, agent: dict) -> str:
+    """PROD display name: template without the environment token."""
+    tpl = cfg["naming"]["displayTemplate"]
+    text = tpl.format(po=agent["po"], domain=agent["domain"], scope=agent.get("scope", ""), env="")
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def display_name(cfg: dict, agent: dict, env: str) -> str:
+    if not agent.get("environmentScoped", True) or env == "PROD":
+        return base_name(cfg, agent)
+    tpl = cfg["naming"]["displayTemplate"]
+    text = tpl.format(po=agent["po"], domain=agent["domain"], scope=agent.get("scope", ""), env=env)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def derive(cfg: dict, agent: dict, palette: dict) -> dict:
+    """All derived names and identity facts for one agent (environment-neutral unless keyed by env)."""
+    area = po_area(cfg, agent["po"])
+    prefix = cfg["naming"]["publisherPrefix"]
+    sol_prefix = cfg["naming"]["solutionPrefix"]
+    scope = agent.get("scope", "")
+    stem = area["code"] + _pascal(agent["domain"]) + (scope.upper() if scope else "")
+    base = base_name(cfg, agent)
+    slug = _kebab(base)
+    # Solution: GFHR + stem without a leading "HR" (avoids GFHRHR...)
+    sol_stem = stem[2:] if stem.startswith("HR") else stem
+    sol_unique = f"{sol_prefix}{sol_stem}"
+    sol_display = "GF HR " + (base[3:] if base.startswith("HR ") else base)
+    ov = agent.get("overrides", {}) or {}
+    dom = palette["domains"][agent["journey"]]
+    names = {env: display_name(cfg, agent, env) for env in ENVS}
+    full = {}
+    for env in ENVS:
+        tail = "" if names[env] == base else f" ({env})"
+        full[env] = f"{cfg['naming']['fullNamePrefix']}{base}{tail}"
+    repo_agent = agent["kind"] == "repository-agent"
+    d = {
+        "displayName": names,
+        "slug": ov.get("slug", slug),
+        "schemaStem": stem,
+        "schemaName": None if repo_agent else (ov.get("schemaName") or f"{prefix}_{stem}"),
+        "solutionUniqueName": None if repo_agent else ov.get("solutionUniqueName", sol_unique),
+        "solutionDisplayName": None if repo_agent else ov.get("solutionDisplayName", sol_display),
+        "envVarPrefix": None if repo_agent else f"{prefix}_{area['code']}",
+        "connectionContext": None if repo_agent else area["code"] + (scope.upper() if scope else ""),
+        "flowNamePrefix": None if repo_agent else f"{base} - ",
+        "githubAgentName": agent.get("githubAgent"),
+        "githubAgentFile": f".github/agents/{agent['githubAgent']}.agent.md" if agent.get("githubAgent") else None,
+        "teams": None if repo_agent else {
+            "shortName": names,
+            "fullName": full,
+            "accentColor": dom["background"],
+        },
+        "icon": {
+            "background": dom["background"],
+            "glyphColor": dom["glyph"],
+            "contrast": contrast(dom["background"], dom["glyph"]),
+            "glyph": agent["glyph"],
+        },
+    }
+    return d
+
+
+def env_description(cfg: dict, agent: dict, env: str, kind: str = "short") -> str:
+    """Short (<= 80) or full description for an environment. DEV/TEST carry a visible marker."""
+    scoped = agent.get("environmentScoped", True)
+    e = cfg["environments"][env]
+    if kind == "short":
+        return (e["shortPrefix"] if scoped else "") + agent["shortDescription"]
+    return ((e["fullBanner"] + "\n\n") if (scoped and e["fullBanner"]) else "") + agent["fullDescription"]

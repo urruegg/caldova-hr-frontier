@@ -1,0 +1,41 @@
+# Azure Pipelines step template: validate the agent identity and stamp environment names and icons
+# into an unpacked solution BEFORE 'pac solution pack' (Agent Factory FE-16, release stage 4).
+# Usage in a job:
+#   - template: templates/stamp-identity.yml
+#     parameters:
+#       environment: TEST            # DEV | TEST | PROD
+#       solutionFolder: $(Pipeline.Workspace)/unpacked-test/GFHRPolicyAssistant
+#       identityRoot: $(Build.SourcesDirectory)/hr/solutions/agent/harness/identity
+parameters:
+  - name: environment
+    type: string
+    values: [DEV, TEST, PROD]
+  - name: solutionFolder
+    type: string
+  - name: identityRoot
+    type: string
+
+steps:
+  - task: UsePythonVersion@0
+    displayName: Use Python 3.11
+    inputs:
+      versionSpec: '3.11'
+
+  - script: python "${{ parameters.identityRoot }}/scripts/validate_identity.py" --root "${{ parameters.identityRoot }}" --json "$(Build.ArtifactStagingDirectory)/identity-validation.json"
+    displayName: Validate agent identity
+
+  - script: >
+      python "${{ parameters.identityRoot }}/scripts/stamp_identity.py"
+      --root "${{ parameters.identityRoot }}"
+      --env ${{ parameters.environment }}
+      --solution-dir "${{ parameters.solutionFolder }}"
+      --apply --strict
+      --report "$(Build.ArtifactStagingDirectory)/identity-stamp-${{ parameters.environment }}.json"
+    displayName: Stamp ${{ parameters.environment }} names and icons
+
+  - task: PublishPipelineArtifact@1
+    displayName: Publish identity reports
+    condition: always()
+    inputs:
+      targetPath: $(Build.ArtifactStagingDirectory)
+      artifact: identity-${{ parameters.environment }}-$(System.JobAttempt)

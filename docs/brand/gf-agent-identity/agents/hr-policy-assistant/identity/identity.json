@@ -1,0 +1,114 @@
+{
+  "id": "D3-A01",
+  "kind": "ess",
+  "role": "specialist",
+  "journey": {
+    "id": "D3",
+    "name": "HR Operations & Service"
+  },
+  "tokens": {
+    "po": "HR Policy",
+    "domain": "Assistant",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "HR Policy Assistant DEV",
+    "TEST": "HR Policy Assistant TEST",
+    "PROD": "HR Policy Assistant"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Answers Swiss HR policy questions from approved policies, with source.",
+    "TEST": "TEST · Answers Swiss HR policy questions from approved policies, with source.",
+    "PROD": "Answers Swiss HR policy questions from approved policies, with source."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nAnswers Switzerland HR policy questions from approved policy PDFs on SharePoint with the source; points to the Workday Help Center when no reliable answer exists. Process owner area: HR Policy. Status: Workshop use case · MVP 1.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nAnswers Switzerland HR policy questions from approved policy PDFs on SharePoint with the source; points to the Workday Help Center when no reliable answer exists. Process owner area: HR Policy. Status: Workshop use case · MVP 1.",
+    "PROD": "Answers Switzerland HR policy questions from approved policy PDFs on SharePoint with the source; points to the Workday Help Center when no reliable answer exists. Process owner area: HR Policy. Status: Workshop use case · MVP 1."
+  },
+  "slug": "hr-policy-assistant",
+  "schemaName": "gf_HRPolicyAssistant",
+  "solution": {
+    "uniqueName": "GFHRPolicyAssistant",
+    "displayName": "GF HR Policy Assistant"
+  },
+  "envVarPrefix": "gf_HRPolicy",
+  "connectionContext": "HRPolicy",
+  "flowNamePrefix": "HR Policy Assistant - ",
+  "github": null,
+  "icon": {
+    "background": "#BC5A26",
+    "glyphColour": "#FFFFFF",
+    "contrast": 4.54,
+    "glyph": "Fluent UI System Icons: book-question-mark (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "HR Policy Assistant DEV",
+      "TEST": "HR Policy Assistant TEST",
+      "PROD": "HR Policy Assistant"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer HR Policy Assistant (DEV)",
+      "TEST": "Georg Fischer HR Policy Assistant (TEST)",
+      "PROD": "Georg Fischer HR Policy Assistant"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Answers Swiss HR policy questions from approved policies, with source.",
+      "TEST": "TEST · Answers Swiss HR policy questions from approved policies, with source.",
+      "PROD": "Answers Swiss HR policy questions from approved policies, with source."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nAnswers Switzerland HR policy questions from approved policy PDFs on SharePoint with the source; points to the Workday Help Center when no reliable answer exists. Process owner area: HR Policy. Status: Workshop use case · MVP 1.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nAnswers Switzerland HR policy questions from approved policy PDFs on SharePoint with the source; points to the Workday Help Center when no reliable answer exists. Process owner area: HR Policy. Status: Workshop use case · MVP 1.",
+      "PROD": "Answers Switzerland HR policy questions from approved policy PDFs on SharePoint with the source; points to the Workday Help Center when no reliable answer exists. Process owner area: HR Policy. Status: Workshop use case · MVP 1."
+    },
+    "accentColor": "#BC5A26",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Workshop use case · MVP 1",
+  "statusClass": "mvp",
+  "audience": "Employees in Switzerland (pilot group)",
+  "processOwnerArea": "Switzerland HR - local policy owner (to be named)",
+  "owner": "DAAI (agent owner); Switzerland HR policy owner for content (to be named)",
+  "channels": [
+    "Microsoft 365 Copilot",
+    "Teams"
+  ],
+  "gfName": "SSE HR Policy Assistant",
+  "blueprintName": "HR Policy Assistant",
+  "evidence": [
+    "E04",
+    "E06",
+    "E25",
+    "E36",
+    "E38"
+  ],
+  "notes": "Built on GF's Employee Self-Service agent if the ESS HR template is enabled for GF's tenant (customisation solution GFHRESS, E45); plan B is a standard Copilot Studio agent in its own solution. If the ESS agent later also answers own-data questions (D3-A02), consider one ESS display name for both (open decision 16).",
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

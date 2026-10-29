@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0",
+  "sourceVersion": "1.0.0",
+  "status": "Draft integration",
+  "approval": "Repository owner reports GF written approval to adapt the kit; formal reference and unresolved technical decisions remain open.",
+  "bindings": [
+    {
+      "packageId": "IDEA-GF-POLICY",
+      "identityId": "D3-A01",
+      "identityPath": "agents/hr-policy-assistant/identity/identity.json",
+      "specification": "docs/specs/2026-10-28-gf-sse-hr-policy-assistant-design.md",
+      "runtimeHarness": "copilot-studio-github",
+      "technicalNames": "pending-gf-owner-decisions",
+      "deployed": false
+    },
+    {
+      "packageId": "IDEA-GF-RECRUITING",
+      "identityId": "D1-A01",
+      "identityPath": "agents/recruiting-job-posting/identity/identity.json",
+      "specification": "docs/specs/2026-10-28-gf-recruiting-requisition-posting-agent-design.md",
+      "runtimeHarness": "copilot-studio-github",
+      "technicalNames": "pending-gf-owner-decisions",
+      "deployed": false
+    },
+    {
+      "packageId": "IDEA-GF-HR-OPERATIONS",
+      "identityId": "D2-A01",
+      "identityPath": "agents/hr-ops-master-data-ch/identity/identity.json",
+      "specification": "docs/specs/2026-10-28-gf-hr-operations-agent-design.md",
+      "runtimeHarness": "copilot-studio-github",
+      "technicalNames": "pending-gf-owner-decisions",
+      "deployed": false
+    },
+    {
+      "packageId": "IDEA-GF-ESS",
+      "identityId": "D3-A02",
+      "identityPath": "agents/hr-ops-self-service/identity/identity.json",
+      "specification": "docs/specs/2026-10-28-gf-ess-github-harness-workiq-design.md",
+      "runtimeHarness": "copilot-studio-github",
+      "technicalNames": "pending-gf-owner-decisions",
+      "deployed": false
+    }
+  ],
+  "notRuntimeAgents": [
+    "IDEA-GF-REPOSITORY",
+    "IDEA-GF-SOLUTION-CICD",
+    "IDEA-GF-BLUEPRINT",
+    "IDEA-GF-AGENT-IDENTITY"
+  ],
+  "sourceConflicts": [
+    "The source kind ess and native ESS authoring assumptions for D3-A01/D3-A02 do not override the selected GitHub Copilot runtime harness.",
+    "The source D3-A02 later-wave status and own-data description do not replace the reviewed ESS-equivalent six-operation design or prove delivery.",
+    "Source publisher prefix gf is not resolution of N-3/G5; existing technical names and solution identities are not migrated.",
+    "Source D6 repository-agent naming does not amend the approved repository-agent portfolio or rename installed profiles."
+  ]
+}

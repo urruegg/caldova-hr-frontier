@@ -1,0 +1,111 @@
+{
+  "id": "D1-LEAD",
+  "kind": "copilot-studio",
+  "role": "orchestrator",
+  "journey": {
+    "id": "D1",
+    "name": "Attract & Hire"
+  },
+  "tokens": {
+    "po": "Recruiting",
+    "domain": "Lead",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "Recruiting Lead DEV",
+    "TEST": "Recruiting Lead TEST",
+    "PROD": "Recruiting Lead"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Routes recruiting requests to the right Attract & Hire specialist agent.",
+    "TEST": "TEST · Routes recruiting requests to the right Attract & Hire specialist agent.",
+    "PROD": "Routes recruiting requests to the right Attract & Hire specialist agent."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nOrchestrator for the Attract & Hire journey: understands the request and hands it to the right specialist agent. Process owner area: Recruiting. Status: Hypothesis · not selected.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nOrchestrator for the Attract & Hire journey: understands the request and hands it to the right specialist agent. Process owner area: Recruiting. Status: Hypothesis · not selected.",
+    "PROD": "Orchestrator for the Attract & Hire journey: understands the request and hands it to the right specialist agent. Process owner area: Recruiting. Status: Hypothesis · not selected."
+  },
+  "slug": "recruiting-lead",
+  "schemaName": "gf_RecruitingLead",
+  "solution": {
+    "uniqueName": "GFHRRecruitingLead",
+    "displayName": "GF HR Recruiting Lead"
+  },
+  "envVarPrefix": "gf_Recruiting",
+  "connectionContext": "Recruiting",
+  "flowNamePrefix": "Recruiting Lead - ",
+  "github": null,
+  "icon": {
+    "background": "#00629B",
+    "glyphColour": "#FFFFFF",
+    "contrast": 6.52,
+    "glyph": "Fluent UI System Icons: person-add (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "Recruiting Lead DEV",
+      "TEST": "Recruiting Lead TEST",
+      "PROD": "Recruiting Lead"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer Recruiting Lead (DEV)",
+      "TEST": "Georg Fischer Recruiting Lead (TEST)",
+      "PROD": "Georg Fischer Recruiting Lead"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Routes recruiting requests to the right Attract & Hire specialist agent.",
+      "TEST": "TEST · Routes recruiting requests to the right Attract & Hire specialist agent.",
+      "PROD": "Routes recruiting requests to the right Attract & Hire specialist agent."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nOrchestrator for the Attract & Hire journey: understands the request and hands it to the right specialist agent. Process owner area: Recruiting. Status: Hypothesis · not selected.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nOrchestrator for the Attract & Hire journey: understands the request and hands it to the right specialist agent. Process owner area: Recruiting. Status: Hypothesis · not selected.",
+      "PROD": "Orchestrator for the Attract & Hire journey: understands the request and hands it to the right specialist agent. Process owner area: Recruiting. Status: Hypothesis · not selected."
+    },
+    "accentColor": "#00629B",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Hypothesis · not selected",
+  "statusClass": "hypothesis",
+  "audience": "Hiring managers, HR partners and recruiters",
+  "processOwnerArea": "People Attraction / Recruiting",
+  "owner": "Head of People Attraction & Recruiting",
+  "channels": [
+    "Teams",
+    "Microsoft 365 Copilot"
+  ],
+  "gfName": null,
+  "blueprintName": "Recruiting Lead Agent",
+  "evidence": [
+    "E20",
+    "E04"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

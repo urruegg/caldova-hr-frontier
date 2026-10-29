@@ -1,0 +1,5 @@
+<bot schemaname="cr123_LegacyAgent">
+  <iconbase64>AAAA</iconbase64>
+  <language>1033</language>
+  <name>Legacy test agent</name>
+</bot>

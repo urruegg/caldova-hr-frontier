@@ -1,9 +1,9 @@
-# Caldova Product Theme — HR Agentic Platform
+# Product Theme and GF HR Agent Identity
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.3 |
+| **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Solution Experience |
@@ -11,15 +11,15 @@
 
 ## Purpose and Authority
 
-This folder owns interim product-theme tokens, Fluent 2 themes, mockup guidance, and the reserved asset location for user-facing Caldova HR Agentic Platform surfaces. Its Proposed Baseline metadata and provenance statement limit its authority: it is not an approved corporate identity standard.
+This folder owns two distinct surfaces: the unchanged interim Caldova product theme and the [grounded GF runtime-agent identity kit](gf-agent-identity/README.md). The latter is a curated customer-source intake with explicitly adopted agent mappings, not a replacement for the demo CSS/Fluent theme or a universal corporate identity standard.
 
 ## Contains and Does Not Contain
 
-This folder contains reusable theme source, a static mockup, and an empty governed asset slot. It does not contain an approved Caldova logo, a corporate design manual, component-specific hard-coded colours, or licensed third-party assets.
+This folder contains reusable Caldova theme source, a static mockup, an empty Caldova asset slot and the separate supplied GF identity/brand assets with retained notices. It does not contain an approved Caldova logo or a corporate design manual. GF trademark references do not establish unrestricted public distribution rights.
 
 ## Reading Order
 
-Read this README first, especially provenance and accessibility constraints. Use the CSS tokens for non-React surfaces, the TypeScript theme for Fluent React surfaces, and the static HTML only as a visual reference.
+Read this README first, especially provenance and accessibility constraints. For Caldova surfaces use the existing CSS/TypeScript theme. For every GF Copilot Studio agent design/build, read the [kit guide](gf-agent-identity/README.md) and [bindings](gf-agent-identity/agent-bindings.json) before selecting names, palette or per-environment icons.
 
 ## Naming and Lifecycle
 
@@ -35,6 +35,15 @@ Non-Markdown assets have no metadata header; their status below derives from thi
 | [`caldova-fluent-theme.ts`](caldova-fluent-theme.ts) | Maintained asset | Provides Fluent 2 light and dark React themes. | Interim product-theme implementation governed by this README. | Replace theme values only after an approved design standard. |
 | [`hr-control-plane-mockup.html`](hr-control-plane-mockup.html) | Maintained reference | Demonstrates the theme in the static HR control-plane mockup. | Visual reference only; not application authority. | [Wireframe design](../specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md) |
 | [`assets/`](assets/) | Reserved | Holds future reviewed and licensed brand assets. | Empty until Corporate Communications supplies approved assets and rules. | Add only through reviewed brand governance. |
+| [GF agent identity kit](gf-agent-identity/README.md) | Draft | Curates v1.0.0 source configuration, icons, palette, visual references, provenance and four runtime-agent bindings. | User-reported written approval to adapt; original source/technical decisions preserved; no tenant application. | [Adoption specification](../specs/2026-10-29-gf-agent-identity-kit-design.md) |
+
+## GF agent identity boundary
+
+The kit contains 37 source identities, including hypotheses, deferred/out-of-scope work and repository agents. It does not authorize 37 Copilot Studio agents. The adopted current runtime mappings are Policy D3-A01, Recruiting D1-A01, HR Operations D2-A01 and ESS-equivalent D3-A02.
+
+The supplied source is byte-preserved with hashes; executable scripts, pipeline templates and original instructions are inactive `.txt` references. Use the maintained guide rather than blindly executing source examples. Publisher/solution decisions, actual GitHub-harness source mapping, fail-closed stamping, release-artifact policy and post-import read-back remain explicit gates.
+
+Everything below continues to describe the **unchanged interim Caldova product theme**, not the GF agent palette.
 
 ## Domain Links
 

@@ -1,0 +1,108 @@
+{
+  "id": "D2-A03",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D2",
+    "name": "Joiners, Movers & Leavers"
+  },
+  "tokens": {
+    "po": "HR Ops",
+    "domain": "Leaver Check",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "HR Ops Leaver Check DEV",
+    "TEST": "HR Ops Leaver Check TEST",
+    "PROD": "HR Ops Leaver Check"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Checks leavers are completed on time and access is returned.",
+    "TEST": "TEST · Checks leavers are completed on time and access is returned.",
+    "PROD": "Checks leavers are completed on time and access is returned."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nChecks that every leaver is terminated on time in Workday and that access, hardware and licences are returned through the existing ServiceNow flow; chases the owners. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nChecks that every leaver is terminated on time in Workday and that access, hardware and licences are returned through the existing ServiceNow flow; chases the owners. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+    "PROD": "Checks that every leaver is terminated on time in Workday and that access, hardware and licences are returned through the existing ServiceNow flow; chases the owners. Process owner area: HR Ops. Status: Hypothesis · not selected."
+  },
+  "slug": "hr-ops-leaver-check",
+  "schemaName": "gf_HROpsLeaverCheck",
+  "solution": {
+    "uniqueName": "GFHROpsLeaverCheck",
+    "displayName": "GF HR Ops Leaver Check"
+  },
+  "envVarPrefix": "gf_HROps",
+  "connectionContext": "HROps",
+  "flowNamePrefix": "HR Ops Leaver Check - ",
+  "github": null,
+  "icon": {
+    "background": "#007A53",
+    "glyphColour": "#FFFFFF",
+    "contrast": 5.37,
+    "glyph": "Fluent UI System Icons: door-arrow-left (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "HR Ops Leaver Check DEV",
+      "TEST": "HR Ops Leaver Check TEST",
+      "PROD": "HR Ops Leaver Check"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer HR Ops Leaver Check (DEV)",
+      "TEST": "Georg Fischer HR Ops Leaver Check (TEST)",
+      "PROD": "Georg Fischer HR Ops Leaver Check"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Checks leavers are completed on time and access is returned.",
+      "TEST": "TEST · Checks leavers are completed on time and access is returned.",
+      "PROD": "Checks leavers are completed on time and access is returned."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nChecks that every leaver is terminated on time in Workday and that access, hardware and licences are returned through the existing ServiceNow flow; chases the owners. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nChecks that every leaver is terminated on time in Workday and that access, hardware and licences are returned through the existing ServiceNow flow; chases the owners. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "PROD": "Checks that every leaver is terminated on time in Workday and that access, hardware and licences are returned through the existing ServiceNow flow; chases the owners. Process owner area: HR Ops. Status: Hypothesis · not selected."
+    },
+    "accentColor": "#007A53",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Hypothesis · not selected",
+  "statusClass": "hypothesis",
+  "audience": "HR Operations",
+  "processOwnerArea": "HR Operations (Switzerland HR Operations for the CH MVP)",
+  "owner": "Head of HR Operations",
+  "channels": [],
+  "gfName": null,
+  "blueprintName": "Leaver Completion Agent",
+  "evidence": [
+    "E03",
+    "E01"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

@@ -1,0 +1,25 @@
+# GitHub Actions: blocks pull requests whose agent identity is inconsistent.
+# Adjust IDENTITY_ROOT to where the package lives in the repository.
+name: identity-validate
+on:
+  pull_request:
+    paths:
+      - '**/identity/**'
+      - '**/agent-identity.json'
+      - '**/palette.json'
+permissions:
+  contents: read
+env:
+  IDENTITY_ROOT: hr/solutions/agent/harness/identity
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4      # pin to a commit SHA in GF's repository (E44 §7.8)
+      - uses: actions/setup-python@v5  # pin to a commit SHA in GF's repository
+        with:
+          python-version: '3.11'
+      - name: Validate names, colours and icon files
+        run: python "$IDENTITY_ROOT/scripts/validate_identity.py" --root "$IDENTITY_ROOT"
+      - name: Unit tests (naming and stamping)
+        run: python -m unittest discover -s "$IDENTITY_ROOT/scripts/tests" -v

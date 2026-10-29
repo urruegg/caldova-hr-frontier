@@ -1,0 +1,8 @@
+# Changelog
+
+## 1.0.0 - 2026-10-28
+
+- First version: naming convention `<PO> <Domain> [<Scope>] [DEV|TEST]` for 37 agents in 6 journeys (MVP 1-3 included).
+- Colour schema per journey from GF's own Office theme and website, contrast-checked.
+- Colour (192, 32), outline (32) and environment icons, SVG sources and an identity card per agent; overview, MVP and palette visuals.
+- Scripts: build, validate, stamp (with unit tests and a synthetic solution fixture); Azure Pipelines and GitHub Actions templates; GitHub Copilot instructions.

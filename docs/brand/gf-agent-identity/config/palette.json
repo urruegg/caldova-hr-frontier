@@ -1,0 +1,203 @@
+{
+  "version": "1.0.0",
+  "sources": {
+    "gfMasterTheme": "E01 - GF-authored deck 'GFAG Workday Information for Microsoft', Office theme 'GF Master' (fonts Rockwell / Arial)",
+    "website": "E31 - georgfischer.com, colours sampled 22 Oct 2026",
+    "iconRules": "Microsoft Learn - Design icons for agent acquisition and management (192 x 192 full-bleed colour, 32 x 32, 96 x 96 balance area, contrast 4.5:1 recommended)",
+    "status": "Derived from GF's own Office theme and website; validate against the official GF brand portal before PROD."
+  },
+  "gfMasterTheme": {
+    "dk1": "#323232",
+    "lt1": "#FFFFFF",
+    "dk2": "#DB6B30",
+    "lt2": "#003E51",
+    "accent1": "#00629B",
+    "accent2": "#00A3E0",
+    "accent3": "#9BCBEB",
+    "accent4": "#007A53",
+    "accent5": "#47A23F",
+    "accent6": "#ADDC91",
+    "hlink": "#00629B",
+    "folHlink": "#9BCBEB",
+    "fonts": {
+      "headings": "Rockwell",
+      "body": "Arial"
+    }
+  },
+  "website": {
+    "blue": "#00629B",
+    "petrol": "#0A3D50",
+    "sky": "#289ED6",
+    "lightBlue": "#9BCBEB",
+    "orange": "#D66E3A",
+    "orangeUi": "#BC5A26",
+    "grey": "#F8F8F8",
+    "text": "#282828"
+  },
+  "named": [
+    {
+      "name": "GF Blue",
+      "hex": "#00629B",
+      "source": "GF Master theme accent 1; website primary blue"
+    },
+    {
+      "name": "GF Petrol",
+      "hex": "#003E51",
+      "source": "GF Master theme light 2 (dark petrol)"
+    },
+    {
+      "name": "GF Orange",
+      "hex": "#DB6B30",
+      "source": "GF Master theme dark 2"
+    },
+    {
+      "name": "GF Orange UI",
+      "hex": "#BC5A26",
+      "source": "georgfischer.com interface orange (accessible on white)"
+    },
+    {
+      "name": "GF Green",
+      "hex": "#007A53",
+      "source": "GF Master theme accent 4"
+    },
+    {
+      "name": "GF Leaf Green",
+      "hex": "#47A23F",
+      "source": "GF Master theme accent 5"
+    },
+    {
+      "name": "GF Pale Green",
+      "hex": "#ADDC91",
+      "source": "GF Master theme accent 6"
+    },
+    {
+      "name": "GF Cyan",
+      "hex": "#00A3E0",
+      "source": "GF Master theme accent 2"
+    },
+    {
+      "name": "GF Light Blue",
+      "hex": "#9BCBEB",
+      "source": "GF Master theme accent 3; website light blue"
+    },
+    {
+      "name": "GF Graphite",
+      "hex": "#323232",
+      "source": "GF Master theme dark 1 (text)"
+    },
+    {
+      "name": "GF Grey",
+      "hex": "#F8F8F8",
+      "source": "georgfischer.com background grey"
+    },
+    {
+      "name": "White",
+      "hex": "#FFFFFF",
+      "source": "GF Master theme light 1"
+    }
+  ],
+  "domains": {
+    "D1": {
+      "name": "Attract & Hire",
+      "brandColour": "GF Blue",
+      "background": "#00629B",
+      "glyph": "#FFFFFF",
+      "themeSlot": "accent1",
+      "contrast": 6.52,
+      "tint": "#E0ECF3",
+      "tintStrong": "#B2D0E1",
+      "textOnWhite": "#00629B",
+      "blueprintV04Colour": "#00629B",
+      "poAreas": "Recruiting"
+    },
+    "D2": {
+      "name": "Joiners, Movers & Leavers",
+      "brandColour": "GF Green",
+      "background": "#007A53",
+      "glyph": "#FFFFFF",
+      "themeSlot": "accent4",
+      "contrast": 5.37,
+      "tint": "#E0EFEA",
+      "tintStrong": "#B2D7CB",
+      "textOnWhite": "#007A53",
+      "blueprintV04Colour": "#007A53",
+      "poAreas": "HR Ops"
+    },
+    "D3": {
+      "name": "HR Operations & Service",
+      "brandColour": "GF Orange UI",
+      "background": "#BC5A26",
+      "glyph": "#FFFFFF",
+      "themeSlot": "dk2 (accessible shade from georgfischer.com)",
+      "contrast": 4.54,
+      "tint": "#F7EBE5",
+      "tintStrong": "#EBCEBE",
+      "textOnWhite": "#BC5A26",
+      "blueprintV04Colour": "#BC5A26",
+      "poAreas": "HR Ops, HR Policy"
+    },
+    "D4": {
+      "name": "Leadership & Workforce Insights",
+      "brandColour": "GF Petrol",
+      "background": "#003E51",
+      "glyph": "#FFFFFF",
+      "themeSlot": "lt2",
+      "contrast": 11.62,
+      "tint": "#E0E8EA",
+      "tintStrong": "#B2C5CB",
+      "textOnWhite": "#003E51",
+      "blueprintV04Colour": "#0A3D50",
+      "poAreas": "People Analytics"
+    },
+    "D5": {
+      "name": "Talent & Performance",
+      "brandColour": "GF Pale Green",
+      "background": "#ADDC91",
+      "glyph": "#003E51",
+      "themeSlot": "accent6",
+      "contrast": 7.42,
+      "tint": "#F5FBF2",
+      "tintStrong": "#E6F4DE",
+      "textOnWhite": "#003E51",
+      "blueprintV04Colour": "#5B6770",
+      "poAreas": "Talent"
+    },
+    "D6": {
+      "name": "HR Agentic Factory",
+      "brandColour": "GF Graphite",
+      "background": "#323232",
+      "glyph": "#FFFFFF",
+      "themeSlot": "dk1",
+      "contrast": 12.82,
+      "tint": "#E6E6E6",
+      "tintStrong": "#C2C2C2",
+      "textOnWhite": "#323232",
+      "blueprintV04Colour": "#1576A8",
+      "poAreas": "Factory"
+    }
+  },
+  "environments": {
+    "DEV": {
+      "text": "DEV",
+      "band": "#BC5A26",
+      "label": "#FFFFFF",
+      "separator": "#FFFFFF",
+      "labelContrast": 4.54
+    },
+    "TEST": {
+      "text": "TEST",
+      "band": "#9BCBEB",
+      "label": "#003E51",
+      "separator": "#FFFFFF",
+      "labelContrast": 6.71
+    },
+    "PROD": null
+  },
+  "ui": {
+    "text": "#282828",
+    "muted": "#5F6B73",
+    "background": "#F8F8F8",
+    "line": "#D9DEE2",
+    "accent": "#00629B"
+  }
+}

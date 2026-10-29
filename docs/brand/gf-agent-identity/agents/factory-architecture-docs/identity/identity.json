@@ -1,0 +1,70 @@
+{
+  "id": "D6-A07",
+  "kind": "repository-agent",
+  "role": "specialist",
+  "journey": {
+    "id": "D6",
+    "name": "HR Agentic Factory"
+  },
+  "tokens": {
+    "po": "Factory",
+    "domain": "Architecture Docs",
+    "scope": ""
+  },
+  "displayName": {
+    "PROD": "Factory Architecture Docs"
+  },
+  "shortDescription": {
+    "PROD": "Drafts ADRs and keeps documentation and evidence register current."
+  },
+  "fullDescription": {
+    "PROD": "Drafts ADRs, keeps the documentation and the dated evidence register current, and verifies every capability claim on Microsoft Learn before the factory relies on it. Process owner area: Factory. Status: Factory · next. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself."
+  },
+  "slug": "factory-architecture-docs",
+  "schemaName": null,
+  "solution": null,
+  "envVarPrefix": null,
+  "connectionContext": null,
+  "flowNamePrefix": null,
+  "github": {
+    "agentName": "architecture-docs",
+    "file": ".github/agents/architecture-docs.agent.md",
+    "proposedName": true
+  },
+  "icon": {
+    "background": "#323232",
+    "glyphColour": "#FFFFFF",
+    "contrast": 12.82,
+    "glyph": "Fluent UI System Icons: book-open (filled / regular)",
+    "files": {
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": null,
+  "status": "Factory · next",
+  "statusClass": "factory",
+  "audience": "Architects and builders",
+  "processOwnerArea": "HR Agentic Factory - HR AI Business Lead as product owner (to confirm)",
+  "owner": "Head of People Data, Analytics & AI (DAAI) with GF IT platform governance (to confirm)",
+  "channels": [
+    "VS Code with GitHub Copilot",
+    "Azure Repos pull requests"
+  ],
+  "gfName": null,
+  "blueprintName": "Frontier Architecture & Docs Agent",
+  "evidence": [
+    "E44",
+    "E45",
+    "E11",
+    "E25",
+    "E03",
+    "E36"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

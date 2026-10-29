@@ -1,0 +1,107 @@
+{
+  "id": "D5-A04",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D5",
+    "name": "Talent & Performance"
+  },
+  "tokens": {
+    "po": "Talent",
+    "domain": "Calibration",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "Talent Calibration DEV",
+    "TEST": "Talent Calibration TEST",
+    "PROD": "Talent Calibration"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Drafts calibration decks and talent cards; leaders decide.",
+    "TEST": "TEST · Drafts calibration decks and talent cards; leaders decide.",
+    "PROD": "Drafts calibration decks and talent cards; leaders decide."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nDrafts calibration decks and talent cards for a leader; leaders decide. Process owner area: Talent. Status: Hypothesis · not selected.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nDrafts calibration decks and talent cards for a leader; leaders decide. Process owner area: Talent. Status: Hypothesis · not selected.",
+    "PROD": "Drafts calibration decks and talent cards for a leader; leaders decide. Process owner area: Talent. Status: Hypothesis · not selected."
+  },
+  "slug": "talent-calibration",
+  "schemaName": "gf_TalentCalibration",
+  "solution": {
+    "uniqueName": "GFHRTalentCalibration",
+    "displayName": "GF HR Talent Calibration"
+  },
+  "envVarPrefix": "gf_Talent",
+  "connectionContext": "Talent",
+  "flowNamePrefix": "Talent Calibration - ",
+  "github": null,
+  "icon": {
+    "background": "#ADDC91",
+    "glyphColour": "#003E51",
+    "contrast": 7.42,
+    "glyph": "Fluent UI System Icons: scales (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "Talent Calibration DEV",
+      "TEST": "Talent Calibration TEST",
+      "PROD": "Talent Calibration"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer Talent Calibration (DEV)",
+      "TEST": "Georg Fischer Talent Calibration (TEST)",
+      "PROD": "Georg Fischer Talent Calibration"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Drafts calibration decks and talent cards; leaders decide.",
+      "TEST": "TEST · Drafts calibration decks and talent cards; leaders decide.",
+      "PROD": "Drafts calibration decks and talent cards; leaders decide."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nDrafts calibration decks and talent cards for a leader; leaders decide. Process owner area: Talent. Status: Hypothesis · not selected.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nDrafts calibration decks and talent cards for a leader; leaders decide. Process owner area: Talent. Status: Hypothesis · not selected.",
+      "PROD": "Drafts calibration decks and talent cards for a leader; leaders decide. Process owner area: Talent. Status: Hypothesis · not selected."
+    },
+    "accentColor": "#ADDC91",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Hypothesis · not selected",
+  "statusClass": "hypothesis",
+  "audience": "Leaders and HR partners",
+  "processOwnerArea": "Talent & Performance (hypothesis, not yet confirmed by GF)",
+  "owner": "Head of Talent & Performance",
+  "channels": [],
+  "gfName": null,
+  "blueprintName": "Talent Calibration Agent",
+  "evidence": [
+    "E06"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

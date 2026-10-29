@@ -1,0 +1,110 @@
+{
+  "id": "D3-LEAD",
+  "kind": "copilot-studio",
+  "role": "orchestrator",
+  "journey": {
+    "id": "D3",
+    "name": "HR Operations & Service"
+  },
+  "tokens": {
+    "po": "HR Ops",
+    "domain": "Service Lead",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "HR Ops Service Lead DEV",
+    "TEST": "HR Ops Service Lead TEST",
+    "PROD": "HR Ops Service Lead"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Routes HR service questions and cases to the right HR agent.",
+    "TEST": "TEST · Routes HR service questions and cases to the right HR agent.",
+    "PROD": "Routes HR service questions and cases to the right HR agent."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nOrchestrator for the HR Operations & Service journey: understands the request and hands it to the right specialist agent. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nOrchestrator for the HR Operations & Service journey: understands the request and hands it to the right specialist agent. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+    "PROD": "Orchestrator for the HR Operations & Service journey: understands the request and hands it to the right specialist agent. Process owner area: HR Ops. Status: Hypothesis · not selected."
+  },
+  "slug": "hr-ops-service-lead",
+  "schemaName": "gf_HROpsServiceLead",
+  "solution": {
+    "uniqueName": "GFHROpsServiceLead",
+    "displayName": "GF HR Ops Service Lead"
+  },
+  "envVarPrefix": "gf_HROps",
+  "connectionContext": "HROps",
+  "flowNamePrefix": "HR Ops Service Lead - ",
+  "github": null,
+  "icon": {
+    "background": "#BC5A26",
+    "glyphColour": "#FFFFFF",
+    "contrast": 4.54,
+    "glyph": "Fluent UI System Icons: headset (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "HR Ops Service Lead DEV",
+      "TEST": "HR Ops Service Lead TEST",
+      "PROD": "HR Ops Service Lead"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer HR Ops Service Lead (DEV)",
+      "TEST": "Georg Fischer HR Ops Service Lead (TEST)",
+      "PROD": "Georg Fischer HR Ops Service Lead"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Routes HR service questions and cases to the right HR agent.",
+      "TEST": "TEST · Routes HR service questions and cases to the right HR agent.",
+      "PROD": "Routes HR service questions and cases to the right HR agent."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nOrchestrator for the HR Operations & Service journey: understands the request and hands it to the right specialist agent. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nOrchestrator for the HR Operations & Service journey: understands the request and hands it to the right specialist agent. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "PROD": "Orchestrator for the HR Operations & Service journey: understands the request and hands it to the right specialist agent. Process owner area: HR Ops. Status: Hypothesis · not selected."
+    },
+    "accentColor": "#BC5A26",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Hypothesis · not selected",
+  "statusClass": "hypothesis",
+  "audience": "Employees and HR Service",
+  "processOwnerArea": "HR Operations (Switzerland HR Operations for the CH MVP)",
+  "owner": "Head of HR Operations",
+  "channels": [
+    "Teams",
+    "Microsoft 365 Copilot"
+  ],
+  "gfName": null,
+  "blueprintName": "HR Service Lead Agent",
+  "evidence": [
+    "E03"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

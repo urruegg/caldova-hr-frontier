@@ -1,0 +1,501 @@
+"""Regenerates every derived identity artefact from config/ (names, icons, cards, visuals, catalog).
+
+Usage:
+  python scripts/build_identity_assets.py            # derive names + write identity.json + SVG + PNG + docs
+  python scripts/build_identity_assets.py --no-render # derive names, write identity.json, SVG and docs only
+
+Rendering needs Node.js and Playwright with Chromium (npm i -D playwright && npx playwright install chromium).
+Optional environment variables: PLAYWRIGHT_MODULE, CHROMIUM_PATH (see render_png.js).
+"""
+from __future__ import annotations
+
+import argparse
+import base64
+import html
+import json
+import os
+import shutil
+import struct
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import identity_lib as L  # noqa: E402
+
+FONT = "Arial, 'Liberation Sans', Helvetica, sans-serif"
+MONO = "Consolas, 'Liberation Mono', 'DejaVu Sans Mono', monospace"
+STATUS_STYLE = {
+    "mvp": ("#00629B", "#FFFFFF", "MVP"),
+    "proposal": ("#007A53", "#FFFFFF", "Proposal"),
+    "hypothesis": ("#E6E9EC", "#3D4A52", "Hypothesis"),
+    "out-of-scope": ("#E6E9EC", "#3D4A52", "Out of scope"),
+    "deferred": ("#FBE3D6", "#8A3A12", "Deferred"),
+    "later": ("#DCEAF3", "#003E51", "Later wave"),
+    "factory": ("#323232", "#FFFFFF", "Factory"),
+}
+
+
+# ----------------------------------------------------------------------------- SVG
+
+def glyph_body(glyphs: dict, name: str, style: str, colour: str) -> str:
+    key = f"{name}-24-{style}"
+    if key not in glyphs["icons"]:
+        raise KeyError(f"Glyph {key} is not in scripts/glyphs/fluent-system-icons-subset.json")
+    return glyphs["icons"][key]["body"].replace("currentColor", colour)
+
+
+def colour_svg(agent: dict, palette: dict, glyphs: dict, env: str, size: int = 192) -> str:
+    dom = palette["domains"][agent["journey"]]
+    body = glyph_body(glyphs, agent["glyph"], "filled", dom["glyph"])
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 192 192">',
+             f'<rect width="192" height="192" fill="{dom["background"]}"/>',
+             f'<g transform="translate(48 48) scale(4)">{body}</g>']
+    e = palette["environments"].get(env)
+    if e and agent.get("environmentScoped", True):
+        parts += [f'<rect x="0" y="152" width="192" height="4" fill="{e["separator"]}"/>',
+                  f'<rect x="0" y="156" width="192" height="36" fill="{e["band"]}"/>',
+                  f'<text x="96" y="182.5" text-anchor="middle" font-family="{html.escape(FONT)}" '
+                  f'font-weight="700" font-size="22" letter-spacing="3" fill="{e["label"]}">{e["text"]}</text>']
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+def outline_svg(agent: dict, glyphs: dict, size: int = 32) -> str:
+    body = glyph_body(glyphs, agent["glyph"], "regular", "#FFFFFF")
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="-2 -2 28 28">'
+            f'{body}</svg>')
+
+
+# ----------------------------------------------------------------------------- helpers
+
+def png_info(path: Path):
+    with open(path, "rb") as f:
+        head = f.read(24)
+    if head[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError(f"{path} is not a PNG")
+    w, h = struct.unpack(">II", head[16:24])
+    return w, h, path.stat().st_size
+
+
+def data_uri_png(path: Path) -> str:
+    return "data:image/png;base64," + base64.b64encode(path.read_bytes()).decode("ascii")
+
+
+def esc(t) -> str:
+    return html.escape(str(t if t is not None else ""))
+
+
+def sized(svg: str, px: int) -> str:
+    """Display an inline 192-unit icon SVG at another pixel size (viewBox keeps the geometry)."""
+    return svg.replace('width="192" height="192"', f'width="{px}" height="{px}"', 1)
+
+
+def chip(status_class: str, label: str | None = None, size: int = 16) -> str:
+    bg, fg, default = STATUS_STYLE.get(status_class, STATUS_STYLE["hypothesis"])
+    return (f'<span style="display:inline-block;padding:4px 12px;border-radius:999px;background:{bg};color:{fg};'
+            f'font-size:{size}px;font-weight:700;white-space:nowrap">{esc(label or default)}</span>')
+
+
+def short_status(agent: dict) -> str:
+    if agent["statusClass"] == "mvp" and agent.get("mvp"):
+        return agent["mvp"]
+    return STATUS_STYLE.get(agent["statusClass"], STATUS_STYLE["hypothesis"])[2]
+
+
+# ----------------------------------------------------------------------------- per-agent identity
+
+def identity_record(cfg: dict, palette: dict, agent: dict) -> dict:
+    d = agent["derived"]
+    envs = L.ENVS if agent.get("environmentScoped", True) else ("PROD",)
+    files = {}
+    for env in envs:
+        sfx = "" if env == "PROD" else f"-{env.lower()}"
+        files[env] = {"color192": f"color-192{sfx}.png", "color32": f"color-32{sfx}.png",
+                      "outline32": "outline-32.png", "svg": f"icon{sfx}.svg"}
+    rec = {
+        "id": agent["id"],
+        "kind": agent["kind"],
+        "role": agent["role"],
+        "journey": {"id": agent["journey"], "name": agent["journeyName"]},
+        "tokens": {"po": agent["po"], "domain": agent["domain"], "scope": agent.get("scope", "")},
+        "displayName": {env: d["displayName"][env] for env in envs},
+        "shortDescription": {env: L.env_description(cfg, agent, env, "short") for env in envs},
+        "fullDescription": {env: L.env_description(cfg, agent, env, "full") for env in envs},
+        "slug": d["slug"],
+        "schemaName": d["schemaName"],
+        "solution": None if not d["solutionUniqueName"] else
+        {"uniqueName": d["solutionUniqueName"], "displayName": d["solutionDisplayName"]},
+        "envVarPrefix": d["envVarPrefix"],
+        "connectionContext": d["connectionContext"],
+        "flowNamePrefix": d["flowNamePrefix"],
+        "github": None if not d.get("githubAgentName") else
+        {"agentName": d["githubAgentName"], "file": d["githubAgentFile"], "proposedName": bool(agent.get("githubAgentProposed"))},
+        "icon": {"background": d["icon"]["background"], "glyphColour": d["icon"]["glyphColor"],
+                 "contrast": d["icon"]["contrast"], "glyph": f'Fluent UI System Icons: {agent["glyph"]} (filled / regular)',
+                 "files": files},
+        "teams": None if not d["teams"] else {
+            "shortName": {env: d["teams"]["shortName"][env] for env in envs},
+            "fullName": {env: d["teams"]["fullName"][env] for env in envs},
+            "shortDescription": {env: L.env_description(cfg, agent, env, "short") for env in envs},
+            "fullDescription": {env: L.env_description(cfg, agent, env, "full") for env in envs},
+            "accentColor": d["teams"]["accentColor"],
+            "developer": {"name": "Georg Fischer Ltd", "websiteUrl": "https://www.georgfischer.com",
+                          "privacyUrl": "[GF to provide]", "termsOfUseUrl": "[GF to provide]"},
+        },
+        "status": agent["status"],
+        "statusClass": agent["statusClass"],
+        "audience": agent["audience"],
+        "processOwnerArea": L.po_area(cfg, agent["po"])["processOwner"],
+        "owner": agent["owner"],
+        "channels": agent["channels"],
+        "gfName": agent.get("gfName"),
+        "blueprintName": agent["blueprintName"],
+        "evidence": agent["evidence"],
+        "notes": agent.get("notes"),
+        "generatedFrom": f'config/agent-identity.json v{cfg["version"]}',
+    }
+    return rec
+
+
+# ----------------------------------------------------------------------------- HTML visuals
+
+def page(body: str, width: int, height: int, bg: str = "#FFFFFF") -> str:
+    return (f'<!doctype html><html><head><meta charset="utf-8"><style>'
+            f'html,body{{margin:0;padding:0}}body{{width:{width}px;height:{height}px;overflow:hidden;background:{bg};'
+            f'font-family:{FONT};color:#282828;position:relative}}'
+            f'.mono{{font-family:{MONO}}}</style></head><body>{body}</body></html>')
+
+
+def card_html(cfg, palette, agent, svgs, logo_uri) -> str:
+    d = agent["derived"]
+    dom = palette["domains"][agent["journey"]]
+    names = d["displayName"]
+    env_tiles = ""
+    if agent.get("environmentScoped", True):
+        for env in ("PROD", "TEST", "DEV"):
+            env_tiles += (f'<div style="text-align:center;font-size:14px;color:#5F6B73">'
+                          f'<div style="width:52px;height:52px;border-radius:10px;overflow:hidden;margin:0 auto 6px">'
+                          f'{sized(svgs[env], 52)}</div>{env}</div>')
+    env_tiles += (f'<div style="text-align:center;font-size:14px;color:#5F6B73">'
+                  f'<div style="width:52px;height:52px;border-radius:10px;background:#323232;display:flex;align-items:center;'
+                  f'justify-content:center;margin:0 auto 6px">{svgs["outline"]}</div>Outline</div>')
+    if agent.get("environmentScoped", True):
+        name_line = (f'<span>{esc(names["DEV"])}</span><span style="color:#B0B8BE"> &nbsp;|&nbsp; </span>'
+                     f'<span>{esc(names["TEST"])}</span><span style="color:#B0B8BE"> &nbsp;|&nbsp; </span>'
+                     f'<span><b>{esc(names["PROD"])}</b></span>')
+        tech = (f'<span class="mono">{esc(d["schemaName"])}</span> &nbsp;·&nbsp; '
+                f'<span class="mono">{esc(d["solutionUniqueName"])}</span>')
+    else:
+        name_line = f'<b>{esc(names["PROD"])}</b> &nbsp;<span style="color:#5F6B73">(repository agent, no environments)</span>'
+        tech = f'<span class="mono">{esc(d["githubAgentFile"])}</span>'
+    scope = f' · Scope <b>{esc(agent["scope"])}</b>' if agent.get("scope") else ""
+    body = f'''
+<div style="position:absolute;left:0;top:0;width:20px;height:630px;background:{dom["background"]}"></div>
+<div style="position:absolute;left:64px;top:40px;right:64px;display:flex;justify-content:space-between;align-items:center">
+  <span style="display:inline-block;padding:8px 18px;border-radius:999px;background:{dom["tint"]};color:{dom["textOnWhite"]};font-size:20px;font-weight:700">{esc(agent["journey"])} · {esc(agent["journeyName"])}</span>
+  <img src="{logo_uri}" style="height:44px">
+</div>
+<div style="position:absolute;left:64px;top:128px;width:192px;height:192px;border-radius:28px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.2)">{svgs["PROD"]}</div>
+<div style="position:absolute;left:52px;top:352px;width:216px;display:flex;flex-wrap:wrap;gap:12px 14px;justify-content:center">{env_tiles}</div>
+<div style="position:absolute;left:312px;top:122px;right:64px">
+  <div style="font-size:50px;line-height:1.08;font-weight:700">{esc(names["PROD"])}</div>
+  <div style="margin-top:12px;font-size:20px;color:#5F6B73">PO area <b style="color:#282828">{esc(agent["po"])}</b> · Domain <b style="color:#282828">{esc(agent["domain"])}</b>{scope} &nbsp; {chip(agent["statusClass"], short_status(agent), 17)}</div>
+  <div style="margin-top:22px;font-size:27px;line-height:1.35">{esc(agent["shortDescription"])}</div>
+  <div style="margin-top:24px;display:grid;grid-template-columns:150px 1fr;row-gap:9px;column-gap:16px;font-size:18px;line-height:1.3">
+    <div style="color:#5F6B73">Audience</div><div>{esc(agent["audience"])}</div>
+    <div style="color:#5F6B73">Process owner</div><div>{esc(L.po_area(cfg, agent["po"])["processOwner"])}</div>
+    <div style="color:#5F6B73">Names</div><div>{name_line}</div>
+    <div style="color:#5F6B73">Technical</div><div>{tech}</div>
+  </div>
+</div>
+<div style="position:absolute;left:64px;right:64px;bottom:26px;display:flex;justify-content:space-between;font-size:15px;color:#5F6B73">
+  <span>GF HR agent identity v{esc(cfg["version"])} · proposal for GF approval · {esc(cfg["date"])}</span>
+  <span>Icon {esc(dom["background"])} / {esc(dom["glyph"])} · contrast {dom["contrast"]}:1</span>
+</div>'''
+    return page(body, 1200, 630)
+
+
+def overview_html(cfg, palette, agents_by_j, svgs_all, logo_uri) -> str:
+    cols = ""
+    for jid, items in agents_by_j.items():
+        dom = palette["domains"][jid]
+        rows = ""
+        for a in items:
+            rows += (f'<div style="display:flex;align-items:center;gap:14px;margin:0 0 16px">'
+                     f'<div style="width:64px;height:64px;border-radius:12px;overflow:hidden;flex:none">{sized(svgs_all[a["id"]]["PROD"], 64)}</div>'
+                     f'<div><div style="font-size:21px;font-weight:700;line-height:1.15">{esc(a["derived"]["displayName"]["PROD"])}</div>'
+                     f'<div style="margin-top:5px">{chip(a["statusClass"], short_status(a), 14)}</div></div></div>')
+        cols += (f'<div style="width:358px">'
+                 f'<div style="background:{dom["background"]};color:{dom["glyph"]};border-radius:14px;padding:16px 18px;margin-bottom:22px;height:96px;box-sizing:border-box">'
+                 f'<div style="font-size:23px;font-weight:700">{esc(jid)} · {esc(dom["name"])}</div>'
+                 f'<div style="font-size:16px;margin-top:6px;opacity:.95">PO area: {esc(dom["poAreas"])} · {esc(dom["background"])}</div></div>'
+                 f'{rows}</div>')
+    mvp = [a for items in agents_by_j.values() for a in items if a["statusClass"] == "mvp"]
+    mvp.sort(key=lambda a: a.get("mvp") or "")
+    strip = ""
+    for a in mvp:
+        tiles = ""
+        for env in ("PROD", "TEST", "DEV"):
+            tiles += (f'<div style="text-align:center;margin-right:14px"><div style="width:72px;height:72px;border-radius:13px;overflow:hidden;margin:0 auto 6px">'
+                      f'{sized(svgs_all[a["id"]][env], 72)}</div>'
+                      f'<div style="font-size:15px;color:#3D4A52;width:160px">{esc(a["derived"]["displayName"][env])}</div></div>')
+        strip += (f'<div style="display:flex;align-items:flex-start;margin-right:40px"><div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:16px;font-weight:700;color:#5F6B73;margin-right:10px">{esc(a.get("mvp"))}</div>{tiles}</div>')
+    body = f'''
+<div style="position:absolute;left:64px;top:44px;right:64px;display:flex;justify-content:space-between;align-items:flex-start">
+  <div><div style="font-size:52px;font-weight:700">HR agent family · names, colours and icons</div>
+  <div style="font-size:24px;color:#3D4A52;margin-top:12px">Display name = <b>&lt;PO&gt; &lt;Domain&gt; [Scope] [DEV | TEST]</b> · PROD carries no postfix · one colour per journey from GF's own palette · glyphs: Fluent UI System Icons</div></div>
+  <img src="{logo_uri}" style="height:64px">
+</div>
+<div style="position:absolute;left:64px;top:210px;right:64px;display:flex;gap:24px">{cols}</div>
+<div style="position:absolute;left:64px;right:64px;bottom:40px;border-top:2px solid #D9DEE2;padding-top:22px;display:flex;align-items:flex-start;justify-content:space-between">
+  <div style="display:flex">{strip}</div>
+  <div style="font-size:16px;color:#5F6B73;text-align:right;line-height:1.5">Proposal for GF approval · v{esc(cfg["version"])} · {esc(cfg["date"])}<br>Colours: GF Master Office theme (E01) and georgfischer.com (E31)<br>Icon rules: Microsoft Learn agent icon guidance</div>
+</div>'''
+    return page(body, 2400, 1420)
+
+
+def mvp_sheet_html(cfg, palette, mvps, svgs_all, logo_uri) -> str:
+    rows = ""
+    for a in mvps:
+        d = a["derived"]
+        s = svgs_all[a["id"]]
+        tiles = ""
+        for env in ("PROD", "TEST", "DEV"):
+            tiles += (f'<div style="text-align:center"><div style="width:192px;height:192px;border-radius:26px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.2)">{s[env]}</div>'
+                      f'<div style="font-size:17px;margin-top:8px;color:#3D4A52">{env} · 192 × 192</div></div>')
+        small = (f'<div style="text-align:center"><div style="display:flex;gap:14px;align-items:center;justify-content:center;height:192px">'
+                 f'<div style="width:32px;height:32px;border-radius:6px;overflow:hidden">{sized(s["PROD"], 32)}</div>'
+                 f'<div style="width:56px;height:56px;border-radius:10px;background:#323232;display:flex;align-items:center;justify-content:center">{s["outline"]}</div></div>'
+                 f'<div style="font-size:17px;margin-top:8px;color:#3D4A52">32 colour · 32 outline</div></div>')
+        sol = d["solutionUniqueName"] or ""
+        extra = ""
+        if a["id"] == "D3-A01":
+            extra = '<div style="font-size:15px;color:#8A3A12;margin-top:6px">On ESS: GF customisation solution GFHRESS (E45); plan B: own solution as shown</div>'
+        rows += f'''
+<div style="display:flex;gap:30px;align-items:flex-start;padding:26px 0;border-bottom:2px solid #E6E9EC">
+  <div style="width:330px">
+    <div>{chip("mvp", a.get("mvp"), 18)}</div>
+    <div style="font-size:30px;font-weight:700;margin-top:12px;line-height:1.15">{esc(d["displayName"]["PROD"])}</div>
+    <div style="font-size:17px;color:#5F6B73;margin-top:8px">GF name: {esc(a.get("gfName") or a["blueprintName"])}</div>
+    <div style="font-size:17px;color:#5F6B73;margin-top:4px">PO <b style="color:#282828">{esc(a["po"])}</b> · Domain <b style="color:#282828">{esc(a["domain"])}</b>{(" · Scope <b style='color:#282828'>" + esc(a["scope"]) + "</b>") if a.get("scope") else ""}</div>
+    <div style="font-size:17px;color:#5F6B73;margin-top:4px">{esc(a["journey"])} · {esc(a["journeyName"])}</div>
+  </div>
+  <div style="display:flex;gap:22px">{tiles}{small}</div>
+  <div style="flex:1;font-size:17px;line-height:1.55">
+    <div><span style="color:#5F6B73">DEV</span> &nbsp;<b>{esc(d["displayName"]["DEV"])}</b></div>
+    <div><span style="color:#5F6B73">TEST</span> &nbsp;<b>{esc(d["displayName"]["TEST"])}</b></div>
+    <div><span style="color:#5F6B73">PROD</span> &nbsp;<b>{esc(d["displayName"]["PROD"])}</b></div>
+    <div style="margin-top:10px"><span style="color:#5F6B73">Schema</span> <span class="mono">{esc(d["schemaName"])}</span></div>
+    <div><span style="color:#5F6B73">Solution</span> <span class="mono">{esc(sol)}</span></div>
+    <div><span style="color:#5F6B73">Repo folder</span> <span class="mono">agents/{esc(d["slug"])}/</span></div>
+    <div><span style="color:#5F6B73">Variables</span> <span class="mono">{esc(d["envVarPrefix"])}…</span> · <span style="color:#5F6B73">Connections</span> <span class="mono">gf_&lt;Connector&gt;{esc(d["connectionContext"])}</span></div>
+    {extra}
+  </div>
+</div>'''
+    body = f'''
+<div style="position:absolute;left:64px;top:40px;right:64px;display:flex;justify-content:space-between;align-items:flex-start">
+  <div><div style="font-size:46px;font-weight:700">MVP 1–3 · identity sheet for the prototype days</div>
+  <div style="font-size:21px;color:#3D4A52;margin-top:10px">Names and icons per environment, stamped at pack time; technical names never carry an environment</div></div>
+  <img src="{logo_uri}" style="height:58px">
+</div>
+<div style="position:absolute;left:64px;right:64px;top:170px">{rows}</div>
+<div style="position:absolute;left:64px;right:64px;bottom:28px;font-size:15px;color:#5F6B73;display:flex;justify-content:space-between">
+  <span>Proposal for GF approval · v{esc(cfg["version"])} · {esc(cfg["date"])} · publisher prefix gf pending decision G5</span><span>DEV band GF Orange UI · TEST band GF Light Blue · PROD clean</span></div>'''
+    return page(body, 2100, 1080)
+
+
+def palette_html(cfg, palette, sample_by_j, logo_uri) -> str:
+    theme = palette["gfMasterTheme"]
+    sw = ""
+    for slot in ("accent1", "accent2", "accent3", "accent4", "accent5", "accent6", "dk2", "lt2", "dk1", "lt1"):
+        hx = theme[slot]
+        fg = "#FFFFFF" if L.contrast(hx, "#FFFFFF") >= 3 else "#003E51"
+        sw += (f'<div style="width:150px;height:110px;border-radius:12px;background:{hx};color:{fg};padding:12px;box-sizing:border-box;'
+               f'border:1px solid #D9DEE2;font-size:16px"><b>{slot}</b><br>{hx}</div>')
+    tiles = ""
+    for jid, dom in palette["domains"].items():
+        tiles += f'''
+<div style="width:250px">
+  <div style="width:250px;height:250px;border-radius:30px;overflow:hidden">{sized(sample_by_j[jid], 250)}</div>
+  <div style="font-size:21px;font-weight:700;margin-top:12px">{esc(jid)} · {esc(dom["name"])}</div>
+  <div style="font-size:17px;color:#3D4A52;margin-top:4px">{esc(dom["brandColour"])} <span class="mono">{esc(dom["background"])}</span></div>
+  <div style="font-size:17px;color:#3D4A52">Glyph <span class="mono">{esc(dom["glyph"])}</span> · contrast <b>{dom["contrast"]}:1</b></div>
+  <div style="display:flex;gap:8px;margin-top:8px"><div style="width:76px;height:30px;border-radius:6px;background:{dom["tint"]};border:1px solid #D9DEE2"></div><div style="width:76px;height:30px;border-radius:6px;background:{dom["tintStrong"]};border:1px solid #D9DEE2"></div></div>
+</div>'''
+    envs = ""
+    for env, e in palette["environments"].items():
+        if not e:
+            continue
+        envs += (f'<div style="display:flex;align-items:center;gap:14px;margin-right:40px"><div style="width:220px;height:44px;background:{e["band"]};color:{e["label"]};'
+                 f'font-weight:700;font-size:22px;letter-spacing:3px;display:flex;align-items:center;justify-content:center;border-top:4px solid #FFFFFF;box-shadow:0 0 0 1px #D9DEE2">{e["text"]}</div>'
+                 f'<div style="font-size:17px;color:#3D4A52">band <span class="mono">{e["band"]}</span> · label <span class="mono">{e["label"]}</span> · {e["labelContrast"]}:1</div></div>')
+    body = f'''
+<div style="position:absolute;left:64px;top:40px;right:64px;display:flex;justify-content:space-between;align-items:flex-start">
+  <div><div style="font-size:46px;font-weight:700">Colour schema per journey</div>
+  <div style="font-size:21px;color:#3D4A52;margin-top:10px">Built from GF's own Office theme 'GF Master' (E01) and georgfischer.com (E31) · every icon meets 4.5:1 contrast</div></div>
+  <img src="{logo_uri}" style="height:58px">
+</div>
+<div style="position:absolute;left:64px;top:170px;font-size:19px;font-weight:700;color:#5F6B73">GF Master theme</div>
+<div style="position:absolute;left:64px;top:204px;display:flex;gap:16px">{sw}</div>
+<div style="position:absolute;left:64px;top:360px;font-size:19px;font-weight:700;color:#5F6B73">Journey colours (icon background, glyph, tints)</div>
+<div style="position:absolute;left:64px;top:396px;display:flex;gap:40px">{tiles}</div>
+<div style="position:absolute;left:64px;top:860px;font-size:19px;font-weight:700;color:#5F6B73">Environment markers (DEV and TEST only)</div>
+<div style="position:absolute;left:64px;top:896px;display:flex">{envs}</div>
+<div style="position:absolute;left:64px;right:64px;bottom:26px;font-size:15px;color:#5F6B73">Proposal for GF approval · validate against the official GF brand portal before PROD · v{esc(cfg["version"])} · {esc(cfg["date"])}</div>'''
+    return page(body, 1880, 1010)
+
+
+# ----------------------------------------------------------------------------- catalog markdown
+
+def catalog_md(cfg, palette, agents_by_j) -> str:
+    out = []
+    out.append("# Agent identity catalog\n")
+    out.append(f"Generated from `config/agent-identity.json` v{cfg['version']} ({cfg['date']}) by `scripts/build_identity_assets.py`. "
+               "Do not edit by hand: change the tokens in the config and rebuild.\n")
+    out.append("Display name = `<PO> <Domain> [Scope] [DEV | TEST]`; PROD has no postfix. "
+               "Technical names never carry an environment. Status values come from the blueprint v0.4.\n")
+    total = sum(len(v) for v in agents_by_j.values())
+    mvp = [a for v in agents_by_j.values() for a in v if a["statusClass"] == "mvp"]
+    out.append(f"**{total} agents** in 6 journeys · **{len(mvp)} MVP agents** for the prototype days · "
+               f"publisher prefix `{cfg['naming']['publisherPrefix']}` (decision G5 open).\n")
+    for jid, items in agents_by_j.items():
+        dom = palette["domains"][jid]
+        out.append(f"\n## {jid} · {dom['name']}\n")
+        out.append(f"Colour **{dom['brandColour']}** `{dom['background']}` · glyph `{dom['glyph']}` · contrast {dom['contrast']}:1 · PO area(s): {dom['poAreas']}\n")
+        out.append("| Icon | PROD name | DEV | TEST | PO · Domain | Status | Schema / GitHub agent | Solution | Folder |")
+        out.append("|---|---|---|---|---|---|---|---|---|")
+        for a in items:
+            d = a["derived"]
+            icon = f'<img src="../agents/{d["slug"]}/identity/color-192.png" width="40" alt="{esc(d["displayName"]["PROD"])} icon">'
+            scoped = a.get("environmentScoped", True)
+            dev = f'`{d["displayName"]["DEV"]}`' if scoped else "n/a"
+            test = f'`{d["displayName"]["TEST"]}`' if scoped else "n/a"
+            tech = f'`{d["schemaName"]}`' if d["schemaName"] else f'`{d["githubAgentFile"]}`'
+            sol = f'`{d["solutionUniqueName"]}`' if d["solutionUniqueName"] else "n/a (repository)"
+            potok = f'{a["po"]} · {a["domain"]}' + (f' · {a["scope"]}' if a.get("scope") else "")
+            out.append(f'| {icon} | **{d["displayName"]["PROD"]}** | {dev} | {test} | {potok} | {short_status(a)} | {tech} | {sol} | `agents/{d["slug"]}/` |')
+        for a in items:
+            d = a["derived"]
+            out.append(f'\n### {d["displayName"]["PROD"]} ({a["id"]})\n')
+            out.append(f'<img src="../agents/{d["slug"]}/identity/card.png" width="600" alt="Identity card for {esc(d["displayName"]["PROD"])}">\n')
+            out.append(f'- **Purpose (short, ≤ 80 with env marker):** {a["shortDescription"]}')
+            out.append(f'- **Full description:** {a["fullDescription"]}')
+            out.append(f'- **Audience:** {a["audience"]}')
+            out.append(f'- **Process owner area:** {L.po_area(cfg, a["po"])["processOwner"]}')
+            out.append(f'- **Owner (blueprint):** {a["owner"] or "to confirm"}')
+            if a.get("gfName"):
+                out.append(f'- **GF working name:** {a["gfName"]}')
+            out.append(f'- **Channels:** {", ".join(a["channels"]) or "to confirm"}')
+            out.append(f'- **Status:** {a["status"]}')
+            if d["schemaName"]:
+                out.append(f'- **Technical:** schema `{d["schemaName"]}` · solution `{d["solutionUniqueName"]}` ("{d["solutionDisplayName"]}") · '
+                           f'variables `{d["envVarPrefix"]}…` · connection references `{cfg["naming"]["publisherPrefix"]}_<Connector>{d["connectionContext"]}` · flows "{d["flowNamePrefix"]}<Action>"')
+            if d.get("githubAgentName"):
+                prop = " (name proposed, not in the factory concept)" if a.get("githubAgentProposed") else ""
+                out.append(f'- **GitHub Copilot custom agent:** `{d["githubAgentFile"]}`{prop}')
+            out.append(f'- **Icon:** glyph `{a["glyph"]}` on `{d["icon"]["background"]}` · files in `agents/{d["slug"]}/identity/`')
+            if a.get("notes"):
+                out.append(f'- **Note:** {a["notes"]}')
+            ev = ", ".join(a["evidence"]) if a["evidence"] else "blueprint v0.4 (hypothesis)"
+            out.append(f'- **Evidence:** {ev}')
+    out.append("")
+    return "\n".join(out)
+
+
+# ----------------------------------------------------------------------------- main
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--root", default=str(L.ROOT))
+    ap.add_argument("--no-render", action="store_true", help="skip PNG rendering (no Node.js needed)")
+    args = ap.parse_args()
+    root = Path(args.root).resolve()
+    cfg, palette = L.load_config(root)
+    glyphs = L.load_json(root / "scripts" / "glyphs" / "fluent-system-icons-subset.json")
+    logo_uri = data_uri_png(root / "brand" / "gf-logo-blue.png")
+
+    # 1. derive names (token edits propagate everywhere)
+    for a in cfg["agents"]:
+        a["derived"] = L.derive(cfg, a, palette)
+    L.save_json(root / "config" / "agent-identity.json", cfg)
+
+    build = Path(tempfile.mkdtemp(prefix="gf-identity-"))
+    (build / "html").mkdir(parents=True)
+    jobs = []
+    svgs_all = {}
+    agents_by_j = {}
+    for a in cfg["agents"]:
+        agents_by_j.setdefault(a["journey"], []).append(a)
+        d = a["derived"]
+        folder = root / "agents" / d["slug"] / "identity"
+        folder.mkdir(parents=True, exist_ok=True)
+        for old in list(folder.glob("*.png")) + list(folder.glob("*.svg")) + list(folder.glob("identity.json")):
+            old.unlink()  # regenerate cleanly; the folder itself is kept
+        envs = L.ENVS if a.get("environmentScoped", True) else ("PROD",)
+        svgs = {}
+        for env in envs:
+            sfx = "" if env == "PROD" else f"-{env.lower()}"
+            svg = colour_svg(a, palette, glyphs, env)
+            svgs[env] = svg
+            (folder / f"icon{sfx}.svg").write_text(svg, encoding="utf-8")
+            small = build / "html" / f"{d['slug']}{sfx}-32.svg"
+            small.write_text(colour_svg(a, palette, glyphs, env, size=32), encoding="utf-8")
+            jobs.append({"src": str(folder / f"icon{sfx}.svg"), "out": str(folder / f"color-192{sfx}.png"), "width": 192, "height": 192, "transparent": False})
+            jobs.append({"src": str(small), "out": str(folder / f"color-32{sfx}.png"), "width": 32, "height": 32, "transparent": False})
+        out_svg = outline_svg(a, glyphs)
+        svgs["outline"] = out_svg
+        (folder / "outline.svg").write_text(out_svg, encoding="utf-8")
+        jobs.append({"src": str(folder / "outline.svg"), "out": str(folder / "outline-32.png"), "width": 32, "height": 32, "transparent": True})
+        svgs_all[a["id"]] = svgs
+        L.save_json(folder / "identity.json", identity_record(cfg, palette, a))
+        card = build / "html" / f"card-{d['slug']}.html"
+        card.write_text(card_html(cfg, palette, a, svgs, logo_uri), encoding="utf-8")
+        jobs.append({"src": str(card), "out": str(folder / "card.png"), "width": 1200, "height": 630, "transparent": False})
+
+    vis = root / "visuals"
+    vis.mkdir(exist_ok=True)
+    ov = build / "html" / "overview.html"
+    ov.write_text(overview_html(cfg, palette, agents_by_j, svgs_all, logo_uri), encoding="utf-8")
+    jobs.append({"src": str(ov), "out": str(vis / "gf-hr-agent-family.png"), "width": 2400, "height": 1420, "transparent": False})
+    mvps = sorted([a for a in cfg["agents"] if a["statusClass"] == "mvp"], key=lambda a: a.get("mvp") or "")
+    ms = build / "html" / "mvp.html"
+    ms.write_text(mvp_sheet_html(cfg, palette, mvps, svgs_all, logo_uri), encoding="utf-8")
+    jobs.append({"src": str(ms), "out": str(vis / "gf-hr-mvp-identity-sheet.png"), "width": 2100, "height": 1080, "transparent": False})
+    sample = {}
+    for jid, items in agents_by_j.items():
+        lead = next((x for x in items if x["role"] == "orchestrator"), items[0])
+        sample[jid] = svgs_all[lead["id"]]["PROD"]
+    pv = build / "html" / "palette.html"
+    pv.write_text(palette_html(cfg, palette, sample, logo_uri), encoding="utf-8")
+    jobs.append({"src": str(pv), "out": str(vis / "gf-hr-colour-schema.png"), "width": 1880, "height": 1010, "transparent": False})
+
+    (root / "docs").mkdir(exist_ok=True)
+    (root / "docs" / "agent-identity-catalog.md").write_text(catalog_md(cfg, palette, agents_by_j), encoding="utf-8")
+
+    if not args.no_render:
+        jf = build / "jobs.json"
+        jf.write_text(json.dumps(jobs, indent=1), encoding="utf-8")
+        r = subprocess.run(["node", str(root / "scripts" / "render_png.js"), str(jf)], capture_output=True, text=True)
+        print(r.stdout.strip())
+        if r.returncode != 0:
+            print(r.stderr, file=sys.stderr)
+            return r.returncode
+        problems = []
+        for j in jobs:
+            w, h, size = png_info(Path(j["out"]))
+            if (w, h) != (j["width"], j["height"]):
+                problems.append(f'{j["out"]}: {w}x{h}')
+            if j["width"] <= 192 and size > 100 * 1024:
+                problems.append(f'{j["out"]}: {size} bytes > 100 KB')
+        if problems:
+            print("\n".join(problems), file=sys.stderr)
+            return 1
+    shutil.rmtree(build, ignore_errors=True)
+    print(f"identity assets built for {len(cfg['agents'])} agents")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

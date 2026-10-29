@@ -1,0 +1,170 @@
+"""Validates the agent identity package (names, colours, icon files) - run on every pull request.
+
+Checks
+  N1  display names: <= 30 characters in every environment (Copilot Studio limit, FE-04), allowed characters
+  N2  PROD base name <= 25 characters so " TEST" still fits
+  N3  environment postfix only on display names: never in schema, solution, variable or connection names
+  N4  uniqueness of display names, slugs, schema names and solution names
+  N5  publisher prefix from the allowed list; schema stem starts with a letter (FE-02 / FE-04)
+  N6  PO token from the agreed vocabulary; derived names match the tokens (no drift)
+  D1  short description <= 72 characters (<= 80 with the DEV/TEST marker, Teams manifest), full <= 4000
+  C1  glyph/background contrast >= 4.5:1 (Microsoft Learn icon guidance)
+  F1  icon files exist: colour 192 x 192 and 32 x 32 per environment, outline 32 x 32, PNG <= 100 KB
+  F2  outline icon has a transparent background; colour icon is opaque and square
+  F3  identity.json per agent matches the config
+
+Usage: python scripts/validate_identity.py [--root .] [--json report.json] [--skip-files]
+Exit code 0 = all checks passed, 1 = at least one error.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import struct
+import sys
+import zlib
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import identity_lib as L  # noqa: E402
+
+ALLOWED_PREFIXES = {"gf", "gfhr"}
+
+
+def png_meta(path: Path):
+    data = path.read_bytes()
+    if data[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError("not a PNG")
+    w, h, depth, ctype = struct.unpack(">IIBB", data[16:26])
+    return {"width": w, "height": h, "bitDepth": depth, "colourType": ctype, "bytes": len(data), "data": data}
+
+
+def corner_alpha(meta) -> int | None:
+    """Alpha of the top-left pixel for 8-bit RGBA PNGs (None if the PNG has no alpha channel)."""
+    if meta["colourType"] != 6 or meta["bitDepth"] != 8:
+        return None
+    data = meta["data"]
+    pos, idat = 8, b""
+    while pos < len(data):
+        length = struct.unpack(">I", data[pos:pos + 4])[0]
+        ctype = data[pos + 4:pos + 8]
+        if ctype == b"IDAT":
+            idat += data[pos + 8:pos + 8 + length]
+        pos += 12 + length
+    raw = zlib.decompress(idat)
+    # first scanline: filter byte + RGBA of pixel 0 (filter 0 or 1 leaves pixel 0 unchanged)
+    return raw[4]
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--root", default=str(L.ROOT))
+    ap.add_argument("--json", help="write a JSON report")
+    ap.add_argument("--skip-files", action="store_true", help="only check names and colours")
+    args = ap.parse_args()
+    root = Path(args.root).resolve()
+    cfg, palette = L.load_config(root)
+    errors, warnings = [], []
+    rx_chars = re.compile(cfg["naming"]["allowedDisplayCharacters"])
+    prefix = cfg["naming"]["publisherPrefix"]
+    tokens = {p["token"] for p in cfg["poAreas"]}
+    env_words = re.compile(r"(?i)(?:^|[^a-z])(dev|test|prod|uat|sit)(?:[^a-z]|$)")
+    seen = {"display": {}, "slug": {}, "schema": {}, "solution": {}}
+
+    if prefix not in ALLOWED_PREFIXES:
+        errors.append(f"N5 publisher prefix '{prefix}' not in {sorted(ALLOWED_PREFIXES)}")
+
+    for a in cfg["agents"]:
+        aid = a["id"]
+        if a["po"] not in tokens:
+            errors.append(f"N6 {aid}: PO token '{a['po']}' is not in poAreas")
+            continue
+        fresh = L.derive(cfg, a, palette)
+        if fresh != a.get("derived"):
+            errors.append(f"N6 {aid}: derived names are out of date - run scripts/build_identity_assets.py")
+        d = fresh
+        base = d["displayName"]["PROD"]
+        if len(base) > cfg["naming"]["maxBaseLength"]:
+            errors.append(f"N2 {aid}: '{base}' has {len(base)} characters (max {cfg['naming']['maxBaseLength']})")
+        for env, name in d["displayName"].items():
+            if len(name) > cfg["naming"]["maxDisplayLength"]:
+                errors.append(f"N1 {aid}: {env} name '{name}' has {len(name)} characters (max 30)")
+            if not rx_chars.match(name):
+                errors.append(f"N1 {aid}: {env} name '{name}' has characters outside {cfg['naming']['allowedDisplayCharacters']}")
+            if env != "PROD" and a.get("environmentScoped", True) and not name.endswith(" " + env):
+                errors.append(f"N1 {aid}: {env} name '{name}' does not end with ' {env}'")
+        if env_words.search(base):
+            errors.append(f"N3 {aid}: PROD name '{base}' contains an environment word")
+        for key in ("schemaName", "solutionUniqueName", "solutionDisplayName", "envVarPrefix", "connectionContext", "slug"):
+            val = d.get(key)
+            if val and env_words.search(re.sub(r"([a-z])([A-Z])", r"\1 \2", val).replace("_", " ").replace("-", " ")):
+                errors.append(f"N3 {aid}: {key} '{val}' contains an environment word")
+        if d["schemaName"]:
+            if not re.match(rf"^{re.escape(prefix)}_[A-Za-z][A-Za-z0-9]*$", d["schemaName"]):
+                errors.append(f"N5 {aid}: schema name '{d['schemaName']}' must be {prefix}_<Letter><LettersOrDigits>")
+        for kind, val in (("display", base), ("slug", d["slug"]), ("schema", d["schemaName"]), ("solution", d["solutionUniqueName"])):
+            if not val:
+                continue
+            k = val.lower()
+            if k in seen[kind]:
+                errors.append(f"N4 {aid}: {kind} '{val}' also used by {seen[kind][k]}")
+            seen[kind][k] = aid
+        if len(a["shortDescription"]) > 72:
+            errors.append(f"D1 {aid}: short description has {len(a['shortDescription'])} characters (max 72)")
+        for env in L.ENVS:
+            if len(L.env_description(cfg, a, env, "short")) > 80:
+                errors.append(f"D1 {aid}: {env} short description exceeds 80 characters")
+            if len(L.env_description(cfg, a, env, "full")) > 4000:
+                errors.append(f"D1 {aid}: {env} full description exceeds 4000 characters")
+        c = L.contrast(d["icon"]["background"], d["icon"]["glyphColor"])
+        if c < 4.5:
+            errors.append(f"C1 {aid}: icon contrast {c}:1 below 4.5:1")
+
+        if args.skip_files:
+            continue
+        folder = root / "agents" / d["slug"] / "identity"
+        envs = L.ENVS if a.get("environmentScoped", True) else ("PROD",)
+        expected = []
+        for env in envs:
+            sfx = "" if env == "PROD" else f"-{env.lower()}"
+            expected += [(f"color-192{sfx}.png", 192, False), (f"color-32{sfx}.png", 32, False)]
+        expected.append(("outline-32.png", 32, True))
+        for name, size, transparent in expected:
+            p = folder / name
+            if not p.exists():
+                errors.append(f"F1 {aid}: missing {p.relative_to(root)}")
+                continue
+            m = png_meta(p)
+            if (m["width"], m["height"]) != (size, size):
+                errors.append(f"F1 {aid}: {name} is {m['width']}x{m['height']}, expected {size}x{size}")
+            if m["bytes"] > 100 * 1024:
+                errors.append(f"F1 {aid}: {name} is {m['bytes']} bytes (max 100 KB)")
+            alpha = corner_alpha(m)
+            if transparent and alpha not in (0, None):
+                errors.append(f"F2 {aid}: {name} should have a transparent background")
+            if transparent and alpha is None:
+                errors.append(f"F2 {aid}: {name} has no alpha channel")
+            if not transparent and alpha not in (None, 255):
+                errors.append(f"F2 {aid}: {name} must be opaque (full-bleed colour)")
+        ij = folder / "identity.json"
+        if not ij.exists():
+            errors.append(f"F3 {aid}: missing identity.json")
+        else:
+            rec = L.load_json(ij)
+            if rec.get("displayName", {}).get("PROD") != base or rec.get("schemaName") != d["schemaName"]:
+                errors.append(f"F3 {aid}: identity.json is out of date - rebuild")
+
+    report = {"agents": len(cfg["agents"]), "errors": errors, "warnings": warnings, "ok": not errors}
+    if args.json:
+        Path(args.json).write_text(json.dumps(report, indent=2), encoding="utf-8")
+    for e in errors:
+        print("ERROR", e)
+    for w in warnings:
+        print("WARN ", w)
+    print(f"{len(cfg['agents'])} agents checked: {len(errors)} error(s), {len(warnings)} warning(s)")
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

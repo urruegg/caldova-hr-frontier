@@ -1,0 +1,110 @@
+{
+  "id": "D5-LEAD",
+  "kind": "copilot-studio",
+  "role": "orchestrator",
+  "journey": {
+    "id": "D5",
+    "name": "Talent & Performance"
+  },
+  "tokens": {
+    "po": "Talent",
+    "domain": "Lead",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "Talent Lead DEV",
+    "TEST": "Talent Lead TEST",
+    "PROD": "Talent Lead"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Routes talent and performance requests to the right Talent agent.",
+    "TEST": "TEST · Routes talent and performance requests to the right Talent agent.",
+    "PROD": "Routes talent and performance requests to the right Talent agent."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nOrchestrator for the Talent & Performance journey: understands the request and hands it to the right specialist agent. Process owner area: Talent. Status: Hypothesis · not selected.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nOrchestrator for the Talent & Performance journey: understands the request and hands it to the right specialist agent. Process owner area: Talent. Status: Hypothesis · not selected.",
+    "PROD": "Orchestrator for the Talent & Performance journey: understands the request and hands it to the right specialist agent. Process owner area: Talent. Status: Hypothesis · not selected."
+  },
+  "slug": "talent-lead",
+  "schemaName": "gf_TalentLead",
+  "solution": {
+    "uniqueName": "GFHRTalentLead",
+    "displayName": "GF HR Talent Lead"
+  },
+  "envVarPrefix": "gf_Talent",
+  "connectionContext": "Talent",
+  "flowNamePrefix": "Talent Lead - ",
+  "github": null,
+  "icon": {
+    "background": "#ADDC91",
+    "glyphColour": "#003E51",
+    "contrast": 7.42,
+    "glyph": "Fluent UI System Icons: ribbon-star (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "Talent Lead DEV",
+      "TEST": "Talent Lead TEST",
+      "PROD": "Talent Lead"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer Talent Lead (DEV)",
+      "TEST": "Georg Fischer Talent Lead (TEST)",
+      "PROD": "Georg Fischer Talent Lead"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Routes talent and performance requests to the right Talent agent.",
+      "TEST": "TEST · Routes talent and performance requests to the right Talent agent.",
+      "PROD": "Routes talent and performance requests to the right Talent agent."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nOrchestrator for the Talent & Performance journey: understands the request and hands it to the right specialist agent. Process owner area: Talent. Status: Hypothesis · not selected.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nOrchestrator for the Talent & Performance journey: understands the request and hands it to the right specialist agent. Process owner area: Talent. Status: Hypothesis · not selected.",
+      "PROD": "Orchestrator for the Talent & Performance journey: understands the request and hands it to the right specialist agent. Process owner area: Talent. Status: Hypothesis · not selected."
+    },
+    "accentColor": "#ADDC91",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Hypothesis · not selected",
+  "statusClass": "hypothesis",
+  "audience": "Managers and employees",
+  "processOwnerArea": "Talent & Performance (hypothesis, not yet confirmed by GF)",
+  "owner": "Head of Talent & Performance",
+  "channels": [
+    "Teams",
+    "Microsoft 365 Copilot"
+  ],
+  "gfName": null,
+  "blueprintName": "Talent Lead Agent",
+  "evidence": [
+    "E06"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

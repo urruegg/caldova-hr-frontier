@@ -1,0 +1,3274 @@
+{
+  "schemaVersion": "1.0",
+  "sourcePackage": "GF HR agent identity package",
+  "sourceVersion": "1.0.0",
+  "sourceDate": "2026-10-28",
+  "intakeDate": "2026-10-29",
+  "sourceStatus": "proposal for GF approval",
+  "adaptationApproval": "GF written approval to adapt reported by the repository owner; approval artifact/reference not supplied",
+  "scope": "Curated local identity assets and inactive text reference; no source automation, live stamping or publication enabled",
+  "files": [
+    {
+      "sourcePath": "agents/factory-agent-builder/identity/card.png",
+      "path": "agents/factory-agent-builder/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 72662,
+      "sha256": "2c16a4a231cfde3a36d1f5c1014442f997f58805d5d032ee8f5ed4d66f5144f6"
+    },
+    {
+      "sourcePath": "agents/factory-agent-builder/identity/color-192.png",
+      "path": "agents/factory-agent-builder/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2839,
+      "sha256": "463aaf583003761660ae2fbc4e450666f530f96b4d4e8da7539d8aaced20c962"
+    },
+    {
+      "sourcePath": "agents/factory-agent-builder/identity/color-32.png",
+      "path": "agents/factory-agent-builder/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 530,
+      "sha256": "42330ab27f5adca542359272c130164a003c5ef80ac109666038bcc97ed2f823"
+    },
+    {
+      "sourcePath": "agents/factory-agent-builder/identity/icon.svg",
+      "path": "agents/factory-agent-builder/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 896,
+      "sha256": "eb5254595208dc6f21aed360d151557a605d57d49958489dae2519a63fcb0894"
+    },
+    {
+      "sourcePath": "agents/factory-agent-builder/identity/identity.json",
+      "path": "agents/factory-agent-builder/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 2043,
+      "sha256": "e45b346759c306adee36d1a0ebdec2dbb0ae91618d38bced24e2a06a12e4ec5a"
+    },
+    {
+      "sourcePath": "agents/factory-agent-builder/identity/outline-32.png",
+      "path": "agents/factory-agent-builder/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 742,
+      "sha256": "00e885cbdcd832384d2410b9f3cc012a6cf40a81fe462de2fdf47f135d9f53f7"
+    },
+    {
+      "sourcePath": "agents/factory-agent-builder/identity/outline.svg",
+      "path": "agents/factory-agent-builder/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 1001,
+      "sha256": "d57605b718d0e6191a43030ce98eafafd8897e71a85d2170d7af9d1ec839212c"
+    },
+    {
+      "sourcePath": "agents/factory-architecture-docs/identity/card.png",
+      "path": "agents/factory-architecture-docs/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 74588,
+      "sha256": "1b06eabedcaa1a9c3be2cd9d524d17c9db78afc679b7d823d7d3b07a8b7ae31e"
+    },
+    {
+      "sourcePath": "agents/factory-architecture-docs/identity/color-192.png",
+      "path": "agents/factory-architecture-docs/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 1296,
+      "sha256": "364dc614f54941502cd3526706f98f140783cd6c0f9020de51574d75a0be0c6d"
+    },
+    {
+      "sourcePath": "agents/factory-architecture-docs/identity/color-32.png",
+      "path": "agents/factory-architecture-docs/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 314,
+      "sha256": "48f4611479bdd6d6fae32fb6e90635980bce243a04d4a3b79b1e7b0ed1253fac"
+    },
+    {
+      "sourcePath": "agents/factory-architecture-docs/identity/icon.svg",
+      "path": "agents/factory-architecture-docs/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 457,
+      "sha256": "540785e3864c6e8e9f833154992d3c50f790cc27a5dd42c54c285ecb2a9a9f65"
+    },
+    {
+      "sourcePath": "agents/factory-architecture-docs/identity/identity.json",
+      "path": "agents/factory-architecture-docs/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 2057,
+      "sha256": "1f9da1cc057c2031f460b9ec2fd4c665bf10cb304f02463912cb88b3c74c0067"
+    },
+    {
+      "sourcePath": "agents/factory-architecture-docs/identity/outline-32.png",
+      "path": "agents/factory-architecture-docs/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 381,
+      "sha256": "aa238d285b4a523f81bd6eeabfdfc2612f83531e98ea49144457bd02a194481b"
+    },
+    {
+      "sourcePath": "agents/factory-architecture-docs/identity/outline.svg",
+      "path": "agents/factory-architecture-docs/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 574,
+      "sha256": "1e226379e95a84cb7992f22ed85d9ad62051e534fdd3a68cd2dcb1297af4ed83"
+    },
+    {
+      "sourcePath": "agents/factory-eval-engineer/identity/card.png",
+      "path": "agents/factory-eval-engineer/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 68114,
+      "sha256": "68f7ff3483abd95b60949820c8b35dcabd1ca32882ed25f11d2ddd5c303e9002"
+    },
+    {
+      "sourcePath": "agents/factory-eval-engineer/identity/color-192.png",
+      "path": "agents/factory-eval-engineer/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 1300,
+      "sha256": "caf0f734ead31ff671dc7db94b89449c5f77b07f60a86def609532826cb8132e"
+    },
+    {
+      "sourcePath": "agents/factory-eval-engineer/identity/color-32.png",
+      "path": "agents/factory-eval-engineer/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 265,
+      "sha256": "337a4608979f1147a3e67669740c436be3b8998276fb3ed70c9a4398ca7e9597"
+    },
+    {
+      "sourcePath": "agents/factory-eval-engineer/identity/icon.svg",
+      "path": "agents/factory-eval-engineer/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 438,
+      "sha256": "7986bc6c27df32b3640198bcef5143c568f0b5ed741e4a882256ce93e235085d"
+    },
+    {
+      "sourcePath": "agents/factory-eval-engineer/identity/identity.json",
+      "path": "agents/factory-eval-engineer/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 2102,
+      "sha256": "115c783914525192355ad495cb2184450f019ea595a499497e925213568dd9a3"
+    },
+    {
+      "sourcePath": "agents/factory-eval-engineer/identity/outline-32.png",
+      "path": "agents/factory-eval-engineer/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 487,
+      "sha256": "3a933c568b5be11b2379d819361bd9c2d7bdb6c6b6e62ac10bc6d41a438e8bb2"
+    },
+    {
+      "sourcePath": "agents/factory-eval-engineer/identity/outline.svg",
+      "path": "agents/factory-eval-engineer/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 489,
+      "sha256": "33bd92173e74a2bf61807cde23d2ab7ebf116d3c098981c668098ceca3d4ca18"
+    },
+    {
+      "sourcePath": "agents/factory-integration/identity/card.png",
+      "path": "agents/factory-integration/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 69957,
+      "sha256": "dbe24c72a87a447071813bf26ef40fe49f8db20c0f45c20a02539eed33f851e5"
+    },
+    {
+      "sourcePath": "agents/factory-integration/identity/color-192.png",
+      "path": "agents/factory-integration/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2618,
+      "sha256": "0ec2f71033eb5ea7e30f4238a202fe85a37e2f7f375baeb2064d44ea6a41532d"
+    },
+    {
+      "sourcePath": "agents/factory-integration/identity/color-32.png",
+      "path": "agents/factory-integration/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 432,
+      "sha256": "97f758942213d8e0931ce4336a659619832c01bdb485cdcf9bca56cb03735df7"
+    },
+    {
+      "sourcePath": "agents/factory-integration/identity/icon.svg",
+      "path": "agents/factory-integration/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 549,
+      "sha256": "90b1b12e62def3e69bbd0dfc4a5a4b79269817d40d7b8f9a96d644a481577bc6"
+    },
+    {
+      "sourcePath": "agents/factory-integration/identity/identity.json",
+      "path": "agents/factory-integration/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 2035,
+      "sha256": "1f3fe78dfa840584a32ae19613bab035a0835ccca8084a39c195aa1d3ef0e228"
+    },
+    {
+      "sourcePath": "agents/factory-integration/identity/outline-32.png",
+      "path": "agents/factory-integration/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 764,
+      "sha256": "6048fe35e562f6c5ab472819ba21bd95f4d4ddd3d120061bfc1e3b8cbb6faf7e"
+    },
+    {
+      "sourcePath": "agents/factory-integration/identity/outline.svg",
+      "path": "agents/factory-integration/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 663,
+      "sha256": "d5f67e2280a9b4483035b2a625610005ca563de0512afab08da93fd10d64b403"
+    },
+    {
+      "sourcePath": "agents/factory-ops-analyst/identity/card.png",
+      "path": "agents/factory-ops-analyst/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 71996,
+      "sha256": "12debec6f61ecdac29e10214e30cd3ed5fe4fa40877aa578acb28e8ff7e24469"
+    },
+    {
+      "sourcePath": "agents/factory-ops-analyst/identity/color-192.png",
+      "path": "agents/factory-ops-analyst/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2261,
+      "sha256": "1df87e202b9a382d8aef4cf7249491c88eadac26b455e16fa71964f0bba77810"
+    },
+    {
+      "sourcePath": "agents/factory-ops-analyst/identity/color-32.png",
+      "path": "agents/factory-ops-analyst/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 413,
+      "sha256": "062fcc886a0f168d05a7255d8c9db7885bfd3e977577522bbccb356ac54f5adc"
+    },
+    {
+      "sourcePath": "agents/factory-ops-analyst/identity/icon.svg",
+      "path": "agents/factory-ops-analyst/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 487,
+      "sha256": "012af911ca9b79f7f2ac2a27589a4fe400196e4d865e424f45d85eed0c385a74"
+    },
+    {
+      "sourcePath": "agents/factory-ops-analyst/identity/identity.json",
+      "path": "agents/factory-ops-analyst/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 1997,
+      "sha256": "8348dc51b93324b2fa423ff3c0e6c41da339a74234a215eb8ff1800ea5280558"
+    },
+    {
+      "sourcePath": "agents/factory-ops-analyst/identity/outline-32.png",
+      "path": "agents/factory-ops-analyst/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 603,
+      "sha256": "5faf0876cf8dca99162b90dabf721948b2008ea7562f9698e960e1d33556f64b"
+    },
+    {
+      "sourcePath": "agents/factory-ops-analyst/identity/outline.svg",
+      "path": "agents/factory-ops-analyst/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 415,
+      "sha256": "ff5b0e8656b397f62ac44373652051d78e033f4f71b29ea00afa2460f6dce2ee"
+    },
+    {
+      "sourcePath": "agents/factory-release-manager/identity/card.png",
+      "path": "agents/factory-release-manager/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 74944,
+      "sha256": "3615d128e9b668147853c8dc91f2aaa379ec6602f65615ded9883a8e6690a5bc"
+    },
+    {
+      "sourcePath": "agents/factory-release-manager/identity/color-192.png",
+      "path": "agents/factory-release-manager/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 3820,
+      "sha256": "619da88f386bf837a3cf1db9260b23c23491f9e31246af015dc4e7cc709a33e6"
+    },
+    {
+      "sourcePath": "agents/factory-release-manager/identity/color-32.png",
+      "path": "agents/factory-release-manager/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 565,
+      "sha256": "793e58d2ab8628726026bd886803642ddcdc5232f0443dc59e9db25551ac714f"
+    },
+    {
+      "sourcePath": "agents/factory-release-manager/identity/icon.svg",
+      "path": "agents/factory-release-manager/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 1184,
+      "sha256": "a00f4bf6002d59f129a16b16a7609e6f701e78cc99b230bebf5adc8e42ec3b11"
+    },
+    {
+      "sourcePath": "agents/factory-release-manager/identity/identity.json",
+      "path": "agents/factory-release-manager/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 2143,
+      "sha256": "2f1fb7c34bdbc1d845a708a0c656e60016195a91a248daaf3bc8de9b36993986"
+    },
+    {
+      "sourcePath": "agents/factory-release-manager/identity/outline-32.png",
+      "path": "agents/factory-release-manager/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 887,
+      "sha256": "ba2728d621844b79e3aa97d6e96f3b1f1e11658da1b6c0e8cb2a9200b3c81c31"
+    },
+    {
+      "sourcePath": "agents/factory-release-manager/identity/outline.svg",
+      "path": "agents/factory-release-manager/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 1250,
+      "sha256": "14773d4cfd2abcdb5489210b98b57b5c9d444d69860249f649aa873d8814166d"
+    },
+    {
+      "sourcePath": "agents/factory-security-review/identity/card.png",
+      "path": "agents/factory-security-review/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 74958,
+      "sha256": "94ce1322eac031fa8f7cdd4249e977dd21610f3beff216ebf60673d5fbea60b0"
+    },
+    {
+      "sourcePath": "agents/factory-security-review/identity/color-192.png",
+      "path": "agents/factory-security-review/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2507,
+      "sha256": "66fdbea31a503be950411eb6ed4b995c74c585250032e17f58c512754c5b3d5a"
+    },
+    {
+      "sourcePath": "agents/factory-security-review/identity/color-32.png",
+      "path": "agents/factory-security-review/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 434,
+      "sha256": "892227f34143517b2735b561145b2c8ef4063b0d2e23369b5be272d03de0b5ac"
+    },
+    {
+      "sourcePath": "agents/factory-security-review/identity/icon.svg",
+      "path": "agents/factory-security-review/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 666,
+      "sha256": "6ee7ba9af772aaa48eea2b8806cdd8cf4b3adfc61f880e529c350ad2e1ce802a"
+    },
+    {
+      "sourcePath": "agents/factory-security-review/identity/identity.json",
+      "path": "agents/factory-security-review/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 2029,
+      "sha256": "b8974f7685e7e13c938c8e6c9b1c377a58086b00e46027f258a6d6389e0619f0"
+    },
+    {
+      "sourcePath": "agents/factory-security-review/identity/outline-32.png",
+      "path": "agents/factory-security-review/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 695,
+      "sha256": "c20e4d0247805182fc752f8805bcb65095ee0574178681ee95ad2d881c993cc8"
+    },
+    {
+      "sourcePath": "agents/factory-security-review/identity/outline.svg",
+      "path": "agents/factory-security-review/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 674,
+      "sha256": "76268926c921870c70ccfaf10a9a322e5f30a13ed9ec9117d4dd59cad3c2e9dd"
+    },
+    {
+      "sourcePath": "agents/factory-spec-architect/identity/card.png",
+      "path": "agents/factory-spec-architect/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 71679,
+      "sha256": "19afb3235a6e36d6e3ec511274c9da4777190f3a6011a5bd9973caefa1c1a66f"
+    },
+    {
+      "sourcePath": "agents/factory-spec-architect/identity/color-192.png",
+      "path": "agents/factory-spec-architect/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2247,
+      "sha256": "2c2d2df230c1296a576bcc4b6f7b423efc0b78be69449a84d5ab21e0a9557ba9"
+    },
+    {
+      "sourcePath": "agents/factory-spec-architect/identity/color-32.png",
+      "path": "agents/factory-spec-architect/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 553,
+      "sha256": "6ba5398deef6339b6fbe8c213714a6d0de412109051a845c230e21f132a40167"
+    },
+    {
+      "sourcePath": "agents/factory-spec-architect/identity/icon.svg",
+      "path": "agents/factory-spec-architect/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 846,
+      "sha256": "e4dba582310daee98844146ad51e77e31e22801a32ec7a1750499a177b46115e"
+    },
+    {
+      "sourcePath": "agents/factory-spec-architect/identity/identity.json",
+      "path": "agents/factory-spec-architect/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 2035,
+      "sha256": "8f1816144a0404d5d813c1019ebc381fa164d399cf1bb71b1cb4598745eacd18"
+    },
+    {
+      "sourcePath": "agents/factory-spec-architect/identity/outline-32.png",
+      "path": "agents/factory-spec-architect/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 701,
+      "sha256": "6326a2848a8afe4154e61ef73863fa272c2ad53de1b1a833f9ab2c925feac047"
+    },
+    {
+      "sourcePath": "agents/factory-spec-architect/identity/outline.svg",
+      "path": "agents/factory-spec-architect/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 881,
+      "sha256": "0aa60912befd9b384767821fbaca730c5c6c912f8df6de525efbcf002bcc8378"
+    },
+    {
+      "sourcePath": "agents/hr-ops-case-triage/identity/card.png",
+      "path": "agents/hr-ops-case-triage/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 83410,
+      "sha256": "4241a6bfda56c56a705707a97cea77bed1a276563498f1e658b178099b92a313"
+    },
+    {
+      "sourcePath": "agents/hr-ops-case-triage/identity/color-192-dev.png",
+      "path": "agents/hr-ops-case-triage/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 3447,
+      "sha256": "22508801030ee2311774565a5a51fed1196dec91726a10c304a6c7b80f45c46b"
+    },
+    {
+      "sourcePath": "agents/hr-ops-case-triage/identity/color-192-test.png",
+      "path": "agents/hr-ops-case-triage/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 3397,
+      "sha256": "7432056b16e6c4ca052be95f8acab0cd9eda6767701cd5ac5fd828d0dfeecb38"
+    },
+    {
+      "sourcePath": "agents/hr-ops-case-triage/identity/color-192.png",
+      "path": "agents/hr-ops-case-triage/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2667,
+      "sha256": "736ad0286f9483b691ea0d4d71cb4c961f8f774261006435286dcd3372529cd7"
+    },
+    {
+      "sourcePath": "agents/hr-ops-case-triage/identity/color-32-dev.png",
+      "path": "agents/hr-ops-case-triage/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 569,
+      "sha256": "86362538519a7b2ca5e2bbbf040492b4757f1d004befe2031d39a4de0d27a25c"
+    },
+    {
+      "sourcePath": "agents/hr-ops-case-triage/identity/color-32-test.png",
+      "path": "agents/hr-ops-case-triage/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 605,
+      "sha256": "f8f75a51198b85e6ba1357e2855c6bb8ff8ed9be3237e0df01d8850cbf76015a"
+    },
+    {
+      "sourcePath": "agents/hr-ops-case-triage/identity/color-32.png",
+      "path": "agents/hr-ops-case-triage/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 485,
+      "sha256": "70768be1ebef382fe00d8c1c9cc25ce2bc5f5392d0410c3f7dbc142dde0e060f"
+    },
+    {
+      "sourcePath": "agents/hr-ops-case-triage/identity/icon-dev.svg",
+      "path": "agents/hr-ops-case-triage/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 1147,
+      "sha256": "e75cd8e6ff70fbb0a33d46cbe783156811cd07d2e14ce3d9605367dbcb3d10f0"
+    },
+    {
+      "sourcePath": "agents/hr-ops-case-triage/identity/icon-test.svg",
+      "path": "agents/hr-ops-case-triage/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 1148,
+      "sha256": "a303bfcb92eabbd73f578ed2ff3b65ca62480e55f756ee61f2a39e89bb2d923a"
+    },
+    {
+      "sourcePath": "agents/hr-ops-case-triage/identity/icon.svg",
+      "path": "agents/hr-ops-case-triage/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 835,
+      "sha256": "05d67d0034a9ef7d1e702531165a5679e059e1a45cd7bffa3983781b8e72aaea"
+    },
+    {
+      "sourcePath": "agents/hr-ops-case-triage/identity/identity.json",
+      "path": "agents/hr-ops-case-triage/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4352,
+      "sha256": "09650509c59506130507befcd742570224e0fddeeb9db13213b3a5bcaeb23d71"
+    },
+    {
+      "sourcePath": "agents/hr-ops-case-triage/identity/outline-32.png",
+      "path": "agents/hr-ops-case-triage/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 717,
+      "sha256": "a0bf4ee7bc6d375ef2dfe7b674013ae21e8499407ffd2f9cedd6a00fadc71ac5"
+    },
+    {
+      "sourcePath": "agents/hr-ops-case-triage/identity/outline.svg",
+      "path": "agents/hr-ops-case-triage/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 1027,
+      "sha256": "ef135a323d58a166c9b3ebc12a0f80601e7eaa2ddba1c4be2f3b8a1f7700b444"
+    },
+    {
+      "sourcePath": "agents/hr-ops-data-quality/identity/card.png",
+      "path": "agents/hr-ops-data-quality/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 82603,
+      "sha256": "1b1638f13517cd5bbeeca4e8e7a270ce9ef185bed644057d818bcea068ce7f8b"
+    },
+    {
+      "sourcePath": "agents/hr-ops-data-quality/identity/color-192-dev.png",
+      "path": "agents/hr-ops-data-quality/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 4464,
+      "sha256": "c38c4b5df02a643bf6f21823775698f8cafde22330c7eb1c3b788b444b0708e1"
+    },
+    {
+      "sourcePath": "agents/hr-ops-data-quality/identity/color-192-test.png",
+      "path": "agents/hr-ops-data-quality/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 4419,
+      "sha256": "821730e20c353f363e2cffb157db757522221d719b46b9ee506d7fbe762a33ab"
+    },
+    {
+      "sourcePath": "agents/hr-ops-data-quality/identity/color-192.png",
+      "path": "agents/hr-ops-data-quality/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 3694,
+      "sha256": "22763fc58c705922d3a402c29c631deea09741f111a37f141c964bb0fa4deaab"
+    },
+    {
+      "sourcePath": "agents/hr-ops-data-quality/identity/color-32-dev.png",
+      "path": "agents/hr-ops-data-quality/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 674,
+      "sha256": "e20c39c40999852333b873244e549ace4e693bcd74b4d4556ab4fbb6d7b3288d"
+    },
+    {
+      "sourcePath": "agents/hr-ops-data-quality/identity/color-32-test.png",
+      "path": "agents/hr-ops-data-quality/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 698,
+      "sha256": "88acca1fe3582d539cb229f13b2b3f3d027e2345e3839ac72355d7c5dd987862"
+    },
+    {
+      "sourcePath": "agents/hr-ops-data-quality/identity/color-32.png",
+      "path": "agents/hr-ops-data-quality/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 576,
+      "sha256": "f214ee331f477201d5b26cd00d2d2e6bc424c14ba4fb1efb9f3138f12fa37871"
+    },
+    {
+      "sourcePath": "agents/hr-ops-data-quality/identity/icon-dev.svg",
+      "path": "agents/hr-ops-data-quality/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 1012,
+      "sha256": "ef139d1759bd288df5829d70cb3074600fd0e8f4ce367d47722be916bcdc9f2c"
+    },
+    {
+      "sourcePath": "agents/hr-ops-data-quality/identity/icon-test.svg",
+      "path": "agents/hr-ops-data-quality/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 1013,
+      "sha256": "673d9796a11e90f009375ccffc228964ba3c8d11539ef1d3c8a62874df4915fc"
+    },
+    {
+      "sourcePath": "agents/hr-ops-data-quality/identity/icon.svg",
+      "path": "agents/hr-ops-data-quality/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 700,
+      "sha256": "992c2e128d8e5676c78bc1faff4b0f007bd8026862c49a2ed79ce899a16b353c"
+    },
+    {
+      "sourcePath": "agents/hr-ops-data-quality/identity/identity.json",
+      "path": "agents/hr-ops-data-quality/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4486,
+      "sha256": "46239a85e723104d1e5860b5467469e143a1be209873306a2e0070dde9a1902c"
+    },
+    {
+      "sourcePath": "agents/hr-ops-data-quality/identity/outline-32.png",
+      "path": "agents/hr-ops-data-quality/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 791,
+      "sha256": "dfc52f2dbc73c20fd3a0c056749e998a19e82c6c7b3dc25eac5526609ee7521f"
+    },
+    {
+      "sourcePath": "agents/hr-ops-data-quality/identity/outline.svg",
+      "path": "agents/hr-ops-data-quality/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 1107,
+      "sha256": "acde0cf3048086c392795a476435393d702a2f4454c90c2b9d82d7f7320430f8"
+    },
+    {
+      "sourcePath": "agents/hr-ops-leaver-check/identity/card.png",
+      "path": "agents/hr-ops-leaver-check/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 81678,
+      "sha256": "40b29f15191d6cfe73d176c867d78951f1f285f4195c03b3c4177fb77f67bc0e"
+    },
+    {
+      "sourcePath": "agents/hr-ops-leaver-check/identity/color-192-dev.png",
+      "path": "agents/hr-ops-leaver-check/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 3401,
+      "sha256": "00113f8d7b974d8f44db42e4c9f585cd6d2fca2ac987a1a889a54a6c732ad5d8"
+    },
+    {
+      "sourcePath": "agents/hr-ops-leaver-check/identity/color-192-test.png",
+      "path": "agents/hr-ops-leaver-check/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 3342,
+      "sha256": "4bcae86607353d00cbb7cbbf3fe651de1dad9f43692cdd83877c87f333571223"
+    },
+    {
+      "sourcePath": "agents/hr-ops-leaver-check/identity/color-192.png",
+      "path": "agents/hr-ops-leaver-check/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2612,
+      "sha256": "70d9e3e039cefefa432f5e88dc6653d6796fc2f796085b09ffaf1fd6e2186c3c"
+    },
+    {
+      "sourcePath": "agents/hr-ops-leaver-check/identity/color-32-dev.png",
+      "path": "agents/hr-ops-leaver-check/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 626,
+      "sha256": "56f5047d6fbcb92644a6314ad73fc0d82ac8cf69496e79e1d89b43e94b93cbe8"
+    },
+    {
+      "sourcePath": "agents/hr-ops-leaver-check/identity/color-32-test.png",
+      "path": "agents/hr-ops-leaver-check/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 644,
+      "sha256": "583ed50dddb714b9d9d5c3463f62a2361b046decdd9a8e007bcb19ee84f15094"
+    },
+    {
+      "sourcePath": "agents/hr-ops-leaver-check/identity/color-32.png",
+      "path": "agents/hr-ops-leaver-check/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 522,
+      "sha256": "7a9772f5619e9b39ad0f7e6fddd392526cdaa4881572e7d4e1027d402683c810"
+    },
+    {
+      "sourcePath": "agents/hr-ops-leaver-check/identity/icon-dev.svg",
+      "path": "agents/hr-ops-leaver-check/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 882,
+      "sha256": "9ad271a336d50a51dd70eba0c0db94beec84c58b9f10dbafb58873154c409919"
+    },
+    {
+      "sourcePath": "agents/hr-ops-leaver-check/identity/icon-test.svg",
+      "path": "agents/hr-ops-leaver-check/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 883,
+      "sha256": "2cbbbb7640fee9b14c1bfc741192e383fcc76cd2048bfd671a1d0dd8be73f356"
+    },
+    {
+      "sourcePath": "agents/hr-ops-leaver-check/identity/icon.svg",
+      "path": "agents/hr-ops-leaver-check/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 570,
+      "sha256": "ccdf6c44e907383ed6c03d5eed0a4283934d130402d1968b753dc6bf666ab1cc"
+    },
+    {
+      "sourcePath": "agents/hr-ops-leaver-check/identity/identity.json",
+      "path": "agents/hr-ops-leaver-check/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4734,
+      "sha256": "e0953669d2679b3e9e7339afe3820c06659a2838749e3d1cbbe46ed0585c2e14"
+    },
+    {
+      "sourcePath": "agents/hr-ops-leaver-check/identity/outline-32.png",
+      "path": "agents/hr-ops-leaver-check/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 628,
+      "sha256": "b6fef05b8c7678109187433cba8d21548f39dfb7f1219542cbb1bba9f8443c75"
+    },
+    {
+      "sourcePath": "agents/hr-ops-leaver-check/identity/outline.svg",
+      "path": "agents/hr-ops-leaver-check/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 582,
+      "sha256": "554da9de2cc1a27b99941a8ae32e6cf44d6c7c8a831886f74d950ef1d566f0d1"
+    },
+    {
+      "sourcePath": "agents/hr-ops-lifecycle-lead/identity/card.png",
+      "path": "agents/hr-ops-lifecycle-lead/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 81384,
+      "sha256": "7e2071f85afe67fd6f2bd3197e9890c119a4d9ce567e5a21f00484c508225489"
+    },
+    {
+      "sourcePath": "agents/hr-ops-lifecycle-lead/identity/color-192-dev.png",
+      "path": "agents/hr-ops-lifecycle-lead/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 3798,
+      "sha256": "63e750970af9ee0650af4049af905b565836cef072e050c3bbe68bc05b81c393"
+    },
+    {
+      "sourcePath": "agents/hr-ops-lifecycle-lead/identity/color-192-test.png",
+      "path": "agents/hr-ops-lifecycle-lead/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 3740,
+      "sha256": "6b77b3e1f9334589333dba5d6c838e84f6a383ca8b8a0115d21c07cf27be8dcf"
+    },
+    {
+      "sourcePath": "agents/hr-ops-lifecycle-lead/identity/color-192.png",
+      "path": "agents/hr-ops-lifecycle-lead/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2998,
+      "sha256": "4a1fff76a3291c31ab1762b48bb4f8770ee1f84a37ec7c2c4252210bc54bd04f"
+    },
+    {
+      "sourcePath": "agents/hr-ops-lifecycle-lead/identity/color-32-dev.png",
+      "path": "agents/hr-ops-lifecycle-lead/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 632,
+      "sha256": "1f6bca3752ce15e3a138bee54b43458645863fb9ac8fe1e27e6ce904bb6dfa96"
+    },
+    {
+      "sourcePath": "agents/hr-ops-lifecycle-lead/identity/color-32-test.png",
+      "path": "agents/hr-ops-lifecycle-lead/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 648,
+      "sha256": "450a513172f2bc4dbd5102e29b0b5eac6d8308dd7a0142973c2a538bffc88dee"
+    },
+    {
+      "sourcePath": "agents/hr-ops-lifecycle-lead/identity/color-32.png",
+      "path": "agents/hr-ops-lifecycle-lead/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 523,
+      "sha256": "a28ce029933e04e453c223b7440b635edb866d68895efa547877ff4c917858d8"
+    },
+    {
+      "sourcePath": "agents/hr-ops-lifecycle-lead/identity/icon-dev.svg",
+      "path": "agents/hr-ops-lifecycle-lead/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 964,
+      "sha256": "c001bbba4a522228a1fcf85cb78617842c9e308f39386937178e59c93460b776"
+    },
+    {
+      "sourcePath": "agents/hr-ops-lifecycle-lead/identity/icon-test.svg",
+      "path": "agents/hr-ops-lifecycle-lead/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 965,
+      "sha256": "ac522c3a19115078f442ded8c231fcb4fceafa2bde48728eedd7d9ea27b746c5"
+    },
+    {
+      "sourcePath": "agents/hr-ops-lifecycle-lead/identity/icon.svg",
+      "path": "agents/hr-ops-lifecycle-lead/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 652,
+      "sha256": "28309ca8359ff775f88c06624530412d5b0baa39e9f4d8814c0cbb4b4c22ca86"
+    },
+    {
+      "sourcePath": "agents/hr-ops-lifecycle-lead/identity/identity.json",
+      "path": "agents/hr-ops-lifecycle-lead/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4595,
+      "sha256": "638c19f2da29b5a6f36e0878d65d25254044438f0f39e6bd7ade4d037b57e0ca"
+    },
+    {
+      "sourcePath": "agents/hr-ops-lifecycle-lead/identity/outline-32.png",
+      "path": "agents/hr-ops-lifecycle-lead/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 762,
+      "sha256": "b2698ff187961e61da002425d47f5c9ddfdddd6c94a935fa75b82d68734976af"
+    },
+    {
+      "sourcePath": "agents/hr-ops-lifecycle-lead/identity/outline.svg",
+      "path": "agents/hr-ops-lifecycle-lead/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 795,
+      "sha256": "ec2491d5be0fbb773d123bc2bc813b54f3704d11478ab7c9e46d341882f42575"
+    },
+    {
+      "sourcePath": "agents/hr-ops-master-data-ch/identity/card.png",
+      "path": "agents/hr-ops-master-data-ch/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 84283,
+      "sha256": "dd81b1a4ba8dad99033b4a7c14dbb773a679d521c3f7ec7823f78933d0ad00c5"
+    },
+    {
+      "sourcePath": "agents/hr-ops-master-data-ch/identity/color-192-dev.png",
+      "path": "agents/hr-ops-master-data-ch/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 2531,
+      "sha256": "a90171eb125d06e67f135cfad63e79c9dca7763a611de7cbd6a4574147910ef2"
+    },
+    {
+      "sourcePath": "agents/hr-ops-master-data-ch/identity/color-192-test.png",
+      "path": "agents/hr-ops-master-data-ch/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 2463,
+      "sha256": "09620e7261e41823f69f9e58d94d901c8d3f6c117be33b34ffad88221e448f21"
+    },
+    {
+      "sourcePath": "agents/hr-ops-master-data-ch/identity/color-192.png",
+      "path": "agents/hr-ops-master-data-ch/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 1703,
+      "sha256": "6e3ad6e57bd632be1dfde4cf912033ab6bcfafd78e23a0eaf812a5d79b9d22b4"
+    },
+    {
+      "sourcePath": "agents/hr-ops-master-data-ch/identity/color-32-dev.png",
+      "path": "agents/hr-ops-master-data-ch/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 533,
+      "sha256": "3f5fe1601a753f0c58d08a718350abe8571039e5c90a069793d77e7e2807a84b"
+    },
+    {
+      "sourcePath": "agents/hr-ops-master-data-ch/identity/color-32-test.png",
+      "path": "agents/hr-ops-master-data-ch/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 546,
+      "sha256": "4c2863fe6eb9483799f4c02dad523ae0b1ad82fe603c645cb7696fc4e8da7884"
+    },
+    {
+      "sourcePath": "agents/hr-ops-master-data-ch/identity/color-32.png",
+      "path": "agents/hr-ops-master-data-ch/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 431,
+      "sha256": "c937a42b07a08401f650e1e3a537ba99bd73aeebac0124c841932d4db9c83d2f"
+    },
+    {
+      "sourcePath": "agents/hr-ops-master-data-ch/identity/icon-dev.svg",
+      "path": "agents/hr-ops-master-data-ch/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 1047,
+      "sha256": "0fc7ee61d55f2a98e4a18532b1188c8ea10858872aa6fc7cb617d759a19274cb"
+    },
+    {
+      "sourcePath": "agents/hr-ops-master-data-ch/identity/icon-test.svg",
+      "path": "agents/hr-ops-master-data-ch/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 1048,
+      "sha256": "66713634d9c9d1120859d8b9f04dcbdb75aefbac869f2f771f171e90df2e89b6"
+    },
+    {
+      "sourcePath": "agents/hr-ops-master-data-ch/identity/icon.svg",
+      "path": "agents/hr-ops-master-data-ch/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 735,
+      "sha256": "95917bb905b44dda78c9c12d66512dda7d66fc1a623018bfbfd11ef3f383c404"
+    },
+    {
+      "sourcePath": "agents/hr-ops-master-data-ch/identity/identity.json",
+      "path": "agents/hr-ops-master-data-ch/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 5288,
+      "sha256": "ca251ddeefd44659fa5185f7e23b0058ca76ee15558e8c60278f8ddbfaf4b150"
+    },
+    {
+      "sourcePath": "agents/hr-ops-master-data-ch/identity/outline-32.png",
+      "path": "agents/hr-ops-master-data-ch/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 509,
+      "sha256": "9f40ab0015bb0e3e92df2f372119ea34bbc9b89fba037accf0f8752388ace47c"
+    },
+    {
+      "sourcePath": "agents/hr-ops-master-data-ch/identity/outline.svg",
+      "path": "agents/hr-ops-master-data-ch/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 708,
+      "sha256": "50478a600061e45b8cb4a352a583d07b9a0b783fdf860f46716ece9052806147"
+    },
+    {
+      "sourcePath": "agents/hr-ops-onboarding-guide/identity/card.png",
+      "path": "agents/hr-ops-onboarding-guide/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 88998,
+      "sha256": "5edc10f896df47cd4b769ad7b0408b256e72d85d39ffb78a38394b7a8e2f3c13"
+    },
+    {
+      "sourcePath": "agents/hr-ops-onboarding-guide/identity/color-192-dev.png",
+      "path": "agents/hr-ops-onboarding-guide/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 4481,
+      "sha256": "491b779ea6004923ea4bd26c0ec99c5573f6b9ab9a6d7ad244f604bd85f9cae1"
+    },
+    {
+      "sourcePath": "agents/hr-ops-onboarding-guide/identity/color-192-test.png",
+      "path": "agents/hr-ops-onboarding-guide/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 4414,
+      "sha256": "aa1923a35e56b45428c0d480683f6e02229963d541151a2e61b55ea7ac0fa5c1"
+    },
+    {
+      "sourcePath": "agents/hr-ops-onboarding-guide/identity/color-192.png",
+      "path": "agents/hr-ops-onboarding-guide/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 3693,
+      "sha256": "ce689adf11e2fd6fdf8b569da7330839799ec005c47d44226f3a2eade63e7483"
+    },
+    {
+      "sourcePath": "agents/hr-ops-onboarding-guide/identity/color-32-dev.png",
+      "path": "agents/hr-ops-onboarding-guide/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 680,
+      "sha256": "09550bd97e7306c65facdc3bb89d843e60224caa15efbe3e5c35e0fda36528c0"
+    },
+    {
+      "sourcePath": "agents/hr-ops-onboarding-guide/identity/color-32-test.png",
+      "path": "agents/hr-ops-onboarding-guide/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 694,
+      "sha256": "cf33bbe1019f0e614d12b4994f42bc9b31080ea982d441c8c24c5f8c21f0dc5b"
+    },
+    {
+      "sourcePath": "agents/hr-ops-onboarding-guide/identity/color-32.png",
+      "path": "agents/hr-ops-onboarding-guide/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 579,
+      "sha256": "2d7f7846e66044fdb878825bd75c1fd99064ddc87d7cb6c08a7f68e0c9f672ed"
+    },
+    {
+      "sourcePath": "agents/hr-ops-onboarding-guide/identity/icon-dev.svg",
+      "path": "agents/hr-ops-onboarding-guide/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 1353,
+      "sha256": "99780df7d1f8eb19d6509a58cfa03e0903de198ca5e14552cf4f5d169149f636"
+    },
+    {
+      "sourcePath": "agents/hr-ops-onboarding-guide/identity/icon-test.svg",
+      "path": "agents/hr-ops-onboarding-guide/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 1354,
+      "sha256": "c44049e2b312f322d41514035b64705857cf5abef76cca2bba24dea7039df5e9"
+    },
+    {
+      "sourcePath": "agents/hr-ops-onboarding-guide/identity/icon.svg",
+      "path": "agents/hr-ops-onboarding-guide/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 1041,
+      "sha256": "f32cc8b1e38b1330b987cbd528277b6edd168ead665631bccf99d298942f5a3f"
+    },
+    {
+      "sourcePath": "agents/hr-ops-onboarding-guide/identity/identity.json",
+      "path": "agents/hr-ops-onboarding-guide/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 5120,
+      "sha256": "1414a424bf564b8d267c3901a94c6720e3e0854f2c1679b2f95840ff93eb2cb7"
+    },
+    {
+      "sourcePath": "agents/hr-ops-onboarding-guide/identity/outline-32.png",
+      "path": "agents/hr-ops-onboarding-guide/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 895,
+      "sha256": "04ceedb796ab3df100b696c77297b9a43805c0e965dd78e56c25fc4374c8b1a5"
+    },
+    {
+      "sourcePath": "agents/hr-ops-onboarding-guide/identity/outline.svg",
+      "path": "agents/hr-ops-onboarding-guide/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 1578,
+      "sha256": "b0adc43a64920c68d7a6cccbbcc86a803277d52156b48e9429310c61a059e1f6"
+    },
+    {
+      "sourcePath": "agents/hr-ops-payroll-check/identity/card.png",
+      "path": "agents/hr-ops-payroll-check/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 82198,
+      "sha256": "f29442954a463e1f6f97db0de30a0f89158231756ec8f458daee13e5970fb5df"
+    },
+    {
+      "sourcePath": "agents/hr-ops-payroll-check/identity/color-192-dev.png",
+      "path": "agents/hr-ops-payroll-check/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 3125,
+      "sha256": "d2060acf0693909c52f50fbdde269c127ce5d698e1a3f4bc0ab6e8fb8ee08a2b"
+    },
+    {
+      "sourcePath": "agents/hr-ops-payroll-check/identity/color-192-test.png",
+      "path": "agents/hr-ops-payroll-check/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 3074,
+      "sha256": "a35e8d9ae5bf17e17f86f4c4e47faa74914bbe2a5053dc8c0a8dd4814a8ebe9d"
+    },
+    {
+      "sourcePath": "agents/hr-ops-payroll-check/identity/color-192.png",
+      "path": "agents/hr-ops-payroll-check/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2339,
+      "sha256": "34a5bd758f17fe69f81737f9b1a5f060a04af40f98ce1962b6972e2d11f2e824"
+    },
+    {
+      "sourcePath": "agents/hr-ops-payroll-check/identity/color-32-dev.png",
+      "path": "agents/hr-ops-payroll-check/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 702,
+      "sha256": "e10c7fd2591c7cdd8b83f06ab572ce4ebe04bb15726452090bf73ee55676b6ae"
+    },
+    {
+      "sourcePath": "agents/hr-ops-payroll-check/identity/color-32-test.png",
+      "path": "agents/hr-ops-payroll-check/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 720,
+      "sha256": "6c848affb7a53bd7fc787698912a3012c50f1959c81c0749d6295a5556788320"
+    },
+    {
+      "sourcePath": "agents/hr-ops-payroll-check/identity/color-32.png",
+      "path": "agents/hr-ops-payroll-check/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 609,
+      "sha256": "803365d60dbf324b1ee4f9d65e65d2b8801341e61b5c29c6fec49ddd97e66962"
+    },
+    {
+      "sourcePath": "agents/hr-ops-payroll-check/identity/icon-dev.svg",
+      "path": "agents/hr-ops-payroll-check/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 1390,
+      "sha256": "8ead8320bef1ce1364958b4090bbf71a3addc47dfc2a184af5684fd412851a9d"
+    },
+    {
+      "sourcePath": "agents/hr-ops-payroll-check/identity/icon-test.svg",
+      "path": "agents/hr-ops-payroll-check/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 1391,
+      "sha256": "d24a664e1d1c8b80a0d39c52a52970fbd293c701b41d70524411bc0bce3250f3"
+    },
+    {
+      "sourcePath": "agents/hr-ops-payroll-check/identity/icon.svg",
+      "path": "agents/hr-ops-payroll-check/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 1078,
+      "sha256": "a9f09b3b2fabf250b5c46cdd2e95fb99b8c53a3c90ad7b50363ad79079674544"
+    },
+    {
+      "sourcePath": "agents/hr-ops-payroll-check/identity/identity.json",
+      "path": "agents/hr-ops-payroll-check/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4368,
+      "sha256": "2e084f8224cbf4782a527ef31eab6a864cd88591725c71605d3943fba4f74c3c"
+    },
+    {
+      "sourcePath": "agents/hr-ops-payroll-check/identity/outline-32.png",
+      "path": "agents/hr-ops-payroll-check/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 817,
+      "sha256": "f9ef38d9a8d8c50ce7b45cd12775135a22fec4f47c4eb3efe12fff2720fb4b86"
+    },
+    {
+      "sourcePath": "agents/hr-ops-payroll-check/identity/outline.svg",
+      "path": "agents/hr-ops-payroll-check/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 1085,
+      "sha256": "ca490131359d7640904dcc0243e1f130557abc0e8d7a2664d48aff2eb6db9fed"
+    },
+    {
+      "sourcePath": "agents/hr-ops-pre-hire-tracker/identity/card.png",
+      "path": "agents/hr-ops-pre-hire-tracker/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 79465,
+      "sha256": "a6bc19318dad88348a0cf623a50fceffaa2218837fd48c70d0c05f1d7ebd8352"
+    },
+    {
+      "sourcePath": "agents/hr-ops-pre-hire-tracker/identity/color-192-dev.png",
+      "path": "agents/hr-ops-pre-hire-tracker/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 2798,
+      "sha256": "cedff840d215933a5ae9732b6b7fcc1beee492a15ddd737ea5772c6ba7586579"
+    },
+    {
+      "sourcePath": "agents/hr-ops-pre-hire-tracker/identity/color-192-test.png",
+      "path": "agents/hr-ops-pre-hire-tracker/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 2727,
+      "sha256": "1130e06ecfd4b21592b9b0da97190fa9b7c437374681ce25cc05cbab4e5528ec"
+    },
+    {
+      "sourcePath": "agents/hr-ops-pre-hire-tracker/identity/color-192.png",
+      "path": "agents/hr-ops-pre-hire-tracker/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 1968,
+      "sha256": "ea2c7e7636d44d1f1628f427f2d52256735a790b6e9f1519331770d658a20c78"
+    },
+    {
+      "sourcePath": "agents/hr-ops-pre-hire-tracker/identity/color-32-dev.png",
+      "path": "agents/hr-ops-pre-hire-tracker/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 470,
+      "sha256": "5be806e1158b80cb493bc385802b30fbfe955a08cc504237ac361e63329d8db4"
+    },
+    {
+      "sourcePath": "agents/hr-ops-pre-hire-tracker/identity/color-32-test.png",
+      "path": "agents/hr-ops-pre-hire-tracker/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 485,
+      "sha256": "b9c094c3e553c5014957cde11655a6b120a49a94b29cbfed6516f6223838e11a"
+    },
+    {
+      "sourcePath": "agents/hr-ops-pre-hire-tracker/identity/color-32.png",
+      "path": "agents/hr-ops-pre-hire-tracker/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 372,
+      "sha256": "e6a7b17bc44305fcca965051b57ca8d82c7edef7395ae524b24bb67af9ff6eab"
+    },
+    {
+      "sourcePath": "agents/hr-ops-pre-hire-tracker/identity/icon-dev.svg",
+      "path": "agents/hr-ops-pre-hire-tracker/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 1073,
+      "sha256": "0064762ca34c812d6378f4a2351d0cac78493c948512cc5559a153a0fde36096"
+    },
+    {
+      "sourcePath": "agents/hr-ops-pre-hire-tracker/identity/icon-test.svg",
+      "path": "agents/hr-ops-pre-hire-tracker/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 1074,
+      "sha256": "583f73f2cc52d086d4d3bb68d6af74f9f89a53c3cb5c9f3c78e9fa2a229eb2b7"
+    },
+    {
+      "sourcePath": "agents/hr-ops-pre-hire-tracker/identity/icon.svg",
+      "path": "agents/hr-ops-pre-hire-tracker/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 761,
+      "sha256": "9a9fd27c09226bc85e04e7fdc4b2ed98bd55c57049a2bf8a952ed9c4e6c5f7f0"
+    },
+    {
+      "sourcePath": "agents/hr-ops-pre-hire-tracker/identity/identity.json",
+      "path": "agents/hr-ops-pre-hire-tracker/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4422,
+      "sha256": "4b81c5e3bf9db0f43cd16bc3393879fc5e53bf496bfb29693c332cfc839402f3"
+    },
+    {
+      "sourcePath": "agents/hr-ops-pre-hire-tracker/identity/outline-32.png",
+      "path": "agents/hr-ops-pre-hire-tracker/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 474,
+      "sha256": "e9393b0abadae99dfbb609dd58b90b251f94bcbe63d207cd1824af052507b37b"
+    },
+    {
+      "sourcePath": "agents/hr-ops-pre-hire-tracker/identity/outline.svg",
+      "path": "agents/hr-ops-pre-hire-tracker/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 694,
+      "sha256": "e59225d2aecdfb61dbb2d333ad32665d4f07bb91de875a23938696e76ce2f477"
+    },
+    {
+      "sourcePath": "agents/hr-ops-self-service/identity/card.png",
+      "path": "agents/hr-ops-self-service/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 81410,
+      "sha256": "c33992c656da427ac0c9640e3f55accaae5e5d408255394a96ba4489ae5b6d1d"
+    },
+    {
+      "sourcePath": "agents/hr-ops-self-service/identity/color-192-dev.png",
+      "path": "agents/hr-ops-self-service/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 3674,
+      "sha256": "a73a09176d45f6ee838fa8dcbb2ddf1473d9f638ff9137e0f2502bcb8afd86bf"
+    },
+    {
+      "sourcePath": "agents/hr-ops-self-service/identity/color-192-test.png",
+      "path": "agents/hr-ops-self-service/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 3627,
+      "sha256": "983ff4a33fecc5451a3456c6548bb5136364186a20303f937433bb598317b0d9"
+    },
+    {
+      "sourcePath": "agents/hr-ops-self-service/identity/color-192.png",
+      "path": "agents/hr-ops-self-service/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2907,
+      "sha256": "620bb4592040cec02ea657c4d851b8b44da847fe17faa8d391ae224068b6bf9d"
+    },
+    {
+      "sourcePath": "agents/hr-ops-self-service/identity/color-32-dev.png",
+      "path": "agents/hr-ops-self-service/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 654,
+      "sha256": "fb24a1b3ff4deeda02969794fda78246394ee4cd0514d763bb01907798411563"
+    },
+    {
+      "sourcePath": "agents/hr-ops-self-service/identity/color-32-test.png",
+      "path": "agents/hr-ops-self-service/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 676,
+      "sha256": "f20e74a9cadec7ecf39500a4f37a480c0909a11f8c790573a6ef6bbd0c72037e"
+    },
+    {
+      "sourcePath": "agents/hr-ops-self-service/identity/color-32.png",
+      "path": "agents/hr-ops-self-service/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 556,
+      "sha256": "030a3257fa962df263ae779b39dd9534b5adbb893c38fe08fdd82d1332eb3199"
+    },
+    {
+      "sourcePath": "agents/hr-ops-self-service/identity/icon-dev.svg",
+      "path": "agents/hr-ops-self-service/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 969,
+      "sha256": "b8f2bc6d484af5c10ee7b461bb264a0d12cbbb70e94ce84000274bbced592a5f"
+    },
+    {
+      "sourcePath": "agents/hr-ops-self-service/identity/icon-test.svg",
+      "path": "agents/hr-ops-self-service/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 970,
+      "sha256": "52799565c8f1e67c9ee7fbf54ea338e1252e0382f7bc3eda4708eedb64c9746f"
+    },
+    {
+      "sourcePath": "agents/hr-ops-self-service/identity/icon.svg",
+      "path": "agents/hr-ops-self-service/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 657,
+      "sha256": "04c92324292d5fa3bd238f85ac0235004065f7f6ee0aed18a55978c7568b2dcc"
+    },
+    {
+      "sourcePath": "agents/hr-ops-self-service/identity/identity.json",
+      "path": "agents/hr-ops-self-service/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 5421,
+      "sha256": "74849d8e60125f7f3956e2b2a1fde77a124d9ba2aa309a4ec38fce0dd0d794c6"
+    },
+    {
+      "sourcePath": "agents/hr-ops-self-service/identity/outline-32.png",
+      "path": "agents/hr-ops-self-service/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 750,
+      "sha256": "14e1827da1a932c60cca976197cf179cbe6bcdfa46f9272d71d8deffb3f04b6a"
+    },
+    {
+      "sourcePath": "agents/hr-ops-self-service/identity/outline.svg",
+      "path": "agents/hr-ops-self-service/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 674,
+      "sha256": "76670737bc3599d9a5ed556b0470018d3f926795f6dff6b8dc85ab71b6d39af3"
+    },
+    {
+      "sourcePath": "agents/hr-ops-service-lead/identity/card.png",
+      "path": "agents/hr-ops-service-lead/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 81959,
+      "sha256": "0800865d84b39bca04b45d6e8d708d944db7fbcf8e92cae80a3c020985bdfcdf"
+    },
+    {
+      "sourcePath": "agents/hr-ops-service-lead/identity/color-192-dev.png",
+      "path": "agents/hr-ops-service-lead/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 3235,
+      "sha256": "0d0e0b87a05098fd986df890cc2e7ffbd97fa289fcdd5c44d6e54a2a2dddef82"
+    },
+    {
+      "sourcePath": "agents/hr-ops-service-lead/identity/color-192-test.png",
+      "path": "agents/hr-ops-service-lead/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 3171,
+      "sha256": "ddb9a0d4b9bf0e61b79de24dc8c35dd743a9474b16209f723a9fae9654c06878"
+    },
+    {
+      "sourcePath": "agents/hr-ops-service-lead/identity/color-192.png",
+      "path": "agents/hr-ops-service-lead/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2445,
+      "sha256": "e1074286af4065b495b341a20f68e9256b51d400646f2e626ccc1164e81f6c2b"
+    },
+    {
+      "sourcePath": "agents/hr-ops-service-lead/identity/color-32-dev.png",
+      "path": "agents/hr-ops-service-lead/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 596,
+      "sha256": "7abaabca3514c49b8dbfc1e9f221029714104dbd84b302855d161b46823f21ab"
+    },
+    {
+      "sourcePath": "agents/hr-ops-service-lead/identity/color-32-test.png",
+      "path": "agents/hr-ops-service-lead/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 622,
+      "sha256": "5394fa8498a3c686ded096e1eed53b1c5833f1ef5013c3dc9036dc52d3261958"
+    },
+    {
+      "sourcePath": "agents/hr-ops-service-lead/identity/color-32.png",
+      "path": "agents/hr-ops-service-lead/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 503,
+      "sha256": "82914f6a89b52ddbb191e89a918401402f2f238b167f6c55a52d6e8e0aea6544"
+    },
+    {
+      "sourcePath": "agents/hr-ops-service-lead/identity/icon-dev.svg",
+      "path": "agents/hr-ops-service-lead/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 780,
+      "sha256": "ff0d01c084671a5a6fcf52025aa16a327dc1a0aca93918da8553caea44b2e9a3"
+    },
+    {
+      "sourcePath": "agents/hr-ops-service-lead/identity/icon-test.svg",
+      "path": "agents/hr-ops-service-lead/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 781,
+      "sha256": "6e265104650949c0650b646e393347d1414d8f301876e4d2119a603303de11cb"
+    },
+    {
+      "sourcePath": "agents/hr-ops-service-lead/identity/icon.svg",
+      "path": "agents/hr-ops-service-lead/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 468,
+      "sha256": "1ea8f0acecaf628b5e74388d5b5b993afcd659d858b71d7425c4a5f10ab4d27c"
+    },
+    {
+      "sourcePath": "agents/hr-ops-service-lead/identity/identity.json",
+      "path": "agents/hr-ops-service-lead/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4499,
+      "sha256": "75613a6ba30ee3432122b201e9fc33a375bb8fc5ca0991a657a73ac72cb669ed"
+    },
+    {
+      "sourcePath": "agents/hr-ops-service-lead/identity/outline-32.png",
+      "path": "agents/hr-ops-service-lead/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 652,
+      "sha256": "e0482b686de2dc6e42b25663d3a5463d7e81b4aecf32d4012a5d55234db6b519"
+    },
+    {
+      "sourcePath": "agents/hr-ops-service-lead/identity/outline.svg",
+      "path": "agents/hr-ops-service-lead/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 503,
+      "sha256": "129f0d61644cdc94416362cf1012d39327eeffd026dd27b3f42555a8f0dc46e7"
+    },
+    {
+      "sourcePath": "agents/hr-policy-assistant/identity/card.png",
+      "path": "agents/hr-policy-assistant/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 80916,
+      "sha256": "91c5c9e2674d60b0f3a970ae7a682f06eb1d34a2a77d90853b4c19cb73acc2ed"
+    },
+    {
+      "sourcePath": "agents/hr-policy-assistant/identity/color-192-dev.png",
+      "path": "agents/hr-policy-assistant/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 2686,
+      "sha256": "39b226cce069cd6a036d84f995c523ec43e800f3b599b7322c160cd465a556d1"
+    },
+    {
+      "sourcePath": "agents/hr-policy-assistant/identity/color-192-test.png",
+      "path": "agents/hr-policy-assistant/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 2628,
+      "sha256": "cb04280f5ed9cc83c8a9a59d9b045dd6180eb3c4f7bc8ad116b180a4ede25477"
+    },
+    {
+      "sourcePath": "agents/hr-policy-assistant/identity/color-192.png",
+      "path": "agents/hr-policy-assistant/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 1878,
+      "sha256": "f16510e90a88b46793bd254886020ccae1c873b7664e339b7bdbc29efbfbf4ef"
+    },
+    {
+      "sourcePath": "agents/hr-policy-assistant/identity/color-32-dev.png",
+      "path": "agents/hr-policy-assistant/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 507,
+      "sha256": "d1a2e54da0a0db8010c49634f0f4f47bc3174ffd78d8b73f20b1b0e766885ec5"
+    },
+    {
+      "sourcePath": "agents/hr-policy-assistant/identity/color-32-test.png",
+      "path": "agents/hr-policy-assistant/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 529,
+      "sha256": "8b334e47840547b1764e2e4bf04895cec1d079fe2a8482280e1906d903123662"
+    },
+    {
+      "sourcePath": "agents/hr-policy-assistant/identity/color-32.png",
+      "path": "agents/hr-policy-assistant/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 416,
+      "sha256": "b07f78cce292b01a54e0cf8ddd961a066a0e63b709618873537a78747e4fc5ba"
+    },
+    {
+      "sourcePath": "agents/hr-policy-assistant/identity/icon-dev.svg",
+      "path": "agents/hr-policy-assistant/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 1204,
+      "sha256": "182a669045babe0565e5238627554cc4ea57b080f5be6f6d0e7d6619891a0632"
+    },
+    {
+      "sourcePath": "agents/hr-policy-assistant/identity/icon-test.svg",
+      "path": "agents/hr-policy-assistant/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 1205,
+      "sha256": "fb14bcb07808f3d8508eef83dc8c976210340c4fbed935fca7584d07ceca1899"
+    },
+    {
+      "sourcePath": "agents/hr-policy-assistant/identity/icon.svg",
+      "path": "agents/hr-policy-assistant/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 892,
+      "sha256": "4d01162687c10dc28bf2c7017ace9b694e7b5fc13b7e454f4e4f806e76084a34"
+    },
+    {
+      "sourcePath": "agents/hr-policy-assistant/identity/identity.json",
+      "path": "agents/hr-policy-assistant/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 5258,
+      "sha256": "b228f9aef7e1791dffc6079f3ef09e8cc80f996a18ce277e1e73353c502c67ac"
+    },
+    {
+      "sourcePath": "agents/hr-policy-assistant/identity/outline-32.png",
+      "path": "agents/hr-policy-assistant/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 516,
+      "sha256": "d2243c6772d9ac290e8ed41d5ec400d5db8fae05444a23cb12438c02bc810d2e"
+    },
+    {
+      "sourcePath": "agents/hr-policy-assistant/identity/outline.svg",
+      "path": "agents/hr-policy-assistant/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 846,
+      "sha256": "ac7d58a061f7401aa5737d82ebebfe5d4828174f6ee7ba679b7b7623681a9a22"
+    },
+    {
+      "sourcePath": "agents/hr-policy-communications/identity/card.png",
+      "path": "agents/hr-policy-communications/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 84136,
+      "sha256": "341b15196edf39cd376acd7086ff46890f9aff7032dee509256515558287fd85"
+    },
+    {
+      "sourcePath": "agents/hr-policy-communications/identity/color-192-dev.png",
+      "path": "agents/hr-policy-communications/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 3869,
+      "sha256": "7a9dc7f0cbc374df44e04798745459fea2a5323120ae7f9fba24093189acba14"
+    },
+    {
+      "sourcePath": "agents/hr-policy-communications/identity/color-192-test.png",
+      "path": "agents/hr-policy-communications/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 3806,
+      "sha256": "d1ca73414c48f55fc2eee997228c6008074c12238d996a7168dd06d7a495d3f4"
+    },
+    {
+      "sourcePath": "agents/hr-policy-communications/identity/color-192.png",
+      "path": "agents/hr-policy-communications/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 3079,
+      "sha256": "e94436677a302697335268d7368c267b4bc3b7577fd68ebb9bf5888138a00043"
+    },
+    {
+      "sourcePath": "agents/hr-policy-communications/identity/color-32-dev.png",
+      "path": "agents/hr-policy-communications/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 684,
+      "sha256": "826ae6246e08ab2329cb4313b9c96bea1219204c35eac8d1160fb0f607b705cd"
+    },
+    {
+      "sourcePath": "agents/hr-policy-communications/identity/color-32-test.png",
+      "path": "agents/hr-policy-communications/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 705,
+      "sha256": "d746a3926d909169dd0b0ee7fc8662ba21e5c648653ad8852edf1b6e48bc5ae8"
+    },
+    {
+      "sourcePath": "agents/hr-policy-communications/identity/color-32.png",
+      "path": "agents/hr-policy-communications/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 582,
+      "sha256": "2c2c8ab3c58882da5b8a6f1b8fd34bd7d6d360ea85c9bb1de2781ddb63cd3fb4"
+    },
+    {
+      "sourcePath": "agents/hr-policy-communications/identity/icon-dev.svg",
+      "path": "agents/hr-policy-communications/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 952,
+      "sha256": "398e768661b637fcd77648c00339a40b19f8f4fe77d96a1c131092b7faef9a97"
+    },
+    {
+      "sourcePath": "agents/hr-policy-communications/identity/icon-test.svg",
+      "path": "agents/hr-policy-communications/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 953,
+      "sha256": "584806d9e75e0aeb409550adb7b41442be4a91c85c4ebc34ba9e7707eef5d2a4"
+    },
+    {
+      "sourcePath": "agents/hr-policy-communications/identity/icon.svg",
+      "path": "agents/hr-policy-communications/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 640,
+      "sha256": "6f10aea6f4f04c03facb6edcdd7d03f003bc39a2e24746fdd7a6d9f5d78179be"
+    },
+    {
+      "sourcePath": "agents/hr-policy-communications/identity/identity.json",
+      "path": "agents/hr-policy-communications/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 5246,
+      "sha256": "ff386e950fe7e7e70cd99d0c60d260b7a8ff680973d325381270bcb93a2fdddd"
+    },
+    {
+      "sourcePath": "agents/hr-policy-communications/identity/outline-32.png",
+      "path": "agents/hr-policy-communications/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 696,
+      "sha256": "a00d7468de91d4483fa19c61a01b7b32ce7f183d4d19a2c8000f365c0a8083f2"
+    },
+    {
+      "sourcePath": "agents/hr-policy-communications/identity/outline.svg",
+      "path": "agents/hr-policy-communications/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 696,
+      "sha256": "459a2472bd91b1d852e594d90464f0057e28710906b78ad5dd41c3ca8f0ca64d"
+    },
+    {
+      "sourcePath": "agents/hr-policy-health-check/identity/card.png",
+      "path": "agents/hr-policy-health-check/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 83753,
+      "sha256": "3b81a03be87c805bc33616390089f0812db882b6af9aa0a3a06694c6f752e40f"
+    },
+    {
+      "sourcePath": "agents/hr-policy-health-check/identity/color-192-dev.png",
+      "path": "agents/hr-policy-health-check/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 3469,
+      "sha256": "b038af2b82a2225f7f9ad726b9264578edf4b77b6e21d3e9565aee4d6871a14b"
+    },
+    {
+      "sourcePath": "agents/hr-policy-health-check/identity/color-192-test.png",
+      "path": "agents/hr-policy-health-check/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 3422,
+      "sha256": "12362aa8356556d003a45e09b2f9ab6f423f711daf60c5c74bb3ffdf003e505a"
+    },
+    {
+      "sourcePath": "agents/hr-policy-health-check/identity/color-192.png",
+      "path": "agents/hr-policy-health-check/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2702,
+      "sha256": "4459d91ac17b648a4d397595a6c7cf9f30c133a0f24f804c90668617b8bfb4d2"
+    },
+    {
+      "sourcePath": "agents/hr-policy-health-check/identity/color-32-dev.png",
+      "path": "agents/hr-policy-health-check/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 644,
+      "sha256": "7705d141211493eb913ce66062552e987356c671a1138cd46e2893618fff900c"
+    },
+    {
+      "sourcePath": "agents/hr-policy-health-check/identity/color-32-test.png",
+      "path": "agents/hr-policy-health-check/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 666,
+      "sha256": "6d37ed14b52b9730038e5fc8453b350b1865d587fc87f4987b3827f82bc23369"
+    },
+    {
+      "sourcePath": "agents/hr-policy-health-check/identity/color-32.png",
+      "path": "agents/hr-policy-health-check/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 544,
+      "sha256": "f157b234c183f8def245bbde4f361ca180e08cc008dc9b7c43b49f899a00f9fe"
+    },
+    {
+      "sourcePath": "agents/hr-policy-health-check/identity/icon-dev.svg",
+      "path": "agents/hr-policy-health-check/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 826,
+      "sha256": "0b07876941cc01febd0e79bd88d23a9e14bc96b68064957b7808e613b93e1272"
+    },
+    {
+      "sourcePath": "agents/hr-policy-health-check/identity/icon-test.svg",
+      "path": "agents/hr-policy-health-check/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 827,
+      "sha256": "907356117fe0a69a87231c371fb3d6d1517e10ac8ac2a0ce48adf44713a4d428"
+    },
+    {
+      "sourcePath": "agents/hr-policy-health-check/identity/icon.svg",
+      "path": "agents/hr-policy-health-check/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 514,
+      "sha256": "234f8f56019974b1356a28796d9d9a91a2d3d73a465e6f9fded39966d4a24857"
+    },
+    {
+      "sourcePath": "agents/hr-policy-health-check/identity/identity.json",
+      "path": "agents/hr-policy-health-check/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 5218,
+      "sha256": "86a05e5ac252424997ed05679a04a043e12ae2482e5297344f4296d9ab436fd3"
+    },
+    {
+      "sourcePath": "agents/hr-policy-health-check/identity/outline-32.png",
+      "path": "agents/hr-policy-health-check/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 682,
+      "sha256": "bd13cf0ab15b235c301cdb5ebda06ae0d8b4e7e0d8f6a1208a0e58f078b128a5"
+    },
+    {
+      "sourcePath": "agents/hr-policy-health-check/identity/outline.svg",
+      "path": "agents/hr-policy-health-check/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 548,
+      "sha256": "d0d8357735477af6bb91c5784e63c309e99b122bbdda85ce99155a04d211432a"
+    },
+    {
+      "sourcePath": "agents/hr-policy-learning/identity/card.png",
+      "path": "agents/hr-policy-learning/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 77219,
+      "sha256": "85540c3295c29f9ac4f9b8b43169b52af41fc8de9041189d95bf42c87d6c10cf"
+    },
+    {
+      "sourcePath": "agents/hr-policy-learning/identity/color-192-dev.png",
+      "path": "agents/hr-policy-learning/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 3525,
+      "sha256": "77f8fb4880f8bb7d6f816d54732e3b7de5771ab1603212e54d3956fb7106e689"
+    },
+    {
+      "sourcePath": "agents/hr-policy-learning/identity/color-192-test.png",
+      "path": "agents/hr-policy-learning/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 3484,
+      "sha256": "705fbfa477c2a7faff5c231156de5ddc2e0a09281a838cee002aef5a3e4eb13b"
+    },
+    {
+      "sourcePath": "agents/hr-policy-learning/identity/color-192.png",
+      "path": "agents/hr-policy-learning/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2752,
+      "sha256": "818ce3f5676c3880dd38e54bec10637ee4c05cf9a0ec9a1dd159ee9ba4afe7f7"
+    },
+    {
+      "sourcePath": "agents/hr-policy-learning/identity/color-32-dev.png",
+      "path": "agents/hr-policy-learning/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 593,
+      "sha256": "3de229e1e482fd09653f3499b2f97fd99cea6f60179d74be758896ac11e8d0bd"
+    },
+    {
+      "sourcePath": "agents/hr-policy-learning/identity/color-32-test.png",
+      "path": "agents/hr-policy-learning/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 618,
+      "sha256": "609349bf7deb97951957d79000902b039c452d0a842c34894f3f6c46811d972f"
+    },
+    {
+      "sourcePath": "agents/hr-policy-learning/identity/color-32.png",
+      "path": "agents/hr-policy-learning/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 497,
+      "sha256": "5df0515268dc9d06ae9a21bbb1ad0b3636e9a23462404eef40e67e382c478c87"
+    },
+    {
+      "sourcePath": "agents/hr-policy-learning/identity/icon-dev.svg",
+      "path": "agents/hr-policy-learning/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 1066,
+      "sha256": "480258039c74b32c2dbae658df31e22047aca262e66fc4d39ba17ad085996041"
+    },
+    {
+      "sourcePath": "agents/hr-policy-learning/identity/icon-test.svg",
+      "path": "agents/hr-policy-learning/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 1067,
+      "sha256": "45f7bab65a8cb3c777f9c638e5c47a0872ce6aed8d15433faec64823dd1c4447"
+    },
+    {
+      "sourcePath": "agents/hr-policy-learning/identity/icon.svg",
+      "path": "agents/hr-policy-learning/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 754,
+      "sha256": "0a5362967ff065fcf132bceaca7483e918e18a7a2a88f50059f17744098e4d94"
+    },
+    {
+      "sourcePath": "agents/hr-policy-learning/identity/identity.json",
+      "path": "agents/hr-policy-learning/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 5059,
+      "sha256": "19938ece2bb520e1f2893234f03555abfac6d3b794a3ac47f22e6ba8e7ac4b4f"
+    },
+    {
+      "sourcePath": "agents/hr-policy-learning/identity/outline-32.png",
+      "path": "agents/hr-policy-learning/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 734,
+      "sha256": "edffa8c16a2495d212846d8d2e44fb791e735b86964ad999f1ad93746b4d6db0"
+    },
+    {
+      "sourcePath": "agents/hr-policy-learning/identity/outline.svg",
+      "path": "agents/hr-policy-learning/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 810,
+      "sha256": "dac7d559d68772af9feb8ae4798ffa396fc58b245f8874900d39769aa1028365"
+    },
+    {
+      "sourcePath": "agents/people-analytics-lead/identity/card.png",
+      "path": "agents/people-analytics-lead/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 82341,
+      "sha256": "19a4b24c94c50344d4d8bc2316643ab213db2cab092f29bc3d25045abe21b9f6"
+    },
+    {
+      "sourcePath": "agents/people-analytics-lead/identity/color-192-dev.png",
+      "path": "agents/people-analytics-lead/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 2848,
+      "sha256": "75fde614bb4f75fe75bee9f73fe8678c694be53b12247eb08c7caab750410a2c"
+    },
+    {
+      "sourcePath": "agents/people-analytics-lead/identity/color-192-test.png",
+      "path": "agents/people-analytics-lead/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 2779,
+      "sha256": "35ecdbc762deb2b94882848229fb8fd039161e2e23887b57a0583f05a6236e54"
+    },
+    {
+      "sourcePath": "agents/people-analytics-lead/identity/color-192.png",
+      "path": "agents/people-analytics-lead/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2046,
+      "sha256": "99168a4f2f496234f0d5172ed9b5ad39c887fef4671818bfb188fcb3993ea4c8"
+    },
+    {
+      "sourcePath": "agents/people-analytics-lead/identity/color-32-dev.png",
+      "path": "agents/people-analytics-lead/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 512,
+      "sha256": "1187baf142d585fb03e7eea51d53df8d6a38a770eeb6fb7b8cef629c8c0de6fd"
+    },
+    {
+      "sourcePath": "agents/people-analytics-lead/identity/color-32-test.png",
+      "path": "agents/people-analytics-lead/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 527,
+      "sha256": "82dba7dd4342c6d15f050a73ec84d1e06877043783ad841e1599bd37972e6b3e"
+    },
+    {
+      "sourcePath": "agents/people-analytics-lead/identity/color-32.png",
+      "path": "agents/people-analytics-lead/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 412,
+      "sha256": "b8d7a2614b644956c36a74811b832753c9acaa59c8221e1df5a472d06e674822"
+    },
+    {
+      "sourcePath": "agents/people-analytics-lead/identity/icon-dev.svg",
+      "path": "agents/people-analytics-lead/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 815,
+      "sha256": "fe819e1aa2ae7ee249c51b480ec92af6a61a0dff36ea47df72cdd7be5bc87c86"
+    },
+    {
+      "sourcePath": "agents/people-analytics-lead/identity/icon-test.svg",
+      "path": "agents/people-analytics-lead/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 816,
+      "sha256": "404ef6ed321c4a4564617dbd8adcaf96cb160fea4cf8689caea11ecd5487ed34"
+    },
+    {
+      "sourcePath": "agents/people-analytics-lead/identity/icon.svg",
+      "path": "agents/people-analytics-lead/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 503,
+      "sha256": "f13551029750920728ad4325ecca052d8cea10e2386a1d63768725adc98660c5"
+    },
+    {
+      "sourcePath": "agents/people-analytics-lead/identity/identity.json",
+      "path": "agents/people-analytics-lead/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4747,
+      "sha256": "e66deae4738ebc36b2d300e682e8a6433a1f0cca319f832781c3090405c8ec9d"
+    },
+    {
+      "sourcePath": "agents/people-analytics-lead/identity/outline-32.png",
+      "path": "agents/people-analytics-lead/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 515,
+      "sha256": "48c8b5165fa1b3d30ee755b15a95fa4288a731695e2c83e35a17f6d1f904fd81"
+    },
+    {
+      "sourcePath": "agents/people-analytics-lead/identity/outline.svg",
+      "path": "agents/people-analytics-lead/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 437,
+      "sha256": "046f1e7224b40c5754a1b0d7b56400fc6bbc477913aa0be1d061bf4d3436d2a9"
+    },
+    {
+      "sourcePath": "agents/people-analytics-reports/identity/card.png",
+      "path": "agents/people-analytics-reports/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 86256,
+      "sha256": "499133252e17ff9e70b7ad9b4f89502ff2f3eec5bc614c6ddc4db0dd712bf4b2"
+    },
+    {
+      "sourcePath": "agents/people-analytics-reports/identity/color-192-dev.png",
+      "path": "agents/people-analytics-reports/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 3141,
+      "sha256": "08b1ea98621b74f547acab33de05190895558d3b203686124d234ad455ddea1a"
+    },
+    {
+      "sourcePath": "agents/people-analytics-reports/identity/color-192-test.png",
+      "path": "agents/people-analytics-reports/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 3076,
+      "sha256": "c81ddfa91e7bbe23bd926af7efe4c80a24f871dfb2e60d76f15dc5baf8b236a0"
+    },
+    {
+      "sourcePath": "agents/people-analytics-reports/identity/color-192.png",
+      "path": "agents/people-analytics-reports/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2334,
+      "sha256": "860390db17d1db1845bc92e72f410f8f4aa0ed0912f91389ecd7a0f9bc388e88"
+    },
+    {
+      "sourcePath": "agents/people-analytics-reports/identity/color-32-dev.png",
+      "path": "agents/people-analytics-reports/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 582,
+      "sha256": "9acc2b176ebc4a40b306ee3e36a83f2218de0ae85c1319bf65676a88554a9395"
+    },
+    {
+      "sourcePath": "agents/people-analytics-reports/identity/color-32-test.png",
+      "path": "agents/people-analytics-reports/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 607,
+      "sha256": "502805433fdc2dcc55bac46889a1caf283543e48974a83a848c347c500d73d49"
+    },
+    {
+      "sourcePath": "agents/people-analytics-reports/identity/color-32.png",
+      "path": "agents/people-analytics-reports/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 487,
+      "sha256": "af36652271e6e38a34cb35828f1993262b52117370024d653559759658febf14"
+    },
+    {
+      "sourcePath": "agents/people-analytics-reports/identity/icon-dev.svg",
+      "path": "agents/people-analytics-reports/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 779,
+      "sha256": "34a8cb50b82d5fc0665c19bb2113d4ebcca48f437e97eaa115b9ef4296a569e5"
+    },
+    {
+      "sourcePath": "agents/people-analytics-reports/identity/icon-test.svg",
+      "path": "agents/people-analytics-reports/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 780,
+      "sha256": "06cd5aab276554f922d395c91892f3d0de77d2f11f8f7ed310e9a40429d4c611"
+    },
+    {
+      "sourcePath": "agents/people-analytics-reports/identity/icon.svg",
+      "path": "agents/people-analytics-reports/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 467,
+      "sha256": "770ecdec5fca213ba0e74af462c8f8a32ec06668d78f7b4faa69c989d2768dc4"
+    },
+    {
+      "sourcePath": "agents/people-analytics-reports/identity/identity.json",
+      "path": "agents/people-analytics-reports/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 5629,
+      "sha256": "d144ed914fdefd202d2a9a5509ca3f4e5f01308424dd62ea69525eb798e0ea19"
+    },
+    {
+      "sourcePath": "agents/people-analytics-reports/identity/outline-32.png",
+      "path": "agents/people-analytics-reports/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 752,
+      "sha256": "b618476bc2fe86727b9a08f34b6bbfea92fce7dc7bf1eda2b622977e7107dee4"
+    },
+    {
+      "sourcePath": "agents/people-analytics-reports/identity/outline.svg",
+      "path": "agents/people-analytics-reports/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 501,
+      "sha256": "2add2e9fbc4d7e519b42e49e40af43e18fcbeab2828e2852f71a6697d03172f9"
+    },
+    {
+      "sourcePath": "agents/people-analytics-trends/identity/card.png",
+      "path": "agents/people-analytics-trends/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 80369,
+      "sha256": "96d7924e01373c72a3a8202e46bf79ffe74e8f87f2955aae7c46f036fdab5b2e"
+    },
+    {
+      "sourcePath": "agents/people-analytics-trends/identity/color-192-dev.png",
+      "path": "agents/people-analytics-trends/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 2150,
+      "sha256": "0136cbecfa6fcf2c6147d8cb51bea1c2aaee9ec54a39644850c9628ed0a5a42e"
+    },
+    {
+      "sourcePath": "agents/people-analytics-trends/identity/color-192-test.png",
+      "path": "agents/people-analytics-trends/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 2064,
+      "sha256": "11b1bc6d37e92456f71de615918ac1b6e5f6a930cdc108a27405e9ce5b5d5f4c"
+    },
+    {
+      "sourcePath": "agents/people-analytics-trends/identity/color-192.png",
+      "path": "agents/people-analytics-trends/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 1296,
+      "sha256": "6694d8f2fbc9c222b51e5339e3d174700e035de2c80a84e06a8422d29bf40db0"
+    },
+    {
+      "sourcePath": "agents/people-analytics-trends/identity/color-32-dev.png",
+      "path": "agents/people-analytics-trends/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 459,
+      "sha256": "e4553cb69d2e003a91bb9a721348972ca5913c9fff965f180e0e8500b813d569"
+    },
+    {
+      "sourcePath": "agents/people-analytics-trends/identity/color-32-test.png",
+      "path": "agents/people-analytics-trends/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 475,
+      "sha256": "f8e69890fe5b7842d0452af5f2ccbee6303bfe82c61bbaa88c2869464a60c6a5"
+    },
+    {
+      "sourcePath": "agents/people-analytics-trends/identity/color-32.png",
+      "path": "agents/people-analytics-trends/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 358,
+      "sha256": "7bb2494811d9348aa92960b1aaa7747166ad1515be895ab22189aeffbb83f31d"
+    },
+    {
+      "sourcePath": "agents/people-analytics-trends/identity/icon-dev.svg",
+      "path": "agents/people-analytics-trends/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 796,
+      "sha256": "10d5b915793098c747b846cd3bc238e06c41eeb0ef162fc8e69ab44312cb458c"
+    },
+    {
+      "sourcePath": "agents/people-analytics-trends/identity/icon-test.svg",
+      "path": "agents/people-analytics-trends/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 797,
+      "sha256": "69be25be7084f6f87b801911c28c3f0e581660a6d00cfd98e70f2e4665d7268b"
+    },
+    {
+      "sourcePath": "agents/people-analytics-trends/identity/icon.svg",
+      "path": "agents/people-analytics-trends/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 484,
+      "sha256": "97c24c4b9e8c70220d8a119eb0e36cd348ae13f80195786111f4c8a5ece33a67"
+    },
+    {
+      "sourcePath": "agents/people-analytics-trends/identity/identity.json",
+      "path": "agents/people-analytics-trends/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4677,
+      "sha256": "e2723f05a46cf5fa98b63a422b2851f2b4b7c56294aaf2509f063f4609314847"
+    },
+    {
+      "sourcePath": "agents/people-analytics-trends/identity/outline-32.png",
+      "path": "agents/people-analytics-trends/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 532,
+      "sha256": "a0cb5d414c66f0bce9d4dfa3042a664b393f7d9b3c3f71848beacf05c038275f"
+    },
+    {
+      "sourcePath": "agents/people-analytics-trends/identity/outline.svg",
+      "path": "agents/people-analytics-trends/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 627,
+      "sha256": "93671ec91e2a5ce3c8fa66c18ea3c346b7a58defb451ccee1ff7844bbc92b03a"
+    },
+    {
+      "sourcePath": "agents/people-analytics-turnover/identity/card.png",
+      "path": "agents/people-analytics-turnover/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 84207,
+      "sha256": "eb9bd606271d4ae0317770b161c6d488aefec5a12635ef376f9c4a338626464f"
+    },
+    {
+      "sourcePath": "agents/people-analytics-turnover/identity/color-192-dev.png",
+      "path": "agents/people-analytics-turnover/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 2799,
+      "sha256": "ef6b4f2c620d772648c4d7157ba4963b26db4261846707e5af9f20f20b7b7765"
+    },
+    {
+      "sourcePath": "agents/people-analytics-turnover/identity/color-192-test.png",
+      "path": "agents/people-analytics-turnover/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 2733,
+      "sha256": "5a1e87b9717bbfbba3aa56a5fb752e905ee9848b4a5e37d2f7e39115e0583cd6"
+    },
+    {
+      "sourcePath": "agents/people-analytics-turnover/identity/color-192.png",
+      "path": "agents/people-analytics-turnover/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 1991,
+      "sha256": "8d05fbcb201df637cb85f913ebf56faa1403dcac123be61fe631ded883559d18"
+    },
+    {
+      "sourcePath": "agents/people-analytics-turnover/identity/color-32-dev.png",
+      "path": "agents/people-analytics-turnover/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 508,
+      "sha256": "bcb4a823c7df81c38f08833be9ff773e7f3fa5f805acfdc25db371f584c26a62"
+    },
+    {
+      "sourcePath": "agents/people-analytics-turnover/identity/color-32-test.png",
+      "path": "agents/people-analytics-turnover/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 523,
+      "sha256": "812a5563bfaa0cfe7a4e2e6abac7f6c01b280a8852632c9dbcbeac0f5594049a"
+    },
+    {
+      "sourcePath": "agents/people-analytics-turnover/identity/color-32.png",
+      "path": "agents/people-analytics-turnover/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 404,
+      "sha256": "0db4789b13e919f10704e0854d552ff89a73d86ecdeeed1c4f019f23a3640b2d"
+    },
+    {
+      "sourcePath": "agents/people-analytics-turnover/identity/icon-dev.svg",
+      "path": "agents/people-analytics-turnover/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 828,
+      "sha256": "0735d8342e06ee19432341cb19761a7c7156e95485b45faf7f5356021908dcea"
+    },
+    {
+      "sourcePath": "agents/people-analytics-turnover/identity/icon-test.svg",
+      "path": "agents/people-analytics-turnover/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 829,
+      "sha256": "399a5a86ab15f8823348d70a71fae7b20872a2c960ed194c87e9a78d1f2abb89"
+    },
+    {
+      "sourcePath": "agents/people-analytics-turnover/identity/icon.svg",
+      "path": "agents/people-analytics-turnover/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 516,
+      "sha256": "86239c0536224f66da2ee9169014a2694db1d3f858c19351c51d4ab3a9ad385d"
+    },
+    {
+      "sourcePath": "agents/people-analytics-turnover/identity/identity.json",
+      "path": "agents/people-analytics-turnover/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4576,
+      "sha256": "69c6c784236dfeb5a6f1c32c31071c3cd70311685482ce2100e40c387c042f64"
+    },
+    {
+      "sourcePath": "agents/people-analytics-turnover/identity/outline-32.png",
+      "path": "agents/people-analytics-turnover/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 484,
+      "sha256": "1b482b93476b4f81059c789c71eb2130bf662387bc229d7c23db72eb368df240"
+    },
+    {
+      "sourcePath": "agents/people-analytics-turnover/identity/outline.svg",
+      "path": "agents/people-analytics-turnover/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 513,
+      "sha256": "1c5dc5809d71b2a28e137b6b5dbe3ed81cea1b419787a8063cfdda6a6f10e3e3"
+    },
+    {
+      "sourcePath": "agents/recruiting-coordination/identity/card.png",
+      "path": "agents/recruiting-coordination/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 78565,
+      "sha256": "8e6ec343fc715f06ab5292b7c836feec3c6b05d044b76c371ddd72744cbd6c82"
+    },
+    {
+      "sourcePath": "agents/recruiting-coordination/identity/color-192-dev.png",
+      "path": "agents/recruiting-coordination/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 3126,
+      "sha256": "e7bbd0a0ca5eb5835e7d6e7a88a07970750d48ffdcd4872f399a537a428bbb3f"
+    },
+    {
+      "sourcePath": "agents/recruiting-coordination/identity/color-192-test.png",
+      "path": "agents/recruiting-coordination/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 3060,
+      "sha256": "36a1a2295f04a2fbe474a0ad2609261e86f1073f62dbdb5f720ef5a64b27c527"
+    },
+    {
+      "sourcePath": "agents/recruiting-coordination/identity/color-192.png",
+      "path": "agents/recruiting-coordination/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2322,
+      "sha256": "4f46c50f8d932678c96959e8967a9687e218e73f99cb60faf7625688b6050786"
+    },
+    {
+      "sourcePath": "agents/recruiting-coordination/identity/color-32-dev.png",
+      "path": "agents/recruiting-coordination/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 541,
+      "sha256": "88de8d5ccb2c2e031e46adcf8188bbbd0bc5f08d168d27aa8fc62ff9d70cece8"
+    },
+    {
+      "sourcePath": "agents/recruiting-coordination/identity/color-32-test.png",
+      "path": "agents/recruiting-coordination/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 556,
+      "sha256": "553e504f833af3180b05ad57f44d16c80e189a0a23197432235aa8486e48ff38"
+    },
+    {
+      "sourcePath": "agents/recruiting-coordination/identity/color-32.png",
+      "path": "agents/recruiting-coordination/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 448,
+      "sha256": "12a1007d75c96eeee129a4ea0b89935128fab2dc2d903bf0aaaa5dd78d8f7f8b"
+    },
+    {
+      "sourcePath": "agents/recruiting-coordination/identity/icon-dev.svg",
+      "path": "agents/recruiting-coordination/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 890,
+      "sha256": "2d531da16d9d5854c08b6f5b63a5ba7af1122ba318345be893dee1b6a1d355b7"
+    },
+    {
+      "sourcePath": "agents/recruiting-coordination/identity/icon-test.svg",
+      "path": "agents/recruiting-coordination/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 891,
+      "sha256": "44045a381faab481a803c188511931911363f669287f38890b93bf3495f2c784"
+    },
+    {
+      "sourcePath": "agents/recruiting-coordination/identity/icon.svg",
+      "path": "agents/recruiting-coordination/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 578,
+      "sha256": "43953a951bbccadb78ac95f79794bd2421511a408244e60209434059bd722419"
+    },
+    {
+      "sourcePath": "agents/recruiting-coordination/identity/identity.json",
+      "path": "agents/recruiting-coordination/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4356,
+      "sha256": "717588397d4f8e70ea9927ae4f5d3847f267c40c47f14b9f928b12937e1759b5"
+    },
+    {
+      "sourcePath": "agents/recruiting-coordination/identity/outline-32.png",
+      "path": "agents/recruiting-coordination/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 563,
+      "sha256": "b73179c363968a274c1b7e441087c30608b896117818ffaf355c525d2473fd6b"
+    },
+    {
+      "sourcePath": "agents/recruiting-coordination/identity/outline.svg",
+      "path": "agents/recruiting-coordination/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 572,
+      "sha256": "5e7fc9fdf36d98253ad010d0787f78756fddfb23140873c5274f86583cd3345b"
+    },
+    {
+      "sourcePath": "agents/recruiting-interview-kit/identity/card.png",
+      "path": "agents/recruiting-interview-kit/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 76596,
+      "sha256": "2837a13c5e94e6a2267c8651859603f22d79d890643847a036313cfc9bd8cd21"
+    },
+    {
+      "sourcePath": "agents/recruiting-interview-kit/identity/color-192-dev.png",
+      "path": "agents/recruiting-interview-kit/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 2752,
+      "sha256": "e45b979350305a5bec668724183904e9f802da54bd26852878bf7bc2c8aa8b2d"
+    },
+    {
+      "sourcePath": "agents/recruiting-interview-kit/identity/color-192-test.png",
+      "path": "agents/recruiting-interview-kit/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 2690,
+      "sha256": "8880734e4571bb84e1ea9e1d26187ed682fa264ea2691b2e484aab7eef337e37"
+    },
+    {
+      "sourcePath": "agents/recruiting-interview-kit/identity/color-192.png",
+      "path": "agents/recruiting-interview-kit/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 1940,
+      "sha256": "2af42aeee5390f5c172369ba0cf129d9d2ba1ddd05191b702e2a4d1668518a7d"
+    },
+    {
+      "sourcePath": "agents/recruiting-interview-kit/identity/color-32-dev.png",
+      "path": "agents/recruiting-interview-kit/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 603,
+      "sha256": "fb9e8570dd1542dffa07e138b65f06ac980e43e4e0f1204ba927a65dd4eb02e0"
+    },
+    {
+      "sourcePath": "agents/recruiting-interview-kit/identity/color-32-test.png",
+      "path": "agents/recruiting-interview-kit/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 619,
+      "sha256": "9b4f8130285b16a96df4817a849baad9631df3836750740c3345e92db75bfa29"
+    },
+    {
+      "sourcePath": "agents/recruiting-interview-kit/identity/color-32.png",
+      "path": "agents/recruiting-interview-kit/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 501,
+      "sha256": "53ffbaac7a8951a4cfee32af98ff8b48c9454036c69150a6032a1c45dd68dea7"
+    },
+    {
+      "sourcePath": "agents/recruiting-interview-kit/identity/icon-dev.svg",
+      "path": "agents/recruiting-interview-kit/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 1121,
+      "sha256": "032f6302a3fb062e8b1e805da28cad73f151a4dfbee69bd38e4f8859644b0046"
+    },
+    {
+      "sourcePath": "agents/recruiting-interview-kit/identity/icon-test.svg",
+      "path": "agents/recruiting-interview-kit/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 1122,
+      "sha256": "f02132b77fd01d5f629f41929247e9ea370f50d0642d9a4a9d5aa14dd07b1ce8"
+    },
+    {
+      "sourcePath": "agents/recruiting-interview-kit/identity/icon.svg",
+      "path": "agents/recruiting-interview-kit/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 809,
+      "sha256": "40500cd46d9e4dec03fd27cd4b78704f1098494a5f5ff02d3120e3608aac86bc"
+    },
+    {
+      "sourcePath": "agents/recruiting-interview-kit/identity/identity.json",
+      "path": "agents/recruiting-interview-kit/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 5099,
+      "sha256": "ee7d9ac38cb0dfa2e0b15ebff19c401b1019c097c6e073c0befa7acf1625a7de"
+    },
+    {
+      "sourcePath": "agents/recruiting-interview-kit/identity/outline-32.png",
+      "path": "agents/recruiting-interview-kit/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 652,
+      "sha256": "635dba69c047ae76836c0d7114bcf59a6138a12bb18d61a2b354b888a98adf82"
+    },
+    {
+      "sourcePath": "agents/recruiting-interview-kit/identity/outline.svg",
+      "path": "agents/recruiting-interview-kit/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 916,
+      "sha256": "dc9a0ffc45c37118dfa5ff67cec44ed33fba85dcdee912d1a8d2f38d0ec9b37a"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-posting/identity/card.png",
+      "path": "agents/recruiting-job-posting/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 79803,
+      "sha256": "6939a3c65d9ee97775a8443f723da17298adcbf1d69bda6776de36d00f8b2fe0"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-posting/identity/color-192-dev.png",
+      "path": "agents/recruiting-job-posting/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 2882,
+      "sha256": "715689e1789ddac444c7a50f8fa93e7bbdc400f42cc40fc8340453a3d13d1e00"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-posting/identity/color-192-test.png",
+      "path": "agents/recruiting-job-posting/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 2813,
+      "sha256": "258cdcc79fba6f641a20aa350584a07d2741bd526926d0b619b8c074093741c2"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-posting/identity/color-192.png",
+      "path": "agents/recruiting-job-posting/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2073,
+      "sha256": "0480e0c1fde8caedd2de4b0b7122d57bd460e420232697ca416c1d2cdbcafb99"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-posting/identity/color-32-dev.png",
+      "path": "agents/recruiting-job-posting/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 483,
+      "sha256": "be8d46d2e4815f0dfaab9f6498d20048ac49ca75dc9314abaad69500b60a775d"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-posting/identity/color-32-test.png",
+      "path": "agents/recruiting-job-posting/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 497,
+      "sha256": "df565538bacd36b54673d074557ca20f6cafdb81a8cd434a4b22788951e3d97d"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-posting/identity/color-32.png",
+      "path": "agents/recruiting-job-posting/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 389,
+      "sha256": "230d3f6bafdf5e33bc7c4b35b55419b59136de868816b83f95af8b67d55cd387"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-posting/identity/icon-dev.svg",
+      "path": "agents/recruiting-job-posting/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 802,
+      "sha256": "f308e31d6745967bafdb3baf4a9718f819ad5e7d4edf02f3985a3f27155883f7"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-posting/identity/icon-test.svg",
+      "path": "agents/recruiting-job-posting/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 803,
+      "sha256": "2249089cf5084ef9466005653af32df3eaf04e443ff9922cf48427c45dd59885"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-posting/identity/icon.svg",
+      "path": "agents/recruiting-job-posting/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 490,
+      "sha256": "38038289f809aeb60961f526ab413e91e8402846ee07d3fe6f307dde6a92729e"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-posting/identity/identity.json",
+      "path": "agents/recruiting-job-posting/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 5147,
+      "sha256": "e21913b3282a6b799b4abcc97e91bc1493cf8bff4c67d371cdba51ebd7563428"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-posting/identity/outline-32.png",
+      "path": "agents/recruiting-job-posting/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 628,
+      "sha256": "b5097ab5aa05e5233b47746e49383fbd92b2507cf4a9b01e8f37a250cc7afe15"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-posting/identity/outline.svg",
+      "path": "agents/recruiting-job-posting/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 530,
+      "sha256": "0449df6e50f8af0f7efb8e885af3369dff602a72dd17a201fd232aad93241194"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-profiles/identity/card.png",
+      "path": "agents/recruiting-job-profiles/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 77957,
+      "sha256": "6f46056d7671af40fcc15b43d7487e0cd69efc93e59a0d1255fc9cdc9dea23e3"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-profiles/identity/color-192-dev.png",
+      "path": "agents/recruiting-job-profiles/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 3069,
+      "sha256": "90d26b5792958a9df76c3f4ef4f189a0aa7461be7cb9560ac02e62039e0b6ad5"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-profiles/identity/color-192-test.png",
+      "path": "agents/recruiting-job-profiles/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 3002,
+      "sha256": "0123fb7d5ae018015ee9f4e8f30926f4f2aa66b3c10d5dbb2787619ccdc6d6b0"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-profiles/identity/color-192.png",
+      "path": "agents/recruiting-job-profiles/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2247,
+      "sha256": "b3bb607a0797907e81c06d413c6c78947ba75c59a9643f8b5ae01f2062c9936e"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-profiles/identity/color-32-dev.png",
+      "path": "agents/recruiting-job-profiles/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 601,
+      "sha256": "d1303ae5689582e58860f8a1ce98296d5e0dea448cc8c87a1e5252aff4665403"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-profiles/identity/color-32-test.png",
+      "path": "agents/recruiting-job-profiles/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 621,
+      "sha256": "299636fd9ffee7913e09d1bb1936d3a02650a1d771852c12581b7523c82437db"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-profiles/identity/color-32.png",
+      "path": "agents/recruiting-job-profiles/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 501,
+      "sha256": "887c9edcd1e7f610e157825701bb8056e72af23a3441d237f4e4c4e21d5e7eca"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-profiles/identity/icon-dev.svg",
+      "path": "agents/recruiting-job-profiles/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 841,
+      "sha256": "d6def661086fe29c3ad121e53e13d563992b5783c3a9defe899cb2a8d0853744"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-profiles/identity/icon-test.svg",
+      "path": "agents/recruiting-job-profiles/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 842,
+      "sha256": "ab5621159bdaaffc088627e49c8027da8b30713fa8428cf14ee6e6ef9774e2ef"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-profiles/identity/icon.svg",
+      "path": "agents/recruiting-job-profiles/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 529,
+      "sha256": "2b0d91ae8ecd0e546362f1f7d93f49adcb37f24c50fe66bf9e282bb2017a9eda"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-profiles/identity/identity.json",
+      "path": "agents/recruiting-job-profiles/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 5122,
+      "sha256": "2e47bc75197e8369c03b6cacdff182ea5b4fdd49ccad8de5708234f35a89103b"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-profiles/identity/outline-32.png",
+      "path": "agents/recruiting-job-profiles/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 736,
+      "sha256": "e0dc7ce78107b28987228628f2a49090a643bc30444987a75ff4aebc75c38002"
+    },
+    {
+      "sourcePath": "agents/recruiting-job-profiles/identity/outline.svg",
+      "path": "agents/recruiting-job-profiles/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 621,
+      "sha256": "46896b44a23236ec8a0d2fa3b975294635b7bf29be441a7b32bd75d1d240fdad"
+    },
+    {
+      "sourcePath": "agents/recruiting-lead/identity/card.png",
+      "path": "agents/recruiting-lead/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 73187,
+      "sha256": "09d32b4642aad01f28a4ad070b749bace27bf78dacc493f39d1c0d6f1b7af70d"
+    },
+    {
+      "sourcePath": "agents/recruiting-lead/identity/color-192-dev.png",
+      "path": "agents/recruiting-lead/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 3808,
+      "sha256": "88e615fee60e75f2df3cee4a6dfb745a4717e0558ebea4e277fd7b3e5dde97e6"
+    },
+    {
+      "sourcePath": "agents/recruiting-lead/identity/color-192-test.png",
+      "path": "agents/recruiting-lead/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 3753,
+      "sha256": "ce9e64ad4fda07aaf0ac3a7a8b60353806d1033824821f15ef1d1b6fe5b65d25"
+    },
+    {
+      "sourcePath": "agents/recruiting-lead/identity/color-192.png",
+      "path": "agents/recruiting-lead/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 3012,
+      "sha256": "57791ed624f5f0acdaa3b0a45be58c7145740b17573e6a3e1586835a0262f0c7"
+    },
+    {
+      "sourcePath": "agents/recruiting-lead/identity/color-32-dev.png",
+      "path": "agents/recruiting-lead/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 667,
+      "sha256": "da5333fc128c925c59313e90951fe687b6d40665f7813f1356f43153b6c67892"
+    },
+    {
+      "sourcePath": "agents/recruiting-lead/identity/color-32-test.png",
+      "path": "agents/recruiting-lead/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 684,
+      "sha256": "649ddae97ef90d5115e42ac40468b0348ea2b31417bcf63448b771aa73ad26f8"
+    },
+    {
+      "sourcePath": "agents/recruiting-lead/identity/color-32.png",
+      "path": "agents/recruiting-lead/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 560,
+      "sha256": "10097122af20d0eced38153e6be5b86b45e3a976aa89a75aa6484ec19d2c00b6"
+    },
+    {
+      "sourcePath": "agents/recruiting-lead/identity/icon-dev.svg",
+      "path": "agents/recruiting-lead/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 1126,
+      "sha256": "54a131ff8ab5d04340f746d61bce885af2093fcb939160003e746fae26756acd"
+    },
+    {
+      "sourcePath": "agents/recruiting-lead/identity/icon-test.svg",
+      "path": "agents/recruiting-lead/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 1127,
+      "sha256": "01ee18d1ca4f210ff22a6ea4ba08c9af27fa53ad0509151e7c0bccafcb846937"
+    },
+    {
+      "sourcePath": "agents/recruiting-lead/identity/icon.svg",
+      "path": "agents/recruiting-lead/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 814,
+      "sha256": "2726807a5ce4efcc98c7b1ff4bfca23b13d2ef97e67384c0954c956e0e534c76"
+    },
+    {
+      "sourcePath": "agents/recruiting-lead/identity/identity.json",
+      "path": "agents/recruiting-lead/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4515,
+      "sha256": "f0f8983d1fa80adadd52d1712c0d0d75325490a9c28de9cf57ead2b61112c4bc"
+    },
+    {
+      "sourcePath": "agents/recruiting-lead/identity/outline-32.png",
+      "path": "agents/recruiting-lead/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 759,
+      "sha256": "753f83e43add02bb0dc2df29f2d994cc9f2e10e534351854d9c12a6ea523d7b3"
+    },
+    {
+      "sourcePath": "agents/recruiting-lead/identity/outline.svg",
+      "path": "agents/recruiting-lead/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 860,
+      "sha256": "cf0087a5375252a24fcd9e2bb856b6c2a7153c57d614df828cfb762e42ddc26e"
+    },
+    {
+      "sourcePath": "agents/recruiting-screening/identity/card.png",
+      "path": "agents/recruiting-screening/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 75411,
+      "sha256": "8263f038932b7bbf075106fb2e851c1e07d6e70a1ec88c110c2df490ef406d4d"
+    },
+    {
+      "sourcePath": "agents/recruiting-screening/identity/color-192-dev.png",
+      "path": "agents/recruiting-screening/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 4121,
+      "sha256": "7c0d53677ae034e125753bdfe07582c7f097b901945bab8a64aa11cdf05d5a6a"
+    },
+    {
+      "sourcePath": "agents/recruiting-screening/identity/color-192-test.png",
+      "path": "agents/recruiting-screening/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 4052,
+      "sha256": "a1411f487c9e7da60533204b3718b404c248858ce28f3d55998e6fe8943def08"
+    },
+    {
+      "sourcePath": "agents/recruiting-screening/identity/color-192.png",
+      "path": "agents/recruiting-screening/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 3329,
+      "sha256": "511e26258c91c560573238816fb38780bb8a6fe3aef191c5a4e6ac0597fc7992"
+    },
+    {
+      "sourcePath": "agents/recruiting-screening/identity/color-32-dev.png",
+      "path": "agents/recruiting-screening/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 629,
+      "sha256": "3e0ebb08a920004b681959ecfd9297c4cb126910606fa52b3ce91a8189a0477e"
+    },
+    {
+      "sourcePath": "agents/recruiting-screening/identity/color-32-test.png",
+      "path": "agents/recruiting-screening/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 646,
+      "sha256": "1ebfc63720c828a6fde7b3e5c04f8d497c0d433b241fff1c3882659e312eb960"
+    },
+    {
+      "sourcePath": "agents/recruiting-screening/identity/color-32.png",
+      "path": "agents/recruiting-screening/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 524,
+      "sha256": "86ec7698bcb45123a6ab0f82f9ecd5dc5cca35bad78749dacd8abe44a5cc4095"
+    },
+    {
+      "sourcePath": "agents/recruiting-screening/identity/icon-dev.svg",
+      "path": "agents/recruiting-screening/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 903,
+      "sha256": "3a394b4dc407d7fa8c7eadd774559015e21e4dca14a2121140a97f872b71a425"
+    },
+    {
+      "sourcePath": "agents/recruiting-screening/identity/icon-test.svg",
+      "path": "agents/recruiting-screening/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 904,
+      "sha256": "bcc979ebb72cc1408b6b1a59ff41019977d5fbb2df56e668e4da70ec08e46d63"
+    },
+    {
+      "sourcePath": "agents/recruiting-screening/identity/icon.svg",
+      "path": "agents/recruiting-screening/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 591,
+      "sha256": "5322c420d9d8930374803bcb4dcfe45f8295cb4d3375d6c54175d33ae480088e"
+    },
+    {
+      "sourcePath": "agents/recruiting-screening/identity/identity.json",
+      "path": "agents/recruiting-screening/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4666,
+      "sha256": "0069e54c87f4c15ceb90341e27c40fb0cfffc62547af817498175161c359505f"
+    },
+    {
+      "sourcePath": "agents/recruiting-screening/identity/outline-32.png",
+      "path": "agents/recruiting-screening/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 770,
+      "sha256": "72b2f337e096ff0c6367eca3d1bb12390d72f205fdfd2ae610d3a90106139bb2"
+    },
+    {
+      "sourcePath": "agents/recruiting-screening/identity/outline.svg",
+      "path": "agents/recruiting-screening/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 622,
+      "sha256": "bc577c63acda8ea46b16fc700bf384541b660eb2ae0842f8cad866fb33d14287"
+    },
+    {
+      "sourcePath": "agents/talent-calibration/identity/card.png",
+      "path": "agents/talent-calibration/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 73819,
+      "sha256": "aaa3fd14e220cb1a2fa2807e8383be74924ea96678a556b19e58da450e14b6af"
+    },
+    {
+      "sourcePath": "agents/talent-calibration/identity/color-192-dev.png",
+      "path": "agents/talent-calibration/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 3020,
+      "sha256": "5bfd45bf495c7c756879391aeca57d767c7eebeb2b3c09de7e694bc5e2d486a7"
+    },
+    {
+      "sourcePath": "agents/talent-calibration/identity/color-192-test.png",
+      "path": "agents/talent-calibration/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 2958,
+      "sha256": "afd938f86cd797b004fd1a2a08aa750df08665381b5e6797cc0cd213634a5e11"
+    },
+    {
+      "sourcePath": "agents/talent-calibration/identity/color-192.png",
+      "path": "agents/talent-calibration/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2200,
+      "sha256": "619c3301c047f1cc89fb4b414dcd2e5be3a1e42fda2196255568dd96fb893101"
+    },
+    {
+      "sourcePath": "agents/talent-calibration/identity/color-32-dev.png",
+      "path": "agents/talent-calibration/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 595,
+      "sha256": "61aa2dd6a11b8a1c51c79d6d88359a4216931ee5a87591e79611f590307f6630"
+    },
+    {
+      "sourcePath": "agents/talent-calibration/identity/color-32-test.png",
+      "path": "agents/talent-calibration/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 611,
+      "sha256": "b8f74cecffe9c9a44d1abfe82341208a20d49ea2cf8b1049650187429b9cf64d"
+    },
+    {
+      "sourcePath": "agents/talent-calibration/identity/color-32.png",
+      "path": "agents/talent-calibration/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 490,
+      "sha256": "f98ec9f63b784e7d9708678727992226259fa7779ae99c40e5b2a1ca24aa11a1"
+    },
+    {
+      "sourcePath": "agents/talent-calibration/identity/icon-dev.svg",
+      "path": "agents/talent-calibration/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 888,
+      "sha256": "c1cb3bd001fefda1ffdd85c0555451f117936cf7e263359a90296df317ef888b"
+    },
+    {
+      "sourcePath": "agents/talent-calibration/identity/icon-test.svg",
+      "path": "agents/talent-calibration/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 889,
+      "sha256": "3f931399b01fea45631773431c287d63d6716955279f7508cc45ad7fae2589cb"
+    },
+    {
+      "sourcePath": "agents/talent-calibration/identity/icon.svg",
+      "path": "agents/talent-calibration/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 576,
+      "sha256": "78a9178cf942741298b5e36b7eb34e791d8d1430605dc56b492b64cd23fccadf"
+    },
+    {
+      "sourcePath": "agents/talent-calibration/identity/identity.json",
+      "path": "agents/talent-calibration/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4143,
+      "sha256": "88edae841f69353490dec6831f70df7c236447c9eae2079c4ff9bd1d97a44523"
+    },
+    {
+      "sourcePath": "agents/talent-calibration/identity/outline-32.png",
+      "path": "agents/talent-calibration/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 750,
+      "sha256": "80d29167af768fbdaa75b352d3d2b08d7f23611866140c38f8c7720401f94034"
+    },
+    {
+      "sourcePath": "agents/talent-calibration/identity/outline.svg",
+      "path": "agents/talent-calibration/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 668,
+      "sha256": "3adf444a0e9d91f2ec8b850eea60068f6af06fded8dc88c90fc37aeebc77e83c"
+    },
+    {
+      "sourcePath": "agents/talent-development-plan/identity/card.png",
+      "path": "agents/talent-development-plan/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 82440,
+      "sha256": "e9b19140b79b7ab981af34fbaac2aaeac0fbceadf283c54f2347c760c7798c65"
+    },
+    {
+      "sourcePath": "agents/talent-development-plan/identity/color-192-dev.png",
+      "path": "agents/talent-development-plan/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 5496,
+      "sha256": "cbd8aa4e1a53980a568dade4e1ef80a265709a7764f98ff4c72854848764c5cc"
+    },
+    {
+      "sourcePath": "agents/talent-development-plan/identity/color-192-test.png",
+      "path": "agents/talent-development-plan/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 5430,
+      "sha256": "c3e7cc715cffda5511dc14ddd6b63615f03d4f5b32c09c6be5100492a906cdc0"
+    },
+    {
+      "sourcePath": "agents/talent-development-plan/identity/color-192.png",
+      "path": "agents/talent-development-plan/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 4725,
+      "sha256": "55deeb9fae5d1b7e0efc90a83fde9ee48fc2db93cc39780434679d667450eb20"
+    },
+    {
+      "sourcePath": "agents/talent-development-plan/identity/color-32-dev.png",
+      "path": "agents/talent-development-plan/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 814,
+      "sha256": "ed331d8a8ee724ec120764d22e2d6929d21b6802bc81bc8bfe306ded5534deeb"
+    },
+    {
+      "sourcePath": "agents/talent-development-plan/identity/color-32-test.png",
+      "path": "agents/talent-development-plan/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 829,
+      "sha256": "ca577d089e9bb9ad9d43d0a4f9fe2ca302bb2dd6d58edd13479c6b2e337d80d5"
+    },
+    {
+      "sourcePath": "agents/talent-development-plan/identity/color-32.png",
+      "path": "agents/talent-development-plan/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 715,
+      "sha256": "8260aaed4dfdfb829c02118c3ba3be9667521c3e0daaa0d4d788dc764060a1ae"
+    },
+    {
+      "sourcePath": "agents/talent-development-plan/identity/icon-dev.svg",
+      "path": "agents/talent-development-plan/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 1026,
+      "sha256": "562f52d365b4107fd24cb9811a356c598ffe1da60314d271ddf18dc61d7f103e"
+    },
+    {
+      "sourcePath": "agents/talent-development-plan/identity/icon-test.svg",
+      "path": "agents/talent-development-plan/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 1027,
+      "sha256": "e9d9ea13b496bc6d3b6faab83459f7c1c874ae100b796aa5d8977183a5b37f8b"
+    },
+    {
+      "sourcePath": "agents/talent-development-plan/identity/icon.svg",
+      "path": "agents/talent-development-plan/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 714,
+      "sha256": "03400c98b37b0148ab30bf7b0f73a23ce10062df3a87d7a5a937bd78fe367125"
+    },
+    {
+      "sourcePath": "agents/talent-development-plan/identity/identity.json",
+      "path": "agents/talent-development-plan/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4331,
+      "sha256": "a028d298379aa024aa9ab01b005d6fd31abdcc599ad6c7a9395f37dbaf0c71c2"
+    },
+    {
+      "sourcePath": "agents/talent-development-plan/identity/outline-32.png",
+      "path": "agents/talent-development-plan/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 992,
+      "sha256": "d25ee50bd0e9b0c4d53aa6fe239272a8cdfaef39a22cd36679eb41f759c90d7b"
+    },
+    {
+      "sourcePath": "agents/talent-development-plan/identity/outline.svg",
+      "path": "agents/talent-development-plan/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 656,
+      "sha256": "3b3ddb85bc65c36d8a3935f57abea5297b159482a9727c982774a9881ec1e21e"
+    },
+    {
+      "sourcePath": "agents/talent-lead/identity/card.png",
+      "path": "agents/talent-lead/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 69096,
+      "sha256": "1e23d652af3ad3f0f70461019b2cdbf0e7ba40daac0dd4813f34ae9e6b351212"
+    },
+    {
+      "sourcePath": "agents/talent-lead/identity/color-192-dev.png",
+      "path": "agents/talent-lead/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 3683,
+      "sha256": "6a2dd9217a98f6e7cc5201276773dc4b3f1b39972775c629388c57484bd8ba82"
+    },
+    {
+      "sourcePath": "agents/talent-lead/identity/color-192-test.png",
+      "path": "agents/talent-lead/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 3621,
+      "sha256": "3fb91332a55e7e1fd2bccaadfad0aa32f53be90dcd3a9b4b879130d911d492c9"
+    },
+    {
+      "sourcePath": "agents/talent-lead/identity/color-192.png",
+      "path": "agents/talent-lead/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 2892,
+      "sha256": "c00ef6a2d656a2f1bb809cfa56627381ac0c8d0055758fe95ffd518060b1cada"
+    },
+    {
+      "sourcePath": "agents/talent-lead/identity/color-32-dev.png",
+      "path": "agents/talent-lead/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 615,
+      "sha256": "83d8f3b06f74035c7c3f9deed9fa63d7fc3f64fe4f3559eb2d6e7675f6c66f7f"
+    },
+    {
+      "sourcePath": "agents/talent-lead/identity/color-32-test.png",
+      "path": "agents/talent-lead/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 634,
+      "sha256": "35ed9c453e8a84532e577c71aa982304deb117b4bf6065b15ecdd656705f8851"
+    },
+    {
+      "sourcePath": "agents/talent-lead/identity/color-32.png",
+      "path": "agents/talent-lead/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 510,
+      "sha256": "9f22274304eaa88b7bb90c46b366d00aa67a00f40871b68a12f7c3f820d72d18"
+    },
+    {
+      "sourcePath": "agents/talent-lead/identity/icon-dev.svg",
+      "path": "agents/talent-lead/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 936,
+      "sha256": "846df731410d3101b1900cb8e4a076c165083f14e16552bb8f36d4f737224e42"
+    },
+    {
+      "sourcePath": "agents/talent-lead/identity/icon-test.svg",
+      "path": "agents/talent-lead/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 937,
+      "sha256": "6e50dc06e431cc262a6be21cb72276b178f143977ca2258a9456f798a552c6f1"
+    },
+    {
+      "sourcePath": "agents/talent-lead/identity/icon.svg",
+      "path": "agents/talent-lead/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 624,
+      "sha256": "efdb5ef82016b8a4527427558e5ab06c4eaa08b526626898246501bcefcddeab"
+    },
+    {
+      "sourcePath": "agents/talent-lead/identity/identity.json",
+      "path": "agents/talent-lead/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4406,
+      "sha256": "948a33e113a54187442d4807ef05ec5aa78e8c003dbad0369e0a17e7d3ec7296"
+    },
+    {
+      "sourcePath": "agents/talent-lead/identity/outline-32.png",
+      "path": "agents/talent-lead/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 748,
+      "sha256": "66d842e0e6112f936f79c8d7849c1e893d02e526f9d869ab4922dffa43206cb8"
+    },
+    {
+      "sourcePath": "agents/talent-lead/identity/outline.svg",
+      "path": "agents/talent-lead/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 674,
+      "sha256": "34292afa713951c770d5328291e5441a0ec26018ec15580a235f87d1051aa43a"
+    },
+    {
+      "sourcePath": "agents/talent-one-on-one/identity/card.png",
+      "path": "agents/talent-one-on-one/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 73118,
+      "sha256": "0933d78388e0481bcd7c5804c24e5fcd41652e901a9429207d8151b8108aae91"
+    },
+    {
+      "sourcePath": "agents/talent-one-on-one/identity/color-192-dev.png",
+      "path": "agents/talent-one-on-one/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 3975,
+      "sha256": "1adf797b34acbd1029d4936f51bcbfc10e7feb7ba65497ebbf427c535f411092"
+    },
+    {
+      "sourcePath": "agents/talent-one-on-one/identity/color-192-test.png",
+      "path": "agents/talent-one-on-one/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 3917,
+      "sha256": "cc257f8958c6b7e8ebff81614f0d191a31f13f0b905f1d209185729d9e2e5e52"
+    },
+    {
+      "sourcePath": "agents/talent-one-on-one/identity/color-192.png",
+      "path": "agents/talent-one-on-one/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 3177,
+      "sha256": "9a323c572ed90f2db012a47b033a10ce72afbabfb5c897c27b538f41087444b7"
+    },
+    {
+      "sourcePath": "agents/talent-one-on-one/identity/color-32-dev.png",
+      "path": "agents/talent-one-on-one/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 696,
+      "sha256": "f544d9abc07a497d1473ab3ebd02a5cd96b874adb57422d9951587b4cdcd6d6d"
+    },
+    {
+      "sourcePath": "agents/talent-one-on-one/identity/color-32-test.png",
+      "path": "agents/talent-one-on-one/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 711,
+      "sha256": "baf70e7d9e34321cc65b20401af20ab854cd0715416383240ace8b5d03a3bfdf"
+    },
+    {
+      "sourcePath": "agents/talent-one-on-one/identity/color-32.png",
+      "path": "agents/talent-one-on-one/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 601,
+      "sha256": "2bf4f5ab37d06e648790742fad557360fc630a611901bbfc1de099e64a2ed2c9"
+    },
+    {
+      "sourcePath": "agents/talent-one-on-one/identity/icon-dev.svg",
+      "path": "agents/talent-one-on-one/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 934,
+      "sha256": "7704cd05c29ebfb7b249d875086af0328f00d7b89c3695e0410294b9aa9c3b58"
+    },
+    {
+      "sourcePath": "agents/talent-one-on-one/identity/icon-test.svg",
+      "path": "agents/talent-one-on-one/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 935,
+      "sha256": "f44b1ba022a43bbdc3b47cf66b5e9cb08698dd2463fe3280caad308759ae7746"
+    },
+    {
+      "sourcePath": "agents/talent-one-on-one/identity/icon.svg",
+      "path": "agents/talent-one-on-one/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 622,
+      "sha256": "4fe34ee826b4c9c28d3be18be8928797cec0d2e1bcc3e0f07de05dd697c52be0"
+    },
+    {
+      "sourcePath": "agents/talent-one-on-one/identity/identity.json",
+      "path": "agents/talent-one-on-one/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4136,
+      "sha256": "e83d2ba9c6bb0aec46b4988c4843f563fec6a01b10d43ac549c831eeb731cb2f"
+    },
+    {
+      "sourcePath": "agents/talent-one-on-one/identity/outline-32.png",
+      "path": "agents/talent-one-on-one/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 809,
+      "sha256": "7594244b677f1998ffb20241f26277caba5d3e8addf028a83a15ee61f0a60e0d"
+    },
+    {
+      "sourcePath": "agents/talent-one-on-one/identity/outline.svg",
+      "path": "agents/talent-one-on-one/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 826,
+      "sha256": "b45753bc53f86b6fb97f2f7a697bb71b863b2dff45cb514d967c9e383331059c"
+    },
+    {
+      "sourcePath": "agents/talent-performance-review/identity/card.png",
+      "path": "agents/talent-performance-review/identity/card.png",
+      "role": "identity-asset",
+      "bytes": 82067,
+      "sha256": "b179b1b14ecd478955de5a5fce68848d8364d65e9ca15fda16f1a356b4c8295e"
+    },
+    {
+      "sourcePath": "agents/talent-performance-review/identity/color-192-dev.png",
+      "path": "agents/talent-performance-review/identity/color-192-dev.png",
+      "role": "identity-asset",
+      "bytes": 4107,
+      "sha256": "a7f26989dbbc34294b84d586519241cf82b460edaa6a4d25a41836196d99d5ac"
+    },
+    {
+      "sourcePath": "agents/talent-performance-review/identity/color-192-test.png",
+      "path": "agents/talent-performance-review/identity/color-192-test.png",
+      "role": "identity-asset",
+      "bytes": 4049,
+      "sha256": "82ffa035cf4b78dfbe6360366755b9a32bb21bd1773fc93a9f9201b1ef88aa9c"
+    },
+    {
+      "sourcePath": "agents/talent-performance-review/identity/color-192.png",
+      "path": "agents/talent-performance-review/identity/color-192.png",
+      "role": "identity-asset",
+      "bytes": 3332,
+      "sha256": "a022334cb8a221533a3dde2dbb2d23a4d24f6a566e34c8ab9e8bedd14d5aa50c"
+    },
+    {
+      "sourcePath": "agents/talent-performance-review/identity/color-32-dev.png",
+      "path": "agents/talent-performance-review/identity/color-32-dev.png",
+      "role": "identity-asset",
+      "bytes": 662,
+      "sha256": "f508056babe86ebda0c95c103833a0b90d5d22e679847362e76464a468e6477c"
+    },
+    {
+      "sourcePath": "agents/talent-performance-review/identity/color-32-test.png",
+      "path": "agents/talent-performance-review/identity/color-32-test.png",
+      "role": "identity-asset",
+      "bytes": 682,
+      "sha256": "8e39f3085a29164ff8731e872f1d9e19d596f68a540da8b94b9a57c24519876b"
+    },
+    {
+      "sourcePath": "agents/talent-performance-review/identity/color-32.png",
+      "path": "agents/talent-performance-review/identity/color-32.png",
+      "role": "identity-asset",
+      "bytes": 561,
+      "sha256": "4de680f1bd0bc67fa483179d50bf5bb0655f6fafbfd4a79beb488d2c37c07bff"
+    },
+    {
+      "sourcePath": "agents/talent-performance-review/identity/icon-dev.svg",
+      "path": "agents/talent-performance-review/identity/icon-dev.svg",
+      "role": "identity-asset",
+      "bytes": 1016,
+      "sha256": "44cf1895e37b2709af4aa44282c4f2647e53d426d6fc77f0cfdfa63041eece65"
+    },
+    {
+      "sourcePath": "agents/talent-performance-review/identity/icon-test.svg",
+      "path": "agents/talent-performance-review/identity/icon-test.svg",
+      "role": "identity-asset",
+      "bytes": 1017,
+      "sha256": "8714ebcb41b96207c64ee635fe8599c7b6337367abd232003af19b419d5c7f22"
+    },
+    {
+      "sourcePath": "agents/talent-performance-review/identity/icon.svg",
+      "path": "agents/talent-performance-review/identity/icon.svg",
+      "role": "identity-asset",
+      "bytes": 704,
+      "sha256": "00bc62309c7daf92ff51c4ecd340f6244ff13270f8c6fc4b8d7a4bc20296b41a"
+    },
+    {
+      "sourcePath": "agents/talent-performance-review/identity/identity.json",
+      "path": "agents/talent-performance-review/identity/identity.json",
+      "role": "identity-asset",
+      "bytes": 4339,
+      "sha256": "7742ab2d28c5f7dc51238a440a8a5d6b81e69318fdd66c9cef6e31d37ffa4d3c"
+    },
+    {
+      "sourcePath": "agents/talent-performance-review/identity/outline-32.png",
+      "path": "agents/talent-performance-review/identity/outline-32.png",
+      "role": "identity-asset",
+      "bytes": 799,
+      "sha256": "b233c1e98486ec5d68a0eab5ccf547450ebb256ccd6b8460f7204c3bca775141"
+    },
+    {
+      "sourcePath": "agents/talent-performance-review/identity/outline.svg",
+      "path": "agents/talent-performance-review/identity/outline.svg",
+      "role": "identity-asset",
+      "bytes": 762,
+      "sha256": "e822fab7746b739e7311b5d82285a76fe7e8d50f71c72140015c8c1938aaa1b1"
+    },
+    {
+      "sourcePath": "brand/gf-logo-blue.png",
+      "path": "brand/gf-logo-blue.png",
+      "role": "identity-asset",
+      "bytes": 25415,
+      "sha256": "f5f370e31df7890c0c8d2e39042f8316d3b8836b658967157b8e6210492e747b"
+    },
+    {
+      "sourcePath": "brand/gf-logo-white.png",
+      "path": "brand/gf-logo-white.png",
+      "role": "identity-asset",
+      "bytes": 16107,
+      "sha256": "6a64693d46e8b915b7aabe7478b75e02d914490c7188b79d55fd8b7da4c07e1c"
+    },
+    {
+      "sourcePath": "brand/palette.css",
+      "path": "brand/palette.css",
+      "role": "identity-asset",
+      "bytes": 1354,
+      "sha256": "5bb69ecada9e5b3e816b55ffcd90a7f17f99799a117e1cf3e49e9f135b688bdf"
+    },
+    {
+      "sourcePath": "CHANGELOG.md",
+      "path": "reference/CHANGELOG.md.txt",
+      "role": "reference-only",
+      "bytes": 538,
+      "sha256": "608f196670f6defb5dedc323c18e9df2f8e4f3ce07c73a6ffc0e888be6667a4f"
+    },
+    {
+      "sourcePath": "config/agent-identity.json",
+      "path": "config/agent-identity.json",
+      "role": "identity-asset",
+      "bytes": 90592,
+      "sha256": "5dca74722890ced6a0b520c17d5b48916bace162a89bc66380bd8ca8479c2a17"
+    },
+    {
+      "sourcePath": "config/agent-identity.schema.json",
+      "path": "config/agent-identity.schema.json",
+      "role": "identity-asset",
+      "bytes": 3129,
+      "sha256": "aa0c2eb43f954815e00f9ac3570a0109ad03bd0250055a23af26e6b94b089a52"
+    },
+    {
+      "sourcePath": "config/palette.json",
+      "path": "config/palette.json",
+      "role": "identity-asset",
+      "bytes": 5271,
+      "sha256": "9bfe4386168f7cd47de9e21e01666eb49243405c9266d0dbddbd4080190ee267"
+    },
+    {
+      "sourcePath": "docs/agent-identity-catalog.md",
+      "path": "reference/docs/agent-identity-catalog.md.txt",
+      "role": "reference-only",
+      "bytes": 57794,
+      "sha256": "ba0b603e2e4ccd33161b3299a514beea45f8d6fdb0d09e77561b41016d92cee1"
+    },
+    {
+      "sourcePath": "docs/color-schema.md",
+      "path": "reference/docs/color-schema.md.txt",
+      "role": "reference-only",
+      "bytes": 4367,
+      "sha256": "775e0d9566dd67fb4ed314c26b457859923923574835cd9524d86856e507a7b0"
+    },
+    {
+      "sourcePath": "docs/evidence.md",
+      "path": "reference/docs/evidence.md.txt",
+      "role": "reference-only",
+      "bytes": 2824,
+      "sha256": "ead604b66ddf4443f59b101290c9129d77a5f92c331e4185afa95f13e3e02d0d"
+    },
+    {
+      "sourcePath": "docs/harness-integration.md",
+      "path": "reference/docs/harness-integration.md.txt",
+      "role": "reference-only",
+      "bytes": 4019,
+      "sha256": "8e16ac221c2c210dd673e86e0fae2763827337b607a432f1f27d80af6a863c9d"
+    },
+    {
+      "sourcePath": "docs/icons-and-visuals.md",
+      "path": "reference/docs/icons-and-visuals.md.txt",
+      "role": "reference-only",
+      "bytes": 4378,
+      "sha256": "bdb26ef81639568da469c9f05773fc1438374eb172b0f505242b1282a9c081e8"
+    },
+    {
+      "sourcePath": "docs/naming-convention.md",
+      "path": "reference/docs/naming-convention.md.txt",
+      "role": "reference-only",
+      "bytes": 9919,
+      "sha256": "8b20fabd84917969c8efd7cc2add012aaaae8a8539f4ec033c13600b1a560a9c"
+    },
+    {
+      "sourcePath": "github/instructions/agent-identity.instructions.md",
+      "path": "reference/github/instructions/agent-identity.instructions.md.txt",
+      "role": "reference-only",
+      "bytes": 1594,
+      "sha256": "52c99dc4ee43ee24dd13bfdb69f0d79a984c9ef15ed9f50bf7fd2c74645cade9"
+    },
+    {
+      "sourcePath": "pipelines/azure-pipelines/stamp-identity.yml",
+      "path": "reference/pipelines/azure-pipelines/stamp-identity.yml.txt",
+      "role": "reference-only",
+      "bytes": 1665,
+      "sha256": "1786ebc0f112d995623ffb270a0455d5ad81a6242fc3aceb36fcdb408c8ed1c5"
+    },
+    {
+      "sourcePath": "pipelines/github-actions/identity-validate.yml",
+      "path": "reference/pipelines/github-actions/identity-validate.yml.txt",
+      "role": "reference-only",
+      "bytes": 916,
+      "sha256": "1b59708ff209303bea5a7f6d1f77dd464a69e710de45ec2772e8a28441a3b0c2"
+    },
+    {
+      "sourcePath": "README.md",
+      "path": "reference/README.md.txt",
+      "role": "reference-only",
+      "bytes": 5338,
+      "sha256": "9147d23097a336d4ce8706ea7df6f31374e4435f8d9b93b0e40a197aeddf5ead"
+    },
+    {
+      "sourcePath": "scripts/build_identity_assets.py",
+      "path": "reference/scripts/build_identity_assets.py.txt",
+      "role": "reference-only",
+      "bytes": 32046,
+      "sha256": "fb0a2831b6ae798385f27e3778d433d3298100ab1a0cc37155bc060e7a27acd7"
+    },
+    {
+      "sourcePath": "scripts/glyphs/fluent-system-icons-subset.json",
+      "path": "reference/scripts/glyphs/fluent-system-icons-subset.json.txt",
+      "role": "reference-only",
+      "bytes": 46597,
+      "sha256": "40220c6700bdd944049ef0688bc6a524909b8d719b8d7a2486dda418196f2bea"
+    },
+    {
+      "sourcePath": "scripts/identity_lib.py",
+      "path": "reference/scripts/identity_lib.py.txt",
+      "role": "reference-only",
+      "bytes": 5993,
+      "sha256": "463f1ba7fa22af65a999be6f1988edc676e60b30b061820898a699baacb70ca6"
+    },
+    {
+      "sourcePath": "scripts/render_png.js",
+      "path": "reference/scripts/render_png.js.txt",
+      "role": "reference-only",
+      "bytes": 1996,
+      "sha256": "baf41855ffd16dc2eb84326fbb412ad1f16dd89a2ff7c669ddbec5b4cc5670c4"
+    },
+    {
+      "sourcePath": "scripts/stamp_identity.py",
+      "path": "reference/scripts/stamp_identity.py.txt",
+      "role": "reference-only",
+      "bytes": 7608,
+      "sha256": "7673c31faf4a0e2ff024ee1ee4e09273b0baefe9d8892b00fbd077122fdd2448"
+    },
+    {
+      "sourcePath": "scripts/tests/fixtures/README.md",
+      "path": "reference/scripts/tests/fixtures/README.md.txt",
+      "role": "reference-only",
+      "bytes": 335,
+      "sha256": "7e6bc7213665e5b5b4a4aec57a9e6e24c9ad98ecdcc218334ef92a72b6671b51"
+    },
+    {
+      "sourcePath": "scripts/tests/fixtures/solution/bots/cr123_LegacyAgent/bot.xml",
+      "path": "reference/scripts/tests/fixtures/solution/bots/cr123_LegacyAgent/bot.xml.txt",
+      "role": "reference-only",
+      "bytes": 137,
+      "sha256": "d6f685059158ce7b6b95714bf41493a2b046aebc2bd44b21633d535e870dcab7"
+    },
+    {
+      "sourcePath": "scripts/tests/fixtures/solution/bots/gf_HROpsMasterDataCH_x7Q/bot.xml",
+      "path": "reference/scripts/tests/fixtures/solution/bots/gf_HROpsMasterDataCH_x7Q/bot.xml.txt",
+      "role": "reference-only",
+      "bytes": 395,
+      "sha256": "07034b74622ec4d33daf8950609df0f510fab59ef062fe0ae7d29f7703648b42"
+    },
+    {
+      "sourcePath": "scripts/tests/fixtures/solution/bots/gf_HRPolicyAssistant/bot.xml",
+      "path": "reference/scripts/tests/fixtures/solution/bots/gf_HRPolicyAssistant/bot.xml.txt",
+      "role": "reference-only",
+      "bytes": 506,
+      "sha256": "6459ee5d4b9c8e4e2debcb0e854b9d552bf82fcd739a13d13d9fdd21fd52738f"
+    },
+    {
+      "sourcePath": "scripts/tests/fixtures/solution/Other/Solution.xml",
+      "path": "reference/scripts/tests/fixtures/solution/Other/Solution.xml.txt",
+      "role": "reference-only",
+      "bytes": 360,
+      "sha256": "2a04fcc8061e037895e2bf8aaf8e3f5ce2646c533f9e02ef70d05a698b1ec059"
+    },
+    {
+      "sourcePath": "scripts/tests/test_identity.py",
+      "path": "reference/scripts/tests/test_identity.py.txt",
+      "role": "reference-only",
+      "bytes": 5072,
+      "sha256": "c8f7e14141b0edff49ee2fd95ee9c02d1d06856cd8f020bf9716f71e2b80bee9"
+    },
+    {
+      "sourcePath": "scripts/validate_identity.py",
+      "path": "reference/scripts/validate_identity.py.txt",
+      "role": "reference-only",
+      "bytes": 8432,
+      "sha256": "4cd341156ac604e88a005b2c2d1bf7afc32a0ced10b5bd458f12ee2795dec637"
+    },
+    {
+      "sourcePath": "THIRD-PARTY-NOTICES.md",
+      "path": "reference/THIRD-PARTY-NOTICES.md.txt",
+      "role": "reference-only",
+      "bytes": 1569,
+      "sha256": "31d8728fa49206ddced194c0ad676cfad87feffc7334eb2eb1f1f442a828c7bc"
+    },
+    {
+      "sourcePath": "visuals/gf-hr-agent-family.png",
+      "path": "visuals/gf-hr-agent-family.png",
+      "role": "identity-asset",
+      "bytes": 316437,
+      "sha256": "cfbaf29354c0a1fcc48a084b99a31f51b0c8a5fb8f48a2ef60340e902e8298aa"
+    },
+    {
+      "sourcePath": "visuals/gf-hr-colour-schema.png",
+      "path": "visuals/gf-hr-colour-schema.png",
+      "role": "identity-asset",
+      "bytes": 165624,
+      "sha256": "ea0cd27c2050a2ff44d918fff348db3441dd318697cc6857e300adc744b0d30e"
+    },
+    {
+      "sourcePath": "visuals/gf-hr-mvp-identity-sheet.png",
+      "path": "visuals/gf-hr-mvp-identity-sheet.png",
+      "role": "identity-asset",
+      "bytes": 249698,
+      "sha256": "534a517486e6b3d79a4ac1752b582806c19872e2987b6430fef10abe31ea3fa2"
+    }
+  ]
+}

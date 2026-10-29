@@ -1,0 +1,120 @@
+{
+  "id": "D4-A01",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D4",
+    "name": "Leadership & Workforce Insights"
+  },
+  "tokens": {
+    "po": "People Analytics",
+    "domain": "Reports",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "People Analytics Reports DEV",
+    "TEST": "People Analytics Reports TEST",
+    "PROD": "People Analytics Reports"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Answers leaders' questions on approved Workday leadership reports.",
+    "TEST": "TEST · Answers leaders' questions on approved Workday leadership reports.",
+    "PROD": "Answers leaders' questions on approved Workday leadership reports."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nAnswers leaders' questions about their team and the approved Workday leadership reports — run under the leader's own access, with team facts from Workday worker data and a link to the Workday report by default. Process owner area: People Analytics. Status: Deferred · works council (data from Germany).",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nAnswers leaders' questions about their team and the approved Workday leadership reports — run under the leader's own access, with team facts from Workday worker data and a link to the Workday report by default. Process owner area: People Analytics. Status: Deferred · works council (data from Germany).",
+    "PROD": "Answers leaders' questions about their team and the approved Workday leadership reports — run under the leader's own access, with team facts from Workday worker data and a link to the Workday report by default. Process owner area: People Analytics. Status: Deferred · works council (data from Germany)."
+  },
+  "slug": "people-analytics-reports",
+  "schemaName": "gf_PeopleAnalyticsReports",
+  "solution": {
+    "uniqueName": "GFHRPeopleAnalyticsReports",
+    "displayName": "GF HR People Analytics Reports"
+  },
+  "envVarPrefix": "gf_PeopleAnalytics",
+  "connectionContext": "PeopleAnalytics",
+  "flowNamePrefix": "People Analytics Reports - ",
+  "github": null,
+  "icon": {
+    "background": "#003E51",
+    "glyphColour": "#FFFFFF",
+    "contrast": 11.62,
+    "glyph": "Fluent UI System Icons: data-pie (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "People Analytics Reports DEV",
+      "TEST": "People Analytics Reports TEST",
+      "PROD": "People Analytics Reports"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer People Analytics Reports (DEV)",
+      "TEST": "Georg Fischer People Analytics Reports (TEST)",
+      "PROD": "Georg Fischer People Analytics Reports"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Answers leaders' questions on approved Workday leadership reports.",
+      "TEST": "TEST · Answers leaders' questions on approved Workday leadership reports.",
+      "PROD": "Answers leaders' questions on approved Workday leadership reports."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nAnswers leaders' questions about their team and the approved Workday leadership reports — run under the leader's own access, with team facts from Workday worker data and a link to the Workday report by default. Process owner area: People Analytics. Status: Deferred · works council (data from Germany).",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nAnswers leaders' questions about their team and the approved Workday leadership reports — run under the leader's own access, with team facts from Workday worker data and a link to the Workday report by default. Process owner area: People Analytics. Status: Deferred · works council (data from Germany).",
+      "PROD": "Answers leaders' questions about their team and the approved Workday leadership reports — run under the leader's own access, with team facts from Workday worker data and a link to the Workday report by default. Process owner area: People Analytics. Status: Deferred · works council (data from Germany)."
+    },
+    "accentColor": "#003E51",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Deferred · works council (data from Germany)",
+  "statusClass": "deferred",
+  "audience": "Leaders (deferred: works council)",
+  "processOwnerArea": "People Data, Analytics & AI (DAAI); People Analytics as report owner",
+  "owner": "Head of People Data, Analytics & AI (DAAI); report owners in People Analytics",
+  "channels": [
+    "Teams",
+    "Microsoft 365 Copilot",
+    "Workday (source link)"
+  ],
+  "gfName": "Workday Leadership Insights Agent",
+  "blueprintName": "Workday Leadership Insights Agent",
+  "evidence": [
+    "E17",
+    "E18",
+    "E19",
+    "E06",
+    "E13",
+    "E28",
+    "E34",
+    "E36",
+    "E37",
+    "E38"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

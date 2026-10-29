@@ -2,12 +2,21 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.2 |
-| **Date** | 2026-10-28 |
+| **Version** | 0.3 |
+| **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
 | **Scope** | GF functional package: employee-facing, read-only policy guidance |
 | **References** | [Idea](../ideas/gf-sse-hr-policy-assistant-idea.md), [Sprint](../plans/2026-10-28-gf-sse-hr-policy-assistant-sprint.md), [Platform requirements](../prd.md), [Workflow-first architecture](../adr/0011-workflow-first-process-architecture.md) |
+
+## Grounded agent identity
+
+Use the [GF identity kit and adopted bindings](../brand/gf-agent-identity/README.md#3-adopted-identities):
+**D3-A01, HR Policy Assistant**. Select exact DEV/TEST/PROD names and icon files
+from its per-agent JSON. This mapping does not select native ESS, change the
+GitHub-harness decision, approve technical names or prove a deployed identity.
+Publisher/solution and target-format decisions remain gated by the
+[identity adoption specification](2026-10-29-gf-agent-identity-kit-design.md).
 
 ## 1. Authority and confirmed scope
 

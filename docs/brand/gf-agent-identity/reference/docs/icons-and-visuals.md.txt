@@ -1,0 +1,62 @@
+# Agent icons and visuals
+
+Version 1.0.0 · 2026-10-28.
+
+## 1. Requirements we design against
+
+| Requirement | Source |
+|---|---|
+| Agent icon is a PNG of 100 KB or less; icon colour and accent colour can be set | Microsoft Learn, Configure agent details and instructions (GitHub Copilot harness), updated 21 Oct 2026 |
+| Copilot chat harness: PNG, 192 × 192 pixels and 100 KB recommended | same article |
+| Full-bleed colour icon 192 × 192 and a 32 × 32 icon; perfect square, no rounded corners, no border (both added by Microsoft 365); full flat colour background; contrast 4.5:1 recommended; balance within the 96 × 96 centre; avoid multiple words | Microsoft Learn, Design icons for agent acquisition and management |
+| Teams / Microsoft 365 app: colour icon 192 × 192, outline icon 32 × 32 transparent PNG with white content, optional `color32x32` | Teams app manifest schema |
+| Environment-specific names **and icons** stamped before packing | E44 FE-16 |
+
+## 2. Design
+
+- Background: the journey colour, full bleed (`docs/color-schema.md`).
+- Glyph: Microsoft **Fluent UI System Icons** (MIT licence, the icon family used across Microsoft 365) - *filled* style for the colour icon, *regular* style for the outline icon; one distinct glyph per agent; placed in the 96 × 96 centre.
+- DEV and TEST: a 36-pixel band at the bottom, outside the 96 × 96 balance area, with a 4-pixel white separator - orange band "DEV", light-blue band "TEST". At 32 × 32 the word is not readable, but the band colour still shows the environment.
+- PROD: clean icon.
+
+## 3. Files per agent (`agents/<slug>/identity/`)
+
+| File | Size | Use |
+|---|---|---|
+| `color-192.png`, `color-192-test.png`, `color-192-dev.png` | 192 × 192 | Copilot Studio agent icon; `iconbase64` in `bot.xml`; Teams/Microsoft 365 colour icon |
+| `color-32.png`, `-test`, `-dev` | 32 × 32 | `color32x32` (optional) and small previews |
+| `outline-32.png` | 32 × 32, white on transparent | Teams/Microsoft 365 outline icon |
+| `icon.svg`, `icon-test.svg`, `icon-dev.svg`, `outline.svg` | vector | source; regenerate PNGs from these |
+| `identity.json` | - | names, descriptions, colours, files and Teams details per environment |
+| `card.png` | 1200 × 630 | identity card for catalog pages, SharePoint news, adoption mails or a welcome-card hero image |
+
+Repository agents of the HR Agentic Factory (journey D6) run in GitHub, not in an environment, so they have only the clean icon.
+
+## 4. Where icons are set
+
+| Surface | How | Status |
+|---|---|---|
+| Copilot Studio (maker view) | Build tab → agent icon → upload; Colors | Microsoft Learn |
+| Unpacked solution | `bots/<schemaname>/bot.xml` → `<iconbase64>`; `stamp_identity.py` sets it per environment | element verified in Microsoft's published unpacked samples (CopilotStudioSamples); verify once with GF's first export |
+| Teams and Microsoft 365 Copilot | Teams channel app details; stored separately from the maker icon (`applicationmanifestinformation` → `teams.colorIcon`, `teams.outlineIcon`) | community observation, not Microsoft documentation - verify in GF DEV; the stamping step updates these keys only when they already exist |
+| ESS agent (MVP 1) | managed Microsoft solution; whether GF's customisation layer can change the icon and name | verify in GF DEV |
+
+Teams and Microsoft 365 Copilot can cache agent icons for a while after publishing (community observation).
+
+## 5. Visuals in this package
+
+| File | Content |
+|---|---|
+| `visuals/gf-hr-agent-family.png` | all 37 agents by journey, with status and the MVP icons per environment |
+| `visuals/gf-hr-mvp-identity-sheet.png` | MVP 1-3: icons per environment and size, names, technical names |
+| `visuals/gf-hr-colour-schema.png` | GF theme, journey colours with contrast, environment markers |
+| `agents/<slug>/identity/card.png` | one identity card per agent |
+
+## 6. Regenerate
+
+```bash
+npm i -D playwright && npx playwright install chromium   # once
+python scripts/build_identity_assets.py                   # names, SVG, PNG, cards, visuals, catalog
+python scripts/validate_identity.py                       # must report 0 errors
+```
+To add an agent: add an entry to `config/agent-identity.json` (copy a similar one), pick a glyph from `scripts/glyphs/fluent-system-icons-subset.json` or add its `filled` and `regular` bodies from Fluent UI System Icons, then rebuild.

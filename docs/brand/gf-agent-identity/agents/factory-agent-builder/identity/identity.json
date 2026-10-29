@@ -1,0 +1,71 @@
+{
+  "id": "D6-A01",
+  "kind": "repository-agent",
+  "role": "specialist",
+  "journey": {
+    "id": "D6",
+    "name": "HR Agentic Factory"
+  },
+  "tokens": {
+    "po": "Factory",
+    "domain": "Agent Builder",
+    "scope": ""
+  },
+  "displayName": {
+    "PROD": "Factory Agent Builder"
+  },
+  "shortDescription": {
+    "PROD": "Builds Copilot Studio agents in GF DEV until the evaluations pass."
+  },
+  "fullDescription": {
+    "PROD": "Authors Copilot Studio agents, topics, knowledge, runtime skills and workflows in GF DEV from the approved plan until the evaluations pass, then opens the pull request. Process owner area: Factory. Status: Factory · prototype-days dry run. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself."
+  },
+  "slug": "factory-agent-builder",
+  "schemaName": null,
+  "solution": null,
+  "envVarPrefix": null,
+  "connectionContext": null,
+  "flowNamePrefix": null,
+  "github": {
+    "agentName": "mcs-builder",
+    "file": ".github/agents/mcs-builder.agent.md",
+    "proposedName": false
+  },
+  "icon": {
+    "background": "#323232",
+    "glyphColour": "#FFFFFF",
+    "contrast": 12.82,
+    "glyph": "Fluent UI System Icons: bot-add (filled / regular)",
+    "files": {
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": null,
+  "status": "Factory · prototype-days dry run",
+  "statusClass": "factory",
+  "audience": "HR AI builders",
+  "processOwnerArea": "HR Agentic Factory - HR AI Business Lead as product owner (to confirm)",
+  "owner": "DAAI Copilot Studio owner (technical owner per the SOP — to confirm)",
+  "channels": [
+    "VS Code with GitHub Copilot",
+    "Copilot CLI",
+    "Copilot Studio (DEV)"
+  ],
+  "gfName": null,
+  "blueprintName": "MCS Builder Agent",
+  "evidence": [
+    "E44",
+    "E45",
+    "E13",
+    "E36",
+    "E39",
+    "E41"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

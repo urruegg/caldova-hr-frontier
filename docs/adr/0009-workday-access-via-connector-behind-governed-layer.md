@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 2026-10-01 |
+| **Version** | 1.2 |
+| **Date** | 2026-10-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Solution Architecture |
@@ -17,6 +17,15 @@
 | **Related** | [ADR-0005](0005-workday-as-system-of-record.md) · [ADR-0008](0008-human-in-the-loop-and-write-envelope.md) · [ADR-0010](0010-organizational-data-service-as-people-context.md) |
 
 ---
+
+## Proposed GF ESS specialization
+
+[ADR-0014](0014-gf-ess-workiq-and-self-service-write-envelope.md) proposes new
+self-only operation contracts and employee-delegated OAuth for the GF
+ESS-equivalent, instead of reusing this use case's service-identity assumptions.
+It preserves the Access Layer's exclusive connector ownership. Work IQ is not
+assumed to expose the Workday connector, and the original HR Operations path
+remains unchanged. The specialization is Proposed Baseline, not live permission.
 
 ## Context
 

@@ -1,0 +1,109 @@
+{
+  "id": "D3-A05",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D3",
+    "name": "HR Operations & Service"
+  },
+  "tokens": {
+    "po": "HR Ops",
+    "domain": "Data Quality",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "HR Ops Data Quality DEV",
+    "TEST": "HR Ops Data Quality TEST",
+    "PROD": "HR Ops Data Quality"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Finds missing or inconsistent Workday data and chases the owner.",
+    "TEST": "TEST · Finds missing or inconsistent Workday data and chases the owner.",
+    "PROD": "Finds missing or inconsistent Workday data and chases the owner."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nFinds missing, duplicate or inconsistent Workday data across the population and chases the data owner until it is right. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nFinds missing, duplicate or inconsistent Workday data across the population and chases the data owner until it is right. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+    "PROD": "Finds missing, duplicate or inconsistent Workday data across the population and chases the data owner until it is right. Process owner area: HR Ops. Status: Hypothesis · not selected."
+  },
+  "slug": "hr-ops-data-quality",
+  "schemaName": "gf_HROpsDataQuality",
+  "solution": {
+    "uniqueName": "GFHROpsDataQuality",
+    "displayName": "GF HR Ops Data Quality"
+  },
+  "envVarPrefix": "gf_HROps",
+  "connectionContext": "HROps",
+  "flowNamePrefix": "HR Ops Data Quality - ",
+  "github": null,
+  "icon": {
+    "background": "#BC5A26",
+    "glyphColour": "#FFFFFF",
+    "contrast": 4.54,
+    "glyph": "Fluent UI System Icons: database-search (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "HR Ops Data Quality DEV",
+      "TEST": "HR Ops Data Quality TEST",
+      "PROD": "HR Ops Data Quality"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer HR Ops Data Quality (DEV)",
+      "TEST": "Georg Fischer HR Ops Data Quality (TEST)",
+      "PROD": "Georg Fischer HR Ops Data Quality"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Finds missing or inconsistent Workday data and chases the owner.",
+      "TEST": "TEST · Finds missing or inconsistent Workday data and chases the owner.",
+      "PROD": "Finds missing or inconsistent Workday data and chases the owner."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nFinds missing, duplicate or inconsistent Workday data across the population and chases the data owner until it is right. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nFinds missing, duplicate or inconsistent Workday data across the population and chases the data owner until it is right. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "PROD": "Finds missing, duplicate or inconsistent Workday data across the population and chases the data owner until it is right. Process owner area: HR Ops. Status: Hypothesis · not selected."
+    },
+    "accentColor": "#BC5A26",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Hypothesis · not selected",
+  "statusClass": "hypothesis",
+  "audience": "HR Operations",
+  "processOwnerArea": "HR Operations (Switzerland HR Operations for the CH MVP)",
+  "owner": "Head of HR Operations",
+  "channels": [],
+  "gfName": null,
+  "blueprintName": "Data Quality Agent",
+  "evidence": [
+    "E04",
+    "E06",
+    "E25"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

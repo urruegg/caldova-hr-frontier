@@ -1,0 +1,112 @@
+{
+  "id": "D3-A08",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D3",
+    "name": "HR Operations & Service"
+  },
+  "tokens": {
+    "po": "HR Policy",
+    "domain": "Learning",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "HR Policy Learning DEV",
+    "TEST": "HR Policy Learning TEST",
+    "PROD": "HR Policy Learning"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Turns approved policies into short learning cards and quizzes.",
+    "TEST": "TEST · Turns approved policies into short learning cards and quizzes.",
+    "PROD": "Turns approved policies into short learning cards and quizzes."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nTurns approved policies and SOPs into short learning cards and quizzes (e.g. working time, expenses, on-call rules) for HR approval and publication; no personal data, no individual scoring. Process owner area: HR Policy. Status: Microsoft proposal · no personal data.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nTurns approved policies and SOPs into short learning cards and quizzes (e.g. working time, expenses, on-call rules) for HR approval and publication; no personal data, no individual scoring. Process owner area: HR Policy. Status: Microsoft proposal · no personal data.",
+    "PROD": "Turns approved policies and SOPs into short learning cards and quizzes (e.g. working time, expenses, on-call rules) for HR approval and publication; no personal data, no individual scoring. Process owner area: HR Policy. Status: Microsoft proposal · no personal data."
+  },
+  "slug": "hr-policy-learning",
+  "schemaName": "gf_HRPolicyLearning",
+  "solution": {
+    "uniqueName": "GFHRPolicyLearning",
+    "displayName": "GF HR Policy Learning"
+  },
+  "envVarPrefix": "gf_HRPolicy",
+  "connectionContext": "HRPolicy",
+  "flowNamePrefix": "HR Policy Learning - ",
+  "github": null,
+  "icon": {
+    "background": "#BC5A26",
+    "glyphColour": "#FFFFFF",
+    "contrast": 4.54,
+    "glyph": "Fluent UI System Icons: hat-graduation (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "HR Policy Learning DEV",
+      "TEST": "HR Policy Learning TEST",
+      "PROD": "HR Policy Learning"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer HR Policy Learning (DEV)",
+      "TEST": "Georg Fischer HR Policy Learning (TEST)",
+      "PROD": "Georg Fischer HR Policy Learning"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Turns approved policies into short learning cards and quizzes.",
+      "TEST": "TEST · Turns approved policies into short learning cards and quizzes.",
+      "PROD": "Turns approved policies into short learning cards and quizzes."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nTurns approved policies and SOPs into short learning cards and quizzes (e.g. working time, expenses, on-call rules) for HR approval and publication; no personal data, no individual scoring. Process owner area: HR Policy. Status: Microsoft proposal · no personal data.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nTurns approved policies and SOPs into short learning cards and quizzes (e.g. working time, expenses, on-call rules) for HR approval and publication; no personal data, no individual scoring. Process owner area: HR Policy. Status: Microsoft proposal · no personal data.",
+      "PROD": "Turns approved policies and SOPs into short learning cards and quizzes (e.g. working time, expenses, on-call rules) for HR approval and publication; no personal data, no individual scoring. Process owner area: HR Policy. Status: Microsoft proposal · no personal data."
+    },
+    "accentColor": "#BC5A26",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Microsoft proposal · no personal data",
+  "statusClass": "proposal",
+  "audience": "HR policy owners and L&D",
+  "processOwnerArea": "Switzerland HR - local policy owner (to be named)",
+  "owner": "Switzerland HR policy owner with L&D (to confirm)",
+  "channels": [
+    "Teams",
+    "Microsoft 365 Copilot"
+  ],
+  "gfName": null,
+  "blueprintName": "Policy Learning Agent",
+  "evidence": [
+    "E40",
+    "E41",
+    "E42"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

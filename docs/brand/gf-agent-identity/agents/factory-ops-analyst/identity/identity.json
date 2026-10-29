@@ -1,0 +1,71 @@
+{
+  "id": "D6-A06",
+  "kind": "repository-agent",
+  "role": "specialist",
+  "journey": {
+    "id": "D6",
+    "name": "HR Agentic Factory"
+  },
+  "tokens": {
+    "po": "Factory",
+    "domain": "Ops Analyst",
+    "scope": ""
+  },
+  "displayName": {
+    "PROD": "Factory Ops Analyst"
+  },
+  "shortDescription": {
+    "PROD": "Reads telemetry and evaluation trends and drafts work items."
+  },
+  "fullDescription": {
+    "PROD": "Reads aggregated telemetry, evaluation trends and credits read-only, clusters issues per intent and drafts Azure Boards work items with evidence and a regression case; the Feedback Harvester is still missing. Process owner area: Factory. Status: Factory · next. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself."
+  },
+  "slug": "factory-ops-analyst",
+  "schemaName": null,
+  "solution": null,
+  "envVarPrefix": null,
+  "connectionContext": null,
+  "flowNamePrefix": null,
+  "github": {
+    "agentName": "ops-analyst",
+    "file": ".github/agents/ops-analyst.agent.md",
+    "proposedName": false
+  },
+  "icon": {
+    "background": "#323232",
+    "glyphColour": "#FFFFFF",
+    "contrast": 12.82,
+    "glyph": "Fluent UI System Icons: pulse (filled / regular)",
+    "files": {
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": null,
+  "status": "Factory · next",
+  "statusClass": "factory",
+  "audience": "Agent owners",
+  "processOwnerArea": "HR Agentic Factory - HR AI Business Lead as product owner (to confirm)",
+  "owner": "DAAI agent owner (operations owner — to confirm)",
+  "channels": [
+    "VS Code with GitHub Copilot",
+    "Azure Boards",
+    "Teams"
+  ],
+  "gfName": null,
+  "blueprintName": "Ops Analyst Agent",
+  "evidence": [
+    "E44",
+    "E45",
+    "E42",
+    "E41",
+    "E03",
+    "E10"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

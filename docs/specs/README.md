@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.5 |
-| **Date** | 2026-10-28 |
+| **Version** | 2.9 |
+| **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
 | **Scope** | docs/specs |
@@ -76,7 +76,25 @@ A specification is created from a selected idea or approved problem. It precedes
 | [Draft sprint](../plans/2026-10-28-gf-azure-devops-repository-sprint.md) | [GF Azure DevOps repository](2026-10-28-gf-azure-devops-repository-design.md) | Draft | Defines independent GF source authority and reviewed one-time transfer. | Confirmed Azure Repos target; Proposed Baseline scoped ADR refinement; live action separately gated. |
 | [Draft sprint](../plans/2026-10-28-gf-azure-devops-solution-cicd-sprint.md) | [GF Azure DevOps solution CI/CD and DEV capture](2026-10-28-gf-azure-devops-solution-cicd-design.md) | Draft | Defines explicit DEV capture to branch/PR, reviewed-source build and TEST delivery. | No pipeline queue, environment access or PROD delivery authority. |
 
-The [GF package index](../README.md#gf-draft-packages) links each specification to its own idea and sprint. The supplied brief is reviewed, but primary source documents and tenant conditions are not independently verified. Each specification has process/interaction Mermaid diagrams and links to the [CAT reuse assessment](../README.md#cat-reuse-assessment). ESS is excluded; chosen-harness deployment remains capability-gated.
+The [GF package index](../README.md#gf-draft-packages) links eight specifications to their own ideas and sprints. The original five use the supplied brief, ESS-equivalent uses public references/confirmed scope, blueprint uses local HTML/repository authority, and identity adoption uses the supplied source kit with explicit mappings. Underlying primary-source approvals and tenant conditions are not inferred. Native ESS templates remain excluded from the original five packages.
+
+### GF ESS-equivalent rebuild
+
+| Successor or next stage | Specification | Status | Purpose | Authority |
+|---|---|---|---|---|
+| [Draft idea](../ideas/gf-ess-github-harness-workiq-idea.md); [Draft sprint](../plans/2026-10-28-gf-ess-github-harness-workiq-sprint.md); [Draft implementation plan](../plans/2026-10-28-gf-ess-github-harness-workiq-implementation.md) | [GF ESS-equivalent GitHub harness and Work IQ design](2026-10-28-gf-ess-github-harness-workiq-design.md) | Draft | Primary specification for the sixth handover set: ESS/Developer Kit parity, six self-only Workday operations, scoped M365, confirmations, audit and value evidence. | User-reviewed planning basis, not live authority; ADR-0014, formal approval scope, OAuth identity, API, M365 enforcement and TEST evidence remain gates. |
+
+### GF blueprint and project overview
+
+| Successor or next stage | Specification | Status | Purpose | Authority |
+|---|---|---|---|---|
+| [Draft idea](../ideas/gf-blueprint-progress-overview-idea.md); [draft sprint](../plans/2026-10-29-gf-blueprint-progress-overview-sprint.md); [provisional plan](../plans/2026-10-29-gf-blueprint-progress-overview-implementation.md) | [GF blueprint progress overview and maintainer](2026-10-29-gf-blueprint-progress-overview-design.md) | Draft | Defines evidence-first progress and reviewed narrative projection into controlled HTML sections, with preservation and freshness checks. | Planning and read-only preview only; written-spec review, HTML writer, synchronization and full portfolio-role activation remain gated. |
+
+### GF grounded agent identity
+
+| Successor or next stage | Specification | Status | Purpose | Authority |
+|---|---|---|---|---|
+| [Idea](../ideas/gf-agent-identity-kit-idea.md); [sprint](../plans/2026-10-29-gf-agent-identity-kit-sprint.md); [provisional plan](../plans/2026-10-29-gf-agent-identity-kit-implementation.md) | [GF grounded agent identity kit adoption](2026-10-29-gf-agent-identity-kit-design.md) | Draft | Defines curated source, four runtime bindings, identity/environment contracts, static checks and gated stamping/release integration. | Written review pending; adaptation approval user-reported; no technical-name mutation, live tenant action or scope expansion authorized. |
 
 ## Domain Links
 

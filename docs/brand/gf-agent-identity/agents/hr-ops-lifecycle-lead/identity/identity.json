@@ -1,0 +1,111 @@
+{
+  "id": "D2-LEAD",
+  "kind": "copilot-studio",
+  "role": "orchestrator",
+  "journey": {
+    "id": "D2",
+    "name": "Joiners, Movers & Leavers"
+  },
+  "tokens": {
+    "po": "HR Ops",
+    "domain": "Lifecycle Lead",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "HR Ops Lifecycle Lead DEV",
+    "TEST": "HR Ops Lifecycle Lead TEST",
+    "PROD": "HR Ops Lifecycle Lead"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Routes joiner, mover and leaver requests to the right HR Ops agent.",
+    "TEST": "TEST · Routes joiner, mover and leaver requests to the right HR Ops agent.",
+    "PROD": "Routes joiner, mover and leaver requests to the right HR Ops agent."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nOrchestrator for the Joiners, Movers & Leavers journey: understands the request and hands it to the right specialist agent. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nOrchestrator for the Joiners, Movers & Leavers journey: understands the request and hands it to the right specialist agent. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+    "PROD": "Orchestrator for the Joiners, Movers & Leavers journey: understands the request and hands it to the right specialist agent. Process owner area: HR Ops. Status: Hypothesis · not selected."
+  },
+  "slug": "hr-ops-lifecycle-lead",
+  "schemaName": "gf_HROpsLifecycleLead",
+  "solution": {
+    "uniqueName": "GFHROpsLifecycleLead",
+    "displayName": "GF HR Ops Lifecycle Lead"
+  },
+  "envVarPrefix": "gf_HROps",
+  "connectionContext": "HROps",
+  "flowNamePrefix": "HR Ops Lifecycle Lead - ",
+  "github": null,
+  "icon": {
+    "background": "#007A53",
+    "glyphColour": "#FFFFFF",
+    "contrast": 5.37,
+    "glyph": "Fluent UI System Icons: people-swap (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "HR Ops Lifecycle Lead DEV",
+      "TEST": "HR Ops Lifecycle Lead TEST",
+      "PROD": "HR Ops Lifecycle Lead"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer HR Ops Lifecycle Lead (DEV)",
+      "TEST": "Georg Fischer HR Ops Lifecycle Lead (TEST)",
+      "PROD": "Georg Fischer HR Ops Lifecycle Lead"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Routes joiner, mover and leaver requests to the right HR Ops agent.",
+      "TEST": "TEST · Routes joiner, mover and leaver requests to the right HR Ops agent.",
+      "PROD": "Routes joiner, mover and leaver requests to the right HR Ops agent."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nOrchestrator for the Joiners, Movers & Leavers journey: understands the request and hands it to the right specialist agent. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nOrchestrator for the Joiners, Movers & Leavers journey: understands the request and hands it to the right specialist agent. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "PROD": "Orchestrator for the Joiners, Movers & Leavers journey: understands the request and hands it to the right specialist agent. Process owner area: HR Ops. Status: Hypothesis · not selected."
+    },
+    "accentColor": "#007A53",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Hypothesis · not selected",
+  "statusClass": "hypothesis",
+  "audience": "HR Operations",
+  "processOwnerArea": "HR Operations (Switzerland HR Operations for the CH MVP)",
+  "owner": "Head of HR Operations",
+  "channels": [
+    "Teams",
+    "Microsoft 365 Copilot"
+  ],
+  "gfName": null,
+  "blueprintName": "People Lifecycle Lead Agent",
+  "evidence": [
+    "E03",
+    "E14"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

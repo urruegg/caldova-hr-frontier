@@ -2,12 +2,21 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.2 |
-| **Date** | 2026-10-28 |
+| **Version** | 0.3 |
+| **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
 | **Scope** | GF functional package: Switzerland add-only proposal workflow with blocked writes |
 | **References** | [Idea](../ideas/gf-hr-operations-agent-idea.md), [Sprint](../plans/2026-10-28-gf-hr-operations-agent-sprint.md), [Platform requirements](../prd.md), [Seven declarations](../hr-journey-and-raci.md#9-governance-applied-to-every-use-case), [Workflow-first architecture](../adr/0011-workflow-first-process-architecture.md) |
+
+## Grounded agent identity
+
+Use the [GF identity kit and adopted bindings](../brand/gf-agent-identity/README.md#3-adopted-identities):
+**D2-A01, HR Ops Master Data CH**, with exact environment-specific names/icons.
+This does not close matching, field, approval or write gates, or migrate an
+existing solution to the kit's proposed technical name. The
+[identity adoption specification](2026-10-29-gf-agent-identity-kit-design.md)
+requires owner decisions and verified target-source behavior before stamping.
 
 ## 1. Authority and known boundary
 

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.2 |
-| **Date** | 2026-10-28 |
+| **Version** | 2.5 |
+| **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active |
 | **Scope** | Repository Ideas |
@@ -83,8 +83,11 @@ The next-stage column comes before the owned record so automated navigation can 
 | IDEA-GF-HR-OPERATIONS | [Specification](../specs/2026-10-28-gf-hr-operations-agent-design.md); [sprint](../plans/2026-10-28-gf-hr-operations-agent-sprint.md) | [GF HR Operations Agent](gf-hr-operations-agent-idea.md) | Draft | GF HR | Detailed Swiss PeopleDoc-to-Workday proposal process. | Propose-only; matching/approval/data/interface and safety gates block writes. | Deferred - not synchronized |
 | IDEA-GF-REPOSITORY | [Specification](../specs/2026-10-28-gf-azure-devops-repository-design.md); [sprint](../plans/2026-10-28-gf-azure-devops-repository-sprint.md) | [GF Azure DevOps repository](gf-azure-devops-repository-idea.md) | Draft | GF Engineering | Independent Azure Repos source authority after reviewed one-time transfer. | User-confirmed target; Proposed Baseline GF ADR refinement; no live migration authority. | Deferred - not synchronized |
 | IDEA-GF-SOLUTION-CICD | [Specification](../specs/2026-10-28-gf-azure-devops-solution-cicd-design.md); [sprint](../plans/2026-10-28-gf-azure-devops-solution-cicd-sprint.md) | [GF Azure DevOps solution CI/CD and DEV capture](gf-azure-devops-solution-cicd-idea.md) | Draft | GF Engineering | Explicit reusable DEV capture to branch/PR, reviewed-source build and TEST delivery. | User-confirmed boundary; solution/environment inventory and access unverified. | Deferred - not synchronized |
+| IDEA-GF-ESS | [Specification](../specs/2026-10-28-gf-ess-github-harness-workiq-design.md); [sprint](../plans/2026-10-28-gf-ess-github-harness-workiq-sprint.md); [implementation plan](../plans/2026-10-28-gf-ess-github-harness-workiq-implementation.md) | [GF ESS-equivalent employee self-service rebuild](gf-ess-github-harness-workiq-idea.md) | Draft | GF HR | New GitHub-harness ESS-equivalent with policy guidance, six self-only Workday operations and scoped M365 support. | Draft handover basis; formal scope, APIs, delegated identity, tool enforcement and acceptance remain gated. | Deferred - not synchronized |
+| IDEA-GF-BLUEPRINT | [Specification](../specs/2026-10-29-gf-blueprint-progress-overview-design.md); [sprint](../plans/2026-10-29-gf-blueprint-progress-overview-sprint.md); [provisional plan](../plans/2026-10-29-gf-blueprint-progress-overview-implementation.md) | [GF blueprint and project progress overview](gf-blueprint-progress-overview-idea.md) | Draft | GF Project overview | Evidence-backed delivery overview, reviewed narrative updates and a scoped repository-working maintainer. | Read-only preview created; written-spec review and full writer/render/check activation remain gated. | Deferred - not synchronized |
+| IDEA-GF-AGENT-IDENTITY | [Specification](../specs/2026-10-29-gf-agent-identity-kit-design.md); [sprint](../plans/2026-10-29-gf-agent-identity-kit-sprint.md); [provisional plan](../plans/2026-10-29-gf-agent-identity-kit-implementation.md) | [GF grounded agent identity kit](gf-agent-identity-kit-idea.md) | Draft | GF Brand / runtime identity | Grounded naming, palette, icons and environment identity for current/future GF runtime designs. | Four mappings adopted; technical/publisher, source-format, guard policy and live application remain gated. | Deferred - not synchronized |
 
-The [five GF draft packages](../README.md#gf-draft-packages) are separate from the nineteen Caldova `UC-nnnn` records. Draft specifications and sprint proposals do not constitute idea graduation or implementation approval. The [source/CAT assessment](../README.md#cat-reuse-assessment) separates reusable authoring aids from conditional runtime candidates; none is installed or admitted.
+The [eight GF draft packages](../README.md#gf-draft-packages) are separate from the nineteen Caldova `UC-nnnn` records. Each has a primary sprint, idea and specification; implementation plans, ADRs, the identity source kit and the gated preview agent are supporting artifacts. Draft specifications and sprint proposals do not constitute idea graduation or implementation approval. The [source/CAT assessment](../README.md#cat-reuse-assessment) separates reusable authoring aids from conditional runtime candidates; none is installed or admitted.
 
 ## HR portfolio guidance
 

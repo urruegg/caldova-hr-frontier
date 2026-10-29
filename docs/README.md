@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.12 |
-| **Date** | 2026-10-28 |
+| **Version** | 1.17 |
+| **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -58,7 +58,12 @@ Successor links precede the owned child so automated navigation can identify eac
 
 ## GF Draft Packages
 
-The following are five separate GF starting-point packages, each with its own sprint, idea and specification. All fifteen primary documents are **Draft**. They do not graduate or replace existing Caldova portfolio records, commit delivery dates, or authorize live changes.
+For receiving the complete change set, start with the
+[detailed GF handover](reviews/2026-10-29-gf-project-handover-review.md).
+It links all eight packages, explains implemented versus planned artifacts,
+records validation/approval blockers and includes an exhaustive file/hash inventory.
+
+The following are eight separate GF starting-point handover packages, each with its own sprint, idea and specification. All twenty-four primary documents are **Draft**. They do not graduate or replace existing Caldova portfolio records, commit delivery dates, or authorize live changes. Implementation plans, proposed ADRs, the identity source kit and the gated preview agent are supporting artifacts, not additional primary documents.
 
 | Topic | Sprint document | Idea document | Specification |
 |---|---|---|---|
@@ -67,8 +72,19 @@ The following are five separate GF starting-point packages, each with its own sp
 | Functional: HR Operations Agent | [Draft sprint](plans/2026-10-28-gf-hr-operations-agent-sprint.md) | [Draft idea](ideas/gf-hr-operations-agent-idea.md) | [Draft specification](specs/2026-10-28-gf-hr-operations-agent-design.md) |
 | Technical: GF Azure DevOps repository | [Draft sprint](plans/2026-10-28-gf-azure-devops-repository-sprint.md) | [Draft idea](ideas/gf-azure-devops-repository-idea.md) | [Draft specification](specs/2026-10-28-gf-azure-devops-repository-design.md) |
 | Technical: Azure DevOps CI/CD and DEV solution capture | [Draft sprint](plans/2026-10-28-gf-azure-devops-solution-cicd-sprint.md) | [Draft idea](ideas/gf-azure-devops-solution-cicd-idea.md) | [Draft specification](specs/2026-10-28-gf-azure-devops-solution-cicd-design.md) |
+| Functional: ESS-equivalent employee self-service rebuild | [Draft sprint](plans/2026-10-28-gf-ess-github-harness-workiq-sprint.md) | [Draft idea](ideas/gf-ess-github-harness-workiq-idea.md) | [Draft specification](specs/2026-10-28-gf-ess-github-harness-workiq-design.md) |
+| Technical: Blueprint and project progress overview | [Draft sprint](plans/2026-10-29-gf-blueprint-progress-overview-sprint.md) | [Draft idea](ideas/gf-blueprint-progress-overview-idea.md) | [Draft specification](specs/2026-10-29-gf-blueprint-progress-overview-design.md) |
+| Technical: Grounded Copilot Studio agent identity kit | [Draft sprint](plans/2026-10-29-gf-agent-identity-kit-sprint.md) | [Draft idea](ideas/gf-agent-identity-kit-idea.md) | [Draft specification](specs/2026-10-29-gf-agent-identity-kit-design.md) |
 
-Scope was refined interactively with the repository owner on 2026-10-28 using the supplied build brief. The original SOPs, policy PDFs, FAQ/workbooks, templates and evidence register have not been independently reviewed here. The drafts distinguish user decisions, brief-reported evidence, proposals and open gates. HR Operations now has a detailed process but remains propose-only with writes blocked. No actual GF URL, named approver or delivery estimate is invented.
+Scope was refined interactively with the repository owner on 2026-10-28. The original five packages use the supplied build brief; the sixth ESS-equivalent package uses public Microsoft references and separately confirmed scope. The original SOPs, policy PDFs, FAQ/workbooks, templates and evidence register have not been independently reviewed here. The drafts distinguish user decisions, reported evidence, proposals and open gates. HR Operations now has a detailed process but remains propose-only with writes blocked. No actual GF URL, named approver or delivery estimate is invented.
+
+The seventh package was refined on 2026-10-29 from the locally supplied blueprint and repository-agent/source authority. It is project-overview enablement, not an additional customer workshop MVP. Its derived status must not promote the six work packages from Draft into delivered capabilities.
+
+The eighth package intakes the supplied GF agent identity kit v1.0.0 with source
+hashes/notices, four adopted runtime bindings and scoped guidance. GF written
+approval to adapt is user-reported; original proposal status and technical
+decisions remain visible. Identity adoption is not runtime delivery or approval
+of every source-catalogue hypothesis.
 
 GF's confirmed target is an independent Azure Repos source/PR authority after a reviewed one-time transfer, with no automatic GitHub synchronization. [ADR-0013](adr/0013-gf-azure-repos-source-authority.md) is the **Proposed Baseline** GF-scoped refinement of ADR-0001, ADR-0002 and ADR-0012, preserving their approved demo history. CI/CD includes reusable explicit DEV capture into branch/PR and TEST delivery only; production is later scope.
 
@@ -82,7 +98,7 @@ References such as `brief 3.6 / E41` mean "reported by the supplied brief", not 
 
 | Topic | Confirmed refinement or open decision |
 |---|---|
-| All functional MVPs | Copilot Studio's **GitHub Copilot runtime harness** selected by the user. ESS is out of current scope; no silent standard-harness substitution. This is separate from GitHub source hosting. |
+| Original functional MVPs | Copilot Studio's **GitHub Copilot runtime harness** selected by the user. Native ESS templates remain excluded from those packages; the separate ESS-equivalent sixth package has its own gated scope. No silent standard-harness substitution; runtime choice is separate from GitHub source hosting. |
 | Policy | Switzerland-only MVP; design supports later regional onboarding with separate sources, audience permissions, applicability, languages, owners, escalation and tests. Exact regional deployment topology is open. |
 | Recruiting | **GF-REC-D01 remains open for HR stakeholders:** earlier approved agent-created requisition/publication versus brief manual Workday entry and recruiter publication. No operational Workday writes or publishing enabled while unresolved. |
 | HR Operations | Detail the PeopleDoc-to-Workday proposal process; writes remain blocked until matching, field/document, approval, interface/identity, privacy and safety gates close. |
@@ -110,6 +126,63 @@ The [project support policy](https://github.com/microsoft/cat-agent-skills/blob/
 **No candidate is admitted, installed or activated by this assessment.** Before reuse, record the accountable owner, exact source/bundle revision and checksum, license/notices, scripts/dependencies, execution/network/data locations, secret handling, least-privilege tools, selected-harness support, synthetic positive/negative tests and export/import asset coverage. Restrict any adapted instructions to the declared write envelope; a skill's instructions are not permission enforcement. Reuse must not enable memory for write-capable agents, Work IQ or connected-agent delegation contrary to existing governance.
 
 The [repository package](specs/2026-10-28-gf-azure-devops-repository-design.md#9-source-layout-and-reusable-component-boundary) owns future vendoring/source admission; the [CI/CD package](specs/2026-10-28-gf-azure-devops-solution-cicd-design.md#8-selected-harness-evidence-and-reuse) owns bundle inclusion and regression evidence. Neither needs a CAT plugin to clone a repository, create pipelines or govern Workday access.
+
+## GF ESS-Equivalent Rebuild
+
+This is the sixth linked handover set in the package index, with a matching idea, the existing sprint and the specification. It remains a separately gated proposal, not a replacement for the original five packages or an in-place migration of an existing ESS deployment.
+
+| Artifact | Status | Purpose |
+|---|---|---|
+| [ESS-equivalent idea](ideas/gf-ess-github-harness-workiq-idea.md) | Draft | Outcome, user/capability canvas, six-operation scope, business-value hypothesis, readiness questions and GF handover reading order. |
+| [ESS-equivalent specification](specs/2026-10-28-gf-ess-github-harness-workiq-design.md) | Draft | First-party ESS/Developer Kit capability and gap analysis, per-use-case M365 matrix, six self-only Workday actions, Mermaid architecture/state/case interactions, identity, audit and value criteria. |
+| [ESS-equivalent sprint](plans/2026-10-28-gf-ess-github-harness-workiq-sprint.md) | Draft | Evaluation-first capability/identity proof, independent scenario tracks and TEST/business acceptance gates; no invented time box or commitments. |
+| [ESS-equivalent implementation plan](plans/2026-10-28-gf-ess-github-harness-workiq-implementation.md) | Draft | Ten test-first slices, intended source/contracts/tests, safe activation, TEST delivery and value/stop/reconciliation acceptance, derived after written-specification review. |
+| [ADR-0014](adr/0014-gf-ess-workiq-and-self-service-write-envelope.md) | Proposed Baseline | Scoped Work IQ proposal and separate ESS write envelope; preserves HR Operations add-only protections and Access Layer ownership. |
+
+The user selected Copilot Studio's GitHub Copilot runtime harness and separate governed integration paths: Work IQ for justified M365 capabilities, employee-delegated OAuth for Workday. Selected transactions are personal phone/email/address/emergency-contact updates, time-off submission through Workday's approval, and Workday Help case creation only after review/confirmation.
+
+Privacy/Security approval is user-reported; its formal scope/reference is not verified. Workday Help API support, some update APIs, delegated identity propagation, M365 resource/action enforcement and chosen-harness ALM remain explicit gates. Documentation does not install tools, enable connections or grant operational permission.
+
+The Developer Kit's pinned main branch now targets declarative ESS; its Custom Engine branch and developer MCP are assessed separately. GitHub Copilot authoring, Copilot Studio's GitHub runtime harness, Work IQ and a Workday connector are not interchangeable boundaries. The specification cites exact sources/revisions and records what was not proven.
+
+The user reviewed the written specification as the basis for the Draft implementation plan. That planning review does not ratify operational permissions or authorize implementation, public publication or live deployment.
+
+## GF Blueprint Progress Overview
+
+The imported [Georg Fischer Frontier Company Blueprint.html](Georg%20Fischer%20Frontier%20Company%20Blueprint.html) is a local hypothesis baseline, version 0.5 dated 2026-10-28. It contains embedded structured data and a renderer; its browser notes are not a shared delivery record. The original HTML is preserved unchanged by this planning work and has not been published or transferred.
+
+| Artifact | Status | Purpose |
+|---|---|---|
+| [Blueprint overview idea](ideas/gf-blueprint-progress-overview-idea.md) | Draft | Outcome, evidence-first maintenance model, stakeholder responsibilities and handover boundary. |
+| [Blueprint overview sprint](plans/2026-10-29-gf-blueprint-progress-overview-sprint.md) | Draft | Source/contracts, controlled rendering, stale-output checks, scoped agent and customer acceptance work. |
+| [Blueprint overview specification](specs/2026-10-29-gf-blueprint-progress-overview-design.md) | Draft | Authority, status/freshness model, reviewed narrative changes, HTML preservation and gated preview-agent design. |
+| [Blueprint overview implementation plan](plans/2026-10-29-gf-blueprint-progress-overview-implementation.md) | Draft | Provisional nine-task plan covering contracts, controlled projection, freshness enforcement, role review, browser notes and clean-folder handover. |
+| [Blueprint Maintainer preview](../.github/agents/blueprint-maintainer.agent.md) | Proposed Baseline | Manually invoked read/search-only analysis and recommendations; no editing, execution, remote access or automated refresh. |
+
+Repository sprint/delivery records and verified evidence govern progress first; Azure Boards is later scope. The intended operating model updates the derived overview in the same reviewed change and rejects stale/inconsistent output through existing validation. A custom agent profile is not a continuous runner.
+
+The user explicitly approved the narrow read/search-only preview, which is now created with focused static contract tests. Written-specification review was requested but the user was unavailable, so the implementation plan remains provisional. The write-capable maintainer, structured inputs, renderer, synchronization and stale gate remain planned. Full activation requires that review, a scoped portfolio amendment and proven controls; no additional operational writer or HTML-edit permission is silently introduced. Host invocation/loading has not been verified by static tests.
+
+## GF Grounded Agent Identity
+
+The [curated kit](brand/gf-agent-identity/README.md) extends the brand folder
+without changing the Caldova theme or supplied blueprint. It preserves 466 source
+files and records the four approved identity mappings for Policy, Recruiting,
+HR Operations and the new ESS-equivalent. Source automation/instructions are
+inactive `.txt` references.
+
+| Artifact | Status | Purpose |
+|---|---|---|
+| [Identity-kit idea](ideas/gf-agent-identity-kit-idea.md) | Draft | Outcome, source approval/mapping scope and readiness questions. |
+| [Identity-kit sprint](plans/2026-10-29-gf-agent-identity-kit-sprint.md) | Draft | Curated intake/static checks and future owner/source/stamping/read-back tracks. |
+| [Identity-kit specification](specs/2026-10-29-gf-agent-identity-kit-design.md) | Draft | Identity contracts, source preservation, environment rules and guarded integration. |
+| [Identity-kit implementation plan](plans/2026-10-29-gf-agent-identity-kit-implementation.md) | Draft | Provisional seven-task plan for source/owner policy, target-format proof, fail-closed adaptation, artifact/read-back and authorized handover. |
+
+Use the kit/bindings for all GF Copilot Studio planning/building. New unmapped
+runtime agents require reviewed extension; repository-working agents and
+technical packages are not renamed. The already-failing blanket anonymization
+branding guard needs a reviewed customer-scope decision before merge/public
+handover. No guard is disabled and no full-repository branding pass is claimed.
 
 ## Board Synchronization
 

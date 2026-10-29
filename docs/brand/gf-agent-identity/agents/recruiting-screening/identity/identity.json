@@ -1,0 +1,110 @@
+{
+  "id": "D1-A02",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D1",
+    "name": "Attract & Hire"
+  },
+  "tokens": {
+    "po": "Recruiting",
+    "domain": "Screening",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "Recruiting Screening DEV",
+    "TEST": "Recruiting Screening TEST",
+    "PROD": "Recruiting Screening"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Summarises applications against approved criteria for recruiters.",
+    "TEST": "TEST · Summarises applications against approved criteria for recruiters.",
+    "PROD": "Summarises applications against approved criteria for recruiters."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nSummarises applications against the approved requisition criteria for recruiter review — no ranking, scoring or rejection. Process owner area: Recruiting. Status: Out of scope for now · no CV screening.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nSummarises applications against the approved requisition criteria for recruiter review — no ranking, scoring or rejection. Process owner area: Recruiting. Status: Out of scope for now · no CV screening.",
+    "PROD": "Summarises applications against the approved requisition criteria for recruiter review — no ranking, scoring or rejection. Process owner area: Recruiting. Status: Out of scope for now · no CV screening."
+  },
+  "slug": "recruiting-screening",
+  "schemaName": "gf_RecruitingScreening",
+  "solution": {
+    "uniqueName": "GFHRRecruitingScreening",
+    "displayName": "GF HR Recruiting Screening"
+  },
+  "envVarPrefix": "gf_Recruiting",
+  "connectionContext": "Recruiting",
+  "flowNamePrefix": "Recruiting Screening - ",
+  "github": null,
+  "icon": {
+    "background": "#00629B",
+    "glyphColour": "#FFFFFF",
+    "contrast": 6.52,
+    "glyph": "Fluent UI System Icons: person-search (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "Recruiting Screening DEV",
+      "TEST": "Recruiting Screening TEST",
+      "PROD": "Recruiting Screening"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer Recruiting Screening (DEV)",
+      "TEST": "Georg Fischer Recruiting Screening (TEST)",
+      "PROD": "Georg Fischer Recruiting Screening"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Summarises applications against approved criteria for recruiters.",
+      "TEST": "TEST · Summarises applications against approved criteria for recruiters.",
+      "PROD": "Summarises applications against approved criteria for recruiters."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nSummarises applications against the approved requisition criteria for recruiter review — no ranking, scoring or rejection. Process owner area: Recruiting. Status: Out of scope for now · no CV screening.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nSummarises applications against the approved requisition criteria for recruiter review — no ranking, scoring or rejection. Process owner area: Recruiting. Status: Out of scope for now · no CV screening.",
+      "PROD": "Summarises applications against the approved requisition criteria for recruiter review — no ranking, scoring or rejection. Process owner area: Recruiting. Status: Out of scope for now · no CV screening."
+    },
+    "accentColor": "#00629B",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Out of scope for now · no CV screening",
+  "statusClass": "out-of-scope",
+  "audience": "Recruiters",
+  "processOwnerArea": "People Attraction / Recruiting",
+  "owner": "Head of People Attraction & Recruiting",
+  "channels": [],
+  "gfName": null,
+  "blueprintName": "Candidate Screening Assistant",
+  "evidence": [
+    "E23",
+    "E06",
+    "E13",
+    "E28"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

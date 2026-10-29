@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.6 |
+| **Version** | 1.7 |
 | **Date** | 2026-10-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -38,12 +38,13 @@ Use the next four-digit stable identifier and a lowercase descriptive filename. 
 | Caldova ratification pending | [ADR-0005](0005-workday-as-system-of-record.md) | Proposed Baseline | Establishes Workday as the employee master-data system of record. | Accepted within the HR design package; repository metadata remains Proposed Baseline. |
 | Caldova ratification pending | [ADR-0006](0006-agentic-toolset-and-hr-control-plane.md) | Proposed Baseline | Defines the agentic toolset and HR control-plane split. | Accepted within the HR design package; repository metadata remains Proposed Baseline. |
 | Caldova ratification pending | [ADR-0007](0007-dataverse-process-state-boundary.md) | Proposed Baseline | Defines the Dataverse process-state boundary. | Accepted within the HR design package; repository metadata remains Proposed Baseline. |
-| Caldova ratification pending | [ADR-0008](0008-human-in-the-loop-and-write-envelope.md) | Proposed Baseline | Defines human authority and the agent write envelope. | Accepted within the HR design package; repository metadata remains Proposed Baseline. |
-| Caldova ratification pending | [ADR-0009](0009-workday-access-via-connector-behind-governed-layer.md) | Proposed Baseline | Places the Microsoft Workday connector behind a governed access layer. | Accepted within the HR design package; repository metadata remains Proposed Baseline. |
+| [Proposed GF ESS specialization](0014-gf-ess-workiq-and-self-service-write-envelope.md); Caldova ratification pending | [ADR-0008](0008-human-in-the-loop-and-write-envelope.md) | Proposed Baseline | Defines human authority and the agent write envelope. | HR Operations add-only boundary remains unchanged; proposed ESS envelope is separate and unratified. |
+| [Proposed GF ESS specialization](0014-gf-ess-workiq-and-self-service-write-envelope.md); Caldova ratification pending | [ADR-0009](0009-workday-access-via-connector-behind-governed-layer.md) | Proposed Baseline | Places the Microsoft Workday connector behind a governed access layer. | Core connector ownership preserved; proposed ESS employee-delegated action contracts remain separately gated. |
 | Validate product fit before any implementation | [ADR-0010](0010-organizational-data-service-as-people-context.md) | Proposed Baseline | Treats Organizational Data Service as optional people context, not an integration path. | Proposed within the HR design package and not confirmed by Caldova. |
 | Caldova ratification pending | [ADR-0011](0011-workflow-first-process-architecture.md) | Proposed Baseline | Defines workflow-first process architecture. | Accepted within the HR design package; repository metadata remains Proposed Baseline. |
 | [Proposed GF-scoped refinement](0013-gf-azure-repos-source-authority.md); [lean platform design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md) | [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) | Approved | Establishes per-tenant GitHub repository and account topology. | Approved demo/tenant decision; GF refinement is Proposed Baseline, not a global rewrite. |
 | [GF repository specification](../specs/2026-10-28-gf-azure-devops-repository-design.md); [GF CI/CD specification](../specs/2026-10-28-gf-azure-devops-solution-cicd-design.md) | [ADR-0013](0013-gf-azure-repos-source-authority.md) | Proposed Baseline | Records GF's independent Azure Repos target, chosen Copilot Studio runtime and private handover boundary. | Proposed GF-only successor; demo history unchanged; publication, live execution and reusable-skill admission separately gated. |
+| [Draft ESS specification](../specs/2026-10-28-gf-ess-github-harness-workiq-design.md); [draft sprint](../plans/2026-10-28-gf-ess-github-harness-workiq-sprint.md) | [ADR-0014](0014-gf-ess-workiq-and-self-service-write-envelope.md) | Proposed Baseline | Proposes GF ESS-specific Work IQ access and six self-only delegated Workday actions, including confirmed Help case creation. | User approved drafting; formal approval scope, ratification and operation-specific proof remain gates. Existing packages and governance remain otherwise unchanged. |
 
 GF's target-platform requirement is confirmed, not an unresolved GitHub-versus-Azure-Repos choice. ADR-0013 remains Proposed Baseline for formal architectural adoption. The [five GF draft packages](../README.md#gf-draft-packages) are documentation starting points, not evidence of a repository migration or pipeline deployment.
 

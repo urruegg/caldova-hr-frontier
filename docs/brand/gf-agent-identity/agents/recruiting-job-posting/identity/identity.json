@@ -1,0 +1,117 @@
+{
+  "id": "D1-A01",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D1",
+    "name": "Attract & Hire"
+  },
+  "tokens": {
+    "po": "Recruiting",
+    "domain": "Job Posting",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "Recruiting Job Posting DEV",
+    "TEST": "Recruiting Job Posting TEST",
+    "PROD": "Recruiting Job Posting"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Guides hiring managers to a Workday-ready job description and posting.",
+    "TEST": "TEST · Guides hiring managers to a Workday-ready job description and posting.",
+    "PROD": "Guides hiring managers to a Workday-ready job description and posting."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nGuides hiring managers through seven questions to a Workday-ready job description, then gives the recruiter one posting package and a job scoping action. Process owner area: Recruiting. Status: Workshop use case · MVP 2.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nGuides hiring managers through seven questions to a Workday-ready job description, then gives the recruiter one posting package and a job scoping action. Process owner area: Recruiting. Status: Workshop use case · MVP 2.",
+    "PROD": "Guides hiring managers through seven questions to a Workday-ready job description, then gives the recruiter one posting package and a job scoping action. Process owner area: Recruiting. Status: Workshop use case · MVP 2."
+  },
+  "slug": "recruiting-job-posting",
+  "schemaName": "gf_RecruitingJobPosting",
+  "solution": {
+    "uniqueName": "GFHRRecruitingJobPosting",
+    "displayName": "GF HR Recruiting Job Posting"
+  },
+  "envVarPrefix": "gf_Recruiting",
+  "connectionContext": "Recruiting",
+  "flowNamePrefix": "Recruiting Job Posting - ",
+  "github": null,
+  "icon": {
+    "background": "#00629B",
+    "glyphColour": "#FFFFFF",
+    "contrast": 6.52,
+    "glyph": "Fluent UI System Icons: megaphone (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "Recruiting Job Posting DEV",
+      "TEST": "Recruiting Job Posting TEST",
+      "PROD": "Recruiting Job Posting"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer Recruiting Job Posting (DEV)",
+      "TEST": "Georg Fischer Recruiting Job Posting (TEST)",
+      "PROD": "Georg Fischer Recruiting Job Posting"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Guides hiring managers to a Workday-ready job description and posting.",
+      "TEST": "TEST · Guides hiring managers to a Workday-ready job description and posting.",
+      "PROD": "Guides hiring managers to a Workday-ready job description and posting."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nGuides hiring managers through seven questions to a Workday-ready job description, then gives the recruiter one posting package and a job scoping action. Process owner area: Recruiting. Status: Workshop use case · MVP 2.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nGuides hiring managers through seven questions to a Workday-ready job description, then gives the recruiter one posting package and a job scoping action. Process owner area: Recruiting. Status: Workshop use case · MVP 2.",
+      "PROD": "Guides hiring managers through seven questions to a Workday-ready job description, then gives the recruiter one posting package and a job scoping action. Process owner area: Recruiting. Status: Workshop use case · MVP 2."
+    },
+    "accentColor": "#00629B",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Workshop use case · MVP 2",
+  "statusClass": "mvp",
+  "audience": "Hiring managers, HR partners and recruiters (pilot)",
+  "processOwnerArea": "People Attraction / Recruiting",
+  "owner": "Head of People Attraction & Recruiting (business); DAAI (agent product)",
+  "channels": [
+    "Microsoft 365 Copilot",
+    "Teams",
+    "Outlook",
+    "Workday (link)"
+  ],
+  "gfName": "Recruiting: Job Requisition and Job Posting agent",
+  "blueprintName": "Job Requisition & Job Posting Agent",
+  "evidence": [
+    "E20",
+    "E21",
+    "E22",
+    "E06",
+    "E13",
+    "E28"
+  ],
+  "notes": "GF scope: no CV screening (E40). Display name keeps 'Job Posting' because 'Recruiting Job Requisition' exceeds 25 characters.",
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

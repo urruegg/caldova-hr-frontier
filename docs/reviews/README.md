@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.4 |
-| **Date** | 2026-10-02 |
+| **Version** | 1.5 |
+| **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
 | **Scope** | docs/reviews |
@@ -36,6 +36,7 @@ Name durable reviews `YYYY-MM-DD-topic-review.md` or use the established intake 
 | [Manifest](evidence/2026-09-28-tenant-1-engineering-platform/evidence-manifest.json), [control results](evidence/2026-09-28-tenant-1-engineering-platform/test-results.json), and six sanitized screenshots | [Tenant 1 Engineering Platform Configuration Review](2026-09-28-tenant-1-engineering-platform-configuration-review.md) | Active | Reviews Tenant 1 GitHub, Azure DevOps, Azure, Entra, and Power Platform control planes. | Active evidence-backed review for the observed point in time; it authorizes no remediation. |
 | [Tenant 1 lean platform runbook](../../infra/docs/24-tenant-1-lean-platform-runbook.md) | [Tenant 1 Lean Engineering Platform Acceptance Review](2026-09-28-tenant-1-lean-engineering-platform-acceptance-review.md) | Draft | Defines ordered Tenant 1 lean-platform acceptance controls. | Draft acceptance record; every outcome remains `Not Run` until current sanitized read-back exists. |
 | [Baseline manifest](evidence/2026-10-02-documentation-knowledge-architecture/migration-baseline.json) | [Documentation Knowledge Architecture Migration Review](2026-10-02-documentation-knowledge-architecture-migration-review.md) | Active | Records path, hash, reference, catalogue, and validation migration evidence. | Active migration evidence; the lifecycle and domain catalogues remain discovery authority. |
+| [Changed-artifact inventory](evidence/2026-10-29-gf-handover/artifact-manifest.json); [eight-package map](../README.md#gf-draft-packages) | [GF Project Detailed Handover](2026-10-29-gf-project-handover-review.md) | Draft | Explains all changed package, agent, identity, blueprint, governance and validation artifacts with exact inventory and recipient actions. | Prepared local handover, not GF acceptance, runtime completion or public publication permission; known validation/disclosure gates remain. |
 
 ## Domain Links
 

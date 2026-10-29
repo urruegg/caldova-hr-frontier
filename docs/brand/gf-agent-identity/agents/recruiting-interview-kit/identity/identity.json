@@ -1,0 +1,112 @@
+{
+  "id": "D1-A04",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D1",
+    "name": "Attract & Hire"
+  },
+  "tokens": {
+    "po": "Recruiting",
+    "domain": "Interview Kit",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "Recruiting Interview Kit DEV",
+    "TEST": "Recruiting Interview Kit TEST",
+    "PROD": "Recruiting Interview Kit"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Turns an approved job description into an interview guide and scorecard.",
+    "TEST": "TEST · Turns an approved job description into an interview guide and scorecard.",
+    "PROD": "Turns an approved job description into an interview guide and scorecard."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nTurns an approved job description into a structured interview guide, behavioural questions per competency and scorecard criteria for the hiring team; no candidate data. Process owner area: Recruiting. Status: Microsoft proposal · no personal data.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nTurns an approved job description into a structured interview guide, behavioural questions per competency and scorecard criteria for the hiring team; no candidate data. Process owner area: Recruiting. Status: Microsoft proposal · no personal data.",
+    "PROD": "Turns an approved job description into a structured interview guide, behavioural questions per competency and scorecard criteria for the hiring team; no candidate data. Process owner area: Recruiting. Status: Microsoft proposal · no personal data."
+  },
+  "slug": "recruiting-interview-kit",
+  "schemaName": "gf_RecruitingInterviewKit",
+  "solution": {
+    "uniqueName": "GFHRRecruitingInterviewKit",
+    "displayName": "GF HR Recruiting Interview Kit"
+  },
+  "envVarPrefix": "gf_Recruiting",
+  "connectionContext": "Recruiting",
+  "flowNamePrefix": "Recruiting Interview Kit - ",
+  "github": null,
+  "icon": {
+    "background": "#00629B",
+    "glyphColour": "#FFFFFF",
+    "contrast": 6.52,
+    "glyph": "Fluent UI System Icons: clipboard-task-list-ltr (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "Recruiting Interview Kit DEV",
+      "TEST": "Recruiting Interview Kit TEST",
+      "PROD": "Recruiting Interview Kit"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer Recruiting Interview Kit (DEV)",
+      "TEST": "Georg Fischer Recruiting Interview Kit (TEST)",
+      "PROD": "Georg Fischer Recruiting Interview Kit"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Turns an approved job description into an interview guide and scorecard.",
+      "TEST": "TEST · Turns an approved job description into an interview guide and scorecard.",
+      "PROD": "Turns an approved job description into an interview guide and scorecard."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nTurns an approved job description into a structured interview guide, behavioural questions per competency and scorecard criteria for the hiring team; no candidate data. Process owner area: Recruiting. Status: Microsoft proposal · no personal data.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nTurns an approved job description into a structured interview guide, behavioural questions per competency and scorecard criteria for the hiring team; no candidate data. Process owner area: Recruiting. Status: Microsoft proposal · no personal data.",
+      "PROD": "Turns an approved job description into a structured interview guide, behavioural questions per competency and scorecard criteria for the hiring team; no candidate data. Process owner area: Recruiting. Status: Microsoft proposal · no personal data."
+    },
+    "accentColor": "#00629B",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Microsoft proposal · no personal data",
+  "statusClass": "proposal",
+  "audience": "Hiring teams",
+  "processOwnerArea": "People Attraction / Recruiting",
+  "owner": "Head of People Attraction & Recruiting (business, to confirm); DAAI (agent product)",
+  "channels": [
+    "Microsoft 365 Copilot",
+    "Teams"
+  ],
+  "gfName": null,
+  "blueprintName": "Interview Kit Agent",
+  "evidence": [
+    "E40",
+    "E43",
+    "E22"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

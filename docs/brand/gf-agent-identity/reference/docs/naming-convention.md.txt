@@ -1,0 +1,115 @@
+# Naming convention for GF HR agents
+
+Version 1.0.0 · 2026-10-28 · proposal for GF approval. Machine-readable source: `config/agent-identity.json`.
+
+## 1. The rule
+
+```text
+Display name  =  <PO> <Domain> [<Scope>] [<ENV>]
+                 PO     process-owner area: the GF HR area that owns the business process
+                 Domain functional domain of the agent: what it does, 1-3 words
+                 Scope  optional ISO country code, only when the process is country-specific (e.g. CH)
+                 ENV    DEV or TEST - nothing in PROD
+```
+
+| MVP | GF working name | PO | Domain · Scope | DEV | TEST | PROD |
+|---|---|---|---|---|---|---|
+| MVP 1 | SSE HR Policy Assistant | HR Policy | Assistant | `HR Policy Assistant DEV` | `HR Policy Assistant TEST` | **HR Policy Assistant** |
+| MVP 2 | Recruiting: Job Requisition and Job Posting agent | Recruiting | Job Posting | `Recruiting Job Posting DEV` | `Recruiting Job Posting TEST` | **Recruiting Job Posting** |
+| MVP 3 | HR Operations Agent (Switzerland) | HR Ops | Master Data · CH | `HR Ops Master Data CH DEV` | `HR Ops Master Data CH TEST` | **HR Ops Master Data CH** |
+
+Why this works for users: the first words say which HR area stands behind the agent, the next words say what it does, and only a test build carries an environment word. The production name stays clean in Microsoft 365 Copilot, Teams and the agent store.
+
+> **Assumption to confirm.** We read `<PO>` as the *process-owner area*, because GF's own SOP and PRD headers name a "Business process owner" for every use case (People Attraction / Recruiting [E21, E22, E23], Switzerland HR Operations [E14], Switzerland HR local policy owner [E41]). If GF means something else - for example a fixed prefix such as "People" or "P&O", or the product-owner team - change `naming.displayTemplate` or the `poAreas[].token` values in the config and run `python scripts/build_identity_assets.py`. Every name, icon card, catalog entry and the stamping step follow automatically.
+
+## 2. PO vocabulary
+
+Only these tokens are allowed (the validator rejects others). Abbreviations keep names within the 30-character limit.
+
+| Token in the name | Code in technical names | GF process owner | Journeys | Evidence |
+|---|---|---|---|---|
+| Recruiting | `Recruiting` | People Attraction / Recruiting | D1 | E21, E22, E23 |
+| HR Ops | `HROps` | HR Operations (Switzerland HR Operations for the CH MVP) | D2, D3 | E14, E16 |
+| HR Policy | `HRPolicy` | Switzerland HR - local policy owner (to be named) | D3 | E41 |
+| People Analytics | `PeopleAnalytics` | People Data, Analytics & AI (DAAI); People Analytics as report owner | D4 | E19 |
+| Talent | `Talent` | Talent & Performance (hypothesis, not yet confirmed by GF) | D5 | blueprint hypothesis |
+| Factory | `Factory` | HR Agentic Factory - HR AI Business Lead as product owner (to confirm) | D6 | E44, E45 |
+
+## 3. Domain tokens
+
+- One to three words that say what the agent does: *Job Posting*, *Master Data*, *Assistant*, *Case Triage*.
+- No "Agent", "Bot" or "Copilot" (redundant in the agent store), no personal names, no environment words.
+- Orchestrators end with *Lead* (the blueprint's term for the lead agent of a journey): *Recruiting Lead*, *HR Ops Service Lead*.
+- `Scope` only when the process itself is country-specific. MVP 3 carries *CH* because GF scoped it to the Switzerland HR Operations process [E14, E16]. MVP 1 does not, because the ESS roll-out is planned per country allow-list and the name should survive that.
+
+## 4. Length and characters
+
+| Item | Limit | Rule here | Source |
+|---|---|---|---|
+| Copilot Studio agent display name | 30 characters | PROD name ≤ 25 so that " TEST" still fits | E44 FE-04 |
+| Allowed characters | - | letters, digits, spaces, hyphen, apostrophe; no `&`, `/`, `·` | proposal (XML and manifest safety) |
+| Teams / Microsoft 365 app short name | 30 characters | = display name | Teams app manifest schema (`name.full` is used when the name exceeds 30) |
+| Teams / Microsoft 365 app full name | 100 characters | "Georg Fischer <PROD name>" plus " (DEV)" / " (TEST)" | Teams app manifest schema |
+| Short description | 80 characters | ≤ 72 in the config; DEV/TEST add "DEV · " / "TEST · " | Teams app manifest schema |
+| Full description | 4,000 characters | DEV/TEST start with a test-build banner | Teams app manifest schema |
+| Agent description | mandatory | always filled from the config | E44 FE-14 |
+
+## 5. Where the environment postfix applies - and where it never does
+
+| Artefact | DEV | TEST | PROD | Basis |
+|---|---|---|---|---|
+| Agent display name (Copilot Studio, Microsoft 365 Copilot, Teams) | `… DEV` | `… TEST` | no postfix | GF requirement; stamped before packing, E44 FE-16 |
+| Teams / Microsoft 365 app short and full name | `… DEV` / `(DEV)` | `… TEST` / `(TEST)` | no postfix | same as above |
+| Short description | `DEV · …` | `TEST · …` | plain | proposal; "synthetic data only below PROD" (E44 §7.4) |
+| Agent icon | orange DEV band | light-blue TEST band | clean | E44 FE-16 (names **and icons**) |
+| SharePoint site title (three sites agreed, E10 F140) | GF HR Agents DEV | GF HR Agents TEST | GF HR Agents | proposal for the SharePoint owner |
+| Schema name, solution unique and display name, environment variables, connection references, flow and topic names, repository folders | never | never | never | E44 FE-02; E09 F107; one package moves DEV → TEST → PROD |
+| Infrastructure (runtime principals, Key Vault, Azure resources) | explicit environment token in all three, following GF IT's pattern | | | proposal; GF already uses `GF-AG-PEOPLE-…-DEV` (E24 F238) |
+
+Microsoft already advised GF against "Dev" in a solution's display name because the solution moves from DEV to TEST and production [E09 F107]. The same logic applies to every technical name above: the environment lives only in what users see.
+
+## 6. Technical names (derived, environment-neutral)
+
+| Artefact | Pattern | Rule source |
+|---|---|---|
+| Publisher prefix | `gf` (exists in GF DEV) - decision G5 `gf` or `gfhr` is open | E24 F238; E45 G5 |
+| Agent schema name | `<prefix>_<POCode><Domain>[<Scope>]`, set before the first save; the platform may append a suffix | E44 FE-02 |
+| Solution | `GFHR<POCode without leading HR><Domain>[<Scope>]`, display "GF HR …"; shared solutions keep `GFHRPlatformCore` and `GFHRESS` | E45 §solutions; E09 F107 |
+| Environment variable | agent-specific `<prefix>_<POCode><Name>[_<Scope>]`, shared `<prefix>_<Name>` | matches the MVP hand-over (`gf_HRPolicyKnowledgeUrl_CH`, `gf_WorkdayHelpCenterUrl`) |
+| Connection reference | `<prefix>_<Connector><Context>`, Context = POCode + Scope | E44 FE-23 |
+| Agent flow / workflow | `<PROD display name> - <Verb> <object>`; starts with a letter | E44 FE-04 |
+| Topic | `<Verb> <object>`; inside the ESS agent prefix GF topics with "GF " to separate them from Microsoft-managed topics | proposal |
+| Repository folder | kebab-case of the PROD name: `agents/<slug>/` | proposal |
+| GitHub Copilot custom agent (journey D6) | `.github/agents/<name>.agent.md` with the factory's names | E44 §7.7 |
+| Knowledge source | the SharePoint library's display name, e.g. "Knowledge – HR Policies CH" | MVP hand-over §2 |
+
+MVP examples:
+
+| MVP | Schema name | Solution | Environment variables | Connection references | Flows | Folder |
+|---|---|---|---|---|---|---|
+| MVP 1 | `gf_HRPolicyAssistant` | `GFHRPolicyAssistant` · "GF HR Policy Assistant" | `gf_HRPolicy<Name>` | `gf_<Connector>HRPolicy` | "HR Policy Assistant - <Action>" | `agents/hr-policy-assistant/` |
+| MVP 2 | `gf_RecruitingJobPosting` | `GFHRRecruitingJobPosting` · "GF HR Recruiting Job Posting" | `gf_Recruiting<Name>` | `gf_<Connector>Recruiting` | "Recruiting Job Posting - <Action>" | `agents/recruiting-job-posting/` |
+| MVP 3 | `gf_HROpsMasterDataCH` | `GFHROpsMasterDataCH` · "GF HR Ops Master Data CH" | `gf_HROps<Name>` | `gf_<Connector>HROpsCH` | "HR Ops Master Data CH - <Action>" | `agents/hr-ops-master-data-ch/` |
+
+MVP 1 runs inside GF's Employee Self-Service agent if the ESS HR template is enabled for GF's tenant; GF's customisation then sits in `GFHRESS` [E45], and the derived solution name applies only to plan B (a standard Copilot Studio agent).
+
+## 7. Names already handed over
+
+| Already in use | Status | Recommendation |
+|---|---|---|
+| Folders `/agents/mvp1-hr-policy-assistant/`, `/agents/mvp2-job-requisition-posting/`, `/agents/mvp3-hr-operations-ch/` (MVP hand-over) | proposal | rename to `agents/hr-policy-assistant/`, `agents/recruiting-job-posting/`, `agents/hr-ops-master-data-ch/` - MVP numbers change, names should not |
+| `gf_HRPolicyKnowledgeUrl_CH`, `gf_WorkdayHelpCenterUrl` | proposal | already conform - keep |
+| `GF-AG-PEOPLE-HRAGENT-DEV` (unique `GFCORPPEOPLEHRAGENTDEV`) | exists in GF DEV [E24 F238] | keep for the dry run - GF decided the name stays [E09 F107]; new agent solutions follow the pattern above |
+| `GFHRPlatformCore`, `GFHRESS` | draft [E45] | keep |
+| `GFHRMasterDataAgent` | draft [E45] | either keep it (set `overrides.solutionUniqueName` for D2-A01) or adopt `GFHROpsMasterDataCH`; decide once |
+
+## 8. Decisions to confirm
+
+| # | Decision | Proposed owner | When |
+|---|---|---|---|
+| N-1 | Meaning of `<PO>` (process-owner area assumed) | HR AI Business Lead | before the first DEV save |
+| N-2 | PO tokens and abbreviations ("HR Ops", "People Analytics") | HR AI Business Lead with the process owners | prototype days |
+| N-3 | Publisher prefix `gf` or `gfhr` (G5) | GF IT Power Platform | 28 Oct 2026 [E45] |
+| N-4 | MVP 1-3 display names | business process owners | prototype days |
+| N-5 | One ESS display name if MVP 1 and the own-data assistant become one ESS agent (open decision 16 of the MVP hand-over) | HR AI Business Lead | before PROD |
+| N-6 | SharePoint site titles and infrastructure pattern | SharePoint owner; GF IT | before TEST |

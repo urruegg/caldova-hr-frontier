@@ -1,0 +1,108 @@
+{
+  "id": "D2-A04",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D2",
+    "name": "Joiners, Movers & Leavers"
+  },
+  "tokens": {
+    "po": "HR Ops",
+    "domain": "Pre-hire Tracker",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "HR Ops Pre-hire Tracker DEV",
+    "TEST": "HR Ops Pre-hire Tracker TEST",
+    "PROD": "HR Ops Pre-hire Tracker"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Tracks each joiner's pre-hire steps across systems and chases gaps.",
+    "TEST": "TEST · Tracks each joiner's pre-hire steps across systems and chases gaps.",
+    "PROD": "Tracks each joiner's pre-hire steps across systems and chases gaps."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nTracks the pre-hire chain PeopleDoc → Workday → SAP for each joiner and chases missing items. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nTracks the pre-hire chain PeopleDoc → Workday → SAP for each joiner and chases missing items. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+    "PROD": "Tracks the pre-hire chain PeopleDoc → Workday → SAP for each joiner and chases missing items. Process owner area: HR Ops. Status: Hypothesis · not selected."
+  },
+  "slug": "hr-ops-pre-hire-tracker",
+  "schemaName": "gf_HROpsPreHireTracker",
+  "solution": {
+    "uniqueName": "GFHROpsPreHireTracker",
+    "displayName": "GF HR Ops Pre-hire Tracker"
+  },
+  "envVarPrefix": "gf_HROps",
+  "connectionContext": "HROps",
+  "flowNamePrefix": "HR Ops Pre-hire Tracker - ",
+  "github": null,
+  "icon": {
+    "background": "#007A53",
+    "glyphColour": "#FFFFFF",
+    "contrast": 5.37,
+    "glyph": "Fluent UI System Icons: task-list-ltr (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "HR Ops Pre-hire Tracker DEV",
+      "TEST": "HR Ops Pre-hire Tracker TEST",
+      "PROD": "HR Ops Pre-hire Tracker"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer HR Ops Pre-hire Tracker (DEV)",
+      "TEST": "Georg Fischer HR Ops Pre-hire Tracker (TEST)",
+      "PROD": "Georg Fischer HR Ops Pre-hire Tracker"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Tracks each joiner's pre-hire steps across systems and chases gaps.",
+      "TEST": "TEST · Tracks each joiner's pre-hire steps across systems and chases gaps.",
+      "PROD": "Tracks each joiner's pre-hire steps across systems and chases gaps."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nTracks the pre-hire chain PeopleDoc → Workday → SAP for each joiner and chases missing items. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nTracks the pre-hire chain PeopleDoc → Workday → SAP for each joiner and chases missing items. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "PROD": "Tracks the pre-hire chain PeopleDoc → Workday → SAP for each joiner and chases missing items. Process owner area: HR Ops. Status: Hypothesis · not selected."
+    },
+    "accentColor": "#007A53",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Hypothesis · not selected",
+  "statusClass": "hypothesis",
+  "audience": "HR Operations",
+  "processOwnerArea": "HR Operations (Switzerland HR Operations for the CH MVP)",
+  "owner": "Head of HR Operations",
+  "channels": [],
+  "gfName": null,
+  "blueprintName": "Pre-hire Coordination Agent",
+  "evidence": [
+    "E03",
+    "E25"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

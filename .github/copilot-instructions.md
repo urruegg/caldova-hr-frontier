@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.5 |
-| **Date** | 2026-10-26 |
+| **Version** | 1.6 |
+| **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Repository |
@@ -20,6 +20,14 @@ Maintained repository documentation is written in English and follows [the docum
 paths are authoritative. Path examples in vendored skills are illustrative and
 do not establish repository paths. Do not edit vendored skills to change their
 examples.
+
+### GF runtime-agent identity
+
+For GF Copilot Studio agents, use the [grounded identity kit](../docs/brand/gf-agent-identity/README.md)
+and [adopted bindings](../docs/brand/gf-agent-identity/agent-bindings.json) before planning,
+building or packaging names/icons. This customer-specific intake does not retheme
+the Caldova demo, rename repository-working agents, close publisher/solution decisions,
+or authorize stamping/deployment. Apply the [scoped identity guidance](instructions/gf-agent-identity.instructions.md).
 
 ### External Windows worktrees
 

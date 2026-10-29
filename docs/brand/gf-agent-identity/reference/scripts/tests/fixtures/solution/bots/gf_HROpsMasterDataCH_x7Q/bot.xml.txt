@@ -1,0 +1,8 @@
+<bot schemaname="gf_HROpsMasterDataCH_x7Q">
+  <authenticationmode>2</authenticationmode>
+  <applicationmanifestinformation>{"teams":{"colorIcon":"AAAA","outlineIcon":"BBBB","shortDescription":"synthetic test value"}}</applicationmanifestinformation>
+  <iconbase64>AAAA</iconbase64>
+  <language>1033</language>
+  <name>HR Ops Master Data CH DEV</name>
+  <template>default-2.1.0</template>
+</bot>

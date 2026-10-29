@@ -2,12 +2,22 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.2 |
-| **Date** | 2026-10-28 |
+| **Version** | 0.3 |
+| **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
 | **Scope** | GF technical package: reviewed transfer and Azure Repos source authority |
 | **References** | [Idea](../ideas/gf-azure-devops-repository-idea.md), [Sprint](../plans/2026-10-28-gf-azure-devops-repository-sprint.md), [GF source-authority ADR refinement](../adr/0013-gf-azure-repos-source-authority.md), [CI/CD specification](2026-10-28-gf-azure-devops-solution-cicd-design.md), [Existing handover design](2026-10-02-tenant-replica-and-customer-handover-runbook-design.md) |
+
+## Grounded identity source for handover
+
+The [curated GF identity kit](../brand/gf-agent-identity/README.md) is a
+versioned handover input, with original hashes/notices and explicit runtime
+bindings. It does not rename repository agents or activate its source scripts,
+pipeline templates or broad instructions. Preserve the
+[identity adoption gates](2026-10-29-gf-agent-identity-kit-design.md), including
+technical-name decisions, trademark/disclosure review and the legacy branding
+guard conflict, before claiming a merge/publication-ready transfer.
 
 ## 1. Authority and confirmed target
 

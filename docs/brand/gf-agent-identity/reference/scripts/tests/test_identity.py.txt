@@ -1,0 +1,109 @@
+"""Unit tests for the identity package: python -m unittest discover -s scripts/tests -v"""
+import base64
+import html
+import json
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+SCRIPTS = HERE.parent
+ROOT = SCRIPTS.parent
+sys.path.insert(0, str(SCRIPTS))
+import identity_lib as L  # noqa: E402
+
+
+def run(*args):
+    return subprocess.run([sys.executable, *map(str, args)], capture_output=True, text=True)
+
+
+class NamingTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.cfg, cls.palette = L.load_config(ROOT)
+
+    def test_display_names_fit_30_characters(self):
+        for a in self.cfg["agents"]:
+            for env, name in a["derived"]["displayName"].items():
+                self.assertLessEqual(len(name), 30, f"{a['id']} {env} {name}")
+
+    def test_prod_has_no_postfix_and_nonprod_has_one(self):
+        for a in self.cfg["agents"]:
+            n = a["derived"]["displayName"]
+            self.assertFalse(re.search(r"\b(DEV|TEST|PROD)\b", n["PROD"]), n["PROD"])
+            if a.get("environmentScoped", True):
+                self.assertEqual(n["DEV"], n["PROD"] + " DEV")
+                self.assertEqual(n["TEST"], n["PROD"] + " TEST")
+
+    def test_technical_names_are_environment_neutral(self):
+        for a in self.cfg["agents"]:
+            d = a["derived"]
+            for key in ("schemaName", "solutionUniqueName", "envVarPrefix", "slug"):
+                if d.get(key):
+                    self.assertNotRegex(d[key], r"(?i)(dev|test|prod)$", f"{a['id']} {key}")
+
+    def test_mvp_names(self):
+        by_id = {a["id"]: a["derived"]["displayName"] for a in self.cfg["agents"]}
+        self.assertEqual(by_id["D3-A01"]["PROD"], "HR Policy Assistant")
+        self.assertEqual(by_id["D1-A01"]["TEST"], "Recruiting Job Posting TEST")
+        self.assertEqual(by_id["D2-A01"]["DEV"], "HR Ops Master Data CH DEV")
+
+    def test_icon_contrast(self):
+        for jid, dom in self.palette["domains"].items():
+            self.assertGreaterEqual(L.contrast(dom["background"], dom["glyph"]), 4.5, jid)
+
+    def test_validator_passes(self):
+        r = run(SCRIPTS / "validate_identity.py", "--root", ROOT)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+
+class StampTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        shutil.copytree(HERE / "fixtures" / "solution", self.tmp / "solution")
+        self.bot = self.tmp / "solution" / "bots" / "gf_HRPolicyAssistant" / "bot.xml"
+        self.bot2 = self.tmp / "solution" / "bots" / "gf_HROpsMasterDataCH_x7Q" / "bot.xml"
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def name_of(self, path):
+        return html.unescape(re.search(r"<name>(.*?)</name>", path.read_text(encoding="utf-8")).group(1))
+
+    def test_dry_run_changes_nothing(self):
+        before = self.bot.read_text(encoding="utf-8")
+        r = run(SCRIPTS / "stamp_identity.py", "--env", "TEST", "--solution-dir", self.tmp / "solution", "--root", ROOT)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(before, self.bot.read_text(encoding="utf-8"))
+        self.assertIn("would stamp", r.stdout)
+
+    def test_apply_test_then_prod(self):
+        r = run(SCRIPTS / "stamp_identity.py", "--env", "TEST", "--solution-dir", self.tmp / "solution", "--root", ROOT, "--apply")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.name_of(self.bot), "HR Policy Assistant TEST")
+        icon = (ROOT / "agents" / "hr-policy-assistant" / "identity" / "color-192-test.png").read_bytes()
+        self.assertIn(base64.b64encode(icon).decode(), self.bot.read_text(encoding="utf-8"))
+        r = run(SCRIPTS / "stamp_identity.py", "--env", "PROD", "--solution-dir", self.tmp / "solution", "--root", ROOT, "--apply")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.name_of(self.bot), "HR Policy Assistant")
+        self.assertEqual(self.name_of(self.bot2), "HR Ops Master Data CH")
+
+    def test_manifest_icons_updated_when_present(self):
+        run(SCRIPTS / "stamp_identity.py", "--env", "PROD", "--solution-dir", self.tmp / "solution", "--root", ROOT, "--apply")
+        xml = self.bot2.read_text(encoding="utf-8")
+        manifest = json.loads(html.unescape(re.search(r"<applicationmanifestinformation>(.*?)</applicationmanifestinformation>", xml, re.S).group(1)))
+        outline = (ROOT / "agents" / "hr-ops-master-data-ch" / "identity" / "outline-32.png").read_bytes()
+        self.assertEqual(manifest["teams"]["outlineIcon"], base64.b64encode(outline).decode())
+        self.assertEqual(manifest["teams"]["shortDescription"], "synthetic test value")
+
+    def test_strict_fails_on_unknown_agent(self):
+        r = run(SCRIPTS / "stamp_identity.py", "--env", "TEST", "--solution-dir", self.tmp / "solution", "--root", ROOT, "--strict")
+        self.assertEqual(r.returncode, 2, r.stdout)
+
+
+if __name__ == "__main__":
+    unittest.main()

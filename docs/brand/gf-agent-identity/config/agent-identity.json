@@ -1,0 +1,2562 @@
+{
+  "version": "1.0.0",
+  "date": "2026-10-28",
+  "customer": "Georg Fischer",
+  "naming": {
+    "displayTemplate": "{po} {domain} {scope} {env}",
+    "maxDisplayLength": 30,
+    "maxBaseLength": 25,
+    "publisherPrefix": "gf",
+    "publisherPrefixDecision": "Open decision G5 (gf or gfhr), GF IT Power Platform, 28 Oct 2026 (E45). gf exists in GF DEV (E24).",
+    "solutionPrefix": "GFHR",
+    "fullNamePrefix": "Georg Fischer ",
+    "allowedDisplayCharacters": "^[A-Za-z][A-Za-z0-9 '\\-]*$"
+  },
+  "environments": {
+    "DEV": {
+      "postfix": "DEV",
+      "shortPrefix": "DEV · ",
+      "fullBanner": "DEV build - synthetic data only, not for production use."
+    },
+    "TEST": {
+      "postfix": "TEST",
+      "shortPrefix": "TEST · ",
+      "fullBanner": "TEST build - synthetic or approved test data only, not for production use."
+    },
+    "PROD": {
+      "postfix": "",
+      "shortPrefix": "",
+      "fullBanner": ""
+    }
+  },
+  "poAreas": [
+    {
+      "token": "Recruiting",
+      "code": "Recruiting",
+      "processOwner": "People Attraction / Recruiting",
+      "evidence": [
+        "E21",
+        "E22",
+        "E23"
+      ],
+      "journeys": [
+        "D1"
+      ]
+    },
+    {
+      "token": "HR Ops",
+      "code": "HROps",
+      "processOwner": "HR Operations (Switzerland HR Operations for the CH MVP)",
+      "evidence": [
+        "E14",
+        "E16"
+      ],
+      "journeys": [
+        "D2",
+        "D3"
+      ]
+    },
+    {
+      "token": "HR Policy",
+      "code": "HRPolicy",
+      "processOwner": "Switzerland HR - local policy owner (to be named)",
+      "evidence": [
+        "E41"
+      ],
+      "journeys": [
+        "D3"
+      ]
+    },
+    {
+      "token": "People Analytics",
+      "code": "PeopleAnalytics",
+      "processOwner": "People Data, Analytics & AI (DAAI); People Analytics as report owner",
+      "evidence": [
+        "E19"
+      ],
+      "journeys": [
+        "D4"
+      ]
+    },
+    {
+      "token": "Talent",
+      "code": "Talent",
+      "processOwner": "Talent & Performance (hypothesis, not yet confirmed by GF)",
+      "evidence": [],
+      "journeys": [
+        "D5"
+      ]
+    },
+    {
+      "token": "Factory",
+      "code": "Factory",
+      "processOwner": "HR Agentic Factory - HR AI Business Lead as product owner (to confirm)",
+      "evidence": [
+        "E44",
+        "E45"
+      ],
+      "journeys": [
+        "D6"
+      ]
+    }
+  ],
+  "agents": [
+    {
+      "id": "D1-LEAD",
+      "journey": "D1",
+      "journeyName": "Attract & Hire",
+      "role": "orchestrator",
+      "blueprintName": "Recruiting Lead Agent",
+      "gfName": null,
+      "po": "Recruiting",
+      "domain": "Lead",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "person-add",
+      "shortDescription": "Routes recruiting requests to the right Attract & Hire specialist agent.",
+      "fullDescription": "Orchestrator for the Attract & Hire journey: understands the request and hands it to the right specialist agent. Process owner area: Recruiting. Status: Hypothesis · not selected.",
+      "audience": "Hiring managers, HR partners and recruiters",
+      "owner": "Head of People Attraction & Recruiting",
+      "channels": [
+        "Teams",
+        "Microsoft 365 Copilot"
+      ],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E20",
+        "E04"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Recruiting Lead DEV",
+          "TEST": "Recruiting Lead TEST",
+          "PROD": "Recruiting Lead"
+        },
+        "slug": "recruiting-lead",
+        "schemaStem": "RecruitingLead",
+        "schemaName": "gf_RecruitingLead",
+        "solutionUniqueName": "GFHRRecruitingLead",
+        "solutionDisplayName": "GF HR Recruiting Lead",
+        "envVarPrefix": "gf_Recruiting",
+        "connectionContext": "Recruiting",
+        "flowNamePrefix": "Recruiting Lead - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "Recruiting Lead DEV",
+            "TEST": "Recruiting Lead TEST",
+            "PROD": "Recruiting Lead"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer Recruiting Lead (DEV)",
+            "TEST": "Georg Fischer Recruiting Lead (TEST)",
+            "PROD": "Georg Fischer Recruiting Lead"
+          },
+          "accentColor": "#00629B"
+        },
+        "icon": {
+          "background": "#00629B",
+          "glyphColor": "#FFFFFF",
+          "contrast": 6.52,
+          "glyph": "person-add"
+        }
+      }
+    },
+    {
+      "id": "D1-A01",
+      "journey": "D1",
+      "journeyName": "Attract & Hire",
+      "role": "specialist",
+      "blueprintName": "Job Requisition & Job Posting Agent",
+      "gfName": "Recruiting: Job Requisition and Job Posting agent",
+      "po": "Recruiting",
+      "domain": "Job Posting",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Workshop use case · MVP 2",
+      "statusClass": "mvp",
+      "mvp": "MVP 2",
+      "glyph": "megaphone",
+      "shortDescription": "Guides hiring managers to a Workday-ready job description and posting.",
+      "fullDescription": "Guides hiring managers through seven questions to a Workday-ready job description, then gives the recruiter one posting package and a job scoping action. Process owner area: Recruiting. Status: Workshop use case · MVP 2.",
+      "audience": "Hiring managers, HR partners and recruiters (pilot)",
+      "owner": "Head of People Attraction & Recruiting (business); DAAI (agent product)",
+      "channels": [
+        "Microsoft 365 Copilot",
+        "Teams",
+        "Outlook",
+        "Workday (link)"
+      ],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E20",
+        "E21",
+        "E22",
+        "E06",
+        "E13",
+        "E28"
+      ],
+      "overrides": {},
+      "notes": "GF scope: no CV screening (E40). Display name keeps 'Job Posting' because 'Recruiting Job Requisition' exceeds 25 characters.",
+      "derived": {
+        "displayName": {
+          "DEV": "Recruiting Job Posting DEV",
+          "TEST": "Recruiting Job Posting TEST",
+          "PROD": "Recruiting Job Posting"
+        },
+        "slug": "recruiting-job-posting",
+        "schemaStem": "RecruitingJobPosting",
+        "schemaName": "gf_RecruitingJobPosting",
+        "solutionUniqueName": "GFHRRecruitingJobPosting",
+        "solutionDisplayName": "GF HR Recruiting Job Posting",
+        "envVarPrefix": "gf_Recruiting",
+        "connectionContext": "Recruiting",
+        "flowNamePrefix": "Recruiting Job Posting - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "Recruiting Job Posting DEV",
+            "TEST": "Recruiting Job Posting TEST",
+            "PROD": "Recruiting Job Posting"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer Recruiting Job Posting (DEV)",
+            "TEST": "Georg Fischer Recruiting Job Posting (TEST)",
+            "PROD": "Georg Fischer Recruiting Job Posting"
+          },
+          "accentColor": "#00629B"
+        },
+        "icon": {
+          "background": "#00629B",
+          "glyphColor": "#FFFFFF",
+          "contrast": 6.52,
+          "glyph": "megaphone"
+        }
+      }
+    },
+    {
+      "id": "D1-A02",
+      "journey": "D1",
+      "journeyName": "Attract & Hire",
+      "role": "specialist",
+      "blueprintName": "Candidate Screening Assistant",
+      "gfName": null,
+      "po": "Recruiting",
+      "domain": "Screening",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Out of scope for now · no CV screening",
+      "statusClass": "out-of-scope",
+      "mvp": null,
+      "glyph": "person-search",
+      "shortDescription": "Summarises applications against approved criteria for recruiters.",
+      "fullDescription": "Summarises applications against the approved requisition criteria for recruiter review — no ranking, scoring or rejection. Process owner area: Recruiting. Status: Out of scope for now · no CV screening.",
+      "audience": "Recruiters",
+      "owner": "Head of People Attraction & Recruiting",
+      "channels": [],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E23",
+        "E06",
+        "E13",
+        "E28"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Recruiting Screening DEV",
+          "TEST": "Recruiting Screening TEST",
+          "PROD": "Recruiting Screening"
+        },
+        "slug": "recruiting-screening",
+        "schemaStem": "RecruitingScreening",
+        "schemaName": "gf_RecruitingScreening",
+        "solutionUniqueName": "GFHRRecruitingScreening",
+        "solutionDisplayName": "GF HR Recruiting Screening",
+        "envVarPrefix": "gf_Recruiting",
+        "connectionContext": "Recruiting",
+        "flowNamePrefix": "Recruiting Screening - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "Recruiting Screening DEV",
+            "TEST": "Recruiting Screening TEST",
+            "PROD": "Recruiting Screening"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer Recruiting Screening (DEV)",
+            "TEST": "Georg Fischer Recruiting Screening (TEST)",
+            "PROD": "Georg Fischer Recruiting Screening"
+          },
+          "accentColor": "#00629B"
+        },
+        "icon": {
+          "background": "#00629B",
+          "glyphColor": "#FFFFFF",
+          "contrast": 6.52,
+          "glyph": "person-search"
+        }
+      }
+    },
+    {
+      "id": "D1-A03",
+      "journey": "D1",
+      "journeyName": "Attract & Hire",
+      "role": "specialist",
+      "blueprintName": "Interview & Offer Coordination Agent",
+      "gfName": null,
+      "po": "Recruiting",
+      "domain": "Coordination",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "calendar-person",
+      "shortDescription": "Schedules interviews and prepares offer documents for HR approval.",
+      "fullDescription": "Schedules interviews and prepares offer documents for the HR partner's approval. Process owner area: Recruiting. Status: Hypothesis · not selected.",
+      "audience": "Recruiters and hiring managers",
+      "owner": "Head of People Attraction & Recruiting",
+      "channels": [],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E04"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Recruiting Coordination DEV",
+          "TEST": "Recruiting Coordination TEST",
+          "PROD": "Recruiting Coordination"
+        },
+        "slug": "recruiting-coordination",
+        "schemaStem": "RecruitingCoordination",
+        "schemaName": "gf_RecruitingCoordination",
+        "solutionUniqueName": "GFHRRecruitingCoordination",
+        "solutionDisplayName": "GF HR Recruiting Coordination",
+        "envVarPrefix": "gf_Recruiting",
+        "connectionContext": "Recruiting",
+        "flowNamePrefix": "Recruiting Coordination - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "Recruiting Coordination DEV",
+            "TEST": "Recruiting Coordination TEST",
+            "PROD": "Recruiting Coordination"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer Recruiting Coordination (DEV)",
+            "TEST": "Georg Fischer Recruiting Coordination (TEST)",
+            "PROD": "Georg Fischer Recruiting Coordination"
+          },
+          "accentColor": "#00629B"
+        },
+        "icon": {
+          "background": "#00629B",
+          "glyphColor": "#FFFFFF",
+          "contrast": 6.52,
+          "glyph": "calendar-person"
+        }
+      }
+    },
+    {
+      "id": "D1-A04",
+      "journey": "D1",
+      "journeyName": "Attract & Hire",
+      "role": "specialist",
+      "blueprintName": "Interview Kit Agent",
+      "gfName": null,
+      "po": "Recruiting",
+      "domain": "Interview Kit",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Microsoft proposal · no personal data",
+      "statusClass": "proposal",
+      "mvp": null,
+      "glyph": "clipboard-task-list-ltr",
+      "shortDescription": "Turns an approved job description into an interview guide and scorecard.",
+      "fullDescription": "Turns an approved job description into a structured interview guide, behavioural questions per competency and scorecard criteria for the hiring team; no candidate data. Process owner area: Recruiting. Status: Microsoft proposal · no personal data.",
+      "audience": "Hiring teams",
+      "owner": "Head of People Attraction & Recruiting (business, to confirm); DAAI (agent product)",
+      "channels": [
+        "Microsoft 365 Copilot",
+        "Teams"
+      ],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E40",
+        "E43",
+        "E22"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Recruiting Interview Kit DEV",
+          "TEST": "Recruiting Interview Kit TEST",
+          "PROD": "Recruiting Interview Kit"
+        },
+        "slug": "recruiting-interview-kit",
+        "schemaStem": "RecruitingInterviewKit",
+        "schemaName": "gf_RecruitingInterviewKit",
+        "solutionUniqueName": "GFHRRecruitingInterviewKit",
+        "solutionDisplayName": "GF HR Recruiting Interview Kit",
+        "envVarPrefix": "gf_Recruiting",
+        "connectionContext": "Recruiting",
+        "flowNamePrefix": "Recruiting Interview Kit - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "Recruiting Interview Kit DEV",
+            "TEST": "Recruiting Interview Kit TEST",
+            "PROD": "Recruiting Interview Kit"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer Recruiting Interview Kit (DEV)",
+            "TEST": "Georg Fischer Recruiting Interview Kit (TEST)",
+            "PROD": "Georg Fischer Recruiting Interview Kit"
+          },
+          "accentColor": "#00629B"
+        },
+        "icon": {
+          "background": "#00629B",
+          "glyphColor": "#FFFFFF",
+          "contrast": 6.52,
+          "glyph": "clipboard-task-list-ltr"
+        }
+      }
+    },
+    {
+      "id": "D1-A05",
+      "journey": "D1",
+      "journeyName": "Attract & Hire",
+      "role": "specialist",
+      "blueprintName": "Job Architecture Assistant",
+      "gfName": null,
+      "po": "Recruiting",
+      "domain": "Job Profiles",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Microsoft proposal · no personal data",
+      "statusClass": "proposal",
+      "mvp": null,
+      "glyph": "organization",
+      "shortDescription": "Checks job descriptions against GF's template and harmonises wording.",
+      "fullDescription": "Checks job descriptions against GF's template and global items, flags gaps and inconsistent titles or levels, proposes harmonised wording for HR approval; no personal data. Process owner area: Recruiting. Status: Microsoft proposal · no personal data.",
+      "audience": "Recruiting and HR partners",
+      "owner": "Head of People Attraction & Recruiting (business, to confirm); DAAI (agent product)",
+      "channels": [
+        "Microsoft 365 Copilot",
+        "Teams"
+      ],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E40",
+        "E43",
+        "E06",
+        "E04",
+        "E13"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Recruiting Job Profiles DEV",
+          "TEST": "Recruiting Job Profiles TEST",
+          "PROD": "Recruiting Job Profiles"
+        },
+        "slug": "recruiting-job-profiles",
+        "schemaStem": "RecruitingJobProfiles",
+        "schemaName": "gf_RecruitingJobProfiles",
+        "solutionUniqueName": "GFHRRecruitingJobProfiles",
+        "solutionDisplayName": "GF HR Recruiting Job Profiles",
+        "envVarPrefix": "gf_Recruiting",
+        "connectionContext": "Recruiting",
+        "flowNamePrefix": "Recruiting Job Profiles - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "Recruiting Job Profiles DEV",
+            "TEST": "Recruiting Job Profiles TEST",
+            "PROD": "Recruiting Job Profiles"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer Recruiting Job Profiles (DEV)",
+            "TEST": "Georg Fischer Recruiting Job Profiles (TEST)",
+            "PROD": "Georg Fischer Recruiting Job Profiles"
+          },
+          "accentColor": "#00629B"
+        },
+        "icon": {
+          "background": "#00629B",
+          "glyphColor": "#FFFFFF",
+          "contrast": 6.52,
+          "glyph": "organization"
+        }
+      }
+    },
+    {
+      "id": "D2-LEAD",
+      "journey": "D2",
+      "journeyName": "Joiners, Movers & Leavers",
+      "role": "orchestrator",
+      "blueprintName": "People Lifecycle Lead Agent",
+      "gfName": null,
+      "po": "HR Ops",
+      "domain": "Lifecycle Lead",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "people-swap",
+      "shortDescription": "Routes joiner, mover and leaver requests to the right HR Ops agent.",
+      "fullDescription": "Orchestrator for the Joiners, Movers & Leavers journey: understands the request and hands it to the right specialist agent. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "audience": "HR Operations",
+      "owner": "Head of HR Operations",
+      "channels": [
+        "Teams",
+        "Microsoft 365 Copilot"
+      ],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E03",
+        "E14"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "HR Ops Lifecycle Lead DEV",
+          "TEST": "HR Ops Lifecycle Lead TEST",
+          "PROD": "HR Ops Lifecycle Lead"
+        },
+        "slug": "hr-ops-lifecycle-lead",
+        "schemaStem": "HROpsLifecycleLead",
+        "schemaName": "gf_HROpsLifecycleLead",
+        "solutionUniqueName": "GFHROpsLifecycleLead",
+        "solutionDisplayName": "GF HR Ops Lifecycle Lead",
+        "envVarPrefix": "gf_HROps",
+        "connectionContext": "HROps",
+        "flowNamePrefix": "HR Ops Lifecycle Lead - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "HR Ops Lifecycle Lead DEV",
+            "TEST": "HR Ops Lifecycle Lead TEST",
+            "PROD": "HR Ops Lifecycle Lead"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer HR Ops Lifecycle Lead (DEV)",
+            "TEST": "Georg Fischer HR Ops Lifecycle Lead (TEST)",
+            "PROD": "Georg Fischer HR Ops Lifecycle Lead"
+          },
+          "accentColor": "#007A53"
+        },
+        "icon": {
+          "background": "#007A53",
+          "glyphColor": "#FFFFFF",
+          "contrast": 5.37,
+          "glyph": "people-swap"
+        }
+      }
+    },
+    {
+      "id": "D2-A01",
+      "journey": "D2",
+      "journeyName": "Joiners, Movers & Leavers",
+      "role": "specialist",
+      "blueprintName": "HR Operations Agent – Switzerland",
+      "gfName": "HR Operations Agent (Switzerland)",
+      "po": "HR Ops",
+      "domain": "Master Data",
+      "scope": "CH",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Workshop use case · MVP 3",
+      "statusClass": "mvp",
+      "mvp": "MVP 3",
+      "glyph": "contact-card",
+      "shortDescription": "Adds approved missing joiner data to the matching Workday profile.",
+      "fullDescription": "Pre-loads approved personal master data from new joiners' non-identity documents into the one matching Workday profile — add-only, after HR Operations approves, and audited. Process owner area: HR Ops. Status: Workshop use case · MVP 3.",
+      "audience": "HR Operations Switzerland",
+      "owner": "Switzerland HR Operations (process); DAAI / HR AI Business Lead (product)",
+      "channels": [
+        "Teams (start, approvals, notifications)",
+        "SharePoint (New Employees, Complete, Exceptions)",
+        "Weekly validation view"
+      ],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E40",
+        "E14",
+        "E15",
+        "E16",
+        "E28",
+        "E13",
+        "E10",
+        "E34",
+        "E25"
+      ],
+      "overrides": {},
+      "notes": "E45 names the agent solution GFHRMasterDataAgent in its draft; keep it via overrides.solutionUniqueName if GF prefers that name.",
+      "derived": {
+        "displayName": {
+          "DEV": "HR Ops Master Data CH DEV",
+          "TEST": "HR Ops Master Data CH TEST",
+          "PROD": "HR Ops Master Data CH"
+        },
+        "slug": "hr-ops-master-data-ch",
+        "schemaStem": "HROpsMasterDataCH",
+        "schemaName": "gf_HROpsMasterDataCH",
+        "solutionUniqueName": "GFHROpsMasterDataCH",
+        "solutionDisplayName": "GF HR Ops Master Data CH",
+        "envVarPrefix": "gf_HROps",
+        "connectionContext": "HROpsCH",
+        "flowNamePrefix": "HR Ops Master Data CH - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "HR Ops Master Data CH DEV",
+            "TEST": "HR Ops Master Data CH TEST",
+            "PROD": "HR Ops Master Data CH"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer HR Ops Master Data CH (DEV)",
+            "TEST": "Georg Fischer HR Ops Master Data CH (TEST)",
+            "PROD": "Georg Fischer HR Ops Master Data CH"
+          },
+          "accentColor": "#007A53"
+        },
+        "icon": {
+          "background": "#007A53",
+          "glyphColor": "#FFFFFF",
+          "contrast": 5.37,
+          "glyph": "contact-card"
+        }
+      }
+    },
+    {
+      "id": "D2-A02",
+      "journey": "D2",
+      "journeyName": "Joiners, Movers & Leavers",
+      "role": "specialist",
+      "blueprintName": "Onboarding Companion (content-only)",
+      "gfName": "Onboarding Assistant",
+      "po": "HR Ops",
+      "domain": "Onboarding Guide",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Microsoft proposal · no personal data",
+      "statusClass": "proposal",
+      "mvp": null,
+      "glyph": "hand-wave",
+      "shortDescription": "Answers onboarding questions from approved content; drafts week one.",
+      "fullDescription": "Answers onboarding questions from approved content, site guides and checklists and drafts a generic first-week plan per role family and site; no Workday or personal data. Process owner area: HR Ops. Status: Microsoft proposal · no personal data.",
+      "audience": "New joiners and their managers",
+      "owner": "Head of HR Operations (content, to confirm); DAAI (agent product)",
+      "channels": [
+        "Microsoft Teams",
+        "Microsoft 365 Copilot"
+      ],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E40",
+        "E06",
+        "E04",
+        "E03",
+        "E10"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "HR Ops Onboarding Guide DEV",
+          "TEST": "HR Ops Onboarding Guide TEST",
+          "PROD": "HR Ops Onboarding Guide"
+        },
+        "slug": "hr-ops-onboarding-guide",
+        "schemaStem": "HROpsOnboardingGuide",
+        "schemaName": "gf_HROpsOnboardingGuide",
+        "solutionUniqueName": "GFHROpsOnboardingGuide",
+        "solutionDisplayName": "GF HR Ops Onboarding Guide",
+        "envVarPrefix": "gf_HROps",
+        "connectionContext": "HROps",
+        "flowNamePrefix": "HR Ops Onboarding Guide - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "HR Ops Onboarding Guide DEV",
+            "TEST": "HR Ops Onboarding Guide TEST",
+            "PROD": "HR Ops Onboarding Guide"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer HR Ops Onboarding Guide (DEV)",
+            "TEST": "Georg Fischer HR Ops Onboarding Guide (TEST)",
+            "PROD": "Georg Fischer HR Ops Onboarding Guide"
+          },
+          "accentColor": "#007A53"
+        },
+        "icon": {
+          "background": "#007A53",
+          "glyphColor": "#FFFFFF",
+          "contrast": 5.37,
+          "glyph": "hand-wave"
+        }
+      }
+    },
+    {
+      "id": "D2-A03",
+      "journey": "D2",
+      "journeyName": "Joiners, Movers & Leavers",
+      "role": "specialist",
+      "blueprintName": "Leaver Completion Agent",
+      "gfName": null,
+      "po": "HR Ops",
+      "domain": "Leaver Check",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "door-arrow-left",
+      "shortDescription": "Checks leavers are completed on time and access is returned.",
+      "fullDescription": "Checks that every leaver is terminated on time in Workday and that access, hardware and licences are returned through the existing ServiceNow flow; chases the owners. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "audience": "HR Operations",
+      "owner": "Head of HR Operations",
+      "channels": [],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E03",
+        "E01"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "HR Ops Leaver Check DEV",
+          "TEST": "HR Ops Leaver Check TEST",
+          "PROD": "HR Ops Leaver Check"
+        },
+        "slug": "hr-ops-leaver-check",
+        "schemaStem": "HROpsLeaverCheck",
+        "schemaName": "gf_HROpsLeaverCheck",
+        "solutionUniqueName": "GFHROpsLeaverCheck",
+        "solutionDisplayName": "GF HR Ops Leaver Check",
+        "envVarPrefix": "gf_HROps",
+        "connectionContext": "HROps",
+        "flowNamePrefix": "HR Ops Leaver Check - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "HR Ops Leaver Check DEV",
+            "TEST": "HR Ops Leaver Check TEST",
+            "PROD": "HR Ops Leaver Check"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer HR Ops Leaver Check (DEV)",
+            "TEST": "Georg Fischer HR Ops Leaver Check (TEST)",
+            "PROD": "Georg Fischer HR Ops Leaver Check"
+          },
+          "accentColor": "#007A53"
+        },
+        "icon": {
+          "background": "#007A53",
+          "glyphColor": "#FFFFFF",
+          "contrast": 5.37,
+          "glyph": "door-arrow-left"
+        }
+      }
+    },
+    {
+      "id": "D2-A04",
+      "journey": "D2",
+      "journeyName": "Joiners, Movers & Leavers",
+      "role": "specialist",
+      "blueprintName": "Pre-hire Coordination Agent",
+      "gfName": null,
+      "po": "HR Ops",
+      "domain": "Pre-hire Tracker",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "task-list-ltr",
+      "shortDescription": "Tracks each joiner's pre-hire steps across systems and chases gaps.",
+      "fullDescription": "Tracks the pre-hire chain PeopleDoc → Workday → SAP for each joiner and chases missing items. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "audience": "HR Operations",
+      "owner": "Head of HR Operations",
+      "channels": [],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E03",
+        "E25"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "HR Ops Pre-hire Tracker DEV",
+          "TEST": "HR Ops Pre-hire Tracker TEST",
+          "PROD": "HR Ops Pre-hire Tracker"
+        },
+        "slug": "hr-ops-pre-hire-tracker",
+        "schemaStem": "HROpsPreHireTracker",
+        "schemaName": "gf_HROpsPreHireTracker",
+        "solutionUniqueName": "GFHROpsPreHireTracker",
+        "solutionDisplayName": "GF HR Ops Pre-hire Tracker",
+        "envVarPrefix": "gf_HROps",
+        "connectionContext": "HROps",
+        "flowNamePrefix": "HR Ops Pre-hire Tracker - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "HR Ops Pre-hire Tracker DEV",
+            "TEST": "HR Ops Pre-hire Tracker TEST",
+            "PROD": "HR Ops Pre-hire Tracker"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer HR Ops Pre-hire Tracker (DEV)",
+            "TEST": "Georg Fischer HR Ops Pre-hire Tracker (TEST)",
+            "PROD": "Georg Fischer HR Ops Pre-hire Tracker"
+          },
+          "accentColor": "#007A53"
+        },
+        "icon": {
+          "background": "#007A53",
+          "glyphColor": "#FFFFFF",
+          "contrast": 5.37,
+          "glyph": "task-list-ltr"
+        }
+      }
+    },
+    {
+      "id": "D3-LEAD",
+      "journey": "D3",
+      "journeyName": "HR Operations & Service",
+      "role": "orchestrator",
+      "blueprintName": "HR Service Lead Agent",
+      "gfName": null,
+      "po": "HR Ops",
+      "domain": "Service Lead",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "headset",
+      "shortDescription": "Routes HR service questions and cases to the right HR agent.",
+      "fullDescription": "Orchestrator for the HR Operations & Service journey: understands the request and hands it to the right specialist agent. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "audience": "Employees and HR Service",
+      "owner": "Head of HR Operations",
+      "channels": [
+        "Teams",
+        "Microsoft 365 Copilot"
+      ],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E03"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "HR Ops Service Lead DEV",
+          "TEST": "HR Ops Service Lead TEST",
+          "PROD": "HR Ops Service Lead"
+        },
+        "slug": "hr-ops-service-lead",
+        "schemaStem": "HROpsServiceLead",
+        "schemaName": "gf_HROpsServiceLead",
+        "solutionUniqueName": "GFHROpsServiceLead",
+        "solutionDisplayName": "GF HR Ops Service Lead",
+        "envVarPrefix": "gf_HROps",
+        "connectionContext": "HROps",
+        "flowNamePrefix": "HR Ops Service Lead - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "HR Ops Service Lead DEV",
+            "TEST": "HR Ops Service Lead TEST",
+            "PROD": "HR Ops Service Lead"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer HR Ops Service Lead (DEV)",
+            "TEST": "Georg Fischer HR Ops Service Lead (TEST)",
+            "PROD": "Georg Fischer HR Ops Service Lead"
+          },
+          "accentColor": "#BC5A26"
+        },
+        "icon": {
+          "background": "#BC5A26",
+          "glyphColor": "#FFFFFF",
+          "contrast": 4.54,
+          "glyph": "headset"
+        }
+      }
+    },
+    {
+      "id": "D3-A01",
+      "journey": "D3",
+      "journeyName": "HR Operations & Service",
+      "role": "specialist",
+      "blueprintName": "HR Policy Assistant",
+      "gfName": "SSE HR Policy Assistant",
+      "po": "HR Policy",
+      "domain": "Assistant",
+      "scope": "",
+      "kind": "ess",
+      "environmentScoped": true,
+      "status": "Workshop use case · MVP 1",
+      "statusClass": "mvp",
+      "mvp": "MVP 1",
+      "glyph": "book-question-mark",
+      "shortDescription": "Answers Swiss HR policy questions from approved policies, with source.",
+      "fullDescription": "Answers Switzerland HR policy questions from approved policy PDFs on SharePoint with the source; points to the Workday Help Center when no reliable answer exists. Process owner area: HR Policy. Status: Workshop use case · MVP 1.",
+      "audience": "Employees in Switzerland (pilot group)",
+      "owner": "DAAI (agent owner); Switzerland HR policy owner for content (to be named)",
+      "channels": [
+        "Microsoft 365 Copilot",
+        "Teams"
+      ],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E04",
+        "E06",
+        "E25",
+        "E36",
+        "E38"
+      ],
+      "overrides": {},
+      "notes": "Built on GF's Employee Self-Service agent if the ESS HR template is enabled for GF's tenant (customisation solution GFHRESS, E45); plan B is a standard Copilot Studio agent in its own solution. If the ESS agent later also answers own-data questions (D3-A02), consider one ESS display name for both (open decision 16).",
+      "derived": {
+        "displayName": {
+          "DEV": "HR Policy Assistant DEV",
+          "TEST": "HR Policy Assistant TEST",
+          "PROD": "HR Policy Assistant"
+        },
+        "slug": "hr-policy-assistant",
+        "schemaStem": "HRPolicyAssistant",
+        "schemaName": "gf_HRPolicyAssistant",
+        "solutionUniqueName": "GFHRPolicyAssistant",
+        "solutionDisplayName": "GF HR Policy Assistant",
+        "envVarPrefix": "gf_HRPolicy",
+        "connectionContext": "HRPolicy",
+        "flowNamePrefix": "HR Policy Assistant - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "HR Policy Assistant DEV",
+            "TEST": "HR Policy Assistant TEST",
+            "PROD": "HR Policy Assistant"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer HR Policy Assistant (DEV)",
+            "TEST": "Georg Fischer HR Policy Assistant (TEST)",
+            "PROD": "Georg Fischer HR Policy Assistant"
+          },
+          "accentColor": "#BC5A26"
+        },
+        "icon": {
+          "background": "#BC5A26",
+          "glyphColor": "#FFFFFF",
+          "contrast": 4.54,
+          "glyph": "book-question-mark"
+        }
+      }
+    },
+    {
+      "id": "D3-A02",
+      "journey": "D3",
+      "journeyName": "HR Operations & Service",
+      "role": "specialist",
+      "blueprintName": "Employee Self-Service Assistant",
+      "gfName": null,
+      "po": "HR Ops",
+      "domain": "Self-Service",
+      "scope": "",
+      "kind": "ess",
+      "environmentScoped": true,
+      "status": "Later wave · personal data (own Workday data)",
+      "statusClass": "later",
+      "mvp": null,
+      "glyph": "person-chat",
+      "shortDescription": "Answers employees' questions about their own Workday data.",
+      "fullDescription": "Answers employees' questions about their own Workday data — employee ID, job, organisation, cost centre, service anniversary, contact details — and later updates contact details through Workday business processes, always as the employee. Process owner area: HR Ops. Status: Later wave · personal data (own Workday data).",
+      "audience": "Employees (later wave)",
+      "owner": "Head of HR Operations",
+      "channels": [
+        "Teams",
+        "Microsoft 365 Copilot",
+        "Copilot mobile app"
+      ],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E06",
+        "E04",
+        "E01",
+        "E34",
+        "E36",
+        "E38"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "HR Ops Self-Service DEV",
+          "TEST": "HR Ops Self-Service TEST",
+          "PROD": "HR Ops Self-Service"
+        },
+        "slug": "hr-ops-self-service",
+        "schemaStem": "HROpsSelfService",
+        "schemaName": "gf_HROpsSelfService",
+        "solutionUniqueName": "GFHROpsSelfService",
+        "solutionDisplayName": "GF HR Ops Self-Service",
+        "envVarPrefix": "gf_HROps",
+        "connectionContext": "HROps",
+        "flowNamePrefix": "HR Ops Self-Service - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "HR Ops Self-Service DEV",
+            "TEST": "HR Ops Self-Service TEST",
+            "PROD": "HR Ops Self-Service"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer HR Ops Self-Service (DEV)",
+            "TEST": "Georg Fischer HR Ops Self-Service (TEST)",
+            "PROD": "Georg Fischer HR Ops Self-Service"
+          },
+          "accentColor": "#BC5A26"
+        },
+        "icon": {
+          "background": "#BC5A26",
+          "glyphColor": "#FFFFFF",
+          "contrast": 4.54,
+          "glyph": "person-chat"
+        }
+      }
+    },
+    {
+      "id": "D3-A03",
+      "journey": "D3",
+      "journeyName": "HR Operations & Service",
+      "role": "specialist",
+      "blueprintName": "HR Case Triage Agent",
+      "gfName": null,
+      "po": "HR Ops",
+      "domain": "Case Triage",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "ticket-diagonal",
+      "shortDescription": "Classifies Workday Help cases and suggests routing and a draft reply.",
+      "fullDescription": "Classifies incoming Workday Help cases, suggests routing and a draft answer for the handler. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "audience": "HR Service handlers",
+      "owner": "Head of HR Operations",
+      "channels": [],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E06",
+        "E04",
+        "E08",
+        "E38"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "HR Ops Case Triage DEV",
+          "TEST": "HR Ops Case Triage TEST",
+          "PROD": "HR Ops Case Triage"
+        },
+        "slug": "hr-ops-case-triage",
+        "schemaStem": "HROpsCaseTriage",
+        "schemaName": "gf_HROpsCaseTriage",
+        "solutionUniqueName": "GFHROpsCaseTriage",
+        "solutionDisplayName": "GF HR Ops Case Triage",
+        "envVarPrefix": "gf_HROps",
+        "connectionContext": "HROps",
+        "flowNamePrefix": "HR Ops Case Triage - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "HR Ops Case Triage DEV",
+            "TEST": "HR Ops Case Triage TEST",
+            "PROD": "HR Ops Case Triage"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer HR Ops Case Triage (DEV)",
+            "TEST": "Georg Fischer HR Ops Case Triage (TEST)",
+            "PROD": "Georg Fischer HR Ops Case Triage"
+          },
+          "accentColor": "#BC5A26"
+        },
+        "icon": {
+          "background": "#BC5A26",
+          "glyphColor": "#FFFFFF",
+          "contrast": 4.54,
+          "glyph": "ticket-diagonal"
+        }
+      }
+    },
+    {
+      "id": "D3-A04",
+      "journey": "D3",
+      "journeyName": "HR Operations & Service",
+      "role": "specialist",
+      "blueprintName": "Policy Health Check & FAQ Agent",
+      "gfName": null,
+      "po": "HR Policy",
+      "domain": "Health Check",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Microsoft proposal · no personal data",
+      "statusClass": "proposal",
+      "mvp": null,
+      "glyph": "document-checkmark",
+      "shortDescription": "Checks policy copies against the version tracker; drafts FAQ updates.",
+      "fullDescription": "Checks the SharePoint policy copies against the HR Policy Versioning Tracker, flags conflicts with the CEA, missing owners and review dates, and drafts FAQ entries and test questions; people approve. Process owner area: HR Policy. Status: Microsoft proposal · no personal data.",
+      "audience": "HR policy owners and DAAI",
+      "owner": "DAAI with the Switzerland HR policy owner",
+      "channels": [
+        "Teams",
+        "SharePoint (review list)"
+      ],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E03",
+        "E04"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "HR Policy Health Check DEV",
+          "TEST": "HR Policy Health Check TEST",
+          "PROD": "HR Policy Health Check"
+        },
+        "slug": "hr-policy-health-check",
+        "schemaStem": "HRPolicyHealthCheck",
+        "schemaName": "gf_HRPolicyHealthCheck",
+        "solutionUniqueName": "GFHRPolicyHealthCheck",
+        "solutionDisplayName": "GF HR Policy Health Check",
+        "envVarPrefix": "gf_HRPolicy",
+        "connectionContext": "HRPolicy",
+        "flowNamePrefix": "HR Policy Health Check - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "HR Policy Health Check DEV",
+            "TEST": "HR Policy Health Check TEST",
+            "PROD": "HR Policy Health Check"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer HR Policy Health Check (DEV)",
+            "TEST": "Georg Fischer HR Policy Health Check (TEST)",
+            "PROD": "Georg Fischer HR Policy Health Check"
+          },
+          "accentColor": "#BC5A26"
+        },
+        "icon": {
+          "background": "#BC5A26",
+          "glyphColor": "#FFFFFF",
+          "contrast": 4.54,
+          "glyph": "document-checkmark"
+        }
+      }
+    },
+    {
+      "id": "D3-A05",
+      "journey": "D3",
+      "journeyName": "HR Operations & Service",
+      "role": "specialist",
+      "blueprintName": "Data Quality Agent",
+      "gfName": null,
+      "po": "HR Ops",
+      "domain": "Data Quality",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "database-search",
+      "shortDescription": "Finds missing or inconsistent Workday data and chases the owner.",
+      "fullDescription": "Finds missing, duplicate or inconsistent Workday data across the population and chases the data owner until it is right. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "audience": "HR Operations",
+      "owner": "Head of HR Operations",
+      "channels": [],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E04",
+        "E06",
+        "E25"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "HR Ops Data Quality DEV",
+          "TEST": "HR Ops Data Quality TEST",
+          "PROD": "HR Ops Data Quality"
+        },
+        "slug": "hr-ops-data-quality",
+        "schemaStem": "HROpsDataQuality",
+        "schemaName": "gf_HROpsDataQuality",
+        "solutionUniqueName": "GFHROpsDataQuality",
+        "solutionDisplayName": "GF HR Ops Data Quality",
+        "envVarPrefix": "gf_HROps",
+        "connectionContext": "HROps",
+        "flowNamePrefix": "HR Ops Data Quality - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "HR Ops Data Quality DEV",
+            "TEST": "HR Ops Data Quality TEST",
+            "PROD": "HR Ops Data Quality"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer HR Ops Data Quality (DEV)",
+            "TEST": "Georg Fischer HR Ops Data Quality (TEST)",
+            "PROD": "Georg Fischer HR Ops Data Quality"
+          },
+          "accentColor": "#BC5A26"
+        },
+        "icon": {
+          "background": "#BC5A26",
+          "glyphColor": "#FFFFFF",
+          "contrast": 4.54,
+          "glyph": "database-search"
+        }
+      }
+    },
+    {
+      "id": "D3-A06",
+      "journey": "D3",
+      "journeyName": "HR Operations & Service",
+      "role": "specialist",
+      "blueprintName": "Payroll Reconciliation Agent",
+      "gfName": null,
+      "po": "HR Ops",
+      "domain": "Payroll Check",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "money-calculator",
+      "shortDescription": "Compares payroll and finance files and lists discrepancies.",
+      "fullDescription": "Compares payroll and finance files across payroll systems and lists discrepancies for the payroll team. Process owner area: HR Ops. Status: Hypothesis · not selected.",
+      "audience": "Payroll team",
+      "owner": "Head of HR Operations",
+      "channels": [],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E03",
+        "E04"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "HR Ops Payroll Check DEV",
+          "TEST": "HR Ops Payroll Check TEST",
+          "PROD": "HR Ops Payroll Check"
+        },
+        "slug": "hr-ops-payroll-check",
+        "schemaStem": "HROpsPayrollCheck",
+        "schemaName": "gf_HROpsPayrollCheck",
+        "solutionUniqueName": "GFHROpsPayrollCheck",
+        "solutionDisplayName": "GF HR Ops Payroll Check",
+        "envVarPrefix": "gf_HROps",
+        "connectionContext": "HROps",
+        "flowNamePrefix": "HR Ops Payroll Check - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "HR Ops Payroll Check DEV",
+            "TEST": "HR Ops Payroll Check TEST",
+            "PROD": "HR Ops Payroll Check"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer HR Ops Payroll Check (DEV)",
+            "TEST": "Georg Fischer HR Ops Payroll Check (TEST)",
+            "PROD": "Georg Fischer HR Ops Payroll Check"
+          },
+          "accentColor": "#BC5A26"
+        },
+        "icon": {
+          "background": "#BC5A26",
+          "glyphColor": "#FFFFFF",
+          "contrast": 4.54,
+          "glyph": "money-calculator"
+        }
+      }
+    },
+    {
+      "id": "D3-A07",
+      "journey": "D3",
+      "journeyName": "HR Operations & Service",
+      "role": "specialist",
+      "blueprintName": "HR Communications Agent",
+      "gfName": null,
+      "po": "HR Policy",
+      "domain": "Communications",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Microsoft proposal · no personal data",
+      "statusClass": "proposal",
+      "mvp": null,
+      "glyph": "mail-edit",
+      "shortDescription": "Drafts HR announcements and policy summaries in four languages.",
+      "fullDescription": "Drafts HR announcements, policy-change summaries and manager talking points in German, English, French and Italian from approved policy content in GF's tone; HR approves before anything is published. Process owner area: HR Policy. Status: Microsoft proposal · no personal data.",
+      "audience": "HR policy owners and HR communications",
+      "owner": "Switzerland HR policy owner with the HR AI Business Lead (to confirm)",
+      "channels": [
+        "Teams",
+        "Microsoft 365 Copilot"
+      ],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E40",
+        "E41",
+        "E04"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "HR Policy Communications DEV",
+          "TEST": "HR Policy Communications TEST",
+          "PROD": "HR Policy Communications"
+        },
+        "slug": "hr-policy-communications",
+        "schemaStem": "HRPolicyCommunications",
+        "schemaName": "gf_HRPolicyCommunications",
+        "solutionUniqueName": "GFHRPolicyCommunications",
+        "solutionDisplayName": "GF HR Policy Communications",
+        "envVarPrefix": "gf_HRPolicy",
+        "connectionContext": "HRPolicy",
+        "flowNamePrefix": "HR Policy Communications - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "HR Policy Communications DEV",
+            "TEST": "HR Policy Communications TEST",
+            "PROD": "HR Policy Communications"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer HR Policy Communications (DEV)",
+            "TEST": "Georg Fischer HR Policy Communications (TEST)",
+            "PROD": "Georg Fischer HR Policy Communications"
+          },
+          "accentColor": "#BC5A26"
+        },
+        "icon": {
+          "background": "#BC5A26",
+          "glyphColor": "#FFFFFF",
+          "contrast": 4.54,
+          "glyph": "mail-edit"
+        }
+      }
+    },
+    {
+      "id": "D3-A08",
+      "journey": "D3",
+      "journeyName": "HR Operations & Service",
+      "role": "specialist",
+      "blueprintName": "Policy Learning Agent",
+      "gfName": null,
+      "po": "HR Policy",
+      "domain": "Learning",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Microsoft proposal · no personal data",
+      "statusClass": "proposal",
+      "mvp": null,
+      "glyph": "hat-graduation",
+      "shortDescription": "Turns approved policies into short learning cards and quizzes.",
+      "fullDescription": "Turns approved policies and SOPs into short learning cards and quizzes (e.g. working time, expenses, on-call rules) for HR approval and publication; no personal data, no individual scoring. Process owner area: HR Policy. Status: Microsoft proposal · no personal data.",
+      "audience": "HR policy owners and L&D",
+      "owner": "Switzerland HR policy owner with L&D (to confirm)",
+      "channels": [
+        "Teams",
+        "Microsoft 365 Copilot"
+      ],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E40",
+        "E41",
+        "E42"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "HR Policy Learning DEV",
+          "TEST": "HR Policy Learning TEST",
+          "PROD": "HR Policy Learning"
+        },
+        "slug": "hr-policy-learning",
+        "schemaStem": "HRPolicyLearning",
+        "schemaName": "gf_HRPolicyLearning",
+        "solutionUniqueName": "GFHRPolicyLearning",
+        "solutionDisplayName": "GF HR Policy Learning",
+        "envVarPrefix": "gf_HRPolicy",
+        "connectionContext": "HRPolicy",
+        "flowNamePrefix": "HR Policy Learning - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "HR Policy Learning DEV",
+            "TEST": "HR Policy Learning TEST",
+            "PROD": "HR Policy Learning"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer HR Policy Learning (DEV)",
+            "TEST": "Georg Fischer HR Policy Learning (TEST)",
+            "PROD": "Georg Fischer HR Policy Learning"
+          },
+          "accentColor": "#BC5A26"
+        },
+        "icon": {
+          "background": "#BC5A26",
+          "glyphColor": "#FFFFFF",
+          "contrast": 4.54,
+          "glyph": "hat-graduation"
+        }
+      }
+    },
+    {
+      "id": "D4-LEAD",
+      "journey": "D4",
+      "journeyName": "Leadership & Workforce Insights",
+      "role": "orchestrator",
+      "blueprintName": "People Insights Lead Agent",
+      "gfName": null,
+      "po": "People Analytics",
+      "domain": "Lead",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "data-trending",
+      "shortDescription": "Routes leaders' insight questions to the right analytics agent.",
+      "fullDescription": "Orchestrator for the Leadership & Workforce Insights journey: understands the request and hands it to the right specialist agent. Process owner area: People Analytics. Status: Hypothesis · not selected.",
+      "audience": "Leaders and HR business partners",
+      "owner": "Head of People Data, Analytics & AI",
+      "channels": [
+        "Teams",
+        "Microsoft 365 Copilot"
+      ],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E17",
+        "E13"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "People Analytics Lead DEV",
+          "TEST": "People Analytics Lead TEST",
+          "PROD": "People Analytics Lead"
+        },
+        "slug": "people-analytics-lead",
+        "schemaStem": "PeopleAnalyticsLead",
+        "schemaName": "gf_PeopleAnalyticsLead",
+        "solutionUniqueName": "GFHRPeopleAnalyticsLead",
+        "solutionDisplayName": "GF HR People Analytics Lead",
+        "envVarPrefix": "gf_PeopleAnalytics",
+        "connectionContext": "PeopleAnalytics",
+        "flowNamePrefix": "People Analytics Lead - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "People Analytics Lead DEV",
+            "TEST": "People Analytics Lead TEST",
+            "PROD": "People Analytics Lead"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer People Analytics Lead (DEV)",
+            "TEST": "Georg Fischer People Analytics Lead (TEST)",
+            "PROD": "Georg Fischer People Analytics Lead"
+          },
+          "accentColor": "#003E51"
+        },
+        "icon": {
+          "background": "#003E51",
+          "glyphColor": "#FFFFFF",
+          "contrast": 11.62,
+          "glyph": "data-trending"
+        }
+      }
+    },
+    {
+      "id": "D4-A01",
+      "journey": "D4",
+      "journeyName": "Leadership & Workforce Insights",
+      "role": "specialist",
+      "blueprintName": "Workday Leadership Insights Agent",
+      "gfName": "Workday Leadership Insights Agent",
+      "po": "People Analytics",
+      "domain": "Reports",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Deferred · works council (data from Germany)",
+      "statusClass": "deferred",
+      "mvp": null,
+      "glyph": "data-pie",
+      "shortDescription": "Answers leaders' questions on approved Workday leadership reports.",
+      "fullDescription": "Answers leaders' questions about their team and the approved Workday leadership reports — run under the leader's own access, with team facts from Workday worker data and a link to the Workday report by default. Process owner area: People Analytics. Status: Deferred · works council (data from Germany).",
+      "audience": "Leaders (deferred: works council)",
+      "owner": "Head of People Data, Analytics & AI (DAAI); report owners in People Analytics",
+      "channels": [
+        "Teams",
+        "Microsoft 365 Copilot",
+        "Workday (source link)"
+      ],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E17",
+        "E18",
+        "E19",
+        "E06",
+        "E13",
+        "E28",
+        "E34",
+        "E36",
+        "E37",
+        "E38"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "People Analytics Reports DEV",
+          "TEST": "People Analytics Reports TEST",
+          "PROD": "People Analytics Reports"
+        },
+        "slug": "people-analytics-reports",
+        "schemaStem": "PeopleAnalyticsReports",
+        "schemaName": "gf_PeopleAnalyticsReports",
+        "solutionUniqueName": "GFHRPeopleAnalyticsReports",
+        "solutionDisplayName": "GF HR People Analytics Reports",
+        "envVarPrefix": "gf_PeopleAnalytics",
+        "connectionContext": "PeopleAnalytics",
+        "flowNamePrefix": "People Analytics Reports - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "People Analytics Reports DEV",
+            "TEST": "People Analytics Reports TEST",
+            "PROD": "People Analytics Reports"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer People Analytics Reports (DEV)",
+            "TEST": "Georg Fischer People Analytics Reports (TEST)",
+            "PROD": "Georg Fischer People Analytics Reports"
+          },
+          "accentColor": "#003E51"
+        },
+        "icon": {
+          "background": "#003E51",
+          "glyphColor": "#FFFFFF",
+          "contrast": 11.62,
+          "glyph": "data-pie"
+        }
+      }
+    },
+    {
+      "id": "D4-A02",
+      "journey": "D4",
+      "journeyName": "Leadership & Workforce Insights",
+      "role": "specialist",
+      "blueprintName": "Workforce Insights Agent",
+      "gfName": null,
+      "po": "People Analytics",
+      "domain": "Trends",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "data-bar-vertical",
+      "shortDescription": "Explains group-level trends such as headcount, hiring and attrition.",
+      "fullDescription": "Combines several reports and Power BI models to explain trends such as headcount, hiring and attrition at group level. Process owner area: People Analytics. Status: Hypothesis · not selected.",
+      "audience": "HR leadership",
+      "owner": "Head of People Data, Analytics & AI",
+      "channels": [],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E06",
+        "E13"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "People Analytics Trends DEV",
+          "TEST": "People Analytics Trends TEST",
+          "PROD": "People Analytics Trends"
+        },
+        "slug": "people-analytics-trends",
+        "schemaStem": "PeopleAnalyticsTrends",
+        "schemaName": "gf_PeopleAnalyticsTrends",
+        "solutionUniqueName": "GFHRPeopleAnalyticsTrends",
+        "solutionDisplayName": "GF HR People Analytics Trends",
+        "envVarPrefix": "gf_PeopleAnalytics",
+        "connectionContext": "PeopleAnalytics",
+        "flowNamePrefix": "People Analytics Trends - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "People Analytics Trends DEV",
+            "TEST": "People Analytics Trends TEST",
+            "PROD": "People Analytics Trends"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer People Analytics Trends (DEV)",
+            "TEST": "Georg Fischer People Analytics Trends (TEST)",
+            "PROD": "Georg Fischer People Analytics Trends"
+          },
+          "accentColor": "#003E51"
+        },
+        "icon": {
+          "background": "#003E51",
+          "glyphColor": "#FFFFFF",
+          "contrast": 11.62,
+          "glyph": "data-bar-vertical"
+        }
+      }
+    },
+    {
+      "id": "D4-A03",
+      "journey": "D4",
+      "journeyName": "Leadership & Workforce Insights",
+      "role": "specialist",
+      "blueprintName": "Attrition Risk Insight",
+      "gfName": null,
+      "po": "People Analytics",
+      "domain": "Turnover",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "arrow-trending-down",
+      "shortDescription": "Shows group-level attrition signals to HR partners, never individuals.",
+      "fullDescription": "Shows group-level attrition signals to HR business partners — never individual predictions. Process owner area: People Analytics. Status: Hypothesis · not selected.",
+      "audience": "HR business partners",
+      "owner": "Head of People Data, Analytics & AI",
+      "channels": [],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E06",
+        "E25"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "People Analytics Turnover DEV",
+          "TEST": "People Analytics Turnover TEST",
+          "PROD": "People Analytics Turnover"
+        },
+        "slug": "people-analytics-turnover",
+        "schemaStem": "PeopleAnalyticsTurnover",
+        "schemaName": "gf_PeopleAnalyticsTurnover",
+        "solutionUniqueName": "GFHRPeopleAnalyticsTurnover",
+        "solutionDisplayName": "GF HR People Analytics Turnover",
+        "envVarPrefix": "gf_PeopleAnalytics",
+        "connectionContext": "PeopleAnalytics",
+        "flowNamePrefix": "People Analytics Turnover - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "People Analytics Turnover DEV",
+            "TEST": "People Analytics Turnover TEST",
+            "PROD": "People Analytics Turnover"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer People Analytics Turnover (DEV)",
+            "TEST": "Georg Fischer People Analytics Turnover (TEST)",
+            "PROD": "Georg Fischer People Analytics Turnover"
+          },
+          "accentColor": "#003E51"
+        },
+        "icon": {
+          "background": "#003E51",
+          "glyphColor": "#FFFFFF",
+          "contrast": 11.62,
+          "glyph": "arrow-trending-down"
+        }
+      }
+    },
+    {
+      "id": "D5-LEAD",
+      "journey": "D5",
+      "journeyName": "Talent & Performance",
+      "role": "orchestrator",
+      "blueprintName": "Talent Lead Agent",
+      "gfName": null,
+      "po": "Talent",
+      "domain": "Lead",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "ribbon-star",
+      "shortDescription": "Routes talent and performance requests to the right Talent agent.",
+      "fullDescription": "Orchestrator for the Talent & Performance journey: understands the request and hands it to the right specialist agent. Process owner area: Talent. Status: Hypothesis · not selected.",
+      "audience": "Managers and employees",
+      "owner": "Head of Talent & Performance",
+      "channels": [
+        "Teams",
+        "Microsoft 365 Copilot"
+      ],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E06"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Talent Lead DEV",
+          "TEST": "Talent Lead TEST",
+          "PROD": "Talent Lead"
+        },
+        "slug": "talent-lead",
+        "schemaStem": "TalentLead",
+        "schemaName": "gf_TalentLead",
+        "solutionUniqueName": "GFHRTalentLead",
+        "solutionDisplayName": "GF HR Talent Lead",
+        "envVarPrefix": "gf_Talent",
+        "connectionContext": "Talent",
+        "flowNamePrefix": "Talent Lead - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "Talent Lead DEV",
+            "TEST": "Talent Lead TEST",
+            "PROD": "Talent Lead"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer Talent Lead (DEV)",
+            "TEST": "Georg Fischer Talent Lead (TEST)",
+            "PROD": "Georg Fischer Talent Lead"
+          },
+          "accentColor": "#ADDC91"
+        },
+        "icon": {
+          "background": "#ADDC91",
+          "glyphColor": "#003E51",
+          "contrast": 7.42,
+          "glyph": "ribbon-star"
+        }
+      }
+    },
+    {
+      "id": "D5-A01",
+      "journey": "D5",
+      "journeyName": "Talent & Performance",
+      "role": "specialist",
+      "blueprintName": "One-on-One Agent",
+      "gfName": null,
+      "po": "Talent",
+      "domain": "One-on-One",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "people-chat",
+      "shortDescription": "Prepares managers for development-focused one-to-ones.",
+      "fullDescription": "Prepares managers for development-focused one-to-ones with themes and questions. Process owner area: Talent. Status: Hypothesis · not selected.",
+      "audience": "Managers",
+      "owner": "Head of Talent & Performance",
+      "channels": [],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E06"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Talent One-on-One DEV",
+          "TEST": "Talent One-on-One TEST",
+          "PROD": "Talent One-on-One"
+        },
+        "slug": "talent-one-on-one",
+        "schemaStem": "TalentOneOnOne",
+        "schemaName": "gf_TalentOneOnOne",
+        "solutionUniqueName": "GFHRTalentOneOnOne",
+        "solutionDisplayName": "GF HR Talent One-on-One",
+        "envVarPrefix": "gf_Talent",
+        "connectionContext": "Talent",
+        "flowNamePrefix": "Talent One-on-One - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "Talent One-on-One DEV",
+            "TEST": "Talent One-on-One TEST",
+            "PROD": "Talent One-on-One"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer Talent One-on-One (DEV)",
+            "TEST": "Georg Fischer Talent One-on-One (TEST)",
+            "PROD": "Georg Fischer Talent One-on-One"
+          },
+          "accentColor": "#ADDC91"
+        },
+        "icon": {
+          "background": "#ADDC91",
+          "glyphColor": "#003E51",
+          "contrast": 7.42,
+          "glyph": "people-chat"
+        }
+      }
+    },
+    {
+      "id": "D5-A02",
+      "journey": "D5",
+      "journeyName": "Talent & Performance",
+      "role": "specialist",
+      "blueprintName": "Performance Review Agent",
+      "gfName": null,
+      "po": "Talent",
+      "domain": "Performance Review",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "person-star",
+      "shortDescription": "Helps employees prepare evidence-based self-assessments.",
+      "fullDescription": "Helps employees prepare evidence-based self-assessments; the employee owns the submission. Process owner area: Talent. Status: Hypothesis · not selected.",
+      "audience": "Employees",
+      "owner": "Head of Talent & Performance",
+      "channels": [],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E06"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Talent Performance Review DEV",
+          "TEST": "Talent Performance Review TEST",
+          "PROD": "Talent Performance Review"
+        },
+        "slug": "talent-performance-review",
+        "schemaStem": "TalentPerformanceReview",
+        "schemaName": "gf_TalentPerformanceReview",
+        "solutionUniqueName": "GFHRTalentPerformanceReview",
+        "solutionDisplayName": "GF HR Talent Performance Review",
+        "envVarPrefix": "gf_Talent",
+        "connectionContext": "Talent",
+        "flowNamePrefix": "Talent Performance Review - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "Talent Performance Review DEV",
+            "TEST": "Talent Performance Review TEST",
+            "PROD": "Talent Performance Review"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer Talent Performance Review (DEV)",
+            "TEST": "Georg Fischer Talent Performance Review (TEST)",
+            "PROD": "Georg Fischer Talent Performance Review"
+          },
+          "accentColor": "#ADDC91"
+        },
+        "icon": {
+          "background": "#ADDC91",
+          "glyphColor": "#003E51",
+          "contrast": 7.42,
+          "glyph": "person-star"
+        }
+      }
+    },
+    {
+      "id": "D5-A03",
+      "journey": "D5",
+      "journeyName": "Talent & Performance",
+      "role": "specialist",
+      "blueprintName": "Development Planning Agent",
+      "gfName": null,
+      "po": "Talent",
+      "domain": "Development Plan",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "target-arrow",
+      "shortDescription": "Proposes a 70/20/10 development plan to discuss with the manager.",
+      "fullDescription": "Proposes a 70/20/10 development plan for the employee to discuss with the manager. Process owner area: Talent. Status: Hypothesis · not selected.",
+      "audience": "Employees and managers",
+      "owner": "Head of Talent & Performance",
+      "channels": [],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E06"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Talent Development Plan DEV",
+          "TEST": "Talent Development Plan TEST",
+          "PROD": "Talent Development Plan"
+        },
+        "slug": "talent-development-plan",
+        "schemaStem": "TalentDevelopmentPlan",
+        "schemaName": "gf_TalentDevelopmentPlan",
+        "solutionUniqueName": "GFHRTalentDevelopmentPlan",
+        "solutionDisplayName": "GF HR Talent Development Plan",
+        "envVarPrefix": "gf_Talent",
+        "connectionContext": "Talent",
+        "flowNamePrefix": "Talent Development Plan - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "Talent Development Plan DEV",
+            "TEST": "Talent Development Plan TEST",
+            "PROD": "Talent Development Plan"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer Talent Development Plan (DEV)",
+            "TEST": "Georg Fischer Talent Development Plan (TEST)",
+            "PROD": "Georg Fischer Talent Development Plan"
+          },
+          "accentColor": "#ADDC91"
+        },
+        "icon": {
+          "background": "#ADDC91",
+          "glyphColor": "#003E51",
+          "contrast": 7.42,
+          "glyph": "target-arrow"
+        }
+      }
+    },
+    {
+      "id": "D5-A04",
+      "journey": "D5",
+      "journeyName": "Talent & Performance",
+      "role": "specialist",
+      "blueprintName": "Talent Calibration Agent",
+      "gfName": null,
+      "po": "Talent",
+      "domain": "Calibration",
+      "scope": "",
+      "kind": "copilot-studio",
+      "environmentScoped": true,
+      "status": "Hypothesis · not selected",
+      "statusClass": "hypothesis",
+      "mvp": null,
+      "glyph": "scales",
+      "shortDescription": "Drafts calibration decks and talent cards; leaders decide.",
+      "fullDescription": "Drafts calibration decks and talent cards for a leader; leaders decide. Process owner area: Talent. Status: Hypothesis · not selected.",
+      "audience": "Leaders and HR partners",
+      "owner": "Head of Talent & Performance",
+      "channels": [],
+      "githubAgent": null,
+      "githubAgentProposed": null,
+      "evidence": [
+        "E06"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Talent Calibration DEV",
+          "TEST": "Talent Calibration TEST",
+          "PROD": "Talent Calibration"
+        },
+        "slug": "talent-calibration",
+        "schemaStem": "TalentCalibration",
+        "schemaName": "gf_TalentCalibration",
+        "solutionUniqueName": "GFHRTalentCalibration",
+        "solutionDisplayName": "GF HR Talent Calibration",
+        "envVarPrefix": "gf_Talent",
+        "connectionContext": "Talent",
+        "flowNamePrefix": "Talent Calibration - ",
+        "githubAgentName": null,
+        "githubAgentFile": null,
+        "teams": {
+          "shortName": {
+            "DEV": "Talent Calibration DEV",
+            "TEST": "Talent Calibration TEST",
+            "PROD": "Talent Calibration"
+          },
+          "fullName": {
+            "DEV": "Georg Fischer Talent Calibration (DEV)",
+            "TEST": "Georg Fischer Talent Calibration (TEST)",
+            "PROD": "Georg Fischer Talent Calibration"
+          },
+          "accentColor": "#ADDC91"
+        },
+        "icon": {
+          "background": "#ADDC91",
+          "glyphColor": "#003E51",
+          "contrast": 7.42,
+          "glyph": "scales"
+        }
+      }
+    },
+    {
+      "id": "D6-LEAD",
+      "journey": "D6",
+      "journeyName": "HR Agentic Factory",
+      "role": "orchestrator",
+      "blueprintName": "Spec Architect Agent",
+      "gfName": null,
+      "po": "Factory",
+      "domain": "Spec Architect",
+      "scope": "",
+      "kind": "repository-agent",
+      "environmentScoped": false,
+      "status": "Factory · prototype-days dry run",
+      "statusClass": "factory",
+      "mvp": null,
+      "glyph": "clipboard-text-edit",
+      "shortDescription": "Turns an approved SOP or idea into declarations, a PRD and a plan.",
+      "fullDescription": "Turns an approved GF SOP or idea into the seven declarations, a PRD and a build plan, checks the Definition of Ready and routes each slice to the factory agents. Process owner area: Factory. Status: Factory · prototype-days dry run. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself.",
+      "audience": "HR AI builders",
+      "owner": "HR AI Business Lead (product owner — to confirm)",
+      "channels": [
+        "VS Code with GitHub Copilot",
+        "Copilot CLI",
+        "Azure Boards"
+      ],
+      "githubAgent": "spec-architect",
+      "githubAgentProposed": false,
+      "evidence": [
+        "E44",
+        "E45",
+        "E40",
+        "E41",
+        "E10",
+        "E36"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Factory Spec Architect",
+          "TEST": "Factory Spec Architect",
+          "PROD": "Factory Spec Architect"
+        },
+        "slug": "factory-spec-architect",
+        "schemaStem": "FactorySpecArchitect",
+        "schemaName": null,
+        "solutionUniqueName": null,
+        "solutionDisplayName": null,
+        "envVarPrefix": null,
+        "connectionContext": null,
+        "flowNamePrefix": null,
+        "githubAgentName": "spec-architect",
+        "githubAgentFile": ".github/agents/spec-architect.agent.md",
+        "teams": null,
+        "icon": {
+          "background": "#323232",
+          "glyphColor": "#FFFFFF",
+          "contrast": 12.82,
+          "glyph": "clipboard-text-edit"
+        }
+      }
+    },
+    {
+      "id": "D6-A01",
+      "journey": "D6",
+      "journeyName": "HR Agentic Factory",
+      "role": "specialist",
+      "blueprintName": "MCS Builder Agent",
+      "gfName": null,
+      "po": "Factory",
+      "domain": "Agent Builder",
+      "scope": "",
+      "kind": "repository-agent",
+      "environmentScoped": false,
+      "status": "Factory · prototype-days dry run",
+      "statusClass": "factory",
+      "mvp": null,
+      "glyph": "bot-add",
+      "shortDescription": "Builds Copilot Studio agents in GF DEV until the evaluations pass.",
+      "fullDescription": "Authors Copilot Studio agents, topics, knowledge, runtime skills and workflows in GF DEV from the approved plan until the evaluations pass, then opens the pull request. Process owner area: Factory. Status: Factory · prototype-days dry run. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself.",
+      "audience": "HR AI builders",
+      "owner": "DAAI Copilot Studio owner (technical owner per the SOP — to confirm)",
+      "channels": [
+        "VS Code with GitHub Copilot",
+        "Copilot CLI",
+        "Copilot Studio (DEV)"
+      ],
+      "githubAgent": "mcs-builder",
+      "githubAgentProposed": false,
+      "evidence": [
+        "E44",
+        "E45",
+        "E13",
+        "E36",
+        "E39",
+        "E41"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Factory Agent Builder",
+          "TEST": "Factory Agent Builder",
+          "PROD": "Factory Agent Builder"
+        },
+        "slug": "factory-agent-builder",
+        "schemaStem": "FactoryAgentBuilder",
+        "schemaName": null,
+        "solutionUniqueName": null,
+        "solutionDisplayName": null,
+        "envVarPrefix": null,
+        "connectionContext": null,
+        "flowNamePrefix": null,
+        "githubAgentName": "mcs-builder",
+        "githubAgentFile": ".github/agents/mcs-builder.agent.md",
+        "teams": null,
+        "icon": {
+          "background": "#323232",
+          "glyphColor": "#FFFFFF",
+          "contrast": 12.82,
+          "glyph": "bot-add"
+        }
+      }
+    },
+    {
+      "id": "D6-A02",
+      "journey": "D6",
+      "journeyName": "HR Agentic Factory",
+      "role": "specialist",
+      "blueprintName": "Workday & Data Integration Agent",
+      "gfName": null,
+      "po": "Factory",
+      "domain": "Integration",
+      "scope": "",
+      "kind": "repository-agent",
+      "environmentScoped": false,
+      "status": "Factory · next",
+      "statusClass": "factory",
+      "mvp": null,
+      "glyph": "plug-connected",
+      "shortDescription": "Drafts Workday access-layer contracts and connection bindings.",
+      "fullDescription": "Drafts Workday access-layer and tool contracts, connection references and deployment-settings bindings, and a Capability Admission Record for every connector, MCP server, plugin or preview feature. Process owner area: Factory. Status: Factory · next. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself.",
+      "audience": "Integration team",
+      "owner": "GF IT Systems Integration Lead with Workday Solutions (to confirm)",
+      "channels": [
+        "VS Code with GitHub Copilot",
+        "Copilot CLI"
+      ],
+      "githubAgent": "integration-engineer",
+      "githubAgentProposed": true,
+      "evidence": [
+        "E45",
+        "E44",
+        "E34",
+        "E36",
+        "E38",
+        "E13"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Factory Integration",
+          "TEST": "Factory Integration",
+          "PROD": "Factory Integration"
+        },
+        "slug": "factory-integration",
+        "schemaStem": "FactoryIntegration",
+        "schemaName": null,
+        "solutionUniqueName": null,
+        "solutionDisplayName": null,
+        "envVarPrefix": null,
+        "connectionContext": null,
+        "flowNamePrefix": null,
+        "githubAgentName": "integration-engineer",
+        "githubAgentFile": ".github/agents/integration-engineer.agent.md",
+        "teams": null,
+        "icon": {
+          "background": "#323232",
+          "glyphColor": "#FFFFFF",
+          "contrast": 12.82,
+          "glyph": "plug-connected"
+        }
+      }
+    },
+    {
+      "id": "D6-A03",
+      "journey": "D6",
+      "journeyName": "HR Agentic Factory",
+      "role": "specialist",
+      "blueprintName": "Eval Engineer Agent",
+      "gfName": null,
+      "po": "Factory",
+      "domain": "Eval Engineer",
+      "scope": "",
+      "kind": "repository-agent",
+      "environmentScoped": false,
+      "status": "Factory · prototype-days dry run",
+      "statusClass": "factory",
+      "mvp": null,
+      "glyph": "beaker",
+      "shortDescription": "Writes evaluations before the build and runs them with evidence.",
+      "fullDescription": "Writes the evaluations before the build — golden prompts, refusal suite, escalation, no-decisions-about-people and injected-document cases — and runs the evaluation pyramid L0–L5 with an evidence record. Process owner area: Factory. Status: Factory · prototype-days dry run. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself.",
+      "audience": "HR AI builders",
+      "owner": "DAAI agent owner (testing and monitoring per the SOP) with the Switzerland HR policy owner",
+      "channels": [
+        "VS Code with GitHub Copilot",
+        "Copilot CLI",
+        "Copilot Studio evaluation (DEV, TEST)"
+      ],
+      "githubAgent": "eval-engineer",
+      "githubAgentProposed": false,
+      "evidence": [
+        "E44",
+        "E45",
+        "E41",
+        "E42"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Factory Eval Engineer",
+          "TEST": "Factory Eval Engineer",
+          "PROD": "Factory Eval Engineer"
+        },
+        "slug": "factory-eval-engineer",
+        "schemaStem": "FactoryEvalEngineer",
+        "schemaName": null,
+        "solutionUniqueName": null,
+        "solutionDisplayName": null,
+        "envVarPrefix": null,
+        "connectionContext": null,
+        "flowNamePrefix": null,
+        "githubAgentName": "eval-engineer",
+        "githubAgentFile": ".github/agents/eval-engineer.agent.md",
+        "teams": null,
+        "icon": {
+          "background": "#323232",
+          "glyphColor": "#FFFFFF",
+          "contrast": 12.82,
+          "glyph": "beaker"
+        }
+      }
+    },
+    {
+      "id": "D6-A04",
+      "journey": "D6",
+      "journeyName": "HR Agentic Factory",
+      "role": "specialist",
+      "blueprintName": "Security Reviewer Agent",
+      "gfName": null,
+      "po": "Factory",
+      "domain": "Security Review",
+      "scope": "",
+      "kind": "repository-agent",
+      "environmentScoped": false,
+      "status": "Factory · next",
+      "statusClass": "factory",
+      "mvp": null,
+      "glyph": "shield-lock",
+      "shortDescription": "Reviews specs, pull requests and releases read-only for security.",
+      "fullDescription": "Reviews specifications, pull requests and releases read-only for data classification, threat model, secrets and identifiers, connector scope, authentication and sharing; recommends, never approves. Process owner area: Factory. Status: Factory · next. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself.",
+      "audience": "Security, privacy and builders",
+      "owner": "GF Security / Privacy with the DPO",
+      "channels": [
+        "Azure Repos pull requests",
+        "VS Code with GitHub Copilot"
+      ],
+      "githubAgent": "security-reviewer",
+      "githubAgentProposed": false,
+      "evidence": [
+        "E44",
+        "E45",
+        "E04",
+        "E34",
+        "E13",
+        "E11"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Factory Security Review",
+          "TEST": "Factory Security Review",
+          "PROD": "Factory Security Review"
+        },
+        "slug": "factory-security-review",
+        "schemaStem": "FactorySecurityReview",
+        "schemaName": null,
+        "solutionUniqueName": null,
+        "solutionDisplayName": null,
+        "envVarPrefix": null,
+        "connectionContext": null,
+        "flowNamePrefix": null,
+        "githubAgentName": "security-reviewer",
+        "githubAgentFile": ".github/agents/security-reviewer.agent.md",
+        "teams": null,
+        "icon": {
+          "background": "#323232",
+          "glyphColor": "#FFFFFF",
+          "contrast": 12.82,
+          "glyph": "shield-lock"
+        }
+      }
+    },
+    {
+      "id": "D6-A05",
+      "journey": "D6",
+      "journeyName": "HR Agentic Factory",
+      "role": "specialist",
+      "blueprintName": "Release Manager Agent",
+      "gfName": null,
+      "po": "Factory",
+      "domain": "Release Manager",
+      "scope": "",
+      "kind": "repository-agent",
+      "environmentScoped": false,
+      "status": "Factory · prototype-days dry run",
+      "statusClass": "factory",
+      "mvp": null,
+      "glyph": "rocket",
+      "shortDescription": "Prepares releases through the pipelines with a promotion manifest.",
+      "fullDescription": "Prepares releases through Azure Pipelines and Power Platform Pipelines — version stamp, packages built once, deployment settings, promotion manifest, release notes and approvals — so the identical artefact moves from TEST to PROD. Process owner area: Factory. Status: Factory · prototype-days dry run. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself.",
+      "audience": "Platform governance",
+      "owner": "GF IT Power Platform and Dynamics platform governance (releases with the HR AI Business Lead)",
+      "channels": [
+        "Azure Pipelines",
+        "VS Code with GitHub Copilot",
+        "Teams"
+      ],
+      "githubAgent": "release-manager",
+      "githubAgentProposed": false,
+      "evidence": [
+        "E44",
+        "E45",
+        "E12",
+        "E09",
+        "E36",
+        "E38"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Factory Release Manager",
+          "TEST": "Factory Release Manager",
+          "PROD": "Factory Release Manager"
+        },
+        "slug": "factory-release-manager",
+        "schemaStem": "FactoryReleaseManager",
+        "schemaName": null,
+        "solutionUniqueName": null,
+        "solutionDisplayName": null,
+        "envVarPrefix": null,
+        "connectionContext": null,
+        "flowNamePrefix": null,
+        "githubAgentName": "release-manager",
+        "githubAgentFile": ".github/agents/release-manager.agent.md",
+        "teams": null,
+        "icon": {
+          "background": "#323232",
+          "glyphColor": "#FFFFFF",
+          "contrast": 12.82,
+          "glyph": "rocket"
+        }
+      }
+    },
+    {
+      "id": "D6-A06",
+      "journey": "D6",
+      "journeyName": "HR Agentic Factory",
+      "role": "specialist",
+      "blueprintName": "Ops Analyst Agent",
+      "gfName": null,
+      "po": "Factory",
+      "domain": "Ops Analyst",
+      "scope": "",
+      "kind": "repository-agent",
+      "environmentScoped": false,
+      "status": "Factory · next",
+      "statusClass": "factory",
+      "mvp": null,
+      "glyph": "pulse",
+      "shortDescription": "Reads telemetry and evaluation trends and drafts work items.",
+      "fullDescription": "Reads aggregated telemetry, evaluation trends and credits read-only, clusters issues per intent and drafts Azure Boards work items with evidence and a regression case; the Feedback Harvester is still missing. Process owner area: Factory. Status: Factory · next. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself.",
+      "audience": "Agent owners",
+      "owner": "DAAI agent owner (operations owner — to confirm)",
+      "channels": [
+        "VS Code with GitHub Copilot",
+        "Azure Boards",
+        "Teams"
+      ],
+      "githubAgent": "ops-analyst",
+      "githubAgentProposed": false,
+      "evidence": [
+        "E44",
+        "E45",
+        "E42",
+        "E41",
+        "E03",
+        "E10"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Factory Ops Analyst",
+          "TEST": "Factory Ops Analyst",
+          "PROD": "Factory Ops Analyst"
+        },
+        "slug": "factory-ops-analyst",
+        "schemaStem": "FactoryOpsAnalyst",
+        "schemaName": null,
+        "solutionUniqueName": null,
+        "solutionDisplayName": null,
+        "envVarPrefix": null,
+        "connectionContext": null,
+        "flowNamePrefix": null,
+        "githubAgentName": "ops-analyst",
+        "githubAgentFile": ".github/agents/ops-analyst.agent.md",
+        "teams": null,
+        "icon": {
+          "background": "#323232",
+          "glyphColor": "#FFFFFF",
+          "contrast": 12.82,
+          "glyph": "pulse"
+        }
+      }
+    },
+    {
+      "id": "D6-A07",
+      "journey": "D6",
+      "journeyName": "HR Agentic Factory",
+      "role": "specialist",
+      "blueprintName": "Frontier Architecture & Docs Agent",
+      "gfName": null,
+      "po": "Factory",
+      "domain": "Architecture Docs",
+      "scope": "",
+      "kind": "repository-agent",
+      "environmentScoped": false,
+      "status": "Factory · next",
+      "statusClass": "factory",
+      "mvp": null,
+      "glyph": "book-open",
+      "shortDescription": "Drafts ADRs and keeps documentation and evidence register current.",
+      "fullDescription": "Drafts ADRs, keeps the documentation and the dated evidence register current, and verifies every capability claim on Microsoft Learn before the factory relies on it. Process owner area: Factory. Status: Factory · next. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself.",
+      "audience": "Architects and builders",
+      "owner": "Head of People Data, Analytics & AI (DAAI) with GF IT platform governance (to confirm)",
+      "channels": [
+        "VS Code with GitHub Copilot",
+        "Azure Repos pull requests"
+      ],
+      "githubAgent": "architecture-docs",
+      "githubAgentProposed": true,
+      "evidence": [
+        "E44",
+        "E45",
+        "E11",
+        "E25",
+        "E03",
+        "E36"
+      ],
+      "overrides": {},
+      "derived": {
+        "displayName": {
+          "DEV": "Factory Architecture Docs",
+          "TEST": "Factory Architecture Docs",
+          "PROD": "Factory Architecture Docs"
+        },
+        "slug": "factory-architecture-docs",
+        "schemaStem": "FactoryArchitectureDocs",
+        "schemaName": null,
+        "solutionUniqueName": null,
+        "solutionDisplayName": null,
+        "envVarPrefix": null,
+        "connectionContext": null,
+        "flowNamePrefix": null,
+        "githubAgentName": "architecture-docs",
+        "githubAgentFile": ".github/agents/architecture-docs.agent.md",
+        "teams": null,
+        "icon": {
+          "background": "#323232",
+          "glyphColor": "#FFFFFF",
+          "contrast": 12.82,
+          "glyph": "book-open"
+        }
+      }
+    }
+  ]
+}

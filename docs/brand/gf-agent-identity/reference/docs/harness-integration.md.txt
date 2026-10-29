@@ -1,0 +1,58 @@
+# Using the package in the repository and the Copilot Studio harness solution
+
+Version 1.0.0 · 2026-10-28.
+
+## 1. Where the files go
+
+The Agent Factory keeps an authored "harness" layer next to the unpacked solution: per agent `identity`, `instructions`, `tools.contract` and `evals` under `<domain>/solutions/agent/harness/agents/<role>/` [E44 §7.5-7.6].
+
+| Package path | Repository path (factory layout) | Repository path (MVP hand-over layout) |
+|---|---|---|
+| `agents/<slug>/identity/*` | `hr/solutions/agent/harness/agents/<slug>/identity/` | `agents/<slug>/identity/` |
+| `config/*` | `hr/solutions/agent/harness/identity/config/` | `config/identity/` |
+| `scripts/*` | `hr/solutions/agent/harness/identity/scripts/` | `tools/identity/` |
+| `brand/*`, `visuals/*`, `docs/*` | `docs/identity/` | `docs/identity/` |
+| `github/instructions/agent-identity.instructions.md` | `.github/instructions/` | `.github/instructions/` |
+| `pipelines/azure-pipelines/stamp-identity.yml` | `pipelines/templates/` | `pipelines/templates/` |
+| `pipelines/github-actions/identity-validate.yml` | `.github/workflows/` | `.github/workflows/` |
+
+Keep `config`, `scripts`, `agents` and `brand` as siblings, or pass `--root` to the scripts.
+
+## 2. In the factory pipeline [E44 §7.9]
+
+| Stage | Identity step |
+|---|---|
+| 2 Export from DEV | after `pac solution unpack`: `stamp_identity.py --env PROD --apply` normalises "… DEV" names and DEV icons to the canonical PROD form before the PR |
+| 3 PR validation | `validate_identity.py` and `python -m unittest discover -s <scripts>/tests` (both blocking) |
+| 4 SIT/TEST deploy | copy the unpacked tree twice; `stamp_identity.py --env TEST --apply --strict` → pack; `stamp_identity.py --env PROD --apply --strict` → pack; import TEST; post-import: verify names and icons |
+| 6 PROD promotion | import the **identical** PROD-stamped package; no rebuild |
+
+Managed agents can't be renamed after import, which is why stamping happens before packing [E44 FE-16].
+
+## 3. DEV authoring checklist (maker)
+
+1. Preferred solution set before the first save [E44 FE-01].
+2. Schema name `<prefix>_<stem>` from `identity.json` before the first save [E44 FE-02].
+3. Display name `<PROD name> DEV`, icon `color-192-dev.png`, description from `identity.json` (DEV marker) [E44 FE-04, FE-14].
+4. Web search set consciously [E44 FE-03].
+5. Record the actual schema name of the first save in `overrides.schemaName` if the platform appended a suffix.
+
+## 4. Journey D6 - repository agents
+
+The factory agents run in GitHub (VS Code, Copilot CLI, cloud agent), not in Power Platform. Use the PROD name and the short description in the front matter of `.github/agents/<name>.agent.md` (`spec-architect`, `mcs-builder`, `eval-engineer`, `security-reviewer`, `release-manager`, `ops-analyst` from E44 §7.7; `integration-engineer` and `architecture-docs` are proposed names).
+
+## 5. MVP 1 on the Employee Self-Service agent
+
+- ESS installs as a Microsoft-managed solution; GF's adaptation lives in its own solution (`GFHRESS`) [E45].
+- Verify in GF DEV whether the customisation layer can set the ESS agent's display name and icon; if not, keep Microsoft's default name in DEV/TEST and set the PROD name at publish time.
+- With ESS declarative-agent templates, DEV, TEST and PROD are gates inside one environment; check whether each gate can carry its own name - otherwise rely on the description banner and the icon band.
+
+## 6. What still needs a check in GF DEV
+
+| # | Check | Expected result |
+|---|---|---|
+| V-1 | `bot.xml` of GF's first agent export | `<name>` and `<iconbase64>` present (as in Microsoft's samples) |
+| V-2 | Teams/Microsoft 365 icon fields after publishing | `applicationmanifestinformation` with `teams.colorIcon` / `teams.outlineIcon`, or icons set in the Teams channel |
+| V-3 | Suffix appended to schema names | record in `overrides.schemaName` |
+| V-4 | ESS agent rename and icon | see section 5 |
+| V-5 | Post-import name check | names in TEST equal `displayName.TEST` |

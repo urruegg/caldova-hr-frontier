@@ -1,0 +1,69 @@
+{
+  "id": "D6-A03",
+  "kind": "repository-agent",
+  "role": "specialist",
+  "journey": {
+    "id": "D6",
+    "name": "HR Agentic Factory"
+  },
+  "tokens": {
+    "po": "Factory",
+    "domain": "Eval Engineer",
+    "scope": ""
+  },
+  "displayName": {
+    "PROD": "Factory Eval Engineer"
+  },
+  "shortDescription": {
+    "PROD": "Writes evaluations before the build and runs them with evidence."
+  },
+  "fullDescription": {
+    "PROD": "Writes the evaluations before the build — golden prompts, refusal suite, escalation, no-decisions-about-people and injected-document cases — and runs the evaluation pyramid L0–L5 with an evidence record. Process owner area: Factory. Status: Factory · prototype-days dry run. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself."
+  },
+  "slug": "factory-eval-engineer",
+  "schemaName": null,
+  "solution": null,
+  "envVarPrefix": null,
+  "connectionContext": null,
+  "flowNamePrefix": null,
+  "github": {
+    "agentName": "eval-engineer",
+    "file": ".github/agents/eval-engineer.agent.md",
+    "proposedName": false
+  },
+  "icon": {
+    "background": "#323232",
+    "glyphColour": "#FFFFFF",
+    "contrast": 12.82,
+    "glyph": "Fluent UI System Icons: beaker (filled / regular)",
+    "files": {
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": null,
+  "status": "Factory · prototype-days dry run",
+  "statusClass": "factory",
+  "audience": "HR AI builders",
+  "processOwnerArea": "HR Agentic Factory - HR AI Business Lead as product owner (to confirm)",
+  "owner": "DAAI agent owner (testing and monitoring per the SOP) with the Switzerland HR policy owner",
+  "channels": [
+    "VS Code with GitHub Copilot",
+    "Copilot CLI",
+    "Copilot Studio evaluation (DEV, TEST)"
+  ],
+  "gfName": null,
+  "blueprintName": "Eval Engineer Agent",
+  "evidence": [
+    "E44",
+    "E45",
+    "E41",
+    "E42"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

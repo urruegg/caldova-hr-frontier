@@ -1,0 +1,70 @@
+{
+  "id": "D6-A04",
+  "kind": "repository-agent",
+  "role": "specialist",
+  "journey": {
+    "id": "D6",
+    "name": "HR Agentic Factory"
+  },
+  "tokens": {
+    "po": "Factory",
+    "domain": "Security Review",
+    "scope": ""
+  },
+  "displayName": {
+    "PROD": "Factory Security Review"
+  },
+  "shortDescription": {
+    "PROD": "Reviews specs, pull requests and releases read-only for security."
+  },
+  "fullDescription": {
+    "PROD": "Reviews specifications, pull requests and releases read-only for data classification, threat model, secrets and identifiers, connector scope, authentication and sharing; recommends, never approves. Process owner area: Factory. Status: Factory · next. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself."
+  },
+  "slug": "factory-security-review",
+  "schemaName": null,
+  "solution": null,
+  "envVarPrefix": null,
+  "connectionContext": null,
+  "flowNamePrefix": null,
+  "github": {
+    "agentName": "security-reviewer",
+    "file": ".github/agents/security-reviewer.agent.md",
+    "proposedName": false
+  },
+  "icon": {
+    "background": "#323232",
+    "glyphColour": "#FFFFFF",
+    "contrast": 12.82,
+    "glyph": "Fluent UI System Icons: shield-lock (filled / regular)",
+    "files": {
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": null,
+  "status": "Factory · next",
+  "statusClass": "factory",
+  "audience": "Security, privacy and builders",
+  "processOwnerArea": "HR Agentic Factory - HR AI Business Lead as product owner (to confirm)",
+  "owner": "GF Security / Privacy with the DPO",
+  "channels": [
+    "Azure Repos pull requests",
+    "VS Code with GitHub Copilot"
+  ],
+  "gfName": null,
+  "blueprintName": "Security Reviewer Agent",
+  "evidence": [
+    "E44",
+    "E45",
+    "E04",
+    "E34",
+    "E13",
+    "E11"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

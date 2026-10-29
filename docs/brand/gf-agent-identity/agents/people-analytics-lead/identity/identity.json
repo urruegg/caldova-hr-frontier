@@ -1,0 +1,111 @@
+{
+  "id": "D4-LEAD",
+  "kind": "copilot-studio",
+  "role": "orchestrator",
+  "journey": {
+    "id": "D4",
+    "name": "Leadership & Workforce Insights"
+  },
+  "tokens": {
+    "po": "People Analytics",
+    "domain": "Lead",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "People Analytics Lead DEV",
+    "TEST": "People Analytics Lead TEST",
+    "PROD": "People Analytics Lead"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Routes leaders' insight questions to the right analytics agent.",
+    "TEST": "TEST · Routes leaders' insight questions to the right analytics agent.",
+    "PROD": "Routes leaders' insight questions to the right analytics agent."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nOrchestrator for the Leadership & Workforce Insights journey: understands the request and hands it to the right specialist agent. Process owner area: People Analytics. Status: Hypothesis · not selected.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nOrchestrator for the Leadership & Workforce Insights journey: understands the request and hands it to the right specialist agent. Process owner area: People Analytics. Status: Hypothesis · not selected.",
+    "PROD": "Orchestrator for the Leadership & Workforce Insights journey: understands the request and hands it to the right specialist agent. Process owner area: People Analytics. Status: Hypothesis · not selected."
+  },
+  "slug": "people-analytics-lead",
+  "schemaName": "gf_PeopleAnalyticsLead",
+  "solution": {
+    "uniqueName": "GFHRPeopleAnalyticsLead",
+    "displayName": "GF HR People Analytics Lead"
+  },
+  "envVarPrefix": "gf_PeopleAnalytics",
+  "connectionContext": "PeopleAnalytics",
+  "flowNamePrefix": "People Analytics Lead - ",
+  "github": null,
+  "icon": {
+    "background": "#003E51",
+    "glyphColour": "#FFFFFF",
+    "contrast": 11.62,
+    "glyph": "Fluent UI System Icons: data-trending (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "People Analytics Lead DEV",
+      "TEST": "People Analytics Lead TEST",
+      "PROD": "People Analytics Lead"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer People Analytics Lead (DEV)",
+      "TEST": "Georg Fischer People Analytics Lead (TEST)",
+      "PROD": "Georg Fischer People Analytics Lead"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Routes leaders' insight questions to the right analytics agent.",
+      "TEST": "TEST · Routes leaders' insight questions to the right analytics agent.",
+      "PROD": "Routes leaders' insight questions to the right analytics agent."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nOrchestrator for the Leadership & Workforce Insights journey: understands the request and hands it to the right specialist agent. Process owner area: People Analytics. Status: Hypothesis · not selected.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nOrchestrator for the Leadership & Workforce Insights journey: understands the request and hands it to the right specialist agent. Process owner area: People Analytics. Status: Hypothesis · not selected.",
+      "PROD": "Orchestrator for the Leadership & Workforce Insights journey: understands the request and hands it to the right specialist agent. Process owner area: People Analytics. Status: Hypothesis · not selected."
+    },
+    "accentColor": "#003E51",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Hypothesis · not selected",
+  "statusClass": "hypothesis",
+  "audience": "Leaders and HR business partners",
+  "processOwnerArea": "People Data, Analytics & AI (DAAI); People Analytics as report owner",
+  "owner": "Head of People Data, Analytics & AI",
+  "channels": [
+    "Teams",
+    "Microsoft 365 Copilot"
+  ],
+  "gfName": null,
+  "blueprintName": "People Insights Lead Agent",
+  "evidence": [
+    "E17",
+    "E13"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

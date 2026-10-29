@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.14 |
-| **Date** | 2026-10-28 |
+| **Version** | 1.18 |
+| **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
 | **Scope** | docs/plans |
@@ -71,7 +71,28 @@ Draft sprint proposals may use `YYYY-MM-DD-topic-sprint.md`. They record a goal,
 | [Draft specification](../specs/2026-10-28-gf-azure-devops-repository-design.md) | [GF Azure DevOps repository sprint](2026-10-28-gf-azure-devops-repository-sprint.md) | Draft | Proposes reviewed transfer, GF controls and source-authority acceptance. | No live repository creation or migration authority; GF decision/security gates apply. |
 | [Draft specification](../specs/2026-10-28-gf-azure-devops-solution-cicd-design.md) | [GF Azure DevOps solution CI/CD and DEV capture sprint](2026-10-28-gf-azure-devops-solution-cicd-sprint.md) | Draft | Proposes reusable DEV capture to PR, validated artifact build and TEST delivery. | No live capture/import authority; PROD excluded and environment/inventory gates remain open. |
 
-The [five GF packages](../README.md#gf-draft-packages) each have a separate sprint, idea and specification. Each sprint includes a Mermaid dependency/gate chart and the [CAT assessment](../README.md#cat-reuse-assessment) informs conditional reuse work, not installed dependencies. No sprint dates, estimates or Azure Boards identifiers are inferred.
+The [eight GF packages](../README.md#gf-draft-packages), including ESS-equivalent, blueprint and identity adoption below, each have a separate sprint, idea and specification. Sprint diagrams explain dependencies/gates; no sprint dates, estimates or Azure Boards identifiers are inferred. Reuse assessments inform conditional work, not installed automation.
+
+### GF ESS-equivalent rebuild
+
+| Successor or next stage | Plan | Status | Purpose | Authority |
+|---|---|---|---|---|
+| [Draft idea](../ideas/gf-ess-github-harness-workiq-idea.md); [Draft implementation plan](2026-10-28-gf-ess-github-harness-workiq-implementation.md); [Draft specification](../specs/2026-10-28-gf-ess-github-harness-workiq-design.md) | [GF ESS-equivalent GitHub harness and Work IQ sprint](2026-10-28-gf-ess-github-harness-workiq-sprint.md) | Draft | Primary sprint for the sixth handover set: capability proof, independent Workday/M365 tracks, TEST/value evidence and stakeholder next steps. | Candidate scope without invented capacity/dates; no tenant access, tool enablement or live transaction authorized. |
+| Per-capability DEV/TEST evidence and human acceptance | [GF ESS-equivalent GitHub harness and Work IQ implementation plan](2026-10-28-gf-ess-github-harness-workiq-implementation.md) | Draft | Defines ten test-first implementation slices, intended contract/native-source mapping, six Workday operations, scoped M365 support and TEST/value acceptance. | Derived from user-reviewed Draft specification; no execution, live access or unresolved API/permission assumptions authorized. |
+
+### GF blueprint and project overview
+
+| Successor or next stage | Plan | Status | Purpose | Authority |
+|---|---|---|---|---|
+| [Draft idea](../ideas/gf-blueprint-progress-overview-idea.md); [draft specification](../specs/2026-10-29-gf-blueprint-progress-overview-design.md); [provisional plan](2026-10-29-gf-blueprint-progress-overview-implementation.md) | [GF blueprint progress overview sprint](2026-10-29-gf-blueprint-progress-overview-sprint.md) | Draft | Proposes source/contracts, controlled rendering, stale checks, scoped maintainer and private customer handover. | Narrow read-only preview created; written-spec review and renderer/writer/full-role activation remain pending. |
+| Written-specification review, scoped portfolio decision and per-task acceptance | [GF blueprint progress overview implementation plan](2026-10-29-gf-blueprint-progress-overview-implementation.md) | Draft | Provisional nine-task plan for source/evidence contracts, preservation, deterministic projection, freshness validation, role controls and clean-folder handover. | Only read-only preview/profile tests implemented in this request; future writer/tooling/CI execution remains blocked pending review and authorization. |
+
+### GF grounded agent identity
+
+| Successor or next stage | Plan | Status | Purpose | Authority |
+|---|---|---|---|---|
+| [Idea](../ideas/gf-agent-identity-kit-idea.md); [specification](../specs/2026-10-29-gf-agent-identity-kit-design.md); [provisional plan](2026-10-29-gf-agent-identity-kit-implementation.md) | [GF grounded agent identity kit sprint](2026-10-29-gf-agent-identity-kit-sprint.md) | Draft | Proposes curated intake/coverage checks and gated owner, target-source, stamping, artifact and read-back work. | Current slice is local source/guidance validation; live normalization/deployment remains unapproved. |
+| Written-spec review, owner decisions and source/permission proof | [GF grounded agent identity kit implementation plan](2026-10-29-gf-agent-identity-kit-implementation.md) | Draft | Seven test-first slices for source fidelity, legacy guard policy, exact source mapping, fail-closed identity adaptation and release/handover evidence. | Provisional rollout plan; source intake/guidance/static checks only implemented, no stamping or deployment authorization. |
 
 ## Domain Links
 

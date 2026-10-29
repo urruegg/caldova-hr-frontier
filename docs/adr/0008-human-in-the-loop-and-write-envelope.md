@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 2026-09-24 |
+| **Version** | 1.1 |
+| **Date** | 2026-10-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | HR Solution Architecture |
@@ -14,6 +14,14 @@
 - **Deciders:** DAAI / HR AI Business Lead, Switzerland HR Operations, Workday / HRIS Owner, Security / Privacy
 
 ---
+
+## Proposed GF ESS specialization
+
+[ADR-0014](0014-gf-ess-workiq-and-self-service-write-envelope.md) proposes a
+separate employee-self-service update/request/case envelope for a new GF
+ESS-equivalent. It does not weaken this agent's add-only, never-overwrite boundary.
+The proposal remains Proposed Baseline; its formal authorization, delegated
+identity and operation-specific evidence must be established before enablement.
 
 ## Context
 

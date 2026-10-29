@@ -1,0 +1,114 @@
+{
+  "id": "D2-A02",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D2",
+    "name": "Joiners, Movers & Leavers"
+  },
+  "tokens": {
+    "po": "HR Ops",
+    "domain": "Onboarding Guide",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "HR Ops Onboarding Guide DEV",
+    "TEST": "HR Ops Onboarding Guide TEST",
+    "PROD": "HR Ops Onboarding Guide"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Answers onboarding questions from approved content; drafts week one.",
+    "TEST": "TEST · Answers onboarding questions from approved content; drafts week one.",
+    "PROD": "Answers onboarding questions from approved content; drafts week one."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nAnswers onboarding questions from approved content, site guides and checklists and drafts a generic first-week plan per role family and site; no Workday or personal data. Process owner area: HR Ops. Status: Microsoft proposal · no personal data.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nAnswers onboarding questions from approved content, site guides and checklists and drafts a generic first-week plan per role family and site; no Workday or personal data. Process owner area: HR Ops. Status: Microsoft proposal · no personal data.",
+    "PROD": "Answers onboarding questions from approved content, site guides and checklists and drafts a generic first-week plan per role family and site; no Workday or personal data. Process owner area: HR Ops. Status: Microsoft proposal · no personal data."
+  },
+  "slug": "hr-ops-onboarding-guide",
+  "schemaName": "gf_HROpsOnboardingGuide",
+  "solution": {
+    "uniqueName": "GFHROpsOnboardingGuide",
+    "displayName": "GF HR Ops Onboarding Guide"
+  },
+  "envVarPrefix": "gf_HROps",
+  "connectionContext": "HROps",
+  "flowNamePrefix": "HR Ops Onboarding Guide - ",
+  "github": null,
+  "icon": {
+    "background": "#007A53",
+    "glyphColour": "#FFFFFF",
+    "contrast": 5.37,
+    "glyph": "Fluent UI System Icons: hand-wave (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "HR Ops Onboarding Guide DEV",
+      "TEST": "HR Ops Onboarding Guide TEST",
+      "PROD": "HR Ops Onboarding Guide"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer HR Ops Onboarding Guide (DEV)",
+      "TEST": "Georg Fischer HR Ops Onboarding Guide (TEST)",
+      "PROD": "Georg Fischer HR Ops Onboarding Guide"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Answers onboarding questions from approved content; drafts week one.",
+      "TEST": "TEST · Answers onboarding questions from approved content; drafts week one.",
+      "PROD": "Answers onboarding questions from approved content; drafts week one."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nAnswers onboarding questions from approved content, site guides and checklists and drafts a generic first-week plan per role family and site; no Workday or personal data. Process owner area: HR Ops. Status: Microsoft proposal · no personal data.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nAnswers onboarding questions from approved content, site guides and checklists and drafts a generic first-week plan per role family and site; no Workday or personal data. Process owner area: HR Ops. Status: Microsoft proposal · no personal data.",
+      "PROD": "Answers onboarding questions from approved content, site guides and checklists and drafts a generic first-week plan per role family and site; no Workday or personal data. Process owner area: HR Ops. Status: Microsoft proposal · no personal data."
+    },
+    "accentColor": "#007A53",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Microsoft proposal · no personal data",
+  "statusClass": "proposal",
+  "audience": "New joiners and their managers",
+  "processOwnerArea": "HR Operations (Switzerland HR Operations for the CH MVP)",
+  "owner": "Head of HR Operations (content, to confirm); DAAI (agent product)",
+  "channels": [
+    "Microsoft Teams",
+    "Microsoft 365 Copilot"
+  ],
+  "gfName": "Onboarding Assistant",
+  "blueprintName": "Onboarding Companion (content-only)",
+  "evidence": [
+    "E40",
+    "E06",
+    "E04",
+    "E03",
+    "E10"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

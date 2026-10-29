@@ -1,0 +1,107 @@
+{
+  "id": "D1-A03",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D1",
+    "name": "Attract & Hire"
+  },
+  "tokens": {
+    "po": "Recruiting",
+    "domain": "Coordination",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "Recruiting Coordination DEV",
+    "TEST": "Recruiting Coordination TEST",
+    "PROD": "Recruiting Coordination"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Schedules interviews and prepares offer documents for HR approval.",
+    "TEST": "TEST · Schedules interviews and prepares offer documents for HR approval.",
+    "PROD": "Schedules interviews and prepares offer documents for HR approval."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nSchedules interviews and prepares offer documents for the HR partner's approval. Process owner area: Recruiting. Status: Hypothesis · not selected.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nSchedules interviews and prepares offer documents for the HR partner's approval. Process owner area: Recruiting. Status: Hypothesis · not selected.",
+    "PROD": "Schedules interviews and prepares offer documents for the HR partner's approval. Process owner area: Recruiting. Status: Hypothesis · not selected."
+  },
+  "slug": "recruiting-coordination",
+  "schemaName": "gf_RecruitingCoordination",
+  "solution": {
+    "uniqueName": "GFHRRecruitingCoordination",
+    "displayName": "GF HR Recruiting Coordination"
+  },
+  "envVarPrefix": "gf_Recruiting",
+  "connectionContext": "Recruiting",
+  "flowNamePrefix": "Recruiting Coordination - ",
+  "github": null,
+  "icon": {
+    "background": "#00629B",
+    "glyphColour": "#FFFFFF",
+    "contrast": 6.52,
+    "glyph": "Fluent UI System Icons: calendar-person (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "Recruiting Coordination DEV",
+      "TEST": "Recruiting Coordination TEST",
+      "PROD": "Recruiting Coordination"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer Recruiting Coordination (DEV)",
+      "TEST": "Georg Fischer Recruiting Coordination (TEST)",
+      "PROD": "Georg Fischer Recruiting Coordination"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Schedules interviews and prepares offer documents for HR approval.",
+      "TEST": "TEST · Schedules interviews and prepares offer documents for HR approval.",
+      "PROD": "Schedules interviews and prepares offer documents for HR approval."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nSchedules interviews and prepares offer documents for the HR partner's approval. Process owner area: Recruiting. Status: Hypothesis · not selected.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nSchedules interviews and prepares offer documents for the HR partner's approval. Process owner area: Recruiting. Status: Hypothesis · not selected.",
+      "PROD": "Schedules interviews and prepares offer documents for the HR partner's approval. Process owner area: Recruiting. Status: Hypothesis · not selected."
+    },
+    "accentColor": "#00629B",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Hypothesis · not selected",
+  "statusClass": "hypothesis",
+  "audience": "Recruiters and hiring managers",
+  "processOwnerArea": "People Attraction / Recruiting",
+  "owner": "Head of People Attraction & Recruiting",
+  "channels": [],
+  "gfName": null,
+  "blueprintName": "Interview & Offer Coordination Agent",
+  "evidence": [
+    "E04"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

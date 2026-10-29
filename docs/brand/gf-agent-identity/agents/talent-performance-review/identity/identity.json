@@ -1,0 +1,107 @@
+{
+  "id": "D5-A02",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D5",
+    "name": "Talent & Performance"
+  },
+  "tokens": {
+    "po": "Talent",
+    "domain": "Performance Review",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "Talent Performance Review DEV",
+    "TEST": "Talent Performance Review TEST",
+    "PROD": "Talent Performance Review"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Helps employees prepare evidence-based self-assessments.",
+    "TEST": "TEST · Helps employees prepare evidence-based self-assessments.",
+    "PROD": "Helps employees prepare evidence-based self-assessments."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nHelps employees prepare evidence-based self-assessments; the employee owns the submission. Process owner area: Talent. Status: Hypothesis · not selected.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nHelps employees prepare evidence-based self-assessments; the employee owns the submission. Process owner area: Talent. Status: Hypothesis · not selected.",
+    "PROD": "Helps employees prepare evidence-based self-assessments; the employee owns the submission. Process owner area: Talent. Status: Hypothesis · not selected."
+  },
+  "slug": "talent-performance-review",
+  "schemaName": "gf_TalentPerformanceReview",
+  "solution": {
+    "uniqueName": "GFHRTalentPerformanceReview",
+    "displayName": "GF HR Talent Performance Review"
+  },
+  "envVarPrefix": "gf_Talent",
+  "connectionContext": "Talent",
+  "flowNamePrefix": "Talent Performance Review - ",
+  "github": null,
+  "icon": {
+    "background": "#ADDC91",
+    "glyphColour": "#003E51",
+    "contrast": 7.42,
+    "glyph": "Fluent UI System Icons: person-star (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "Talent Performance Review DEV",
+      "TEST": "Talent Performance Review TEST",
+      "PROD": "Talent Performance Review"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer Talent Performance Review (DEV)",
+      "TEST": "Georg Fischer Talent Performance Review (TEST)",
+      "PROD": "Georg Fischer Talent Performance Review"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Helps employees prepare evidence-based self-assessments.",
+      "TEST": "TEST · Helps employees prepare evidence-based self-assessments.",
+      "PROD": "Helps employees prepare evidence-based self-assessments."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nHelps employees prepare evidence-based self-assessments; the employee owns the submission. Process owner area: Talent. Status: Hypothesis · not selected.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nHelps employees prepare evidence-based self-assessments; the employee owns the submission. Process owner area: Talent. Status: Hypothesis · not selected.",
+      "PROD": "Helps employees prepare evidence-based self-assessments; the employee owns the submission. Process owner area: Talent. Status: Hypothesis · not selected."
+    },
+    "accentColor": "#ADDC91",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Hypothesis · not selected",
+  "statusClass": "hypothesis",
+  "audience": "Employees",
+  "processOwnerArea": "Talent & Performance (hypothesis, not yet confirmed by GF)",
+  "owner": "Head of Talent & Performance",
+  "channels": [],
+  "gfName": null,
+  "blueprintName": "Performance Review Agent",
+  "evidence": [
+    "E06"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

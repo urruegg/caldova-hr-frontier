@@ -1,0 +1,108 @@
+{
+  "id": "D4-A03",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D4",
+    "name": "Leadership & Workforce Insights"
+  },
+  "tokens": {
+    "po": "People Analytics",
+    "domain": "Turnover",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "People Analytics Turnover DEV",
+    "TEST": "People Analytics Turnover TEST",
+    "PROD": "People Analytics Turnover"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Shows group-level attrition signals to HR partners, never individuals.",
+    "TEST": "TEST · Shows group-level attrition signals to HR partners, never individuals.",
+    "PROD": "Shows group-level attrition signals to HR partners, never individuals."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nShows group-level attrition signals to HR business partners — never individual predictions. Process owner area: People Analytics. Status: Hypothesis · not selected.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nShows group-level attrition signals to HR business partners — never individual predictions. Process owner area: People Analytics. Status: Hypothesis · not selected.",
+    "PROD": "Shows group-level attrition signals to HR business partners — never individual predictions. Process owner area: People Analytics. Status: Hypothesis · not selected."
+  },
+  "slug": "people-analytics-turnover",
+  "schemaName": "gf_PeopleAnalyticsTurnover",
+  "solution": {
+    "uniqueName": "GFHRPeopleAnalyticsTurnover",
+    "displayName": "GF HR People Analytics Turnover"
+  },
+  "envVarPrefix": "gf_PeopleAnalytics",
+  "connectionContext": "PeopleAnalytics",
+  "flowNamePrefix": "People Analytics Turnover - ",
+  "github": null,
+  "icon": {
+    "background": "#003E51",
+    "glyphColour": "#FFFFFF",
+    "contrast": 11.62,
+    "glyph": "Fluent UI System Icons: arrow-trending-down (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "People Analytics Turnover DEV",
+      "TEST": "People Analytics Turnover TEST",
+      "PROD": "People Analytics Turnover"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer People Analytics Turnover (DEV)",
+      "TEST": "Georg Fischer People Analytics Turnover (TEST)",
+      "PROD": "Georg Fischer People Analytics Turnover"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Shows group-level attrition signals to HR partners, never individuals.",
+      "TEST": "TEST · Shows group-level attrition signals to HR partners, never individuals.",
+      "PROD": "Shows group-level attrition signals to HR partners, never individuals."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nShows group-level attrition signals to HR business partners — never individual predictions. Process owner area: People Analytics. Status: Hypothesis · not selected.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nShows group-level attrition signals to HR business partners — never individual predictions. Process owner area: People Analytics. Status: Hypothesis · not selected.",
+      "PROD": "Shows group-level attrition signals to HR business partners — never individual predictions. Process owner area: People Analytics. Status: Hypothesis · not selected."
+    },
+    "accentColor": "#003E51",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Hypothesis · not selected",
+  "statusClass": "hypothesis",
+  "audience": "HR business partners",
+  "processOwnerArea": "People Data, Analytics & AI (DAAI); People Analytics as report owner",
+  "owner": "Head of People Data, Analytics & AI",
+  "channels": [],
+  "gfName": null,
+  "blueprintName": "Attrition Risk Insight",
+  "evidence": [
+    "E06",
+    "E25"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

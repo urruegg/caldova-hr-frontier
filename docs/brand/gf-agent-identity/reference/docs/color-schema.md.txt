@@ -1,0 +1,59 @@
+# Colour schema per journey
+
+Version 1.0.0 · 2026-10-28 · proposal for GF approval. Machine-readable source: `config/palette.json` and `brand/palette.css`.
+
+## 1. Sources
+
+- **GF Master** Office theme from a GF-authored deck [E01]: dark 1 `#323232`, light 1 `#FFFFFF`, dark 2 `#DB6B30`, light 2 `#003E51`, accents `#00629B`, `#00A3E0`, `#9BCBEB`, `#007A53`, `#47A23F`, `#ADDC91`; fonts Rockwell (headings) and Arial (body).
+- georgfischer.com colours sampled on 22 Oct 2026 [E31], including the interface orange `#BC5A26`.
+- No official GF brand-portal file was available to us. Validate the mapping with GF's brand owner before PROD.
+
+| Name used here | Hex | Source |
+|---|---|---|
+| GF Blue | `#00629B` | GF Master theme accent 1; website primary blue |
+| GF Petrol | `#003E51` | GF Master theme light 2 (dark petrol) |
+| GF Orange | `#DB6B30` | GF Master theme dark 2 |
+| GF Orange UI | `#BC5A26` | georgfischer.com interface orange (accessible on white) |
+| GF Green | `#007A53` | GF Master theme accent 4 |
+| GF Leaf Green | `#47A23F` | GF Master theme accent 5 |
+| GF Pale Green | `#ADDC91` | GF Master theme accent 6 |
+| GF Cyan | `#00A3E0` | GF Master theme accent 2 |
+| GF Light Blue | `#9BCBEB` | GF Master theme accent 3; website light blue |
+| GF Graphite | `#323232` | GF Master theme dark 1 (text) |
+| GF Grey | `#F8F8F8` | georgfischer.com background grey |
+| White | `#FFFFFF` | GF Master theme light 1 |
+
+## 2. One colour per journey
+
+| Journey | GF colour (theme slot) | Icon background | Glyph | Contrast | Tints (UI backgrounds) | Text on white | vs. blueprint v0.4 |
+|---|---|---|---|---|---|---|---|
+| D1 · Attract & Hire | GF Blue (accent1) | `#00629B` | `#FFFFFF` | 6.52:1 | `#E0ECF3` / `#B2D0E1` | `#00629B` | unchanged |
+| D2 · Joiners, Movers & Leavers | GF Green (accent4) | `#007A53` | `#FFFFFF` | 5.37:1 | `#E0EFEA` / `#B2D7CB` | `#007A53` | unchanged |
+| D3 · HR Operations & Service | GF Orange UI (dk2 (accessible shade from georgfischer.com)) | `#BC5A26` | `#FFFFFF` | 4.54:1 | `#F7EBE5` / `#EBCEBE` | `#BC5A26` | unchanged |
+| D4 · Leadership & Workforce Insights | GF Petrol (lt2) | `#003E51` | `#FFFFFF` | 11.62:1 | `#E0E8EA` / `#B2C5CB` | `#003E51` | changed from `#0A3D50` |
+| D5 · Talent & Performance | GF Pale Green (accent6) | `#ADDC91` | `#003E51` | 7.42:1 | `#F5FBF2` / `#E6F4DE` | `#003E51` | changed from `#5B6770` |
+| D6 · HR Agentic Factory | GF Graphite (dk1) | `#323232` | `#FFFFFF` | 12.82:1 | `#E6E6E6` / `#C2C2C2` | `#323232` | changed from `#1576A8` |
+
+Each journey keeps one colour on every surface: icon background, Copilot Studio icon colour and accent colour, Teams `accentColor`, agent cards and catalog headers. Agents are told apart by their glyph, not by shades.
+
+Contrast follows Microsoft's icon guidance (4.5:1 recommended for best accessibility). D3 uses GF's interface orange (`#BC5A26`, 4.54:1) because the theme orange `#DB6B30` reaches only 3.4:1 with a white glyph. D5 uses a petrol glyph on pale green.
+
+## 3. Environment markers
+
+| Environment | Band | Label | Contrast | Detail |
+|---|---|---|---|---|
+| DEV | `#BC5A26` | `#FFFFFF` | 4.54:1 | white 4 px separator above the band |
+| TEST | `#9BCBEB` | `#003E51` | 6.71:1 | white 4 px separator above the band |
+| PROD | - | - | - | no marker |
+
+## 4. Usage rules
+
+- **Icons:** full-bleed journey colour, glyph in the journey's glyph colour, nothing else (see `docs/icons-and-visuals.md`).
+- **Copilot Studio:** upload the colour icon; under *Colors* set the journey colour as icon colour or accent colour.
+- **Teams / Microsoft 365 app details:** `accentColor` = journey colour (in each agent's `identity.json`).
+- **Cards, pages, Adaptive Cards:** body text `#282828`, backgrounds white or GF grey `#F8F8F8`, journey tint for chips and headers; use Arial - Rockwell is often missing on client devices.
+- **Never** introduce new colours for single agents; never lighten D3 or the DEV band (they sit just above 4.5:1).
+
+## 5. Changes compared with the blueprint mockup v0.4
+
+D1, D2 and D3 keep their colours. D4 moves from the website petrol `#0A3D50` to the theme petrol `#003E51` (almost identical). D5 moves from slate `#5B6770`, which is not a GF colour, to GF pale green `#ADDC91`. D6 moves from `#1576A8` to GF graphite `#323232` for the internal builder agents. We recommend aligning the next mockup version with this palette.

@@ -1,0 +1,114 @@
+{
+  "id": "D1-A05",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D1",
+    "name": "Attract & Hire"
+  },
+  "tokens": {
+    "po": "Recruiting",
+    "domain": "Job Profiles",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "Recruiting Job Profiles DEV",
+    "TEST": "Recruiting Job Profiles TEST",
+    "PROD": "Recruiting Job Profiles"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Checks job descriptions against GF's template and harmonises wording.",
+    "TEST": "TEST · Checks job descriptions against GF's template and harmonises wording.",
+    "PROD": "Checks job descriptions against GF's template and harmonises wording."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nChecks job descriptions against GF's template and global items, flags gaps and inconsistent titles or levels, proposes harmonised wording for HR approval; no personal data. Process owner area: Recruiting. Status: Microsoft proposal · no personal data.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nChecks job descriptions against GF's template and global items, flags gaps and inconsistent titles or levels, proposes harmonised wording for HR approval; no personal data. Process owner area: Recruiting. Status: Microsoft proposal · no personal data.",
+    "PROD": "Checks job descriptions against GF's template and global items, flags gaps and inconsistent titles or levels, proposes harmonised wording for HR approval; no personal data. Process owner area: Recruiting. Status: Microsoft proposal · no personal data."
+  },
+  "slug": "recruiting-job-profiles",
+  "schemaName": "gf_RecruitingJobProfiles",
+  "solution": {
+    "uniqueName": "GFHRRecruitingJobProfiles",
+    "displayName": "GF HR Recruiting Job Profiles"
+  },
+  "envVarPrefix": "gf_Recruiting",
+  "connectionContext": "Recruiting",
+  "flowNamePrefix": "Recruiting Job Profiles - ",
+  "github": null,
+  "icon": {
+    "background": "#00629B",
+    "glyphColour": "#FFFFFF",
+    "contrast": 6.52,
+    "glyph": "Fluent UI System Icons: organization (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "Recruiting Job Profiles DEV",
+      "TEST": "Recruiting Job Profiles TEST",
+      "PROD": "Recruiting Job Profiles"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer Recruiting Job Profiles (DEV)",
+      "TEST": "Georg Fischer Recruiting Job Profiles (TEST)",
+      "PROD": "Georg Fischer Recruiting Job Profiles"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Checks job descriptions against GF's template and harmonises wording.",
+      "TEST": "TEST · Checks job descriptions against GF's template and harmonises wording.",
+      "PROD": "Checks job descriptions against GF's template and harmonises wording."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nChecks job descriptions against GF's template and global items, flags gaps and inconsistent titles or levels, proposes harmonised wording for HR approval; no personal data. Process owner area: Recruiting. Status: Microsoft proposal · no personal data.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nChecks job descriptions against GF's template and global items, flags gaps and inconsistent titles or levels, proposes harmonised wording for HR approval; no personal data. Process owner area: Recruiting. Status: Microsoft proposal · no personal data.",
+      "PROD": "Checks job descriptions against GF's template and global items, flags gaps and inconsistent titles or levels, proposes harmonised wording for HR approval; no personal data. Process owner area: Recruiting. Status: Microsoft proposal · no personal data."
+    },
+    "accentColor": "#00629B",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Microsoft proposal · no personal data",
+  "statusClass": "proposal",
+  "audience": "Recruiting and HR partners",
+  "processOwnerArea": "People Attraction / Recruiting",
+  "owner": "Head of People Attraction & Recruiting (business, to confirm); DAAI (agent product)",
+  "channels": [
+    "Microsoft 365 Copilot",
+    "Teams"
+  ],
+  "gfName": null,
+  "blueprintName": "Job Architecture Assistant",
+  "evidence": [
+    "E40",
+    "E43",
+    "E06",
+    "E04",
+    "E13"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

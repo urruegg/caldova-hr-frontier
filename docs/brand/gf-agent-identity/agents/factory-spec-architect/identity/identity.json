@@ -1,0 +1,71 @@
+{
+  "id": "D6-LEAD",
+  "kind": "repository-agent",
+  "role": "orchestrator",
+  "journey": {
+    "id": "D6",
+    "name": "HR Agentic Factory"
+  },
+  "tokens": {
+    "po": "Factory",
+    "domain": "Spec Architect",
+    "scope": ""
+  },
+  "displayName": {
+    "PROD": "Factory Spec Architect"
+  },
+  "shortDescription": {
+    "PROD": "Turns an approved SOP or idea into declarations, a PRD and a plan."
+  },
+  "fullDescription": {
+    "PROD": "Turns an approved GF SOP or idea into the seven declarations, a PRD and a build plan, checks the Definition of Ready and routes each slice to the factory agents. Process owner area: Factory. Status: Factory · prototype-days dry run. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself."
+  },
+  "slug": "factory-spec-architect",
+  "schemaName": null,
+  "solution": null,
+  "envVarPrefix": null,
+  "connectionContext": null,
+  "flowNamePrefix": null,
+  "github": {
+    "agentName": "spec-architect",
+    "file": ".github/agents/spec-architect.agent.md",
+    "proposedName": false
+  },
+  "icon": {
+    "background": "#323232",
+    "glyphColour": "#FFFFFF",
+    "contrast": 12.82,
+    "glyph": "Fluent UI System Icons: clipboard-text-edit (filled / regular)",
+    "files": {
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": null,
+  "status": "Factory · prototype-days dry run",
+  "statusClass": "factory",
+  "audience": "HR AI builders",
+  "processOwnerArea": "HR Agentic Factory - HR AI Business Lead as product owner (to confirm)",
+  "owner": "HR AI Business Lead (product owner — to confirm)",
+  "channels": [
+    "VS Code with GitHub Copilot",
+    "Copilot CLI",
+    "Azure Boards"
+  ],
+  "gfName": null,
+  "blueprintName": "Spec Architect Agent",
+  "evidence": [
+    "E44",
+    "E45",
+    "E40",
+    "E41",
+    "E10",
+    "E36"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

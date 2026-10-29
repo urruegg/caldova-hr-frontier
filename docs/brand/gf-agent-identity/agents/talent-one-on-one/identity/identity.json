@@ -1,0 +1,107 @@
+{
+  "id": "D5-A01",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D5",
+    "name": "Talent & Performance"
+  },
+  "tokens": {
+    "po": "Talent",
+    "domain": "One-on-One",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "Talent One-on-One DEV",
+    "TEST": "Talent One-on-One TEST",
+    "PROD": "Talent One-on-One"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Prepares managers for development-focused one-to-ones.",
+    "TEST": "TEST · Prepares managers for development-focused one-to-ones.",
+    "PROD": "Prepares managers for development-focused one-to-ones."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nPrepares managers for development-focused one-to-ones with themes and questions. Process owner area: Talent. Status: Hypothesis · not selected.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nPrepares managers for development-focused one-to-ones with themes and questions. Process owner area: Talent. Status: Hypothesis · not selected.",
+    "PROD": "Prepares managers for development-focused one-to-ones with themes and questions. Process owner area: Talent. Status: Hypothesis · not selected."
+  },
+  "slug": "talent-one-on-one",
+  "schemaName": "gf_TalentOneOnOne",
+  "solution": {
+    "uniqueName": "GFHRTalentOneOnOne",
+    "displayName": "GF HR Talent One-on-One"
+  },
+  "envVarPrefix": "gf_Talent",
+  "connectionContext": "Talent",
+  "flowNamePrefix": "Talent One-on-One - ",
+  "github": null,
+  "icon": {
+    "background": "#ADDC91",
+    "glyphColour": "#003E51",
+    "contrast": 7.42,
+    "glyph": "Fluent UI System Icons: people-chat (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "Talent One-on-One DEV",
+      "TEST": "Talent One-on-One TEST",
+      "PROD": "Talent One-on-One"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer Talent One-on-One (DEV)",
+      "TEST": "Georg Fischer Talent One-on-One (TEST)",
+      "PROD": "Georg Fischer Talent One-on-One"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Prepares managers for development-focused one-to-ones.",
+      "TEST": "TEST · Prepares managers for development-focused one-to-ones.",
+      "PROD": "Prepares managers for development-focused one-to-ones."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nPrepares managers for development-focused one-to-ones with themes and questions. Process owner area: Talent. Status: Hypothesis · not selected.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nPrepares managers for development-focused one-to-ones with themes and questions. Process owner area: Talent. Status: Hypothesis · not selected.",
+      "PROD": "Prepares managers for development-focused one-to-ones with themes and questions. Process owner area: Talent. Status: Hypothesis · not selected."
+    },
+    "accentColor": "#ADDC91",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Hypothesis · not selected",
+  "statusClass": "hypothesis",
+  "audience": "Managers",
+  "processOwnerArea": "Talent & Performance (hypothesis, not yet confirmed by GF)",
+  "owner": "Head of Talent & Performance",
+  "channels": [],
+  "gfName": null,
+  "blueprintName": "One-on-One Agent",
+  "evidence": [
+    "E06"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

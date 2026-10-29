@@ -1,0 +1,8 @@
+<ImportExportXml version="9.2" SolutionPackageVersion="9.2" languagecode="1033">
+  <SolutionManifest>
+    <UniqueName>GFHRPolicyAssistant</UniqueName>
+    <LocalizedNames><LocalizedName description="GF HR Policy Assistant" languagecode="1033" /></LocalizedNames>
+    <Version>1.0.0.0</Version>
+    <Managed>2</Managed>
+  </SolutionManifest>
+</ImportExportXml>

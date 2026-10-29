@@ -1,0 +1,70 @@
+{
+  "id": "D6-A02",
+  "kind": "repository-agent",
+  "role": "specialist",
+  "journey": {
+    "id": "D6",
+    "name": "HR Agentic Factory"
+  },
+  "tokens": {
+    "po": "Factory",
+    "domain": "Integration",
+    "scope": ""
+  },
+  "displayName": {
+    "PROD": "Factory Integration"
+  },
+  "shortDescription": {
+    "PROD": "Drafts Workday access-layer contracts and connection bindings."
+  },
+  "fullDescription": {
+    "PROD": "Drafts Workday access-layer and tool contracts, connection references and deployment-settings bindings, and a Capability Admission Record for every connector, MCP server, plugin or preview feature. Process owner area: Factory. Status: Factory · next. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself."
+  },
+  "slug": "factory-integration",
+  "schemaName": null,
+  "solution": null,
+  "envVarPrefix": null,
+  "connectionContext": null,
+  "flowNamePrefix": null,
+  "github": {
+    "agentName": "integration-engineer",
+    "file": ".github/agents/integration-engineer.agent.md",
+    "proposedName": true
+  },
+  "icon": {
+    "background": "#323232",
+    "glyphColour": "#FFFFFF",
+    "contrast": 12.82,
+    "glyph": "Fluent UI System Icons: plug-connected (filled / regular)",
+    "files": {
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": null,
+  "status": "Factory · next",
+  "statusClass": "factory",
+  "audience": "Integration team",
+  "processOwnerArea": "HR Agentic Factory - HR AI Business Lead as product owner (to confirm)",
+  "owner": "GF IT Systems Integration Lead with Workday Solutions (to confirm)",
+  "channels": [
+    "VS Code with GitHub Copilot",
+    "Copilot CLI"
+  ],
+  "gfName": null,
+  "blueprintName": "Workday & Data Integration Agent",
+  "evidence": [
+    "E45",
+    "E44",
+    "E34",
+    "E36",
+    "E38",
+    "E13"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

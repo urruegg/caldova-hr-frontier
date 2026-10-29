@@ -1,0 +1,112 @@
+{
+  "id": "D3-A07",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D3",
+    "name": "HR Operations & Service"
+  },
+  "tokens": {
+    "po": "HR Policy",
+    "domain": "Communications",
+    "scope": ""
+  },
+  "displayName": {
+    "DEV": "HR Policy Communications DEV",
+    "TEST": "HR Policy Communications TEST",
+    "PROD": "HR Policy Communications"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Drafts HR announcements and policy summaries in four languages.",
+    "TEST": "TEST · Drafts HR announcements and policy summaries in four languages.",
+    "PROD": "Drafts HR announcements and policy summaries in four languages."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nDrafts HR announcements, policy-change summaries and manager talking points in German, English, French and Italian from approved policy content in GF's tone; HR approves before anything is published. Process owner area: HR Policy. Status: Microsoft proposal · no personal data.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nDrafts HR announcements, policy-change summaries and manager talking points in German, English, French and Italian from approved policy content in GF's tone; HR approves before anything is published. Process owner area: HR Policy. Status: Microsoft proposal · no personal data.",
+    "PROD": "Drafts HR announcements, policy-change summaries and manager talking points in German, English, French and Italian from approved policy content in GF's tone; HR approves before anything is published. Process owner area: HR Policy. Status: Microsoft proposal · no personal data."
+  },
+  "slug": "hr-policy-communications",
+  "schemaName": "gf_HRPolicyCommunications",
+  "solution": {
+    "uniqueName": "GFHRPolicyCommunications",
+    "displayName": "GF HR Policy Communications"
+  },
+  "envVarPrefix": "gf_HRPolicy",
+  "connectionContext": "HRPolicy",
+  "flowNamePrefix": "HR Policy Communications - ",
+  "github": null,
+  "icon": {
+    "background": "#BC5A26",
+    "glyphColour": "#FFFFFF",
+    "contrast": 4.54,
+    "glyph": "Fluent UI System Icons: mail-edit (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "HR Policy Communications DEV",
+      "TEST": "HR Policy Communications TEST",
+      "PROD": "HR Policy Communications"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer HR Policy Communications (DEV)",
+      "TEST": "Georg Fischer HR Policy Communications (TEST)",
+      "PROD": "Georg Fischer HR Policy Communications"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Drafts HR announcements and policy summaries in four languages.",
+      "TEST": "TEST · Drafts HR announcements and policy summaries in four languages.",
+      "PROD": "Drafts HR announcements and policy summaries in four languages."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nDrafts HR announcements, policy-change summaries and manager talking points in German, English, French and Italian from approved policy content in GF's tone; HR approves before anything is published. Process owner area: HR Policy. Status: Microsoft proposal · no personal data.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nDrafts HR announcements, policy-change summaries and manager talking points in German, English, French and Italian from approved policy content in GF's tone; HR approves before anything is published. Process owner area: HR Policy. Status: Microsoft proposal · no personal data.",
+      "PROD": "Drafts HR announcements, policy-change summaries and manager talking points in German, English, French and Italian from approved policy content in GF's tone; HR approves before anything is published. Process owner area: HR Policy. Status: Microsoft proposal · no personal data."
+    },
+    "accentColor": "#BC5A26",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Microsoft proposal · no personal data",
+  "statusClass": "proposal",
+  "audience": "HR policy owners and HR communications",
+  "processOwnerArea": "Switzerland HR - local policy owner (to be named)",
+  "owner": "Switzerland HR policy owner with the HR AI Business Lead (to confirm)",
+  "channels": [
+    "Teams",
+    "Microsoft 365 Copilot"
+  ],
+  "gfName": null,
+  "blueprintName": "HR Communications Agent",
+  "evidence": [
+    "E40",
+    "E41",
+    "E04"
+  ],
+  "notes": null,
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

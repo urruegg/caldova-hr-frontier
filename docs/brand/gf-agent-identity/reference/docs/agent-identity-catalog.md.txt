@@ -1,0 +1,650 @@
+# Agent identity catalog
+
+Generated from `config/agent-identity.json` v1.0.0 (2026-10-28) by `scripts/build_identity_assets.py`. Do not edit by hand: change the tokens in the config and rebuild.
+
+Display name = `<PO> <Domain> [Scope] [DEV | TEST]`; PROD has no postfix. Technical names never carry an environment. Status values come from the blueprint v0.4.
+
+**37 agents** in 6 journeys · **3 MVP agents** for the prototype days · publisher prefix `gf` (decision G5 open).
+
+
+## D1 · Attract & Hire
+
+Colour **GF Blue** `#00629B` · glyph `#FFFFFF` · contrast 6.52:1 · PO area(s): Recruiting
+
+| Icon | PROD name | DEV | TEST | PO · Domain | Status | Schema / GitHub agent | Solution | Folder |
+|---|---|---|---|---|---|---|---|---|
+| <img src="../agents/recruiting-lead/identity/color-192.png" width="40" alt="Recruiting Lead icon"> | **Recruiting Lead** | `Recruiting Lead DEV` | `Recruiting Lead TEST` | Recruiting · Lead | Hypothesis | `gf_RecruitingLead` | `GFHRRecruitingLead` | `agents/recruiting-lead/` |
+| <img src="../agents/recruiting-job-posting/identity/color-192.png" width="40" alt="Recruiting Job Posting icon"> | **Recruiting Job Posting** | `Recruiting Job Posting DEV` | `Recruiting Job Posting TEST` | Recruiting · Job Posting | MVP 2 | `gf_RecruitingJobPosting` | `GFHRRecruitingJobPosting` | `agents/recruiting-job-posting/` |
+| <img src="../agents/recruiting-screening/identity/color-192.png" width="40" alt="Recruiting Screening icon"> | **Recruiting Screening** | `Recruiting Screening DEV` | `Recruiting Screening TEST` | Recruiting · Screening | Out of scope | `gf_RecruitingScreening` | `GFHRRecruitingScreening` | `agents/recruiting-screening/` |
+| <img src="../agents/recruiting-coordination/identity/color-192.png" width="40" alt="Recruiting Coordination icon"> | **Recruiting Coordination** | `Recruiting Coordination DEV` | `Recruiting Coordination TEST` | Recruiting · Coordination | Hypothesis | `gf_RecruitingCoordination` | `GFHRRecruitingCoordination` | `agents/recruiting-coordination/` |
+| <img src="../agents/recruiting-interview-kit/identity/color-192.png" width="40" alt="Recruiting Interview Kit icon"> | **Recruiting Interview Kit** | `Recruiting Interview Kit DEV` | `Recruiting Interview Kit TEST` | Recruiting · Interview Kit | Proposal | `gf_RecruitingInterviewKit` | `GFHRRecruitingInterviewKit` | `agents/recruiting-interview-kit/` |
+| <img src="../agents/recruiting-job-profiles/identity/color-192.png" width="40" alt="Recruiting Job Profiles icon"> | **Recruiting Job Profiles** | `Recruiting Job Profiles DEV` | `Recruiting Job Profiles TEST` | Recruiting · Job Profiles | Proposal | `gf_RecruitingJobProfiles` | `GFHRRecruitingJobProfiles` | `agents/recruiting-job-profiles/` |
+
+### Recruiting Lead (D1-LEAD)
+
+<img src="../agents/recruiting-lead/identity/card.png" width="600" alt="Identity card for Recruiting Lead">
+
+- **Purpose (short, ≤ 80 with env marker):** Routes recruiting requests to the right Attract & Hire specialist agent.
+- **Full description:** Orchestrator for the Attract & Hire journey: understands the request and hands it to the right specialist agent. Process owner area: Recruiting. Status: Hypothesis · not selected.
+- **Audience:** Hiring managers, HR partners and recruiters
+- **Process owner area:** People Attraction / Recruiting
+- **Owner (blueprint):** Head of People Attraction & Recruiting
+- **Channels:** Teams, Microsoft 365 Copilot
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_RecruitingLead` · solution `GFHRRecruitingLead` ("GF HR Recruiting Lead") · variables `gf_Recruiting…` · connection references `gf_<Connector>Recruiting` · flows "Recruiting Lead - <Action>"
+- **Icon:** glyph `person-add` on `#00629B` · files in `agents/recruiting-lead/identity/`
+- **Evidence:** E20, E04
+
+### Recruiting Job Posting (D1-A01)
+
+<img src="../agents/recruiting-job-posting/identity/card.png" width="600" alt="Identity card for Recruiting Job Posting">
+
+- **Purpose (short, ≤ 80 with env marker):** Guides hiring managers to a Workday-ready job description and posting.
+- **Full description:** Guides hiring managers through seven questions to a Workday-ready job description, then gives the recruiter one posting package and a job scoping action. Process owner area: Recruiting. Status: Workshop use case · MVP 2.
+- **Audience:** Hiring managers, HR partners and recruiters (pilot)
+- **Process owner area:** People Attraction / Recruiting
+- **Owner (blueprint):** Head of People Attraction & Recruiting (business); DAAI (agent product)
+- **GF working name:** Recruiting: Job Requisition and Job Posting agent
+- **Channels:** Microsoft 365 Copilot, Teams, Outlook, Workday (link)
+- **Status:** Workshop use case · MVP 2
+- **Technical:** schema `gf_RecruitingJobPosting` · solution `GFHRRecruitingJobPosting` ("GF HR Recruiting Job Posting") · variables `gf_Recruiting…` · connection references `gf_<Connector>Recruiting` · flows "Recruiting Job Posting - <Action>"
+- **Icon:** glyph `megaphone` on `#00629B` · files in `agents/recruiting-job-posting/identity/`
+- **Note:** GF scope: no CV screening (E40). Display name keeps 'Job Posting' because 'Recruiting Job Requisition' exceeds 25 characters.
+- **Evidence:** E20, E21, E22, E06, E13, E28
+
+### Recruiting Screening (D1-A02)
+
+<img src="../agents/recruiting-screening/identity/card.png" width="600" alt="Identity card for Recruiting Screening">
+
+- **Purpose (short, ≤ 80 with env marker):** Summarises applications against approved criteria for recruiters.
+- **Full description:** Summarises applications against the approved requisition criteria for recruiter review — no ranking, scoring or rejection. Process owner area: Recruiting. Status: Out of scope for now · no CV screening.
+- **Audience:** Recruiters
+- **Process owner area:** People Attraction / Recruiting
+- **Owner (blueprint):** Head of People Attraction & Recruiting
+- **Channels:** to confirm
+- **Status:** Out of scope for now · no CV screening
+- **Technical:** schema `gf_RecruitingScreening` · solution `GFHRRecruitingScreening` ("GF HR Recruiting Screening") · variables `gf_Recruiting…` · connection references `gf_<Connector>Recruiting` · flows "Recruiting Screening - <Action>"
+- **Icon:** glyph `person-search` on `#00629B` · files in `agents/recruiting-screening/identity/`
+- **Evidence:** E23, E06, E13, E28
+
+### Recruiting Coordination (D1-A03)
+
+<img src="../agents/recruiting-coordination/identity/card.png" width="600" alt="Identity card for Recruiting Coordination">
+
+- **Purpose (short, ≤ 80 with env marker):** Schedules interviews and prepares offer documents for HR approval.
+- **Full description:** Schedules interviews and prepares offer documents for the HR partner's approval. Process owner area: Recruiting. Status: Hypothesis · not selected.
+- **Audience:** Recruiters and hiring managers
+- **Process owner area:** People Attraction / Recruiting
+- **Owner (blueprint):** Head of People Attraction & Recruiting
+- **Channels:** to confirm
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_RecruitingCoordination` · solution `GFHRRecruitingCoordination` ("GF HR Recruiting Coordination") · variables `gf_Recruiting…` · connection references `gf_<Connector>Recruiting` · flows "Recruiting Coordination - <Action>"
+- **Icon:** glyph `calendar-person` on `#00629B` · files in `agents/recruiting-coordination/identity/`
+- **Evidence:** E04
+
+### Recruiting Interview Kit (D1-A04)
+
+<img src="../agents/recruiting-interview-kit/identity/card.png" width="600" alt="Identity card for Recruiting Interview Kit">
+
+- **Purpose (short, ≤ 80 with env marker):** Turns an approved job description into an interview guide and scorecard.
+- **Full description:** Turns an approved job description into a structured interview guide, behavioural questions per competency and scorecard criteria for the hiring team; no candidate data. Process owner area: Recruiting. Status: Microsoft proposal · no personal data.
+- **Audience:** Hiring teams
+- **Process owner area:** People Attraction / Recruiting
+- **Owner (blueprint):** Head of People Attraction & Recruiting (business, to confirm); DAAI (agent product)
+- **Channels:** Microsoft 365 Copilot, Teams
+- **Status:** Microsoft proposal · no personal data
+- **Technical:** schema `gf_RecruitingInterviewKit` · solution `GFHRRecruitingInterviewKit` ("GF HR Recruiting Interview Kit") · variables `gf_Recruiting…` · connection references `gf_<Connector>Recruiting` · flows "Recruiting Interview Kit - <Action>"
+- **Icon:** glyph `clipboard-task-list-ltr` on `#00629B` · files in `agents/recruiting-interview-kit/identity/`
+- **Evidence:** E40, E43, E22
+
+### Recruiting Job Profiles (D1-A05)
+
+<img src="../agents/recruiting-job-profiles/identity/card.png" width="600" alt="Identity card for Recruiting Job Profiles">
+
+- **Purpose (short, ≤ 80 with env marker):** Checks job descriptions against GF's template and harmonises wording.
+- **Full description:** Checks job descriptions against GF's template and global items, flags gaps and inconsistent titles or levels, proposes harmonised wording for HR approval; no personal data. Process owner area: Recruiting. Status: Microsoft proposal · no personal data.
+- **Audience:** Recruiting and HR partners
+- **Process owner area:** People Attraction / Recruiting
+- **Owner (blueprint):** Head of People Attraction & Recruiting (business, to confirm); DAAI (agent product)
+- **Channels:** Microsoft 365 Copilot, Teams
+- **Status:** Microsoft proposal · no personal data
+- **Technical:** schema `gf_RecruitingJobProfiles` · solution `GFHRRecruitingJobProfiles` ("GF HR Recruiting Job Profiles") · variables `gf_Recruiting…` · connection references `gf_<Connector>Recruiting` · flows "Recruiting Job Profiles - <Action>"
+- **Icon:** glyph `organization` on `#00629B` · files in `agents/recruiting-job-profiles/identity/`
+- **Evidence:** E40, E43, E06, E04, E13
+
+## D2 · Joiners, Movers & Leavers
+
+Colour **GF Green** `#007A53` · glyph `#FFFFFF` · contrast 5.37:1 · PO area(s): HR Ops
+
+| Icon | PROD name | DEV | TEST | PO · Domain | Status | Schema / GitHub agent | Solution | Folder |
+|---|---|---|---|---|---|---|---|---|
+| <img src="../agents/hr-ops-lifecycle-lead/identity/color-192.png" width="40" alt="HR Ops Lifecycle Lead icon"> | **HR Ops Lifecycle Lead** | `HR Ops Lifecycle Lead DEV` | `HR Ops Lifecycle Lead TEST` | HR Ops · Lifecycle Lead | Hypothesis | `gf_HROpsLifecycleLead` | `GFHROpsLifecycleLead` | `agents/hr-ops-lifecycle-lead/` |
+| <img src="../agents/hr-ops-master-data-ch/identity/color-192.png" width="40" alt="HR Ops Master Data CH icon"> | **HR Ops Master Data CH** | `HR Ops Master Data CH DEV` | `HR Ops Master Data CH TEST` | HR Ops · Master Data · CH | MVP 3 | `gf_HROpsMasterDataCH` | `GFHROpsMasterDataCH` | `agents/hr-ops-master-data-ch/` |
+| <img src="../agents/hr-ops-onboarding-guide/identity/color-192.png" width="40" alt="HR Ops Onboarding Guide icon"> | **HR Ops Onboarding Guide** | `HR Ops Onboarding Guide DEV` | `HR Ops Onboarding Guide TEST` | HR Ops · Onboarding Guide | Proposal | `gf_HROpsOnboardingGuide` | `GFHROpsOnboardingGuide` | `agents/hr-ops-onboarding-guide/` |
+| <img src="../agents/hr-ops-leaver-check/identity/color-192.png" width="40" alt="HR Ops Leaver Check icon"> | **HR Ops Leaver Check** | `HR Ops Leaver Check DEV` | `HR Ops Leaver Check TEST` | HR Ops · Leaver Check | Hypothesis | `gf_HROpsLeaverCheck` | `GFHROpsLeaverCheck` | `agents/hr-ops-leaver-check/` |
+| <img src="../agents/hr-ops-pre-hire-tracker/identity/color-192.png" width="40" alt="HR Ops Pre-hire Tracker icon"> | **HR Ops Pre-hire Tracker** | `HR Ops Pre-hire Tracker DEV` | `HR Ops Pre-hire Tracker TEST` | HR Ops · Pre-hire Tracker | Hypothesis | `gf_HROpsPreHireTracker` | `GFHROpsPreHireTracker` | `agents/hr-ops-pre-hire-tracker/` |
+
+### HR Ops Lifecycle Lead (D2-LEAD)
+
+<img src="../agents/hr-ops-lifecycle-lead/identity/card.png" width="600" alt="Identity card for HR Ops Lifecycle Lead">
+
+- **Purpose (short, ≤ 80 with env marker):** Routes joiner, mover and leaver requests to the right HR Ops agent.
+- **Full description:** Orchestrator for the Joiners, Movers & Leavers journey: understands the request and hands it to the right specialist agent. Process owner area: HR Ops. Status: Hypothesis · not selected.
+- **Audience:** HR Operations
+- **Process owner area:** HR Operations (Switzerland HR Operations for the CH MVP)
+- **Owner (blueprint):** Head of HR Operations
+- **Channels:** Teams, Microsoft 365 Copilot
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_HROpsLifecycleLead` · solution `GFHROpsLifecycleLead` ("GF HR Ops Lifecycle Lead") · variables `gf_HROps…` · connection references `gf_<Connector>HROps` · flows "HR Ops Lifecycle Lead - <Action>"
+- **Icon:** glyph `people-swap` on `#007A53` · files in `agents/hr-ops-lifecycle-lead/identity/`
+- **Evidence:** E03, E14
+
+### HR Ops Master Data CH (D2-A01)
+
+<img src="../agents/hr-ops-master-data-ch/identity/card.png" width="600" alt="Identity card for HR Ops Master Data CH">
+
+- **Purpose (short, ≤ 80 with env marker):** Adds approved missing joiner data to the matching Workday profile.
+- **Full description:** Pre-loads approved personal master data from new joiners' non-identity documents into the one matching Workday profile — add-only, after HR Operations approves, and audited. Process owner area: HR Ops. Status: Workshop use case · MVP 3.
+- **Audience:** HR Operations Switzerland
+- **Process owner area:** HR Operations (Switzerland HR Operations for the CH MVP)
+- **Owner (blueprint):** Switzerland HR Operations (process); DAAI / HR AI Business Lead (product)
+- **GF working name:** HR Operations Agent (Switzerland)
+- **Channels:** Teams (start, approvals, notifications), SharePoint (New Employees, Complete, Exceptions), Weekly validation view
+- **Status:** Workshop use case · MVP 3
+- **Technical:** schema `gf_HROpsMasterDataCH` · solution `GFHROpsMasterDataCH` ("GF HR Ops Master Data CH") · variables `gf_HROps…` · connection references `gf_<Connector>HROpsCH` · flows "HR Ops Master Data CH - <Action>"
+- **Icon:** glyph `contact-card` on `#007A53` · files in `agents/hr-ops-master-data-ch/identity/`
+- **Note:** E45 names the agent solution GFHRMasterDataAgent in its draft; keep it via overrides.solutionUniqueName if GF prefers that name.
+- **Evidence:** E40, E14, E15, E16, E28, E13, E10, E34, E25
+
+### HR Ops Onboarding Guide (D2-A02)
+
+<img src="../agents/hr-ops-onboarding-guide/identity/card.png" width="600" alt="Identity card for HR Ops Onboarding Guide">
+
+- **Purpose (short, ≤ 80 with env marker):** Answers onboarding questions from approved content; drafts week one.
+- **Full description:** Answers onboarding questions from approved content, site guides and checklists and drafts a generic first-week plan per role family and site; no Workday or personal data. Process owner area: HR Ops. Status: Microsoft proposal · no personal data.
+- **Audience:** New joiners and their managers
+- **Process owner area:** HR Operations (Switzerland HR Operations for the CH MVP)
+- **Owner (blueprint):** Head of HR Operations (content, to confirm); DAAI (agent product)
+- **GF working name:** Onboarding Assistant
+- **Channels:** Microsoft Teams, Microsoft 365 Copilot
+- **Status:** Microsoft proposal · no personal data
+- **Technical:** schema `gf_HROpsOnboardingGuide` · solution `GFHROpsOnboardingGuide` ("GF HR Ops Onboarding Guide") · variables `gf_HROps…` · connection references `gf_<Connector>HROps` · flows "HR Ops Onboarding Guide - <Action>"
+- **Icon:** glyph `hand-wave` on `#007A53` · files in `agents/hr-ops-onboarding-guide/identity/`
+- **Evidence:** E40, E06, E04, E03, E10
+
+### HR Ops Leaver Check (D2-A03)
+
+<img src="../agents/hr-ops-leaver-check/identity/card.png" width="600" alt="Identity card for HR Ops Leaver Check">
+
+- **Purpose (short, ≤ 80 with env marker):** Checks leavers are completed on time and access is returned.
+- **Full description:** Checks that every leaver is terminated on time in Workday and that access, hardware and licences are returned through the existing ServiceNow flow; chases the owners. Process owner area: HR Ops. Status: Hypothesis · not selected.
+- **Audience:** HR Operations
+- **Process owner area:** HR Operations (Switzerland HR Operations for the CH MVP)
+- **Owner (blueprint):** Head of HR Operations
+- **Channels:** to confirm
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_HROpsLeaverCheck` · solution `GFHROpsLeaverCheck` ("GF HR Ops Leaver Check") · variables `gf_HROps…` · connection references `gf_<Connector>HROps` · flows "HR Ops Leaver Check - <Action>"
+- **Icon:** glyph `door-arrow-left` on `#007A53` · files in `agents/hr-ops-leaver-check/identity/`
+- **Evidence:** E03, E01
+
+### HR Ops Pre-hire Tracker (D2-A04)
+
+<img src="../agents/hr-ops-pre-hire-tracker/identity/card.png" width="600" alt="Identity card for HR Ops Pre-hire Tracker">
+
+- **Purpose (short, ≤ 80 with env marker):** Tracks each joiner's pre-hire steps across systems and chases gaps.
+- **Full description:** Tracks the pre-hire chain PeopleDoc → Workday → SAP for each joiner and chases missing items. Process owner area: HR Ops. Status: Hypothesis · not selected.
+- **Audience:** HR Operations
+- **Process owner area:** HR Operations (Switzerland HR Operations for the CH MVP)
+- **Owner (blueprint):** Head of HR Operations
+- **Channels:** to confirm
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_HROpsPreHireTracker` · solution `GFHROpsPreHireTracker` ("GF HR Ops Pre-hire Tracker") · variables `gf_HROps…` · connection references `gf_<Connector>HROps` · flows "HR Ops Pre-hire Tracker - <Action>"
+- **Icon:** glyph `task-list-ltr` on `#007A53` · files in `agents/hr-ops-pre-hire-tracker/identity/`
+- **Evidence:** E03, E25
+
+## D3 · HR Operations & Service
+
+Colour **GF Orange UI** `#BC5A26` · glyph `#FFFFFF` · contrast 4.54:1 · PO area(s): HR Ops, HR Policy
+
+| Icon | PROD name | DEV | TEST | PO · Domain | Status | Schema / GitHub agent | Solution | Folder |
+|---|---|---|---|---|---|---|---|---|
+| <img src="../agents/hr-ops-service-lead/identity/color-192.png" width="40" alt="HR Ops Service Lead icon"> | **HR Ops Service Lead** | `HR Ops Service Lead DEV` | `HR Ops Service Lead TEST` | HR Ops · Service Lead | Hypothesis | `gf_HROpsServiceLead` | `GFHROpsServiceLead` | `agents/hr-ops-service-lead/` |
+| <img src="../agents/hr-policy-assistant/identity/color-192.png" width="40" alt="HR Policy Assistant icon"> | **HR Policy Assistant** | `HR Policy Assistant DEV` | `HR Policy Assistant TEST` | HR Policy · Assistant | MVP 1 | `gf_HRPolicyAssistant` | `GFHRPolicyAssistant` | `agents/hr-policy-assistant/` |
+| <img src="../agents/hr-ops-self-service/identity/color-192.png" width="40" alt="HR Ops Self-Service icon"> | **HR Ops Self-Service** | `HR Ops Self-Service DEV` | `HR Ops Self-Service TEST` | HR Ops · Self-Service | Later wave | `gf_HROpsSelfService` | `GFHROpsSelfService` | `agents/hr-ops-self-service/` |
+| <img src="../agents/hr-ops-case-triage/identity/color-192.png" width="40" alt="HR Ops Case Triage icon"> | **HR Ops Case Triage** | `HR Ops Case Triage DEV` | `HR Ops Case Triage TEST` | HR Ops · Case Triage | Hypothesis | `gf_HROpsCaseTriage` | `GFHROpsCaseTriage` | `agents/hr-ops-case-triage/` |
+| <img src="../agents/hr-policy-health-check/identity/color-192.png" width="40" alt="HR Policy Health Check icon"> | **HR Policy Health Check** | `HR Policy Health Check DEV` | `HR Policy Health Check TEST` | HR Policy · Health Check | Proposal | `gf_HRPolicyHealthCheck` | `GFHRPolicyHealthCheck` | `agents/hr-policy-health-check/` |
+| <img src="../agents/hr-ops-data-quality/identity/color-192.png" width="40" alt="HR Ops Data Quality icon"> | **HR Ops Data Quality** | `HR Ops Data Quality DEV` | `HR Ops Data Quality TEST` | HR Ops · Data Quality | Hypothesis | `gf_HROpsDataQuality` | `GFHROpsDataQuality` | `agents/hr-ops-data-quality/` |
+| <img src="../agents/hr-ops-payroll-check/identity/color-192.png" width="40" alt="HR Ops Payroll Check icon"> | **HR Ops Payroll Check** | `HR Ops Payroll Check DEV` | `HR Ops Payroll Check TEST` | HR Ops · Payroll Check | Hypothesis | `gf_HROpsPayrollCheck` | `GFHROpsPayrollCheck` | `agents/hr-ops-payroll-check/` |
+| <img src="../agents/hr-policy-communications/identity/color-192.png" width="40" alt="HR Policy Communications icon"> | **HR Policy Communications** | `HR Policy Communications DEV` | `HR Policy Communications TEST` | HR Policy · Communications | Proposal | `gf_HRPolicyCommunications` | `GFHRPolicyCommunications` | `agents/hr-policy-communications/` |
+| <img src="../agents/hr-policy-learning/identity/color-192.png" width="40" alt="HR Policy Learning icon"> | **HR Policy Learning** | `HR Policy Learning DEV` | `HR Policy Learning TEST` | HR Policy · Learning | Proposal | `gf_HRPolicyLearning` | `GFHRPolicyLearning` | `agents/hr-policy-learning/` |
+
+### HR Ops Service Lead (D3-LEAD)
+
+<img src="../agents/hr-ops-service-lead/identity/card.png" width="600" alt="Identity card for HR Ops Service Lead">
+
+- **Purpose (short, ≤ 80 with env marker):** Routes HR service questions and cases to the right HR agent.
+- **Full description:** Orchestrator for the HR Operations & Service journey: understands the request and hands it to the right specialist agent. Process owner area: HR Ops. Status: Hypothesis · not selected.
+- **Audience:** Employees and HR Service
+- **Process owner area:** HR Operations (Switzerland HR Operations for the CH MVP)
+- **Owner (blueprint):** Head of HR Operations
+- **Channels:** Teams, Microsoft 365 Copilot
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_HROpsServiceLead` · solution `GFHROpsServiceLead` ("GF HR Ops Service Lead") · variables `gf_HROps…` · connection references `gf_<Connector>HROps` · flows "HR Ops Service Lead - <Action>"
+- **Icon:** glyph `headset` on `#BC5A26` · files in `agents/hr-ops-service-lead/identity/`
+- **Evidence:** E03
+
+### HR Policy Assistant (D3-A01)
+
+<img src="../agents/hr-policy-assistant/identity/card.png" width="600" alt="Identity card for HR Policy Assistant">
+
+- **Purpose (short, ≤ 80 with env marker):** Answers Swiss HR policy questions from approved policies, with source.
+- **Full description:** Answers Switzerland HR policy questions from approved policy PDFs on SharePoint with the source; points to the Workday Help Center when no reliable answer exists. Process owner area: HR Policy. Status: Workshop use case · MVP 1.
+- **Audience:** Employees in Switzerland (pilot group)
+- **Process owner area:** Switzerland HR - local policy owner (to be named)
+- **Owner (blueprint):** DAAI (agent owner); Switzerland HR policy owner for content (to be named)
+- **GF working name:** SSE HR Policy Assistant
+- **Channels:** Microsoft 365 Copilot, Teams
+- **Status:** Workshop use case · MVP 1
+- **Technical:** schema `gf_HRPolicyAssistant` · solution `GFHRPolicyAssistant` ("GF HR Policy Assistant") · variables `gf_HRPolicy…` · connection references `gf_<Connector>HRPolicy` · flows "HR Policy Assistant - <Action>"
+- **Icon:** glyph `book-question-mark` on `#BC5A26` · files in `agents/hr-policy-assistant/identity/`
+- **Note:** Built on GF's Employee Self-Service agent if the ESS HR template is enabled for GF's tenant (customisation solution GFHRESS, E45); plan B is a standard Copilot Studio agent in its own solution. If the ESS agent later also answers own-data questions (D3-A02), consider one ESS display name for both (open decision 16).
+- **Evidence:** E04, E06, E25, E36, E38
+
+### HR Ops Self-Service (D3-A02)
+
+<img src="../agents/hr-ops-self-service/identity/card.png" width="600" alt="Identity card for HR Ops Self-Service">
+
+- **Purpose (short, ≤ 80 with env marker):** Answers employees' questions about their own Workday data.
+- **Full description:** Answers employees' questions about their own Workday data — employee ID, job, organisation, cost centre, service anniversary, contact details — and later updates contact details through Workday business processes, always as the employee. Process owner area: HR Ops. Status: Later wave · personal data (own Workday data).
+- **Audience:** Employees (later wave)
+- **Process owner area:** HR Operations (Switzerland HR Operations for the CH MVP)
+- **Owner (blueprint):** Head of HR Operations
+- **Channels:** Teams, Microsoft 365 Copilot, Copilot mobile app
+- **Status:** Later wave · personal data (own Workday data)
+- **Technical:** schema `gf_HROpsSelfService` · solution `GFHROpsSelfService` ("GF HR Ops Self-Service") · variables `gf_HROps…` · connection references `gf_<Connector>HROps` · flows "HR Ops Self-Service - <Action>"
+- **Icon:** glyph `person-chat` on `#BC5A26` · files in `agents/hr-ops-self-service/identity/`
+- **Evidence:** E06, E04, E01, E34, E36, E38
+
+### HR Ops Case Triage (D3-A03)
+
+<img src="../agents/hr-ops-case-triage/identity/card.png" width="600" alt="Identity card for HR Ops Case Triage">
+
+- **Purpose (short, ≤ 80 with env marker):** Classifies Workday Help cases and suggests routing and a draft reply.
+- **Full description:** Classifies incoming Workday Help cases, suggests routing and a draft answer for the handler. Process owner area: HR Ops. Status: Hypothesis · not selected.
+- **Audience:** HR Service handlers
+- **Process owner area:** HR Operations (Switzerland HR Operations for the CH MVP)
+- **Owner (blueprint):** Head of HR Operations
+- **Channels:** to confirm
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_HROpsCaseTriage` · solution `GFHROpsCaseTriage` ("GF HR Ops Case Triage") · variables `gf_HROps…` · connection references `gf_<Connector>HROps` · flows "HR Ops Case Triage - <Action>"
+- **Icon:** glyph `ticket-diagonal` on `#BC5A26` · files in `agents/hr-ops-case-triage/identity/`
+- **Evidence:** E06, E04, E08, E38
+
+### HR Policy Health Check (D3-A04)
+
+<img src="../agents/hr-policy-health-check/identity/card.png" width="600" alt="Identity card for HR Policy Health Check">
+
+- **Purpose (short, ≤ 80 with env marker):** Checks policy copies against the version tracker; drafts FAQ updates.
+- **Full description:** Checks the SharePoint policy copies against the HR Policy Versioning Tracker, flags conflicts with the CEA, missing owners and review dates, and drafts FAQ entries and test questions; people approve. Process owner area: HR Policy. Status: Microsoft proposal · no personal data.
+- **Audience:** HR policy owners and DAAI
+- **Process owner area:** Switzerland HR - local policy owner (to be named)
+- **Owner (blueprint):** DAAI with the Switzerland HR policy owner
+- **Channels:** Teams, SharePoint (review list)
+- **Status:** Microsoft proposal · no personal data
+- **Technical:** schema `gf_HRPolicyHealthCheck` · solution `GFHRPolicyHealthCheck` ("GF HR Policy Health Check") · variables `gf_HRPolicy…` · connection references `gf_<Connector>HRPolicy` · flows "HR Policy Health Check - <Action>"
+- **Icon:** glyph `document-checkmark` on `#BC5A26` · files in `agents/hr-policy-health-check/identity/`
+- **Evidence:** E03, E04
+
+### HR Ops Data Quality (D3-A05)
+
+<img src="../agents/hr-ops-data-quality/identity/card.png" width="600" alt="Identity card for HR Ops Data Quality">
+
+- **Purpose (short, ≤ 80 with env marker):** Finds missing or inconsistent Workday data and chases the owner.
+- **Full description:** Finds missing, duplicate or inconsistent Workday data across the population and chases the data owner until it is right. Process owner area: HR Ops. Status: Hypothesis · not selected.
+- **Audience:** HR Operations
+- **Process owner area:** HR Operations (Switzerland HR Operations for the CH MVP)
+- **Owner (blueprint):** Head of HR Operations
+- **Channels:** to confirm
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_HROpsDataQuality` · solution `GFHROpsDataQuality` ("GF HR Ops Data Quality") · variables `gf_HROps…` · connection references `gf_<Connector>HROps` · flows "HR Ops Data Quality - <Action>"
+- **Icon:** glyph `database-search` on `#BC5A26` · files in `agents/hr-ops-data-quality/identity/`
+- **Evidence:** E04, E06, E25
+
+### HR Ops Payroll Check (D3-A06)
+
+<img src="../agents/hr-ops-payroll-check/identity/card.png" width="600" alt="Identity card for HR Ops Payroll Check">
+
+- **Purpose (short, ≤ 80 with env marker):** Compares payroll and finance files and lists discrepancies.
+- **Full description:** Compares payroll and finance files across payroll systems and lists discrepancies for the payroll team. Process owner area: HR Ops. Status: Hypothesis · not selected.
+- **Audience:** Payroll team
+- **Process owner area:** HR Operations (Switzerland HR Operations for the CH MVP)
+- **Owner (blueprint):** Head of HR Operations
+- **Channels:** to confirm
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_HROpsPayrollCheck` · solution `GFHROpsPayrollCheck` ("GF HR Ops Payroll Check") · variables `gf_HROps…` · connection references `gf_<Connector>HROps` · flows "HR Ops Payroll Check - <Action>"
+- **Icon:** glyph `money-calculator` on `#BC5A26` · files in `agents/hr-ops-payroll-check/identity/`
+- **Evidence:** E03, E04
+
+### HR Policy Communications (D3-A07)
+
+<img src="../agents/hr-policy-communications/identity/card.png" width="600" alt="Identity card for HR Policy Communications">
+
+- **Purpose (short, ≤ 80 with env marker):** Drafts HR announcements and policy summaries in four languages.
+- **Full description:** Drafts HR announcements, policy-change summaries and manager talking points in German, English, French and Italian from approved policy content in GF's tone; HR approves before anything is published. Process owner area: HR Policy. Status: Microsoft proposal · no personal data.
+- **Audience:** HR policy owners and HR communications
+- **Process owner area:** Switzerland HR - local policy owner (to be named)
+- **Owner (blueprint):** Switzerland HR policy owner with the HR AI Business Lead (to confirm)
+- **Channels:** Teams, Microsoft 365 Copilot
+- **Status:** Microsoft proposal · no personal data
+- **Technical:** schema `gf_HRPolicyCommunications` · solution `GFHRPolicyCommunications` ("GF HR Policy Communications") · variables `gf_HRPolicy…` · connection references `gf_<Connector>HRPolicy` · flows "HR Policy Communications - <Action>"
+- **Icon:** glyph `mail-edit` on `#BC5A26` · files in `agents/hr-policy-communications/identity/`
+- **Evidence:** E40, E41, E04
+
+### HR Policy Learning (D3-A08)
+
+<img src="../agents/hr-policy-learning/identity/card.png" width="600" alt="Identity card for HR Policy Learning">
+
+- **Purpose (short, ≤ 80 with env marker):** Turns approved policies into short learning cards and quizzes.
+- **Full description:** Turns approved policies and SOPs into short learning cards and quizzes (e.g. working time, expenses, on-call rules) for HR approval and publication; no personal data, no individual scoring. Process owner area: HR Policy. Status: Microsoft proposal · no personal data.
+- **Audience:** HR policy owners and L&D
+- **Process owner area:** Switzerland HR - local policy owner (to be named)
+- **Owner (blueprint):** Switzerland HR policy owner with L&D (to confirm)
+- **Channels:** Teams, Microsoft 365 Copilot
+- **Status:** Microsoft proposal · no personal data
+- **Technical:** schema `gf_HRPolicyLearning` · solution `GFHRPolicyLearning` ("GF HR Policy Learning") · variables `gf_HRPolicy…` · connection references `gf_<Connector>HRPolicy` · flows "HR Policy Learning - <Action>"
+- **Icon:** glyph `hat-graduation` on `#BC5A26` · files in `agents/hr-policy-learning/identity/`
+- **Evidence:** E40, E41, E42
+
+## D4 · Leadership & Workforce Insights
+
+Colour **GF Petrol** `#003E51` · glyph `#FFFFFF` · contrast 11.62:1 · PO area(s): People Analytics
+
+| Icon | PROD name | DEV | TEST | PO · Domain | Status | Schema / GitHub agent | Solution | Folder |
+|---|---|---|---|---|---|---|---|---|
+| <img src="../agents/people-analytics-lead/identity/color-192.png" width="40" alt="People Analytics Lead icon"> | **People Analytics Lead** | `People Analytics Lead DEV` | `People Analytics Lead TEST` | People Analytics · Lead | Hypothesis | `gf_PeopleAnalyticsLead` | `GFHRPeopleAnalyticsLead` | `agents/people-analytics-lead/` |
+| <img src="../agents/people-analytics-reports/identity/color-192.png" width="40" alt="People Analytics Reports icon"> | **People Analytics Reports** | `People Analytics Reports DEV` | `People Analytics Reports TEST` | People Analytics · Reports | Deferred | `gf_PeopleAnalyticsReports` | `GFHRPeopleAnalyticsReports` | `agents/people-analytics-reports/` |
+| <img src="../agents/people-analytics-trends/identity/color-192.png" width="40" alt="People Analytics Trends icon"> | **People Analytics Trends** | `People Analytics Trends DEV` | `People Analytics Trends TEST` | People Analytics · Trends | Hypothesis | `gf_PeopleAnalyticsTrends` | `GFHRPeopleAnalyticsTrends` | `agents/people-analytics-trends/` |
+| <img src="../agents/people-analytics-turnover/identity/color-192.png" width="40" alt="People Analytics Turnover icon"> | **People Analytics Turnover** | `People Analytics Turnover DEV` | `People Analytics Turnover TEST` | People Analytics · Turnover | Hypothesis | `gf_PeopleAnalyticsTurnover` | `GFHRPeopleAnalyticsTurnover` | `agents/people-analytics-turnover/` |
+
+### People Analytics Lead (D4-LEAD)
+
+<img src="../agents/people-analytics-lead/identity/card.png" width="600" alt="Identity card for People Analytics Lead">
+
+- **Purpose (short, ≤ 80 with env marker):** Routes leaders' insight questions to the right analytics agent.
+- **Full description:** Orchestrator for the Leadership & Workforce Insights journey: understands the request and hands it to the right specialist agent. Process owner area: People Analytics. Status: Hypothesis · not selected.
+- **Audience:** Leaders and HR business partners
+- **Process owner area:** People Data, Analytics & AI (DAAI); People Analytics as report owner
+- **Owner (blueprint):** Head of People Data, Analytics & AI
+- **Channels:** Teams, Microsoft 365 Copilot
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_PeopleAnalyticsLead` · solution `GFHRPeopleAnalyticsLead` ("GF HR People Analytics Lead") · variables `gf_PeopleAnalytics…` · connection references `gf_<Connector>PeopleAnalytics` · flows "People Analytics Lead - <Action>"
+- **Icon:** glyph `data-trending` on `#003E51` · files in `agents/people-analytics-lead/identity/`
+- **Evidence:** E17, E13
+
+### People Analytics Reports (D4-A01)
+
+<img src="../agents/people-analytics-reports/identity/card.png" width="600" alt="Identity card for People Analytics Reports">
+
+- **Purpose (short, ≤ 80 with env marker):** Answers leaders' questions on approved Workday leadership reports.
+- **Full description:** Answers leaders' questions about their team and the approved Workday leadership reports — run under the leader's own access, with team facts from Workday worker data and a link to the Workday report by default. Process owner area: People Analytics. Status: Deferred · works council (data from Germany).
+- **Audience:** Leaders (deferred: works council)
+- **Process owner area:** People Data, Analytics & AI (DAAI); People Analytics as report owner
+- **Owner (blueprint):** Head of People Data, Analytics & AI (DAAI); report owners in People Analytics
+- **GF working name:** Workday Leadership Insights Agent
+- **Channels:** Teams, Microsoft 365 Copilot, Workday (source link)
+- **Status:** Deferred · works council (data from Germany)
+- **Technical:** schema `gf_PeopleAnalyticsReports` · solution `GFHRPeopleAnalyticsReports` ("GF HR People Analytics Reports") · variables `gf_PeopleAnalytics…` · connection references `gf_<Connector>PeopleAnalytics` · flows "People Analytics Reports - <Action>"
+- **Icon:** glyph `data-pie` on `#003E51` · files in `agents/people-analytics-reports/identity/`
+- **Evidence:** E17, E18, E19, E06, E13, E28, E34, E36, E37, E38
+
+### People Analytics Trends (D4-A02)
+
+<img src="../agents/people-analytics-trends/identity/card.png" width="600" alt="Identity card for People Analytics Trends">
+
+- **Purpose (short, ≤ 80 with env marker):** Explains group-level trends such as headcount, hiring and attrition.
+- **Full description:** Combines several reports and Power BI models to explain trends such as headcount, hiring and attrition at group level. Process owner area: People Analytics. Status: Hypothesis · not selected.
+- **Audience:** HR leadership
+- **Process owner area:** People Data, Analytics & AI (DAAI); People Analytics as report owner
+- **Owner (blueprint):** Head of People Data, Analytics & AI
+- **Channels:** to confirm
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_PeopleAnalyticsTrends` · solution `GFHRPeopleAnalyticsTrends` ("GF HR People Analytics Trends") · variables `gf_PeopleAnalytics…` · connection references `gf_<Connector>PeopleAnalytics` · flows "People Analytics Trends - <Action>"
+- **Icon:** glyph `data-bar-vertical` on `#003E51` · files in `agents/people-analytics-trends/identity/`
+- **Evidence:** E06, E13
+
+### People Analytics Turnover (D4-A03)
+
+<img src="../agents/people-analytics-turnover/identity/card.png" width="600" alt="Identity card for People Analytics Turnover">
+
+- **Purpose (short, ≤ 80 with env marker):** Shows group-level attrition signals to HR partners, never individuals.
+- **Full description:** Shows group-level attrition signals to HR business partners — never individual predictions. Process owner area: People Analytics. Status: Hypothesis · not selected.
+- **Audience:** HR business partners
+- **Process owner area:** People Data, Analytics & AI (DAAI); People Analytics as report owner
+- **Owner (blueprint):** Head of People Data, Analytics & AI
+- **Channels:** to confirm
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_PeopleAnalyticsTurnover` · solution `GFHRPeopleAnalyticsTurnover` ("GF HR People Analytics Turnover") · variables `gf_PeopleAnalytics…` · connection references `gf_<Connector>PeopleAnalytics` · flows "People Analytics Turnover - <Action>"
+- **Icon:** glyph `arrow-trending-down` on `#003E51` · files in `agents/people-analytics-turnover/identity/`
+- **Evidence:** E06, E25
+
+## D5 · Talent & Performance
+
+Colour **GF Pale Green** `#ADDC91` · glyph `#003E51` · contrast 7.42:1 · PO area(s): Talent
+
+| Icon | PROD name | DEV | TEST | PO · Domain | Status | Schema / GitHub agent | Solution | Folder |
+|---|---|---|---|---|---|---|---|---|
+| <img src="../agents/talent-lead/identity/color-192.png" width="40" alt="Talent Lead icon"> | **Talent Lead** | `Talent Lead DEV` | `Talent Lead TEST` | Talent · Lead | Hypothesis | `gf_TalentLead` | `GFHRTalentLead` | `agents/talent-lead/` |
+| <img src="../agents/talent-one-on-one/identity/color-192.png" width="40" alt="Talent One-on-One icon"> | **Talent One-on-One** | `Talent One-on-One DEV` | `Talent One-on-One TEST` | Talent · One-on-One | Hypothesis | `gf_TalentOneOnOne` | `GFHRTalentOneOnOne` | `agents/talent-one-on-one/` |
+| <img src="../agents/talent-performance-review/identity/color-192.png" width="40" alt="Talent Performance Review icon"> | **Talent Performance Review** | `Talent Performance Review DEV` | `Talent Performance Review TEST` | Talent · Performance Review | Hypothesis | `gf_TalentPerformanceReview` | `GFHRTalentPerformanceReview` | `agents/talent-performance-review/` |
+| <img src="../agents/talent-development-plan/identity/color-192.png" width="40" alt="Talent Development Plan icon"> | **Talent Development Plan** | `Talent Development Plan DEV` | `Talent Development Plan TEST` | Talent · Development Plan | Hypothesis | `gf_TalentDevelopmentPlan` | `GFHRTalentDevelopmentPlan` | `agents/talent-development-plan/` |
+| <img src="../agents/talent-calibration/identity/color-192.png" width="40" alt="Talent Calibration icon"> | **Talent Calibration** | `Talent Calibration DEV` | `Talent Calibration TEST` | Talent · Calibration | Hypothesis | `gf_TalentCalibration` | `GFHRTalentCalibration` | `agents/talent-calibration/` |
+
+### Talent Lead (D5-LEAD)
+
+<img src="../agents/talent-lead/identity/card.png" width="600" alt="Identity card for Talent Lead">
+
+- **Purpose (short, ≤ 80 with env marker):** Routes talent and performance requests to the right Talent agent.
+- **Full description:** Orchestrator for the Talent & Performance journey: understands the request and hands it to the right specialist agent. Process owner area: Talent. Status: Hypothesis · not selected.
+- **Audience:** Managers and employees
+- **Process owner area:** Talent & Performance (hypothesis, not yet confirmed by GF)
+- **Owner (blueprint):** Head of Talent & Performance
+- **Channels:** Teams, Microsoft 365 Copilot
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_TalentLead` · solution `GFHRTalentLead` ("GF HR Talent Lead") · variables `gf_Talent…` · connection references `gf_<Connector>Talent` · flows "Talent Lead - <Action>"
+- **Icon:** glyph `ribbon-star` on `#ADDC91` · files in `agents/talent-lead/identity/`
+- **Evidence:** E06
+
+### Talent One-on-One (D5-A01)
+
+<img src="../agents/talent-one-on-one/identity/card.png" width="600" alt="Identity card for Talent One-on-One">
+
+- **Purpose (short, ≤ 80 with env marker):** Prepares managers for development-focused one-to-ones.
+- **Full description:** Prepares managers for development-focused one-to-ones with themes and questions. Process owner area: Talent. Status: Hypothesis · not selected.
+- **Audience:** Managers
+- **Process owner area:** Talent & Performance (hypothesis, not yet confirmed by GF)
+- **Owner (blueprint):** Head of Talent & Performance
+- **Channels:** to confirm
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_TalentOneOnOne` · solution `GFHRTalentOneOnOne` ("GF HR Talent One-on-One") · variables `gf_Talent…` · connection references `gf_<Connector>Talent` · flows "Talent One-on-One - <Action>"
+- **Icon:** glyph `people-chat` on `#ADDC91` · files in `agents/talent-one-on-one/identity/`
+- **Evidence:** E06
+
+### Talent Performance Review (D5-A02)
+
+<img src="../agents/talent-performance-review/identity/card.png" width="600" alt="Identity card for Talent Performance Review">
+
+- **Purpose (short, ≤ 80 with env marker):** Helps employees prepare evidence-based self-assessments.
+- **Full description:** Helps employees prepare evidence-based self-assessments; the employee owns the submission. Process owner area: Talent. Status: Hypothesis · not selected.
+- **Audience:** Employees
+- **Process owner area:** Talent & Performance (hypothesis, not yet confirmed by GF)
+- **Owner (blueprint):** Head of Talent & Performance
+- **Channels:** to confirm
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_TalentPerformanceReview` · solution `GFHRTalentPerformanceReview` ("GF HR Talent Performance Review") · variables `gf_Talent…` · connection references `gf_<Connector>Talent` · flows "Talent Performance Review - <Action>"
+- **Icon:** glyph `person-star` on `#ADDC91` · files in `agents/talent-performance-review/identity/`
+- **Evidence:** E06
+
+### Talent Development Plan (D5-A03)
+
+<img src="../agents/talent-development-plan/identity/card.png" width="600" alt="Identity card for Talent Development Plan">
+
+- **Purpose (short, ≤ 80 with env marker):** Proposes a 70/20/10 development plan to discuss with the manager.
+- **Full description:** Proposes a 70/20/10 development plan for the employee to discuss with the manager. Process owner area: Talent. Status: Hypothesis · not selected.
+- **Audience:** Employees and managers
+- **Process owner area:** Talent & Performance (hypothesis, not yet confirmed by GF)
+- **Owner (blueprint):** Head of Talent & Performance
+- **Channels:** to confirm
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_TalentDevelopmentPlan` · solution `GFHRTalentDevelopmentPlan` ("GF HR Talent Development Plan") · variables `gf_Talent…` · connection references `gf_<Connector>Talent` · flows "Talent Development Plan - <Action>"
+- **Icon:** glyph `target-arrow` on `#ADDC91` · files in `agents/talent-development-plan/identity/`
+- **Evidence:** E06
+
+### Talent Calibration (D5-A04)
+
+<img src="../agents/talent-calibration/identity/card.png" width="600" alt="Identity card for Talent Calibration">
+
+- **Purpose (short, ≤ 80 with env marker):** Drafts calibration decks and talent cards; leaders decide.
+- **Full description:** Drafts calibration decks and talent cards for a leader; leaders decide. Process owner area: Talent. Status: Hypothesis · not selected.
+- **Audience:** Leaders and HR partners
+- **Process owner area:** Talent & Performance (hypothesis, not yet confirmed by GF)
+- **Owner (blueprint):** Head of Talent & Performance
+- **Channels:** to confirm
+- **Status:** Hypothesis · not selected
+- **Technical:** schema `gf_TalentCalibration` · solution `GFHRTalentCalibration` ("GF HR Talent Calibration") · variables `gf_Talent…` · connection references `gf_<Connector>Talent` · flows "Talent Calibration - <Action>"
+- **Icon:** glyph `scales` on `#ADDC91` · files in `agents/talent-calibration/identity/`
+- **Evidence:** E06
+
+## D6 · HR Agentic Factory
+
+Colour **GF Graphite** `#323232` · glyph `#FFFFFF` · contrast 12.82:1 · PO area(s): Factory
+
+| Icon | PROD name | DEV | TEST | PO · Domain | Status | Schema / GitHub agent | Solution | Folder |
+|---|---|---|---|---|---|---|---|---|
+| <img src="../agents/factory-spec-architect/identity/color-192.png" width="40" alt="Factory Spec Architect icon"> | **Factory Spec Architect** | n/a | n/a | Factory · Spec Architect | Factory | `.github/agents/spec-architect.agent.md` | n/a (repository) | `agents/factory-spec-architect/` |
+| <img src="../agents/factory-agent-builder/identity/color-192.png" width="40" alt="Factory Agent Builder icon"> | **Factory Agent Builder** | n/a | n/a | Factory · Agent Builder | Factory | `.github/agents/mcs-builder.agent.md` | n/a (repository) | `agents/factory-agent-builder/` |
+| <img src="../agents/factory-integration/identity/color-192.png" width="40" alt="Factory Integration icon"> | **Factory Integration** | n/a | n/a | Factory · Integration | Factory | `.github/agents/integration-engineer.agent.md` | n/a (repository) | `agents/factory-integration/` |
+| <img src="../agents/factory-eval-engineer/identity/color-192.png" width="40" alt="Factory Eval Engineer icon"> | **Factory Eval Engineer** | n/a | n/a | Factory · Eval Engineer | Factory | `.github/agents/eval-engineer.agent.md` | n/a (repository) | `agents/factory-eval-engineer/` |
+| <img src="../agents/factory-security-review/identity/color-192.png" width="40" alt="Factory Security Review icon"> | **Factory Security Review** | n/a | n/a | Factory · Security Review | Factory | `.github/agents/security-reviewer.agent.md` | n/a (repository) | `agents/factory-security-review/` |
+| <img src="../agents/factory-release-manager/identity/color-192.png" width="40" alt="Factory Release Manager icon"> | **Factory Release Manager** | n/a | n/a | Factory · Release Manager | Factory | `.github/agents/release-manager.agent.md` | n/a (repository) | `agents/factory-release-manager/` |
+| <img src="../agents/factory-ops-analyst/identity/color-192.png" width="40" alt="Factory Ops Analyst icon"> | **Factory Ops Analyst** | n/a | n/a | Factory · Ops Analyst | Factory | `.github/agents/ops-analyst.agent.md` | n/a (repository) | `agents/factory-ops-analyst/` |
+| <img src="../agents/factory-architecture-docs/identity/color-192.png" width="40" alt="Factory Architecture Docs icon"> | **Factory Architecture Docs** | n/a | n/a | Factory · Architecture Docs | Factory | `.github/agents/architecture-docs.agent.md` | n/a (repository) | `agents/factory-architecture-docs/` |
+
+### Factory Spec Architect (D6-LEAD)
+
+<img src="../agents/factory-spec-architect/identity/card.png" width="600" alt="Identity card for Factory Spec Architect">
+
+- **Purpose (short, ≤ 80 with env marker):** Turns an approved SOP or idea into declarations, a PRD and a plan.
+- **Full description:** Turns an approved GF SOP or idea into the seven declarations, a PRD and a build plan, checks the Definition of Ready and routes each slice to the factory agents. Process owner area: Factory. Status: Factory · prototype-days dry run. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself.
+- **Audience:** HR AI builders
+- **Process owner area:** HR Agentic Factory - HR AI Business Lead as product owner (to confirm)
+- **Owner (blueprint):** HR AI Business Lead (product owner — to confirm)
+- **Channels:** VS Code with GitHub Copilot, Copilot CLI, Azure Boards
+- **Status:** Factory · prototype-days dry run
+- **GitHub Copilot custom agent:** `.github/agents/spec-architect.agent.md`
+- **Icon:** glyph `clipboard-text-edit` on `#323232` · files in `agents/factory-spec-architect/identity/`
+- **Evidence:** E44, E45, E40, E41, E10, E36
+
+### Factory Agent Builder (D6-A01)
+
+<img src="../agents/factory-agent-builder/identity/card.png" width="600" alt="Identity card for Factory Agent Builder">
+
+- **Purpose (short, ≤ 80 with env marker):** Builds Copilot Studio agents in GF DEV until the evaluations pass.
+- **Full description:** Authors Copilot Studio agents, topics, knowledge, runtime skills and workflows in GF DEV from the approved plan until the evaluations pass, then opens the pull request. Process owner area: Factory. Status: Factory · prototype-days dry run. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself.
+- **Audience:** HR AI builders
+- **Process owner area:** HR Agentic Factory - HR AI Business Lead as product owner (to confirm)
+- **Owner (blueprint):** DAAI Copilot Studio owner (technical owner per the SOP — to confirm)
+- **Channels:** VS Code with GitHub Copilot, Copilot CLI, Copilot Studio (DEV)
+- **Status:** Factory · prototype-days dry run
+- **GitHub Copilot custom agent:** `.github/agents/mcs-builder.agent.md`
+- **Icon:** glyph `bot-add` on `#323232` · files in `agents/factory-agent-builder/identity/`
+- **Evidence:** E44, E45, E13, E36, E39, E41
+
+### Factory Integration (D6-A02)
+
+<img src="../agents/factory-integration/identity/card.png" width="600" alt="Identity card for Factory Integration">
+
+- **Purpose (short, ≤ 80 with env marker):** Drafts Workday access-layer contracts and connection bindings.
+- **Full description:** Drafts Workday access-layer and tool contracts, connection references and deployment-settings bindings, and a Capability Admission Record for every connector, MCP server, plugin or preview feature. Process owner area: Factory. Status: Factory · next. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself.
+- **Audience:** Integration team
+- **Process owner area:** HR Agentic Factory - HR AI Business Lead as product owner (to confirm)
+- **Owner (blueprint):** GF IT Systems Integration Lead with Workday Solutions (to confirm)
+- **Channels:** VS Code with GitHub Copilot, Copilot CLI
+- **Status:** Factory · next
+- **GitHub Copilot custom agent:** `.github/agents/integration-engineer.agent.md` (name proposed, not in the factory concept)
+- **Icon:** glyph `plug-connected` on `#323232` · files in `agents/factory-integration/identity/`
+- **Evidence:** E45, E44, E34, E36, E38, E13
+
+### Factory Eval Engineer (D6-A03)
+
+<img src="../agents/factory-eval-engineer/identity/card.png" width="600" alt="Identity card for Factory Eval Engineer">
+
+- **Purpose (short, ≤ 80 with env marker):** Writes evaluations before the build and runs them with evidence.
+- **Full description:** Writes the evaluations before the build — golden prompts, refusal suite, escalation, no-decisions-about-people and injected-document cases — and runs the evaluation pyramid L0–L5 with an evidence record. Process owner area: Factory. Status: Factory · prototype-days dry run. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself.
+- **Audience:** HR AI builders
+- **Process owner area:** HR Agentic Factory - HR AI Business Lead as product owner (to confirm)
+- **Owner (blueprint):** DAAI agent owner (testing and monitoring per the SOP) with the Switzerland HR policy owner
+- **Channels:** VS Code with GitHub Copilot, Copilot CLI, Copilot Studio evaluation (DEV, TEST)
+- **Status:** Factory · prototype-days dry run
+- **GitHub Copilot custom agent:** `.github/agents/eval-engineer.agent.md`
+- **Icon:** glyph `beaker` on `#323232` · files in `agents/factory-eval-engineer/identity/`
+- **Evidence:** E44, E45, E41, E42
+
+### Factory Security Review (D6-A04)
+
+<img src="../agents/factory-security-review/identity/card.png" width="600" alt="Identity card for Factory Security Review">
+
+- **Purpose (short, ≤ 80 with env marker):** Reviews specs, pull requests and releases read-only for security.
+- **Full description:** Reviews specifications, pull requests and releases read-only for data classification, threat model, secrets and identifiers, connector scope, authentication and sharing; recommends, never approves. Process owner area: Factory. Status: Factory · next. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself.
+- **Audience:** Security, privacy and builders
+- **Process owner area:** HR Agentic Factory - HR AI Business Lead as product owner (to confirm)
+- **Owner (blueprint):** GF Security / Privacy with the DPO
+- **Channels:** Azure Repos pull requests, VS Code with GitHub Copilot
+- **Status:** Factory · next
+- **GitHub Copilot custom agent:** `.github/agents/security-reviewer.agent.md`
+- **Icon:** glyph `shield-lock` on `#323232` · files in `agents/factory-security-review/identity/`
+- **Evidence:** E44, E45, E04, E34, E13, E11
+
+### Factory Release Manager (D6-A05)
+
+<img src="../agents/factory-release-manager/identity/card.png" width="600" alt="Identity card for Factory Release Manager">
+
+- **Purpose (short, ≤ 80 with env marker):** Prepares releases through the pipelines with a promotion manifest.
+- **Full description:** Prepares releases through Azure Pipelines and Power Platform Pipelines — version stamp, packages built once, deployment settings, promotion manifest, release notes and approvals — so the identical artefact moves from TEST to PROD. Process owner area: Factory. Status: Factory · prototype-days dry run. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself.
+- **Audience:** Platform governance
+- **Process owner area:** HR Agentic Factory - HR AI Business Lead as product owner (to confirm)
+- **Owner (blueprint):** GF IT Power Platform and Dynamics platform governance (releases with the HR AI Business Lead)
+- **Channels:** Azure Pipelines, VS Code with GitHub Copilot, Teams
+- **Status:** Factory · prototype-days dry run
+- **GitHub Copilot custom agent:** `.github/agents/release-manager.agent.md`
+- **Icon:** glyph `rocket` on `#323232` · files in `agents/factory-release-manager/identity/`
+- **Evidence:** E44, E45, E12, E09, E36, E38
+
+### Factory Ops Analyst (D6-A06)
+
+<img src="../agents/factory-ops-analyst/identity/card.png" width="600" alt="Identity card for Factory Ops Analyst">
+
+- **Purpose (short, ≤ 80 with env marker):** Reads telemetry and evaluation trends and drafts work items.
+- **Full description:** Reads aggregated telemetry, evaluation trends and credits read-only, clusters issues per intent and drafts Azure Boards work items with evidence and a regression case; the Feedback Harvester is still missing. Process owner area: Factory. Status: Factory · next. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself.
+- **Audience:** Agent owners
+- **Process owner area:** HR Agentic Factory - HR AI Business Lead as product owner (to confirm)
+- **Owner (blueprint):** DAAI agent owner (operations owner — to confirm)
+- **Channels:** VS Code with GitHub Copilot, Azure Boards, Teams
+- **Status:** Factory · next
+- **GitHub Copilot custom agent:** `.github/agents/ops-analyst.agent.md`
+- **Icon:** glyph `pulse` on `#323232` · files in `agents/factory-ops-analyst/identity/`
+- **Evidence:** E44, E45, E42, E41, E03, E10
+
+### Factory Architecture Docs (D6-A07)
+
+<img src="../agents/factory-architecture-docs/identity/card.png" width="600" alt="Identity card for Factory Architecture Docs">
+
+- **Purpose (short, ≤ 80 with env marker):** Drafts ADRs and keeps documentation and evidence register current.
+- **Full description:** Drafts ADRs, keeps the documentation and the dated evidence register current, and verifies every capability claim on Microsoft Learn before the factory relies on it. Process owner area: Factory. Status: Factory · next. Runs in the GF repository as a GitHub Copilot custom agent; it never deploys to TEST or PROD itself.
+- **Audience:** Architects and builders
+- **Process owner area:** HR Agentic Factory - HR AI Business Lead as product owner (to confirm)
+- **Owner (blueprint):** Head of People Data, Analytics & AI (DAAI) with GF IT platform governance (to confirm)
+- **Channels:** VS Code with GitHub Copilot, Azure Repos pull requests
+- **Status:** Factory · next
+- **GitHub Copilot custom agent:** `.github/agents/architecture-docs.agent.md` (name proposed, not in the factory concept)
+- **Icon:** glyph `book-open` on `#323232` · files in `agents/factory-architecture-docs/identity/`
+- **Evidence:** E44, E45, E11, E25, E03, E36

@@ -2,12 +2,25 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.2 |
-| **Date** | 2026-10-28 |
+| **Version** | 0.3 |
+| **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
 | **Scope** | GF technical package: reusable Power Platform DEV capture, CI and TEST CD |
 | **References** | [Idea](../ideas/gf-azure-devops-solution-cicd-idea.md), [Sprint](../plans/2026-10-28-gf-azure-devops-solution-cicd-sprint.md), [Repository specification](2026-10-28-gf-azure-devops-repository-design.md), [GF source-authority ADR refinement](../adr/0013-gf-azure-repos-source-authority.md) |
+
+## Grounded runtime identity and release evidence
+
+Use the [GF kit and stable runtime bindings](../brand/gf-agent-identity/README.md)
+for names/icons, but do not execute the imported reference stamper or install
+its pipelines. The [identity adoption specification](2026-10-29-gf-agent-identity-kit-design.md)
+requires proven GitHub-harness source/manifest fields, exact matches,
+fail-closed atomic writes and actual post-import read-back.
+
+TEST/PROD identity bytes differ when names/icons differ. Resolve that explicitly
+against the artifact-promotion contract; never claim an identical tested
+artifact after untracked environment-specific stamping. Production remains out
+of current sprint scope.
 
 ## 1. Authority and confirmed boundary
 

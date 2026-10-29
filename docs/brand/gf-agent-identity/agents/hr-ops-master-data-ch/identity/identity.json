@@ -1,0 +1,119 @@
+{
+  "id": "D2-A01",
+  "kind": "copilot-studio",
+  "role": "specialist",
+  "journey": {
+    "id": "D2",
+    "name": "Joiners, Movers & Leavers"
+  },
+  "tokens": {
+    "po": "HR Ops",
+    "domain": "Master Data",
+    "scope": "CH"
+  },
+  "displayName": {
+    "DEV": "HR Ops Master Data CH DEV",
+    "TEST": "HR Ops Master Data CH TEST",
+    "PROD": "HR Ops Master Data CH"
+  },
+  "shortDescription": {
+    "DEV": "DEV · Adds approved missing joiner data to the matching Workday profile.",
+    "TEST": "TEST · Adds approved missing joiner data to the matching Workday profile.",
+    "PROD": "Adds approved missing joiner data to the matching Workday profile."
+  },
+  "fullDescription": {
+    "DEV": "DEV build - synthetic data only, not for production use.\n\nPre-loads approved personal master data from new joiners' non-identity documents into the one matching Workday profile — add-only, after HR Operations approves, and audited. Process owner area: HR Ops. Status: Workshop use case · MVP 3.",
+    "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nPre-loads approved personal master data from new joiners' non-identity documents into the one matching Workday profile — add-only, after HR Operations approves, and audited. Process owner area: HR Ops. Status: Workshop use case · MVP 3.",
+    "PROD": "Pre-loads approved personal master data from new joiners' non-identity documents into the one matching Workday profile — add-only, after HR Operations approves, and audited. Process owner area: HR Ops. Status: Workshop use case · MVP 3."
+  },
+  "slug": "hr-ops-master-data-ch",
+  "schemaName": "gf_HROpsMasterDataCH",
+  "solution": {
+    "uniqueName": "GFHROpsMasterDataCH",
+    "displayName": "GF HR Ops Master Data CH"
+  },
+  "envVarPrefix": "gf_HROps",
+  "connectionContext": "HROpsCH",
+  "flowNamePrefix": "HR Ops Master Data CH - ",
+  "github": null,
+  "icon": {
+    "background": "#007A53",
+    "glyphColour": "#FFFFFF",
+    "contrast": 5.37,
+    "glyph": "Fluent UI System Icons: contact-card (filled / regular)",
+    "files": {
+      "DEV": {
+        "color192": "color-192-dev.png",
+        "color32": "color-32-dev.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-dev.svg"
+      },
+      "TEST": {
+        "color192": "color-192-test.png",
+        "color32": "color-32-test.png",
+        "outline32": "outline-32.png",
+        "svg": "icon-test.svg"
+      },
+      "PROD": {
+        "color192": "color-192.png",
+        "color32": "color-32.png",
+        "outline32": "outline-32.png",
+        "svg": "icon.svg"
+      }
+    }
+  },
+  "teams": {
+    "shortName": {
+      "DEV": "HR Ops Master Data CH DEV",
+      "TEST": "HR Ops Master Data CH TEST",
+      "PROD": "HR Ops Master Data CH"
+    },
+    "fullName": {
+      "DEV": "Georg Fischer HR Ops Master Data CH (DEV)",
+      "TEST": "Georg Fischer HR Ops Master Data CH (TEST)",
+      "PROD": "Georg Fischer HR Ops Master Data CH"
+    },
+    "shortDescription": {
+      "DEV": "DEV · Adds approved missing joiner data to the matching Workday profile.",
+      "TEST": "TEST · Adds approved missing joiner data to the matching Workday profile.",
+      "PROD": "Adds approved missing joiner data to the matching Workday profile."
+    },
+    "fullDescription": {
+      "DEV": "DEV build - synthetic data only, not for production use.\n\nPre-loads approved personal master data from new joiners' non-identity documents into the one matching Workday profile — add-only, after HR Operations approves, and audited. Process owner area: HR Ops. Status: Workshop use case · MVP 3.",
+      "TEST": "TEST build - synthetic or approved test data only, not for production use.\n\nPre-loads approved personal master data from new joiners' non-identity documents into the one matching Workday profile — add-only, after HR Operations approves, and audited. Process owner area: HR Ops. Status: Workshop use case · MVP 3.",
+      "PROD": "Pre-loads approved personal master data from new joiners' non-identity documents into the one matching Workday profile — add-only, after HR Operations approves, and audited. Process owner area: HR Ops. Status: Workshop use case · MVP 3."
+    },
+    "accentColor": "#007A53",
+    "developer": {
+      "name": "Georg Fischer Ltd",
+      "websiteUrl": "https://www.georgfischer.com",
+      "privacyUrl": "[GF to provide]",
+      "termsOfUseUrl": "[GF to provide]"
+    }
+  },
+  "status": "Workshop use case · MVP 3",
+  "statusClass": "mvp",
+  "audience": "HR Operations Switzerland",
+  "processOwnerArea": "HR Operations (Switzerland HR Operations for the CH MVP)",
+  "owner": "Switzerland HR Operations (process); DAAI / HR AI Business Lead (product)",
+  "channels": [
+    "Teams (start, approvals, notifications)",
+    "SharePoint (New Employees, Complete, Exceptions)",
+    "Weekly validation view"
+  ],
+  "gfName": "HR Operations Agent (Switzerland)",
+  "blueprintName": "HR Operations Agent – Switzerland",
+  "evidence": [
+    "E40",
+    "E14",
+    "E15",
+    "E16",
+    "E28",
+    "E13",
+    "E10",
+    "E34",
+    "E25"
+  ],
+  "notes": "E45 names the agent solution GFHRMasterDataAgent in its draft; keep it via overrides.solutionUniqueName if GF prefers that name.",
+  "generatedFrom": "config/agent-identity.json v1.0.0"
+}

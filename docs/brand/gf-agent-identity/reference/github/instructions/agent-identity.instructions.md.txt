@@ -1,0 +1,14 @@
+---
+applyTo: "**"
+---
+# Agent identity rules for GF HR agents
+
+- The single source of truth for agent names, descriptions, colours and icons is `config/agent-identity.json` (plus `config/palette.json`). Never invent or retype an agent name - read `derived.displayName.<ENV>` from the config or `agents/<slug>/identity/identity.json`.
+- Display name pattern: `<PO> <Domain> [<Scope>] [DEV|TEST]`; PROD has no postfix; at most 30 characters (PROD at most 25).
+- Never put DEV, TEST, PROD or any environment word into schema names, solution names, environment variables, connection references, flow or topic names, or folder names.
+- Schema names start with the publisher prefix (`gf` until decision G5) and are set before the first save.
+- New agent: add an entry to `config/agent-identity.json` (PO token from `poAreas`, Domain 1-3 words, glyph from `scripts/glyphs/`), run `python scripts/build_identity_assets.py`, then `python scripts/validate_identity.py`; commit the generated files. Never edit generated PNG, SVG, `identity.json` or `docs/agent-identity-catalog.md` by hand.
+- Colours come only from `config/palette.json`; one colour per journey; icon contrast at least 4.5:1.
+- After exporting from DEV, run `python scripts/stamp_identity.py --env PROD --solution-dir <unpacked> --apply` before opening the pull request.
+- Release pipelines stamp TEST and PROD names and icons with `--apply --strict` before `pac solution pack`; PROD imports the identical PROD-stamped package.
+- Repository agents (journey D6) use the PROD name and short description in `.github/agents/<name>.agent.md`.
