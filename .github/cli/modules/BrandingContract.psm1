@@ -312,6 +312,12 @@ function Get-RepositoryBrandingScan {
         [Collections.Generic.Dictionary[string, object[]]]::new(
             [StringComparer]::Ordinal
         )
+    $bytesByPath = [Collections.Generic.Dictionary[string, byte[]]]::new(
+        [StringComparer]::Ordinal
+    )
+    $textByPath = [Collections.Generic.Dictionary[string, string]]::new(
+        [StringComparer]::Ordinal
+    )
 
     function Add-Finding {
         param([string]$Path, [string]$PatternClass)
@@ -401,6 +407,7 @@ function Get-RepositoryBrandingScan {
             Add-Finding -Path $relativePath -PatternClass 'read-error'
             continue
         }
+        $bytesByPath[$relativePath] = $bytes
 
         if (Test-BrandingBinarySignature -Bytes $bytes) {
             [void]$files.Add([pscustomobject]@{
@@ -430,6 +437,7 @@ function Get-RepositoryBrandingScan {
             Path = ConvertTo-BrandingDisplayPath -Path $relativePath
             Classification = 'tracked-text'
         })
+        $textByPath[$relativePath] = $content
         $contentMatches = @(
             Get-BrandingCanonicalMatches -Content $content -Patterns $patterns
         )
@@ -445,8 +453,9 @@ function Get-RepositoryBrandingScan {
     $suppressionKeys = [Collections.Generic.HashSet[string]]::new(
         [StringComparer]::Ordinal
     )
-    $manifestRelativePath =
+    $evidenceAuthorityPath =
         '.github/cli/config/branding-evidence-exceptions.json'
+    $manifestRelativePath = $evidenceAuthorityPath
     $manifestWasExplicit = $PSBoundParameters.ContainsKey(
         'EvidenceExceptionManifestPath'
     )
@@ -566,7 +575,9 @@ function Get-RepositoryBrandingScan {
                     if ($record.patternClass -cnotmatch '^L[1-7]$') {
                         throw 'Manifest record pattern class is invalid.'
                     }
-                    if ($record.count -isnot [int] -or $record.count -ne 1) {
+                    if (($record.count -isnot [int] -and
+                            $record.count -isnot [long]) -or
+                        $record.count -ne 1) {
                         throw 'Manifest record count is invalid.'
                     }
                     if ([string]::IsNullOrWhiteSpace($record.provenance) -or
@@ -622,10 +633,172 @@ function Get-RepositoryBrandingScan {
             -PatternClass 'evidence-exception-error'
     }
 
+    $classifiedSources = [Collections.Generic.List[object]]::new()
+    $sourceKeys = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $sourceManifestPath = '.github/cli/config/branding-source-classifications.json'
+    $policyPath = 'docs/specs/2026-10-01-caldova-branding-migration-design.md'
+    $sourceManifestExists = Test-Path -LiteralPath (
+        Join-Path $root $sourceManifestPath.Replace('/', '\')
+    )
+    $policyDeclaresSources = $textByPath.ContainsKey($policyPath) -and
+        $textByPath[$policyPath].Contains('Source classification approval:')
+    if ($sourceManifestExists -or $entryByPath.ContainsKey($sourceManifestPath) -or
+        $policyDeclaresSources) {
+        try {
+            foreach ($authorityPath in @($sourceManifestPath, $policyPath)) {
+                if (-not $entryByPath.ContainsKey($authorityPath) -or
+                    $entryByPath[$authorityPath].Stage -ne 0 -or
+                    $entryByPath[$authorityPath].Mode -notin @('100644', '100755') -or
+                    -not $textByPath.ContainsKey($authorityPath)) {
+                    throw 'Source authority is not readable tracked regular text.'
+                }
+            }
+            $sourceText = $textByPath[$sourceManifestPath]
+            $sourceManifest = $sourceText | ConvertFrom-Json -ErrorAction Stop
+            if (-not (Test-BrandingExactProperties -InputObject $sourceManifest -Expected @(
+                'schemaVersion', 'approvalReference', 'policyReference', 'sources'
+            )) -or $sourceManifest.schemaVersion -isnot [string] -or
+                $sourceManifest.approvalReference -isnot [string] -or
+                $sourceManifest.policyReference -isnot [string] -or
+                $sourceManifest.schemaVersion -cne '1.0' -or
+                $sourceManifest.approvalReference -cne 'retained-source-2026-10-30' -or
+                $sourceManifest.policyReference -cne $policyPath -or
+                $sourceManifest.sources -isnot [Array] -or $sourceManifest.sources.Count -eq 0) {
+                throw 'Source authority schema or approval is invalid.'
+            }
+            # Only validated path fields may carry source names in this authority data.
+            $compact = [regex]::Replace($sourceText, '("(?:[^"\\]|\\.)*")|\s+',
+                [Text.RegularExpressions.MatchEvaluator]{
+                    param($match)
+                    if ($match.Groups[1].Success) { $match.Value } else { '' }
+                })
+            if ($compact -cne ($sourceManifest | ConvertTo-Json -Depth 10 -Compress)) {
+                throw 'Source authority must be canonical JSON without hidden metadata.'
+            }
+            $policyText = $textByPath[$policyPath]
+            $policyHeader = [regex]::Match($policyText,
+                '\A\uFEFF?# [^\r\n]+\r?\n\s*\|\s*Field\s*\|\s*Value\s*\|\r?\n\|[-| ]+\|\r?\n(?<Rows>(?:\|[^\r\n]*\|\r?\n)+)').
+                Groups['Rows'].Value
+            $policyStatus = [regex]::Matches($policyHeader,
+                '(?m)^\|\s*\*\*Status\*\*\s*\|\s*(?<Status>[^|]+?)\s*\|\s*$')
+            $approval = [regex]::Matches($policyText,
+                '(?m)^Source classification approval: (?<Reference>[a-z0-9-]+)\r?$')
+            $pin = [regex]::Matches($policyText,
+                '(?m)^Source classification SHA-256 \(UTF-8 LF\): (?<Hash>[0-9a-f]{64})\r?$')
+            if ($policyStatus.Count -ne 1 -or
+                $policyStatus[0].Groups['Status'].Value.Trim() -cne 'Approved' -or
+                $approval.Count -ne 1 -or $pin.Count -ne 1 -or
+                $approval[0].Groups['Reference'].Value -cne $sourceManifest.approvalReference) {
+                throw 'Source authority lacks exact Approved policy authorization.'
+            }
+            $sourceHash = Get-BrandingSha256 -Bytes (
+                [Text.UTF8Encoding]::new($false).GetBytes($sourceText.Replace("`r`n", "`n"))
+            )
+            if ($pin[0].Groups['Hash'].Value -cne $sourceHash) {
+                throw 'Source authority does not match the reviewed policy hash.'
+            }
+            $sourcePaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+            $sourceCandidates = [Collections.Generic.List[object]]::new()
+            $candidateKeys = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            foreach ($record in $sourceManifest.sources) {
+                if (-not (Test-BrandingExactProperties -InputObject $record -Expected @(
+                    'path', 'sha256', 'hashBasis', 'provenance', 'pathMatches', 'contentMatches'
+                ))) {
+                    throw 'Source record schema is invalid.'
+                }
+                $recordPath = $record.path
+                if ($recordPath -isnot [string] -or [string]::IsNullOrWhiteSpace($recordPath) -or
+                    $recordPath -cne $recordPath.Trim() -or $recordPath.Contains('\') -or
+                    $recordPath.Contains(':') -or $recordPath.StartsWith('/') -or
+                    @($recordPath.Split('/') | Where-Object { $_ -in @('', '.', '..') }).Count -gt 0 -or
+                    $recordPath -in @($sourceManifestPath, $policyPath, $evidenceAuthorityPath, $manifestRelativePath) -or
+                    $recordPath.StartsWith('hr/evidence/ai-builder/', [StringComparison]::OrdinalIgnoreCase) -or
+                    -not $sourcePaths.Add($recordPath) -or
+                    -not $entryByPath.ContainsKey($recordPath) -or
+                    $entryByPath[$recordPath].Stage -ne 0 -or
+                    $entryByPath[$recordPath].Mode -notin @('100644', '100755') -or
+                    -not $bytesByPath.ContainsKey($recordPath)) {
+                    throw 'Source record path is invalid or outside this approval.'
+                }
+                if ($record.sha256 -isnot [string] -or $record.sha256 -cnotmatch '^[0-9a-f]{64}$' -or
+                    $record.hashBasis -isnot [string] -or $record.provenance -isnot [string] -or
+                    $record.hashBasis -cnotin @('raw', 'utf8-lf') -or
+                    $record.provenance -cnotin @('identity-intake-v1', 'original-blueprint',
+                        'historical-handover', 'maintained-source-reference', 'legacy-technical-identifier') -or
+                    $record.pathMatches -isnot [Array] -or $record.contentMatches -isnot [Array] -or
+                    ($record.pathMatches.Count + $record.contentMatches.Count) -eq 0) {
+                    throw 'Source record values are invalid.'
+                }
+                $hashBytes = $bytesByPath[$recordPath]
+                if ($record.hashBasis -ceq 'utf8-lf') {
+                    if (-not $textByPath.ContainsKey($recordPath)) {
+                        throw 'Text-normalized source is not classified text.'
+                    }
+                    $hashBytes = [Text.UTF8Encoding]::new($false).GetBytes(
+                        $textByPath[$recordPath].Replace("`r`n", "`n"))
+                }
+                elseif (-not $textByPath.ContainsKey($recordPath) -and
+                    @($files | Where-Object {
+                        $_.Path -ceq $recordPath -and $_.Classification -ceq 'tracked-binary'
+                    }).Count -ne 1) {
+                    throw 'Source is not classified text or signature-proven binary.'
+                }
+                if ((Get-BrandingSha256 -Bytes $hashBytes) -cne $record.sha256) {
+                    throw 'Source bytes do not match the reviewed record.'
+                }
+                foreach ($matchKind in @('pathMatches', 'contentMatches')) {
+                    $actual = [Collections.Generic.Dictionary[string, long]]::new([StringComparer]::Ordinal)
+                    if ($matchKind -ceq 'pathMatches') {
+                        foreach ($pattern in $patterns.GetEnumerator()) {
+                            $count = $pattern.Value.Matches($recordPath).Count
+                            if ($count -gt 0) { $actual.Add($pattern.Key, $count) }
+                        }
+                    }
+                    elseif ($contentMatchesByPath.ContainsKey($recordPath)) {
+                        foreach ($match in $contentMatchesByPath[$recordPath]) {
+                            if (-not $actual.ContainsKey($match.PatternClass)) { $actual.Add($match.PatternClass, 0) }
+                            $actual[$match.PatternClass]++
+                        }
+                    }
+                    $declared = $record.$matchKind
+                    if ($declared.Count -ne $actual.Count) { throw 'Source classes do not match.' }
+                    $seenClasses = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+                    foreach ($match in $declared) {
+                        if (-not (Test-BrandingExactProperties -InputObject $match -Expected @('patternClass', 'count')) -or
+                            $match.patternClass -isnot [string] -or $match.patternClass -cnotmatch '^L[1-7]$' -or
+                            -not $seenClasses.Add($match.patternClass) -or
+                            ($match.count -isnot [int] -and $match.count -isnot [long]) -or
+                            $match.count -le 0 -or -not $actual.ContainsKey($match.patternClass) -or
+                            $actual[$match.patternClass] -ne $match.count) {
+                            throw 'Source class or exact count does not match.'
+                        }
+                        [void]$candidateKeys.Add($recordPath + [char]0 + $match.patternClass)
+                    }
+                }
+                [void]$sourceCandidates.Add([pscustomobject]@{
+                    Path = $recordPath
+                    Sha256 = $record.sha256
+                    HashBasis = $record.hashBasis
+                    Provenance = $record.provenance
+                })
+            }
+            foreach ($candidate in $sourceCandidates) { [void]$classifiedSources.Add($candidate) }
+            foreach ($key in $candidateKeys) { [void]$sourceKeys.Add($key) }
+            foreach ($match in $contentMatchesByPath[$sourceManifestPath]) {
+                [void]$sourceKeys.Add($sourceManifestPath + [char]0 + $match.PatternClass)
+            }
+        }
+        catch {
+            Add-Finding -Path $sourceManifestPath -PatternClass 'source-classification-error'
+            $classifiedSources.Clear()
+            $sourceKeys.Clear()
+        }
+    }
+
     $unapprovedFindings = @($findings | Where-Object {
         -not $suppressionKeys.Contains(
             $_.Path + [char]0 + $_.PatternClass
-        )
+        ) -and -not $sourceKeys.Contains($_.Path + [char]0 + $_.PatternClass)
     })
     [pscustomobject]@{
         TrackedCount = $seenPaths.Count
@@ -636,6 +809,8 @@ function Get-RepositoryBrandingScan {
         Findings = $unapprovedFindings
         ApprovedEvidence = @($approvedEvidence)
         ApprovedEvidenceCount = $approvedEvidence.Count
+        ClassifiedSources = @($classifiedSources)
+        ClassifiedSourceCount = $classifiedSources.Count
     }
 }
 

@@ -2,13 +2,14 @@
   "schemaVersion": "1.0",
   "sourceVersion": "1.0.0",
   "status": "Draft integration",
+  "projectContext": "Caldova project/demo using explicitly identified GF customer/source identities; no corporate rebranding or approval transfer.",
   "approval": "Repository owner reports GF written approval to adapt the kit; formal reference and unresolved technical decisions remain open.",
   "bindings": [
     {
       "packageId": "IDEA-GF-POLICY",
       "identityId": "D3-A01",
       "identityPath": "agents/hr-policy-assistant/identity/identity.json",
-      "specification": "docs/specs/2026-10-28-gf-sse-hr-policy-assistant-design.md",
+      "specification": "docs/specs/2026-10-28-caldova-sse-hr-policy-assistant-design.md",
       "runtimeHarness": "copilot-studio-github",
       "technicalNames": "pending-gf-owner-decisions",
       "deployed": false
@@ -17,7 +18,7 @@
       "packageId": "IDEA-GF-RECRUITING",
       "identityId": "D1-A01",
       "identityPath": "agents/recruiting-job-posting/identity/identity.json",
-      "specification": "docs/specs/2026-10-28-gf-recruiting-requisition-posting-agent-design.md",
+      "specification": "docs/specs/2026-10-28-caldova-recruiting-requisition-posting-agent-design.md",
       "runtimeHarness": "copilot-studio-github",
       "technicalNames": "pending-gf-owner-decisions",
       "deployed": false
@@ -26,7 +27,7 @@
       "packageId": "IDEA-GF-HR-OPERATIONS",
       "identityId": "D2-A01",
       "identityPath": "agents/hr-ops-master-data-ch/identity/identity.json",
-      "specification": "docs/specs/2026-10-28-gf-hr-operations-agent-design.md",
+      "specification": "docs/specs/2026-10-28-caldova-hr-operations-agent-design.md",
       "runtimeHarness": "copilot-studio-github",
       "technicalNames": "pending-gf-owner-decisions",
       "deployed": false
@@ -35,7 +36,7 @@
       "packageId": "IDEA-GF-ESS",
       "identityId": "D3-A02",
       "identityPath": "agents/hr-ops-self-service/identity/identity.json",
-      "specification": "docs/specs/2026-10-28-gf-ess-github-harness-workiq-design.md",
+      "specification": "docs/specs/2026-10-28-caldova-ess-github-harness-workiq-design.md",
       "runtimeHarness": "copilot-studio-github",
       "technicalNames": "pending-gf-owner-decisions",
       "deployed": false

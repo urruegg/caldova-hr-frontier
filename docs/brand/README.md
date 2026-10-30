@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.3 |
+| **Version** | 1.4 |
 | **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -35,9 +35,13 @@ Non-Markdown assets have no metadata header; their status below derives from thi
 | [`caldova-fluent-theme.ts`](caldova-fluent-theme.ts) | Maintained asset | Provides Fluent 2 light and dark React themes. | Interim product-theme implementation governed by this README. | Replace theme values only after an approved design standard. |
 | [`hr-control-plane-mockup.html`](hr-control-plane-mockup.html) | Maintained reference | Demonstrates the theme in the static HR control-plane mockup. | Visual reference only; not application authority. | [Wireframe design](../specs/2026-09-24-hr-control-plane-code-app-wireframe-design.md) |
 | [`assets/`](assets/) | Reserved | Holds future reviewed and licensed brand assets. | Empty until Corporate Communications supplies approved assets and rules. | Add only through reviewed brand governance. |
-| [GF agent identity kit](gf-agent-identity/README.md) | Draft | Curates v1.0.0 source configuration, icons, palette, visual references, provenance and four runtime-agent bindings. | User-reported written approval to adapt; original source/technical decisions preserved; no tenant application. | [Adoption specification](../specs/2026-10-29-gf-agent-identity-kit-design.md) |
+| [GF agent identity kit](gf-agent-identity/README.md) | Draft | Curates v1.0.0 source configuration, icons, palette, visual references, provenance and four runtime-agent bindings. | User-reported written approval to adapt; original source/technical decisions preserved; no tenant application. | [Adoption specification](../specs/2026-10-29-caldova-agent-identity-kit-design.md) |
 
 ## GF agent identity boundary
+
+The identity adoption documents belong to the renamed Caldova project/demo.
+The supplied GF kit itself remains GF-scoped source/customer identity, not a
+replacement for Caldova corporate/demo branding or new approval.
 
 The kit contains 37 source identities, including hypotheses, deferred/out-of-scope work and repository agents. It does not authorize 37 Copilot Studio agents. The adopted current runtime mappings are Policy D3-A01, Recruiting D1-A01, HR Operations D2-A01 and ESS-equivalent D3-A02.
 

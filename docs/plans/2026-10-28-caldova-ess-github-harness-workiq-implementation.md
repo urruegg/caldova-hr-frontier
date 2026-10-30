@@ -1,13 +1,17 @@
-# GF ESS-Equivalent GitHub Harness and Work IQ Implementation Plan
+# Caldova ESS-Equivalent GitHub Harness and Work IQ Implementation Plan
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
-| **Date** | 2026-10-28 |
+| **Version** | 0.2 |
+| **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF new employee-self-service implementation: capability-gated DEV/TEST slices, not live authorization |
-| **References** | [Reviewed planning specification](../specs/2026-10-28-gf-ess-github-harness-workiq-design.md), [Sprint](2026-10-28-gf-ess-github-harness-workiq-sprint.md), [Proposed scoped ADR](../adr/0014-gf-ess-workiq-and-self-service-write-envelope.md), [HR source tooling](../../hr/src/scripts/README.md), [Solution source boundary](../../hr/src/solutions/README.md), [GF delivery design](../specs/2026-10-28-gf-azure-devops-solution-cicd-design.md) |
+| **Scope** | Caldova project/demo; GF source/customer context: new employee-self-service implementation: capability-gated DEV/TEST slices, not live authorization |
+| **References** | [Reviewed planning specification](../specs/2026-10-28-caldova-ess-github-harness-workiq-design.md), [Sprint](2026-10-28-caldova-ess-github-harness-workiq-sprint.md), [Proposed scoped ADR](../adr/0014-gf-ess-workiq-and-self-service-write-envelope.md), [HR source tooling](../../hr/src/scripts/README.md), [Solution source boundary](../../hr/src/solutions/README.md), [Caldova delivery design](../specs/2026-10-28-caldova-azure-devops-solution-cicd-design.md) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 > **For agentic workers:** Use `executing-plans` for inline execution with checkpoints, or `subagent-driven-development` only when explicitly selected. Steps use checkbox syntax. This plan is not execution approval.
 
@@ -15,9 +19,9 @@
 
 **Architecture:** GitHub-harness skills handle bounded reasoning; deterministic Copilot Studio workflows own confirmation, transaction state, audit and execution. Workday uses a separate employee-delegated OAuth Access Layer; M365 actions use only a proven, enforceable Work IQ boundary. Unknown product/API/source-format contracts stop their dependent slice instead of being replaced by guesses.
 
-**Tech stack:** Copilot Studio GitHub harness and workflows, the Microsoft Workday connector with delegated OAuth, Work IQ MCP, supported Power Platform solution tooling, Azure Repos/Pipelines, existing Pester 5.7.1 and Python `jsonschema` test tooling. Runtime source format is a Task 1 discovery output, not assumed classic topic YAML.
+**Tech stack:** Copilot Studio GitHub harness/workflows, the Microsoft Workday connector with delegated OAuth, Work IQ MCP, supported Power Platform solution tooling, authoritative GitHub source with Azure Pipelines CI/CD, existing Pester 5.7.1 and Python `jsonschema`. Azure Repos replication is separate. Runtime source format is a Task 1 discovery output, not assumed classic topic YAML.
 
-**Spec:** [GF ESS-equivalent specification](../specs/2026-10-28-gf-ess-github-harness-workiq-design.md), reviewed by the user on 2026-10-28 as the planning basis. Formal governance and operational gates remain open.
+**Spec:** [Caldova ESS-equivalent specification](../specs/2026-10-28-caldova-ess-github-harness-workiq-design.md), reviewed by the user on 2026-10-28 as the planning basis. Formal governance and operational gates remain open.
 
 ## Global constraints
 
@@ -275,9 +279,9 @@ It 'declares exactly the requested operations and disables unverified capabiliti
 
 ## Task 9: Prove reviewed-source capture and TEST delivery
 
-**Files:** modify Task 1-selected canonical solution source, `source-map.json`, `capability-evidence.json`, `hr\tests\pester\GfEss.Delivery.Tests.ps1` and owning READMEs when inventories change. Destination pipeline files belong to the separate GF CI/CD package's approved source mapping.
+**Files:** modify Task 1-selected canonical solution source, `source-map.json`, `capability-evidence.json`, `hr\tests\pester\GfEss.Delivery.Tests.ps1` and owning READMEs when inventories change. Pipeline YAML belongs to the authoritative GitHub source mapping defined by the Caldova CI/CD package.
 
-**Consumes:** Tasks 1-3 and whichever operation tracks have complete evidence; independent GF repository/delivery prerequisites. No default demo tenant or production destination.
+**Consumes:** Tasks 1-3, complete operation evidence and direct GitHub-source Caldova delivery prerequisites. The Azure secondary is not a dependency. No default tenant or production destination is inferred.
 
 **Produces:** captured branch/PR, identified source/artifact, complete asset mapping, TEST import/configuration/runtime evidence and explicit disabled capabilities.
 
@@ -292,7 +296,7 @@ Get-Command Export-HrSolutionPackage, Expand-HrSolutionPackage -Syntax
 `Export-HrSolutionPackage` accepts `-TenantConfigurationPath` and exports unmanaged DEV. `Expand-HrSolutionPackage` writes/clobbers its target. The current wrapper does not expose that explicit private-path input and the solution README documents a component-unpack limitation. Do not run the wrapper or unpack directly over accepted source as proof of this runtime.
 
 - [ ] Export into an explicitly approved private temporary location and unpack into a separate candidate directory only after chosen-harness completeness is demonstrated. Inspect/sanitize a diff into the capture branch; no direct main write or hidden deletion.
-- [ ] Build/test the reviewed source through the GF CI/CD package. Bind artifact identity, source/evaluation/configuration versions and disabled operation list. No pipeline file or task version is fabricated if that package has not established it.
+- [ ] Build/test the reviewed GitHub source through the Caldova Azure Pipelines design. Bind artifact identity, source/evaluation/configuration versions and disabled operation list. No pipeline file or task version is fabricated if that package has not established it.
 - [ ] With separate TEST import authorization, set private environment values/connections through the reviewed release mechanism; test all selected identities, source permissions, skills and workflow components after import.
 - [ ] Run delivery/source/contract tests plus operation-specific TEST evaluations. A green local fixture test or successful import alone does not establish runtime parity.
 - [ ] Record per-capability acceptance/blocked state and review as a human. Suggested checkpoint: `test(ess): verify reviewed-source TEST delivery`.

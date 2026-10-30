@@ -1,13 +1,17 @@
-# GF HR Operations Agent - Draft Sprint
+# Caldova HR Operations Agent - Draft Sprint
 
 | Field | Value |
 |---|---|
-| **Version** | 0.2 |
-| **Date** | 2026-10-28 |
+| **Version** | 0.3 |
+| **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF functional package: synthetic, propose-only HR Operations validation |
-| **References** | [Idea](../ideas/gf-hr-operations-agent-idea.md), [Specification](../specs/2026-10-28-gf-hr-operations-agent-design.md), [Package index](../README.md#gf-draft-packages) |
+| **Scope** | Caldova project/demo; GF source/customer context: functional package: synthetic, propose-only HR Operations validation |
+| **References** | [Idea](../ideas/caldova-hr-operations-agent-idea.md), [Specification](../specs/2026-10-28-caldova-hr-operations-agent-design.md), [Package index](../README.md#caldova-draft-packages) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 ## 1. Sprint goal and planning status
 

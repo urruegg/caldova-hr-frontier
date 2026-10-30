@@ -1,13 +1,17 @@
-# GF Blueprint Progress Overview and Maintainer - Draft Sprint
+# Caldova Blueprint Progress Overview and Maintainer - Draft Sprint
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
+| **Version** | 0.2 |
 | **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF handover: evidence-backed blueprint projection, scoped maintainer and same-change freshness |
-| **References** | [Idea](../ideas/gf-blueprint-progress-overview-idea.md), [Specification](../specs/2026-10-29-gf-blueprint-progress-overview-design.md), [Provisional implementation plan](2026-10-29-gf-blueprint-progress-overview-implementation.md), [Repository-agent governance](../specs/2026-10-02-hr-frontier-copilot-agent-portfolio-governance-design.md), [GF package map](../README.md#gf-draft-packages) |
+| **Scope** | Caldova project/demo; GF source/customer context: handover: evidence-backed blueprint projection, scoped maintainer and same-change freshness |
+| **References** | [Idea](../ideas/caldova-blueprint-progress-overview-idea.md), [Specification](../specs/2026-10-29-caldova-blueprint-progress-overview-design.md), [Provisional implementation plan](2026-10-29-caldova-blueprint-progress-overview-implementation.md), [Repository-agent governance](../specs/2026-10-02-hr-frontier-copilot-agent-portfolio-governance-design.md), [Caldova package map](../README.md#caldova-draft-packages) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 ## 1. Goal and current scope
 
@@ -72,6 +76,6 @@ Customer handover requires an approved inventory, manifest, clean-folder offline
 
 The source HTML and record shapes are inspected, but generator implementation, structured progress inputs, exact narrative allow-list, freshness integration and full-role controls do not yet exist. Source mappings, named owners and handover inventory need review. Azure Boards is later scope; no item ID or synchronization is implied.
 
-The [implementation plan](2026-10-29-gf-blueprint-progress-overview-implementation.md) remains provisional because written-specification review is pending. Only the previously approved tested read-only preview is created now; full execution and activation require that review and the plan's gates. Keep the imported HTML unchanged and do not commit, push or transfer without a separate request and disclosure authorization.
+The [implementation plan](2026-10-29-caldova-blueprint-progress-overview-implementation.md) remains provisional because written-specification review is pending. Only the previously approved tested read-only preview is created now; full execution and activation require that review and the plan's gates. Keep the imported HTML unchanged and do not commit, push or transfer without a separate request and disclosure authorization.
 
 Board synchronization is Deferred - not synchronized.

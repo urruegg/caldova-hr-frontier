@@ -1,17 +1,21 @@
-# GF ESS-Equivalent Employee Self-Service Rebuild - Idea
+# Caldova ESS-Equivalent Employee Self-Service Rebuild - Idea
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
-| **Date** | 2026-10-28 |
+| **Version** | 0.2 |
+| **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF functional handover package: employee self-service with GitHub harness, Work IQ and governed Workday access |
-| **References** | [Sprint](../plans/2026-10-28-gf-ess-github-harness-workiq-sprint.md), [Specification](../specs/2026-10-28-gf-ess-github-harness-workiq-design.md), [Implementation plan](../plans/2026-10-28-gf-ess-github-harness-workiq-implementation.md), [Proposed ADR-0014](../adr/0014-gf-ess-workiq-and-self-service-write-envelope.md), [Package index](../README.md#gf-draft-packages) |
+| **Scope** | Caldova project/demo; GF source/customer context: functional handover package: employee self-service with GitHub harness, Work IQ and governed Workday access |
+| **References** | [Sprint](../plans/2026-10-28-caldova-ess-github-harness-workiq-sprint.md), [Specification](../specs/2026-10-28-caldova-ess-github-harness-workiq-design.md), [Implementation plan](../plans/2026-10-28-caldova-ess-github-harness-workiq-implementation.md), [Proposed ADR-0014](../adr/0014-gf-ess-workiq-and-self-service-write-envelope.md), [Package index](../README.md#caldova-draft-packages) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 ## Status and provenance
 
-This is the sixth GF draft handover package, separate from the existing policy-only, Recruiting, HR Operations and two technical packages. It does not replace them, graduate Caldova UC-0003, or grant implementation authority.
+This Caldova ESS-equivalent project package retains GF source/customer context, separate from the policy-only, Recruiting, HR Operations and engineering packages. It does not replace their behavior, graduate Caldova UC-0003, or grant implementation authority.
 
 The scope was refined interactively with the repository owner on 2026-10-28. Microsoft's public ESS Custom Engine Agent documentation and the Employee Self-Service Agent Developer Kit were analyzed as references; exact sources and pinned revisions are recorded in the specification. There is no existing GF ESS source/export baseline to migrate. This is a new ESS-equivalent proposal, not an installed Microsoft ESS product or demonstrated feature parity.
 
@@ -69,7 +73,7 @@ Named individuals, tenant endpoints and unresolved permissions are not invented.
 
 ## Handover reading order and next checkpoint
 
-Read this idea for the outcome and scope, then the [sprint](../plans/2026-10-28-gf-ess-github-harness-workiq-sprint.md) for candidate work and acceptance, and the [specification](../specs/2026-10-28-gf-ess-github-harness-workiq-design.md) for detailed contracts, capability gaps and Mermaid diagrams. The [implementation plan](../plans/2026-10-28-gf-ess-github-harness-workiq-implementation.md) and [ADR-0014](../adr/0014-gf-ess-workiq-and-self-service-write-envelope.md) are supporting artifacts, not extra primary package documents.
+Read this idea for the outcome and scope, then the [sprint](../plans/2026-10-28-caldova-ess-github-harness-workiq-sprint.md) for candidate work and acceptance, and the [specification](../specs/2026-10-28-caldova-ess-github-harness-workiq-design.md) for detailed contracts, capability gaps and Mermaid diagrams. The [implementation plan](../plans/2026-10-28-caldova-ess-github-harness-workiq-implementation.md) and [ADR-0014](../adr/0014-gf-ess-workiq-and-self-service-write-envelope.md) are supporting artifacts, not extra primary package documents.
 
 The first GF review should confirm owners and priorities, then resolve approval scope and operation-specific capability gaps one question at a time. Record each capability as demonstrated, blocked or deliberately deferred; do not treat a good conversational answer as a completed transaction.
 

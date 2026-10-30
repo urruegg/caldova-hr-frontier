@@ -1,13 +1,17 @@
-# GF Blueprint Progress Overview and Maintainer - Draft Specification
+# Caldova Blueprint Progress Overview and Maintainer - Draft Specification
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
+| **Version** | 0.2 |
 | **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF repository project overview: controlled HTML projection, reviewed narrative updates and gated Copilot maintainer |
-| **References** | [Idea](../ideas/gf-blueprint-progress-overview-idea.md), [Sprint](../plans/2026-10-29-gf-blueprint-progress-overview-sprint.md), [Provisional implementation plan](../plans/2026-10-29-gf-blueprint-progress-overview-implementation.md), [Documentation authority](../README.md#authority-and-conflict-order), [Approved repository-agent portfolio](2026-10-02-hr-frontier-copilot-agent-portfolio-governance-design.md), [GF repository target](2026-10-28-gf-azure-devops-repository-design.md), [GF delivery design](2026-10-28-gf-azure-devops-solution-cicd-design.md) |
+| **Scope** | Caldova project/demo; GF source/customer context: repository project overview: controlled HTML projection, reviewed narrative updates and gated Copilot maintainer |
+| **References** | [Idea](../ideas/caldova-blueprint-progress-overview-idea.md), [Sprint](../plans/2026-10-29-caldova-blueprint-progress-overview-sprint.md), [Provisional implementation plan](../plans/2026-10-29-caldova-blueprint-progress-overview-implementation.md), [Documentation authority](../README.md#authority-and-conflict-order), [Approved repository-agent portfolio](2026-10-02-hr-frontier-copilot-agent-portfolio-governance-design.md), [Caldova repository target](2026-10-28-caldova-azure-devops-repository-design.md), [Caldova delivery design](2026-10-28-caldova-azure-devops-solution-cicd-design.md) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 ## Grounded runtime identities
 
@@ -16,7 +20,7 @@ Future blueprint identity/narrative proposals must resolve the
 and record their version/approval scope. The imported catalogue's 37 identities
 are not 37 approved runtime agents, and its eight factory identities do not
 rename the repository-working Blueprint Maintainer. The
-[adoption specification](2026-10-29-gf-agent-identity-kit-design.md) governs
+[adoption specification](2026-10-29-caldova-agent-identity-kit-design.md) governs
 technical/visual integration gates. This intake leaves the supplied HTML unchanged.
 
 ## 1. Outcome and current delivery boundary
@@ -35,7 +39,7 @@ The seventh package is delivery-enablement work, not a new approved HR runtime M
 |---|---|
 | The imported HTML is approximately 1.2 MB, with embedded `script#bp-data` JSON and a separate renderer | Parse bounded structured content without dumping/reasoning over encoded assets; no free-form whole-file agent edits |
 | Schema is `frontier-blueprint/1.0`; metadata identifies hypothesis v0.5 dated 2026-10-28 | Record source/schema compatibility; retain its hypothesis meaning rather than treating it as delivery status |
-| It contains three workshop PRDs and a wider portfolio | Map the six existing repository packages explicitly; technical work and the ESS proposal are not automatically additional approved customer MVPs |
+| It contains three workshop PRDs and a wider portfolio | Map all eight Caldova project packages explicitly; technical/proposal work is not automatically an additional approved customer MVP |
 | Renderer attribution identifies the Frontier Envisioning plugin and MIT-noticed renderer code | Preserve attribution and original assets; no original generator source has been found in this repository |
 | It is self-contained, with no external asset references found during static inspection | Keep the local/offline overview self-contained; no runtime remote repository/tenant calls or embedded tokens |
 | Workshop/discovery notes use browser localStorage keyed by blueprint ID/version | Notes are non-shared until exported/reviewed; version changes need explicit preservation/migration handling |
@@ -64,7 +68,12 @@ No inferred weighted completion percentage is permitted. Counts may describe act
 
 ### Package and blueprint mappings
 
-Use the six existing central idea identifiers as stable work-package keys: `IDEA-GF-POLICY`, `IDEA-GF-RECRUITING`, `IDEA-GF-HR-OPERATIONS`, `IDEA-GF-REPOSITORY`, `IDEA-GF-SOLUTION-CICD` and `IDEA-GF-ESS`. This overview package is `IDEA-GF-BLUEPRINT`, a seventh delivery-enablement package.
+Use all eight existing central idea identifiers as legacy traceability keys:
+`IDEA-GF-POLICY`, `IDEA-GF-RECRUITING`, `IDEA-GF-HR-OPERATIONS`,
+`IDEA-GF-REPOSITORY`, `IDEA-GF-SOLUTION-CICD`, `IDEA-GF-ESS`,
+`IDEA-GF-BLUEPRINT` and `IDEA-GF-AGENT-IDENTITY`. Current document ownership is
+the Caldova project/demo. Keep GF source/customer scope and original three
+workshop MVPs distinct; no ID is renumbered or interpreted as new acceptance.
 
 Declare links to blueprint PRD/domain/agent/use-case IDs explicitly after inspecting their actual values. Never infer identity from similar titles. Preserve existing IDs; a package can map to multiple blueprint elements or have no runtime-agent counterpart. The ESS package remains a separately proposed build unless authoritative scope evidence changes that disposition.
 
@@ -237,4 +246,4 @@ Test from a clean receiving folder, without access to the original workstation, 
 
 Named update/review/acceptance owners, formal portfolio-amendment disposition, per-package evidence definitions, allowed narrative-field list, source schema markers and approved handover inventory remain to be established during implementation. No freshness-age target, timeline, percentage or external identifier is invented.
 
-Written-specification review was requested but the user was unavailable. The [implementation plan](../plans/2026-10-29-gf-blueprint-progress-overview-implementation.md) is therefore provisional, not described as user-reviewed. The previously explicitly approved read-only preview and its focused tests are the only implementation slice permitted in this change. The writer, progress registry, renderer, stale gate and full-role activation remain blocked pending review and their own controls.
+Written-specification review was requested but the user was unavailable. The [implementation plan](../plans/2026-10-29-caldova-blueprint-progress-overview-implementation.md) is therefore provisional, not described as user-reviewed. The previously explicitly approved read-only preview and its focused tests are the only implementation slice permitted in this change. The writer, progress registry, renderer, stale gate and full-role activation remain blocked pending review and their own controls.

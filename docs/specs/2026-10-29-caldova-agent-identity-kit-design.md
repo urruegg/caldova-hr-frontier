@@ -1,13 +1,17 @@
-# GF Grounded Agent Identity Kit Adoption - Draft Specification
+# Caldova Grounded Agent Identity Kit Adoption - Draft Specification
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
-| **Date** | 2026-10-29 |
+| **Version** | 0.4 |
+| **Date** | 2026-10-30 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF Copilot Studio identities: curated source intake, explicit bindings, design guidance and gated deployment integration |
-| **References** | [Idea](../ideas/gf-agent-identity-kit-idea.md), [Sprint](../plans/2026-10-29-gf-agent-identity-kit-sprint.md), [Provisional implementation plan](../plans/2026-10-29-gf-agent-identity-kit-implementation.md), [Kit guide](../brand/gf-agent-identity/README.md), [Bindings](../brand/gf-agent-identity/agent-bindings.json), [GF delivery design](2026-10-28-gf-azure-devops-solution-cicd-design.md), [Blueprint overview design](2026-10-29-gf-blueprint-progress-overview-design.md), [Existing theme](../brand/README.md) |
+| **Scope** | Caldova project/demo; GF source/customer context: Copilot Studio identities: curated source intake, explicit bindings, design guidance and gated deployment integration |
+| **References** | [Idea](../ideas/caldova-agent-identity-kit-idea.md), [Sprint](../plans/2026-10-29-caldova-agent-identity-kit-sprint.md), [Provisional implementation plan](../plans/2026-10-29-caldova-agent-identity-kit-implementation.md), [Kit guide](../brand/gf-agent-identity/README.md), [Bindings](../brand/gf-agent-identity/agent-bindings.json), [Caldova delivery design](2026-10-28-caldova-azure-devops-solution-cicd-design.md), [Blueprint overview design](2026-10-29-caldova-blueprint-progress-overview-design.md), [Existing theme](../brand/README.md) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 ## 1. Outcome and authority
 
@@ -129,15 +133,57 @@ The source's generator needs Node/Playwright and includes GF logo-based visuals.
 
 ## 7. Repository integration and legacy guard
 
-Link the four runtime specifications, the GF repository/delivery designs and the blueprint overview to the grounded kit. The scope of required design guidance is current/future GF runtime work, not a bulk rename of the demo or repository-agent portfolio.
+Link the four Caldova runtime specifications, the Caldova GitHub-source
+repository/delivery designs and the blueprint overview to the grounded GF kit.
+Its guidance applies to the explicitly identified GF customer/source scenario.
+Caldova document renaming is not a change to corporate branding, technical
+runtime identities or the repository-agent portfolio.
 
 Add a test wrapper to existing maintained Pester discovery; no new GitHub workflow is needed. Tests cover imported hashes/inventory, source JSON schema, exact mapped identity, names/environment behavior, icon payload dimensions/size, SVG external-code/reference exclusion and recomputed contrast. Pixel-level icon quality, channel rendering and host instruction loading are separate evidence.
 
-Before this intake, the older all-repository anonymization branding scanner reported 87 findings and no accepted historical exceptions. Its blanket GF-name ban already conflicts with the repository's customer-specific direction. Do not weaken its scanner, fabricate immutable-evidence exceptions or call the full branding gate green. Obtain a reviewed scoped-customer-identity policy and tests before merge/public handover. This is separate from unchanged Caldova theme/accessibility behavior.
+The original pre-intake report recorded 87 findings and zero recognized
+exceptions. The subsequent integer-parser repair restores recognition of seven
+existing approved evidence records under PowerShell 7, without adding exceptions
+or changing immutable evidence. Expanded strict units now pass 35 cases under
+both PowerShell 5.1 and 7. The actual branding gate remains blocked by retained
+customer/source names and paths, not by that parser defect.
 
-The scanner's existing unit suite also reproduces two immutable-evidence
-exception failures using unchanged HEAD-equivalent code/tests in isolation;
-identity-intake success is not a claim that those failures are resolved.
+### Approved scoped source-classification amendment
+
+The user explicitly approved this scoped amendment on 2026-10-30. Its governing
+authority and pinned exact registry are recorded in the
+[Approved branding design](2026-10-01-caldova-branding-migration-design.md).
+The prior unavailable-user state is superseded by that explicit approval, not
+by inference. This identity-adoption specification itself remains Draft; runtime,
+disclosure, source-copy and tenant approval gates are unchanged.
+
+The amendment distinguishes intentional source provenance from prohibited active
+project branding, subject to all of these conditions:
+
+1. Classify supplied identity inputs, the original blueprint and historical
+   manifests by exact path, source version/hash and provenance. Preserve all
+   original bytes, notices and licence restrictions.
+2. Separately review maintained customer-source citations and legacy technical
+   identifiers. Bind admitted path/content classes and counts to the reviewed
+   file hash and approval reference; do not allow every occurrence in a folder.
+3. Keep the existing seven AI Builder exceptions unchanged. Do not reuse that
+   exception authority to invent permission for retained customer paths.
+4. Fail on unknown paths/classes, changed unapproved bytes/counts, invalid
+   provenance or missing approval. Test both authorized-source cases and
+   unexpected names in active code/configuration; no general customer-name ban
+   removal or automatic rehash-and-approve operation.
+5. Treat source classification as repository hygiene only. It grants no
+   publication/disclosure licence, destination approval, runtime admission or
+   authority to copy source, and does not change Caldova theme or HR safety gates.
+
+The scanner implements exact per-file hashes and class/count sets with atomic
+fail-closed validation. The approved policy pins the registry's normalized hash;
+the registry cannot approve itself or absorb evidence-root records. The seven
+existing evidence exceptions are unchanged. Strict unit/regression checks passed
+60 cases on each host. Actual source admission reports zero findings, and the
+complete maintained suite passed 1,667 tests with zero failures and three existing
+evidence-dependent skips. The [handover](../reviews/2026-10-29-caldova-project-handover-review.md)
+records those results separately from disclosure and operational approval.
 
 ## 8. Acceptance and next review
 
@@ -151,4 +197,4 @@ identity-intake success is not a claim that those failures are resolved.
 | Deployment | No source stamping, rename, icon upload or runtime status claim; later proof required |
 | Publication | Approval/reference, notices, target inventory and legacy guard policy review before public transfer/merge |
 
-Written-spec review was requested but the user was unavailable. The [implementation plan](../plans/2026-10-29-gf-agent-identity-kit-implementation.md) is therefore a provisional Draft, not described as user-reviewed. It separates the completed curated intake from unimplemented automation/activation with test-first slices and technical/approval gates. No commit, push, customer transfer or tenant changes are implied.
+Written-spec review was requested but the user was unavailable. The [implementation plan](../plans/2026-10-29-caldova-agent-identity-kit-implementation.md) is therefore a provisional Draft, not described as user-reviewed. It separates the completed curated intake from unimplemented automation/activation with test-first slices and technical/approval gates. No commit, push, customer transfer or tenant changes are implied.

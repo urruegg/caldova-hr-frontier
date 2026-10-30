@@ -1,13 +1,17 @@
-# GF Grounded Agent Identity Kit - Draft Sprint
+# Caldova Grounded Agent Identity Kit - Draft Sprint
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
+| **Version** | 0.2 |
 | **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF identity-kit intake, four-agent adoption and gated source/deployment readiness |
-| **References** | [Idea](../ideas/gf-agent-identity-kit-idea.md), [Specification](../specs/2026-10-29-gf-agent-identity-kit-design.md), [Provisional implementation plan](2026-10-29-gf-agent-identity-kit-implementation.md), [Kit guide](../brand/gf-agent-identity/README.md), [GF delivery sprint](2026-10-28-gf-azure-devops-solution-cicd-sprint.md), [Package index](../README.md#gf-draft-packages) |
+| **Scope** | Caldova project/demo; GF source/customer context: identity-kit intake, four-agent adoption and gated source/deployment readiness |
+| **References** | [Idea](../ideas/caldova-agent-identity-kit-idea.md), [Specification](../specs/2026-10-29-caldova-agent-identity-kit-design.md), [Provisional implementation plan](2026-10-29-caldova-agent-identity-kit-implementation.md), [Kit guide](../brand/gf-agent-identity/README.md), [Caldova delivery sprint](2026-10-28-caldova-azure-devops-solution-cicd-sprint.md), [Package index](../README.md#caldova-draft-packages) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 ## 1. Goal and handover boundary
 
@@ -27,7 +31,7 @@ GF written adaptation approval is user-reported; its reference and unresolved te
 | IDN-S4 | Resolve approval-reference, PO/prefix/solution/description and legacy customer-scope guard decisions | Owner dispositions, no invented evidence exceptions; needed before merge/activation |
 | IDN-S5 | Prove actual GitHub-harness export and publication fields | Authorized DEV source/manifest read-back, exact schema matches and target field inventory; depends on IDN-S4 |
 | IDN-S6 | Adapt a fail-closed identity normalizer/stamper with synthetic tests first | Dry-run/no-op, missing/unknown/ambiguous rejection, atomic writes and unrelated-content preservation; depends on IDN-S5 |
-| IDN-S7 | Reconcile TEST/PROD artifact identity and integrate existing validation/release | Reviewed artifact model, source/hash mapping, no new autonomous workflow; depends on IDN-S6 and GF CI/CD readiness |
+| IDN-S7 | Reconcile TEST/PROD artifact identity and integrate existing validation/release | Reviewed artifact model, source/hash mapping, no new autonomous workflow; depends on IDN-S6 and Caldova direct GitHub-source CI/CD readiness |
 | IDN-S8 | Verify actual non-production surfaces and prepare approved handover | Copilot Studio/Teams/M365 names/icons, notice/inventory/validation evidence and human acceptance; depends on IDN-S7 |
 
 IDN-S1 through IDN-S3 are local intake/design evidence only. IDN-S4 through IDN-S8 remain execution/owner-gated work. Static configuration checks do not prove a rendered or deployed brand identity.

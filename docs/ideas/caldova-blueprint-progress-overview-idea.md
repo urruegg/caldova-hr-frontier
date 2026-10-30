@@ -1,13 +1,17 @@
-# GF Blueprint and Project Progress Overview - Idea
+# Caldova Blueprint and Project Progress Overview - Idea
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
+| **Version** | 0.2 |
 | **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF project handover: evidence-backed blueprint maintenance and repository-working Copilot agent |
-| **References** | [Sprint](../plans/2026-10-29-gf-blueprint-progress-overview-sprint.md), [Specification](../specs/2026-10-29-gf-blueprint-progress-overview-design.md), [Provisional implementation plan](../plans/2026-10-29-gf-blueprint-progress-overview-implementation.md), [Package index](../README.md#gf-draft-packages), [Repository-agent governance](../specs/2026-10-02-hr-frontier-copilot-agent-portfolio-governance-design.md) |
+| **Scope** | Caldova project/demo; GF source/customer context: project handover: evidence-backed blueprint maintenance and repository-working Copilot agent |
+| **References** | [Sprint](../plans/2026-10-29-caldova-blueprint-progress-overview-sprint.md), [Specification](../specs/2026-10-29-caldova-blueprint-progress-overview-design.md), [Provisional implementation plan](../plans/2026-10-29-caldova-blueprint-progress-overview-implementation.md), [Package index](../README.md#caldova-draft-packages), [Repository-agent governance](../specs/2026-10-02-hr-frontier-copilot-agent-portfolio-governance-design.md) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 ## Status and source
 
@@ -15,7 +19,9 @@ The user supplied [Georg Fischer Frontier Company Blueprint.html](../Georg%20Fis
 
 The inspected file describes a hypothesis blueprint, version 0.5 dated 2026-10-28, with three workshop MVP PRDs. It embeds structured `frontier-blueprint/1.0` data, its renderer, assets and attribution. Browser workshop notes are stored locally until exported; they are not a shared delivery record.
 
-This is the seventh draft handover package. It does not redefine the original workshop MVPs or replace the six existing work packages.
+This overview-enablement set is one of the eight Caldova project packages. It
+does not redefine the original GF workshop MVPs or replace the other work
+packages, including identity adoption.
 
 ## Problem and expected value
 

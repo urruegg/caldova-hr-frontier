@@ -2,14 +2,22 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.2 |
-| **Date** | 2026-10-28 |
+| **Version** | 0.3 |
+| **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Proposed Baseline |
 | **Scope** | GF only: source authority, repository transfer and Azure DevOps delivery boundary |
-| **References** | [ADR-0001](0001-azure-devops-as-engineering-control-plane.md), [ADR-0002](0002-github-first-bootstrap-and-the-role-of-azure-repos.md), [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md), [GF repository specification](../specs/2026-10-28-gf-azure-devops-repository-design.md), [GF CI/CD specification](../specs/2026-10-28-gf-azure-devops-solution-cicd-design.md) |
+| **References** | [ADR-0001](0001-azure-devops-as-engineering-control-plane.md), [ADR-0002](0002-github-first-bootstrap-and-the-role-of-azure-repos.md), [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md), [Caldova repository specification](../specs/2026-10-28-caldova-azure-devops-repository-design.md), [Caldova CI/CD specification](../specs/2026-10-28-caldova-azure-devops-solution-cicd-design.md) |
 
 ## Context and status
+
+**Caldova applicability:** this remains the GF-specific historical proposal,
+recoverable with its original handover at commit `a4e4fbc`. The renamed Caldova
+package specifications use a different model:
+[ADR-0015](0015-caldova-github-authority-and-azure-repos-secondary.md).
+The supplied Caldova target is not GF's independent source cutover, and links to
+current project documents must not be interpreted as ratification of this GF
+proposal for Caldova.
 
 The user confirmed on 2026-10-28 that GF's target repository is Azure DevOps/Azure Repos, seeded by a one-time reviewed transfer from this repository. GF Azure Repos is to be independent and authoritative for GF source and pull requests, with no automatic synchronization to the GitHub demo/reference repository.
 

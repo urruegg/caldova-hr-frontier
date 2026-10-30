@@ -1,19 +1,23 @@
-# GF HR Operations Agent - Idea
+# Caldova HR Operations Agent - Idea
 
 | Field | Value |
 |---|---|
-| **Version** | 0.2 |
-| **Date** | 2026-10-28 |
+| **Version** | 0.3 |
+| **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF functional package: Switzerland PeopleDoc-to-Workday proposal process |
-| **References** | [Specification](../specs/2026-10-28-gf-hr-operations-agent-design.md), [Sprint](../plans/2026-10-28-gf-hr-operations-agent-sprint.md), [Package index](../README.md#gf-draft-packages) |
+| **Scope** | Caldova project/demo; GF source/customer context: functional package: Switzerland PeopleDoc-to-Workday proposal process |
+| **References** | [Specification](../specs/2026-10-28-caldova-hr-operations-agent-design.md), [Sprint](../plans/2026-10-28-caldova-hr-operations-agent-sprint.md), [Package index](../README.md#caldova-draft-packages) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 ## Status and provenance
 
-Section 5 of the supplied build brief v1.0 has been reviewed. It describes E14/E15/E16 requirements and rules, but those originals, the mapping workbook and sample PDFs have not been inspected. This GF package remains distinct from Caldova UC-0001.
+Section 5 of the supplied GF build brief v1.0 has been reviewed. It describes E14/E15/E16 requirements and rules, but those originals, the mapping workbook and sample PDFs have not been inspected. This source-grounded Caldova project package remains distinct from Caldova UC-0001.
 
-The user approved detailing the full process while keeping writes blocked until stakeholder decisions and safety evidence are complete. See the [source register](../README.md#gf-source-basis-and-publication-boundary).
+The user approved detailing the full process while keeping writes blocked until stakeholder decisions and safety evidence are complete. See the [source register](../README.md#caldova-project-and-gf-source-boundary).
 
 ## Problem and expected value
 
@@ -49,7 +53,7 @@ This agent has no general answer-knowledge library. The workbook is a controlled
 
 Resolve the matching-key conflict (Employee ID versus name/postal code), approval before writes versus weekly review, allowed documents/fields, target object/API, confidence threshold, write identity, privacy/transient processing, recovery, file disposition and report ownership. No numeric extraction threshold is agreed.
 
-See the [specification diagrams](../specs/2026-10-28-gf-hr-operations-agent-design.md#2-process-and-interactions). CAT Agent Evaluation Designer can inform synthetic negative tests; PDF Table Data Conversion does not satisfy this schema/confidence/add-only contract and is not recommended as the extraction engine. No assessed CAT skill replaces the Workday Access Layer.
+See the [specification diagrams](../specs/2026-10-28-caldova-hr-operations-agent-design.md#2-process-and-interactions). CAT Agent Evaluation Designer can inform synthetic negative tests; PDF Table Data Conversion does not satisfy this schema/confidence/add-only contract and is not recommended as the extraction engine. No assessed CAT skill replaces the Workday Access Layer.
 
 ## Board synchronization
 

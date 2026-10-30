@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.17 |
+| **Version** | 1.18 |
 | **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -56,25 +56,29 @@ Successor links precede the owned child so automated navigation can identify eac
 - [HR use-case detail](../hr/docs/use-cases/README.md)
 - [Infrastructure documentation](../infra/docs/README.md)
 
-## GF Draft Packages
+## Caldova Draft Packages
 
 For receiving the complete change set, start with the
-[detailed GF handover](reviews/2026-10-29-gf-project-handover-review.md).
+[current Caldova handover](reviews/2026-10-29-caldova-project-handover-review.md).
 It links all eight packages, explains implemented versus planned artifacts,
 records validation/approval blockers and includes an exhaustive file/hash inventory.
 
-The following are eight separate GF starting-point handover packages, each with its own sprint, idea and specification. All twenty-four primary documents are **Draft**. They do not graduate or replace existing Caldova portfolio records, commit delivery dates, or authorize live changes. Implementation plans, proposed ADRs, the identity source kit and the gated preview agent are supporting artifacts, not additional primary documents.
+The following are eight Caldova project/demo packages, each with its own sprint,
+idea and specification. All twenty-four primary documents are **Draft**; the
+three implementation plans remain supporting documents. Their GF source/customer
+context stays explicit. Renaming does not graduate portfolio ideas, transfer GF
+approval to Caldova, establish corporate policy or authorize live work.
 
 | Topic | Sprint document | Idea document | Specification |
 |---|---|---|---|
-| Functional: SSE HR Policy assistant | [Draft sprint](plans/2026-10-28-gf-sse-hr-policy-assistant-sprint.md) | [Draft idea](ideas/gf-sse-hr-policy-assistant-idea.md) | [Draft specification](specs/2026-10-28-gf-sse-hr-policy-assistant-design.md) |
-| Functional: Recruiting - Job Requisition and Job Posting agent | [Draft sprint](plans/2026-10-28-gf-recruiting-requisition-posting-agent-sprint.md) | [Draft idea](ideas/gf-recruiting-requisition-posting-agent-idea.md) | [Draft specification](specs/2026-10-28-gf-recruiting-requisition-posting-agent-design.md) |
-| Functional: HR Operations Agent | [Draft sprint](plans/2026-10-28-gf-hr-operations-agent-sprint.md) | [Draft idea](ideas/gf-hr-operations-agent-idea.md) | [Draft specification](specs/2026-10-28-gf-hr-operations-agent-design.md) |
-| Technical: GF Azure DevOps repository | [Draft sprint](plans/2026-10-28-gf-azure-devops-repository-sprint.md) | [Draft idea](ideas/gf-azure-devops-repository-idea.md) | [Draft specification](specs/2026-10-28-gf-azure-devops-repository-design.md) |
-| Technical: Azure DevOps CI/CD and DEV solution capture | [Draft sprint](plans/2026-10-28-gf-azure-devops-solution-cicd-sprint.md) | [Draft idea](ideas/gf-azure-devops-solution-cicd-idea.md) | [Draft specification](specs/2026-10-28-gf-azure-devops-solution-cicd-design.md) |
-| Functional: ESS-equivalent employee self-service rebuild | [Draft sprint](plans/2026-10-28-gf-ess-github-harness-workiq-sprint.md) | [Draft idea](ideas/gf-ess-github-harness-workiq-idea.md) | [Draft specification](specs/2026-10-28-gf-ess-github-harness-workiq-design.md) |
-| Technical: Blueprint and project progress overview | [Draft sprint](plans/2026-10-29-gf-blueprint-progress-overview-sprint.md) | [Draft idea](ideas/gf-blueprint-progress-overview-idea.md) | [Draft specification](specs/2026-10-29-gf-blueprint-progress-overview-design.md) |
-| Technical: Grounded Copilot Studio agent identity kit | [Draft sprint](plans/2026-10-29-gf-agent-identity-kit-sprint.md) | [Draft idea](ideas/gf-agent-identity-kit-idea.md) | [Draft specification](specs/2026-10-29-gf-agent-identity-kit-design.md) |
+| Functional: SSE HR Policy assistant | [Draft sprint](plans/2026-10-28-caldova-sse-hr-policy-assistant-sprint.md) | [Draft idea](ideas/caldova-sse-hr-policy-assistant-idea.md) | [Draft specification](specs/2026-10-28-caldova-sse-hr-policy-assistant-design.md) |
+| Functional: Recruiting - Job Requisition and Job Posting agent | [Draft sprint](plans/2026-10-28-caldova-recruiting-requisition-posting-agent-sprint.md) | [Draft idea](ideas/caldova-recruiting-requisition-posting-agent-idea.md) | [Draft specification](specs/2026-10-28-caldova-recruiting-requisition-posting-agent-design.md) |
+| Functional: HR Operations Agent | [Draft sprint](plans/2026-10-28-caldova-hr-operations-agent-sprint.md) | [Draft idea](ideas/caldova-hr-operations-agent-idea.md) | [Draft specification](specs/2026-10-28-caldova-hr-operations-agent-design.md) |
+| Technical: Caldova GitHub authority and Azure Repos secondary copy | [Draft sprint](plans/2026-10-28-caldova-azure-devops-repository-sprint.md) | [Draft idea](ideas/caldova-azure-devops-repository-idea.md) | [Draft specification](specs/2026-10-28-caldova-azure-devops-repository-design.md) |
+| Technical: Azure DevOps CI/CD and DEV solution capture | [Draft sprint](plans/2026-10-28-caldova-azure-devops-solution-cicd-sprint.md) | [Draft idea](ideas/caldova-azure-devops-solution-cicd-idea.md) | [Draft specification](specs/2026-10-28-caldova-azure-devops-solution-cicd-design.md) |
+| Functional: ESS-equivalent employee self-service rebuild | [Draft sprint](plans/2026-10-28-caldova-ess-github-harness-workiq-sprint.md) | [Draft idea](ideas/caldova-ess-github-harness-workiq-idea.md) | [Draft specification](specs/2026-10-28-caldova-ess-github-harness-workiq-design.md) |
+| Technical: Blueprint and project progress overview | [Draft sprint](plans/2026-10-29-caldova-blueprint-progress-overview-sprint.md) | [Draft idea](ideas/caldova-blueprint-progress-overview-idea.md) | [Draft specification](specs/2026-10-29-caldova-blueprint-progress-overview-design.md) |
+| Technical: Grounded Copilot Studio agent identity kit | [Draft sprint](plans/2026-10-29-caldova-agent-identity-kit-sprint.md) | [Draft idea](ideas/caldova-agent-identity-kit-idea.md) | [Draft specification](specs/2026-10-29-caldova-agent-identity-kit-design.md) |
 
 Scope was refined interactively with the repository owner on 2026-10-28. The original five packages use the supplied build brief; the sixth ESS-equivalent package uses public Microsoft references and separately confirmed scope. The original SOPs, policy PDFs, FAQ/workbooks, templates and evidence register have not been independently reviewed here. The drafts distinguish user decisions, reported evidence, proposals and open gates. HR Operations now has a detailed process but remains propose-only with writes blocked. No actual GF URL, named approver or delivery estimate is invented.
 
@@ -86,11 +90,27 @@ approval to adapt is user-reported; original proposal status and technical
 decisions remain visible. Identity adoption is not runtime delivery or approval
 of every source-catalogue hypothesis.
 
-GF's confirmed target is an independent Azure Repos source/PR authority after a reviewed one-time transfer, with no automatic GitHub synchronization. [ADR-0013](adr/0013-gf-azure-repos-source-authority.md) is the **Proposed Baseline** GF-scoped refinement of ADR-0001, ADR-0002 and ADR-0012, preserving their approved demo history. CI/CD includes reusable explicit DEV capture into branch/PR and TEST delivery only; production is later scope.
+Caldova retains GitHub source/PR/YAML authority. Azure Pipelines consumes GitHub
+directly; the intended Azure Repo is a separately approved main-history secondary
+copy, manually queued with validation/approval gates. [Proposed ADR-0015](adr/0015-caldova-github-authority-and-azure-repos-secondary.md)
+records the narrow exception to the historical no-mirror rule, not live setup.
+DEV capture returns through GitHub branches/PRs; TEST delivery is separately
+authorized and production is later scope.
 
 Continue review one question at a time: challenge and refine each answer before treating it as a settled requirement. Source-dependent decisions remain open until the SharePoint material and accountable owners support them.
 
-### GF Source Basis and Publication Boundary
+### Caldova Project and GF Source Boundary
+
+The 27 maintained package files now use Caldova filenames/titles. GF remains
+the identified source/customer scenario for HR requirements and brand assets.
+Existing `IDEA-GF-*`, requirement and evidence IDs are legacy traceability keys,
+not new Caldova approval or renumbered requirements.
+
+The original GF full handover remains recoverable from fixed commit `a4e4fbc`.
+Its [historical pointer](reviews/2026-10-29-gf-project-handover-review.md) and
+unchanged hash inventory describe that snapshot only, not current renamed paths.
+Do not silently rehash the historical inventory. ADR-0013 retains that separate
+GF cutover scope; it is not the new Caldova secondary-copy model.
 
 The local source is *Georg Fischer HR - MVP 1-3 agent canvases, processes, audiences and SharePoint BOM*, v1.0 dated 2026-10-28, supplied from outside this repository. It is marked confidential. Its original stays outside Git. The repository is public; permission to prepare the handover locally is **not permission to commit, push or upload confidential refinements publicly**. Verify the private GF destination and disclosure inventory before handover. This documentation change performs no commit, push, source upload or tenant operation.
 
@@ -102,7 +122,7 @@ References such as `brief 3.6 / E41` mean "reported by the supplied brief", not 
 | Policy | Switzerland-only MVP; design supports later regional onboarding with separate sources, audience permissions, applicability, languages, owners, escalation and tests. Exact regional deployment topology is open. |
 | Recruiting | **GF-REC-D01 remains open for HR stakeholders:** earlier approved agent-created requisition/publication versus brief manual Workday entry and recruiter publication. No operational Workday writes or publishing enabled while unresolved. |
 | HR Operations | Detail the PeopleDoc-to-Workday proposal process; writes remain blocked until matching, field/document, approval, interface/identity, privacy and safety gates close. |
-| Repository / CI/CD | Independent Azure Repos; explicit reusable DEV capture to branch/PR; reviewed-source build and TEST delivery. Prove chosen-harness packaging/deployment and preserve functional write blocks. PROD is later scope. |
+| Repository / CI/CD | GitHub authority with direct-source Azure Pipelines, DEV capture through GitHub PR and reviewed-artifact TEST delivery. Independent manual approved-main replication to Azure Repos is secondary only. No reverse sync/force/mirror; current checks remain until equivalence is proven. |
 
 Process and participant-interaction Mermaid diagrams live in each specification; dependency/gate diagrams live in each sprint. Idea canvases link to these authoritative diagrams rather than maintain competing copies. The drawings are proposed responsibilities and gates, not implementation evidence.
 
@@ -125,18 +145,18 @@ The [project support policy](https://github.com/microsoft/cat-agent-skills/blob/
 
 **No candidate is admitted, installed or activated by this assessment.** Before reuse, record the accountable owner, exact source/bundle revision and checksum, license/notices, scripts/dependencies, execution/network/data locations, secret handling, least-privilege tools, selected-harness support, synthetic positive/negative tests and export/import asset coverage. Restrict any adapted instructions to the declared write envelope; a skill's instructions are not permission enforcement. Reuse must not enable memory for write-capable agents, Work IQ or connected-agent delegation contrary to existing governance.
 
-The [repository package](specs/2026-10-28-gf-azure-devops-repository-design.md#9-source-layout-and-reusable-component-boundary) owns future vendoring/source admission; the [CI/CD package](specs/2026-10-28-gf-azure-devops-solution-cicd-design.md#8-selected-harness-evidence-and-reuse) owns bundle inclusion and regression evidence. Neither needs a CAT plugin to clone a repository, create pipelines or govern Workday access.
+The [repository package](specs/2026-10-28-caldova-azure-devops-repository-design.md#9-source-layout-and-reusable-component-boundary) owns future vendoring/source admission; the [CI/CD package](specs/2026-10-28-caldova-azure-devops-solution-cicd-design.md#8-selected-harness-evidence-and-reuse) owns bundle inclusion and regression evidence. Neither needs a CAT plugin to clone a repository, create pipelines or govern Workday access.
 
-## GF ESS-Equivalent Rebuild
+## Caldova ESS-Equivalent Rebuild
 
 This is the sixth linked handover set in the package index, with a matching idea, the existing sprint and the specification. It remains a separately gated proposal, not a replacement for the original five packages or an in-place migration of an existing ESS deployment.
 
 | Artifact | Status | Purpose |
 |---|---|---|
-| [ESS-equivalent idea](ideas/gf-ess-github-harness-workiq-idea.md) | Draft | Outcome, user/capability canvas, six-operation scope, business-value hypothesis, readiness questions and GF handover reading order. |
-| [ESS-equivalent specification](specs/2026-10-28-gf-ess-github-harness-workiq-design.md) | Draft | First-party ESS/Developer Kit capability and gap analysis, per-use-case M365 matrix, six self-only Workday actions, Mermaid architecture/state/case interactions, identity, audit and value criteria. |
-| [ESS-equivalent sprint](plans/2026-10-28-gf-ess-github-harness-workiq-sprint.md) | Draft | Evaluation-first capability/identity proof, independent scenario tracks and TEST/business acceptance gates; no invented time box or commitments. |
-| [ESS-equivalent implementation plan](plans/2026-10-28-gf-ess-github-harness-workiq-implementation.md) | Draft | Ten test-first slices, intended source/contracts/tests, safe activation, TEST delivery and value/stop/reconciliation acceptance, derived after written-specification review. |
+| [ESS-equivalent idea](ideas/caldova-ess-github-harness-workiq-idea.md) | Draft | Outcome, user/capability canvas, six-operation scope, business-value hypothesis, readiness questions and GF handover reading order. |
+| [ESS-equivalent specification](specs/2026-10-28-caldova-ess-github-harness-workiq-design.md) | Draft | First-party ESS/Developer Kit capability and gap analysis, per-use-case M365 matrix, six self-only Workday actions, Mermaid architecture/state/case interactions, identity, audit and value criteria. |
+| [ESS-equivalent sprint](plans/2026-10-28-caldova-ess-github-harness-workiq-sprint.md) | Draft | Evaluation-first capability/identity proof, independent scenario tracks and TEST/business acceptance gates; no invented time box or commitments. |
+| [ESS-equivalent implementation plan](plans/2026-10-28-caldova-ess-github-harness-workiq-implementation.md) | Draft | Ten test-first slices, intended source/contracts/tests, safe activation, TEST delivery and value/stop/reconciliation acceptance, derived after written-specification review. |
 | [ADR-0014](adr/0014-gf-ess-workiq-and-self-service-write-envelope.md) | Proposed Baseline | Scoped Work IQ proposal and separate ESS write envelope; preserves HR Operations add-only protections and Access Layer ownership. |
 
 The user selected Copilot Studio's GitHub Copilot runtime harness and separate governed integration paths: Work IQ for justified M365 capabilities, employee-delegated OAuth for Workday. Selected transactions are personal phone/email/address/emergency-contact updates, time-off submission through Workday's approval, and Workday Help case creation only after review/confirmation.
@@ -147,23 +167,23 @@ The Developer Kit's pinned main branch now targets declarative ESS; its Custom E
 
 The user reviewed the written specification as the basis for the Draft implementation plan. That planning review does not ratify operational permissions or authorize implementation, public publication or live deployment.
 
-## GF Blueprint Progress Overview
+## Caldova Blueprint Progress Overview
 
 The imported [Georg Fischer Frontier Company Blueprint.html](Georg%20Fischer%20Frontier%20Company%20Blueprint.html) is a local hypothesis baseline, version 0.5 dated 2026-10-28. It contains embedded structured data and a renderer; its browser notes are not a shared delivery record. The original HTML is preserved unchanged by this planning work and has not been published or transferred.
 
 | Artifact | Status | Purpose |
 |---|---|---|
-| [Blueprint overview idea](ideas/gf-blueprint-progress-overview-idea.md) | Draft | Outcome, evidence-first maintenance model, stakeholder responsibilities and handover boundary. |
-| [Blueprint overview sprint](plans/2026-10-29-gf-blueprint-progress-overview-sprint.md) | Draft | Source/contracts, controlled rendering, stale-output checks, scoped agent and customer acceptance work. |
-| [Blueprint overview specification](specs/2026-10-29-gf-blueprint-progress-overview-design.md) | Draft | Authority, status/freshness model, reviewed narrative changes, HTML preservation and gated preview-agent design. |
-| [Blueprint overview implementation plan](plans/2026-10-29-gf-blueprint-progress-overview-implementation.md) | Draft | Provisional nine-task plan covering contracts, controlled projection, freshness enforcement, role review, browser notes and clean-folder handover. |
+| [Blueprint overview idea](ideas/caldova-blueprint-progress-overview-idea.md) | Draft | Outcome, evidence-first maintenance model, stakeholder responsibilities and handover boundary. |
+| [Blueprint overview sprint](plans/2026-10-29-caldova-blueprint-progress-overview-sprint.md) | Draft | Source/contracts, controlled rendering, stale-output checks, scoped agent and customer acceptance work. |
+| [Blueprint overview specification](specs/2026-10-29-caldova-blueprint-progress-overview-design.md) | Draft | Authority, status/freshness model, reviewed narrative changes, HTML preservation and gated preview-agent design. |
+| [Blueprint overview implementation plan](plans/2026-10-29-caldova-blueprint-progress-overview-implementation.md) | Draft | Provisional nine-task plan covering contracts, controlled projection, freshness enforcement, role review, browser notes and clean-folder handover. |
 | [Blueprint Maintainer preview](../.github/agents/blueprint-maintainer.agent.md) | Proposed Baseline | Manually invoked read/search-only analysis and recommendations; no editing, execution, remote access or automated refresh. |
 
 Repository sprint/delivery records and verified evidence govern progress first; Azure Boards is later scope. The intended operating model updates the derived overview in the same reviewed change and rejects stale/inconsistent output through existing validation. A custom agent profile is not a continuous runner.
 
 The user explicitly approved the narrow read/search-only preview, which is now created with focused static contract tests. Written-specification review was requested but the user was unavailable, so the implementation plan remains provisional. The write-capable maintainer, structured inputs, renderer, synchronization and stale gate remain planned. Full activation requires that review, a scoped portfolio amendment and proven controls; no additional operational writer or HTML-edit permission is silently introduced. Host invocation/loading has not been verified by static tests.
 
-## GF Grounded Agent Identity
+## Caldova Project - GF Grounded Agent Identity
 
 The [curated kit](brand/gf-agent-identity/README.md) extends the brand folder
 without changing the Caldova theme or supplied blueprint. It preserves 466 source
@@ -173,10 +193,10 @@ inactive `.txt` references.
 
 | Artifact | Status | Purpose |
 |---|---|---|
-| [Identity-kit idea](ideas/gf-agent-identity-kit-idea.md) | Draft | Outcome, source approval/mapping scope and readiness questions. |
-| [Identity-kit sprint](plans/2026-10-29-gf-agent-identity-kit-sprint.md) | Draft | Curated intake/static checks and future owner/source/stamping/read-back tracks. |
-| [Identity-kit specification](specs/2026-10-29-gf-agent-identity-kit-design.md) | Draft | Identity contracts, source preservation, environment rules and guarded integration. |
-| [Identity-kit implementation plan](plans/2026-10-29-gf-agent-identity-kit-implementation.md) | Draft | Provisional seven-task plan for source/owner policy, target-format proof, fail-closed adaptation, artifact/read-back and authorized handover. |
+| [Identity-kit idea](ideas/caldova-agent-identity-kit-idea.md) | Draft | Outcome, source approval/mapping scope and readiness questions. |
+| [Identity-kit sprint](plans/2026-10-29-caldova-agent-identity-kit-sprint.md) | Draft | Curated intake/static checks and future owner/source/stamping/read-back tracks. |
+| [Identity-kit specification](specs/2026-10-29-caldova-agent-identity-kit-design.md) | Draft | Identity contracts, source preservation, environment rules and guarded integration. |
+| [Identity-kit implementation plan](plans/2026-10-29-caldova-agent-identity-kit-implementation.md) | Draft | Provisional seven-task plan for source/owner policy, target-format proof, fail-closed adaptation, artifact/read-back and authorized handover. |
 
 Use the kit/bindings for all GF Copilot Studio planning/building. New unmapped
 runtime agents require reviewed extension; repository-working agents and

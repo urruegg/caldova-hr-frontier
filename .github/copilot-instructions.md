@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.6 |
+| **Version** | 1.7 |
 | **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -23,11 +23,13 @@ examples.
 
 ### GF runtime-agent identity
 
-For GF Copilot Studio agents, use the [grounded identity kit](../docs/brand/gf-agent-identity/README.md)
+For the GF customer/source scenario in Caldova project documents, use the [grounded identity kit](../docs/brand/gf-agent-identity/README.md)
 and [adopted bindings](../docs/brand/gf-agent-identity/agent-bindings.json) before planning,
 building or packaging names/icons. This customer-specific intake does not retheme
 the Caldova demo, rename repository-working agents, close publisher/solution decisions,
 or authorize stamping/deployment. Apply the [scoped identity guidance](instructions/gf-agent-identity.instructions.md).
+GF facts/approvals/trademarks remain GF-scoped; project renaming is not corporate
+rebranding. See the [Caldova/source boundary](../docs/README.md#caldova-project-and-gf-source-boundary).
 
 ### External Windows worktrees
 

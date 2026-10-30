@@ -1,17 +1,21 @@
-# GF Recruiting: Job Requisition and Job Posting Agent - Idea
+# Caldova Recruiting: Job Requisition and Job Posting Agent - Idea
 
 | Field | Value |
 |---|---|
-| **Version** | 0.2 |
-| **Date** | 2026-10-28 |
+| **Version** | 0.3 |
+| **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF functional package: recruiting requisition and posting |
-| **References** | [Specification](../specs/2026-10-28-gf-recruiting-requisition-posting-agent-design.md), [Sprint](../plans/2026-10-28-gf-recruiting-requisition-posting-agent-sprint.md), [Package index](../README.md#gf-draft-packages) |
+| **Scope** | Caldova project/demo; GF source/customer context: functional package: recruiting requisition and posting |
+| **References** | [Specification](../specs/2026-10-28-caldova-recruiting-requisition-posting-agent-design.md), [Sprint](../plans/2026-10-28-caldova-recruiting-requisition-posting-agent-sprint.md), [Package index](../README.md#caldova-draft-packages) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 ## Status and provenance
 
-This is a distinct GF package. Section 4 of the supplied build brief v1.0 has been reviewed; its E20/E21/E22/E43 primary PRD, BOM, SOP and templates have not. Their reported receipt/approval states are not independently verified. See the [source register](../README.md#gf-source-basis-and-publication-boundary).
+This Caldova project package retains GF as its source/customer scenario. Section 4 of the supplied build brief v1.0 has been reviewed; its E20/E21/E22/E43 primary PRD, BOM, SOP and templates have not. Their reported receipt/approval states are not independently verified. See the [source register](../README.md#caldova-project-and-gf-source-boundary).
 
 ## Problem and expected value
 
@@ -48,7 +52,7 @@ Generated Word files and their storage/retention are optional and undecided. No 
 
 Prioritize GF-REC-D01 with HR stakeholders, then confirm question-set ownership, global items, primary roles, approved-requisition event/read scope, language rules, sender/meeting identity, and optional output storage. Keep disputed actions behind the explicit gate.
 
-The [specification](../specs/2026-10-28-gf-recruiting-requisition-posting-agent-design.md#2-process-and-interactions) diagrams show the shared preparation flow and unresolved action boundary. CAT Template-Based Document Generation is a conditional Word-output candidate, not a publishing/Workday skill. The standard-harness Adaptive Card Builder and Cowork-only Test Planner are not drop-in runtime dependencies. See the [CAT assessment](../README.md#cat-reuse-assessment).
+The [specification](../specs/2026-10-28-caldova-recruiting-requisition-posting-agent-design.md#2-process-and-interactions) diagrams show the shared preparation flow and unresolved action boundary. CAT Template-Based Document Generation is a conditional Word-output candidate, not a publishing/Workday skill. The standard-harness Adaptive Card Builder and Cowork-only Test Planner are not drop-in runtime dependencies. See the [CAT assessment](../README.md#cat-reuse-assessment).
 
 ## Board synchronization
 

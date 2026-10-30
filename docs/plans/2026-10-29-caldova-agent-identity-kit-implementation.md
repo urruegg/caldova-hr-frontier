@@ -1,13 +1,17 @@
-# GF Grounded Agent Identity Kit Implementation Plan
+# Caldova Grounded Agent Identity Kit Implementation Plan
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
+| **Version** | 0.2 |
 | **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF identity adoption: preserved source, runtime bindings, guarded future stamping and verified handover |
-| **References** | [Specification](../specs/2026-10-29-gf-agent-identity-kit-design.md), [Sprint](2026-10-29-gf-agent-identity-kit-sprint.md), [Idea](../ideas/gf-agent-identity-kit-idea.md), [Grounded kit](../brand/gf-agent-identity/README.md), [GF delivery design](../specs/2026-10-28-gf-azure-devops-solution-cicd-design.md), [Repository-agent governance](../specs/2026-10-02-hr-frontier-copilot-agent-portfolio-governance-design.md) |
+| **Scope** | Caldova project/demo; GF source/customer context: identity adoption: preserved source, runtime bindings, guarded future stamping and verified handover |
+| **References** | [Specification](../specs/2026-10-29-caldova-agent-identity-kit-design.md), [Sprint](2026-10-29-caldova-agent-identity-kit-sprint.md), [Idea](../ideas/caldova-agent-identity-kit-idea.md), [Grounded kit](../brand/gf-agent-identity/README.md), [Caldova delivery design](../specs/2026-10-28-caldova-azure-devops-solution-cicd-design.md), [Repository-agent governance](../specs/2026-10-02-hr-frontier-copilot-agent-portfolio-governance-design.md) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 > **For agentic workers:** Use `executing-plans` for inline execution with checkpoints, or `subagent-driven-development` only when explicitly selected. Steps use checkbox syntax. This plan is not tenant or pipeline execution authorization.
 
@@ -17,7 +21,7 @@
 
 **Tech stack:** JSON configuration/schema, supplied PNG/SVG/CSS assets, existing Python `jsonschema`/`unittest`, Pester 5.7.1, scoped Copilot instructions, and later the established GF Power Platform/Azure DevOps delivery toolchain.
 
-**Spec:** [Identity adoption specification](../specs/2026-10-29-gf-agent-identity-kit-design.md). The user approved curated intake and four mappings. Written-spec review was requested while the user was unavailable; the rollout plan remains provisional, not described as ratified.
+**Spec:** [Identity adoption specification](../specs/2026-10-29-caldova-agent-identity-kit-design.md). The user approved curated intake and four mappings. Written-spec review was requested while the user was unavailable; the rollout plan remains provisional, not described as ratified.
 
 ## Global constraints
 
@@ -49,7 +53,7 @@ The curated intake, binding guidance and static tests are implemented by this re
 | `.github\cli\Test-GfAgentIdentitySource.ps1` | Future explicit local validation/apply wrapper with error propagation |
 | `.github\cli\tests\test_gf_identity_source.py` | Future synthetic target-format, strict matching and atomic behavior tests |
 | `.github\cli\tests\fixtures\gf-identity-source\` | Synthetic supported/invalid export fixtures, no real tenant data |
-| Existing GF source/pipeline files | Modify only after that delivery package has established exact target paths/contracts |
+| Existing Caldova GitHub source/pipeline files | Modify only after the delivery package has established exact paths/contracts; GF source/customer identity remains separate |
 
 Use the repository's [external-worktree prerequisite](../../infra/docs/runbooks/01-developer-workstation.md#external-worktree-prerequisite) for later feature execution. Prove sibling `wt` access and path budget; never alter ACLs/long-path settings or discard unrelated work.
 
@@ -141,11 +145,11 @@ def test_missing_required_icon_rejects_without_partial_writes(self):
 
 **Files:** established GF delivery source/pipeline paths, identity source tests and handover guidance; no guessed new pipeline root or GitHub Actions file.
 
-**Consumes:** Tasks 2-4 and GF CI/CD readiness. **Produces:** explicit identity/source/artifact provenance and release gates.
+**Consumes:** Tasks 2-4 and Caldova direct GitHub-source CI/CD readiness, preserving GF brand/source approval boundaries. **Produces:** explicit identity/source/artifact provenance and release gates.
 
 - [ ] Decide the artifact policy before stamping. TEST/PROD name/icon differences change bytes; select a reviewed paired-artifact or supported external-configuration model and amend the delivery contract if necessary. Do not label different packages identical.
 - [ ] Write tests requiring source revision, exact identity/config/icon hashes, environment and packaged artifact identity to match. Reject an untracked post-test stamp/rebuild.
-- [ ] Add the intake and admitted source-adapter checks to the existing PR/main validation surface and its GF Azure DevOps equivalent. No duplicate workflow or autonomous publisher.
+- [ ] Add the intake and admitted source-adapter checks to existing GitHub PR/main validation and its Caldova Azure Pipelines equivalent. Secondary replication is separate; no duplicate workflow or autonomous publisher.
 - [ ] Keep source canonicalization distinct from deploy-time presentation. Do not automatically rewrite DEV source to clean PROD in the capture branch before the supported-source/owner contract is proven.
 - [ ] Test denied identity checks blocking candidate acceptance, source changes invalidating evidence and all runtime assets included after source capture/unpack/pack.
 - [ ] Leave production deployment outside the current sprint even if its identity variants exist in the kit.

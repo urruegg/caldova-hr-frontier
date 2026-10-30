@@ -42,7 +42,7 @@ BeforeAll {
         $path = Join-Path $Root $RelativePath
         [void](New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force)
         [IO.File]::WriteAllText($path, $Content, [Text.UTF8Encoding]::new($false))
-        & $script:gitPath -C $Root add -- $RelativePath.Replace('\', '/')
+        & $script:gitPath -c core.safecrlf=false -C $Root add -- $RelativePath.Replace('\', '/')
         if ($LASTEXITCODE -ne 0) { throw "Cannot stage fixture: $RelativePath" }
     }
 
@@ -118,6 +118,53 @@ BeforeAll {
             provenance = 'Captured by the governed model evaluation workflow.'
             rationale = 'Immutable source evidence is retained byte-for-byte.'
         }
+    }
+
+    function script:New-FixtureSourceRecord {
+        param([string]$Root)
+        $relative = 'sources/' + $script:forms.L4 + 'sample.txt'
+        Add-FixtureText -Root $Root -RelativePath $relative -Content $script:forms.L3
+        [ordered]@{
+            path = $relative
+            sha256 = Get-FixtureSha256 -Root $Root -RelativePath $relative
+            hashBasis = 'raw'
+            provenance = 'identity-intake-v1'
+            pathMatches = @(
+                [ordered]@{patternClass = 'L3'; count = 1}
+                [ordered]@{patternClass = 'L4'; count = 1}
+            )
+            contentMatches = @([ordered]@{patternClass = 'L3'; count = 1})
+        }
+    }
+
+    function script:Add-FixtureSourceManifest {
+        param(
+            [string]$Root,
+            [object[]]$Sources,
+            [string]$Status = 'Approved',
+            [hashtable]$ExtraProperty
+        )
+        $manifest = [ordered]@{
+            schemaVersion = '1.0'
+            approvalReference = 'retained-source-2026-10-30'
+            policyReference = 'docs/specs/2026-10-01-caldova-branding-migration-design.md'
+            sources = @($Sources)
+        }
+        if ($ExtraProperty) {
+            foreach ($entry in $ExtraProperty.GetEnumerator()) { $manifest[$entry.Key] = $entry.Value }
+        }
+        $relative = '.github/cli/config/branding-source-classifications.json'
+        Add-FixtureText -Root $Root -RelativePath $relative `
+            -Content (($manifest | ConvertTo-Json -Depth 10).Replace("`r`n", "`n") + "`n")
+        $hash = Get-FixtureSha256 -Root $Root -RelativePath $relative
+        Add-FixtureText -Root $Root -RelativePath $manifest.policyReference -Content @"
+# Source classification authority
+| Field | Value |
+|---|---|
+| **Status** | $Status |
+Source classification approval: retained-source-2026-10-30
+Source classification SHA-256 (UTF-8 LF): $hash
+"@
     }
 }
 
@@ -325,13 +372,23 @@ Describe 'Branding scanner behavior' -Tag 'BrandingContractUnit' {
             Should -BeExactly 'tracked-link'
     }
 
-    It 'suppresses one exact hash-bound immutable evidence occurrence without disclosing matched content' {
+    It 'suppresses one exact hash-bound immutable evidence occurrence without disclosing matched content' -TestCases @(
+        @{ PatternClass = 'L1' }
+        @{ PatternClass = 'L2' }
+        @{ PatternClass = 'L3' }
+        @{ PatternClass = 'L4' }
+        @{ PatternClass = 'L5' }
+        @{ PatternClass = 'L6' }
+        @{ PatternClass = 'L7' }
+    ) {
+        param($PatternClass)
+
         $root = New-BrandingFixture
         $evidencePath = 'hr\evidence\ai-builder\tenant-test\DEV\run-test\evidence.json'
         Add-FixtureText -Root $root -RelativePath $evidencePath `
-            -Content ("captured {0} value" -f $script:forms.L4)
+            -Content ("captured {0} value" -f $script:forms[$PatternClass])
         $exception = New-FixtureEvidenceException -Root $root `
-            -RelativePath $evidencePath -PatternClass 'L4'
+            -RelativePath $evidencePath -PatternClass $PatternClass
         Add-FixtureEvidenceManifest -Root $root -Exceptions @($exception)
 
         $result = Get-RepositoryBrandingScan -RepositoryRoot $root
@@ -342,10 +399,48 @@ Describe 'Branding scanner behavior' -Tag 'BrandingContractUnit' {
             Should -Be @('Path', 'PatternClass', 'Sha256')
         $result.ApprovedEvidence.Path |
             Should -BeExactly $evidencePath.Replace('\', '/')
-        $result.ApprovedEvidence.PatternClass | Should -BeExactly 'L4'
+        $result.ApprovedEvidence.PatternClass | Should -BeExactly $PatternClass
         $result.ApprovedEvidence.Sha256 | Should -BeExactly $exception.sha256
         ($result | ConvertTo-Json -Depth 5) | Should -Not -Match `
-            [regex]::Escape($script:forms.L4)
+            [regex]::Escape($script:forms[$PatternClass])
+    }
+
+    It 'rejects a manifest count that is not the JSON integer one' -TestCases @(
+        @{ CountJson = '1.0' }
+        @{ CountJson = '1e0' }
+        @{ CountJson = '"1"' }
+        @{ CountJson = 'true' }
+        @{ CountJson = 'null' }
+        @{ CountJson = '0' }
+        @{ CountJson = '-1' }
+        @{ CountJson = '2' }
+        @{ CountJson = '4294967297' }
+    ) {
+        param($CountJson)
+
+        $root = New-BrandingFixture
+        $evidencePath = 'hr\evidence\ai-builder\tenant-test\DEV\run-test\evidence.json'
+        Add-FixtureText -Root $root -RelativePath $evidencePath `
+            -Content ("captured {0} value" -f $script:forms.L3)
+        $exception = New-FixtureEvidenceException -Root $root `
+            -RelativePath $evidencePath -PatternClass 'L3'
+        $manifestJson = [ordered]@{
+            schemaVersion = '1.0'
+            exceptions = @($exception)
+        } | ConvertTo-Json -Depth 6
+        $manifestJson = $manifestJson -replace '"count":\s*1', (
+            '"count": ' + $CountJson
+        )
+        Add-FixtureText -Root $root `
+            -RelativePath '.github\cli\config\branding-evidence-exceptions.json' `
+            -Content $manifestJson
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.ApprovedEvidenceCount | Should -Be 0
+        $result.Findings.PatternClass | Should -Contain 'evidence-exception-error'
+        @($result.Findings | Where-Object PatternClass -ceq 'L3').Count |
+            Should -Be 1
     }
 
     It 'rejects a content exception when its tracked path has the same prohibited class' {
@@ -505,6 +600,241 @@ Describe 'Branding scanner behavior' -Tag 'BrandingContractUnit' {
         $result.ApprovedEvidenceCount | Should -Be 0
         $result.Findings.PatternClass | Should -Contain 'evidence-exception-error'
         ($result | ConvertTo-Json -Depth 5) | Should -Not -Match 'must-not-be-returned'
+    }
+}
+
+Describe 'Reviewed source classifications' -Tag 'BrandingContractUnit' {
+    It 'admits exact reviewed path and content matches without changing evidence approvals' {
+        $root = New-BrandingFixture
+        $source = New-FixtureSourceRecord -Root $root
+        Add-FixtureSourceManifest -Root $root -Sources @($source)
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.Findings | Should -BeNullOrEmpty
+        $result.ClassifiedSourceCount | Should -Be 1
+        $result.ClassifiedSources[0].Path | Should -BeExactly $source.path
+        $result.ApprovedEvidenceCount | Should -Be 0
+    }
+
+    It 'keeps undeclared files blocking even inside an admitted source folder' {
+        $root = New-BrandingFixture
+        $source = New-FixtureSourceRecord -Root $root
+        $unknown = 'sources/' + $script:forms.L4 + 'unknown.txt'
+        Add-FixtureText -Root $root -RelativePath $unknown -Content $script:forms.L3
+        Add-FixtureSourceManifest -Root $root -Sources @($source)
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.ClassifiedSourceCount | Should -Be 1
+        @($result.Findings | Where-Object Path -CEQ $unknown).Count | Should -BeGreaterThan 0
+    }
+
+    It 'rejects invalid source records atomically: <Fault>' -TestCases @(
+        @{Fault = 'hash'}
+        @{Fault = 'path-count'}
+        @{Fault = 'content-count'}
+        @{Fault = 'class'}
+        @{Fault = 'provenance'}
+        @{Fault = 'basis'}
+        @{Fault = 'duplicate'}
+        @{Fault = 'traversal'}
+        @{Fault = 'coercible-count'}
+        @{Fault = 'extra-record-field'}
+    ) {
+        param($Fault)
+        $root = New-BrandingFixture
+        $source = New-FixtureSourceRecord -Root $root
+        $originalPath = $source.path
+        switch ($Fault) {
+            'hash' { $source.sha256 = '0' * 64 }
+            'path-count' { $source.pathMatches[0].count = 2 }
+            'content-count' { $source.contentMatches[0].count = 2 }
+            'class' { $source.contentMatches[0].patternClass = 'L9' }
+            'provenance' { $source.provenance = 'unreviewed' }
+            'basis' { $source.hashBasis = 'ignore' }
+            'traversal' { $source.path = '../outside.txt' }
+            'coercible-count' { $source.contentMatches[0].count = '1' }
+            'extra-record-field' { $source['unexpected'] = 'unapproved' }
+        }
+        $records = if ($Fault -eq 'duplicate') { @($source, $source) } else { @($source) }
+        Add-FixtureSourceManifest -Root $root -Sources $records
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.Findings.PatternClass | Should -Contain 'source-classification-error'
+        $result.ClassifiedSourceCount | Should -Be 0
+        @($result.Findings | Where-Object Path -CEQ $originalPath).Count |
+            Should -BeGreaterThan 0
+    }
+
+    It 'rejects changed source bytes even when no new class is introduced' {
+        $root = New-BrandingFixture
+        $source = New-FixtureSourceRecord -Root $root
+        Add-FixtureSourceManifest -Root $root -Sources @($source)
+        Add-FixtureText -Root $root -RelativePath $source.path -Content ($script:forms.L3 + ' changed')
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.Findings.PatternClass | Should -Contain 'source-classification-error'
+        $result.ClassifiedSourceCount | Should -Be 0
+    }
+
+    It 'requires Approved authority rather than a Draft or missing authority' -TestCases @(
+        @{Status = 'Draft'}
+        @{Status = 'Proposed Baseline'}
+    ) {
+        param($Status)
+        $root = New-BrandingFixture
+        $source = New-FixtureSourceRecord -Root $root
+        Add-FixtureSourceManifest -Root $root -Sources @($source) -Status $Status
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.Findings.PatternClass | Should -Contain 'source-classification-error'
+        $result.ClassifiedSourceCount | Should -Be 0
+    }
+
+    It 'rejects manifest edits without updating the explicit approval hash' {
+        $root = New-BrandingFixture
+        $source = New-FixtureSourceRecord -Root $root
+        Add-FixtureSourceManifest -Root $root -Sources @($source)
+        Add-Content -LiteralPath (Join-Path $root '.github/cli/config/branding-source-classifications.json') -Value ' '
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.Findings.PatternClass | Should -Contain 'source-classification-error'
+        $result.ClassifiedSourceCount | Should -Be 0
+    }
+
+    It 'rejects unknown manifest metadata even if the altered registry is hash-pinned' {
+        $root = New-BrandingFixture
+        $source = New-FixtureSourceRecord -Root $root
+        Add-FixtureSourceManifest -Root $root -Sources @($source) `
+            -ExtraProperty @{unexpected = $script:forms.L3}
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.Findings.PatternClass | Should -Contain 'source-classification-error'
+        $result.ClassifiedSourceCount | Should -Be 0
+    }
+
+    It 'requires a string schema version rather than a coercible numeric value' {
+        $root = New-BrandingFixture
+        $source = New-FixtureSourceRecord -Root $root
+        Add-FixtureSourceManifest -Root $root -Sources @($source) -ExtraProperty @{schemaVersion = 1}
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.Findings.PatternClass | Should -Contain 'source-classification-error'
+        $result.ClassifiedSourceCount | Should -Be 0
+    }
+
+    It 'permits only declared LF and CRLF equivalence for maintained text' {
+        $root = New-BrandingFixture
+        $source = New-FixtureSourceRecord -Root $root
+        Add-FixtureText -Root $root -RelativePath $source.path -Content ($script:forms.L3 + "`n")
+        $source.sha256 = Get-FixtureSha256 -Root $root -RelativePath $source.path
+        $source.hashBasis = 'utf8-lf'
+        Add-FixtureSourceManifest -Root $root -Sources @($source)
+        [IO.File]::WriteAllText((Join-Path $root $source.path), ($script:forms.L3 + "`r`n"),
+            [Text.UTF8Encoding]::new($false))
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.Findings | Should -BeNullOrEmpty
+        $result.ClassifiedSourceCount | Should -Be 1
+    }
+
+    It 'admits exact binary source paths without pretending their payload is text' {
+        $root = New-BrandingFixture
+        $source = New-FixtureSourceRecord -Root $root
+        [IO.File]::WriteAllBytes((Join-Path $root $source.path),
+            [byte[]](0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a))
+        $source.sha256 = Get-FixtureSha256 -Root $root -RelativePath $source.path
+        $source.contentMatches = @()
+        Add-FixtureSourceManifest -Root $root -Sources @($source)
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.Findings | Should -BeNullOrEmpty
+        $result.BinaryCount | Should -Be 1
+        $result.ClassifiedSourceCount | Should -Be 1
+    }
+
+    It 'does not make a declared policy optional when its registry is deleted' {
+        $root = New-BrandingFixture
+        $source = New-FixtureSourceRecord -Root $root
+        Add-FixtureSourceManifest -Root $root -Sources @($source)
+        Remove-Item -LiteralPath (Join-Path $root '.github/cli/config/branding-source-classifications.json')
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.Findings.PatternClass | Should -Contain 'source-classification-error'
+        $result.Findings.PatternClass | Should -Contain 'read-error'
+        $result.ClassifiedSourceCount | Should -Be 0
+    }
+
+    It 'does not approve a Draft authority because its body contains an Approved example' {
+        $root = New-BrandingFixture
+        $source = New-FixtureSourceRecord -Root $root
+        Add-FixtureSourceManifest -Root $root -Sources @($source) -Status 'Draft'
+        Add-Content -LiteralPath (Join-Path $root 'docs/specs/2026-10-01-caldova-branding-migration-design.md') `
+            -Value "`n## Example`n| **Status** | Approved |"
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.Findings.PatternClass | Should -Contain 'source-classification-error'
+        $result.ClassifiedSourceCount | Should -Be 0
+    }
+
+    It 'does not admit protected evidence through differently cased Windows paths' {
+        $root = New-BrandingFixture
+        $source = New-FixtureSourceRecord -Root $root
+        $source.path = 'hr/Evidence/ai-builder/run/capture.json'
+        Add-FixtureText -Root $root -RelativePath $source.path -Content $script:forms.L3
+        $source.sha256 = Get-FixtureSha256 -Root $root -RelativePath $source.path
+        $source.pathMatches = @()
+        Add-FixtureSourceManifest -Root $root -Sources @($source)
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.Findings.PatternClass | Should -Contain 'source-classification-error'
+        $result.ClassifiedSourceCount | Should -Be 0
+    }
+
+    It 'does not treat a fenced example as the authority metadata table' {
+        $root = New-BrandingFixture
+        $source = New-FixtureSourceRecord -Root $root
+        Add-FixtureSourceManifest -Root $root -Sources @($source)
+        $policy = Join-Path $root 'docs/specs/2026-10-01-caldova-branding-migration-design.md'
+        $content = [IO.File]::ReadAllText($policy)
+        $content = $content.Replace('| Field | Value |', '```text' + "`n| Field | Value |")
+        $content = $content.Replace('| **Status** | Approved |', '| **Status** | Approved |' + "`n" + '```')
+        [IO.File]::WriteAllText($policy, $content, [Text.UTF8Encoding]::new($false))
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root
+
+        $result.Findings.PatternClass | Should -Contain 'source-classification-error'
+        $result.ClassifiedSourceCount | Should -Be 0
+    }
+
+    It 'protects the default evidence authority even with an alternate evidence manifest' {
+        $root = New-BrandingFixture
+        $source = New-FixtureSourceRecord -Root $root
+        $source.path = '.github/cli/config/branding-evidence-exceptions.json'
+        Add-FixtureText -Root $root -RelativePath $source.path -Content $script:forms.L3
+        $source.sha256 = Get-FixtureSha256 -Root $root -RelativePath $source.path
+        $source.pathMatches = @()
+        Add-FixtureSourceManifest -Root $root -Sources @($source)
+        Add-FixtureText -Root $root -RelativePath 'config/alternate-evidence.json' `
+            -Content '{"schemaVersion":"1.0","exceptions":[]}'
+
+        $result = Get-RepositoryBrandingScan -RepositoryRoot $root `
+            -EvidenceExceptionManifestPath (Join-Path $root 'config/alternate-evidence.json')
+
+        $result.Findings.PatternClass | Should -Contain 'source-classification-error'
+        $result.ClassifiedSourceCount | Should -Be 0
     }
 }
 

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-10-01 |
+| **Version** | 1.3 |
+| **Date** | 2026-10-30 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Current tracked repository tree |
@@ -153,7 +153,52 @@ The implementation branch integrates `origin/main` commit `402f42ff01e662dcb6762
 
 Those seven occurrences are source evidence produced by the live model and its governed capture process. Rewriting their bytes would make the retained model output, hashes, and replay record false; truthful remediation would require a separately authorized live rerun, which this repository-only migration neither performs nor authorizes. The files therefore remain byte-for-byte equal to `origin/main`.
 
-`.github/cli/config/branding-evidence-exceptions.json` is the only exception authority. Each record binds one normalized tracked path below `hr/evidence/ai-builder/` to its lowercase SHA-256, exact pattern class, exact count of one, and non-sensitive provenance and rationale. The scanner validates the manifest's exact schema, tracked regular-file status, root, uniqueness, hash, class, count, and absence of extra matches before suppressing an occurrence. A declared path must itself contain no `L1`-`L7` match: approvals apply to content only, and path findings are never suppressible. Invalid or changed records fail closed, and unknown occurrences remain normal findings. There are no directory, extension, wildcard, or broad path exceptions.
+`.github/cli/config/branding-evidence-exceptions.json` remains the only immutable AI Builder evidence-exception authority. Each record binds one normalized tracked path below `hr/evidence/ai-builder/` to its lowercase SHA-256, exact pattern class, exact count of one, and non-sensitive provenance and rationale. The scanner validates the manifest's exact schema, tracked regular-file status, root, uniqueness, hash, class, count, and absence of extra matches before suppressing an occurrence. A declared path must itself contain no `L1`-`L7` match: within this evidence mechanism, approvals apply to content only, and path findings are never suppressible. Invalid or changed records fail closed, and unknown occurrences remain normal findings. There are no directory, extension, wildcard, or broad path exceptions. The separately approved retained-source classification below does not change these seven records or their rules.
+
+### Scoped retained-source classification amendment - 2026-10-30
+
+The repository user explicitly approved the review-only source-classification
+proposal on 2026-10-30: "okay here my approval to fix it". This amends only the
+current-tree branding treatment of the reviewed retained source/customer material
+and legacy traceability identifiers. The original 2026-10-01 migration approval
+and evidence history remain intact. This is not a new corporate identity,
+public-distribution licence, source-copy authorization or operational approval.
+
+The additional authority is the exact tracked
+[source-classification registry](../../.github/cli/config/branding-source-classifications.json).
+It is a finite reviewed inventory, never a directory, extension or wildcard
+allowlist. Each record binds a normalized tracked regular-file path, SHA-256,
+hash basis, closed provenance identifier and exact path/content class-count sets.
+Path counts use the path patterns; content counts retain canonical overlap
+handling. Unknown or additional occurrences remain blocking.
+
+Source classification approval: retained-source-2026-10-30
+Source classification SHA-256 (UTF-8 LF): 8501c4860107b69c77d4e85025fee7d81dc21e5da18540c3df1123296353b9ea
+
+The approval line and hash pin above authorize only that registry revision.
+The scanner requires this document's actual metadata status to be Approved, not
+an example status in its body. The registry must be tracked regular UTF-8 text,
+strict canonical JSON with no extra fields/comments/duplicates, and match the
+pin after CRLF-to-LF normalization. Its validated path data is classified as
+authority metadata only after every source record succeeds; no recursive
+self-hash or unchecked exclusion is used.
+
+Permitted provenance identifiers are `identity-intake-v1`, `original-blueprint`,
+`historical-handover`, `maintained-source-reference` and
+`legacy-technical-identifier`. They identify reviewed provenance, not permission
+to publish. Supplied input assets and the original blueprint use raw hashes.
+Maintained text may explicitly use `utf8-lf`, permitting only CRLF/LF equivalence,
+not other content changes. Original intake hashes and notices remain authoritative
+for source fidelity.
+
+The authority files and AI Builder evidence root cannot be admitted as source,
+including alternate casing that aliases the same Windows path. Links, unsupported
+modes, decoding/read failures, duplicate paths/classes, invalid counts, missing
+or Draft authority, altered hashes and mismatched class/count sets fail closed.
+A failed registry admits none of its records and does not erase existing evidence
+approval or unrelated errors. New or changed records require explicit review and
+a corresponding policy pin update; no automatic rehash-and-approve operation is
+introduced.
 
 The integrated tree has exactly 55 tracked PDFs. The two exact Caldova corpus roots contain 48 generated PDFs; those files remain subject to embedded-text migration acceptance. The remaining seven PDFs are point-in-time AI Builder input evidence below `hr/evidence/ai-builder/`. Evidence PDFs may retain historical branding because rewriting captured inputs would break their provenance. They are governed separately by readability plus Git-blob and SHA-256 equality to integrated main commit `402f42ff01e662dcb6762d44e9a5fec09b3484cd`, not by content rewriting. No tracked PDF may exist outside those three classifications.
 

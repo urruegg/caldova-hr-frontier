@@ -1,13 +1,17 @@
-# GF Blueprint Progress Overview Implementation Plan
+# Caldova Blueprint Progress Overview Implementation Plan
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
+| **Version** | 0.2 |
 | **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF repository overview: controlled projection, evidence checks, gated maintainer and private handover |
-| **References** | [Specification](../specs/2026-10-29-gf-blueprint-progress-overview-design.md), [Sprint](2026-10-29-gf-blueprint-progress-overview-sprint.md), [Idea](../ideas/gf-blueprint-progress-overview-idea.md), [Repository-agent portfolio](../specs/2026-10-02-hr-frontier-copilot-agent-portfolio-governance-design.md), [GF repository target](../specs/2026-10-28-gf-azure-devops-repository-design.md), [GF delivery design](../specs/2026-10-28-gf-azure-devops-solution-cicd-design.md) |
+| **Scope** | Caldova project/demo; GF source/customer context: repository overview: controlled projection, evidence checks, gated maintainer and private handover |
+| **References** | [Specification](../specs/2026-10-29-caldova-blueprint-progress-overview-design.md), [Sprint](2026-10-29-caldova-blueprint-progress-overview-sprint.md), [Idea](../ideas/caldova-blueprint-progress-overview-idea.md), [Repository-agent portfolio](../specs/2026-10-02-hr-frontier-copilot-agent-portfolio-governance-design.md), [Caldova repository target](../specs/2026-10-28-caldova-azure-devops-repository-design.md), [Caldova delivery design](../specs/2026-10-28-caldova-azure-devops-solution-cicd-design.md) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 > **For agentic workers:** Use `executing-plans` for inline execution with checkpoints, or `subagent-driven-development` only when explicitly selected. Steps use checkbox syntax. This Draft is not authorization to execute the future writer or renderer.
 
@@ -17,7 +21,7 @@
 
 **Tech stack:** Workspace Copilot custom-agent Markdown, PowerShell entry point, Python standard-library parsing/hashing/atomic-file tooling, existing `jsonschema` dependency, Pester plus Python `unittest`, self-contained HTML/JavaScript and existing repository validation.
 
-**Spec:** [GF blueprint overview specification](../specs/2026-10-29-gf-blueprint-progress-overview-design.md). The user approved the design direction and the read-only preview slice. Written-specification review was requested but the user was unavailable; this plan remains provisional, with that review still pending.
+**Spec:** [Caldova blueprint overview specification](../specs/2026-10-29-caldova-blueprint-progress-overview-design.md). The user approved the design direction and the read-only preview slice. Written-specification review was requested but the user was unavailable; this plan remains provisional, with that review still pending.
 
 ## Global constraints
 
@@ -29,7 +33,7 @@
 - Browser feedback is explicit user-selected input; never read browser profiles, silently clear notes or equate workshop validation with delivery.
 - Current profile is manual read/search/task-only; no edit, execute, web, MCP, tenant, delegation, publication or merge capability.
 - Full role, renderer, synchronization and validation integration require written-spec review, scoped portfolio approval and separate execution authorization.
-- No new GitHub-only autonomous publisher. Use the existing validation workflow and later GF Azure DevOps equivalent.
+- No new GitHub-only autonomous publisher. Use existing validation and the later Caldova direct GitHub-source Azure Pipelines equivalent.
 - No employee data, private configuration, raw evidence, unreviewed browser notes or confidential attachments in projection records or public outputs.
 - Check never writes. Failures are explicit; preserve the last good HTML and conflicting/manual edits.
 - Same inputs yield identical bytes. Current wall clock, unrelated HEAD changes and generated output must not create self-induced staleness.
@@ -114,7 +118,7 @@ disable-model-invocation: true
 
 **Consumes:** actual blueprint IDs and repository document inventory. **Produces:** strict, versioned mappings and progress records that preserve unknowns.
 
-- [ ] Add tests before data creation that require exactly the six existing package IDs plus `IDEA-GF-BLUEPRINT`, unique mappings and resolvable local paths.
+- [ ] Add tests before data creation for all eight legacy package IDs, including `IDEA-GF-BLUEPRINT` and `IDEA-GF-AGENT-IDENTITY`, with unique mappings and resolvable Caldova document paths.
 - [ ] Require separate `document_status`, `delivery_state`, `verification` and `acceptance` concepts. Initialize absent execution evidence as `Unreported`, not a guessed start/block/completion state. Derive document metadata from owning files rather than copy it as an independent truth.
 - [ ] Use a small synthetic progress record for tests:
 
@@ -266,7 +270,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Whitespace verification failed.' }
 | Original structure, data, assets, attribution and manual-edit preservation | 3, 5 |
 | Reviewed narrative authority and idempotent application | 4, 5 |
 | Safe deterministic projection and no false freshness | 5, 6 |
-| Same-change validation and GF Azure Repos compatibility | 7 |
+| Same-change validation and Caldova GitHub-source Azure Pipelines compatibility | 7 |
 | Browser notes/feedback and version handling | 8 |
 | Private disclosure inventory and clean receiving-folder proof | 9 |
 

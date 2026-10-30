@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.7 |
+| **Version** | 1.8 |
 | **Date** | 2026-10-28 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -43,10 +43,15 @@ Use the next four-digit stable identifier and a lowercase descriptive filename. 
 | Validate product fit before any implementation | [ADR-0010](0010-organizational-data-service-as-people-context.md) | Proposed Baseline | Treats Organizational Data Service as optional people context, not an integration path. | Proposed within the HR design package and not confirmed by Caldova. |
 | Caldova ratification pending | [ADR-0011](0011-workflow-first-process-architecture.md) | Proposed Baseline | Defines workflow-first process architecture. | Accepted within the HR design package; repository metadata remains Proposed Baseline. |
 | [Proposed GF-scoped refinement](0013-gf-azure-repos-source-authority.md); [lean platform design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md) | [ADR-0012](0012-per-tenant-github-repository-and-account-topology.md) | Approved | Establishes per-tenant GitHub repository and account topology. | Approved demo/tenant decision; GF refinement is Proposed Baseline, not a global rewrite. |
-| [GF repository specification](../specs/2026-10-28-gf-azure-devops-repository-design.md); [GF CI/CD specification](../specs/2026-10-28-gf-azure-devops-solution-cicd-design.md) | [ADR-0013](0013-gf-azure-repos-source-authority.md) | Proposed Baseline | Records GF's independent Azure Repos target, chosen Copilot Studio runtime and private handover boundary. | Proposed GF-only successor; demo history unchanged; publication, live execution and reusable-skill admission separately gated. |
-| [Draft ESS specification](../specs/2026-10-28-gf-ess-github-harness-workiq-design.md); [draft sprint](../plans/2026-10-28-gf-ess-github-harness-workiq-sprint.md) | [ADR-0014](0014-gf-ess-workiq-and-self-service-write-envelope.md) | Proposed Baseline | Proposes GF ESS-specific Work IQ access and six self-only delegated Workday actions, including confirmed Help case creation. | User approved drafting; formal approval scope, ratification and operation-specific proof remain gates. Existing packages and governance remain otherwise unchanged. |
+| [Caldova repository specification](../specs/2026-10-28-caldova-azure-devops-repository-design.md); [Caldova CI/CD specification](../specs/2026-10-28-caldova-azure-devops-solution-cicd-design.md) | [ADR-0013](0013-gf-azure-repos-source-authority.md) | Proposed Baseline | Records GF's independent Azure Repos target, chosen Copilot Studio runtime and private handover boundary. | Proposed GF-only successor; demo history unchanged; publication, live execution and reusable-skill admission separately gated. |
+| [Draft ESS specification](../specs/2026-10-28-caldova-ess-github-harness-workiq-design.md); [draft sprint](../plans/2026-10-28-caldova-ess-github-harness-workiq-sprint.md) | [ADR-0014](0014-gf-ess-workiq-and-self-service-write-envelope.md) | Proposed Baseline | Proposes GF ESS-specific Work IQ access and six self-only delegated Workday actions, including confirmed Help case creation. | User approved drafting; formal approval scope, ratification and operation-specific proof remain gates. Existing packages and governance remain otherwise unchanged. |
+| [Caldova repository specification](../specs/2026-10-28-caldova-azure-devops-repository-design.md); [CI/CD specification](../specs/2026-10-28-caldova-azure-devops-solution-cicd-design.md) | [ADR-0015](0015-caldova-github-authority-and-azure-repos-secondary.md) | Proposed Baseline | Proposes GitHub authority, direct-source Azure Pipelines and separately approved main-history replication to a secondary Azure Repo. | No live replication, connection, check retirement or ratification; Approved historical decisions remain unchanged. |
 
-GF's target-platform requirement is confirmed, not an unresolved GitHub-versus-Azure-Repos choice. ADR-0013 remains Proposed Baseline for formal architectural adoption. The [five GF draft packages](../README.md#gf-draft-packages) are documentation starting points, not evidence of a repository migration or pipeline deployment.
+The [eight Caldova project packages](../README.md#caldova-draft-packages) retain
+GF as identified source/customer context. ADR-0013's independent GF cutover
+proposal belongs to that historical scope, not the current Caldova secondary
+model. ADR-0014's GF-scenario approval reports are not Caldova authorization.
+ADR-0015 records the selected new Caldova direction as Proposed Baseline only.
 
 ADRs 0001, 0002, and 0012 are repository-level **Approved** decisions for Option A in the attended [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md). They establish GitHub as sole source authority, Azure Boards Basic as the single backlog, future Azure Pipelines consuming GitHub directly, and ignored local Tenant 1 private configuration. ADRs 0003 and 0004 remain Proposed Baseline candidates from the infrastructure/governance intake. ADRs 0005–0011 are the HR solution architecture set from the Phase 4 intake; their own "Accepted"/"Proposed" status reflects the design package's internal decision tracking and remains pending repository-level ratification. All Accepted records among 0005–0011 are **pending Caldova ratification** — accepted as the design position of that package, not yet countersigned by Caldova.
 

@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
+| **Version** | 1.3 |
 | **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
@@ -22,11 +22,11 @@
 ## Gated Preview
 
 [Blueprint Maintainer](blueprint-maintainer.agent.md) is a Proposed Baseline,
-manually invoked read/search-only preview for evidence-backed GF blueprint and
-sprint-progress analysis. It can propose changes in chat, but has no file-edit,
+manually invoked read/search-only preview for Caldova project progress and the
+GF-source blueprint. It can propose changes in chat, but has no file-edit,
 command, remote-system, delegation, publication or merge capability.
 
-The [Draft overview specification](../../docs/specs/2026-10-29-gf-blueprint-progress-overview-design.md)
+The [Draft overview specification](../../docs/specs/2026-10-29-caldova-blueprint-progress-overview-design.md)
 records the scoped preview decision and the pending companion amendment to the
 approved twelve-role portfolio. The existing three operational profiles remain
 unchanged. This is not activation of a thirteenth operational role.

@@ -1,13 +1,17 @@
-# GF Grounded Agent Identity Kit - Idea
+# Caldova Grounded Agent Identity Kit - Idea
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
+| **Version** | 0.2 |
 | **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF handover: grounded identity for planned and built Copilot Studio runtime agents |
-| **References** | [Kit guide](../brand/gf-agent-identity/README.md), [Sprint](../plans/2026-10-29-gf-agent-identity-kit-sprint.md), [Specification](../specs/2026-10-29-gf-agent-identity-kit-design.md), [Provisional implementation plan](../plans/2026-10-29-gf-agent-identity-kit-implementation.md), [Package index](../README.md#gf-draft-packages) |
+| **Scope** | Caldova project/demo; GF source/customer context: handover: grounded identity for planned and built Copilot Studio runtime agents |
+| **References** | [Kit guide](../brand/gf-agent-identity/README.md), [Sprint](../plans/2026-10-29-caldova-agent-identity-kit-sprint.md), [Specification](../specs/2026-10-29-caldova-agent-identity-kit-design.md), [Provisional implementation plan](../plans/2026-10-29-caldova-agent-identity-kit-implementation.md), [Package index](../README.md#caldova-draft-packages) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 ## Status and source
 
@@ -47,7 +51,7 @@ Confirm the formal approval reference, unresolved publisher/solution/naming-owne
 
 The legacy anonymization guard already rejected GF content before this intake. Do not bypass it with fabricated evidence exceptions; a narrow reviewed customer-identity scope decision is a merge-readiness requirement.
 
-Use the [sprint](../plans/2026-10-29-gf-agent-identity-kit-sprint.md) and [specification](../specs/2026-10-29-gf-agent-identity-kit-design.md) for intake evidence, Mermaid flow, adoption rules and implementation gates. The detailed implementation plan is a supporting artifact. No commit, push, source stamping, live rename, icon upload, blueprint rewrite or customer transfer is performed by drafting this package.
+Use the [sprint](../plans/2026-10-29-caldova-agent-identity-kit-sprint.md) and [specification](../specs/2026-10-29-caldova-agent-identity-kit-design.md) for intake evidence, Mermaid flow, adoption rules and implementation gates. The detailed implementation plan is a supporting artifact. No commit, push, source stamping, live rename, icon upload, blueprint rewrite or customer transfer is performed by drafting this package.
 
 ## Board synchronization
 

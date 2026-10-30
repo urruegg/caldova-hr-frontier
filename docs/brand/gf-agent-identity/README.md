@@ -2,16 +2,21 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
-| **Date** | 2026-10-29 |
+| **Version** | 0.4 |
+| **Date** | 2026-10-30 |
 | **Author** | Copilot |
 | **Status** | Draft |
 | **Scope** | GF Copilot Studio agent identity: grounded names, palette, icons, source provenance and adoption gates |
-| **References** | [Brand index](../README.md), [Adoption specification](../../specs/2026-10-29-gf-agent-identity-kit-design.md), [Sprint](../../plans/2026-10-29-gf-agent-identity-kit-sprint.md), [Identity configuration](config/agent-identity.json), [Palette](config/palette.json), [Bindings](agent-bindings.json), [Intake manifest](intake-manifest.json) |
+| **References** | [Brand index](../README.md), [Adoption specification](../../specs/2026-10-29-caldova-agent-identity-kit-design.md), [Sprint](../../plans/2026-10-29-caldova-agent-identity-kit-sprint.md), [Identity configuration](config/agent-identity.json), [Palette](config/palette.json), [Bindings](agent-bindings.json), [Intake manifest](intake-manifest.json) |
 
 ## 1. Authority and source fidelity
 
 This is the curated intake of **GF HR agent identity package v1.0.0, dated 2026-10-28**, supplied locally by the repository owner. The owner reports GF's written approval to adapt the kit for the agents. No approval document/reference was supplied. The original source still says "proposal for GF approval" and lists unresolved decisions; those facts are preserved rather than rewritten.
+
+Maintained package documents now use Caldova project/demo filenames. This
+supplied kit remains GF customer/source identity; its imported paths, values,
+notices and hashes are unchanged. Author-maintained bindings point to the renamed
+specifications without turning GF trademarks or approval into Caldova facts.
 
 The kit is the required grounded identity reference for current and future **GF Copilot Studio runtime designs**. The four adopted identity mappings below were explicitly confirmed in conversation. Source approval, adaptation approval, technical-name decisions and verified tenant application are separate matters. This README does not certify deployment or close the source's N-1 through N-6/G5 decisions.
 
@@ -101,13 +106,28 @@ if ($result.Result -ne 'Passed') { throw 'GF identity intake validation failed.'
 
 It validates actual imported hashes/inventory, supplied JSON schema, names, environment rules, bindings, icon presence/dimensions/size, SVG external-content exclusion and palette contrast. This is **static intake proof**, not icon rendering quality, complete pixel-level opacity certification, host instruction loading, tenant stamping or deployed Teams/M365 read-back.
 
-The older anonymization branding scanner already reported 87 findings before this intake and zero accepted historical exceptions. Its blanket GF-name prohibition conflicts with intentional customer content. This intake does not disable that guard or claim a clean full-repository branding gate; resolve a narrowly reviewed customer-identity scope policy before merge/public handover rather than using fabricated evidence exceptions.
+The original intake recorded 87 pre-intake findings and no recognized historical
+exceptions. A subsequently diagnosed JSON integer compatibility bug prevented
+PowerShell 7 from recognizing valid count-one records. That parser is repaired:
+35 strict units pass on both PowerShell hosts, including rejection of fractional,
+string, Boolean and wrong-count values. Seven existing approved evidence records
+are recognized; no new exceptions were added.
 
-Its unchanged unit suite also has two immutable-evidence exception failures
-(18 passed, 2 failed), reproduced with the HEAD-equivalent module/tests in an
-isolated scratch copy. These pre-existing failures are not repaired or hidden by
-the identity-intake tests.
+The pre-amendment complete suite reported 1,641 passed, one failed and three
+skipped; its remaining gate recorded 1,210 path/class findings across 524 paths.
+On 2026-10-30 the user explicitly approved the narrowly scoped
+[source-classification amendment](../../specs/2026-10-29-caldova-agent-identity-kit-design.md).
+The [Approved branding design](../../specs/2026-10-01-caldova-branding-migration-design.md)
+now pins an exact reviewed registry of paths, hashes, provenance and class/count
+sets, separate from the unchanged seven evidence exceptions. Unknown or changed
+unapproved sources still block; there are no blanket folder exclusions.
+Actual admission now reports zero unapproved findings and the same seven evidence
+approvals. Sixty strict units pass on each host; the complete maintained suite
+reports 1,667 passed, zero failed and three evidence-dependent skips.
+Adaptation, source classification and disclosure authorization remain separate.
+This amendment grants no public-distribution rights. Complete-suite evidence is
+in the [handover](../../reviews/2026-10-29-caldova-project-handover-review.md).
 
 ## 7. Handover
 
-Use the [idea](../../ideas/gf-agent-identity-kit-idea.md), sprint, specification and implementation plan for the eighth handover package. Include imported source hashes, bindings, notices, actual validation results and unresolved decisions. Obtain authorized destination/disclosure review before transfer. No commit, push, tenant application or public publication is performed by this intake.
+Use the [idea](../../ideas/caldova-agent-identity-kit-idea.md), sprint, specification and implementation plan for the eighth handover package. Include imported source hashes, bindings, notices, actual validation results and unresolved decisions. Obtain authorized destination/disclosure review before transfer. No commit, push, tenant application or public publication is performed by this intake.

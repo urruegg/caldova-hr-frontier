@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 3.1 |
-| **Date** | 2026-10-28 |
+| **Version** | 3.2 |
+| **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -19,6 +19,11 @@ GF-scoped refinement; formal adoption, transfer authorization and GF security
 controls remain separate gates. The historical decision is not rewritten.
 
 ## Attended Decision
+
+[Proposed ADR-0015](0015-caldova-github-authority-and-azure-repos-secondary.md)
+records the requested narrow Caldova approved-main secondary-copy exception.
+Until ratified and implemented, this record's historical no-mirror approval is
+not silently replaced. GitHub authority and ignored private configuration remain.
 
 Approved on 2026-09-28 for **Option A — Lean single-tenant platform**, as defined by
 the [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md).

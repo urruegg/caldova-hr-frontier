@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 2.1 |
-| **Date** | 2026-09-30 |
+| **Version** | 2.2 |
+| **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Proposed Baseline |
 | **Scope** | Infrastructure |
@@ -73,6 +73,14 @@ GitHub is the product-source and pull-request plane. Azure Boards is the single 
 Tenant 1 keeps the Basic process and native `Epic -> Issue -> Task` hierarchy. One durable Basic Issue is used for the final `Fixes AB#` proof. The current lean sprint does not create a second team, a second area, six iterations, or a parallel GitHub Projects backlog.
 
 ## Deferred Controls
+
+The newly selected Caldova secondary-copy/direct-source Azure Pipelines design
+is a separately proposed extension:
+[ADR-0015](../../docs/adr/0015-caldova-github-authority-and-azure-repos-secondary.md)
+and the [repository](../../docs/specs/2026-10-28-caldova-azure-devops-repository-design.md)/[CI/CD](../../docs/specs/2026-10-28-caldova-azure-devops-solution-cicd-design.md)
+drafts. It does not activate a live mirror, alter the approved lean baseline
+above or retire `Repository setup validation`. GitHub remains sole source/PR
+authority; a copy and a Pipeline connection are different operations.
 
 A bootstrap Environment, workload federation, private configuration repository, required delivery template, Azure Pipeline, or separate delivery identity may return only through a new reviewed design. Historical documents and dormant code are not active prerequisites.
 

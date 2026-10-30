@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.18 |
+| **Version** | 1.19 |
 | **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Active (consolidated from current state) |
@@ -61,38 +61,38 @@ Draft sprint proposals may use `YYYY-MM-DD-topic-sprint.md`. They record a goal,
 | [End-to-end acceptance plan](2026-10-02-tenant-1-end-to-end-acceptance-implementation.md) | [Tenant Replica and Customer Handover Implementation Plan](2026-10-02-tenant-replica-handover-implementation.md) | Draft | Adds explicit `TenantReplica` and `CustomerHandover` profiles over one child-owned local export and independent-validation engine, including canonical stage-result emission. | Draft local child plan blocked until the coordinate-only correction is merged and then-current `main` is green; final retained-pipeline acceptance also waits for the DEV delivery plan and no remote or Tenant 2 action is authorized. |
 | New sprint-specific review at `docs/reviews/2026-10-02-tenant-1-runbook-end-to-end-acceptance-review.md` | [Tenant 1 End-to-End Acceptance Implementation Plan](2026-10-02-tenant-1-end-to-end-acceptance-implementation.md) | Draft | Gates explicit child Plan/approval/WhatIf/Apply/read-back/stage-result sequences, coordinate-only umbrella Verify, NoChange, fresh-laptop continuation, local replica validation, sanitized review, and post-acceptance documentation disposition. | Draft final plan blocked until the coordinate-only correction and Plans 1-5 are merged, then-current `main` is green, private prerequisites exist, and every hard live-entry approval is recorded. |
 
-### GF draft sprint proposals
+### Caldova draft sprint proposals
 
 | Successor or next stage | Plan | Status | Purpose | Authority |
 |---|---|---|---|---|
-| [Draft specification](../specs/2026-10-28-gf-sse-hr-policy-assistant-design.md) | [GF SSE HR Policy assistant sprint](2026-10-28-gf-sse-hr-policy-assistant-sprint.md) | Draft | Proposes Swiss source/access review, golden cases first and conditional pilot validation. | No release authority; classification, accountability and harness gates remain open. |
-| [Draft specification](../specs/2026-10-28-gf-recruiting-requisition-posting-agent-design.md) | [GF Recruiting: Job Requisition and Job Posting sprint](2026-10-28-gf-recruiting-requisition-posting-agent-sprint.md) | Draft | Proposes shared drafting and synthetic recruiter-handoff evaluation. | GF-REC-D01 remains an HR decision; no Workday writes/publishing committed. |
-| [Draft specification](../specs/2026-10-28-gf-hr-operations-agent-design.md) | [GF HR Operations Agent sprint](2026-10-28-gf-hr-operations-agent-sprint.md) | Draft | Proposes synthetic, propose-only process and Access Layer safety validation. | All writes blocked until stakeholder decisions, privacy and safety evidence close. |
-| [Draft specification](../specs/2026-10-28-gf-azure-devops-repository-design.md) | [GF Azure DevOps repository sprint](2026-10-28-gf-azure-devops-repository-sprint.md) | Draft | Proposes reviewed transfer, GF controls and source-authority acceptance. | No live repository creation or migration authority; GF decision/security gates apply. |
-| [Draft specification](../specs/2026-10-28-gf-azure-devops-solution-cicd-design.md) | [GF Azure DevOps solution CI/CD and DEV capture sprint](2026-10-28-gf-azure-devops-solution-cicd-sprint.md) | Draft | Proposes reusable DEV capture to PR, validated artifact build and TEST delivery. | No live capture/import authority; PROD excluded and environment/inventory gates remain open. |
+| [Draft specification](../specs/2026-10-28-caldova-sse-hr-policy-assistant-design.md) | [Caldova SSE HR Policy assistant sprint](2026-10-28-caldova-sse-hr-policy-assistant-sprint.md) | Draft | Proposes Swiss source/access review, golden cases first and conditional pilot validation. | No release authority; classification, accountability and harness gates remain open. |
+| [Draft specification](../specs/2026-10-28-caldova-recruiting-requisition-posting-agent-design.md) | [Caldova Recruiting: Job Requisition and Job Posting sprint](2026-10-28-caldova-recruiting-requisition-posting-agent-sprint.md) | Draft | Proposes shared drafting and synthetic recruiter-handoff evaluation. | GF-REC-D01 remains an HR decision; no Workday writes/publishing committed. |
+| [Draft specification](../specs/2026-10-28-caldova-hr-operations-agent-design.md) | [Caldova HR Operations Agent sprint](2026-10-28-caldova-hr-operations-agent-sprint.md) | Draft | Proposes synthetic, propose-only process and Access Layer safety validation. | All writes blocked until stakeholder decisions, privacy and safety evidence close. |
+| [Draft specification](../specs/2026-10-28-caldova-azure-devops-repository-design.md) | [Caldova GitHub authority and Azure Repos secondary sprint](2026-10-28-caldova-azure-devops-repository-sprint.md) | Draft | Proposes separately approved main-history replication with target preflight and non-force read-back. | GitHub source/PR authority preserved; Proposed ADR-0015 and live approval/security gates apply. |
+| [Draft specification](../specs/2026-10-28-caldova-azure-devops-solution-cicd-design.md) | [Caldova GitHub-source Azure CI/CD and DEV capture sprint](2026-10-28-caldova-azure-devops-solution-cicd-sprint.md) | Draft | Direct-source GitHub PR/main Azure CI, DEV capture to GitHub PR and reviewed-artifact TEST delivery. | Existing GitHub validation retained until equivalent blocking/identity/rollback/retirement proof; no live setup. |
 
-The [eight GF packages](../README.md#gf-draft-packages), including ESS-equivalent, blueprint and identity adoption below, each have a separate sprint, idea and specification. Sprint diagrams explain dependencies/gates; no sprint dates, estimates or Azure Boards identifiers are inferred. Reuse assessments inform conditional work, not installed automation.
+The [eight Caldova project packages](../README.md#caldova-draft-packages), including ESS-equivalent, blueprint and identity adoption below, each have a separate sprint, idea and specification. Sprint diagrams explain dependencies/gates; no sprint dates, estimates or Azure Boards identifiers are inferred. Reuse assessments inform conditional work, not installed automation.
 
-### GF ESS-equivalent rebuild
-
-| Successor or next stage | Plan | Status | Purpose | Authority |
-|---|---|---|---|---|
-| [Draft idea](../ideas/gf-ess-github-harness-workiq-idea.md); [Draft implementation plan](2026-10-28-gf-ess-github-harness-workiq-implementation.md); [Draft specification](../specs/2026-10-28-gf-ess-github-harness-workiq-design.md) | [GF ESS-equivalent GitHub harness and Work IQ sprint](2026-10-28-gf-ess-github-harness-workiq-sprint.md) | Draft | Primary sprint for the sixth handover set: capability proof, independent Workday/M365 tracks, TEST/value evidence and stakeholder next steps. | Candidate scope without invented capacity/dates; no tenant access, tool enablement or live transaction authorized. |
-| Per-capability DEV/TEST evidence and human acceptance | [GF ESS-equivalent GitHub harness and Work IQ implementation plan](2026-10-28-gf-ess-github-harness-workiq-implementation.md) | Draft | Defines ten test-first implementation slices, intended contract/native-source mapping, six Workday operations, scoped M365 support and TEST/value acceptance. | Derived from user-reviewed Draft specification; no execution, live access or unresolved API/permission assumptions authorized. |
-
-### GF blueprint and project overview
+### Caldova ESS-equivalent rebuild
 
 | Successor or next stage | Plan | Status | Purpose | Authority |
 |---|---|---|---|---|
-| [Draft idea](../ideas/gf-blueprint-progress-overview-idea.md); [draft specification](../specs/2026-10-29-gf-blueprint-progress-overview-design.md); [provisional plan](2026-10-29-gf-blueprint-progress-overview-implementation.md) | [GF blueprint progress overview sprint](2026-10-29-gf-blueprint-progress-overview-sprint.md) | Draft | Proposes source/contracts, controlled rendering, stale checks, scoped maintainer and private customer handover. | Narrow read-only preview created; written-spec review and renderer/writer/full-role activation remain pending. |
-| Written-specification review, scoped portfolio decision and per-task acceptance | [GF blueprint progress overview implementation plan](2026-10-29-gf-blueprint-progress-overview-implementation.md) | Draft | Provisional nine-task plan for source/evidence contracts, preservation, deterministic projection, freshness validation, role controls and clean-folder handover. | Only read-only preview/profile tests implemented in this request; future writer/tooling/CI execution remains blocked pending review and authorization. |
+| [Draft idea](../ideas/caldova-ess-github-harness-workiq-idea.md); [Draft implementation plan](2026-10-28-caldova-ess-github-harness-workiq-implementation.md); [Draft specification](../specs/2026-10-28-caldova-ess-github-harness-workiq-design.md) | [Caldova ESS-equivalent GitHub harness and Work IQ sprint](2026-10-28-caldova-ess-github-harness-workiq-sprint.md) | Draft | Primary sprint for the sixth handover set: capability proof, independent Workday/M365 tracks, TEST/value evidence and stakeholder next steps. | Candidate scope without invented capacity/dates; no tenant access, tool enablement or live transaction authorized. |
+| Per-capability DEV/TEST evidence and human acceptance | [Caldova ESS-equivalent GitHub harness and Work IQ implementation plan](2026-10-28-caldova-ess-github-harness-workiq-implementation.md) | Draft | Defines ten test-first implementation slices, intended contract/native-source mapping, six Workday operations, scoped M365 support and TEST/value acceptance. | Derived from user-reviewed Draft specification; no execution, live access or unresolved API/permission assumptions authorized. |
 
-### GF grounded agent identity
+### Caldova blueprint and project overview
 
 | Successor or next stage | Plan | Status | Purpose | Authority |
 |---|---|---|---|---|
-| [Idea](../ideas/gf-agent-identity-kit-idea.md); [specification](../specs/2026-10-29-gf-agent-identity-kit-design.md); [provisional plan](2026-10-29-gf-agent-identity-kit-implementation.md) | [GF grounded agent identity kit sprint](2026-10-29-gf-agent-identity-kit-sprint.md) | Draft | Proposes curated intake/coverage checks and gated owner, target-source, stamping, artifact and read-back work. | Current slice is local source/guidance validation; live normalization/deployment remains unapproved. |
-| Written-spec review, owner decisions and source/permission proof | [GF grounded agent identity kit implementation plan](2026-10-29-gf-agent-identity-kit-implementation.md) | Draft | Seven test-first slices for source fidelity, legacy guard policy, exact source mapping, fail-closed identity adaptation and release/handover evidence. | Provisional rollout plan; source intake/guidance/static checks only implemented, no stamping or deployment authorization. |
+| [Draft idea](../ideas/caldova-blueprint-progress-overview-idea.md); [draft specification](../specs/2026-10-29-caldova-blueprint-progress-overview-design.md); [provisional plan](2026-10-29-caldova-blueprint-progress-overview-implementation.md) | [Caldova blueprint progress overview sprint](2026-10-29-caldova-blueprint-progress-overview-sprint.md) | Draft | Proposes source/contracts, controlled rendering, stale checks, scoped maintainer and private customer handover. | Narrow read-only preview created; written-spec review and renderer/writer/full-role activation remain pending. |
+| Written-specification review, scoped portfolio decision and per-task acceptance | [Caldova blueprint progress overview implementation plan](2026-10-29-caldova-blueprint-progress-overview-implementation.md) | Draft | Provisional nine-task plan for source/evidence contracts, preservation, deterministic projection, freshness validation, role controls and clean-folder handover. | Only read-only preview/profile tests implemented in this request; future writer/tooling/CI execution remains blocked pending review and authorization. |
+
+### Caldova project - GF source identity
+
+| Successor or next stage | Plan | Status | Purpose | Authority |
+|---|---|---|---|---|
+| [Idea](../ideas/caldova-agent-identity-kit-idea.md); [specification](../specs/2026-10-29-caldova-agent-identity-kit-design.md); [provisional plan](2026-10-29-caldova-agent-identity-kit-implementation.md) | [Caldova grounded agent identity kit sprint](2026-10-29-caldova-agent-identity-kit-sprint.md) | Draft | Proposes curated intake/coverage checks and gated owner, target-source, stamping, artifact and read-back work. | Current slice is local source/guidance validation; live normalization/deployment remains unapproved. |
+| Written-spec review, owner decisions and source/permission proof | [Caldova grounded agent identity kit implementation plan](2026-10-29-caldova-agent-identity-kit-implementation.md) | Draft | Seven test-first slices for source fidelity, legacy guard policy, exact source mapping, fail-closed identity adaptation and release/handover evidence. | Provisional rollout plan; source intake/guidance/static checks only implemented, no stamping or deployment authorization. |
 
 ## Domain Links
 

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 3.2 |
-| **Date** | 2026-10-28 |
+| **Version** | 3.3 |
+| **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -20,6 +20,11 @@ tenant table below. Formal GF adoption and live transfer remain separately gated
 and no demo tenant is migrated by this annotation.
 
 ## Attended Decision
+
+The selected Caldova GitHub-authoritative/approved-secondary direction is
+recorded separately in [Proposed ADR-0015](0015-caldova-github-authority-and-azure-repos-secondary.md).
+It is not the GF cutover proposal and does not change the existing per-tenant
+source authority or create a live second development plane.
 
 Approved on 2026-09-28 for **Option A — Lean single-tenant platform**, as defined by
 the [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md).

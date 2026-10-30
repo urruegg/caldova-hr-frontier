@@ -35,7 +35,7 @@ BeforeAll {
             [pscustomobject]@{
                 Source = $Path
                 Target = $target
-                PathPart = $pathPart
+                PathPart = [Uri]::UnescapeDataString($pathPart)
             }
         }
     }
@@ -669,6 +669,40 @@ OIDC is required.
 Temporary subscription roles are granted and deleted.
 '@
         @(Get-ProhibitedActiveBootstrapClaims -Content $fixture).Count | Should -Be 0
+    }
+
+    It 'resolves percent-encoded local filenames while preserving literal plus signs' {
+        $source = Join-Path $TestDrive 'encoded-links.md'
+        $destination = Join-Path $TestDrive 'Blueprint draft+review.html'
+        Set-Content -LiteralPath $source -Value '[Blueprint](Blueprint%20draft+review.html#overview)'
+        Set-Content -LiteralPath $destination -Value '<html></html>'
+
+        $links = @(Get-MarkdownRelativeLinks -Path $source)
+        $links.Count | Should -Be 1
+        $links[0].PathPart | Should -Be 'Blueprint draft+review.html'
+        Test-Path -LiteralPath (Join-Path $TestDrive $links[0].PathPart) | Should -BeTrue
+    }
+
+    It 'decodes an encoded fragment marker only after separating the actual fragment' {
+        $source = Join-Path $TestDrive 'encoded-fragment.md'
+        $destination = Join-Path $TestDrive 'policy#draft.md'
+        Set-Content -LiteralPath $source -Value '[Policy](policy%23draft.md#details)'
+        Set-Content -LiteralPath $destination -Value '# Policy'
+
+        $links = @(Get-MarkdownRelativeLinks -Path $source)
+        $links.Count | Should -Be 1
+        $links[0].PathPart | Should -Be 'policy#draft.md'
+        Test-Path -LiteralPath (Join-Path $TestDrive $links[0].PathPart) | Should -BeTrue
+    }
+
+    It 'retains missing local destinations for validation rather than skipping them' {
+        $source = Join-Path $TestDrive 'missing-link.md'
+        Set-Content -LiteralPath $source -Value '[Missing](missing%20document.md)'
+
+        $links = @(Get-MarkdownRelativeLinks -Path $source)
+        $links.Count | Should -Be 1
+        $links[0].PathPart | Should -Be 'missing document.md'
+        Test-Path -LiteralPath (Join-Path $TestDrive $links[0].PathPart) | Should -BeFalse
     }
 
     It 'resolves every local markdown destination referenced by the runbook documents' {

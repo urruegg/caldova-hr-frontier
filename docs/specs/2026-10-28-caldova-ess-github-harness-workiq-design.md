@@ -1,13 +1,17 @@
-# GF ESS-Equivalent Rebuild with GitHub Harness and Work IQ - Draft Specification
+# Caldova ESS-Equivalent Rebuild with GitHub Harness and Work IQ - Draft Specification
 
 | Field | Value |
 |---|---|
-| **Version** | 0.3 |
+| **Version** | 0.4 |
 | **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF employee self-service: new Copilot Studio agent, governed M365 actions and self-only Workday transactions |
-| **References** | [Idea](../ideas/gf-ess-github-harness-workiq-idea.md), [Sprint](../plans/2026-10-28-gf-ess-github-harness-workiq-sprint.md), [Draft implementation plan](../plans/2026-10-28-gf-ess-github-harness-workiq-implementation.md), [Proposed scoped decision](../adr/0014-gf-ess-workiq-and-self-service-write-envelope.md), [Workday access boundary](../adr/0009-workday-access-via-connector-behind-governed-layer.md), [Write-envelope governance](../adr/0008-human-in-the-loop-and-write-envelope.md), [GF delivery design](2026-10-28-gf-azure-devops-solution-cicd-design.md), [GF package map](../README.md#gf-draft-packages) |
+| **Scope** | Caldova project/demo; GF source/customer context: employee self-service: new Copilot Studio agent, governed M365 actions and self-only Workday transactions |
+| **References** | [Idea](../ideas/caldova-ess-github-harness-workiq-idea.md), [Sprint](../plans/2026-10-28-caldova-ess-github-harness-workiq-sprint.md), [Draft implementation plan](../plans/2026-10-28-caldova-ess-github-harness-workiq-implementation.md), [Proposed scoped decision](../adr/0014-gf-ess-workiq-and-self-service-write-envelope.md), [Workday access boundary](../adr/0009-workday-access-via-connector-behind-governed-layer.md), [Write-envelope governance](../adr/0008-human-in-the-loop-and-write-envelope.md), [Caldova delivery design](2026-10-28-caldova-azure-devops-solution-cicd-design.md), [Caldova package map](../README.md#caldova-draft-packages) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 ## Grounded agent identity
 
@@ -17,13 +21,13 @@ Use its exact DEV/TEST/PROD names and assets. Reuse of that identity does not
 inherit the source's native-ESS kind, older later-wave status or description:
 this specification still owns the new GitHub-harness six-operation scope.
 Review published descriptions and technical names under the
-[identity adoption gates](2026-10-29-gf-agent-identity-kit-design.md).
+[identity adoption gates](2026-10-29-caldova-agent-identity-kit-design.md).
 
 ## 1. Outcome, status and source baseline
 
 Build a new employee-self-service experience on **Copilot Studio's GitHub Copilot runtime harness**, using Microsoft's ESS Custom Engine Agent as a capability reference rather than a deployed source baseline. The user confirmed that no existing ESS source/export is available to refactor. This is a new implementation, not an in-place migration, an installed Microsoft ESS product, or a claim of full ESS feature parity.
 
-This specification, the linked idea and the existing sprint form the sixth GF primary handover set. The implementation plan and proposed ADR remain supporting artifacts; this packaging does not change the functional scope or activation gates.
+This specification, idea and sprint form the Caldova ESS-equivalent primary set using GF source/customer context. The implementation plan and GF-scenario proposed ADR remain supporting artifacts; project repurposing does not change the functional scope or activation gates.
 
 The approved drafting direction includes policy guidance and six self-service transactions: personal phone, personal email, home address, emergency contact, time-off submission, and Workday Help case creation. All Workday access uses the signed-in employee's own delegated OAuth authorization behind a governed Access Layer. Work IQ supplies M365 capabilities per use case, not an assumed Workday connector gateway.
 
@@ -235,7 +239,7 @@ Memory remains off for write-capable reasoning; connected-agent delegation remai
 
 ## 8. Delivery and operational boundaries
 
-Use the [GF repository](2026-10-28-gf-azure-devops-repository-design.md) and [CI/CD](2026-10-28-gf-azure-devops-solution-cicd-design.md) packages: independent Azure Repos, explicit DEV capture to branch/PR, reviewed source, versioned artifact and TEST verification. No changes to the demo tenant/source authority or the five existing packages are implied.
+Use the [Caldova repository](2026-10-28-caldova-azure-devops-repository-design.md) and [CI/CD](2026-10-28-caldova-azure-devops-solution-cicd-design.md) packages: GitHub source/PR authority, Azure Pipelines consuming GitHub directly, explicit DEV capture to GitHub branch/PR and reviewed-artifact TEST verification. Approved Azure Repos replication is separate and not a delivery prerequisite. This does not enable any live tenant operation or alter the other packages' HR safety boundaries.
 
 Prove one canonical source representation and export/import coverage for agent, skills, workflows, allow-lists, connection references, knowledge configuration, confirmation UX and any admitted helper assets. The existing Tenant 1 solution-source tooling is not proof of GF harness support and has documented component/unpack limitations. Do not prescribe an already-green capture path without a round-trip test.
 
@@ -279,7 +283,7 @@ Open gates do not prevent synthetic design work, but block affected live capabil
 
 ## 11. Next review and implementation planning
 
-The user reviewed this written specification on 2026-10-28 as the basis for the [Draft implementation plan](../plans/2026-10-28-gf-ess-github-harness-workiq-implementation.md). That planning approval does not ratify operational permissions or remove the Draft status. The plan separates source/capability discovery from executable slices and names the intended contract/test surfaces. No deployed ESS source, OAuth connection or native Work IQ-to-Workday route is assumed.
+The user reviewed this written specification on 2026-10-28 as the basis for the [Draft implementation plan](../plans/2026-10-28-caldova-ess-github-harness-workiq-implementation.md). That planning approval does not ratify operational permissions or remove the Draft status. The plan separates source/capability discovery from executable slices and names the intended contract/test surfaces. No deployed ESS source, OAuth connection or native Work IQ-to-Workday route is assumed.
 
 No installation, live configuration, personal-data processing, commit or push is authorized by this Draft.
 

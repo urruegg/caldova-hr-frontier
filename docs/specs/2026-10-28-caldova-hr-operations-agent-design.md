@@ -1,13 +1,17 @@
-# GF HR Operations Agent - Draft Specification
+# Caldova HR Operations Agent - Draft Specification
 
 | Field | Value |
 |---|---|
-| **Version** | 0.3 |
+| **Version** | 0.4 |
 | **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF functional package: Switzerland add-only proposal workflow with blocked writes |
-| **References** | [Idea](../ideas/gf-hr-operations-agent-idea.md), [Sprint](../plans/2026-10-28-gf-hr-operations-agent-sprint.md), [Platform requirements](../prd.md), [Seven declarations](../hr-journey-and-raci.md#9-governance-applied-to-every-use-case), [Workflow-first architecture](../adr/0011-workflow-first-process-architecture.md) |
+| **Scope** | Caldova project/demo; GF source/customer context: functional package: Switzerland add-only proposal workflow with blocked writes |
+| **References** | [Idea](../ideas/caldova-hr-operations-agent-idea.md), [Sprint](../plans/2026-10-28-caldova-hr-operations-agent-sprint.md), [Platform requirements](../prd.md), [Seven declarations](../hr-journey-and-raci.md#9-governance-applied-to-every-use-case), [Workflow-first architecture](../adr/0011-workflow-first-process-architecture.md) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 ## Grounded agent identity
 
@@ -15,12 +19,12 @@ Use the [GF identity kit and adopted bindings](../brand/gf-agent-identity/README
 **D2-A01, HR Ops Master Data CH**, with exact environment-specific names/icons.
 This does not close matching, field, approval or write gates, or migrate an
 existing solution to the kit's proposed technical name. The
-[identity adoption specification](2026-10-29-gf-agent-identity-kit-design.md)
+[identity adoption specification](2026-10-29-caldova-agent-identity-kit-design.md)
 requires owner decisions and verified target-source behavior before stamping.
 
 ## 1. Authority and known boundary
 
-The supplied build brief v1.0 section 5 describes D2-A01: Switzerland HR Operations processes exported PeopleDoc documents and proposes approved blank-field additions to an existing Workday profile. E14/E15/E16 and the mapping workbook are cited by that brief, not independently inspected originals. See the [source register](../README.md#gf-source-basis-and-publication-boundary).
+The supplied build brief v1.0 section 5 describes D2-A01: Switzerland HR Operations processes exported PeopleDoc documents and proposes approved blank-field additions to an existing Workday profile. E14/E15/E16 and the mapping workbook are cited by that brief, not independently inspected originals. See the [source register](../README.md#caldova-project-and-gf-source-boundary).
 
 The user approves a detailed process but **propose-only operation until stakeholder decisions and safety evidence are complete**. All writes are blocked now. The selected agent runtime is Copilot Studio's GitHub Copilot harness; workflow owns the process and a separate Access Layer owns the Workday connection. ESS is excluded.
 

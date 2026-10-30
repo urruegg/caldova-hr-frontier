@@ -1,0 +1,237 @@
+{
+  "schemaVersion": "1.0",
+  "status": "Draft migration evidence",
+  "sourceSnapshot": "a4e4fbcf2cbf84162c1b2e7d6663fe26ad162cd3",
+  "scope": "Exactly 27 maintained document renames/refinements, not an exhaustive changed-file inventory or customer acceptance.",
+  "hashBasis": "SHA-256 of UTF-8 document bytes with CRLF normalized to LF; before uses the fixed source Git blob, after uses the current maintained document. This normalization does not apply to imported immutable-source byte verification.",
+  "protectedEvidence": {
+    "comparison": "474 raw working-tree file SHA-256 values compared with the pre-edit isolated-worktree baseline, all unchanged.",
+    "historicalGfManifest": "docs/reviews/evidence/2026-10-29-gf-handover/artifact-manifest.json",
+    "historicalManifestScope": "Unmodified 521-record GF handover inventory at sourceSnapshot only; not rehashed against renamed current paths.",
+    "immutableIdentitySource": "docs/brand/gf-agent-identity/intake-manifest.json"
+  },
+  "documentCounts": {
+    "idea": 8,
+    "implementationPlan": 3,
+    "specification": 8,
+    "sprint": 8
+  },
+  "renames": [
+    {
+      "from": "docs/ideas/gf-agent-identity-kit-idea.md",
+      "to": "docs/ideas/caldova-agent-identity-kit-idea.md",
+      "kind": "idea",
+      "status": "Draft",
+      "beforeSha256Lf": "88f7ba61a85c73cba7d0ee6ede7260c7b93569cc028ce11d622e08b20ce1d234",
+      "afterSha256Lf": "9a614cbfb7edb8874a9c11866224f2ad8fb86121b8d59f26e99d0ebe2eaceae9"
+    },
+    {
+      "from": "docs/ideas/gf-azure-devops-repository-idea.md",
+      "to": "docs/ideas/caldova-azure-devops-repository-idea.md",
+      "kind": "idea",
+      "status": "Draft",
+      "beforeSha256Lf": "804af5c85cb0baef8d86b86db2f44b1c02724a0d60cce56626f950636e74aab7",
+      "afterSha256Lf": "d04981cb8e9bc8ee1f0f10b1edcf4c0952a1eb7ee4eba88c66315e01ff5ec997"
+    },
+    {
+      "from": "docs/ideas/gf-azure-devops-solution-cicd-idea.md",
+      "to": "docs/ideas/caldova-azure-devops-solution-cicd-idea.md",
+      "kind": "idea",
+      "status": "Draft",
+      "beforeSha256Lf": "77815a92303e8e52d5ab2544ccb0f53e06998c3caae2e29438cc949b269140b3",
+      "afterSha256Lf": "d1ec75380229066864be76fad231ca92cd61e8608231341c1c48cf6002a28359"
+    },
+    {
+      "from": "docs/ideas/gf-blueprint-progress-overview-idea.md",
+      "to": "docs/ideas/caldova-blueprint-progress-overview-idea.md",
+      "kind": "idea",
+      "status": "Draft",
+      "beforeSha256Lf": "77c8595e876e247f874bad0770fe793b8c63dfb684b5165f3c908c55d265d8df",
+      "afterSha256Lf": "29bd8fd8dd42e4d4e49875c67970d50b327458e270b239e95fc197614a22505a"
+    },
+    {
+      "from": "docs/ideas/gf-ess-github-harness-workiq-idea.md",
+      "to": "docs/ideas/caldova-ess-github-harness-workiq-idea.md",
+      "kind": "idea",
+      "status": "Draft",
+      "beforeSha256Lf": "72561197780c69127881b0835e84253f1b96aa2cc249f451b36ab6ef134215e5",
+      "afterSha256Lf": "d9d10294228512cb3b79cfe61fc4998f5eecfa65d0ebb9dc096ef67874fe0cb3"
+    },
+    {
+      "from": "docs/ideas/gf-hr-operations-agent-idea.md",
+      "to": "docs/ideas/caldova-hr-operations-agent-idea.md",
+      "kind": "idea",
+      "status": "Draft",
+      "beforeSha256Lf": "8f1f2a1a7c64dba59df9cc3b147636456790e19fba53d8b445a0eea76735418b",
+      "afterSha256Lf": "4f1c7de909848d27f30d95be6a465ec6a40f848bcee55379e0be4f624febfe5c"
+    },
+    {
+      "from": "docs/ideas/gf-recruiting-requisition-posting-agent-idea.md",
+      "to": "docs/ideas/caldova-recruiting-requisition-posting-agent-idea.md",
+      "kind": "idea",
+      "status": "Draft",
+      "beforeSha256Lf": "863226cd8f78d5c4b2712bdcea77b7e098447c62e4a0388511951848914fb51c",
+      "afterSha256Lf": "540121866a92f82fc6c1d3de0508567d97fd7b5d03d7c611340b8d48110836f6"
+    },
+    {
+      "from": "docs/ideas/gf-sse-hr-policy-assistant-idea.md",
+      "to": "docs/ideas/caldova-sse-hr-policy-assistant-idea.md",
+      "kind": "idea",
+      "status": "Draft",
+      "beforeSha256Lf": "c5df73ab7c16f90ee7d2b244b9de25c473d447723c9c44ab1295bde86d8d9c9e",
+      "afterSha256Lf": "b68c14b2b3eafc1c374999f8231d274cd123561b40b266b3260171cc0857521c"
+    },
+    {
+      "from": "docs/plans/2026-10-28-gf-azure-devops-repository-sprint.md",
+      "to": "docs/plans/2026-10-28-caldova-azure-devops-repository-sprint.md",
+      "kind": "sprint",
+      "status": "Draft",
+      "beforeSha256Lf": "60184d54ef27467a16aa8e1c05076ae46cf49acbaf50b8cec50576c142e5529d",
+      "afterSha256Lf": "0b45032804950106dbcdd0fef801b40bdb122b4934fbc0d8ace9faa7621f0046"
+    },
+    {
+      "from": "docs/plans/2026-10-28-gf-azure-devops-solution-cicd-sprint.md",
+      "to": "docs/plans/2026-10-28-caldova-azure-devops-solution-cicd-sprint.md",
+      "kind": "sprint",
+      "status": "Draft",
+      "beforeSha256Lf": "20f88a36bbb6ec7fdd1296a2391cc2f4d71aa7b4041a0b3e3a7378459366c843",
+      "afterSha256Lf": "1c4011bea431b4bc53443d9a6aeef7faf104c6a680db002dfd93f458d3e8e2fb"
+    },
+    {
+      "from": "docs/plans/2026-10-28-gf-ess-github-harness-workiq-implementation.md",
+      "to": "docs/plans/2026-10-28-caldova-ess-github-harness-workiq-implementation.md",
+      "kind": "implementationPlan",
+      "status": "Draft",
+      "beforeSha256Lf": "1edf58b82a51cd6e815fecad5ef437754cc548d7f79fc1a9709c3c635c72ecf0",
+      "afterSha256Lf": "a6b969fceb81bb4f9f6c2d059af837d876deb81815505967832d95360808367b"
+    },
+    {
+      "from": "docs/plans/2026-10-28-gf-ess-github-harness-workiq-sprint.md",
+      "to": "docs/plans/2026-10-28-caldova-ess-github-harness-workiq-sprint.md",
+      "kind": "sprint",
+      "status": "Draft",
+      "beforeSha256Lf": "41fb6280d42b3c023f2985c423d5c65007dfa66eaa68320796e572d4f9a5b707",
+      "afterSha256Lf": "258f5b3604f37564b007acd2089404aa476eecfd46313274189330bdf48a4e70"
+    },
+    {
+      "from": "docs/plans/2026-10-28-gf-hr-operations-agent-sprint.md",
+      "to": "docs/plans/2026-10-28-caldova-hr-operations-agent-sprint.md",
+      "kind": "sprint",
+      "status": "Draft",
+      "beforeSha256Lf": "8bbf2b0a43a1c6eb9d2fc13a2f183e117bbe1274914630452866654cf19bc011",
+      "afterSha256Lf": "7ca72e75a0aabf61cd4fe819e6778ef59399f59b7984328b80691c8397d76baf"
+    },
+    {
+      "from": "docs/plans/2026-10-28-gf-recruiting-requisition-posting-agent-sprint.md",
+      "to": "docs/plans/2026-10-28-caldova-recruiting-requisition-posting-agent-sprint.md",
+      "kind": "sprint",
+      "status": "Draft",
+      "beforeSha256Lf": "7cca4463fc9f5f52ce0994842f357920e2567a5b82c64c6fe5f126ce04b9a27e",
+      "afterSha256Lf": "ab02a704a8b25cf08afb682d7d22914061181bf607ea62ec661116a3a7d62335"
+    },
+    {
+      "from": "docs/plans/2026-10-28-gf-sse-hr-policy-assistant-sprint.md",
+      "to": "docs/plans/2026-10-28-caldova-sse-hr-policy-assistant-sprint.md",
+      "kind": "sprint",
+      "status": "Draft",
+      "beforeSha256Lf": "037d7af5fb313075f654b8b4e47417e665406145581f6a90b0769c6dba3ac86c",
+      "afterSha256Lf": "5fe53d8410ebe83d5b2e23a4c7581999b2a5a0decb716c01f4372543f8fc5811"
+    },
+    {
+      "from": "docs/plans/2026-10-29-gf-agent-identity-kit-implementation.md",
+      "to": "docs/plans/2026-10-29-caldova-agent-identity-kit-implementation.md",
+      "kind": "implementationPlan",
+      "status": "Draft",
+      "beforeSha256Lf": "84aadf385c8a2171222abee014f27c277617c6cbdc80dfa4218cfdf587f0758a",
+      "afterSha256Lf": "232b66c2e8bda05cf7cc4824cb0f9176cad9d7f3ffa20e0587eb73263528b885"
+    },
+    {
+      "from": "docs/plans/2026-10-29-gf-agent-identity-kit-sprint.md",
+      "to": "docs/plans/2026-10-29-caldova-agent-identity-kit-sprint.md",
+      "kind": "sprint",
+      "status": "Draft",
+      "beforeSha256Lf": "814fa7bc98a88ffbba399d8eab83a85ea8f5f9a2967e2b2ac6a6eb4ca78fbf1a",
+      "afterSha256Lf": "95bbabea56c56030909661e23e3c512f7bd0a3af36ff5bc6d5b873b5bcd3c270"
+    },
+    {
+      "from": "docs/plans/2026-10-29-gf-blueprint-progress-overview-implementation.md",
+      "to": "docs/plans/2026-10-29-caldova-blueprint-progress-overview-implementation.md",
+      "kind": "implementationPlan",
+      "status": "Draft",
+      "beforeSha256Lf": "89f150b7203b784b883cdf716eb805004c5db8a2f1d039527f5ceb94d06b27a4",
+      "afterSha256Lf": "a5bfbdf9b06182093ea32c8f0513bbf0735aedeb21798f97e9fba4da9a095a95"
+    },
+    {
+      "from": "docs/plans/2026-10-29-gf-blueprint-progress-overview-sprint.md",
+      "to": "docs/plans/2026-10-29-caldova-blueprint-progress-overview-sprint.md",
+      "kind": "sprint",
+      "status": "Draft",
+      "beforeSha256Lf": "d6a05f2341c26a8cb7e9e0c3e34d94700365d521d3eeb7cdea88bcde02a8835c",
+      "afterSha256Lf": "a0f6a95d685471fbcd3552df4837b55cf630576691bf38c2b8765987a54689f2"
+    },
+    {
+      "from": "docs/specs/2026-10-28-gf-azure-devops-repository-design.md",
+      "to": "docs/specs/2026-10-28-caldova-azure-devops-repository-design.md",
+      "kind": "specification",
+      "status": "Draft",
+      "beforeSha256Lf": "d933030ff361cef30bec8331f08be8d021a2b0f6a744d7c6fc39ae7af7db9d25",
+      "afterSha256Lf": "bc258466234f059c87f0f885d02b658c0c98a25289e7c557341549f08043e816"
+    },
+    {
+      "from": "docs/specs/2026-10-28-gf-azure-devops-solution-cicd-design.md",
+      "to": "docs/specs/2026-10-28-caldova-azure-devops-solution-cicd-design.md",
+      "kind": "specification",
+      "status": "Draft",
+      "beforeSha256Lf": "ad40cbfd31ae872c18479dc780f4e6aae82bf43a3cc25a46c5ca40b87630f5f5",
+      "afterSha256Lf": "72ea2e35010ee401f520d7fe3f9754ed5e9339ee88ec36b3f37a6ff8ef9f89ba"
+    },
+    {
+      "from": "docs/specs/2026-10-28-gf-ess-github-harness-workiq-design.md",
+      "to": "docs/specs/2026-10-28-caldova-ess-github-harness-workiq-design.md",
+      "kind": "specification",
+      "status": "Draft",
+      "beforeSha256Lf": "a7046cd953bf08d4f5da1431d298f676701b9779dfd5a3751ebeb61dde4466df",
+      "afterSha256Lf": "11e5475df8eb3e6a9cc29ba9cf0c7199e15435766d40aba9bf4f3be31442e213"
+    },
+    {
+      "from": "docs/specs/2026-10-28-gf-hr-operations-agent-design.md",
+      "to": "docs/specs/2026-10-28-caldova-hr-operations-agent-design.md",
+      "kind": "specification",
+      "status": "Draft",
+      "beforeSha256Lf": "dacf14a248b5f447608d37367fea95b6490d11e15c66a96e764a5ea58057d663",
+      "afterSha256Lf": "70ecc92a059d64d364320b30e00ec356d324396a37f91f5c3f04a3844395fc6a"
+    },
+    {
+      "from": "docs/specs/2026-10-28-gf-recruiting-requisition-posting-agent-design.md",
+      "to": "docs/specs/2026-10-28-caldova-recruiting-requisition-posting-agent-design.md",
+      "kind": "specification",
+      "status": "Draft",
+      "beforeSha256Lf": "2a75e87efa61f43d6b0539776981b5d0b9de83df3244a0316136dae9c400eeb4",
+      "afterSha256Lf": "d2a165fae132056027bb824fd6417ba679665b4c5ac164f9a4778493d6feef87"
+    },
+    {
+      "from": "docs/specs/2026-10-28-gf-sse-hr-policy-assistant-design.md",
+      "to": "docs/specs/2026-10-28-caldova-sse-hr-policy-assistant-design.md",
+      "kind": "specification",
+      "status": "Draft",
+      "beforeSha256Lf": "f49386f2bca85b059c0e75e4a631a585da6ae5361efe52c3695b01f8fdee7b05",
+      "afterSha256Lf": "4c0c12444624d5219d6d7106bec709ab6dd4caa0c7d090b28a4457ee1d3b53b8"
+    },
+    {
+      "from": "docs/specs/2026-10-29-gf-agent-identity-kit-design.md",
+      "to": "docs/specs/2026-10-29-caldova-agent-identity-kit-design.md",
+      "kind": "specification",
+      "status": "Draft",
+      "beforeSha256Lf": "39e70c93752142bb469ee7e5624f8b6276d257b49639f6a3f08edad98fc464be",
+      "afterSha256Lf": "11515fc7a307082de9476ee58965b0bf0d1e079d2ccbf8ad71656556e574137d"
+    },
+    {
+      "from": "docs/specs/2026-10-29-gf-blueprint-progress-overview-design.md",
+      "to": "docs/specs/2026-10-29-caldova-blueprint-progress-overview-design.md",
+      "kind": "specification",
+      "status": "Draft",
+      "beforeSha256Lf": "5ea813c143576e04c27347866dbfd207be4e69f005be15f2c1722dcde89cd79b",
+      "afterSha256Lf": "3a7f91884677c5ffa74fdebc7bc26dbf5eaeb27378e21c8eb6a3587cea90671a"
+    }
+  ]
+}

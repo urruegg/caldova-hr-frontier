@@ -1,13 +1,17 @@
-# GF SSE HR Policy Assistant - Draft Specification
+# Caldova SSE HR Policy Assistant - Draft Specification
 
 | Field | Value |
 |---|---|
-| **Version** | 0.3 |
+| **Version** | 0.4 |
 | **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF functional package: employee-facing, read-only policy guidance |
-| **References** | [Idea](../ideas/gf-sse-hr-policy-assistant-idea.md), [Sprint](../plans/2026-10-28-gf-sse-hr-policy-assistant-sprint.md), [Platform requirements](../prd.md), [Workflow-first architecture](../adr/0011-workflow-first-process-architecture.md) |
+| **Scope** | Caldova project/demo; GF source/customer context: functional package: employee-facing, read-only policy guidance |
+| **References** | [Idea](../ideas/caldova-sse-hr-policy-assistant-idea.md), [Sprint](../plans/2026-10-28-caldova-sse-hr-policy-assistant-sprint.md), [Platform requirements](../prd.md), [Workflow-first architecture](../adr/0011-workflow-first-process-architecture.md) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 ## Grounded agent identity
 
@@ -16,11 +20,11 @@ Use the [GF identity kit and adopted bindings](../brand/gf-agent-identity/README
 from its per-agent JSON. This mapping does not select native ESS, change the
 GitHub-harness decision, approve technical names or prove a deployed identity.
 Publisher/solution and target-format decisions remain gated by the
-[identity adoption specification](2026-10-29-gf-agent-identity-kit-design.md).
+[identity adoption specification](2026-10-29-caldova-agent-identity-kit-design.md).
 
 ## 1. Authority and confirmed scope
 
-The supplied build brief v1.0 section 3 describes D3-A01, a read-only Swiss policy assistant. References such as E41 and E42 below are the brief's citations; the underlying SOP, FAQ and policy PDFs have not been independently reviewed. See the [source/publication boundary](../README.md#gf-source-basis-and-publication-boundary).
+The supplied build brief v1.0 section 3 describes D3-A01, a read-only Swiss policy assistant. References such as E41 and E42 below are the brief's citations; the underlying SOP, FAQ and policy PDFs have not been independently reviewed. See the [source/publication boundary](../README.md#caldova-project-and-gf-source-boundary).
 
 The user now confirms a **Switzerland-only MVP with future regional onboarding**, and Copilot Studio's **GitHub Copilot runtime harness** for all MVP agents. ESS and an automatic standard-harness fallback are out of scope. Platform selection is not evidence that tenant access, indexing or TEST delivery works.
 

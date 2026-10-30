@@ -2,14 +2,20 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.1 |
+| **Version** | 0.2 |
 | **Date** | 2026-10-28 |
 | **Author** | Copilot |
 | **Status** | Proposed Baseline |
 | **Scope** | GF new ESS-equivalent only: scoped Work IQ use and self-only delegated Workday actions |
-| **References** | [Specification](../specs/2026-10-28-gf-ess-github-harness-workiq-design.md), [Sprint](../plans/2026-10-28-gf-ess-github-harness-workiq-sprint.md), [HR agent governance](../../AGENTS.md), [ADR-0008](0008-human-in-the-loop-and-write-envelope.md), [ADR-0009](0009-workday-access-via-connector-behind-governed-layer.md), [ADR-0011](0011-workflow-first-process-architecture.md), [ADR-0013](0013-gf-azure-repos-source-authority.md) |
+| **References** | [Specification](../specs/2026-10-28-caldova-ess-github-harness-workiq-design.md), [Sprint](../plans/2026-10-28-caldova-ess-github-harness-workiq-sprint.md), [HR agent governance](../../AGENTS.md), [ADR-0008](0008-human-in-the-loop-and-write-envelope.md), [ADR-0009](0009-workday-access-via-connector-behind-governed-layer.md), [ADR-0011](0011-workflow-first-process-architecture.md), [ADR-0013](0013-gf-azure-repos-source-authority.md) |
 
 ## Context and decision status
+
+The maintained package documents are now Caldova project/demo documents using
+the GF source/customer scenario. This record remains a GF-specific Proposed
+Baseline; its user-reported approval and source claims are not Caldova
+operational authorization. The project/source boundary is maintained in the
+[knowledge map](../README.md#caldova-project-and-gf-source-boundary).
 
 Existing governance deliberately disables Work IQ for HR agents pending Privacy approval, and the HR Operations master-data path is add-only. The user now requests a **new** ESS-equivalent on Copilot Studio's GitHub Copilot runtime harness, with selected employee updates, Workday Help cases and use-case-specific M365 capabilities.
 

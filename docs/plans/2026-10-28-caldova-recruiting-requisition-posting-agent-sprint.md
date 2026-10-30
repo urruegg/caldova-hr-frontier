@@ -1,13 +1,17 @@
-# GF Recruiting: Job Requisition and Job Posting Agent - Draft Sprint
+# Caldova Recruiting: Job Requisition and Job Posting Agent - Draft Sprint
 
 | Field | Value |
 |---|---|
-| **Version** | 0.2 |
-| **Date** | 2026-10-28 |
+| **Version** | 0.3 |
+| **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF functional package: source-gated recruiting workflow sprint proposal |
-| **References** | [Idea](../ideas/gf-recruiting-requisition-posting-agent-idea.md), [Specification](../specs/2026-10-28-gf-recruiting-requisition-posting-agent-design.md), [Package index](../README.md#gf-draft-packages) |
+| **Scope** | Caldova project/demo; GF source/customer context: functional package: source-gated recruiting workflow sprint proposal |
+| **References** | [Idea](../ideas/caldova-recruiting-requisition-posting-agent-idea.md), [Specification](../specs/2026-10-28-caldova-recruiting-requisition-posting-agent-design.md), [Package index](../README.md#caldova-draft-packages) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 ## 1. Sprint goal and planning status
 

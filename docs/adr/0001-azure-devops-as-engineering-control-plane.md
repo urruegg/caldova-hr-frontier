@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 3.1 |
-| **Date** | 2026-10-28 |
+| **Version** | 3.2 |
+| **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
 | **Status** | Approved |
 | **Scope** | Cross-cutting (all solution domains) |
@@ -19,6 +19,11 @@ separately gated; this applicability note does not extend the historical approva
 to GF or alter the demo operating model.
 
 ## Attended Decision
+
+For the newly requested Caldova secondary-copy/direct-source Azure Pipelines
+target, see [Proposed ADR-0015](0015-caldova-github-authority-and-azure-repos-secondary.md).
+The historical approval below remains unchanged. The proposal does not activate
+replication or retire current validation.
 
 Approved on 2026-09-28 for **Option A — Lean single-tenant platform**, as defined by
 the [Tenant 1 Lean Engineering Platform Design](../specs/2026-09-28-tenant-1-lean-engineering-platform-design.md).

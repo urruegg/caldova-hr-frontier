@@ -1,17 +1,21 @@
-# GF SSE HR Policy Assistant - Idea
+# Caldova SSE HR Policy Assistant - Idea
 
 | Field | Value |
 |---|---|
-| **Version** | 0.2 |
-| **Date** | 2026-10-28 |
+| **Version** | 0.3 |
+| **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF functional package: SSE HR Policy assistant |
-| **References** | [Specification](../specs/2026-10-28-gf-sse-hr-policy-assistant-design.md), [Sprint](../plans/2026-10-28-gf-sse-hr-policy-assistant-sprint.md), [Package index](../README.md#gf-draft-packages) |
+| **Scope** | Caldova project/demo; GF source/customer context: functional package: SSE HR Policy assistant |
+| **References** | [Specification](../specs/2026-10-28-caldova-sse-hr-policy-assistant-design.md), [Sprint](../plans/2026-10-28-caldova-sse-hr-policy-assistant-sprint.md), [Package index](../README.md#caldova-draft-packages) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 ## Status and provenance
 
-This is a separate GF draft package, not graduation of Caldova UC-0002. The supplied *MVP 1-3 agent canvases, processes, audiences and SharePoint BOM*, v1.0, section 3, has been reviewed. Its underlying SOP, FAQ workbook and policies have not. Evidence IDs below are references reported by that brief, not independently verified originals. See the [source and reuse register](../README.md#gf-source-basis-and-publication-boundary).
+This Caldova project draft uses the GF customer/source scenario; it does not graduate Caldova UC-0002. The supplied *MVP 1-3 agent canvases, processes, audiences and SharePoint BOM*, v1.0, section 3, has been reviewed. Its underlying SOP, FAQ workbook and policies have not. Evidence IDs below are references reported by that brief, not independently verified originals. See the [source and reuse register](../README.md#caldova-project-and-gf-source-boundary).
 
 ## Problem and expected value
 
@@ -49,7 +53,7 @@ Keep current knowledge, archive, incoming versions and evaluation material separ
 
 Resolve named policy owners, the production source location, support URL, supported languages, CEA-versus-policy conflicts, transcript handling and regional deployment topology. The brief's CEA hierarchy statement is reported guidance, not authority to resolve the cases it explicitly leaves open.
 
-The [specification](../specs/2026-10-28-gf-sse-hr-policy-assistant-design.md#2-process-and-interactions) owns process/interaction diagrams; the sprint owns dependency gates. CAT Knowledge Readiness and Agent Evaluation Designer are conditional preparation aids; Knowledge Source Router is a future-region pattern requiring permission-preserving adaptation, not a ready-made connector. See the [CAT assessment](../README.md#cat-reuse-assessment).
+The [specification](../specs/2026-10-28-caldova-sse-hr-policy-assistant-design.md#2-process-and-interactions) owns process/interaction diagrams; the sprint owns dependency gates. CAT Knowledge Readiness and Agent Evaluation Designer are conditional preparation aids; Knowledge Source Router is a future-region pattern requiring permission-preserving adaptation, not a ready-made connector. See the [CAT assessment](../README.md#cat-reuse-assessment).
 
 ## Board synchronization
 

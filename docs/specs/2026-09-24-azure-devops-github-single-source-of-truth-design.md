@@ -2,16 +2,23 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 2026-09-30 |
+| **Version** | 1.3 |
+| **Date** | 2026-10-29 |
 | **Author** | docs-agent (Voice of Knowledge) |
-| **Status** | Proposed Baseline |
+| **Status** | Superseded |
 | **Scope** | Infrastructure (Tenant 1) |
 | **References** | [ADR-0001](../adr/0001-azure-devops-as-engineering-control-plane.md), [ADR-0002](../adr/0002-github-first-bootstrap-and-the-role-of-azure-repos.md), [Azure DevOps Engineering Control Plane](../../infra/docs/13-azure-devops-engineering-control-plane.md), [GitHub Repository Blueprint](../../infra/docs/14-github-repository-blueprint.md), [Multi-Tenant Provisioning](../../infra/docs/18-multi-tenant-provisioning.md) |
 
 ## Status
 
-Proposed Baseline. This document operationalizes ADR-0001 and ADR-0002 — both still Proposed Baseline themselves — for Tenant 1 (`caldova25156897`). It does not supersede either ADR and introduces no new architectural decision; it confirms, with current evidence, how the already-decided split is meant to be wired together, and records the gap between that decision and what exists today. Nothing in this document authorizes a live change to GitHub or Azure DevOps.
+Superseded as the maintained connection design by the
+[Caldova repository specification](2026-10-28-caldova-azure-devops-repository-design.md)
+and [CI/CD specification](2026-10-28-caldova-azure-devops-solution-cicd-design.md),
+under [Proposed ADR-0015](../adr/0015-caldova-github-authority-and-azure-repos-secondary.md).
+The narrative below is historical point-in-time material, not current read-back
+or authority to repurpose the existing Azure repository. ADR-0001/0002 are now
+Approved historical decisions; the new exception remains Proposed Baseline.
+No live change is authorized by this supersession.
 
 The point-in-time discovery artifact cited below was removed from Git after a synchronized backup, restore/hash verification, and ignored local replacement. Its historical path and run identifier remain prose evidence, not an active repository link or current configuration source.
 

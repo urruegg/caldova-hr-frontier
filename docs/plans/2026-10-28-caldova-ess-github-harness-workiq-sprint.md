@@ -1,17 +1,25 @@
-# GF ESS-Equivalent GitHub Harness and Work IQ Rebuild - Draft Sprint
+# Caldova ESS-Equivalent GitHub Harness and Work IQ Rebuild - Draft Sprint
 
 | Field | Value |
 |---|---|
-| **Version** | 0.2 |
-| **Date** | 2026-10-28 |
+| **Version** | 0.3 |
+| **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF employee self-service: capability proof, six bounded Workday operations and per-use-case M365 support |
-| **References** | [Idea](../ideas/gf-ess-github-harness-workiq-idea.md), [Specification](../specs/2026-10-28-gf-ess-github-harness-workiq-design.md), [Draft implementation plan](2026-10-28-gf-ess-github-harness-workiq-implementation.md), [Proposed scoped ADR](../adr/0014-gf-ess-workiq-and-self-service-write-envelope.md), [GF CI/CD sprint](2026-10-28-gf-azure-devops-solution-cicd-sprint.md), [Package index](../README.md#gf-draft-packages) |
+| **Scope** | Caldova project/demo; GF source/customer context: employee self-service: capability proof, six bounded Workday operations and per-use-case M365 support |
+| **References** | [Idea](../ideas/caldova-ess-github-harness-workiq-idea.md), [Specification](../specs/2026-10-28-caldova-ess-github-harness-workiq-design.md), [Draft implementation plan](2026-10-28-caldova-ess-github-harness-workiq-implementation.md), [Proposed scoped ADR](../adr/0014-gf-ess-workiq-and-self-service-write-envelope.md), [Caldova CI/CD sprint](2026-10-28-caldova-azure-devops-solution-cicd-sprint.md), [Package index](../README.md#caldova-draft-packages) |
 
-## GF handover summary
+## Caldova project and GF source boundary
 
-This is the primary sprint document for the sixth GF handover package; it is reused rather than duplicated. Read the [idea](../ideas/gf-ess-github-harness-workiq-idea.md) for the outcome and canvas, this sprint for candidate work and acceptance, and the [specification](../specs/2026-10-28-gf-ess-github-harness-workiq-design.md) for detailed capability/contracts and Mermaid interactions. The implementation plan and proposed ADR support those three primary documents.
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
+
+## Caldova project handover summary
+
+This is the primary sprint for the Caldova ESS-equivalent project package,
+retaining its GF source/customer scenario. Read the [idea](../ideas/caldova-ess-github-harness-workiq-idea.md),
+this sprint and the [specification](../specs/2026-10-28-caldova-ess-github-harness-workiq-design.md)
+as the primary set; the implementation plan and GF-scenario proposed ADR support
+them without establishing Caldova operational approval.
 
 | Handover question | Current answer |
 |---|---|
@@ -31,7 +39,10 @@ The user selected six transaction scenarios: personal phone, personal email, hom
 
 Dates, duration, capacity, named owners, estimates and relative scenario priority are not supplied. This is a candidate sprint, **not a promise to complete six production integrations inside an invented time box**. Retain all six in scope tracking; acceptance is per scenario. Blocked scenarios are not counted as completed.
 
-There is no deployed agent/source baseline to refactor. Build new from evaluated Microsoft references, in DEV with TEST acceptance. Production and automatic activation are excluded. Existing five GF draft packages remain unchanged.
+There is no deployed agent/source baseline to refactor. Build new from evaluated
+Microsoft references in DEV with TEST acceptance. Production/automatic activation
+are excluded; repurposing the project documentation does not change the other
+packages' functional safety boundaries.
 
 ## 2. Entry gates
 
@@ -121,6 +132,6 @@ The critical current gaps are formal approval scope, delegated runtime propagati
 
 Exclude identity documents, payroll/bank, manager/other-employee changes, employment decisions, automatic approval/case creation, broad inbox/chat grounding, unrestricted connector tools, enabled memory/connected agents, production deployment and a supposed existing source migration.
 
-The user reviewed the written specification as the planning basis. The [Draft implementation plan](2026-10-28-gf-ess-github-harness-workiq-implementation.md) now identifies slices, intended files/test surfaces, validation commands and stop/recovery gates without inventing missing product APIs. Execution and live permissions still require separate approval.
+The user reviewed the written specification as the planning basis. The [Draft implementation plan](2026-10-28-caldova-ess-github-harness-workiq-implementation.md) now identifies slices, intended files/test surfaces, validation commands and stop/recovery gates without inventing missing product APIs. Execution and live permissions still require separate approval.
 
 Board synchronization is Deferred - not synchronized.

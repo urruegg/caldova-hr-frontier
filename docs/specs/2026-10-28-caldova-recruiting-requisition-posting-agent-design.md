@@ -1,13 +1,17 @@
-# GF Recruiting: Job Requisition and Job Posting Agent - Draft Specification
+# Caldova Recruiting: Job Requisition and Job Posting Agent - Draft Specification
 
 | Field | Value |
 |---|---|
-| **Version** | 0.3 |
+| **Version** | 0.4 |
 | **Date** | 2026-10-29 |
 | **Author** | Copilot |
 | **Status** | Draft |
-| **Scope** | GF functional package: recruiting preparation with stakeholder-gated action scope |
-| **References** | [Idea](../ideas/gf-recruiting-requisition-posting-agent-idea.md), [Sprint](../plans/2026-10-28-gf-recruiting-requisition-posting-agent-sprint.md), [Platform requirements](../prd.md), [Write envelope](../adr/0008-human-in-the-loop-and-write-envelope.md), [Governed Workday access](../adr/0009-workday-access-via-connector-behind-governed-layer.md), [Workflow-first architecture](../adr/0011-workflow-first-process-architecture.md) |
+| **Scope** | Caldova project/demo; GF source/customer context: functional package: recruiting preparation with stakeholder-gated action scope |
+| **References** | [Idea](../ideas/caldova-recruiting-requisition-posting-agent-idea.md), [Sprint](../plans/2026-10-28-caldova-recruiting-requisition-posting-agent-sprint.md), [Platform requirements](../prd.md), [Write envelope](../adr/0008-human-in-the-loop-and-write-envelope.md), [Governed Workday access](../adr/0009-workday-access-via-connector-behind-governed-layer.md), [Workflow-first architecture](../adr/0011-workflow-first-process-architecture.md) |
+
+## Caldova project and GF source boundary
+
+This is a Caldova project/demo document using the explicitly identified GF source/customer scenario. GF facts, approvals, requirements and trademarks remain GF-scoped; project renaming does not establish Caldova corporate policy or runtime acceptance. See the [source and authority boundary](../README.md#caldova-project-and-gf-source-boundary). Existing stable IDs are retained for traceability, not reassigned.
 
 ## Grounded agent identity
 
@@ -16,11 +20,11 @@ Use the [GF identity kit and adopted bindings](../brand/gf-agent-identity/README
 the bound source identity, not a title shortened independently by each maker.
 The identity does not resolve GF-REC-D01, enable publication/Workday writes or
 approve a schema/solution migration. Apply the
-[identity adoption gates](2026-10-29-gf-agent-identity-kit-design.md) before deployment.
+[identity adoption gates](2026-10-29-caldova-agent-identity-kit-design.md) before deployment.
 
 ## 1. Authority and confirmed scope
 
-Section 4 of the supplied build brief v1.0 describes D1-A01 and cites E20/E21/E22/E43. The original PRD, BOM, SOP and templates remain unreviewed here. The selected platform is Copilot Studio's GitHub Copilot runtime harness, not the brief's standard-harness build proposal; ESS is excluded. See the [source register](../README.md#gf-source-basis-and-publication-boundary).
+Section 4 of the supplied build brief v1.0 describes D1-A01 and cites E20/E21/E22/E43. The original PRD, BOM, SOP and templates remain unreviewed here. The selected platform is Copilot Studio's GitHub Copilot runtime harness, not the brief's standard-harness build proposal; ESS is excluded. See the [source register](../README.md#caldova-project-and-gf-source-boundary).
 
 **GF-REC-D01 is unresolved by explicit user instruction.** Earlier discussion requested approved agent creation of requisitions and publication. The brief requires human Workday entry/submission and manual recruiter publication. HR stakeholders must decide the action boundary. This draft enables neither Workday writes nor publication automation and does not silently choose the manual route as the final agreement.
 
